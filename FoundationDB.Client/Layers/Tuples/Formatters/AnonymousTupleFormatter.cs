@@ -31,28 +31,28 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 
 	/// <summary>Customer formatter that will called the provided lambda functions to convert to and from a tuple</summary>
-	internal sealed class FdbAnonymousTupleFormatter<T> : ITupleFormatter<T>
+	internal sealed class AnonymousTupleFormatter<T> : ITupleFormatter<T>
 	{
-		private readonly Func<T, IFdbTuple> m_to;
-		private readonly Func<IFdbTuple, T> m_from;
+		private readonly Func<T, ITuple> m_to;
+		private readonly Func<ITuple, T> m_from;
 
-		public FdbAnonymousTupleFormatter(Func<T, IFdbTuple> to, Func<IFdbTuple, T> from)
+		public AnonymousTupleFormatter(Func<T, ITuple> to, Func<ITuple, T> from)
 		{
-			if (to == null) throw new ArgumentNullException("to");
-			if (from == null) throw new ArgumentNullException("from");
+			if (to == null) throw new ArgumentNullException(nameof(to));
+			if (from == null) throw new ArgumentNullException(nameof(@from));
 
 			m_to = to;
 			m_from = from;
 		}
 
-		public IFdbTuple ToTuple(T key)
+		public ITuple ToTuple(T key)
 		{
 			return m_to(key);
 		}
 
-		public T FromTuple(IFdbTuple tuple)
+		public T FromTuple(ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 			return m_from(tuple);
 		}
 	}

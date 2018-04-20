@@ -41,50 +41,40 @@ namespace FoundationDB.Layers.Tuples
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public static class FdbTuple
+	public static class STuple
 	{
 		/// <summary>Empty tuple</summary>
 		/// <remarks>Not to be mistaken with a 1-tuple containing 'null' !</remarks>
-		public static readonly IFdbTuple Empty = new EmptyTuple();
+		public static readonly ITuple Empty = new EmptyTuple();
 
 		/// <summary>Empty tuple (singleton that is used as a base for other tuples)</summary>
-		private sealed class EmptyTuple : IFdbTuple
+		private sealed class EmptyTuple : ITuple
 		{
 
-			public int Count
-			{
-				get { return 0; }
-			}
+			public int Count => 0;
 
-			object IReadOnlyList<object>.this[int index]
-			{
-				get { throw new InvalidOperationException("Tuple is empty"); }
-			}
+			object IReadOnlyList<object>.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
-			public IFdbTuple this[int? from, int? to]
-			{
-				//REVIEW: should we throw if from/to are not null, 0 or -1 ?
-				get { return this; }
-			}
-
+			public ITuple this[int? from, int? to] => this;
+			//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 			public R Get<R>(int index)
 			{
 				throw new InvalidOperationException("Tuple is empty");
 			}
 
-			R IFdbTuple.Last<R>()
+			R ITuple.Last<R>()
 			{
 				throw new InvalidOperationException("Tuple is empty");
 			}
 
-			public IFdbTuple Append<T1>(T1 value)
+			public ITuple Append<T1>(T1 value)
 			{
-				return new FdbTuple<T1>(value);
+				return new STuple<T1>(value);
 			}
 
-			public IFdbTuple Concat(IFdbTuple tuple)
+			public ITuple Concat(ITuple tuple)
 			{
-				if (tuple == null) throw new ArgumentNullException("tuple");
+				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 				if (tuple is EmptyTuple || tuple.Count == 0) return this;
 				return tuple;
 			}
@@ -124,19 +114,19 @@ namespace FoundationDB.Layers.Tuples
 				return 0;
 			}
 
-			public bool Equals(IFdbTuple value)
+			public bool Equals(ITuple value)
 			{
 				return value != null && value.Count == 0;
 			}
 
 			public override bool Equals(object obj)
 			{
-				return Equals(obj as IFdbTuple);
+				return Equals(obj as ITuple);
 			}
 
 			bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
 			{
-				var tuple = other as IFdbTuple;
+				var tuple = other as ITuple;
 				return tuple != null && tuple.Count == 0;
 			}
 
@@ -150,68 +140,68 @@ namespace FoundationDB.Layers.Tuples
 		#region Creation
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
-		/// <remarks>This is the non-generic equivalent of FdbTuple.Create&lt;object&gt;()</remarks>
+		/// <remarks>This is the non-generic equivalent of STuple.Create&lt;object&gt;()</remarks>
 		[NotNull]
-		public static IFdbTuple CreateBoxed(object item)
+		public static ITuple CreateBoxed(object item)
 		{
-			return new FdbTuple<object>(item);
+			return new STuple<object>(item);
 		}
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		[DebuggerStepThrough]
-		public static FdbTuple<T1> Create<T1>(T1 item1)
+		public static STuple<T1> Create<T1>(T1 item1)
 		{
-			return new FdbTuple<T1>(item1);
+			return new STuple<T1>(item1);
 		}
 
 		/// <summary>Create a new 2-tuple, holding two items</summary>
 		[DebuggerStepThrough]
-		public static FdbTuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
+		public static STuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
 		{
-			return new FdbTuple<T1, T2>(item1, item2);
+			return new STuple<T1, T2>(item1, item2);
 		}
 
 		/// <summary>Create a new 3-tuple, holding three items</summary>
 		[DebuggerStepThrough]
-		public static FdbTuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+		public static STuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			return new FdbTuple<T1, T2, T3>(item1, item2, item3);
+			return new STuple<T1, T2, T3>(item1, item2, item3);
 		}
 
 		/// <summary>Create a new 4-tuple, holding four items</summary>
 		[DebuggerStepThrough]
-		public static FdbTuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return new FdbTuple<T1, T2, T3, T4>(item1, item2, item3, item4);
+			return new STuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
 		/// <summary>Create a new 5-tuple, holding five items</summary>
 		[DebuggerStepThrough]
-		public static FdbTuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			return new FdbTuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
+			return new STuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
 		[NotNull]
-		public static IFdbTuple Create([NotNull] params object[] items)
+		public static ITuple Create([NotNull] params object[] items)
 		{
-			if (items == null) throw new ArgumentNullException("items");
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
 
-			if (items.Length == 0) return FdbTuple.Empty;
+			if (items.Length == 0) return STuple.Empty;
 
 			// We don't copy the array, and rely on the fact that the array was created by the compiler and that nobody will get a reference on it.
-			return new FdbListTuple(items, 0, items.Length);
+			return new ListTuple(items, 0, items.Length);
 		}
 
 		/// <summary>Create a new N-tuple that wraps an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static IFdbTuple Wrap([NotNull] object[] items)
+		public static ITuple Wrap([NotNull] object[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
 			if (items == null) throw new ArgumentException("items");
@@ -221,14 +211,14 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static IFdbTuple Wrap([NotNull] object[] items, int offset, int count)
+		public static ITuple Wrap([NotNull] object[] items, int offset, int count)
 		{
 			return FromObjects(items, offset, count, copy: false);
 		}
 
 		/// <summary>Create a new N-tuple by copying the content of an array of untyped items</summary>
 		[NotNull]
-		public static IFdbTuple FromObjects([NotNull] object[] items)
+		public static ITuple FromObjects([NotNull] object[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
 			if (items == null) throw new ArgumentException("items");
@@ -237,7 +227,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Create a new N-tuple by copying a section of an array of untyped items</summary>
 		[NotNull]
-		public static IFdbTuple FromObjects([NotNull] object[] items, int offset, int count)
+		public static ITuple FromObjects([NotNull] object[] items, int offset, int count)
 		{
 			return FromObjects(items, offset, count, copy: true);
 		}
@@ -245,25 +235,25 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If <paramref name="copy"/> is true, and the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static IFdbTuple FromObjects([NotNull] object[] items, int offset, int count, bool copy)
+		public static ITuple FromObjects([NotNull] object[] items, int offset, int count, bool copy)
 		{
-			if (items == null) throw new ArgumentNullException("items");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
-			if (offset + count > items.Length) throw new ArgumentOutOfRangeException("count", "Source array is too small");
+			if (items == null) throw new ArgumentNullException(nameof(items));
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
+			if (offset + count > items.Length) throw new ArgumentOutOfRangeException(nameof(count), "Source array is too small");
 
-			if (count == 0) return FdbTuple.Empty;
+			if (count == 0) return STuple.Empty;
 
 			if (copy)
 			{
 				var tmp = new object[count];
 				Array.Copy(items, offset, tmp, 0, count);
-				return new FdbListTuple(tmp, 0, count);
+				return new ListTuple(tmp, 0, count);
 			}
 			else
 			{
 				// can mutate if passed a pre-allocated array: { var foo = new objec[123]; Create(foo); foo[42] = "bad"; }
-				return new FdbListTuple(items, offset, count);
+				return new ListTuple(items, offset, count);
 			}
 		}
 
@@ -271,44 +261,44 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="items">Array of items</param>
 		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
 		[NotNull]
-		public static IFdbTuple FromArray<T>([NotNull] T[] items)
+		public static ITuple FromArray<T>([NotNull] T[] items)
 		{
-			if (items == null) throw new ArgumentNullException("items");
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			return FromArray<T>(items, 0, items.Length);
 		}
 
 		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
 		[NotNull]
-		public static IFdbTuple FromArray<T>([NotNull] T[] items, int offset, int count)
+		public static ITuple FromArray<T>([NotNull] T[] items, int offset, int count)
 		{
-			if (items == null) throw new ArgumentNullException("items");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
-			if (offset + count > items.Length) throw new ArgumentOutOfRangeException("count", "Source array is too small");
+			if (items == null) throw new ArgumentNullException(nameof(items));
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
+			if (offset + count > items.Length) throw new ArgumentOutOfRangeException(nameof(count), "Source array is too small");
 
 			switch(count)
 			{
-				case 0: return FdbTuple.Empty;
-				case 1: return FdbTuple.Create<T>(items[offset]);
-				case 2: return FdbTuple.Create<T, T>(items[offset], items[offset + 1]);
-				case 3: return FdbTuple.Create<T, T, T>(items[offset], items[offset + 1], items[offset + 2]);
-				case 4: return FdbTuple.Create<T, T, T, T>(items[offset], items[offset + 1], items[offset + 2], items[offset + 3]);
+				case 0: return STuple.Empty;
+				case 1: return STuple.Create<T>(items[offset]);
+				case 2: return STuple.Create<T, T>(items[offset], items[offset + 1]);
+				case 3: return STuple.Create<T, T, T>(items[offset], items[offset + 1], items[offset + 2]);
+				case 4: return STuple.Create<T, T, T, T>(items[offset], items[offset + 1], items[offset + 2], items[offset + 3]);
 				default:
 				{ // copy the items in a temp array
 					//TODO: we would probably benefit from having an FdbListTuple<T> here!
 					var tmp = new object[count];
 					Array.Copy(items, offset, tmp, 0, count);
-					return new FdbListTuple(tmp, 0, count);
+					return new ListTuple(tmp, 0, count);
 				}
 			}
 		}
 
 		/// <summary>Create a new tuple from a sequence of typed items</summary>
 		[NotNull]
-		public static IFdbTuple FromEnumerable<T>([NotNull] IEnumerable<T> items)
+		public static ITuple FromEnumerable<T>([NotNull] IEnumerable<T> items)
 		{
-			if (items == null) throw new ArgumentNullException("items");
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			var arr = items as T[];
 			if (arr != null)
@@ -317,7 +307,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			// may already be a tuple (because it implements IE<obj>)
-			var tuple = items as IFdbTuple;
+			var tuple = items as ITuple;
 			if (tuple != null)
 			{
 				return tuple;
@@ -325,15 +315,15 @@ namespace FoundationDB.Layers.Tuples
 
 			object[] tmp = items.Cast<object>().ToArray();
 			//TODO: we would probably benefit from having an FdbListTuple<T> here!
-			return new FdbListTuple(tmp, 0, tmp.Length);
+			return new ListTuple(tmp, 0, tmp.Length);
 		}
 
 		/// <summary>Concatenates two tuples together</summary>
 		[NotNull]
-		public static IFdbTuple Concat([NotNull] IFdbTuple head, [NotNull] IFdbTuple tail)
+		public static ITuple Concat([NotNull] ITuple head, [NotNull] ITuple tail)
 		{
-			if (head == null) throw new ArgumentNullException("head");
-			if (tail == null) throw new ArgumentNullException("tail");
+			if (head == null) throw new ArgumentNullException(nameof(head));
+			if (tail == null) throw new ArgumentNullException(nameof(tail));
 
 			int n1 = head.Count;
 			if (n1 == 0) return tail;
@@ -341,7 +331,7 @@ namespace FoundationDB.Layers.Tuples
 			int n2 = tail.Count;
 			if (n2 == 0) return head;
 
-			return new FdbJoinedTuple(head, tail);
+			return new JoinedTuple(head, tail);
 		}
 
 		#endregion
@@ -352,12 +342,12 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
-		public static Slice Pack([NotNull] IFdbTuple tuple)
+		public static Slice Pack([NotNull] ITuple tuple)
 		{
 			//note: this is redundant with tuple.ToSlice()
 			// => maybe we should remove this method?
 
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 			return tuple.ToSlice();
 		}
 
@@ -366,7 +356,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] Pack([NotNull] params IFdbTuple[] tuples)
+		public static Slice[] Pack([NotNull] params ITuple[] tuples)
 		{
 			return Pack(Slice.Nil, tuples);
 		}
@@ -376,21 +366,21 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] Pack([NotNull] IEnumerable<IFdbTuple> tuples)
+		public static Slice[] Pack([NotNull] IEnumerable<ITuple> tuples)
 		{
 			return Pack(Slice.Nil, tuples);
 		}
 
 		// With prefix
 
-		public static void Pack(ref TupleWriter writer, [CanBeNull] IFdbTuple tuple)
+		public static void Pack(ref TupleWriter writer, [CanBeNull] ITuple tuple)
 		{
 			if (tuple == null || tuple.Count == 0) return;
 			tuple.PackTo(ref writer);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a tuple</summary>
-		public static Slice Pack(Slice prefix, [CanBeNull] IFdbTuple tuple)
+		public static Slice Pack(Slice prefix, [CanBeNull] ITuple tuple)
 		{
 			if (tuple == null || tuple.Count == 0) return prefix;
 
@@ -406,9 +396,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] Pack(Slice prefix, [NotNull] params IFdbTuple[] tuples)
+		public static Slice[] Pack(Slice prefix, [NotNull] params ITuple[] tuples)
 		{
-			if (tuples == null) throw new ArgumentNullException("tuples");
+			if (tuples == null) throw new ArgumentNullException(nameof(tuples));
 
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
 			var writer = new TupleWriter(tuples.Length * (16 + prefix.Count));
@@ -432,12 +422,12 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] Pack(Slice prefix, [NotNull] IEnumerable<IFdbTuple> tuples)
+		public static Slice[] Pack(Slice prefix, [NotNull] IEnumerable<ITuple> tuples)
 		{
-			if (tuples == null) throw new ArgumentNullException("tuples");
+			if (tuples == null) throw new ArgumentNullException(nameof(tuples));
 
 			// use optimized version for arrays
-			var array = tuples as IFdbTuple[];
+			var array = tuples as ITuple[];
 			if (array != null) return Pack(prefix, array);
 
 			var next = new List<int>();
@@ -456,10 +446,10 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		[NotNull]
-		public static Slice[] Pack<TElement>(Slice prefix, [NotNull] TElement[] elements, Func<TElement, IFdbTuple> transform)
+		public static Slice[] Pack<TElement>(Slice prefix, [NotNull] TElement[] elements, Func<TElement, ITuple> transform)
 		{
-			if (elements == null) throw new ArgumentNullException("elements");
-			if (transform == null) throw new ArgumentNullException("transform");
+			if (elements == null) throw new ArgumentNullException(nameof(elements));
+			if (transform == null) throw new ArgumentNullException(nameof(transform));
 
 			var next = new List<int>(elements.Length);
 			var writer = new TupleWriter();
@@ -485,10 +475,10 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		[NotNull]
-		public static Slice[] Pack<TElement>(Slice prefix, [NotNull] IEnumerable<TElement> elements, Func<TElement, IFdbTuple> transform)
+		public static Slice[] Pack<TElement>(Slice prefix, [NotNull] IEnumerable<TElement> elements, Func<TElement, ITuple> transform)
 		{
-			if (elements == null) throw new ArgumentNullException("elements");
-			if (transform == null) throw new ArgumentNullException("transform");
+			if (elements == null) throw new ArgumentNullException(nameof(elements));
+			if (transform == null) throw new ArgumentNullException(nameof(transform));
 
 			// use optimized version for arrays
 			var array = elements as TElement[];
@@ -527,7 +517,7 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1>(T1 item1)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
 			return writer.Output.ToSlice();
 		}
 
@@ -535,8 +525,8 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2>(T1 item1, T2 item2)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
 			return writer.Output.ToSlice();
 		}
 
@@ -544,9 +534,9 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T3>.SerializeTo(ref writer, item3);
 			return writer.Output.ToSlice();
 		}
 
@@ -554,10 +544,10 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
-			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T3>.SerializeTo(ref writer, item3);
+			TuplePacker<T4>.SerializeTo(ref writer, item4);
 			return writer.Output.ToSlice();
 		}
 
@@ -565,11 +555,11 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
-			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
-			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T3>.SerializeTo(ref writer, item3);
+			TuplePacker<T4>.SerializeTo(ref writer, item4);
+			TuplePacker<T5>.SerializeTo(ref writer, item5);
 			return writer.Output.ToSlice();
 		}
 
@@ -577,12 +567,12 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
-			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
-			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
-			FdbTuplePacker<T6>.SerializeTo(ref writer, item6);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T3>.SerializeTo(ref writer, item3);
+			TuplePacker<T4>.SerializeTo(ref writer, item4);
+			TuplePacker<T5>.SerializeTo(ref writer, item5);
+			TuplePacker<T6>.SerializeTo(ref writer, item6);
 			return writer.Output.ToSlice();
 		}
 
@@ -590,13 +580,13 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
-			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
-			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
-			FdbTuplePacker<T6>.SerializeTo(ref writer, item6);
-			FdbTuplePacker<T7>.SerializeTo(ref writer, item7);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T3>.SerializeTo(ref writer, item3);
+			TuplePacker<T4>.SerializeTo(ref writer, item4);
+			TuplePacker<T5>.SerializeTo(ref writer, item5);
+			TuplePacker<T6>.SerializeTo(ref writer, item6);
+			TuplePacker<T7>.SerializeTo(ref writer, item7);
 			return writer.Output.ToSlice();
 		}
 
@@ -604,14 +594,14 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			var writer = new TupleWriter();
-			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
-			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
-			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
-			FdbTuplePacker<T6>.SerializeTo(ref writer, item6);
-			FdbTuplePacker<T7>.SerializeTo(ref writer, item7);
-			FdbTuplePacker<T8>.SerializeTo(ref writer, item8);
+			TuplePacker<T1>.SerializeTo(ref writer, item1);
+			TuplePacker<T2>.SerializeTo(ref writer, item2);
+			TuplePacker<T3>.SerializeTo(ref writer, item3);
+			TuplePacker<T4>.SerializeTo(ref writer, item4);
+			TuplePacker<T5>.SerializeTo(ref writer, item5);
+			TuplePacker<T6>.SerializeTo(ref writer, item6);
+			TuplePacker<T7>.SerializeTo(ref writer, item7);
+			TuplePacker<T8>.SerializeTo(ref writer, item8);
 			return writer.Output.ToSlice();
 		}
 
@@ -629,8 +619,8 @@ namespace FoundationDB.Layers.Tuples
 		[NotNull]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, [NotNull] IEnumerable<T> keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (prefix == null) throw new ArgumentNullException(nameof(prefix));
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 			// use optimized version for arrays
 			var array = keys as T[];
@@ -638,7 +628,7 @@ namespace FoundationDB.Layers.Tuples
 
 			var next = new List<int>();
 			var writer = new TupleWriter();
-			var packer = FdbTuplePacker<T>.Encoder;
+			var packer = TuplePacker<T>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -666,12 +656,12 @@ namespace FoundationDB.Layers.Tuples
 		[NotNull]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, [NotNull] params T[] keys)
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var writer = new TupleWriter(keys.Length * (prefix.Count + 8));
 			var next = new List<int>(keys.Length);
-			var packer = FdbTuplePacker<T>.Encoder;
+			var packer = TuplePacker<T>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -707,13 +697,13 @@ namespace FoundationDB.Layers.Tuples
 		[NotNull]
 		public static Slice[] EncodePrefixedKeys<TKey, TElement>(Slice prefix, [NotNull] TElement[] elements, [NotNull] Func<TElement, TKey> selector)
 		{
-			if (elements == null) throw new ArgumentNullException("elements");
-			if (selector == null) throw new ArgumentNullException("selector");
+			if (elements == null) throw new ArgumentNullException(nameof(elements));
+			if (selector == null) throw new ArgumentNullException(nameof(selector));
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var writer = new TupleWriter(elements.Length * (prefix.Count + 8));
 			var next = new List<int>(elements.Length);
-			var packer = FdbTuplePacker<TKey>.Encoder;
+			var packer = TuplePacker<TKey>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -733,9 +723,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] EncodePrefixedKeys<T>([NotNull] IFdbTuple prefix, [NotNull] IEnumerable<T> keys)
+		public static Slice[] EncodePrefixedKeys<T>([NotNull] ITuple prefix, [NotNull] IEnumerable<T> keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (prefix == null) throw new ArgumentNullException(nameof(prefix));
 
 			return EncodePrefixedKeys<T>(prefix.ToSlice(), keys);
 		}
@@ -746,9 +736,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] EncodePrefixedKeys<T>([NotNull] IFdbTuple prefix, [NotNull] params T[] keys)
+		public static Slice[] EncodePrefixedKeys<T>([NotNull] ITuple prefix, [NotNull] params T[] keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (prefix == null) throw new ArgumentNullException(nameof(prefix));
 
 			return EncodePrefixedKeys<T>(prefix.ToSlice(), keys);
 		}
@@ -762,23 +752,23 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[NotNull]
-		public static IFdbTuple Unpack(Slice packedKey)
+		public static ITuple Unpack(Slice packedKey)
 		{
-			if (packedKey.IsNull) throw new ArgumentNullException("packedKey");
-			if (packedKey.Count == 0) return FdbTuple.Empty;
+			if (packedKey.IsNull) throw new ArgumentNullException(nameof(packedKey));
+			if (packedKey.Count == 0) return STuple.Empty;
 
-			return FdbTuplePackers.Unpack(packedKey, false);
+			return TuplePackers.Unpack(packedKey, false);
 		}
 
 		/// <summary>Unpack a tuple from a binary representation</summary>
 		/// <param name="packedKey">Binary key containing a previously packed tuple, or Slice.Nil</param>
 		/// <returns>Unpacked tuple, the empty tuple if <paramref name="packedKey"/> is equal to <see cref="Slice.Empty"/>, or null if the key is <see cref="Slice.Nil"/></returns>
 		[CanBeNull]
-		public static IFdbTuple UnpackOrDefault(Slice packedKey)
+		public static ITuple UnpackOrDefault(Slice packedKey)
 		{
 			if (packedKey.IsNull) return null;
-			if (packedKey.Count == 0) return FdbTuple.Empty;
-			return FdbTuplePackers.Unpack(packedKey, false);
+			if (packedKey.Count == 0) return STuple.Empty;
+			return TuplePackers.Unpack(packedKey, false);
 		}
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
@@ -789,10 +779,10 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack the first element of an empty tuple");
 
-			var slice = FdbTuplePackers.UnpackFirst(packedKey);
+			var slice = TuplePackers.UnpackFirst(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
-			return FdbTuplePacker<T>.Deserialize(slice);
+			return TuplePacker<T>.Deserialize(slice);
 		}
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
@@ -803,10 +793,10 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack the last element of an empty tuple");
 
-			var slice = FdbTuplePackers.UnpackLast(packedKey);
+			var slice = TuplePackers.UnpackLast(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
-			return FdbTuplePacker<T>.Deserialize(slice);
+			return TuplePacker<T>.Deserialize(slice);
 		}
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
@@ -817,16 +807,16 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack a single value out of an empty tuple");
 
-			var slice = FdbTuplePackers.UnpackSingle(packedKey);
+			var slice = TuplePackers.UnpackSingle(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
-			return FdbTuplePacker<T>.Deserialize(slice);
+			return TuplePacker<T>.Deserialize(slice);
 		}
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
-		public static FdbTuple<T1, T2> DecodeKey<T1, T2>(Slice packedKey)
+		public static STuple<T1, T2> DecodeKey<T1, T2>(Slice packedKey)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -846,7 +836,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Unpack a key containing three elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
-		public static FdbTuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packedKey)
+		public static STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packedKey)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -869,7 +859,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Unpack a key containing four elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
-		public static FdbTuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packedKey)
+		public static STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packedKey)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -895,7 +885,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Unpack a key containing five elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
-		public static FdbTuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
+		public static STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -934,8 +924,8 @@ namespace FoundationDB.Layers.Tuples
 				return false;
 			}
 
-			var slice = FdbTupleParser.ParseNext(ref input);
-			value = FdbTuplePacker<T>.Deserialize(slice);
+			var slice = TupleParser.ParseNext(ref input);
+			value = TuplePacker<T>.Deserialize(slice);
 			return true;
 		}
 
@@ -950,7 +940,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T>.Encoder(ref writer, value);
+			TuplePacker<T>.Encoder(ref writer, value);
 			return writer.Output.ToSlice();
 		}
 
@@ -959,8 +949,8 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
 			return writer.Output.ToSlice();
 		}
 
@@ -969,9 +959,9 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			FdbTuplePacker<T3>.Encoder(ref writer, value3);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T3>.Encoder(ref writer, value3);
 			return writer.Output.ToSlice();
 		}
 
@@ -980,10 +970,10 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			FdbTuplePacker<T3>.Encoder(ref writer, value3);
-			FdbTuplePacker<T4>.Encoder(ref writer, value4);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T3>.Encoder(ref writer, value3);
+			TuplePacker<T4>.Encoder(ref writer, value4);
 			return writer.Output.ToSlice();
 		}
 
@@ -992,11 +982,11 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			FdbTuplePacker<T3>.Encoder(ref writer, value3);
-			FdbTuplePacker<T4>.Encoder(ref writer, value4);
-			FdbTuplePacker<T5>.Encoder(ref writer, value5);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T3>.Encoder(ref writer, value3);
+			TuplePacker<T4>.Encoder(ref writer, value4);
+			TuplePacker<T5>.Encoder(ref writer, value5);
 			return writer.Output.ToSlice();
 		}
 
@@ -1005,12 +995,12 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			FdbTuplePacker<T3>.Encoder(ref writer, value3);
-			FdbTuplePacker<T4>.Encoder(ref writer, value4);
-			FdbTuplePacker<T5>.Encoder(ref writer, value5);
-			FdbTuplePacker<T6>.Encoder(ref writer, value6);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T3>.Encoder(ref writer, value3);
+			TuplePacker<T4>.Encoder(ref writer, value4);
+			TuplePacker<T5>.Encoder(ref writer, value5);
+			TuplePacker<T6>.Encoder(ref writer, value6);
 			return writer.Output.ToSlice();
 		}
 
@@ -1019,13 +1009,13 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			FdbTuplePacker<T3>.Encoder(ref writer, value3);
-			FdbTuplePacker<T4>.Encoder(ref writer, value4);
-			FdbTuplePacker<T5>.Encoder(ref writer, value5);
-			FdbTuplePacker<T6>.Encoder(ref writer, value6);
-			FdbTuplePacker<T7>.Encoder(ref writer, value7);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T3>.Encoder(ref writer, value3);
+			TuplePacker<T4>.Encoder(ref writer, value4);
+			TuplePacker<T5>.Encoder(ref writer, value5);
+			TuplePacker<T6>.Encoder(ref writer, value6);
+			TuplePacker<T7>.Encoder(ref writer, value7);
 			return writer.Output.ToSlice();
 		}
 
@@ -1034,14 +1024,14 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Encoder(ref writer, value1);
-			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			FdbTuplePacker<T3>.Encoder(ref writer, value3);
-			FdbTuplePacker<T4>.Encoder(ref writer, value4);
-			FdbTuplePacker<T5>.Encoder(ref writer, value5);
-			FdbTuplePacker<T6>.Encoder(ref writer, value6);
-			FdbTuplePacker<T7>.Encoder(ref writer, value7);
-			FdbTuplePacker<T8>.Encoder(ref writer, value8);
+			TuplePacker<T1>.Encoder(ref writer, value1);
+			TuplePacker<T2>.Encoder(ref writer, value2);
+			TuplePacker<T3>.Encoder(ref writer, value3);
+			TuplePacker<T4>.Encoder(ref writer, value4);
+			TuplePacker<T5>.Encoder(ref writer, value5);
+			TuplePacker<T6>.Encoder(ref writer, value6);
+			TuplePacker<T7>.Encoder(ref writer, value7);
+			TuplePacker<T8>.Encoder(ref writer, value8);
 			return writer.Output.ToSlice();
 		}
 
@@ -1054,7 +1044,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="right">Right tuple</param>
 		/// <returns>True if the tuples are considered equal; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
 		/// <remarks>This method is equivalent of calling left.Equals(right), </remarks>
-		public static bool Equals(IFdbTuple left, IFdbTuple right)
+		public static bool Equals(ITuple left, ITuple right)
 		{
 			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
 			return left.Equals(right);
@@ -1064,19 +1054,19 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="left">Left tuple</param>
 		/// <param name="right">Right tuple</param>
 		/// <returns>True if the tuples are considered similar; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
-		public static bool Equivalent(IFdbTuple left, IFdbTuple right)
+		public static bool Equivalent(ITuple left, ITuple right)
 		{
 			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
-			return !object.ReferenceEquals(right, null) && Equals(left, right, FdbTupleComparisons.Default);
+			return !object.ReferenceEquals(right, null) && Equals(left, right, TupleComparisons.Default);
 		}
 
 		/// <summary>Create a range that selects all tuples that are stored under the specified subspace: 'prefix\x00' &lt;= k &lt; 'prefix\xFF'</summary>
 		/// <param name="prefix">Subspace binary prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all possible tuples starting with the specified prefix.</returns>
-		/// <remarks>FdbTuple.ToRange(Slice.FromAscii("abc")) returns the range [ 'abc\x00', 'abc\xFF' )</remarks>
+		/// <remarks>STuple.ToRange(Slice.FromAscii("abc")) returns the range [ 'abc\x00', 'abc\xFF' )</remarks>
 		public static KeyRange ToRange(Slice prefix)
 		{
-			if (prefix.IsNull) throw new ArgumentNullException("prefix");
+			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
 
 			//note: there is no guarantee that prefix is a valid packed tuple (could be any exotic binary prefix)
 
@@ -1088,10 +1078,10 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
-		public static KeyRange ToRange([NotNull] IFdbTuple tuple)
+		/// <example>STuple.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		public static KeyRange ToRange([NotNull] ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = tuple.ToSlice();
@@ -1103,11 +1093,11 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(Slice.FromInt32(42), FdbTuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
+		/// <example>STuple.ToRange(Slice.FromInt32(42), STuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
-		public static KeyRange ToRange(Slice prefix, [NotNull] IFdbTuple tuple)
+		public static KeyRange ToRange(Slice prefix, [NotNull] ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = prefix + tuple.ToSlice();
@@ -1178,7 +1168,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="offset">Start offset of the items to convert</param>
 		/// <param name="count">Number of items to convert</param>
 		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
+		/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
 		[NotNull]
 		internal static string ToString(object[] items, int offset, int count)
 		{
@@ -1208,7 +1198,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>
 		/// <param name="items">Sequence of items to stringfy</param>
 		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
+		/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
 		[NotNull]
 		internal static string ToString(IEnumerable<object> items)
 		{
@@ -1233,29 +1223,29 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		/// <summary>Default (non-optimized) implementation of IFdbTuple.this[long?, long?]</summary>
+		/// <summary>Default (non-optimized) implementation of ITuple.this[long?, long?]</summary>
 		/// <param name="tuple">Tuple to slice</param>
 		/// <param name="fromIncluded">Start offset of the section (included)</param>
 		/// <param name="toExcluded">End offset of the section (included)</param>
 		/// <returns>New tuple only containing items inside this section</returns>
 		[NotNull]
-		internal static IFdbTuple Splice([NotNull] IFdbTuple tuple, int? fromIncluded, int? toExcluded)
+		internal static ITuple Splice([NotNull] ITuple tuple, int? fromIncluded, int? toExcluded)
 		{
 			Contract.Requires(tuple != null);
 			int count = tuple.Count;
-			if (count == 0) return FdbTuple.Empty;
+			if (count == 0) return STuple.Empty;
 
 			int start = fromIncluded.HasValue ? MapIndexBounded(fromIncluded.Value, count) : 0;
 			int end = toExcluded.HasValue ? MapIndexBounded(toExcluded.Value, count) : count;
 
 			int len = end - start;
 
-			if (len <= 0) return FdbTuple.Empty;
+			if (len <= 0) return STuple.Empty;
 			if (start == 0 && len == count) return tuple;
 			switch(len)
 			{
-				case 1: return new FdbListTuple(new object[] { tuple[start] }, 0, 1);
-				case 2: return new FdbListTuple(new object[] { tuple[start], tuple[start + 1] }, 0, 2);
+				case 1: return new ListTuple(new object[] { tuple[start] }, 0, 1);
+				case 2: return new ListTuple(new object[] { tuple[start], tuple[start + 1] }, 0, 2);
 				default:
 				{
 					var items = new object[len];
@@ -1265,16 +1255,16 @@ namespace FoundationDB.Layers.Tuples
 					{
 						items[p] = tuple[q++];
 					}
-					return new FdbListTuple(items, 0, len);
+					return new ListTuple(items, 0, len);
 				}
 			}
 		}
 
-		/// <summary>Default (non-optimized) implementation for IFdbTuple.StartsWith()</summary>
+		/// <summary>Default (non-optimized) implementation for ITuple.StartsWith()</summary>
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
-		internal static bool StartsWith([NotNull] IFdbTuple a, [NotNull] IFdbTuple b)
+		internal static bool StartsWith([NotNull] ITuple a, [NotNull] ITuple b)
 		{
 			Contract.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
@@ -1291,11 +1281,11 @@ namespace FoundationDB.Layers.Tuples
 			return true;
 		}
 
-		/// <summary>Default (non-optimized) implementation for IFdbTuple.EndsWith()</summary>
+		/// <summary>Default (non-optimized) implementation for ITuple.EndsWith()</summary>
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
-		internal static bool EndsWith([NotNull] IFdbTuple a, [NotNull] IFdbTuple b)
+		internal static bool EndsWith([NotNull] ITuple a, [NotNull] ITuple b)
 		{
 			Contract.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
@@ -1315,7 +1305,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Helper to copy the content of a tuple at a specific position in an array</summary>
 		/// <returns>Updated offset just after the last element of the copied tuple</returns>
-		internal static int CopyTo([NotNull] IFdbTuple tuple, [NotNull] object[] array, int offset)
+		internal static int CopyTo([NotNull] ITuple tuple, [NotNull] object[] array, int offset)
 		{
 			Contract.Requires(tuple != null && array != null && offset >= 0);
 
@@ -1376,12 +1366,12 @@ namespace FoundationDB.Layers.Tuples
 			return CombineHashCodes(CombineHashCodes(h1, h2, h3), CombineHashCodes(h4, h5));
 		}
 
-		internal static bool Equals(IFdbTuple left, object other, [NotNull] IEqualityComparer comparer)
+		internal static bool Equals(ITuple left, object other, [NotNull] IEqualityComparer comparer)
 		{
-			return object.ReferenceEquals(left, null) ? other == null : FdbTuple.Equals(left, other as IFdbTuple, comparer);
+			return object.ReferenceEquals(left, null) ? other == null : STuple.Equals(left, other as ITuple, comparer);
 		}
 
-		internal static bool Equals(IFdbTuple x, IFdbTuple y, [NotNull] IEqualityComparer comparer)
+		internal static bool Equals(ITuple x, ITuple y, [NotNull] IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(x, y)) return true;
 			if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -1389,7 +1379,7 @@ namespace FoundationDB.Layers.Tuples
 			return x.Count == y.Count && DeepEquals(x, y, comparer);
 		}
 
-		internal static bool DeepEquals([NotNull] IFdbTuple x, [NotNull] IFdbTuple y, [NotNull] IEqualityComparer comparer)
+		internal static bool DeepEquals([NotNull] ITuple x, [NotNull] ITuple y, [NotNull] IEqualityComparer comparer)
 		{
 			Contract.Requires(x != null && y != null && comparer != null);
 
@@ -1407,7 +1397,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		internal static int StructuralGetHashCode(IFdbTuple tuple, [NotNull] IEqualityComparer comparer)
+		internal static int StructuralGetHashCode(ITuple tuple, [NotNull] IEqualityComparer comparer)
 		{
 			Contract.Requires(comparer != null);
 
@@ -1424,7 +1414,7 @@ namespace FoundationDB.Layers.Tuples
 			return h;
 		}
 
-		internal static int StructuralCompare(IFdbTuple x, IFdbTuple y, [NotNull] IComparer comparer)
+		internal static int StructuralCompare(ITuple x, ITuple y, [NotNull] IComparer comparer)
 		{
 			Contract.Requires(comparer != null);
 

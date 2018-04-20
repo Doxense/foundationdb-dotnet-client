@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 		/// <param name="encoding">Optional type encoding used by this subspace.</param>
 		/// <returns>New subspace instance that will use the packed representation of <paramref name="tuple"/> as its prefix</returns>
 		[Pure, NotNull]
-		public static IFdbDynamicSubspace CreateDynamic([NotNull] IFdbTuple tuple, IFdbKeyEncoding encoding = null)
+		public static IFdbDynamicSubspace CreateDynamic([NotNull] ITuple tuple, IFdbKeyEncoding encoding = null)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			var encoder = (encoding ?? TypeSystem.Default).GetDynamicEncoder();

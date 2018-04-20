@@ -116,21 +116,21 @@ namespace FoundationDB.Client
 		public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
 		{
 
-			public abstract Slice EncodeComposite(FdbTuple<T1, T2> key, int items);
+			public abstract Slice EncodeComposite(STuple<T1, T2> key, int items);
 
-			public abstract FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items);
+			public abstract STuple<T1, T2> DecodeComposite(Slice encoded, int items);
 
-			public Slice EncodeKey(FdbTuple<T1, T2> key)
+			public Slice EncodeKey(STuple<T1, T2> key)
 			{
 				return EncodeComposite(key, 2);
 			}
 
 			public virtual Slice EncodeKey(T1 item1, T2 item2)
 			{
-				return EncodeComposite(FdbTuple.Create<T1, T2>(item1, item2), 2);
+				return EncodeComposite(STuple.Create<T1, T2>(item1, item2), 2);
 			}
 
-			public virtual FdbTuple<T1, T2> DecodeKey(Slice encoded)
+			public virtual STuple<T1, T2> DecodeKey(Slice encoded)
 			{
 				return DecodeComposite(encoded, 2);
 			}
@@ -151,26 +151,26 @@ namespace FoundationDB.Client
 		public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
 		{
 
-			public abstract Slice EncodeComposite(FdbTuple<T1, T2, T3> items, int count);
+			public abstract Slice EncodeComposite(STuple<T1, T2, T3> items, int count);
 
-			public abstract FdbTuple<T1, T2, T3> DecodeComposite(Slice encoded, int count);
+			public abstract STuple<T1, T2, T3> DecodeComposite(Slice encoded, int count);
 
-			public Slice EncodeKey(FdbTuple<T1, T2, T3> key)
+			public Slice EncodeKey(STuple<T1, T2, T3> key)
 			{
 				return EncodeComposite(key, 3);
 			}
 
 			public virtual Slice EncodeKey(T1 item1, T2 item2, T3 item3)
 			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3>(item1, item2, item3), 3);
+				return EncodeComposite(STuple.Create<T1, T2, T3>(item1, item2, item3), 3);
 			}
 
-			public virtual FdbTuple<T1, T2, T3> DecodeKey(Slice encoded)
+			public virtual STuple<T1, T2, T3> DecodeKey(Slice encoded)
 			{
 				return DecodeComposite(encoded, 3);
 			}
 
-			public FdbTuple<T1, T2, T3> DecodeKey(Slice encoded, int items)
+			public STuple<T1, T2, T3> DecodeKey(Slice encoded, int items)
 			{
 				return DecodeComposite(encoded, items);
 			}
@@ -191,26 +191,26 @@ namespace FoundationDB.Client
 		public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
 		{
 
-			public abstract Slice EncodeComposite(FdbTuple<T1, T2, T3, T4> items, int count);
+			public abstract Slice EncodeComposite(STuple<T1, T2, T3, T4> items, int count);
 
-			public abstract FdbTuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int count);
+			public abstract STuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int count);
 
-			public Slice EncodeKey(FdbTuple<T1, T2, T3, T4> key)
+			public Slice EncodeKey(STuple<T1, T2, T3, T4> key)
 			{
 				return EncodeComposite(key, 4);
 			}
 
 			public virtual Slice EncodeKey(T1 item1, T2 item2, T3 item3, T4 item4)
 			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4), 4);
+				return EncodeComposite(STuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4), 4);
 			}
 
-			public virtual FdbTuple<T1, T2, T3, T4> DecodeKey(Slice encoded)
+			public virtual STuple<T1, T2, T3, T4> DecodeKey(Slice encoded)
 			{
 				return DecodeComposite(encoded, 4);
 			}
 
-			public FdbTuple<T1, T2, T3, T4> DecodeKey(Slice encoded, int items)
+			public STuple<T1, T2, T3, T4> DecodeKey(Slice encoded, int items)
 			{
 				return DecodeComposite(encoded, items);
 			}
@@ -230,7 +230,7 @@ namespace FoundationDB.Client
 
 			public Slice EncodeKey(T1 value)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2>(value, default(T2)), 1);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2>(value, default(T2)), 1);
 			}
 
 			public T1 DecodeKey(Slice encoded)
@@ -253,7 +253,7 @@ namespace FoundationDB.Client
 
 			public Slice EncodeKey(T1 value)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3>(value, default(T2), default(T3)), 1);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3>(value, default(T2), default(T3)), 1);
 			}
 
 			public T1 DecodeKey(Slice encoded)
@@ -276,7 +276,7 @@ namespace FoundationDB.Client
 
 			public Slice EncodeKey(T1 value)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(value, default(T2), default(T3), default(T4)), 1);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3, T4>(value, default(T2), default(T3), default(T4)), 1);
 			}
 
 			public T1 DecodeKey(Slice encoded)
@@ -299,26 +299,26 @@ namespace FoundationDB.Client
 
 			public Slice EncodeKey(T1 value1, T2 value2)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3>(value1, value2, default(T3)), 2);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3>(value1, value2, default(T3)), 2);
 			}
 
-			public Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
+			public Slice EncodeComposite(STuple<T1, T2> key, int items)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3>(key.Item1, key.Item2, default(T3)), items);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3>(key.Item1, key.Item2, default(T3)), items);
 			}
 
-			public FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
+			public STuple<T1, T2> DecodeComposite(Slice encoded, int items)
 			{
 				var t = this.Encoder.DecodeComposite(encoded, items);
-				return new FdbTuple<T1, T2>(t.Item1, t.Item2);
+				return new STuple<T1, T2>(t.Item1, t.Item2);
 			}
 
-			public Slice EncodeKey(FdbTuple<T1, T2> value)
+			public Slice EncodeKey(STuple<T1, T2> value)
 			{
 				return EncodeComposite(value, 2);
 			}
 
-			public FdbTuple<T1, T2> DecodeKey(Slice encoded)
+			public STuple<T1, T2> DecodeKey(Slice encoded)
 			{
 				return DecodeComposite(encoded, 2);
 			}
@@ -343,26 +343,26 @@ namespace FoundationDB.Client
 
 			public Slice EncodeKey(T1 value1, T2 value2)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(value1, value2, default(T3), default(T4)), 2);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3, T4>(value1, value2, default(T3), default(T4)), 2);
 			}
 
-			public Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
+			public Slice EncodeComposite(STuple<T1, T2> key, int items)
 			{
-				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(key.Item1, key.Item2, default(T3), default(T4)), items);
+				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3, T4>(key.Item1, key.Item2, default(T3), default(T4)), items);
 			}
 
-			public FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
+			public STuple<T1, T2> DecodeComposite(Slice encoded, int items)
 			{
 				var t = this.Encoder.DecodeComposite(encoded, items);
-				return new FdbTuple<T1, T2>(t.Item1, t.Item2);
+				return new STuple<T1, T2>(t.Item1, t.Item2);
 			}
 
-			public Slice EncodeKey(FdbTuple<T1, T2> value)
+			public Slice EncodeKey(STuple<T1, T2> value)
 			{
 				return EncodeComposite(value, 2);
 			}
 
-			public FdbTuple<T1, T2> DecodeKey(Slice encoded)
+			public STuple<T1, T2> DecodeKey(Slice encoded)
 			{
 				return DecodeComposite(encoded, 2);
 			}
@@ -440,7 +440,7 @@ namespace FoundationDB.Client
 					m_codec2 = codec2;
 				}
 
-				public override Slice EncodeComposite(FdbTuple<T1, T2> items, int count)
+				public override Slice EncodeComposite(STuple<T1, T2> items, int count)
 				{
 					Contract.Requires(count > 0);
 
@@ -450,7 +450,7 @@ namespace FoundationDB.Client
 					return writer.ToSlice();
 				}
 
-				public override FdbTuple<T1, T2> DecodeComposite(Slice encoded, int count)
+				public override STuple<T1, T2> DecodeComposite(Slice encoded, int count)
 				{
 					Contract.Requires(count > 0);
 
@@ -460,7 +460,7 @@ namespace FoundationDB.Client
 					if (count >= 1) key1 = m_codec1.DecodeOrderedSelfTerm(ref reader);
 					if (count >= 2) key2 = m_codec2.DecodeOrderedSelfTerm(ref reader);
 					if (reader.HasMore) throw new InvalidOperationException(String.Format("Unexpected data at the end of composite key after {0} items", count));
-					return FdbTuple.Create<T1, T2>(key1, key2);
+					return STuple.Create<T1, T2>(key1, key2);
 				}
 
 			}
@@ -478,7 +478,7 @@ namespace FoundationDB.Client
 					m_codec3 = codec3;
 				}
 
-				public override Slice EncodeComposite(FdbTuple<T1, T2, T3> items, int count)
+				public override Slice EncodeComposite(STuple<T1, T2, T3> items, int count)
 				{
 					Contract.Requires(count > 0 && count <= 3);
 
@@ -489,7 +489,7 @@ namespace FoundationDB.Client
 					return writer.ToSlice();
 				}
 
-				public override FdbTuple<T1, T2, T3> DecodeComposite(Slice encoded, int count)
+				public override STuple<T1, T2, T3> DecodeComposite(Slice encoded, int count)
 				{
 					Contract.Requires(count > 0);
 
@@ -501,7 +501,7 @@ namespace FoundationDB.Client
 					if (count >= 2) key2 = m_codec2.DecodeOrderedSelfTerm(ref reader);
 					if (count >= 3) key3 = m_codec3.DecodeOrderedSelfTerm(ref reader);
 					if (reader.HasMore) throw new InvalidOperationException(String.Format("Unexpected data at the end of composite key after {0} items", count));
-					return FdbTuple.Create<T1, T2, T3>(key1, key2, key3);
+					return STuple.Create<T1, T2, T3>(key1, key2, key3);
 				}
 
 			}
@@ -700,24 +700,24 @@ namespace FoundationDB.Client
 
 				public Slice EncodeKey(T key)
 				{
-					return FdbTuple.EncodeKey(key);
+					return STuple.EncodeKey(key);
 				}
 
 				public T DecodeKey(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return FdbTuple.DecodeKey<T>(encoded);
+					return STuple.DecodeKey<T>(encoded);
 				}
 
 				public Slice EncodeValue(T key)
 				{
-					return FdbTuple.EncodeKey(key);
+					return STuple.EncodeKey(key);
 				}
 
 				public T DecodeValue(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return FdbTuple.DecodeKey<T>(encoded);
+					return STuple.DecodeKey<T>(encoded);
 				}
 
 			}
@@ -729,24 +729,24 @@ namespace FoundationDB.Client
 
 				private TupleCompositeEncoder() { }
 
-				public override Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
+				public override Slice EncodeComposite(STuple<T1, T2> key, int items)
 				{
 					switch (items)
 					{
 						case 2: return key.ToSlice();
-						case 1: return FdbTuple.EncodeKey<T1>(key.Item1);
+						case 1: return STuple.EncodeKey<T1>(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 					}
 				}
 
-				public override FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
+				public override STuple<T1, T2> DecodeComposite(Slice encoded, int items)
 				{
 					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 
-					var t = FdbTuple.Unpack(encoded).OfSize(items);
+					var t = STuple.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
 
-					return FdbTuple.Create<T1, T2>(
+					return STuple.Create<T1, T2>(
 						t.Get<T1>(0),
 						items >= 2 ? t.Get<T2>(1) : default(T2)
 					);
@@ -760,25 +760,25 @@ namespace FoundationDB.Client
 
 				private TupleCompositeEncoder() { }
 
-				public override Slice EncodeComposite(FdbTuple<T1, T2, T3> key, int items)
+				public override Slice EncodeComposite(STuple<T1, T2, T3> key, int items)
 				{
 					switch (items)
 					{
 						case 3: return key.ToSlice();
-						case 2: return FdbTuple.EncodeKey<T1, T2>(key.Item1, key.Item2);
-						case 1: return FdbTuple.EncodeKey<T1>(key.Item1);
+						case 2: return STuple.EncodeKey<T1, T2>(key.Item1, key.Item2);
+						case 1: return STuple.EncodeKey<T1>(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 					}
 				}
 
-				public override FdbTuple<T1, T2, T3> DecodeComposite(Slice encoded, int items)
+				public override STuple<T1, T2, T3> DecodeComposite(Slice encoded, int items)
 				{
 					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 
-					var t = FdbTuple.Unpack(encoded).OfSize(items);
+					var t = STuple.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
 
-					return FdbTuple.Create<T1, T2, T3>(
+					return STuple.Create<T1, T2, T3>(
 						t.Get<T1>(0),
 						items >= 2 ? t.Get<T2>(1) : default(T2),
 						items >= 3 ? t.Get<T3>(2) : default(T3)
@@ -793,25 +793,25 @@ namespace FoundationDB.Client
 
 				private TupleCompositeEncoder() { }
 
-				public override Slice EncodeComposite(FdbTuple<T1, T2, T3, T4> key, int items)
+				public override Slice EncodeComposite(STuple<T1, T2, T3, T4> key, int items)
 				{
 					switch (items)
 					{
 						case 4: return key.ToSlice();
-						case 3: return FdbTuple.EncodeKey(key.Item1, key.Item2, key.Item3);
-						case 2: return FdbTuple.EncodeKey(key.Item1, key.Item2);
-						case 1: return FdbTuple.EncodeKey(key.Item1);
+						case 3: return STuple.EncodeKey(key.Item1, key.Item2, key.Item3);
+						case 2: return STuple.EncodeKey(key.Item1, key.Item2);
+						case 1: return STuple.EncodeKey(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 					}
 				}
 
-				public override FdbTuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int items)
+				public override STuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int items)
 				{
 					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 
-					var t = FdbTuple.Unpack(encoded).OfSize(items);
+					var t = STuple.Unpack(encoded).OfSize(items);
 
-					return FdbTuple.Create<T1, T2, T3, T4>(
+					return STuple.Create<T1, T2, T3, T4>(
 						t.Get<T1>(0),
 						items >= 2 ? t.Get<T2>(1) : default(T2),
 						items >= 3 ? t.Get<T3>(2) : default(T3),

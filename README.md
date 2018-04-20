@@ -109,14 +109,14 @@ using (var db = await Fdb.OpenAsync())
         // and 5 bytes). The values are raw slices, which means that your
         // application MUST KNOW that they are strings in order to decode
         // them. If you wan't any tool to be able to find out the type of
-        // your values, you can also use FdbTuple.Pack("AAA") to create
+        // your values, you can also use STuple.Pack("AAA") to create
         // the values, at the cost of 2 extra bytes per entry.
         
         // This is always a good idea to maintain a counter of keys in our array.
         // The cheapest way to do that, is to reuse the subspace key itself, which
         // is 'in' the subspace, but not 'inside':
         trans.Set(list.Key, Slice.FromFixed32(3));
-        // We could use FdbTuple.Pack<int>(3) here, but have a fixed size counter
+        // We could use STuple.Pack<int>(3) here, but have a fixed size counter
         // makes it easy to use AtomicAdd(...) to increment (or decrement) the value
         // when adding or removing entries in the array.
         
@@ -277,7 +277,7 @@ There were a few design goals, that you may agree with or not:
 
 However, there are some key differences between Python and .NET that may cause problems:
 * Python's dynamic types and auto casting of Tuples values, are difficult to model in .NET (without relying on the DLR). The Tuple implementation try to be as dynamic as possible, but if you want to be safe, please try to only use strings, longs, booleans and byte[] to be 100% compatible with other bindings. You should refrain from using the untyped `tuple[index]` indexer (that returns an object), and instead use the generic `tuple.Get<T>(index)` that will try to adapt the underlying type into a T.
-* The Tuple layer uses ASCII and Unicode strings, while .NET only have Unicode strings. That means that all strings in .NET will be packed with prefix type 0x02 and byte arrays with prefix type 0x01. An ASCII string packed in Python will be seen as a byte[] unless you use `IFdbTuple.Get<string>()` that will automatically convert it to Unicode.
+* The Tuple layer uses ASCII and Unicode strings, while .NET only have Unicode strings. That means that all strings in .NET will be packed with prefix type 0x02 and byte arrays with prefix type 0x01. An ASCII string packed in Python will be seen as a byte[] unless you use `ITuple.Get<string>()` that will automatically convert it to Unicode.
 * There is no dedicated 'UUID' type prefix, so that means that System.Guid would be serialized as byte arrays, and all instances of byte 0 would need to be escaped. Since `System.Guid` are frequently used as primary keys, I added a new custom type prefix (0x30) for 128-bits UUIDs and (0x31) for 64-bits UUIDs. This simplifies packing/unpacking and speeds up writing/reading/comparing Guid keys.
 
 The following files will be required by your application

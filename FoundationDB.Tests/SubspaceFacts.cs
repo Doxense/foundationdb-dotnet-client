@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace.Keys.Encode(123).ToString(), Is.EqualTo("*<FF><00><7F><15>{"));
 			Assert.That(subspace.Keys.Encode("hello").ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
 			Assert.That(subspace.Keys.Encode(Slice.FromAscii("world")).ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
-			Assert.That(subspace.Keys.Pack(FdbTuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Keys.Pack(STuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 
 			// if we derive a tuple from this subspace, it should keep the binary prefix when converted to a key
 			var t = subspace.Keys.Append("world", 123, false);
@@ -118,7 +118,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
-			var subspace = FdbSubspace.CreateDynamic(FdbTuple.Create("hello"));
+			var subspace = FdbSubspace.CreateDynamic(STuple.Create("hello"));
 
 			Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>hello<00>"));
 			Assert.That(FdbSubspace.Copy(subspace), Is.Not.SameAs(subspace));
@@ -208,7 +208,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t2.ToSlice(), Is.EqualTo(t1.ToSlice()));
 
 			// cornercase
-			Assert.That(child.Partition[FdbTuple.Empty].Key, Is.EqualTo(child.Key));
+			Assert.That(child.Partition[STuple.Empty].Key, Is.EqualTo(child.Key));
 
 		}
 

@@ -408,7 +408,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<STuple<long, Slice>> onProgress, CancellationToken cancellationToken)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, cancellationToken);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
@@ -422,7 +422,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
+			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<STuple<long, Slice>> onProgress, CancellationToken cancellationToken)
 			{
 				const int INIT_WINDOW_SIZE = 1 << 8; // start at 256 //1024
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
@@ -538,7 +538,7 @@ namespace FoundationDB.Client
 									.ConfigureAwait(false);
 
 								counter += n;
-								if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, end));
+								if (onProgress != null) onProgress.Report(STuple.Create(counter, end));
 #if TRACE_COUNTING
 								++iter;
 #endif
@@ -552,7 +552,7 @@ namespace FoundationDB.Client
 						// the range is not finished, advance the cursor
 						counter += windowSize;
 						cursor = next;
-						if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, cursor));
+						if (onProgress != null) onProgress.Report(STuple.Create(counter, cursor));
 
 						if (!last)
 						{ // double the size of the window if we are not in the last segment

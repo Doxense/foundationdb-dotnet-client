@@ -36,9 +36,9 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client.Converters;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	internal sealed class FdbSlicedTuple : IFdbTuple
+	internal sealed class SlicedTuple : ITuple
 	{
-		// FdbTuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.
+		// STuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.
 		// This is helpful because in most cases, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
 		// We also support offset/count so that Splicing is efficient (used a lot to remove the suffixes from keys)
 
@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Tuples
 
 		private int? m_hashCode;
 
-		public FdbSlicedTuple(Slice[] slices, int offset, int count)
+		public SlicedTuple(Slice[] slices, int offset, int count)
 		{
 			Contract.Requires(slices != null && offset >= 0 && count >= 0);
 			Contract.Requires(offset + count <= slices.Length);
@@ -86,45 +86,45 @@ namespace FoundationDB.Layers.Tuples
 
 		public object this[int index]
 		{
-			get { return FdbTuplePackers.DeserializeBoxed(GetSlice(index)); }
+			get { return TuplePackers.DeserializeBoxed(GetSlice(index)); }
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
-				int begin = fromIncluded.HasValue ? FdbTuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
-				int end = toExcluded.HasValue ? FdbTuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
+				int begin = fromIncluded.HasValue ? STuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? STuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
 				int len = end - begin;
-				if (len <= 0) return FdbTuple.Empty;
+				if (len <= 0) return STuple.Empty;
 				if (begin == 0 && len == m_count) return this;
-				return new FdbSlicedTuple(m_slices, m_offset + begin, len);
+				return new SlicedTuple(m_slices, m_offset + begin, len);
 			}
 		}
 
 		public R Get<R>(int index)
 		{
-			return FdbTuplePacker<R>.Deserialize(GetSlice(index));
+			return TuplePacker<R>.Deserialize(GetSlice(index));
 		}
 
 		public R Last<R>()
 		{
 			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			return FdbTuplePacker<R>.Deserialize(m_slices[m_offset + m_count - 1]);
+			return TuplePacker<R>.Deserialize(m_slices[m_offset + m_count - 1]);
 		}
 
 		public Slice GetSlice(int index)
 		{
-			return m_slices[m_offset + FdbTuple.MapIndex(index, m_count)];
+			return m_slices[m_offset + STuple.MapIndex(index, m_count)];
 		}
 
-		IFdbTuple IFdbTuple.Append<T>(T value)
+		ITuple ITuple.Append<T>(T value)
 		{
 			throw new NotSupportedException();
 		}
 
-		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		ITuple ITuple.Concat(ITuple tuple)
 		{
 			throw new NotSupportedException();
 		}
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			for (int i = 0; i < m_count;i++)
 			{
-				array[i + offset] = FdbTuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
+				array[i + offset] = TuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
 			}
 		}
 
@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			for (int i = 0; i < m_count; i++)
 			{
-				yield return FdbTuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
+				yield return TuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
 			}
 		}
 
@@ -154,7 +154,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			//OPTIMIZE: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
 			// => each slice has a type prefix that could be used to format it to a StringBuilder faster, maybe?
-			return FdbTuple.ToString(this);
+			return STuple.ToString(this);
 		}
 
 		public override bool Equals(object obj)
@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -177,7 +177,7 @@ namespace FoundationDB.Layers.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var sliced = other as FdbSlicedTuple;
+			var sliced = other as SlicedTuple;
 			if (!object.ReferenceEquals(sliced, null))
 			{
 				if (sliced.m_count != m_count) return false;
@@ -190,7 +190,7 @@ namespace FoundationDB.Layers.Tuples
 				return false;
 			}
 
-			return FdbTuple.Equals(this, other, comparer);
+			return STuple.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
@@ -205,7 +205,7 @@ namespace FoundationDB.Layers.Tuples
 			int h = 0;
 			for (int i = 0; i < m_count; i++)
 			{
-				h = FdbTuple.CombineHashCodes(h, comparer.GetHashCode(m_slices[i + m_offset]));
+				h = STuple.CombineHashCodes(h, comparer.GetHashCode(m_slices[i + m_offset]));
 			}
 			if (canUseCache) m_hashCode = h;
 			return h;

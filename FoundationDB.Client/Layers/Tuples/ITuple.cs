@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Represents a Tuple of N elements</summary>
 	[ImmutableObject(true)]
 	[CannotApplyEqualityOperator]
-	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>, IReadOnlyCollection<object>
+	public interface ITuple : IEnumerable<object>, IEquatable<ITuple>, IReadOnlyCollection<object>
 #if !NET_4_0
 		, IReadOnlyList<object>
 		, System.Collections.IStructuralEquatable
@@ -56,8 +56,8 @@ namespace FoundationDB.Layers.Tuples
 		// - Accessing the Count and Last item should be fast, if possible in O(1)
 		// - Appending should also be fast, if possible O(1)
 		// - Getting the substring of a tuple should as fast as possible, if possible O(1). For list-based tuples, it should return a view of the list (offset/count) and avoid copying the list
-		// - If an operation returns an empty tuple, then it should return the FdbTuple.Empty singleton instance
-		// - If an operation does not change the tuple (like Append(FdbTuple.Empty), or tuple.Substring(0)), then the tuple should return itself
+		// - If an operation returns an empty tuple, then it should return the STuple.Empty singleton instance
+		// - If an operation does not change the tuple (like Append(STuple.Empty), or tuple.Substring(0)), then the tuple should return itself
 		// - If the same tuple will be packed frequently, it should be memoized (converted into a FdbMemoizedTuple)
 
 #if NET_4_0
@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
 		/// <returns>Tuple that include all items in the current tuple whose offset are greather than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
-		IFdbTuple this[int? fromIncluded, int? toExcluded] { [NotNull] get; }
+		ITuple this[int? fromIncluded, int? toExcluded] { [NotNull] get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="T">Expected type of the item</typeparam>
@@ -102,15 +102,15 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
-		/// <remarks>If <typeparamref name="T"/> is an <see cref="IFdbTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IFdbTuple.Concat"/></remarks>
+		/// <remarks>If <typeparamref name="T"/> is an <see cref="ITuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="ITuple.Concat"/></remarks>
 		[NotNull]
-		IFdbTuple Append<T>(T value);
+		ITuple Append<T>(T value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
 		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
 		[NotNull]
-		IFdbTuple Concat([NotNull] IFdbTuple tuple);
+		ITuple Concat([NotNull] ITuple tuple);
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
 		/// <param name="array">Destination array (must be big enough to contains all the items)</param>

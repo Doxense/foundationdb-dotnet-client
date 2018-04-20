@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public FdbTuple<T1, T2> Decode(Slice packed)
+		public STuple<T1, T2> Decode(Slice packed)
 		{
 			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
 		}
@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		public KeyRange ToRange(T1 value1, T2 value2)
 		{
 			//REVIEW: which semantic for ToRange() should we use?
-			return FdbTuple.ToRange(Encode(value1, value2));
+			return STuple.ToRange(Encode(value1, value2));
 		}
 
 	}

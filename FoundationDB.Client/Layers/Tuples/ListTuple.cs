@@ -37,10 +37,10 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client.Converters;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
-	public sealed class FdbListTuple : IFdbTuple
+	public sealed class ListTuple : ITuple
 	{
 		// We could use a FdbListTuple<T> for tuples where all items are of type T, and FdbListTuple could derive from FdbListTuple<object>.
-		// => this could speed up a bit the use case of FdbTuple.FromArray<T> or FdbTuple.FromSequence<T>
+		// => this could speed up a bit the use case of STuple.FromArray<T> or STuple.FromSequence<T>
 
 		/// <summary>List of the items in the tuple.</summary>
 		/// <remarks>It is supposed to be immutable!</remarks>
@@ -53,7 +53,7 @@ namespace FoundationDB.Layers.Tuples
 		private int? m_hashCode;
 
 		/// <summary>Create a new tuple from a sequence of items (copied)</summary>
-		internal FdbListTuple(IEnumerable<object> items)
+		internal ListTuple(IEnumerable<object> items)
 		{
 			m_items = items.ToArray();
 			m_count = m_items.Length;
@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Wrap a List of items</summary>
 		/// <remarks>The list should not mutate and should not be exposed to anyone else!</remarks>
-		internal FdbListTuple(object[] items, int offset, int count)
+		internal ListTuple(object[] items, int offset, int count)
 		{
 			Contract.Requires(items != null && offset >= 0 && count >= 0);
 			Contract.Requires(offset + count <= items.Length, "inner item array is too small");
@@ -74,7 +74,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Create a new list tuple by merging the items of two tuples together</summary>
 		/// <param name="left"></param>
 		/// <param name="right"></param>
-		internal FdbListTuple(IFdbTuple a, IFdbTuple b)
+		internal ListTuple(ITuple a, ITuple b)
 		{
 			if (a == null) throw new ArgumentNullException("a");
 			if (b == null) throw new ArgumentNullException("b");
@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Create a new list tuple by merging the items of three tuples together</summary>
-		internal FdbListTuple(IFdbTuple a, IFdbTuple b, IFdbTuple c)
+		internal ListTuple(ITuple a, ITuple b, ITuple c)
 		{
 			if (a == null) throw new ArgumentNullException("a");
 			if (b == null) throw new ArgumentNullException("b");
@@ -119,25 +119,25 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				return m_items[m_offset + FdbTuple.MapIndex(index, m_count)];
+				return m_items[m_offset + STuple.MapIndex(index, m_count)];
 			}
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
-				int begin = fromIncluded.HasValue ? FdbTuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
-				int end = toExcluded.HasValue ? FdbTuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
+				int begin = fromIncluded.HasValue ? STuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? STuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
 				int len = end - begin;
-				if (len <= 0) return FdbTuple.Empty;
+				if (len <= 0) return STuple.Empty;
 				if (begin == 0 && len == m_count) return this;
 
 				Contract.Assert(m_offset + begin >= m_offset);
 				Contract.Assert(len >= 0 && len <= m_count);
 
-				return new FdbListTuple(m_items, m_offset + begin, len);
+				return new ListTuple(m_items, m_offset + begin, len);
 			}
 		}
 
@@ -152,20 +152,20 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.ConvertBoxed<R>(m_items[m_offset + m_count - 1]);
 		}
 
-		IFdbTuple IFdbTuple.Append<T>(T value)
+		ITuple ITuple.Append<T>(T value)
 		{
 			return this.Append<T>(value);
 		}
 
-		public FdbListTuple Append<T>(T value)
+		public ListTuple Append<T>(T value)
 		{
 			var list = new object[m_count + 1];
 			Array.Copy(m_items, m_offset, list, 0, m_count);
 			list[m_count] = value;
-			return new FdbListTuple(list, 0, list.Length);
+			return new ListTuple(list, 0, list.Length);
 		}
 
-		public FdbListTuple AppendRange(object[] items)
+		public ListTuple AppendRange(object[] items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 
@@ -174,10 +174,10 @@ namespace FoundationDB.Layers.Tuples
 			var list = new object[m_count + items.Length];
 			Array.Copy(m_items, m_offset, list, 0, m_count);
 			Array.Copy(items, 0, list, m_count, items.Length);
-			return new FdbListTuple(list, 0, list.Length);
+			return new ListTuple(list, 0, list.Length);
 		}
 
-		public FdbListTuple Concat(FdbListTuple tuple)
+		public ListTuple Concat(ListTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
@@ -187,12 +187,12 @@ namespace FoundationDB.Layers.Tuples
 			var list = new object[m_count + tuple.m_count];
 			Array.Copy(m_items, m_offset, list, 0, m_count);
 			Array.Copy(tuple.m_items, tuple.m_offset, list, m_count, tuple.m_count);
-			return new FdbListTuple(list, 0, list.Length);
+			return new ListTuple(list, 0, list.Length);
 		}
 
-		public FdbListTuple Concat(IFdbTuple tuple)
+		public ListTuple Concat(ITuple tuple)
 		{
-			var _ = tuple as FdbListTuple;
+			var _ = tuple as ListTuple;
 			if (_ != null) return Concat(_);
 
 			int count = tuple.Count;
@@ -201,10 +201,10 @@ namespace FoundationDB.Layers.Tuples
 			var list = new object[m_count + count];
 			Array.Copy(m_items, m_offset, list, 0, m_count);
 			tuple.CopyTo(list, m_count);
-			return new FdbListTuple(list, 0, list.Length);
+			return new ListTuple(list, 0, list.Length);
 		}
 
-		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		ITuple ITuple.Concat(ITuple tuple)
 		{
 			return this.Concat(tuple);
 		}
@@ -240,7 +240,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			for (int i = 0; i < m_count; i++)
 			{
-				FdbTuplePackers.SerializeObjectTo(ref writer, m_items[i + m_offset]);
+				TuplePackers.SerializeObjectTo(ref writer, m_items[i + m_offset]);
 			}
 		}
 
@@ -253,7 +253,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return FdbTuple.ToString(m_items, m_offset, m_count);
+			return STuple.ToString(m_items, m_offset, m_count);
 		}
 
 		private bool CompareItems(IEnumerable<object> theirs, IEqualityComparer comparer)
@@ -281,7 +281,7 @@ namespace FoundationDB.Layers.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -296,7 +296,7 @@ namespace FoundationDB.Layers.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var list = other as FdbListTuple;
+			var list = other as ListTuple;
 			if (!object.ReferenceEquals(list, null))
 			{
 				if (list.m_count != m_count) return false;
@@ -311,7 +311,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			return FdbTuple.Equals(this, other, comparer);
+			return STuple.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
@@ -328,7 +328,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				var item = m_items[i + m_offset];
 					
-				h = FdbTuple.CombineHashCodes(h, comparer.GetHashCode(item));
+				h = STuple.CombineHashCodes(h, comparer.GetHashCode(item));
 			}
 			if (canUseCache) m_hashCode = h;
 			return h;

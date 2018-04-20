@@ -39,15 +39,15 @@ namespace FoundationDB.Layers.Tuples
 
 	/// <summary>Tuple that has a fixed abitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString()}")]
-	public sealed class FdbPrefixedTuple : IFdbTuple
+	public sealed class PrefixedTuple : ITuple
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
 		private Slice m_prefix; //PERF: readonly struct
-		private readonly IFdbTuple m_items;
+		private readonly ITuple m_items;
 
-		internal FdbPrefixedTuple(Slice prefix, IFdbTuple items)
+		internal PrefixedTuple(Slice prefix, ITuple items)
 		{
 			Contract.Requires(!prefix.IsNull && items != null);
 
@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Tuples
 			get { return m_items[index]; }
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
 			get { return m_items[fromIncluded, toExcluded]; }
 		}
@@ -99,29 +99,29 @@ namespace FoundationDB.Layers.Tuples
 			return m_items.Last<R>();
 		}
 
-		IFdbTuple IFdbTuple.Append<R>(R value)
+		ITuple ITuple.Append<R>(R value)
 		{
 			return this.Append<R>(value);
 		}
 
-		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		ITuple ITuple.Concat(ITuple tuple)
 		{
 			return this.Concat(tuple);
 		}
 
 		[NotNull]
-		public FdbPrefixedTuple Append<R>(R value)
+		public PrefixedTuple Append<R>(R value)
 		{
-			return new FdbPrefixedTuple(m_prefix, m_items.Append<R>(value));
+			return new PrefixedTuple(m_prefix, m_items.Append<R>(value));
 		}
 
 		[NotNull]
-		public FdbPrefixedTuple Concat([NotNull] IFdbTuple tuple)
+		public PrefixedTuple Concat([NotNull] ITuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 			if (tuple.Count == 0) return this;
 
-			return new FdbPrefixedTuple(m_prefix, m_items.Concat(tuple));
+			return new PrefixedTuple(m_prefix, m_items.Concat(tuple));
 		}
 
 		public void CopyTo([NotNull] object[] array, int offset)
@@ -143,7 +143,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			//TODO: should we add the prefix to the string representation ?
 			// => something like "<prefix>(123, 'abc', true)"
-			return FdbTuple.ToString(this);
+			return STuple.ToString(this);
 		}
 
 		public override bool Equals(object obj)
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -166,7 +166,7 @@ namespace FoundationDB.Layers.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var linked = other as FdbPrefixedTuple;
+			var linked = other as PrefixedTuple;
 			if (!object.ReferenceEquals(linked, null))
 			{
 				// Should all of these tuples be considered equal ?
@@ -188,12 +188,12 @@ namespace FoundationDB.Layers.Tuples
 				return comparer.Equals(m_items, linked.m_items);
 			}
 
-			return FdbTuple.Equals(this, other, comparer);
+			return STuple.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return FdbTuple.CombineHashCodes(
+			return STuple.CombineHashCodes(
 				m_prefix.GetHashCode(),
 				comparer.GetHashCode(m_items)
 			);

@@ -84,7 +84,7 @@ namespace FoundationDB.Samples.Tutorials
 			while (!ct.IsCancellationRequested)
 			{
 				int k = cnt++;
-				Slice taskId = FdbTuple.EncodeKey(this.Id.GetHashCode(), k);
+				Slice taskId = STuple.EncodeKey(this.Id.GetHashCode(), k);
 
 				string msg = "Message #" + k + " from producer " + this.Id + " (" + DateTime.UtcNow.ToString("O") + ")";
 

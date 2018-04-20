@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		protected virtual Slice GetKey(IFdbTuple id)
+		protected virtual Slice GetKey(ITuple id)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
 			return this.Subspace.Keys.Pack(id);
@@ -67,13 +67,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id"></param>
 		/// <param name="field"></param>
 		/// <returns></returns>
-		protected virtual Slice GetFieldKey(IFdbTuple id, string field)
+		protected virtual Slice GetFieldKey(ITuple id, string field)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
 			return this.Subspace.Keys.Pack(id.Append(field));
 		}
 
-		protected virtual string ParseFieldKey(IFdbTuple key)
+		protected virtual string ParseFieldKey(ITuple key)
 		{
 			return key.Last<string>();
 		}
@@ -85,7 +85,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or Slice.Nil if it the hashset does not exist, or doesn't have a field with this name</returns>
-		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id, string field)
+		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -98,7 +98,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id)
+		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple id)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -123,13 +123,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or Slice.Empty if that particular field does not exist.</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id, [NotNull] params string[] fields)
+		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple id, [NotNull] params string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 			if (fields == null) throw new ArgumentNullException(nameof(fields));
 
-			var keys = FdbTuple.EncodePrefixedKeys(GetKey(id), fields);
+			var keys = STuple.EncodePrefixedKeys(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
@@ -146,7 +146,7 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Set
 
-		public void SetValue(IFdbTransaction trans, IFdbTuple id, string field, Slice value)
+		public void SetValue(IFdbTransaction trans, ITuple id, string field, Slice value)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -155,7 +155,7 @@ namespace FoundationDB.Layers.Blobs
 			trans.Set(GetFieldKey(id, field), value);
 		}
 
-		public void Set(IFdbTransaction trans, IFdbTuple id, IEnumerable<KeyValuePair<string, Slice>> fields)
+		public void Set(IFdbTransaction trans, ITuple id, IEnumerable<KeyValuePair<string, Slice>> fields)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans"></param>
 		/// <param name="id"></param>
 		/// <param name="field"></param>
-		public void DeleteValue(IFdbTransaction trans, IFdbTuple id, string field)
+		public void DeleteValue(IFdbTransaction trans, ITuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -187,7 +187,7 @@ namespace FoundationDB.Layers.Blobs
 
 		/// <summary>Remove all fields of an hashset</summary>
 		/// <param name="id"></param>
-		public void Delete(IFdbTransaction trans, IFdbTuple id)
+		public void Delete(IFdbTransaction trans, ITuple id)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -200,7 +200,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans"></param>
 		/// <param name="id"></param>
 		/// <param name="fields"></param>
-		public void Delete(IFdbTransaction trans, IFdbTuple id, params string[] fields)
+		public void Delete(IFdbTransaction trans, ITuple id, params string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -221,7 +221,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
-		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IFdbTuple id, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, ITuple id, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			//note: As of Beta2, FDB does not have a fdb_get_range that only return the keys. That means that we will have to also read the values from the db, in order to just get the names of the fields :(
 			//TODO: find a way to optimize this ?
@@ -234,7 +234,7 @@ namespace FoundationDB.Layers.Blobs
 
 			return trans
 				.GetRange(KeyRange.StartsWith(prefix))
-				.Select((kvp) => ParseFieldKey(FdbTuple.Unpack(kvp.Key)))
+				.Select((kvp) => ParseFieldKey(STuple.Unpack(kvp.Key)))
 				.ToListAsync(cancellationToken);
 		}
 

@@ -45,31 +45,31 @@ namespace FoundationDB.Client.Converters.Tests
 		[Test]
 		public void Test_Simple_Integer_Codec()
 		{
-			var codec = FdbTupleCodec<int>.Default;
+			var codec = TupleCodec<int>.Default;
 			Assert.That(codec, Is.Not.Null);
 
-			Assert.That(codec.EncodeOrdered(0), Is.EqualTo(FdbTuple.EncodeKey(0)));
-			Assert.That(codec.EncodeOrdered(123), Is.EqualTo(FdbTuple.EncodeKey(123)));
-			Assert.That(codec.EncodeOrdered(123456), Is.EqualTo(FdbTuple.EncodeKey(123456)));
+			Assert.That(codec.EncodeOrdered(0), Is.EqualTo(STuple.EncodeKey(0)));
+			Assert.That(codec.EncodeOrdered(123), Is.EqualTo(STuple.EncodeKey(123)));
+			Assert.That(codec.EncodeOrdered(123456), Is.EqualTo(STuple.EncodeKey(123456)));
 
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(0)), Is.EqualTo(0));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(123)), Is.EqualTo(123));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(123456)), Is.EqualTo(123456));
+			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(0)), Is.EqualTo(0));
+			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(123)), Is.EqualTo(123));
+			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(123456)), Is.EqualTo(123456));
 		}
 
 		[Test]
 		public void Test_Simple_String_Codec()
 		{
-			var codec = FdbTupleCodec<string>.Default;
+			var codec = TupleCodec<string>.Default;
 			Assert.That(codec, Is.Not.Null);
 
-			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(FdbTuple.EncodeKey("héllø Wörld")));
-			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(FdbTuple.EncodeKey("")));
-			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(FdbTuple.EncodeKey(default(string))));
+			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(STuple.EncodeKey("héllø Wörld")));
+			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(STuple.EncodeKey("")));
+			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(STuple.EncodeKey(default(string))));
 
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(String.Empty)), Is.EqualTo(""));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(default(string))), Is.Null);
+			Assert.That(codec.DecodeOrdered(STuple.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
+			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(String.Empty)), Is.EqualTo(""));
+			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(default(string))), Is.Null);
 		}
 
 		[Test]
@@ -81,16 +81,16 @@ namespace FoundationDB.Client.Converters.Tests
 			long y = 123;
 			Guid z = Guid.NewGuid();
 
-			var first = FdbTupleCodec<string>.Default;
-			var second = FdbTupleCodec<long>.Default;
-			var third = FdbTupleCodec<Guid>.Default;
+			var first = TupleCodec<string>.Default;
+			var second = TupleCodec<long>.Default;
+			var third = TupleCodec<Guid>.Default;
 
 			var writer = SliceWriter.Empty;
 			first.EncodeOrderedSelfTerm(ref writer, x);
 			second.EncodeOrderedSelfTerm(ref writer, y);
 			third.EncodeOrderedSelfTerm(ref writer, z);
 			var data = writer.ToSlice();
-			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x, y, z)));
+			Assert.That(data, Is.EqualTo(STuple.EncodeKey(x, y, z)));
 
 			var reader = new SliceReader(data);
 			Assert.That(first.DecodeOrderedSelfTerm(ref reader), Is.EqualTo(x));

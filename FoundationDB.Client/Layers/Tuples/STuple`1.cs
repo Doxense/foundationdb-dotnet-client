@@ -28,28 +28,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using JetBrains.Annotations;
 
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
-	[ImmutableObject(true), DebuggerDisplay("{ToString()}")]
-	public struct FdbTuple<T1> : IFdbTuple
+	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
+	public struct STuple<T1> : ITuple
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
-		// Please note that if you return an FdbTuple<T> as an IFdbTuple, it will be boxed by the CLR and all memory gains will be lost
+		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First and only item in the tuple</summary>
 		public readonly T1 Item1;
 
 		[DebuggerStepThrough]
-		public FdbTuple(T1 item1)
+		public STuple(T1 item1)
 		{
 			this.Item1 = item1;
 		}
@@ -60,14 +60,14 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				if (index > 0 || index < -1) FdbTuple.FailIndexOutOfRange(index, 1);
+				if (index > 0 || index < -1) STuple.FailIndexOutOfRange(index, 1);
 				return this.Item1;
 			}
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
+			get { return STuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
@@ -76,24 +76,24 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="R"/>.</returns>
 		public R Get<R>(int index)
 		{
-			if (index > 0 || index < -1) FdbTuple.FailIndexOutOfRange(index, 1);
+			if (index > 0 || index < -1) STuple.FailIndexOutOfRange(index, 1);
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
 		/// <summary>Return the typed value of the last item in the tuple</summary>
-		R IFdbTuple.Last<R>()
+		R ITuple.Last<R>()
 		{
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
 		public void PackTo(ref TupleWriter writer)
 		{
-			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
+			TuplePacker<T1>.Encoder(ref writer, this.Item1);
 		}
 
-		IFdbTuple IFdbTuple.Append<T2>(T2 value)
+		ITuple ITuple.Append<T2>(T2 value)
 		{
-			return new FdbTuple<T1, T2>(this.Item1, value);
+			return new STuple<T1, T2>(this.Item1, value);
 		}
 
 		/// <summary>Appends a tuple as a single new item at the end of the current tuple.</summary>
@@ -101,18 +101,18 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If you want to append the *items*  of <paramref name="value"/>, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[NotNull]
-		public FdbTuple<T1, T2> Append<T2>(T2 value)
+		public STuple<T1, T2> Append<T2>(T2 value)
 		{
-			return new FdbTuple<T1, T2>(this.Item1, value);
+			return new STuple<T1, T2>(this.Item1, value);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[NotNull]
-		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		public ITuple Concat([NotNull] ITuple tuple)
 		{
-			return FdbTuple.Concat(this, tuple);
+			return STuple.Concat(this, tuple);
 		}
 
 		/// <summary>Copy the item of this singleton into an array at the specified offset</summary>
@@ -148,13 +148,13 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			return FdbTuple.EncodeKey(this.Item1);
+			return STuple.EncodeKey(this.Item1);
 		}
 
 		public override string ToString()
 		{
 			// singleton tuples end with a trailing ','
-			return "(" + FdbTuple.Stringify(this.Item1) + ",)";
+			return "(" + STuple.Stringify(this.Item1) + ",)";
 		}
 
 		public override bool Equals(object obj)
@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -172,12 +172,12 @@ namespace FoundationDB.Layers.Tuples
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		public static bool operator ==(FdbTuple<T1> left, FdbTuple<T1> right)
+		public static bool operator ==(STuple<T1> left, STuple<T1> right)
 		{
 			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
 		}
 
-		public static bool operator !=(FdbTuple<T1> left, FdbTuple<T1> right)
+		public static bool operator !=(STuple<T1> left, STuple<T1> right)
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
 		}
@@ -185,11 +185,11 @@ namespace FoundationDB.Layers.Tuples
 		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
 		{
 			if (other == null) return false;
-			if (other is FdbTuple<T1>)
+			if (other is STuple<T1>)
 			{
-				return comparer.Equals(this.Item1, ((FdbTuple<T1>)other).Item1);
+				return comparer.Equals(this.Item1, ((STuple<T1>)other).Item1);
 			}
-			return FdbTuple.Equals(this, other, comparer);
+			return STuple.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
@@ -197,13 +197,13 @@ namespace FoundationDB.Layers.Tuples
 			return comparer.GetHashCode(this.Item1);
 		}
 
-		public static implicit operator FdbTuple<T1>(Tuple<T1> t)
+		public static implicit operator STuple<T1>(Tuple<T1> t)
 		{
 			if (t == null) throw new ArgumentNullException("t");
-			return new FdbTuple<T1>(t.Item1);
+			return new STuple<T1>(t.Item1);
 		}
 
-		public static explicit operator Tuple<T1>(FdbTuple<T1> t)
+		public static explicit operator Tuple<T1>(STuple<T1> t)
 		{
 			return new Tuple<T1>(t.Item1);
 		}

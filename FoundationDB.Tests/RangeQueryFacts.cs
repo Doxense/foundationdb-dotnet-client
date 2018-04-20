@@ -502,7 +502,7 @@ namespace FoundationDB.Client.Tests
 					{
 						for (int i = 0; i < N; i++)
 						{
-							tr.Set(lists[k].Keys.Encode((i * K) + k), FdbTuple.EncodeKey(k, i));
+							tr.Set(lists[k].Keys.Encode((i * K) + k), STuple.EncodeKey(k, i));
 						}
 						await tr.CommitAsync();
 					}
@@ -527,8 +527,8 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < K * N; i++)
 					{
-						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(FdbTuple.EncodeKey(i % K, i)));
-						Assert.That(results[i].Value, Is.EqualTo(FdbTuple.EncodeKey(i % K, i / K)));
+						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(STuple.EncodeKey(i % K, i)));
+						Assert.That(results[i].Value, Is.EqualTo(STuple.EncodeKey(i % K, i / K)));
 					}
 				}
 			}
@@ -567,7 +567,7 @@ namespace FoundationDB.Client.Tests
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
-							var value = FdbTuple.EncodeKey(k, i);
+							var value = STuple.EncodeKey(k, i);
 							//Console.WriteLine("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
@@ -639,7 +639,7 @@ namespace FoundationDB.Client.Tests
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
-							var value = FdbTuple.EncodeKey(k, i);
+							var value = STuple.EncodeKey(k, i);
 							//Console.WriteLine("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
@@ -712,8 +712,8 @@ namespace FoundationDB.Client.Tests
 				{
 					var query = tr.Except(
 						new[] { locItems.Keys.ToRange(), locProcessed.Keys.ToRange() },
-						(kv) => FdbTuple.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
-						FdbTupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
+						(kv) => STuple.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
+						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
 
 					// problem: Except() still returns the original (Slice,Slice) pairs from the first range,
@@ -726,8 +726,8 @@ namespace FoundationDB.Client.Tests
 					Trace.WriteLine(r);
 				}
 				Assert.That(results.Count, Is.EqualTo(2));
-				Assert.That(results[0], Is.EqualTo(FdbTuple.Create("userA", 10093)));
-				Assert.That(results[1], Is.EqualTo(FdbTuple.Create("userB", 20003)));
+				Assert.That(results[0], Is.EqualTo(STuple.Create("userA", 10093)));
+				Assert.That(results[1], Is.EqualTo(STuple.Create("userB", 20003)));
 
 				// Second Method: pre-parse the queries, and merge on the results directly
 				Trace.WriteLine("Method 2:");
@@ -742,7 +742,7 @@ namespace FoundationDB.Client.Tests
 						.Select(kv => locProcessed.Keys.Unpack(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly
-					var query = items.Except(processed, FdbTupleComparisons.Composite<string, int>());
+					var query = items.Except(processed, TupleComparisons.Composite<string, int>());
 
 					// query is already a list of tuples, nothing more to do
 					return query;
@@ -753,8 +753,8 @@ namespace FoundationDB.Client.Tests
 					Trace.WriteLine(r);
 				}
 				Assert.That(results.Count, Is.EqualTo(2));
-				Assert.That(results[0], Is.EqualTo(FdbTuple.Create("userA", 10093)));
-				Assert.That(results[1], Is.EqualTo(FdbTuple.Create("userB", 20003)));
+				Assert.That(results[0], Is.EqualTo(STuple.Create("userA", 10093)));
+				Assert.That(results[1], Is.EqualTo(STuple.Create("userB", 20003)));
 
 			}
 

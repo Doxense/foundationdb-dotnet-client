@@ -44,7 +44,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		protected KeyRange AttendsKeys(string s)
 		{
-			return this.Subspace.Keys.ToRange(FdbTuple.Create("attends", s));
+			return this.Subspace.Keys.ToRange(STuple.Create("attends", s));
 		}
 
 		/// <summary>
@@ -74,7 +74,7 @@ namespace FoundationDB.Samples.Tutorials
 		/// </summary>
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
-			return tr.GetRange(this.Subspace.Keys.ToRange(FdbTuple.Create("class")))
+			return tr.GetRange(this.Subspace.Keys.ToRange(STuple.Create("class")))
 				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToAscii(), out _); }) // (step 3)
 				.Select(kvp => this.Subspace.Keys.Decode<string>(kvp.Key))
 				.ToListAsync();

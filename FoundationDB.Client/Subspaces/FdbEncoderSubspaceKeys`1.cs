@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		public KeyRange ToRange(T value)
 		{
 			//REVIEW: which semantic for ToRange() should we use?
-			return FdbTuple.ToRange(Encode(value));
+			return STuple.ToRange(Encode(value));
 		}
 
 	}

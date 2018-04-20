@@ -39,12 +39,12 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Convert a key into a tuple sequence</summary>
 		/// <param name="key">Key to convert to a tuple</param>
 		/// <returns>Tuple that represent the key (can contain a single item for primitive keys, or several items for composite keys)</returns>
-		IFdbTuple ToTuple(TKey key);
+		ITuple ToTuple(TKey key);
 
 		/// <summary>Convert a tuple sequence into a key</summary>
 		/// <param name="tuple">Tuple to convert back into a key</param>
 		/// <returns>Key that corresponds to the tuple</returns>
-		TKey FromTuple(IFdbTuple tuple);
+		TKey FromTuple(ITuple tuple);
 	}
 
 }

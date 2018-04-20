@@ -31,7 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 
 	/// <summary>Helper class to get or create tuple formatters</summary>
-	public static class FdbTupleFormatter<T>
+	public static class TupleFormatter<T>
 	{
 		private static ITupleFormatter<T> s_default;
 
@@ -54,22 +54,22 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="from">Lambda that is called to convert a value into a tuple. It SHOULD NOT return null.</param>
 		/// <param name="to">Lambda that is called to convert a tuple back into a value. It CAN return null.</param>
 		/// <returns>Custom formatter</returns>
-		public static ITupleFormatter<T> Create(Func<T, IFdbTuple> from, Func<IFdbTuple, T> to)
+		public static ITupleFormatter<T> Create(Func<T, ITuple> from, Func<ITuple, T> to)
 		{
-			return new FdbAnonymousTupleFormatter<T>(from, to);
+			return new AnonymousTupleFormatter<T>(from, to);
 		}
 
 		/// <summary>Create a formatter that just add or remove a prefix to values</summary>
-		public static ITupleFormatter<T> CreateAppender(IFdbTuple prefix)
+		public static ITupleFormatter<T> CreateAppender(ITuple prefix)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (prefix == null) throw new ArgumentNullException(nameof(prefix));
 
-			return new FdbAnonymousTupleFormatter<T>(
+			return new AnonymousTupleFormatter<T>(
 				(value) => prefix.Append<T>(value),
 				(tuple) =>
 				{
-					if (tuple.Count != prefix.Count + 1) throw new ArgumentException("Tuple size is invalid", "tuple");
-					if (!FdbTuple.StartsWith(tuple, prefix)) throw new ArgumentException("Tuple does not start with the expected prefix", "tuple");
+					if (tuple.Count != prefix.Count + 1) throw new ArgumentException("Tuple size is invalid", nameof(tuple));
+					if (!STuple.StartsWith(tuple, prefix)) throw new ArgumentException("Tuple does not start with the expected prefix", nameof(tuple));
 					return tuple.Last<T>();
 				}
 			);
@@ -81,19 +81,19 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var type = typeof(T);
 
-			if (typeof(IFdbTuple).IsAssignableFrom(type))
+			if (typeof(ITuple).IsAssignableFrom(type))
 			{
-				return new FdbAnonymousTupleFormatter<T>((x) => (IFdbTuple)x, (x) => (T)x);
+				return new AnonymousTupleFormatter<T>((x) => (ITuple)x, (x) => (T)x);
 			}
 
 			if (typeof(ITupleFormattable).IsAssignableFrom(type))
 			{
 				// note: we cannot call directlty 'new FormattableFormatter<T>()' because of the generic type constraints, so we have to use reflection...
 				// => this WILL fail if someone implements 'ITupleFormattable' on a class that does not have public parameterless constructor !
-				return (ITupleFormatter<T>)Activator.CreateInstance(typeof(FdbFormattableTupleFormatter<>).MakeGenericType(type));
+				return (ITupleFormatter<T>)Activator.CreateInstance(typeof(FormattableTupleFormatter<>).MakeGenericType(type));
 			}
 
-			return new FdbGenericTupleFormatter<T>();
+			return new GenericTupleFormatter<T>();
 		}
 
 	}

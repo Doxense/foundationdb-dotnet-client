@@ -436,7 +436,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			Console.WriteLine("|:------------------------|-------:|--------:|------:|-------:|-------:|-------:|---------:|--------:|----------:|--------:|" + (heatMaps ? ":-----------------------------------------------------------------------|" : ""));
 			foreach (var kv in index.Values.OrderBy((kv) => orderBy(kv.Key, index.Count(kv.Key)), comparer))
 			{
-				var t = FdbTuple.Create(kv.Key);
+				var t = STuple.Create(kv.Key);
 				var tk = t.ToSlice();
 
 				int bits, words, literals, fillers;

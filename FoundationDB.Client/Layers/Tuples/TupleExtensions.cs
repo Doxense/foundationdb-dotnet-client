@@ -28,36 +28,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
-	public static class FdbTupleExtensions
+	public static class TupleExtensions
 	{
 
-		#region IFdbTuple extensions...
+		#region ITuple extensions...
 
 		/// <summary>Returns true if the tuple is either null or empty</summary>
 		[ContractAnnotation("null => true")]
-		public static bool IsNullOrEmpty(this IFdbTuple tuple)
+		public static bool IsNullOrEmpty(this ITuple tuple)
 		{
 			return tuple == null || tuple.Count == 0;
 		}
 
 		/// <summary>Returns true if the tuple is not null, and contains only one item</summary>
 		[ContractAnnotation("null => false")]
-		public static bool IsSingleton(this IFdbTuple tuple)
+		public static bool IsSingleton(this ITuple tuple)
 		{
 			return tuple != null && tuple.Count == 1;
 		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		[NotNull, ItemCanBeNull]
-		public static object[] ToArray([NotNull] this IFdbTuple tuple)
+		public static object[] ToArray([NotNull] this ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			var items = new object[tuple.Count];
 			if (items.Length > 0)
@@ -69,9 +69,9 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Returns a typed array containing all the items of a tuple</summary>
 		[NotNull]
-		public static T[] ToArray<T>([NotNull] this IFdbTuple tuple)
+		public static T[] ToArray<T>([NotNull] this ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			var items = new T[tuple.Count];
 			if (items.Length > 0)
@@ -86,7 +86,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Returns a byte array containing the packed version of a tuple</summary>
 		[CanBeNull]
-		public static byte[] GetBytes([NotNull] this IFdbTuple tuple)
+		public static byte[] GetBytes([NotNull] this ITuple tuple)
 		{
 			return tuple.ToSlice().GetBytes();
 		}
@@ -94,40 +94,40 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Returns the typed value of the first item in this tuple</summary>
 		/// <typeparam name="T">Expected type of the first item</typeparam>
 		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
-		public static T First<T>([NotNull] this IFdbTuple tuple)
+		public static T First<T>([NotNull] this ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 			return tuple.Get<T>(0);
 		}
 
 		/// <summary>Appends two values at the end of a tuple</summary>
 		[NotNull]
-		public static IFdbTuple Append<T1, T2>([NotNull] this IFdbTuple tuple, T1 value1, T2 value2)
+		public static ITuple Append<T1, T2>([NotNull] this ITuple tuple, T1 value1, T2 value2)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			return new FdbJoinedTuple(tuple, FdbTuple.Create<T1, T2>(value1, value2));
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			return new JoinedTuple(tuple, STuple.Create<T1, T2>(value1, value2));
 		}
 
 		/// <summary>Appends three values at the end of a tuple</summary>
 		[NotNull]
-		public static IFdbTuple Append<T1, T2, T3>([NotNull] this IFdbTuple tuple, T1 value1, T2 value2, T3 value3)
+		public static ITuple Append<T1, T2, T3>([NotNull] this ITuple tuple, T1 value1, T2 value2, T3 value3)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			return new FdbJoinedTuple(tuple, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
 
 		/// <summary>Appends four values at the end of a tuple</summary>
 		[NotNull]
-		public static IFdbTuple Append<T1, T2, T3, T4>([NotNull] this IFdbTuple tuple, T1 value1, T2 value2, T3 value3, T4 value4)
+		public static ITuple Append<T1, T2, T3, T4>([NotNull] this ITuple tuple, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			return new FdbJoinedTuple(tuple, FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
 		}
 
 		/// <summary>Creates a key range containing all children of this tuple, from tuple.pack()+'\0' to tuple.pack()+'\xFF'</summary>
 		/// <param name="tuple">Tuple that is the suffix of all keys</param>
 		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will not be included</returns>
-		public static KeyRange ToRange([NotNull] this IFdbTuple tuple)
+		public static KeyRange ToRange([NotNull] this ITuple tuple)
 		{
 			return ToRange(tuple, false);
 		}
@@ -136,9 +136,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple that is the prefix of all keys</param>
 		/// <param name="includePrefix">If true, the tuple key itself is included, if false only the children keys are included</param>
 		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will be included if <paramref name="includePrefix"/> is true</returns>
-		public static KeyRange ToRange([NotNull] this IFdbTuple tuple, bool includePrefix)
+		public static KeyRange ToRange([NotNull] this ITuple tuple, bool includePrefix)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			// We want to allocate only one byte[] to store both keys, and map both Slice to each chunk
 			// So we will serialize the tuple two times in the same writer
@@ -165,39 +165,39 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Create a copy of the tuple that can be reused frequently to pack values</returns>
 		/// <remarks>If the tuple is already memoized, the current instance will be returned</remarks>
 		[CanBeNull, ContractAnnotation("null => null")]
-		public static FdbMemoizedTuple Memoize(this IFdbTuple tuple)
+		public static MemoizedTuple Memoize(this ITuple tuple)
 		{
 			if (tuple == null) return null;
 
-			var memoized = tuple as FdbMemoizedTuple ?? new FdbMemoizedTuple(tuple.ToArray(), tuple.ToSlice());
+			var memoized = tuple as MemoizedTuple ?? new MemoizedTuple(tuple.ToArray(), tuple.ToSlice());
 
 			return memoized;
 		}
 
 		/// <summary>Unpack a tuple from this slice</summary>
 		/// <param name="slice"></param>
-		/// <returns>Unpacked tuple if the slice contains data, FdbTuple.Empty if the slice is empty, or null if the slice is Slice.Nil</returns>
+		/// <returns>Unpacked tuple if the slice contains data, STuple.Empty if the slice is empty, or null if the slice is Slice.Nil</returns>
 		[NotNull]
-		public static IFdbTuple ToTuple(this Slice slice)
+		public static ITuple ToTuple(this Slice slice)
 		{
 			//note: this method is here to allow a fluent API with method chaining, like "something.ToFoundationDbKey().ToTuple().With((int x, int y) => .....)"
-			return FdbTuple.Unpack(slice);
+			return STuple.Unpack(slice);
 		}
 
 		/// <summary>Unpack a tuple from this slice</summary>
 		/// <param name="slice"></param>
-		/// <returns>Unpacked tuple if the slice contains data, FdbTuple.Empty if the slice is empty, or null if the slice is Slice.Nil</returns>
+		/// <returns>Unpacked tuple if the slice contains data, STuple.Empty if the slice is empty, or null if the slice is Slice.Nil</returns>
 		[CanBeNull]
-		public static IFdbTuple ToTupleOrDefault(this Slice slice)
+		public static ITuple ToTupleOrDefault(this Slice slice)
 		{
 			//note: this method is here to allow a fluent API with method chaining, like "something.ToFoundationDbKey().ToTuple().With((int x, int y) => .....)"
 
 			if (slice.IsNullOrEmpty)
 			{
-				return slice.HasValue ? FdbTuple.Empty : null;
+				return slice.HasValue ? STuple.Empty : null;
 			}
 
-			return FdbTuple.Unpack(slice);
+			return STuple.Unpack(slice);
 		}
 
 		/// <summary>Returns a substring of the current tuple</summary>
@@ -205,9 +205,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="offset">Offset from the start of the current tuple (negative value means from the end)</param>
 		/// <returns>Tuple that contains only the items past the first <param name="offset"/> items of the current tuple</returns>
 		[NotNull]
-		public static IFdbTuple Substring([NotNull] this IFdbTuple tuple, int offset)
+		public static ITuple Substring([NotNull] this ITuple tuple, int offset)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			return tuple[offset, null];
 		}
@@ -218,12 +218,12 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="count">Number of items to keep</param>
 		/// <returns>Tuple that contains only the selected items from the current tuple</returns>
 		[NotNull]
-		public static IFdbTuple Substring([NotNull] this IFdbTuple tuple, int offset, int count)
+		public static ITuple Substring([NotNull] this ITuple tuple, int offset, int count)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative.");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative.");
 
-			if (count == 0) return FdbTuple.Empty;
+			if (count == 0) return STuple.Empty;
 
 			return tuple[offset, offset + count];
 		}
@@ -236,7 +236,7 @@ namespace FoundationDB.Layers.Tuples
 		/// (a, b, c).Truncate(2) => (a, b)
 		/// (a, b, c).Truncate(-2) => (b, c)
 		/// </example>
-		public static IFdbTuple Truncate([NotNull] this IFdbTuple tuple, int count)
+		public static ITuple Truncate([NotNull] this ITuple tuple, int count)
 		{
 			tuple.OfSizeAtLeast(Math.Abs(count));
 
@@ -255,35 +255,35 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="left">Larger tuple</param>
 		/// <param name="right">Smaller tuple</param>
 		/// <returns>True if the beginning of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
-		public static bool StartsWith([NotNull] this IFdbTuple left, [NotNull] IFdbTuple right)
+		public static bool StartsWith([NotNull] this ITuple left, [NotNull] ITuple right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
-			//REVIEW: move this on IFdbTuple interface ?
-			return FdbTuple.StartsWith(left, right);
+			//REVIEW: move this on ITuple interface ?
+			return STuple.StartsWith(left, right);
 		}
 
 		/// <summary>Test if the end of current tuple is equal to another tuple</summary>
 		/// <param name="left">Larger tuple</param>
 		/// <param name="right">Smaller tuple</param>
 		/// <returns>True if the end of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
-		public static bool EndsWith([NotNull] this IFdbTuple left, [NotNull] IFdbTuple right)
+		public static bool EndsWith([NotNull] this ITuple left, [NotNull] ITuple right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
-			//REVIEW: move this on IFdbTuple interface ?
-			return FdbTuple.EndsWith(left, right);
+			//REVIEW: move this on ITuple interface ?
+			return STuple.EndsWith(left, right);
 		}
 
 		/// <summary>Transform a tuple of N elements into a list of N singletons</summary>
 		/// <param name="tuple">Tuple that contains any number of elements</param>
 		/// <returns>Sequence of tuples that contains a single element</returns>
 		/// <example>(123, ABC, false,).Explode() => [ (123,), (ABC,), (false,) ]</example>
-		public static IEnumerable<IFdbTuple> Explode([NotNull] this IFdbTuple tuple)
+		public static IEnumerable<ITuple> Explode([NotNull] this ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			int p = 0;
 			int n = tuple.Count;
@@ -296,16 +296,16 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Returns a key that is immediately after the packed representation of this tuple</summary>
 		/// <remarks>This is the equivalent of manually packing the tuple and incrementing the resulting slice</remarks>
-		public static Slice Increment([NotNull] this IFdbTuple tuple)
+		public static Slice Increment([NotNull] this ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 			return FdbKey.Increment(tuple.ToSlice());
 		}
 
 		/// <summary>Returns a Key Selector pair that defines the range of all items contained under this tuple</summary>
-		public static KeySelectorPair ToSelectorPair([NotNull] this IFdbTuple tuple)
+		public static KeySelectorPair ToSelectorPair([NotNull] this ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
 
 			return KeySelectorPair.StartsWith(tuple.ToSlice());
 		}
@@ -318,7 +318,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller or larger than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
 		[NotNull]
-		public static IFdbTuple OfSize(this IFdbTuple tuple, int size)
+		public static ITuple OfSize(this ITuple tuple, int size)
 		{
 			if (tuple == null || tuple.Count != size) ThrowInvalidTupleSize(tuple, size, 0);
 			return tuple;
@@ -332,7 +332,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
 		[NotNull]
-		public static IFdbTuple OfSizeAtLeast(this IFdbTuple tuple, int size)
+		public static ITuple OfSizeAtLeast(this ITuple tuple, int size)
 		{
 			if (tuple == null || tuple.Count < size) ThrowInvalidTupleSize(tuple, size, -1);
 			return tuple;
@@ -346,18 +346,18 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is larger than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
 		[NotNull]
-		public static IFdbTuple OfSizeAtMost(this IFdbTuple tuple, int size)
+		public static ITuple OfSizeAtMost(this ITuple tuple, int size)
 		{
 			if (tuple == null || tuple.Count > size) ThrowInvalidTupleSize(tuple, size, 1);
 			return tuple;
 		}
 
 		[ContractAnnotation("=> halt")]
-		internal static void ThrowInvalidTupleSize(IFdbTuple tuple, int expected, int test)
+		internal static void ThrowInvalidTupleSize(ITuple tuple, int expected, int test)
 		{
 			if (tuple == null)
 			{
-				throw new ArgumentNullException("tuple");
+				throw new ArgumentNullException(nameof(tuple));
 			}
 			switch(test)
 			{
@@ -371,10 +371,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T1">Expected type of the single element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 1</param>
 		/// <returns>Equivalent tuple, with its element converted to the specified type</returns>
-		public static FdbTuple<T1> As<T1>([NotNull] this IFdbTuple tuple)
+		public static STuple<T1> As<T1>([NotNull] this ITuple tuple)
 		{
 			tuple.OfSize(1);
-			return new FdbTuple<T1>(tuple.Get<T1>(0));
+			return new STuple<T1>(tuple.Get<T1>(0));
 		}
 
 		/// <summary>Returns a typed version of a tuple of size 2</summary>
@@ -382,10 +382,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 2</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static FdbTuple<T1, T2> As<T1, T2>([NotNull] this IFdbTuple tuple)
+		public static STuple<T1, T2> As<T1, T2>([NotNull] this ITuple tuple)
 		{
 			tuple.OfSize(2);
-			return new FdbTuple<T1, T2>(
+			return new STuple<T1, T2>(
 				tuple.Get<T1>(0),
                 tuple.Get<T2>(1)
 			);
@@ -397,10 +397,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 3</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static FdbTuple<T1, T2, T3> As<T1, T2, T3>([NotNull] this IFdbTuple tuple)
+		public static STuple<T1, T2, T3> As<T1, T2, T3>([NotNull] this ITuple tuple)
 		{
 			tuple.OfSize(3);
-			return new FdbTuple<T1, T2, T3>(
+			return new STuple<T1, T2, T3>(
 				tuple.Get<T1>(0),
 				tuple.Get<T2>(1),
                 tuple.Get<T3>(2)
@@ -414,10 +414,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 4</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static FdbTuple<T1, T2, T3, T4> As<T1, T2, T3, T4>([NotNull] this IFdbTuple tuple)
+		public static STuple<T1, T2, T3, T4> As<T1, T2, T3, T4>([NotNull] this ITuple tuple)
 		{
 			tuple.OfSize(4);
-			return new FdbTuple<T1, T2, T3, T4>(
+			return new STuple<T1, T2, T3, T4>(
 				tuple.Get<T1>(0),
 				tuple.Get<T2>(1),
 				tuple.Get<T3>(2),
@@ -433,10 +433,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 5</param>
 		/// <returns>Equivalent tuple, with its elements converted to the specified types</returns>
-		public static FdbTuple<T1, T2, T3, T4, T5> As<T1, T2, T3, T4, T5>([NotNull] this IFdbTuple tuple)
+		public static STuple<T1, T2, T3, T4, T5> As<T1, T2, T3, T4, T5>([NotNull] this ITuple tuple)
 		{
 			tuple.OfSize(5);
-			return new FdbTuple<T1, T2, T3, T4, T5>(
+			return new STuple<T1, T2, T3, T4, T5>(
 				tuple.Get<T1>(0),
 				tuple.Get<T2>(1),
 				tuple.Get<T3>(2),
@@ -449,7 +449,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 1</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1> lambda)
+		public static void With<T1>([NotNull] this ITuple tuple, [NotNull] Action<T1> lambda)
 		{
 			OfSize(tuple, 1);
 			lambda(tuple.Get<T1>(0));
@@ -459,7 +459,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 2</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2> lambda)
+		public static void With<T1, T2>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2> lambda)
 		{
 			OfSize(tuple, 2);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
@@ -469,7 +469,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 3</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3> lambda)
+		public static void With<T1, T2, T3>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3> lambda)
 		{
 			OfSize(tuple, 3);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
@@ -479,7 +479,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 4</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4> lambda)
+		public static void With<T1, T2, T3, T4>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4> lambda)
 		{
 			OfSize(tuple, 4);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
@@ -489,7 +489,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 5</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5> lambda)
+		public static void With<T1, T2, T3, T4, T5>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5> lambda)
 		{
 			OfSize(tuple, 5);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
@@ -499,7 +499,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 6</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5, T6>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6> lambda)
+		public static void With<T1, T2, T3, T4, T5, T6>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6> lambda)
 		{
 			OfSize(tuple, 6);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
@@ -509,7 +509,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 7</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5, T6, T7>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7> lambda)
+		public static void With<T1, T2, T3, T4, T5, T6, T7>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7> lambda)
 		{
 			OfSize(tuple, 7);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
@@ -519,7 +519,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple of size 8</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5, T6, T7, T8>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
+		public static void With<T1, T2, T3, T4, T5, T6, T7, T8>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
 		{
 			OfSize(tuple, 8);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));
@@ -530,7 +530,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, TResult> lambda)
+		public static TResult With<T1, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, TResult> lambda)
 		{
 			OfSize(tuple, 1);
 			return lambda(tuple.Get<T1>(0));
@@ -541,7 +541,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, TResult> lambda)
+		public static TResult With<T1, T2, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, TResult> lambda)
 		{
 			OfSize(tuple, 2);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
@@ -552,7 +552,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, TResult> lambda)
+		public static TResult With<T1, T2, T3, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, TResult> lambda)
 		{
 			OfSize(tuple, 3);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
@@ -563,7 +563,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, TResult> lambda)
 		{
 			OfSize(tuple, 4);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
@@ -574,7 +574,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, TResult> lambda)
 		{
 			OfSize(tuple, 5);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
@@ -585,7 +585,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, T6, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, T6, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, TResult> lambda)
 		{
 			OfSize(tuple, 6);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
@@ -596,7 +596,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, T6, T7, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, T6, T7, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, TResult> lambda)
 		{
 			OfSize(tuple, 7);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
@@ -607,7 +607,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, T6, T7, T8, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, T6, T7, T8, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> lambda)
 		{
 			OfSize(tuple, 8);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));

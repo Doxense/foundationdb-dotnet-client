@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Tuples
 
 	/// <summary>Represents an immutable tuple where the packed bytes are cached</summary>
 	[DebuggerDisplay("{ToString()}")]
-	public sealed class FdbMemoizedTuple : IFdbTuple
+	public sealed class MemoizedTuple : ITuple
 	{
 		/// <summary>Items of the tuple</summary>
 		private readonly object[] m_items;
@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Packed version of the tuple</summary>
 		private Slice m_packed; //PERF: readonly struct
 
-		internal FdbMemoizedTuple(object[] items, Slice packed)
+		internal MemoizedTuple(object[] items, Slice packed)
 		{
 			Contract.Requires(items != null);
 			Contract.Requires(packed.HasValue);
@@ -67,12 +67,12 @@ namespace FoundationDB.Layers.Tuples
 
 		public object this[int index]
 		{
-			get { return m_items[FdbTuple.MapIndex(index, m_items.Length)]; }
+			get { return m_items[STuple.MapIndex(index, m_items.Length)]; }
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
+			get { return STuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
 		public void PackTo(ref TupleWriter writer)
@@ -88,9 +88,9 @@ namespace FoundationDB.Layers.Tuples
 			return m_packed;
 		}
 
-		public FdbMemoizedTuple Copy()
+		public MemoizedTuple Copy()
 		{
-			return new FdbMemoizedTuple(
+			return new MemoizedTuple(
 				(object[])(m_items.Clone()),
 				m_packed.Memoize()
 			);
@@ -115,19 +115,19 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.ConvertBoxed<R>(m_items[n - 1]);
 		}
 
-		IFdbTuple IFdbTuple.Append<T>(T value)
+		ITuple ITuple.Append<T>(T value)
 		{
 			return this.Append<T>(value);
 		}
 
-		public FdbLinkedTuple<T> Append<T>(T value)
+		public LinkedTuple<T> Append<T>(T value)
 		{
-			return new FdbLinkedTuple<T>(this, value);
+			return new LinkedTuple<T>(this, value);
 		}
 
-		public IFdbTuple Concat(IFdbTuple tuple)
+		public ITuple Concat(ITuple tuple)
 		{
-			return FdbTuple.Concat(this, tuple);
+			return STuple.Concat(this, tuple);
 		}
 
 		public void CopyTo(object[] array, int offset)
@@ -147,25 +147,25 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return FdbTuple.ToString(m_items, 0, m_items.Length);
+			return STuple.ToString(m_items, 0, m_items.Length);
 		}
 
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as IFdbTuple);
+			return Equals(obj as ITuple);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			if (object.ReferenceEquals(other, null)) return false;
 
-			var memoized = other as FdbMemoizedTuple;
+			var memoized = other as MemoizedTuple;
 			if (!object.ReferenceEquals(memoized, null))
 			{
 				return m_packed.Equals(memoized.m_packed);
 			}
 
-			return FdbTuple.Equals(this, other, SimilarValueComparer.Default);
+			return STuple.Equals(this, other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
@@ -175,12 +175,12 @@ namespace FoundationDB.Layers.Tuples
 
 		bool IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
 		{
-			return FdbTuple.Equals(this, other, comparer);
+			return STuple.Equals(this, other, comparer);
 		}
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return FdbTuple.StructuralGetHashCode(this, comparer);
+			return STuple.StructuralGetHashCode(this, comparer);
 		}
 
 	}

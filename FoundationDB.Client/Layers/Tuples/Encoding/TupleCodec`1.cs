@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,66 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 
-	/// <summary>Specialized formatter for types that implement ITupleFormattable</summary>
-	internal sealed class FdbFormattableTupleFormatter<T> : ITupleFormatter<T>
-		where T : ITupleFormattable, new()
+	/// <summary>Type codec that uses the Tuple Encoding format</summary>
+	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
+	public sealed class TupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
 	{
-		public IFdbTuple ToTuple(T key)
+
+		private static volatile TupleCodec<T> s_defaultSerializer;
+
+		public static TupleCodec<T> Default
 		{
-			if (key == null) return null;
-			return key.ToTuple();
+			[NotNull]
+			get { return s_defaultSerializer ?? (s_defaultSerializer = new TupleCodec<T>(default(T))); }
 		}
 
-		public T FromTuple(IFdbTuple tuple)
+		private readonly T m_missingValue;
+
+		public TupleCodec(T missingValue)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			var key = new T();
-			key.FromTuple(tuple);
-			return key;
+			m_missingValue = missingValue;
+		}
+
+		public override Slice EncodeOrdered(T value)
+		{
+			return STuple.EncodeKey<T>(value);
+		}
+
+		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
+		{
+			//HACKHACK: we lose the current depth!
+			var writer = new TupleWriter(output);
+			TuplePacker<T>.Encoder(ref writer, value);
+			output = writer.Output;
+		}
+
+		public override T DecodeOrdered(Slice input)
+		{
+			return STuple.DecodeKey<T>(input);
+		}
+
+		public override T DecodeOrderedSelfTerm(ref SliceReader input)
+		{
+			//HACKHACK: we lose the current depth!
+			var reader = new TupleReader(input);
+			T value;
+			bool res = STuple.DecodeNext<T>(ref reader, out value);
+			input = reader.Input;
+			return res ? value : m_missingValue;
+		}
+
+		public Slice EncodeValue(T value)
+		{
+			return EncodeUnordered(value);
+		}
+
+		public T DecodeValue(Slice encoded)
+		{
+			return DecodeUnordered(encoded);
 		}
 	}
 

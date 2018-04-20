@@ -180,7 +180,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, FdbSubspace.Create(FdbTuple.EncodeKey(SUBSPACE)), false, ct))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, FdbSubspace.Create(STuple.EncodeKey(SUBSPACE)), false, ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -266,8 +266,8 @@ namespace FoundationDB.Tests.Sandbox
 				// Writes some data in to the database
 				using (var tr = db.BeginTransaction(ct))
 				{
-					tr.Set(FdbTuple.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
-					tr.Set(FdbTuple.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
+					tr.Set(STuple.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
+					tr.Set(STuple.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
 				}
 
 			}

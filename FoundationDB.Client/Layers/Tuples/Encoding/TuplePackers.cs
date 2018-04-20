@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
-	public static class FdbTuplePackers
+	public static class TuplePackers
 	{
 
 		#region Serializers...
@@ -66,20 +66,20 @@ namespace FoundationDB.Layers.Tuples
 
 			if (type == typeof(object))
 			{ // return a generic serializer that will inspect the runtime type of the object
-				return new Encoder<object>(FdbTuplePackers.SerializeObjectTo);
+				return new Encoder<object>(TuplePackers.SerializeObjectTo);
 			}
 
 			var typeArgs = new[] { typeof(TupleWriter).MakeByRefType(), type };
-			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
+			var method = typeof(TuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
 			{ // we have a direct serializer
 				return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 			}
 
 			// maybe if it is a tuple ?
-			if (typeof(IFdbTuple).IsAssignableFrom(type))
+			if (typeof(ITuple).IsAssignableFrom(type))
 			{
-				method = typeof(FdbTuplePackers).GetMethod("SerializeTupleTo", BindingFlags.Static | BindingFlags.Public);
+				method = typeof(TuplePackers).GetMethod("SerializeTupleTo", BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
 					return method.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
@@ -88,7 +88,7 @@ namespace FoundationDB.Layers.Tuples
 
 			if (typeof(ITupleFormattable).IsAssignableFrom(type))
 			{
-				method = typeof(FdbTuplePackers).GetMethod("SerializeFormattableTo", BindingFlags.Static | BindingFlags.Public);
+				method = typeof(TuplePackers).GetMethod("SerializeFormattableTo", BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
 					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
@@ -98,7 +98,7 @@ namespace FoundationDB.Layers.Tuples
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{ // nullable types can reuse the underlying type serializer
-				method = typeof(FdbTuplePackers).GetMethod("SerializeNullableTo", BindingFlags.Static | BindingFlags.Public);
+				method = typeof(TuplePackers).GetMethod("SerializeNullableTo", BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
 					return method.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
@@ -120,9 +120,9 @@ namespace FoundationDB.Layers.Tuples
 			where T : struct
 		{
 			if (value == null)
-				FdbTupleParser.WriteNil(ref writer);
+				TupleParser.WriteNil(ref writer);
 			else
-				FdbTuplePacker<T>.Encoder(ref writer, value.Value);
+				TuplePacker<T>.Encoder(ref writer, value.Value);
 		}
 
 		/// <summary>Serialize an untyped object, by checking its type at runtime</summary>
@@ -134,7 +134,7 @@ namespace FoundationDB.Layers.Tuples
 			if (value == null)
 			{ // null value
 				// includes all null references to ref types, as nullables where HasValue == false
-				FdbTupleParser.WriteNil(ref writer);
+				TupleParser.WriteNil(ref writer);
 				return;
 			}
 
@@ -190,7 +190,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 				case TypeCode.DBNull:
 				{ // same as null
-					FdbTupleParser.WriteNil(ref writer);
+					TupleParser.WriteNil(ref writer);
 					return;
 				}
 				case TypeCode.Boolean:
@@ -266,7 +266,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			var tuple = value as IFdbTuple;
+			var tuple = value as ITuple;
 			if (tuple != null)
 			{
 				SerializeTupleTo(ref writer, tuple);
@@ -291,22 +291,22 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (value.IsNull)
 			{
-				FdbTupleParser.WriteNil(ref writer);
+				TupleParser.WriteNil(ref writer);
 			}
 			else if (value.Offset == 0 && value.Count == value.Array.Length)
 			{
-				FdbTupleParser.WriteBytes(ref writer, value.Array);
+				TupleParser.WriteBytes(ref writer, value.Array);
 			}
 			else
 			{
-				FdbTupleParser.WriteBytes(ref writer, value.Array, value.Offset, value.Count);
+				TupleParser.WriteBytes(ref writer, value.Array, value.Offset, value.Count);
 			}
 		}
 
 		/// <summary>Writes a byte[] array</summary>
 		public static void SerializeTo(ref TupleWriter writer, byte[] value)
 		{
-			FdbTupleParser.WriteBytes(ref writer, value);
+			TupleParser.WriteBytes(ref writer, value);
 		}
 
 		/// <summary>Writes an array segment as a byte[] array</summary>
@@ -318,14 +318,14 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes a char as Unicode string</summary>
 		public static void SerializeTo(ref TupleWriter writer, char value)
 		{
-			FdbTupleParser.WriteChar(ref writer, value);
+			TupleParser.WriteChar(ref writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer</summary>
 		/// <remarks>Uses 0 for false, and -1 for true</remarks>
 		public static void SerializeTo(ref TupleWriter writer, bool value)
 		{
-			FdbTupleParser.WriteBool(ref writer, value);
+			TupleParser.WriteBool(ref writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer or null</summary>
@@ -333,78 +333,78 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (value == null)
 			{ // null => 00
-				FdbTupleParser.WriteNil(ref writer);
+				TupleParser.WriteNil(ref writer);
 			}
 			else
 			{
-				FdbTupleParser.WriteBool(ref writer, value.Value);
+				TupleParser.WriteBool(ref writer, value.Value);
 			}
 		}
 
 		/// <summary>Writes a signed byte as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, sbyte value)
 		{
-			FdbTupleParser.WriteInt32(ref writer, value);
+			TupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned byte as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, byte value)
 		{
-			FdbTupleParser.WriteByte(ref writer, value);
+			TupleParser.WriteByte(ref writer, value);
 		}
 
 		/// <summary>Writes a signed word as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, short value)
 		{
-			FdbTupleParser.WriteInt32(ref writer, value);
+			TupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned word as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, ushort value)
 		{
-			FdbTupleParser.WriteUInt32(ref writer, value);
+			TupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed int as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, int value)
 		{
-			FdbTupleParser.WriteInt32(ref writer, value);
+			TupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned int as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, uint value)
 		{
-			FdbTupleParser.WriteUInt32(ref writer, value);
+			TupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed long as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, long value)
 		{
-			FdbTupleParser.WriteInt64(ref writer, value);
+			TupleParser.WriteInt64(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned long as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, ulong value)
 		{
-			FdbTupleParser.WriteUInt64(ref writer, value);
+			TupleParser.WriteUInt64(ref writer, value);
 		}
 
 		/// <summary>Writes a 32-bit IEEE floating point number</summary>
 		public static void SerializeTo(ref TupleWriter writer, float value)
 		{
-			FdbTupleParser.WriteSingle(ref writer, value);
+			TupleParser.WriteSingle(ref writer, value);
 		}
 
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
 		public static void SerializeTo(ref TupleWriter writer, double value)
 		{
-			FdbTupleParser.WriteDouble(ref writer, value);
+			TupleParser.WriteDouble(ref writer, value);
 		}
 
 		/// <summary>Writes a string as an Unicode string</summary>
 		public static void SerializeTo(ref TupleWriter writer, string value)
 		{
-			FdbTupleParser.WriteString(ref writer, value);
+			TupleParser.WriteString(ref writer, value);
 		}
 
 		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
@@ -424,7 +424,7 @@ namespace FoundationDB.Layers.Tuples
 			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
 			double ms = (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double)TimeSpan.TicksPerDay;
 
-			FdbTupleParser.WriteDouble(ref writer, ms);
+			TupleParser.WriteDouble(ref writer, ms);
 		}
 
 		/// <summary>Writes a TimeSpan converted to to a number seconds encoded as a 64-bit decimal</summary>
@@ -438,7 +438,7 @@ namespace FoundationDB.Layers.Tuples
 
 			// Right now, we will store the duration as the number of seconds, using a 64-bit float
 
-			FdbTupleParser.WriteDouble(ref writer, value.TotalSeconds);
+			TupleParser.WriteDouble(ref writer, value.TotalSeconds);
 		}
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
@@ -446,25 +446,25 @@ namespace FoundationDB.Layers.Tuples
 		{
 			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty bytestring) ?
 			// => could spare ~16 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
-			FdbTupleParser.WriteGuid(ref writer, value);
+			TupleParser.WriteGuid(ref writer, value);
 		}
 
 		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
 		public static void SerializeTo(ref TupleWriter writer, Uuid128 value)
 		{
-			FdbTupleParser.WriteUuid128(ref writer, value);
+			TupleParser.WriteUuid128(ref writer, value);
 		}
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
 		public static void SerializeTo(ref TupleWriter writer, Uuid64 value)
 		{
-			FdbTupleParser.WriteUuid64(ref writer, value);
+			TupleParser.WriteUuid64(ref writer, value);
 		}
 
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
 		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value)
 		{
-			FdbTupleParser.WriteBytes(ref writer, value != null ? value.GetAddressBytes() : null);
+			TupleParser.WriteBytes(ref writer, value != null ? value.GetAddressBytes() : null);
 		}
 
 		public static void SerializeTo(ref TupleWriter writer, FdbTupleAlias value)
@@ -475,29 +475,29 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
-			where TTuple : IFdbTuple
+			where TTuple : ITuple
 		{
 			Contract.Requires(tuple != null);
 
-			FdbTupleParser.BeginTuple(ref writer);
+			TupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
-			FdbTupleParser.EndTuple(ref writer);
+			TupleParser.EndTuple(ref writer);
 		}
 
 		public static void SerializeFormattableTo(ref TupleWriter writer, ITupleFormattable formattable)
 		{
 			if (formattable == null)
 			{
-				FdbTupleParser.WriteNil(ref writer);
+				TupleParser.WriteNil(ref writer);
 				return;
 			}
 
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
 
-			FdbTupleParser.BeginTuple(ref writer);
+			TupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
-			FdbTupleParser.EndTuple(ref writer);
+			TupleParser.EndTuple(ref writer);
 		}
 
 		#endregion
@@ -511,26 +511,26 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var map = new Dictionary<Type, Delegate>();
 
-			map[typeof(Slice)] = new Func<Slice, Slice>(FdbTuplePackers.DeserializeSlice);
-			map[typeof(byte[])] = new Func<Slice, byte[]>(FdbTuplePackers.DeserializeBytes);
-			map[typeof(bool)] = new Func<Slice, bool>(FdbTuplePackers.DeserializeBoolean);
-			map[typeof(string)] = new Func<Slice, string>(FdbTuplePackers.DeserializeString);
-			map[typeof(sbyte)] = new Func<Slice, sbyte>(FdbTuplePackers.DeserializeSByte);
-			map[typeof(short)] = new Func<Slice, short>(FdbTuplePackers.DeserializeInt16);
-			map[typeof(int)] = new Func<Slice, int>(FdbTuplePackers.DeserializeInt32);
-			map[typeof(long)] = new Func<Slice, long>(FdbTuplePackers.DeserializeInt64);
-			map[typeof(byte)] = new Func<Slice, byte>(FdbTuplePackers.DeserializeByte);
-			map[typeof(ushort)] = new Func<Slice, ushort>(FdbTuplePackers.DeserializeUInt16);
-			map[typeof(uint)] = new Func<Slice, uint>(FdbTuplePackers.DeserializeUInt32);
-			map[typeof(ulong)] = new Func<Slice, ulong>(FdbTuplePackers.DeserializeUInt64);
-			map[typeof(float)] = new Func<Slice, float>(FdbTuplePackers.DeserializeSingle);
-			map[typeof(double)] = new Func<Slice, double>(FdbTuplePackers.DeserializeDouble);
-			map[typeof(Guid)] = new Func<Slice, Guid>(FdbTuplePackers.DeserializeGuid);
-			map[typeof(Uuid128)] = new Func<Slice, Uuid128>(FdbTuplePackers.DeserializeUuid128);
-			map[typeof(Uuid64)] = new Func<Slice, Uuid64>(FdbTuplePackers.DeserializeUuid64);
-			map[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(FdbTuplePackers.DeserializeTimeSpan);
-			map[typeof(DateTime)] = new Func<Slice, DateTime>(FdbTuplePackers.DeserializeDateTime);
-			map[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(FdbTuplePackers.DeserializeIPAddress);
+			map[typeof(Slice)] = new Func<Slice, Slice>(TuplePackers.DeserializeSlice);
+			map[typeof(byte[])] = new Func<Slice, byte[]>(TuplePackers.DeserializeBytes);
+			map[typeof(bool)] = new Func<Slice, bool>(TuplePackers.DeserializeBoolean);
+			map[typeof(string)] = new Func<Slice, string>(TuplePackers.DeserializeString);
+			map[typeof(sbyte)] = new Func<Slice, sbyte>(TuplePackers.DeserializeSByte);
+			map[typeof(short)] = new Func<Slice, short>(TuplePackers.DeserializeInt16);
+			map[typeof(int)] = new Func<Slice, int>(TuplePackers.DeserializeInt32);
+			map[typeof(long)] = new Func<Slice, long>(TuplePackers.DeserializeInt64);
+			map[typeof(byte)] = new Func<Slice, byte>(TuplePackers.DeserializeByte);
+			map[typeof(ushort)] = new Func<Slice, ushort>(TuplePackers.DeserializeUInt16);
+			map[typeof(uint)] = new Func<Slice, uint>(TuplePackers.DeserializeUInt32);
+			map[typeof(ulong)] = new Func<Slice, ulong>(TuplePackers.DeserializeUInt64);
+			map[typeof(float)] = new Func<Slice, float>(TuplePackers.DeserializeSingle);
+			map[typeof(double)] = new Func<Slice, double>(TuplePackers.DeserializeDouble);
+			map[typeof(Guid)] = new Func<Slice, Guid>(TuplePackers.DeserializeGuid);
+			map[typeof(Uuid128)] = new Func<Slice, Uuid128>(TuplePackers.DeserializeUuid128);
+			map[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64);
+			map[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan);
+			map[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime);
+			map[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress);
 
 			// add Nullable versions for all these types
 			return map;
@@ -571,7 +571,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Check if a tuple segment is the equivalent of 'Nil'</summary>
 		internal static bool IsNilSegment(Slice slice)
 		{
-			return slice.IsNullOrEmpty || slice[0] == FdbTupleTypes.Nil;
+			return slice.IsNullOrEmpty || slice[0] == TupleTypes.Nil;
 		}
 
 		private static Delegate MakeNullableDeserializer([NotNull] Type nullableType, [NotNull] Type type, [NotNull] Delegate decoder)
@@ -582,7 +582,7 @@ namespace FoundationDB.Layers.Tuples
 			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
 			var body = Expression.Condition(
 				// IsNilSegment(slice) ?
-				Expression.Call(typeof(FdbTuplePackers).GetMethod("IsNilSegment", BindingFlags.Static | BindingFlags.NonPublic), prmSlice),
+				Expression.Call(typeof(TuplePackers).GetMethod("IsNilSegment", BindingFlags.Static | BindingFlags.NonPublic), prmSlice),
 				// True => default(Nullable<T>)
 				Expression.Default(nullableType),
 				// False => decoder(slice)
@@ -602,28 +602,28 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.IsNullOrEmpty) return null;
 
 			int type = slice[0];
-			if (type <= FdbTupleTypes.IntPos8)
+			if (type <= TupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return FdbTupleParser.ParseInt64(type, slice);
+				if (type >= TupleTypes.IntNeg8) return TupleParser.ParseInt64(type, slice);
 
 				switch (type)
 				{
-					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
-					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
-					case FdbTupleTypes.TupleStart: return FdbTupleParser.ParseTuple(slice);
+					case TupleTypes.Nil: return null;
+					case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
+					case TupleTypes.Utf8: return TupleParser.ParseUnicode(slice);
+					case TupleTypes.TupleStart: return TupleParser.ParseTuple(slice);
 				}
 			}
 			else
 			{
 				switch (type)
 				{
-					case FdbTupleTypes.Single: return FdbTupleParser.ParseSingle(slice);
-					case FdbTupleTypes.Double: return FdbTupleParser.ParseDouble(slice);
-					case FdbTupleTypes.Uuid128: return FdbTupleParser.ParseGuid(slice);
-					case FdbTupleTypes.Uuid64: return FdbTupleParser.ParseUuid64(slice);
-					case FdbTupleTypes.AliasDirectory: return FdbTupleAlias.Directory;
-					case FdbTupleTypes.AliasSystem: return FdbTupleAlias.System;
+					case TupleTypes.Single: return TupleParser.ParseSingle(slice);
+					case TupleTypes.Double: return TupleParser.ParseDouble(slice);
+					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
+					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
+					case TupleTypes.AliasDirectory: return FdbTupleAlias.Directory;
+					case TupleTypes.AliasSystem: return FdbTupleAlias.System;
 				}
 			}
 
@@ -638,12 +638,12 @@ namespace FoundationDB.Layers.Tuples
 		public static T DeserializeFormattable<T>(Slice slice)
 			where T : ITupleFormattable, new()
 		{
-			if (FdbTuplePackers.IsNilSegment(slice))
+			if (TuplePackers.IsNilSegment(slice))
 			{
 				return default(T);
 			}
 
-			var tuple = FdbTupleParser.ParseTuple(slice);
+			var tuple = TupleParser.ParseTuple(slice);
 			var value = new T();
 			value.FromTuple(tuple);
 			return value;
@@ -657,7 +657,7 @@ namespace FoundationDB.Layers.Tuples
 		public static T DeserializeFormattable<T>(Slice slice, [NotNull] Func<T> factory)
 			where T : ITupleFormattable
 		{
-			var tuple = FdbTupleParser.ParseTuple(slice);
+			var tuple = TupleParser.ParseTuple(slice);
 			var value = factory();
 			value.FromTuple(tuple);
 			return value;
@@ -674,20 +674,20 @@ namespace FoundationDB.Layers.Tuples
 			byte type = slice[0];
 			switch(type)
 			{
-				case FdbTupleTypes.Nil: return Slice.Nil;
-				case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
-				case FdbTupleTypes.Utf8: return Slice.FromString(FdbTupleParser.ParseUnicode(slice));
+				case TupleTypes.Nil: return Slice.Nil;
+				case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
+				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUnicode(slice));
 
-				case FdbTupleTypes.Single: return Slice.FromSingle(FdbTupleParser.ParseSingle(slice));
-				case FdbTupleTypes.Double: return Slice.FromDouble(FdbTupleParser.ParseDouble(slice));
+				case TupleTypes.Single: return Slice.FromSingle(TupleParser.ParseSingle(slice));
+				case TupleTypes.Double: return Slice.FromDouble(TupleParser.ParseDouble(slice));
 
-				case FdbTupleTypes.Uuid128: return Slice.FromGuid(FdbTupleParser.ParseGuid(slice));
-				case FdbTupleTypes.Uuid64: return Slice.FromUuid64(FdbTupleParser.ParseUuid64(slice));
+				case TupleTypes.Uuid128: return Slice.FromGuid(TupleParser.ParseGuid(slice));
+				case TupleTypes.Uuid64: return Slice.FromUuid64(TupleParser.ParseUuid64(slice));
 			}
 
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				if (type >= FdbTupleTypes.IntBase) return Slice.FromInt64(DeserializeInt64(slice));
+				if (type >= TupleTypes.IntBase) return Slice.FromInt64(DeserializeInt64(slice));
 				return Slice.FromUInt64(DeserializeUInt64(slice));
 			}
 
@@ -703,24 +703,24 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
 		[CanBeNull]
-		public static IFdbTuple DeserializeTuple(Slice slice)
+		public static ITuple DeserializeTuple(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
 			byte type = slice[0];
 			switch(type)
 			{
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{
 					return null;
 				}
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{
-					return FdbTuple.Unpack(FdbTupleParser.ParseBytes(slice));
+					return STuple.Unpack(TupleParser.ParseBytes(slice));
 				}
-				case FdbTupleTypes.TupleStart:
+				case TupleTypes.TupleStart:
 				{
-					return FdbTupleParser.ParseTuple(slice);
+					return TupleParser.ParseTuple(slice);
 				}
 			}
 
@@ -736,7 +736,7 @@ namespace FoundationDB.Layers.Tuples
 			byte type = slice[0];
 
 			// Booleans are usually encoded as integers, with 0 for False (<14>) and 1 for True (<15><01>)
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
 				//note: DeserializeInt64 handles most cases
 				return 0 != DeserializeInt64(slice);
@@ -744,23 +744,23 @@ namespace FoundationDB.Layers.Tuples
 
 			switch (type)
 			{
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{ // empty is false, all other is true
 					return slice.Count != 2; // <01><00>
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{// empty is false, all other is true
 					return slice.Count != 2; // <02><00>
 				}
-				case FdbTupleTypes.Single:
+				case TupleTypes.Single:
 				{
 					//TODO: should NaN considered to be false ?
-					return 0f != FdbTupleParser.ParseSingle(slice);
+					return 0f != TupleParser.ParseSingle(slice);
 				}
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{
 					//TODO: should NaN considered to be false ?
-					return 0f != FdbTupleParser.ParseDouble(slice);
+					return 0f != TupleParser.ParseDouble(slice);
 				}
 			}
 
@@ -797,15 +797,15 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.IsNullOrEmpty) return 0L; //TODO: fail ?
 
 			int type = slice[0];
-			if (type <= FdbTupleTypes.IntPos8)
+			if (type <= TupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return FdbTupleParser.ParseInt64(type, slice);
+				if (type >= TupleTypes.IntNeg8) return TupleParser.ParseInt64(type, slice);
 
 				switch (type)
 				{
-					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.Bytes: return long.Parse(FdbTupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.Utf8: return long.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case TupleTypes.Nil: return 0;
+					case TupleTypes.Bytes: return long.Parse(TupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
+					case TupleTypes.Utf8: return long.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -840,16 +840,16 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.IsNullOrEmpty) return 0UL; //TODO: fail ?
 
 			int type = slice[0];
-			if (type <= FdbTupleTypes.IntPos8)
+			if (type <= TupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntZero) return (ulong)FdbTupleParser.ParseInt64(type, slice);
-				if (type < FdbTupleTypes.IntZero) throw new OverflowException(); // negative values
+				if (type >= TupleTypes.IntZero) return (ulong)TupleParser.ParseInt64(type, slice);
+				if (type < TupleTypes.IntZero) throw new OverflowException(); // negative values
 
 				switch (type)
 				{
-					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.Bytes: return ulong.Parse(FdbTupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.Utf8: return ulong.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case TupleTypes.Nil: return 0;
+					case TupleTypes.Bytes: return ulong.Parse(TupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
+					case TupleTypes.Utf8: return ulong.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -863,25 +863,25 @@ namespace FoundationDB.Layers.Tuples
 			byte type = slice[0];
 			switch (type)
 			{
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{
 					return 0;
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{
-					return Single.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					return Single.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
-				case FdbTupleTypes.Single:
+				case TupleTypes.Single:
 				{
-					return FdbTupleParser.ParseSingle(slice);
+					return TupleParser.ParseSingle(slice);
 				}
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{
-					return (float)FdbTupleParser.ParseDouble(slice);
+					return (float)TupleParser.ParseDouble(slice);
 				}
 			}
 
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
 				return checked((float)DeserializeInt64(slice));
 			}
@@ -896,25 +896,25 @@ namespace FoundationDB.Layers.Tuples
 			byte type = slice[0];
 			switch(type)
 			{
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{
 					return 0;
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{
-					return Double.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					return Double.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
-				case FdbTupleTypes.Single:
+				case TupleTypes.Single:
 				{
-					return (double)FdbTupleParser.ParseSingle(slice);
+					return (double)TupleParser.ParseSingle(slice);
 				}
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{
-					return FdbTupleParser.ParseDouble(slice);
+					return TupleParser.ParseDouble(slice);
 				}
 			}
 
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
 				return checked((double)DeserializeInt64(slice));
 			}
@@ -934,28 +934,28 @@ namespace FoundationDB.Layers.Tuples
 
 			switch(type)
 			{
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{
 					return DateTime.MinValue;
 				}
 
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{ // we only support ISO 8601 dates. For ex: YYYY-MM-DDTHH:MM:SS.fffff"
-					string str = FdbTupleParser.ParseUnicode(slice);
+					string str = TupleParser.ParseUnicode(slice);
 					return DateTime.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 				}
 
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
 					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
-					long ticks = UNIX_EPOCH_TICKS + (long)(FdbTupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
+					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
 			}
 
 			// If we have an integer, we consider it to be a number of Ticks (Windows Only)
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
 				return new DateTime(DeserializeInt64(slice), DateTimeKind.Utc);
 			}
@@ -975,23 +975,23 @@ namespace FoundationDB.Layers.Tuples
 
 			switch(type)
 			{
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{
 					return TimeSpan.Zero;
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{ // "HH:MM:SS.fffff"
-					return TimeSpan.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					return TimeSpan.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{ // Number of seconds
 					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
-					return new TimeSpan((long)(FdbTupleParser.ParseDouble(slice) * (double)TimeSpan.TicksPerSecond));
+					return new TimeSpan((long)(TupleParser.ParseDouble(slice) * (double)TimeSpan.TicksPerSecond));
 				}
 			}
 
 			// If we have an integer, we consider it to be a number of Ticks (Windows Only)
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
 				return new TimeSpan(DeserializeInt64(slice));
 			}
@@ -1009,39 +1009,39 @@ namespace FoundationDB.Layers.Tuples
 			byte type = slice[0];
 			switch (type)
 			{
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{
 					return null;
 				}
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{
-					return FdbTupleParser.ParseAscii(slice);
+					return TupleParser.ParseAscii(slice);
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{
-					return FdbTupleParser.ParseUnicode(slice);
+					return TupleParser.ParseUnicode(slice);
 				}
-				case FdbTupleTypes.Single:
+				case TupleTypes.Single:
 				{
-					return FdbTupleParser.ParseSingle(slice).ToString(CultureInfo.InvariantCulture);
+					return TupleParser.ParseSingle(slice).ToString(CultureInfo.InvariantCulture);
 				}
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{
-					return FdbTupleParser.ParseDouble(slice).ToString(CultureInfo.InvariantCulture);
+					return TupleParser.ParseDouble(slice).ToString(CultureInfo.InvariantCulture);
 				}
-				case FdbTupleTypes.Uuid128:
+				case TupleTypes.Uuid128:
 				{
-					return FdbTupleParser.ParseGuid(slice).ToString();
+					return TupleParser.ParseGuid(slice).ToString();
 				}
-				case FdbTupleTypes.Uuid64:
+				case TupleTypes.Uuid64:
 				{
-					return FdbTupleParser.ParseUuid64(slice).ToString();
+					return TupleParser.ParseUuid64(slice).ToString();
 				}
 			}
 
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				return FdbTupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
+				return TupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 			}
 
 			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a String", type));
@@ -1057,17 +1057,17 @@ namespace FoundationDB.Layers.Tuples
 
 			switch (type)
 			{
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{
-					return Guid.Parse(FdbTupleParser.ParseAscii(slice));
+					return Guid.Parse(TupleParser.ParseAscii(slice));
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{
-					return Guid.Parse(FdbTupleParser.ParseUnicode(slice));
+					return Guid.Parse(TupleParser.ParseUnicode(slice));
 				}
-				case FdbTupleTypes.Uuid128:
+				case TupleTypes.Uuid128:
 				{
-					return FdbTupleParser.ParseGuid(slice);
+					return TupleParser.ParseGuid(slice);
 				}
 				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 			}
@@ -1085,17 +1085,17 @@ namespace FoundationDB.Layers.Tuples
 
 			switch (type)
 			{
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{ // expect binary representation as a 16-byte array
-					return new Uuid128(FdbTupleParser.ParseBytes(slice));
+					return new Uuid128(TupleParser.ParseBytes(slice));
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{ // expect text representation
-					return new Uuid128(FdbTupleParser.ParseUnicode(slice));
+					return new Uuid128(TupleParser.ParseUnicode(slice));
 				}
-				case FdbTupleTypes.Uuid128:
+				case TupleTypes.Uuid128:
 				{
-					return FdbTupleParser.ParseUuid128(slice);
+					return TupleParser.ParseUuid128(slice);
 				}
 				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
 			}
@@ -1113,23 +1113,23 @@ namespace FoundationDB.Layers.Tuples
 
 			switch (type)
 			{
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{ // expect binary representation as a 16-byte array
-					return new Uuid64(FdbTupleParser.ParseBytes(slice));
+					return new Uuid64(TupleParser.ParseBytes(slice));
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{ // expect text representation
-					return new Uuid64(FdbTupleParser.ParseUnicode(slice));
+					return new Uuid64(TupleParser.ParseUnicode(slice));
 				}
-				case FdbTupleTypes.Uuid64:
+				case TupleTypes.Uuid64:
 				{
-					return FdbTupleParser.ParseUuid64(slice);
+					return TupleParser.ParseUuid64(slice);
 				}
 			}
 
-			if (type >= FdbTupleTypes.IntZero && type <= FdbTupleTypes.IntPos8)
+			if (type >= TupleTypes.IntZero && type <= TupleTypes.IntPos8)
 			{ // expect 64-bit number
-				return new Uuid64(FdbTupleParser.ParseInt64(type, slice));
+				return new Uuid64(TupleParser.ParseInt64(type, slice));
 			}
 			// we don't support negative numbers!
 
@@ -1147,23 +1147,23 @@ namespace FoundationDB.Layers.Tuples
 
 			switch (type)
 			{
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{
-					return new System.Net.IPAddress(FdbTupleParser.ParseBytes(slice).GetBytes());
+					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).GetBytes());
 				}
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{
-					return System.Net.IPAddress.Parse(FdbTupleParser.ParseUnicode(slice));
+					return System.Net.IPAddress.Parse(TupleParser.ParseUnicode(slice));
 				}
-				case FdbTupleTypes.Uuid128:
+				case TupleTypes.Uuid128:
 				{ // could be an IPv6 encoded as a 128-bits UUID
 					return new System.Net.IPAddress(slice.GetBytes());
 				}
 			}
 
-			if (type >= FdbTupleTypes.IntPos1 && type <= FdbTupleTypes.IntPos4)
+			if (type >= TupleTypes.IntPos1 && type <= TupleTypes.IntPos4)
 			{ // could be an IPv4 encoded as a 32-bit unsigned integer
-				var value = FdbTupleParser.ParseInt64(type, slice);
+				var value = TupleParser.ParseInt64(type, slice);
 				Contract.Assert(value >= 0 && value <= uint.MaxValue);
 				return new System.Net.IPAddress(value);
 			}
@@ -1181,7 +1181,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
 		/// <returns>Decoded tuple</returns>
 		[NotNull]
-		internal static FdbSlicedTuple Unpack(Slice buffer, bool embedded)
+		internal static SlicedTuple Unpack(Slice buffer, bool embedded)
 		{
 			var reader = new TupleReader(buffer);
 			if (embedded) reader.Depth = 1;
@@ -1191,7 +1191,7 @@ namespace FoundationDB.Layers.Tuples
 
 			Slice item;
 			int p = 0;
-			while ((item = FdbTupleParser.ParseNext(ref reader)).HasValue)
+			while ((item = TupleParser.ParseNext(ref reader)).HasValue)
 			{
 				if (p >= items.Length)
 				{
@@ -1202,7 +1202,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			if (reader.Input.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-			return new FdbSlicedTuple(p == 0 ? Slice.EmptySliceArray : items, 0, p);
+			return new SlicedTuple(p == 0 ? Slice.EmptySliceArray : items, 0, p);
 		}
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
@@ -1212,7 +1212,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var slicer = new TupleReader(buffer);
 
-			var current = FdbTupleParser.ParseNext(ref slicer);
+			var current = TupleParser.ParseNext(ref slicer);
 			if (slicer.Input.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
 
 			return current;
@@ -1225,7 +1225,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var slicer = new TupleReader(buffer);
 
-			return FdbTupleParser.ParseNext(ref slicer);
+			return TupleParser.ParseNext(ref slicer);
 		}
 
 		/// <summary>Only returns the last item of a packed tuple</summary>
@@ -1238,7 +1238,7 @@ namespace FoundationDB.Layers.Tuples
 			Slice item = Slice.Nil;
 
 			Slice current;
-			while ((current = FdbTupleParser.ParseNext(ref slicer)).HasValue)
+			while ((current = TupleParser.ParseNext(ref slicer)).HasValue)
 			{
 				item = current;
 			}

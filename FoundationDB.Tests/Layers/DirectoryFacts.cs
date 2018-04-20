@@ -537,7 +537,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder2, Is.Not.Null);
 				Assert.That(folder2.Layer.ToUnicode(), Is.EqualTo("bar"));
 				Assert.That(folder2.FullName, Is.EqualTo("Test"));
-				Assert.That(folder2.Path, Is.EqualTo(FdbTuple.Create("Test")));
+				Assert.That(folder2.Path, Is.EqualTo(STuple.Create("Test")));
 				Assert.That(folder2.Key, Is.EqualTo(folder.Key));
 
 				// opening the directory with the new layer should succeed
@@ -899,7 +899,7 @@ namespace FoundationDB.Layers.Directories
 
 				shouldFail(() => partition.ToRange());
 				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.ToRange(FdbTuple.EncodeKey("hello")));
+				shouldFail(() => partition.ToRange(STuple.EncodeKey("hello")));
 
  				// Tuples
 
@@ -915,13 +915,13 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
 				shouldFail(() => partition.Keys.Unpack(barKey));
-				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + STuple.EncodeKey(123) }));
 				shouldFail(() => partition.Keys.Decode<int>(barKey));
 				shouldFail(() => partition.Keys.DecodeMany<int>(new[] { barKey, barKey }));
 				shouldFail(() => partition.Keys.DecodeLast<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + STuple.EncodeKey(123) }));
 				shouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + STuple.EncodeKey(123) }));
 
 				//FIXME: need to re-enable this code!
 #if REFACTORING_IN_PROGRESS
@@ -931,13 +931,13 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Keys.Append(123, "hello"));
 				shouldFail(() => partition.Keys.Append(123, "hello", false));
 				shouldFail(() => partition.Keys.Append(123, "hello", false, "world"));
-				shouldFail(() => partition.Keys.Concat(FdbTuple.Create(123, "hello", false, "world")));
+				shouldFail(() => partition.Keys.Concat(STuple.Create(123, "hello", false, "world")));
 				shouldFail(() => partition.Keys.Append(new object[] { 123, "hello", false, "world" }));
 #endif
 
 				shouldFail(() => partition.Keys.ToRange());
 				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.Keys.ToRange(FdbTuple.Create("hello")));
+				shouldFail(() => partition.Keys.ToRange(STuple.Create("hello")));
 
 			}
 		}

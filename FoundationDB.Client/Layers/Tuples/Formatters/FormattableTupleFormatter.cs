@@ -30,18 +30,22 @@ namespace FoundationDB.Layers.Tuples
 {
 	using System;
 
-	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
-	internal sealed class FdbGenericTupleFormatter<T> : ITupleFormatter<T>
+	/// <summary>Specialized formatter for types that implement ITupleFormattable</summary>
+	internal sealed class FormattableTupleFormatter<T> : ITupleFormatter<T>
+		where T : ITupleFormattable, new()
 	{
-
-		public IFdbTuple ToTuple(T key)
+		public ITuple ToTuple(T key)
 		{
-			return FdbTuple.Create(key);
+			if (key == null) return null;
+			return key.ToTuple();
 		}
 
-		public T FromTuple(IFdbTuple tuple)
+		public T FromTuple(ITuple tuple)
 		{
-			return tuple.OfSize(1).Get<T>(0);
+			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			var key = new T();
+			key.FromTuple(tuple);
+			return key;
 		}
 	}
 

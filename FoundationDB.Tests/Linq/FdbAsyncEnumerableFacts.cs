@@ -967,7 +967,7 @@ namespace FoundationDB.Linq.Tests
 
 			// record the timing and call history to ensure that inner is called at least twice before the first item gets out
 
-			Func<int, FdbTuple<int, int>> record = (x) => FdbTuple.Create(x, Volatile.Read(ref called));
+			Func<int, STuple<int, int>> record = (x) => STuple.Create(x, Volatile.Read(ref called));
 
 			// without prefetching, the number of calls should match for the producer and the consumer
 			called = 0;
@@ -1012,9 +1012,9 @@ namespace FoundationDB.Linq.Tests
 				return Task.FromResult(Maybe.Return((int)index));
 			});
 
-			Func<int, FdbTuple<int, int, TimeSpan>> record = (x) =>
+			Func<int, STuple<int, int, TimeSpan>> record = (x) =>
 			{
-				var res = FdbTuple.Create(x, Volatile.Read(ref called), sw.Elapsed);
+				var res = STuple.Create(x, Volatile.Read(ref called), sw.Elapsed);
 				sw.Restart();
 				return res;
 			};

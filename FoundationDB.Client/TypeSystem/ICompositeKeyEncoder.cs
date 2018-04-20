@@ -31,23 +31,23 @@ using FoundationDB.Layers.Tuples;
 
 namespace FoundationDB.Client
 {
-	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3, T4>>
+	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<STuple<T1, T2, T3, T4>>
 	{
 		Slice EncodeKey(T1 value1, T2 value2, T3 value3, T4 value4);
 	}
 
-	public interface ICompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3>>
+	public interface ICompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<STuple<T1, T2, T3>>
 	{
 		Slice EncodeKey(T1 value1, T2 value2, T3 value3);
 	}
 
-	public interface ICompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<FdbTuple<T1, T2>>
+	public interface ICompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<STuple<T1, T2>>
 	{
 		Slice EncodeKey(T1 value1, T2 value2);
 	}
 
 	public interface ICompositeKeyEncoder<TTuple> : IKeyEncoder<TTuple>
-		where TTuple : IFdbTuple
+		where TTuple : ITuple
 	{
 		Slice EncodeComposite(TTuple key, int items);
 

@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public IFdbDynamicSubspace this[IFdbTuple tuple]
+		public IFdbDynamicSubspace this[ITuple tuple]
 		{
 			[ContractAnnotation("null => halt; notnull => notnull")]
 			get

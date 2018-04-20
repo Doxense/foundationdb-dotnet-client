@@ -211,7 +211,7 @@ namespace FoundationDB.Client.Tests
 				await Fdb.Bulk.ForEachAsync(
 					db,
 					Enumerable.Range(1, N).Select(x => location.Keys.Encode(x)),
-					() => FdbTuple.Create(0L, 0L),
+					() => STuple.Create(0L, 0L),
 					async (xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -226,7 +226,7 @@ namespace FoundationDB.Client.Tests
 						{
 							sum += results[i].ToInt32();
 						}
-						return FdbTuple.Create(state.Item1 + sum, state.Item2 + results.Length);
+						return STuple.Create(state.Item1 + sum, state.Item2 + results.Length);
 					},
 					(state) =>
 					{
@@ -362,7 +362,7 @@ namespace FoundationDB.Client.Tests
 				await Fdb.Bulk.ForEachAsync(
 					db,
 					Enumerable.Range(1, N).Select(x => location.Keys.Encode(x)),
-					() => FdbTuple.Create(0L, 0L), // (sum, count)
+					() => STuple.Create(0L, 0L), // (sum, count)
 					(xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -377,7 +377,7 @@ namespace FoundationDB.Client.Tests
 						{
 							sum += results[i].ToInt32();
 						}
-						return FdbTuple.Create(
+						return STuple.Create(
 							state.Item1 + sum, // updated sum
 							state.Item2 + results.Length // updated count
 						);
@@ -546,7 +546,7 @@ namespace FoundationDB.Client.Tests
 				double average = await Fdb.Bulk.AggregateAsync(
 					db,
 					source.Select(x => location.Keys.Encode(x.Key)),
-					() => FdbTuple.Create(0L, 0L),
+					() => STuple.Create(0L, 0L),
 					async (xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -561,7 +561,7 @@ namespace FoundationDB.Client.Tests
 						{
 							sum += results[i].ToInt32();
 						}
-						return FdbTuple.Create(state.Item1 + sum, state.Item2 + results.Length);
+						return STuple.Create(state.Item1 + sum, state.Item2 + results.Length);
 					},
 					(state) => (double)state.Item1 / state.Item2,
 					this.Cancellation

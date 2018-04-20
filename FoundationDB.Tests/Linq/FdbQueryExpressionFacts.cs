@@ -40,8 +40,8 @@ namespace FoundationDB.Linq.Expressions.Tests
 	public class FdbQueryExpressionFacts
 	{
 
-		private FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", FdbSubspace.Create(FdbTuple.EncodeKey("Foos", 1)));
-		private FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", FdbSubspace.Create(FdbTuple.EncodeKey("Foos", 2)));
+		private FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", FdbSubspace.Create(STuple.EncodeKey("Foos", 1)));
+		private FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", FdbSubspace.Create(STuple.EncodeKey("Foos", 2)));
 
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression()
@@ -92,7 +92,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 		public void Test_FdbQueryRangeExpression()
 		{
 			var expr = FdbQueryExpressions.Range(
-				FdbTuple.Create("Foo").ToSelectorPair()
+				STuple.Create("Foo").ToSelectorPair()
 			);
 			Console.WriteLine(expr);
 
@@ -170,7 +170,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 		public void Test_FdbQueryTransformExpression()
 		{
 			var expr = FdbQueryExpressions.Transform(
-				FdbQueryExpressions.RangeStartsWith(FdbTuple.Create("Hello", "World")),
+				FdbQueryExpressions.RangeStartsWith(STuple.Create("Hello", "World")),
 				(kvp) => kvp.Value.ToUnicode()
 			);
 			Console.WriteLine(expr);
@@ -189,7 +189,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 		public void Test_FdbQueryFilterExpression()
 		{
 			var expr = FdbQueryExpressions.Filter(
-				FdbQueryExpressions.RangeStartsWith(FdbTuple.Create("Hello", "World")),
+				FdbQueryExpressions.RangeStartsWith(STuple.Create("Hello", "World")),
 				(kvp) => kvp.Value.ToInt32() % 2 == 0
 			);
 			Console.WriteLine(expr);

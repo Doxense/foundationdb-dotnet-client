@@ -34,7 +34,7 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>
 	/// Constants for the various tuple value types
 	/// </summary>
-	internal static class FdbTupleTypes
+	internal static class TupleTypes
 	{
 		/// <summary>Null/Empty/Void</summary>
 		internal const byte Nil = 0;
@@ -88,34 +88,34 @@ namespace FoundationDB.Layers.Tuples
 		internal const byte AliasSystem = 255;
 
 		/// <summary>Return the type of a tuple segment, from its header</summary>
-		public static FdbTupleSegmentType DecodeSegmentType(ref Slice segment)
+		public static TupleSegmentType DecodeSegmentType(ref Slice segment)
 		{
-			if (segment.Count == 0) return FdbTupleSegmentType.Nil;
+			if (segment.Count == 0) return TupleSegmentType.Nil;
 
 			int type = segment[0];
 			switch(type)
 			{
-				case Nil: return FdbTupleSegmentType.Nil;
-				case Bytes: return FdbTupleSegmentType.ByteString;
-				case Utf8: return FdbTupleSegmentType.UnicodeString;
-				case TupleStart: return FdbTupleSegmentType.Tuple;
-				case Single: return FdbTupleSegmentType.Single;
-				case Double: return FdbTupleSegmentType.Double;
-				case Uuid128: return FdbTupleSegmentType.Uuid128;
-				case Uuid64: return FdbTupleSegmentType.Uuid64;
+				case Nil: return TupleSegmentType.Nil;
+				case Bytes: return TupleSegmentType.ByteString;
+				case Utf8: return TupleSegmentType.UnicodeString;
+				case TupleStart: return TupleSegmentType.Tuple;
+				case Single: return TupleSegmentType.Single;
+				case Double: return TupleSegmentType.Double;
+				case Uuid128: return TupleSegmentType.Uuid128;
+				case Uuid64: return TupleSegmentType.Uuid64;
 			}
 
 			if (type <= IntPos8 && type >= IntNeg8)
 			{
-				return FdbTupleSegmentType.Integer;
+				return TupleSegmentType.Integer;
 			}
 
-			return FdbTupleSegmentType.Invalid;
+			return TupleSegmentType.Invalid;
 		}
 	}
 
 	/// <summary>Logical type of packed element of a tuple</summary>
-	public enum FdbTupleSegmentType
+	public enum TupleSegmentType
 	{
 		Invalid = -1,
 		Nil = 0,

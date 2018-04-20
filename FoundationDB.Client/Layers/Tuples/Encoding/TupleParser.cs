@@ -35,7 +35,7 @@ namespace FoundationDB.Layers.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
-	public static class FdbTupleParser
+	public static class TupleParser
 	{
 		#region Serialization...
 
@@ -44,11 +44,11 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (writer.Depth == 0)
 			{ // at the top level, NILs are escaped as <00>
-				writer.Output.WriteByte(FdbTupleTypes.Nil);
+				writer.Output.WriteByte(TupleTypes.Nil);
 			}
 			else
 			{ // inside a tuple, NILs are escaped as <00><FF>
-				writer.Output.WriteByte2(FdbTupleTypes.Nil, 0xFF);
+				writer.Output.WriteByte2(TupleTypes.Nil, 0xFF);
 			}
 		}
 
@@ -57,11 +57,11 @@ namespace FoundationDB.Layers.Tuples
 			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
 			if (value)
 			{ // true => 15 01
-				writer.Output.WriteByte2(FdbTupleTypes.IntPos1, 1);
+				writer.Output.WriteByte2(TupleTypes.IntPos1, 1);
 			}
 			else
 			{ // false => 14
-				writer.Output.WriteByte(FdbTupleTypes.IntZero);
+				writer.Output.WriteByte(TupleTypes.IntZero);
 			}
 		}
 
@@ -72,11 +72,11 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (value == 0)
 			{ // zero
-				writer.Output.WriteByte(FdbTupleTypes.IntZero);
+				writer.Output.WriteByte(TupleTypes.IntZero);
 			}
 			else
 			{ // 1..255: frequent for array index
-				writer.Output.WriteByte2(FdbTupleTypes.IntPos1, value);
+				writer.Output.WriteByte2(TupleTypes.IntPos1, value);
 			}
 		}
 
@@ -89,19 +89,19 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (value == 0)
 				{ // zero
-					writer.Output.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(TupleTypes.IntZero);
 					return;
 				}
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.Output.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteByte2(TupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
@@ -118,19 +118,19 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (value == 0)
 				{ // zero
-					writer.Output.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(TupleTypes.IntZero);
 					return;
 				}
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.Output.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteByte2(TupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
@@ -153,7 +153,7 @@ namespace FoundationDB.Layers.Tuples
 			ulong v;
 			if (value > 0)
 			{ // simple case
-				buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
+				buffer[p++] = (byte)(TupleTypes.IntBase + bytes);
 				v = (ulong)value;
 			}
 			else
@@ -161,7 +161,7 @@ namespace FoundationDB.Layers.Tuples
 				// -1 => 0xFE
 				// -256 => 0xFFFE
 				// -65536 => 0xFFFFFE
-				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
+				buffer[p++] = (byte)(TupleTypes.IntBase - bytes);
 				v = (ulong)(~(-value));
 			}
 
@@ -191,11 +191,11 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (value == 0)
 				{ // 0
-					writer.Output.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(TupleTypes.IntZero);
 				}
 				else
 				{ // 1..255
-					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
@@ -213,11 +213,11 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (value == 0)
 				{ // 0
-					writer.Output.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(TupleTypes.IntZero);
 				}
 				else
 				{ // 1..255
-					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
@@ -239,7 +239,7 @@ namespace FoundationDB.Layers.Tuples
 			int p = writer.Output.Position;
 
 			// simple case (ulong can only be positive)
-			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
+			buffer[p++] = (byte)(TupleTypes.IntBase + bytes);
 
 			if (bytes > 0)
 			{
@@ -287,7 +287,7 @@ namespace FoundationDB.Layers.Tuples
 			writer.Output.EnsureBytes(5);
 			var buffer = writer.Output.Buffer;
 			int p = writer.Output.Position;
-			buffer[p + 0] = FdbTupleTypes.Single;
+			buffer[p + 0] = TupleTypes.Single;
 			buffer[p + 1] = (byte)(bits >> 24);
 			buffer[p + 2] = (byte)(bits >> 16);
 			buffer[p + 3] = (byte)(bits >> 8);
@@ -323,7 +323,7 @@ namespace FoundationDB.Layers.Tuples
 			writer.Output.EnsureBytes(9);
 			var buffer = writer.Output.Buffer;
 			int p = writer.Output.Position;
-			buffer[p] = FdbTupleTypes.Double;
+			buffer[p] = TupleTypes.Double;
 			buffer[p + 1] = (byte)(bits >> 56);
 			buffer[p + 2] = (byte)(bits >> 48);
 			buffer[p + 3] = (byte)(bits >> 40);
@@ -344,7 +344,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{
-				WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value);
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);
 			}
 		}
 
@@ -357,7 +357,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else if (value.Length == 0)
 			{ // "02 00"
-				writer.Output.WriteByte2(FdbTupleTypes.Utf8, 0x00);
+				writer.Output.WriteByte2(TupleTypes.Utf8, 0x00);
 			}
 			else
 			{
@@ -365,7 +365,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					if (!TryWriteUnescapedUtf8String(ref writer, chars, value.Length))
 					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
+						WriteNulEscapedBytes(ref writer, TupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
 					}
 				}
 			}
@@ -384,7 +384,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{ // "02 00"
-					writer.Output.WriteByte2(FdbTupleTypes.Utf8, 0x00);
+					writer.Output.WriteByte2(TupleTypes.Utf8, 0x00);
 				}
 			}
 			else
@@ -393,7 +393,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					if (!TryWriteUnescapedUtf8String(ref writer, chars + offset, count))
 					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
+						WriteNulEscapedBytes(ref writer, TupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
 					}
 				}
 			}
@@ -410,7 +410,7 @@ namespace FoundationDB.Layers.Tuples
 			char* end = chars + count;
 			fixed (byte* buffer = writer.Output.Buffer)
 			{
-				buffer[pos++] = FdbTupleTypes.Utf8;
+				buffer[pos++] = TupleTypes.Utf8;
 				//OPTIMIZE: copy 2 or 4 chars at once, unroll loop?
 				while(chars < end)
 				{
@@ -478,7 +478,7 @@ namespace FoundationDB.Layers.Tuples
 			// * Western languages have a few chars that usually need 2 bytes. If we pre-allocate 50% more bytes, it should fit most of the time, without too much waste
 			// * Eastern langauges will have all chars encoded to 3 bytes. If we also pre-allocated 50% more, we should only need one resize of the buffer (150% x 2 = 300%), which is acceptable
 			writer.Output.EnsureBytes(checked(2 + count + (count >> 1))); // preallocate 150% of the string + 2 bytes
-			writer.Output.UnsafeWriteByte(FdbTupleTypes.Utf8);
+			writer.Output.UnsafeWriteByte(TupleTypes.Utf8);
 
 			var encoder = Encoding.UTF8.GetEncoder();
 			// note: encoder.Convert() tries to fill up the buffer as much as possible with complete chars, and will set 'done' to true when all chars have been converted.
@@ -510,15 +510,15 @@ namespace FoundationDB.Layers.Tuples
 			if (value == 0)
 			{ // NUL => "00 0F"
 				// note: \0 is the only unicode character that will produce a zero byte when converted in UTF-8
-				writer.Output.WriteByte4(FdbTupleTypes.Utf8, 0x00, 0xFF, 0x00);
+				writer.Output.WriteByte4(TupleTypes.Utf8, 0x00, 0xFF, 0x00);
 			}
 			else if (value < 0x80)
 			{ // 0x00..0x7F => 0xxxxxxx
-				writer.Output.WriteByte3(FdbTupleTypes.Utf8, (byte)value, 0x00);
+				writer.Output.WriteByte3(TupleTypes.Utf8, (byte)value, 0x00);
 			}
 			else if (value <  0x800)
 			{ // 0x80..0x7FF => 110xxxxx 10xxxxxx => two bytes
-				writer.Output.WriteByte4(FdbTupleTypes.Utf8, (byte)(0xC0 | (value >> 6)), (byte)(0x80 | (value & 0x3F)), 0x00);
+				writer.Output.WriteByte4(TupleTypes.Utf8, (byte)(0xC0 | (value >> 6)), (byte)(0x80 | (value & 0x3F)), 0x00);
 			}
 			else
 			{ // 0x800..0xFFFF => 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
@@ -526,7 +526,7 @@ namespace FoundationDB.Layers.Tuples
 				// => This means that a System.Char will never take more than 3 bytes in UTF-8 !
 				var tmp = Encoding.UTF8.GetBytes(new string(value, 1));
 				writer.Output.EnsureBytes(tmp.Length + 2);
-				writer.Output.UnsafeWriteByte(FdbTupleTypes.Utf8);
+				writer.Output.UnsafeWriteByte(TupleTypes.Utf8);
 				writer.Output.UnsafeWriteBytes(tmp, 0, tmp.Length);
 				writer.Output.UnsafeWriteByte(0x00);
 			}
@@ -535,13 +535,13 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref TupleWriter writer, [NotNull] byte[] value, int offset, int count)
 		{
-			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value, offset, count);
+			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value, offset, count);
 		}
 
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref TupleWriter writer, ArraySegment<byte> value)
 		{
-			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value.Array, value.Offset, value.Count);
+			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array, value.Offset, value.Count);
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
@@ -620,7 +620,7 @@ namespace FoundationDB.Layers.Tuples
 		public static void WriteGuid(ref TupleWriter writer, Guid value)
 		{
 			writer.Output.EnsureBytes(17);
-			writer.Output.UnsafeWriteByte(FdbTupleTypes.Uuid128);
+			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
 			unsafe
 			{
 				// UUIDs are stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid
@@ -635,7 +635,7 @@ namespace FoundationDB.Layers.Tuples
 		public static void WriteUuid128(ref TupleWriter writer, Uuid128 value)
 		{
 			writer.Output.EnsureBytes(17);
-			writer.Output.UnsafeWriteByte(FdbTupleTypes.Uuid128);
+			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
 			unsafe
 			{
 				byte* ptr = stackalloc byte[16];
@@ -648,7 +648,7 @@ namespace FoundationDB.Layers.Tuples
 		public static void WriteUuid64(ref TupleWriter writer, Uuid64 value)
 		{
 			writer.Output.EnsureBytes(9);
-			writer.Output.UnsafeWriteByte(FdbTupleTypes.Uuid64);
+			writer.Output.UnsafeWriteByte(TupleTypes.Uuid64);
 			unsafe
 			{
 				byte* ptr = stackalloc byte[8];
@@ -661,7 +661,7 @@ namespace FoundationDB.Layers.Tuples
 		public static void BeginTuple(ref TupleWriter writer)
 		{
 			writer.Depth++;
-			writer.Output.WriteByte(FdbTupleTypes.TupleStart);
+			writer.Output.WriteByte(TupleTypes.TupleStart);
 		}
 
 		/// <summary>Mark the end of an embedded tuple</summary>
@@ -679,7 +679,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This method should only be used by custom decoders.</remarks>
 		public static long ParseInt64(int type, Slice slice)
 		{
-			int bytes = type - FdbTupleTypes.IntBase;
+			int bytes = type - TupleTypes.IntBase;
 			if (bytes == 0) return 0L;
 
 			bool neg = false;
@@ -755,7 +755,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing a byte array</summary>
 		public static Slice ParseBytes(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[-1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
@@ -766,7 +766,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
 		public static string ParseAscii(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[-1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
 
@@ -778,7 +778,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
 		public static string ParseUnicode(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Utf8 && slice[-1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
 			//TODO: check args
@@ -787,18 +787,18 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
-		public static IFdbTuple ParseTuple(Slice slice)
+		public static ITuple ParseTuple(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.TupleStart && slice[-1] == 0);
-			if (slice.Count <= 2) return FdbTuple.Empty;
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.TupleStart && slice[-1] == 0);
+			if (slice.Count <= 2) return STuple.Empty;
 
-			return FdbTuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
+			return TuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
 		}
 
 		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
 		public static float ParseSingle(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Single);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Single);
 
 			if (slice.Count != 5)
 			{
@@ -828,7 +828,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing a double precision number (float64)</summary>
 		public static double ParseDouble(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Double);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Double);
 
 			if (slice.Count != 9)
 			{
@@ -859,7 +859,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
 		public static Guid ParseGuid(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid128);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
 
 			if (slice.Count != 17)
 			{
@@ -873,7 +873,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
 		public static Uuid128 ParseUuid128(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid128);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
 
 			if (slice.Count != 17)
 			{
@@ -886,7 +886,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
 		public static Uuid64 ParseUuid64(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid64);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid64);
 
 			if (slice.Count != 9)
 			{
@@ -913,7 +913,7 @@ namespace FoundationDB.Layers.Tuples
 					return Slice.Nil;
 				}
 
-				case FdbTupleTypes.Nil:
+				case TupleTypes.Nil:
 				{ // <00> / <00><FF> => null
 					if (reader.Depth > 0)
 					{ // must be <00><FF> inside an embedded tuple
@@ -935,53 +935,53 @@ namespace FoundationDB.Layers.Tuples
 					}
 				}
 
-				case FdbTupleTypes.Bytes:
+				case TupleTypes.Bytes:
 				{ // <01>(bytes)<00>
 					return reader.Input.ReadByteString();
 				}
 
-				case FdbTupleTypes.Utf8:
+				case TupleTypes.Utf8:
 				{ // <02>(utf8 bytes)<00>
 					return reader.Input.ReadByteString();
 				}
 
-				case FdbTupleTypes.TupleStart:
+				case TupleTypes.TupleStart:
 				{ // <03>(packed tuple)<04>
 
 					//PERF: currently, we will first scan to get all the bytes of this tuple, and parse it later.
 					// This means that we may need to scan multiple times the bytes, which may not be efficient if there are multiple embedded tuples inside each other
 					return ReadEmbeddedTupleBytes(ref reader);
 				}
-				case FdbTupleTypes.Single:
+				case TupleTypes.Single:
 				{ // <20>(4 bytes)
 					return reader.Input.ReadBytes(5);
 				}
 
-				case FdbTupleTypes.Double:
+				case TupleTypes.Double:
 				{ // <21>(8 bytes)
 					return reader.Input.ReadBytes(9);
 				}
 
-				case FdbTupleTypes.Uuid128:
+				case TupleTypes.Uuid128:
 				{ // <30>(16 bytes)
 					return reader.Input.ReadBytes(17);
 				}
 
-				case FdbTupleTypes.Uuid64:
+				case TupleTypes.Uuid64:
 				{ // <31>(8 bytes)
 					return reader.Input.ReadBytes(9);
 				}
 
-				case FdbTupleTypes.AliasDirectory:
-				case FdbTupleTypes.AliasSystem:
+				case TupleTypes.AliasDirectory:
+				case TupleTypes.AliasSystem:
 				{ // <FE> or <FF>
 					return reader.Input.ReadBytes(1);
 				}
 			}
 
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				int bytes = type - FdbTupleTypes.IntZero;
+				int bytes = type - TupleTypes.IntZero;
 				if (bytes < 0) bytes = -bytes;
 
 				return reader.Input.ReadBytes(1 + bytes);
@@ -1028,7 +1028,7 @@ namespace FoundationDB.Layers.Tuples
 			while (count-- > 0)
 			{
 				if (!reader.Input.HasMore) return false;
-				var token = FdbTupleParser.ParseNext(ref reader);
+				var token = TupleParser.ParseNext(ref reader);
 				if (token.IsNull) return false;
 			}
 			return true;
@@ -1038,11 +1038,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="reader">Reader positionned at the start of a packed tuple</param>
 		/// <param name="visitor">Lambda called for each segment of a tuple. Returns true to continue parsing, or false to stop</param>
 		/// <returns>Number of tokens that have been visited until either <paramref name="visitor"/> returned false, or <paramref name="reader"/> reached the end.</returns>
-		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, FdbTupleSegmentType, T> visitor)
+		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, TupleSegmentType, T> visitor)
 		{
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
-			var token = FdbTupleParser.ParseNext(ref reader);
-			return visitor(token, FdbTupleTypes.DecodeSegmentType(ref token));
+			var token = TupleParser.ParseNext(ref reader);
+			return visitor(token, TupleTypes.DecodeSegmentType(ref token));
 		}
 
 		#endregion

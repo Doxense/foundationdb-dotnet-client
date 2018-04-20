@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectorySubspace : FdbDynamicSubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer, IDynamicKeyEncoder encoder)
+		internal FdbDirectorySubspace(ITuple location, ITuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer, IDynamicKeyEncoder encoder)
 			: base(prefix, encoder)
 		{
 			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
@@ -60,10 +60,10 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Absolute location of the directory</summary>
-		protected IFdbTuple Location { [NotNull] get; private set; }
+		protected ITuple Location { [NotNull] get; private set; }
 
 		/// <summary>Location of the directory relative to its parent Directory Layer</summary>
-		protected IFdbTuple RelativeLocation { [NotNull] get; private set; }
+		protected ITuple RelativeLocation { [NotNull] get; private set; }
 
 		/// <summary>Absolute path of this directory</summary>
 		public IReadOnlyList<string> Path { [NotNull] get; private set; }
@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Return the DirectoryLayer instance that should be called for the given path</summary>
 		/// <param name="relativeLocation">Location relative to this directory subspace</param>
-		protected virtual FdbDirectoryLayer GetLayerForPath(IFdbTuple relativeLocation)
+		protected virtual FdbDirectoryLayer GetLayerForPath(ITuple relativeLocation)
 		{
 			// for regular directories, always returns its DL.
 			return this.DirectoryLayer;
@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="location">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
 		[NotNull]
-		protected virtual IFdbTuple ToRelativePath(IFdbTuple location)
+		protected virtual ITuple ToRelativePath(ITuple location)
 		{
 			return location == null ? this.RelativeLocation : this.RelativeLocation.Concat(location);
 		}
@@ -109,9 +109,9 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
 		[NotNull]
-		protected IFdbTuple ToRelativePath(IEnumerable<string> path)
+		protected ITuple ToRelativePath(IEnumerable<string> path)
 		{
-			return ToRelativePath(path == null ? null :  FdbTuple.FromEnumerable<string>(path));
+			return ToRelativePath(path == null ? null :  STuple.FromEnumerable<string>(path));
 		}
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
@@ -246,7 +246,7 @@ namespace FoundationDB.Layers.Directories
 			if (newAbsolutePath == null) throw new ArgumentNullException("newAbsolutePath");
 
 			// if 'this' is a Directory Partition, we need to move it via the parent DL !
-			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
+			var directoryLayer = GetLayerForPath(STuple.Empty);
 
 			// verify that it is still inside the same partition
 			var location = FdbDirectoryLayer.ParsePath(newAbsolutePath, "newAbsolutePath");
@@ -280,7 +280,7 @@ namespace FoundationDB.Layers.Directories
 			if (newPath == null) throw new ArgumentNullException("newPath");
 
 			// if 'this' is a Directory Partition, we need to move it via the parent DL !
-			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
+			var directoryLayer = GetLayerForPath(STuple.Empty);
 
 			var location = FdbDirectoryLayer.ParsePath(newPath, "newPath");
 			if (!location.StartsWith(directoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
@@ -311,7 +311,7 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
-			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
+			var directoryLayer = GetLayerForPath(STuple.Empty);
 
 			return directoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: true);
 		}
@@ -344,7 +344,7 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
-			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
+			var directoryLayer = GetLayerForPath(STuple.Empty);
 
 			return directoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: false);
 		}
@@ -375,7 +375,7 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
-			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
+			var directoryLayer = GetLayerForPath(STuple.Empty);
 
 			return directoryLayer.ExistsInternalAsync(trans, this.RelativeLocation);
 		}

@@ -65,7 +65,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				for (int i = 0; i < 100; i++)
 				{
 					Console.Write("\rInserting " + i);
-					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, FdbTuple.EncodeKey(rnd.Next())), this.Cancellation);
+					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, STuple.EncodeKey(rnd.Next())), this.Cancellation);
 				}
 				sw.Stop();
 				Console.WriteLine("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);

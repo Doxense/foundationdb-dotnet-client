@@ -284,7 +284,7 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						IFdbTuple tuple = null;
+						ITuple tuple = null;
 						string suffix = null;
 						bool skip = false;
 
@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 										case 0xFF:
 											{
 												//***README*** if you break under here, see README in the last catch() block
-												tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+												tuple = FoundationDB.Layers.Tuples.STuple.Unpack(key[0, -1]);
 												suffix = ".<FF>";
 												break;
 											}
@@ -310,7 +310,7 @@ namespace FoundationDB.Client
 											{
 												var tmp = key[0, -1] + (byte)0;
 												//***README*** if you break under here, see README in the last catch() block
-												tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
+												tuple = FoundationDB.Layers.Tuples.STuple.Unpack(tmp);
 												suffix = " + 1";
 												break;
 											}
@@ -327,7 +327,7 @@ namespace FoundationDB.Client
 									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+										tuple = FoundationDB.Layers.Tuples.STuple.Unpack(key[0, -1]);
 										suffix = ".<00>";
 									}
 									break;
@@ -343,7 +343,7 @@ namespace FoundationDB.Client
 						if (tuple == null && !skip)
 						{ // attempt a regular decoding
 							//***README*** if you break under here, see README in the last catch() block
-							tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
+							tuple = FoundationDB.Layers.Tuples.STuple.Unpack(key);
 						}
 
 						if (tuple != null) return tuple.ToString() + suffix;

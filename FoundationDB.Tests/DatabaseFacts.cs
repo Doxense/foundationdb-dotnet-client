@@ -270,7 +270,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", FdbSubspace.Create(FdbTuple.EncodeKey("test")), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(null, "DB", FdbSubspace.Create(STuple.EncodeKey("test")), false, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -280,7 +280,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>test<00><02>hello<00>"));
 
 				// keys inside the global space are valid
-				Assert.That(db.IsKeyValid(FdbTuple.EncodeKey("test", 123)), Is.True);
+				Assert.That(db.IsKeyValid(STuple.EncodeKey("test", 123)), Is.True);
 
 				// keys outside the global space are invalid
 				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 42 })), Is.False);

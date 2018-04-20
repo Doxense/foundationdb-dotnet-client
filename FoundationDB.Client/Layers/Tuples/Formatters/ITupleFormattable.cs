@@ -36,11 +36,11 @@ namespace FoundationDB.Layers.Tuples
 	public interface ITupleFormattable
 	{
 		/// <summary>Return the tuple representation of this instance</summary>
-		IFdbTuple ToTuple();
+		ITuple ToTuple();
 
 		/// <summary>Load a tuple representation into a newly created instance</summary>
 		/// <param name="tuple"></param>
-		void FromTuple(IFdbTuple tuple);
+		void FromTuple(ITuple tuple);
 	}
 
 }

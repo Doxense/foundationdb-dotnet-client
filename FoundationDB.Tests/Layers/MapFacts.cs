@@ -168,11 +168,11 @@ namespace FoundationDB.Layers.Collections.Tests
 			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
 			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
 			var keyEncoder = KeyValueEncoders.Bind<IPEndPoint>(
-				(ipe) => ipe == null ? Slice.Empty : FdbTuple.EncodeKey(ipe.Address, ipe.Port),
+				(ipe) => ipe == null ? Slice.Empty : STuple.EncodeKey(ipe.Address, ipe.Port),
 				(packed) =>
 				{
 					if (packed.IsNullOrEmpty) return default(IPEndPoint);
-					var t = FdbTuple.Unpack(packed);
+					var t = STuple.Unpack(packed);
 					return new IPEndPoint(t.Get<IPAddress>(0), t.Get<int>(1));
 				}
 			);

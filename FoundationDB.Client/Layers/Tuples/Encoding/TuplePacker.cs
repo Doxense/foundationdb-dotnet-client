@@ -34,12 +34,12 @@ namespace FoundationDB.Layers.Tuples
 
 	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
-	public static class FdbTuplePacker<T>
+	public static class TuplePacker<T>
 	{
 
-		internal static readonly FdbTuplePackers.Encoder<T> Encoder = FdbTuplePackers.GetSerializer<T>(required: true);
+		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true);
 
-		internal static readonly Func<Slice, T> Decoder = FdbTuplePackers.GetDeserializer<T>(required: true);
+		internal static readonly Func<Slice, T> Decoder = TuplePackers.GetDeserializer<T>(required: true);
 
 		/// <summary>Serialize a <typeparamref name="T"/> into a binary buffer</summary>
 		/// <param name="writer">Target buffer</param>

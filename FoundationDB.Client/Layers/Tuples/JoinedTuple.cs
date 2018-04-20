@@ -38,15 +38,15 @@ namespace FoundationDB.Layers.Tuples
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString()}")]
-	public sealed class FdbJoinedTuple : IFdbTuple
+	public sealed class JoinedTuple : ITuple
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
 		/// <summary>First tuple (first N items)</summary>
-		public readonly IFdbTuple Head;
+		public readonly ITuple Head;
 
 		/// <summary>Second tuple (last M items)</summary>
-		public readonly IFdbTuple Tail;
+		public readonly ITuple Tail;
 
 		/// <summary>Offset at which the Tail tuple starts. Items are in Head tuple if index &lt; split. Items are in Tail tuple if index &gt;= split.</summary>
 		private readonly int m_split;
@@ -54,7 +54,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Total size of the tuple (sum of the size of the two inner tuples)</summary>
 		private readonly int m_count;
 
-		public FdbJoinedTuple(IFdbTuple head, IFdbTuple tail)
+		public JoinedTuple(ITuple head, ITuple tail)
 		{
 			if (head == null) throw new ArgumentNullException("head");
 			if (tail == null) throw new ArgumentNullException("tail");
@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return FdbTuple.ToString(this);
+			return STuple.ToString(this);
 		}
 
 		public int Count
@@ -92,19 +92,19 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				index = FdbTuple.MapIndex(index, m_count);
+				index = STuple.MapIndex(index, m_count);
 				return index < m_split ? this.Head[index] : this.Tail[index - m_split];
 			}
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
-				int begin = fromIncluded.HasValue ? FdbTuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
-				int end = toExcluded.HasValue ? FdbTuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
+				int begin = fromIncluded.HasValue ? STuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? STuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
-				if (end <= begin) return FdbTuple.Empty;
+				if (end <= begin) return STuple.Empty;
 
 				int p = this.Head.Count;
 				if (begin >= p)
@@ -117,14 +117,14 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{ // selected items are both in head and tail
-					return new FdbJoinedTuple(this.Head[begin, null], this.Tail[null, end - p]);
+					return new JoinedTuple(this.Head[begin, null], this.Tail[null, end - p]);
 				}
 			}
 		}
 
 		public T Get<T>(int index)
 		{
-			index = FdbTuple.MapIndex(index, m_count);
+			index = STuple.MapIndex(index, m_count);
 			return index < m_split ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - m_split);
 		}
 
@@ -136,19 +136,19 @@ namespace FoundationDB.Layers.Tuples
 				return this.Head.Last<T>();
 		}
 
-		IFdbTuple IFdbTuple.Append<T>(T value)
+		ITuple ITuple.Append<T>(T value)
 		{
-			return new FdbLinkedTuple<T>(this, value);
+			return new LinkedTuple<T>(this, value);
 		}
 
 		[NotNull]
-		public FdbLinkedTuple<T> Append<T>(T value)
+		public LinkedTuple<T> Append<T>(T value)
 		{
-			return new FdbLinkedTuple<T>(this, value);
+			return new LinkedTuple<T>(this, value);
 		}
 
 		[NotNull]
-		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		public ITuple Concat([NotNull] ITuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
@@ -159,12 +159,12 @@ namespace FoundationDB.Layers.Tuples
 
 			if (n1 + n2 >= 10)
 			{ // it's getting bug, merge to a new List tuple
-				return new FdbListTuple(this.Head, this.Tail, tuple);
+				return new ListTuple(this.Head, this.Tail, tuple);
 			}
 			else
 			{
 				// REVIEW: should we always concat with the tail?
-				return new FdbJoinedTuple(this.Head, this.Tail.Concat(tuple));
+				return new JoinedTuple(this.Head, this.Tail.Concat(tuple));
 			}
 		}
 
@@ -196,7 +196,7 @@ namespace FoundationDB.Layers.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -211,7 +211,7 @@ namespace FoundationDB.Layers.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var tuple = other as IFdbTuple;
+			var tuple = other as ITuple;
 			if (!object.ReferenceEquals(tuple, null))
 			{
 				if (tuple.Count != m_count) return false;
@@ -235,7 +235,7 @@ namespace FoundationDB.Layers.Tuples
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return FdbTuple.CombineHashCodes(
+			return STuple.CombineHashCodes(
 				this.Head != null ? this.Head.GetHashCode(comparer) : 0,
 				this.Tail != null ? this.Tail.GetHashCode(comparer) : 0
 			);

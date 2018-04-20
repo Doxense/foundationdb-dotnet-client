@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString()}")]
-	public sealed class FdbLinkedTuple<T> : IFdbTuple
+	public sealed class LinkedTuple<T> : ITuple
 	{
 		//TODO: consider changing this to a struct ?
 
@@ -50,13 +50,13 @@ namespace FoundationDB.Layers.Tuples
 		public readonly T Tail;
 
 		/// <summary>Link to the parent tuple that contains the head.</summary>
-		public readonly IFdbTuple Head;
+		public readonly ITuple Head;
 
 		/// <summary>Cached size of the size of the Head tuple. Add 1 to get the size of this tuple.</summary>
 		public readonly int Depth;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		internal FdbLinkedTuple(IFdbTuple head, T tail)
+		internal LinkedTuple(ITuple head, T tail)
 		{
 			Contract.Requires(head != null);
 
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Tuples
 		public void PackTo(ref TupleWriter writer)
 		{
 			this.Head.PackTo(ref writer);
-			FdbTuplePacker<T>.SerializeTo(ref writer, this.Tail);
+			TuplePacker<T>.SerializeTo(ref writer, this.Tail);
 		}
 
 		/// <summary>Pack this tuple into a slice</summary>
@@ -96,9 +96,9 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public IFdbTuple this[int? fromIncluded, int? toExcluded]
+		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
+			get { return STuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
 		public R Get<R>(int index)
@@ -113,21 +113,21 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.Convert<T, R>(this.Tail);
 		}
 
-		IFdbTuple IFdbTuple.Append<R>(R value)
+		ITuple ITuple.Append<R>(R value)
 		{
 			return this.Append<R>(value);
 		}
 
 		[NotNull]
-		public FdbLinkedTuple<R> Append<R>(R value)
+		public LinkedTuple<R> Append<R>(R value)
 		{
-			return new FdbLinkedTuple<R>(this, value);
+			return new LinkedTuple<R>(this, value);
 		}
 
 		[NotNull]
-		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		public ITuple Concat([NotNull] ITuple tuple)
 		{
-			return FdbTuple.Concat(this, tuple);
+			return STuple.Concat(this, tuple);
 		}
 
 		public void CopyTo([NotNull] object[] array, int offset)
@@ -152,7 +152,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return FdbTuple.ToString(this);
+			return STuple.ToString(this);
 		}
 
 		public override bool Equals(object obj)
@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple other)
+		public bool Equals(ITuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -175,7 +175,7 @@ namespace FoundationDB.Layers.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var linked = other as FdbLinkedTuple<T>;
+			var linked = other as LinkedTuple<T>;
 			if (!object.ReferenceEquals(linked, null))
 			{
 				// must have same length
@@ -186,12 +186,12 @@ namespace FoundationDB.Layers.Tuples
 				return this.Head.Equals(linked.Tail, comparer);
 			}
 
-			return FdbTuple.Equals(this, other, comparer);
+			return STuple.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return FdbTuple.CombineHashCodes(
+			return STuple.CombineHashCodes(
 				this.Head != null ? this.Head.GetHashCode(comparer) : 0,
 				comparer.GetHashCode(this.Tail)
 			);

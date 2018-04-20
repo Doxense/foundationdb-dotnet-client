@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Runtime.CompilerServices;
 
 	/// <summary>Helper class for tuple comparisons</summary>
-	public static class FdbTupleComparisons
+	public static class TupleComparisons
 	{
 		/// <summary>Tuple comparer that treats similar values as equal ("123" = 123 = 123L = 123.0d)</summary>
 		public static readonly EqualityComparer Default = new EqualityComparer(SimilarValueComparer.Default);
@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Tuple comparer that compared the packed bytes (slow!)</summary>
 		public static readonly BinaryComparer Binary = new BinaryComparer();
 
-		public sealed class EqualityComparer : IEqualityComparer<IFdbTuple>, IEqualityComparer
+		public sealed class EqualityComparer : IEqualityComparer<ITuple>, IEqualityComparer
 		{
 			private readonly IEqualityComparer m_comparer;
 
@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Tuples
 				m_comparer = comparer;
 			}
 
-			public bool Equals(IFdbTuple x, IFdbTuple y)
+			public bool Equals(ITuple x, ITuple y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
 				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Tuples
 				return x.Equals(y, m_comparer);
 			}
 
-			public int GetHashCode(IFdbTuple obj)
+			public int GetHashCode(ITuple obj)
 			{
 				return obj != null ? obj.GetHashCode(m_comparer) : 0;
 			}
@@ -74,10 +74,10 @@ namespace FoundationDB.Layers.Tuples
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;
 
-				var t = x as IFdbTuple;
+				var t = x as ITuple;
 				if (t != null) return t.Equals(y, m_comparer);
 
-				t = y as IFdbTuple;
+				t = y as ITuple;
 				if (t != null) return t.Equals(x, m_comparer);
 
 				return false;
@@ -87,7 +87,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (obj == null) return 0;
 
-				var t = obj as IFdbTuple;
+				var t = obj as ITuple;
 				if (!object.ReferenceEquals(t, null)) return t.GetHashCode(m_comparer);
 
 				// returns a hash base on the pointers
@@ -95,13 +95,13 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 	
-		public sealed class BinaryComparer : IEqualityComparer<IFdbTuple>, IEqualityComparer
+		public sealed class BinaryComparer : IEqualityComparer<ITuple>, IEqualityComparer
 		{
 			internal BinaryComparer()
 			{ }
 
 
-			public bool Equals(IFdbTuple x, IFdbTuple y)
+			public bool Equals(ITuple x, ITuple y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
 				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -109,7 +109,7 @@ namespace FoundationDB.Layers.Tuples
 				return x.ToSlice().Equals(y.ToSlice());
 			}
 
-			public int GetHashCode(IFdbTuple obj)
+			public int GetHashCode(ITuple obj)
 			{
 				return object.ReferenceEquals(obj, null) ? 0 : obj.ToSlice().GetHashCode();
 			}
@@ -119,8 +119,8 @@ namespace FoundationDB.Layers.Tuples
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;
 
-				var tx = x as IFdbTuple;
-				var ty = y as IFdbTuple;
+				var tx = x as ITuple;
+				var ty = y as ITuple;
 				if (object.ReferenceEquals(tx, null) || object.ReferenceEquals(ty, null)) return false;
 				return tx.ToSlice().Equals(ty.ToSlice());
 			}
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (obj == null) return 0;
 
-				var tuple = obj as IFdbTuple;
+				var tuple = obj as ITuple;
 				if (!object.ReferenceEquals(tuple, null)) return tuple.ToSlice().GetHashCode();
 
 				return RuntimeHelpers.GetHashCode(obj);
@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="comparer">Comparer for the item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<IFdbTuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
+		public static IComparer<ITuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
 		{
 			return new CompositeComparer<T1>(offset, comparer);
 		}
@@ -155,7 +155,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<IFdbTuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		public static IComparer<ITuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
 		}
@@ -170,17 +170,17 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="comparer3">Comparer for the third item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<IFdbTuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
+		public static IComparer<ITuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
 		{
 			return new CompositeComparer<T1, T2, T3>(offset, comparer1, comparer2, comparer3);
 		}
 
 		/// <summary>Comparer that compares tuples with at least 1 item</summary>
 		/// <typeparam name="T1">Type of the item</typeparam>
-		public sealed class CompositeComparer<T1> : IComparer<IFdbTuple>
+		public sealed class CompositeComparer<T1> : IComparer<ITuple>
 		{
 
-			public static readonly IComparer<IFdbTuple> Default = new CompositeComparer<T1>();
+			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1>();
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			public CompositeComparer()
@@ -212,7 +212,7 @@ namespace FoundationDB.Layers.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(IFdbTuple x, IFdbTuple y)
+			public int Compare(ITuple x, ITuple y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;
@@ -230,10 +230,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Comparer that compares tuples with at least 2 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
-		public sealed class CompositeComparer<T1, T2> : IComparer<IFdbTuple>
+		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>
 		{
 
-			public static readonly IComparer<IFdbTuple> Default = new CompositeComparer<T1, T2>();
+			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2>();
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			public CompositeComparer()
@@ -270,7 +270,7 @@ namespace FoundationDB.Layers.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(IFdbTuple x, IFdbTuple y)
+			public int Compare(ITuple x, ITuple y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;
@@ -296,10 +296,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
 		/// <typeparam name="T3">Type of the thrid item</typeparam>
-		public sealed class CompositeComparer<T1, T2, T3> : IComparer<IFdbTuple>
+		public sealed class CompositeComparer<T1, T2, T3> : IComparer<ITuple>
 		{
 
-			public static readonly IComparer<IFdbTuple> Default = new CompositeComparer<T1, T2, T3>();
+			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2, T3>();
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			public CompositeComparer()
@@ -341,7 +341,7 @@ namespace FoundationDB.Layers.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(IFdbTuple x, IFdbTuple y)
+			public int Compare(ITuple x, ITuple y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;

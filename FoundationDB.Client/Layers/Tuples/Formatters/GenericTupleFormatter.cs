@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013, Doxense SARL
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,66 +28,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 
-	/// <summary>Type codec that uses the Tuple Encoding format</summary>
-	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
-	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
+	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
+	internal sealed class GenericTupleFormatter<T> : ITupleFormatter<T>
 	{
 
-		private static volatile FdbTupleCodec<T> s_defaultSerializer;
-
-		public static FdbTupleCodec<T> Default
+		public ITuple ToTuple(T key)
 		{
-			[NotNull]
-			get { return s_defaultSerializer ?? (s_defaultSerializer = new FdbTupleCodec<T>(default(T))); }
+			return STuple.Create(key);
 		}
 
-		private readonly T m_missingValue;
-
-		public FdbTupleCodec(T missingValue)
+		public T FromTuple(ITuple tuple)
 		{
-			m_missingValue = missingValue;
-		}
-
-		public override Slice EncodeOrdered(T value)
-		{
-			return FdbTuple.EncodeKey<T>(value);
-		}
-
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
-		{
-			//HACKHACK: we lose the current depth!
-			var writer = new TupleWriter(output);
-			FdbTuplePacker<T>.Encoder(ref writer, value);
-			output = writer.Output;
-		}
-
-		public override T DecodeOrdered(Slice input)
-		{
-			return FdbTuple.DecodeKey<T>(input);
-		}
-
-		public override T DecodeOrderedSelfTerm(ref SliceReader input)
-		{
-			//HACKHACK: we lose the current depth!
-			var reader = new TupleReader(input);
-			T value;
-			bool res = FdbTuple.DecodeNext<T>(ref reader, out value);
-			input = reader.Input;
-			return res ? value : m_missingValue;
-		}
-
-		public Slice EncodeValue(T value)
-		{
-			return EncodeUnordered(value);
-		}
-
-		public T DecodeValue(Slice encoded)
-		{
-			return DecodeUnordered(encoded);
+			return tuple.OfSize(1).Get<T>(0);
 		}
 	}
 
