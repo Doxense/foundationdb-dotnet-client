@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 					var state = new IteratorState();
 					state.Active = true;
 					state.Iterator = sources[i].GetEnumerator(mode);
-					state.Next = state.Iterator.MoveNext(cancellationToken);
+					state.Next = state.Iterator.MoveNextAsync(cancellationToken);
 
 					iterators[i] = state;
 				}
@@ -185,7 +185,7 @@ namespace FoundationDB.Client
 		{
 			m_iterators[index].HasCurrent = false;
 			m_iterators[index].Current = default(TKey);
-			m_iterators[index].Next = m_iterators[index].Iterator.MoveNext(cancellationToken);
+			m_iterators[index].Next = m_iterators[index].Iterator.MoveNextAsync(cancellationToken);
 		}
 
 		private static void Cleanup(IteratorState[] iterators)

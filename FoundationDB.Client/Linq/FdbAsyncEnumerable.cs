@@ -715,13 +715,13 @@ namespace FoundationDB.Linq
 			{
 				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
 
-				if (!(await iterator.MoveNext(cancellationToken).ConfigureAwait(false)))
+				if (!(await iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false)))
 				{
 					throw new InvalidOperationException("The sequence was empty");
 				}
 
 				var item = iterator.Current;
-				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				while (await iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 				{
 					item = aggregator(item, iterator.Current);
 				}
@@ -1054,7 +1054,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
-				return await iterator.MoveNext(ct).ConfigureAwait(false);
+				return await iterator.MoveNextAsync(ct).ConfigureAwait(false);
 			}
 		}
 
@@ -1067,7 +1067,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
-				while (await iterator.MoveNext(ct).ConfigureAwait(false))
+				while (await iterator.MoveNextAsync(ct).ConfigureAwait(false))
 				{
 					if (predicate(iterator.Current)) return true;
 				}
@@ -1084,7 +1084,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
-				return !(await iterator.MoveNext(ct).ConfigureAwait(false));
+				return !(await iterator.MoveNextAsync(ct).ConfigureAwait(false));
 			}
 		}
 
@@ -1097,7 +1097,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
-				while (await iterator.MoveNext(ct).ConfigureAwait(false))
+				while (await iterator.MoveNextAsync(ct).ConfigureAwait(false))
 				{
 					if (predicate(iterator.Current)) return false;
 				}

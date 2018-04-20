@@ -68,7 +68,7 @@ namespace FoundationDB.Linq
 		{
 			while (!cancellationToken.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 				{ // completed
 					m_set = null;
 					return Completed();
@@ -102,7 +102,7 @@ namespace FoundationDB.Linq
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
-				while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+				while (!ct.IsCancellationRequested && (await iter.MoveNextAsync(ct).ConfigureAwait(false)))
 				{
 					var current = iter.Current;
 					if (set.Add(current))
@@ -129,7 +129,7 @@ namespace FoundationDB.Linq
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
-				while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+				while (!ct.IsCancellationRequested && (await iter.MoveNextAsync(ct).ConfigureAwait(false)))
 				{
 					var current = iter.Current;
 					if (set.Add(current))

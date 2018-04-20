@@ -68,7 +68,7 @@ namespace FoundationDB.Linq
 				if (m_batch == null)
 				{
 
-					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+					if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 					{ // inner completed
 						return Completed();
 					}
@@ -160,7 +160,7 @@ namespace FoundationDB.Linq
 				if (m_batch == null)
 				{
 
-					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+					if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 					{ // inner completed
 						return Completed();
 					}

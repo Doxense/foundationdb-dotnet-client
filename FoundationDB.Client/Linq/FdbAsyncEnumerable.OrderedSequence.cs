@@ -171,7 +171,7 @@ namespace FoundationDB.Linq
 				}
 				else
 				{
-					while (await inner.MoveNext(ct).ConfigureAwait(false))
+					while (await inner.MoveNextAsync(ct).ConfigureAwait(false))
 					{
 						buffer.Add(inner.Current);
 					}
@@ -193,7 +193,7 @@ namespace FoundationDB.Linq
 				return true;
 			}
 
-			public Task<bool> MoveNext(CancellationToken cancellationToken)
+			public Task<bool> MoveNextAsync(CancellationToken cancellationToken)
 			{
 				// Firt call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
 

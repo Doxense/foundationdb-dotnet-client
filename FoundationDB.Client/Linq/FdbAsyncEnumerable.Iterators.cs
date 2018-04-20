@@ -399,7 +399,7 @@ namespace FoundationDB.Linq
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNextAsync(ct))
 				{
 					action(iterator.Current);
 					++count;
@@ -433,7 +433,7 @@ namespace FoundationDB.Linq
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNextAsync(ct))
 				{
 					if (!action(iterator.Current))
 					{
@@ -467,7 +467,7 @@ namespace FoundationDB.Linq
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNextAsync(ct))
 				{
 					await action(iterator.Current, ct);
 					++count;
@@ -498,7 +498,7 @@ namespace FoundationDB.Linq
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNextAsync(ct))
 				{
 					ct.ThrowIfCancellationRequested();
 					await action(iterator.Current);
@@ -529,12 +529,12 @@ namespace FoundationDB.Linq
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				if (await iterator.MoveNext(ct))
+				if (await iterator.MoveNextAsync(ct))
 				{
 					TSource first = iterator.Current;
 					if (single)
 					{
-						if (await iterator.MoveNext(ct)) throw new InvalidOperationException("The sequence contained more than one element");
+						if (await iterator.MoveNextAsync(ct)) throw new InvalidOperationException("The sequence contained more than one element");
 					}
 					return first;
 				}

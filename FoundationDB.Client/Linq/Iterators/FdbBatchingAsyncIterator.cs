@@ -86,14 +86,14 @@ namespace FoundationDB.Linq
 			var iterator = m_iterator;
 			var buffer = m_buffer;
 
-			bool hasMore = await iterator.MoveNext(ct).ConfigureAwait(false);
+			bool hasMore = await iterator.MoveNextAsync(ct).ConfigureAwait(false);
 
 			while(hasMore && !ct.IsCancellationRequested)
 			{
 				buffer.Add(iterator.Current);
 				if (buffer.Count >= m_batchSize) break;
 
-				hasMore = await iterator.MoveNext(ct).ConfigureAwait(false);
+				hasMore = await iterator.MoveNextAsync(ct).ConfigureAwait(false);
 			}
 			ct.ThrowIfCancellationRequested();
 

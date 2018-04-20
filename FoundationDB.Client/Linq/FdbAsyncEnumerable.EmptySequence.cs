@@ -45,7 +45,7 @@ namespace FoundationDB.Linq
 			private EmptySequence()
 			{ }
 
-			Task<bool> IAsyncEnumerator<TSource>.MoveNext(CancellationToken cancellationToken)
+			Task<bool> IAsyncEnumerator<TSource>.MoveNextAsync(CancellationToken cancellationToken)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				return TaskHelpers.FalseTask;
@@ -107,7 +107,7 @@ namespace FoundationDB.Linq
 				return this.GetEnumerator();
 			}
 
-			async Task<bool> IAsyncEnumerator<TElement>.MoveNext(CancellationToken cancellationToken)
+			async Task<bool> IAsyncEnumerator<TElement>.MoveNextAsync(CancellationToken cancellationToken)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				if (m_called) return false;

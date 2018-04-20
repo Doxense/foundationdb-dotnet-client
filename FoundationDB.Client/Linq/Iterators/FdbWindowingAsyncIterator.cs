@@ -128,7 +128,7 @@ namespace FoundationDB.Linq
 			if (t == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return Completed();
-				t = iterator.MoveNext(ct);
+				t = iterator.MoveNextAsync(ct);
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -141,7 +141,7 @@ namespace FoundationDB.Linq
 			{
 				buffer.Add(iterator.Current);
 
-				t = iterator.MoveNext(ct);
+				t = iterator.MoveNextAsync(ct);
 				if (buffer.Count >= m_maxWindowSize || !t.IsCompleted)
 				{ // save it for next time
 

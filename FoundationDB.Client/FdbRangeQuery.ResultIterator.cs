@@ -126,7 +126,7 @@ namespace FoundationDB.Client
 				var iterator = m_chunkIterator;
 
 				// start reading the next batch
-				if (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (await iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 				{ // we got a new chunk !
 
 					//note: Dispose() or Cleanup() maybe have been called concurrently!

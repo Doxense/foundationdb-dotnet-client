@@ -89,7 +89,7 @@ namespace FoundationDB.Linq
 			}
 		}
 
-		public async Task<bool> MoveNext(CancellationToken ct)
+		public async Task<bool> MoveNextAsync(CancellationToken ct)
 		{
 			var state = Volatile.Read(ref m_state);
 

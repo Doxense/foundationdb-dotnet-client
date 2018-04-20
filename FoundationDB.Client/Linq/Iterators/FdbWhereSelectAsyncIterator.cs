@@ -89,7 +89,7 @@ namespace FoundationDB.Linq
 
 			while (!cancellationToken.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}
@@ -319,7 +319,7 @@ namespace FoundationDB.Linq
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
-					if (!await iterator.MoveNext(ct).ConfigureAwait(false))
+					if (!await iterator.MoveNextAsync(ct).ConfigureAwait(false))
 					{ // completed
 						break;
 					}
@@ -388,7 +388,7 @@ namespace FoundationDB.Linq
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
-					if (!await iterator.MoveNext(ct).ConfigureAwait(false))
+					if (!await iterator.MoveNextAsync(ct).ConfigureAwait(false))
 					{ // completed
 						break;
 					}

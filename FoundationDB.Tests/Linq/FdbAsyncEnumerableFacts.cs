@@ -55,7 +55,7 @@ namespace FoundationDB.Linq.Tests
 			var results = new List<int>();
 			using (var iterator = source.GetEnumerator())
 			{
-				while (await iterator.MoveNext(CancellationToken.None))
+				while (await iterator.MoveNextAsync(CancellationToken.None))
 				{
 					Assert.That(results.Count, Is.LessThan(10));
 					results.Add(iterator.Current);
@@ -80,7 +80,7 @@ namespace FoundationDB.Linq.Tests
 			var results = new List<int>();
 			using (var iterator = source.GetEnumerator())
 			{
-				while (await iterator.MoveNext(CancellationToken.None))
+				while (await iterator.MoveNextAsync(CancellationToken.None))
 				{
 					Assert.That(results.Count, Is.LessThan(10));
 					results.Add(iterator.Current);
@@ -175,10 +175,10 @@ namespace FoundationDB.Linq.Tests
 
 			using(var iterator = singleton.GetEnumerator())
 			{
-				var res = await iterator.MoveNext(this.Cancellation);
+				var res = await iterator.MoveNextAsync(this.Cancellation);
 				Assert.That(res, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNext(this.Cancellation);
+				res = await iterator.MoveNextAsync(this.Cancellation);
 				Assert.That(res, Is.False);
 			}
 
@@ -201,10 +201,10 @@ namespace FoundationDB.Linq.Tests
 
 			using (var iterator = singleton.GetEnumerator())
 			{
-				var res = await iterator.MoveNext(this.Cancellation);
+				var res = await iterator.MoveNextAsync(this.Cancellation);
 				Assert.That(res, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNext(this.Cancellation);
+				res = await iterator.MoveNextAsync(this.Cancellation);
 				Assert.That(res, Is.False);
 			}
 
@@ -227,10 +227,10 @@ namespace FoundationDB.Linq.Tests
 
 			using (var iterator = singleton.GetEnumerator())
 			{
-				var res = await iterator.MoveNext(this.Cancellation);
+				var res = await iterator.MoveNextAsync(this.Cancellation);
 				Assert.That(res, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNext(this.Cancellation);
+				res = await iterator.MoveNextAsync(this.Cancellation);
 				Assert.That(res, Is.False);
 			}
 
@@ -1119,18 +1119,18 @@ namespace FoundationDB.Linq.Tests
 			using (var iterator = query.GetEnumerator())
 			{
 				// first move next should succeed
-				bool res = await iterator.MoveNext(CancellationToken.None);
+				bool res = await iterator.MoveNextAsync(CancellationToken.None);
 				Assert.That(res, Is.True);
 
 				// second move next should fail
-				var x = Assert.Throws<FormatException>(async () => await iterator.MoveNext(CancellationToken.None), "Should have failed");
+				var x = Assert.Throws<FormatException>(async () => await iterator.MoveNextAsync(CancellationToken.None), "Should have failed");
 				Assert.That(x.Message, Is.EqualTo("KABOOM"));
 
 				// accessing current should rethrow the exception
 				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
 
 				// another attempt at MoveNext should fail immediately but with a different error
-				Assert.Throws<ObjectDisposedException>(async () => await iterator.MoveNext(CancellationToken.None));
+				Assert.Throws<ObjectDisposedException>(async () => await iterator.MoveNextAsync(CancellationToken.None));
 			}
 		}
 

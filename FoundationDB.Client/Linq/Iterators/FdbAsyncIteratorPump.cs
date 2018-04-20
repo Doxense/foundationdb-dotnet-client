@@ -101,7 +101,7 @@ namespace FoundationDB.Linq
 				{
 					LogDebug("waiting for next");
 					m_state = STATE_WAITING_FOR_NEXT;
-					if (!(await m_iterator.MoveNext(ct).ConfigureAwait(false)))
+					if (!(await m_iterator.MoveNextAsync(ct).ConfigureAwait(false)))
 					{
 						LogDebug("completed");
 						m_state = STATE_DONE;

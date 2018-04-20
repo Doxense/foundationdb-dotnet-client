@@ -99,7 +99,7 @@ namespace FoundationDB.Linq
 			if (t == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return Completed();
-				t = m_iterator.MoveNext(ct);
+				t = m_iterator.MoveNextAsync(ct);
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -113,7 +113,7 @@ namespace FoundationDB.Linq
 				if (m_buffer == null) m_buffer = new Queue<TInput>(m_prefetchCount);
 				m_buffer.Enqueue(m_iterator.Current);
 
-				t = m_iterator.MoveNext(ct);
+				t = m_iterator.MoveNextAsync(ct);
 				if (m_buffer.Count >= m_prefetchCount || !t.IsCompleted)
 				{ // save it for next time
 					m_nextTask = t;

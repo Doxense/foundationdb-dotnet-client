@@ -56,7 +56,7 @@ namespace FoundationDB.Linq
 		{
 			while (!cancellationToken.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}

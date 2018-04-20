@@ -58,7 +58,7 @@ namespace FoundationDB.Linq
 		{
 			while (!cancellationToken.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}
@@ -148,7 +148,7 @@ namespace FoundationDB.Linq
 			{
 				if (!m_filter.Async)
 				{
-					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
 						if (m_filter.Invoke(current))
@@ -159,7 +159,7 @@ namespace FoundationDB.Linq
 				}
 				else
 				{
-					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
 						if (await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
@@ -183,7 +183,7 @@ namespace FoundationDB.Linq
 			{
 				if (!m_filter.Async)
 				{
-					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
 						if (m_filter.Invoke(current))
@@ -194,7 +194,7 @@ namespace FoundationDB.Linq
 				}
 				else
 				{
-					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
 						if (await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
