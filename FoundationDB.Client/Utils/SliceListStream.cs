@@ -33,8 +33,8 @@ namespace FoundationDB
 	using System.IO;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
 	using JetBrains.Annotations;
 
 	/// <summary>Merge multiple slices into a single stream</summary>
@@ -253,7 +253,7 @@ namespace FoundationDB
 
 			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<int>(ct);
+				return Task.FromCanceled<int>(ct);
 			}
 
 			try
@@ -303,7 +303,7 @@ namespace FoundationDB
 		public override Task FlushAsync(System.Threading.CancellationToken ct)
 		{
 			// Not supported, but don't throw here
-			return TaskHelpers.CompletedTask;
+			return Task.CompletedTask;
 		}
 
 		#endregion

@@ -26,19 +26,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System.Diagnostics;
-
 namespace FoundationDB.Async.Tests
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class AsyncBufferFacts : FdbTest

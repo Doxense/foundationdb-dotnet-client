@@ -50,17 +50,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Type of the results of the query</summary>
-		public override Type Type
-		{
-			[NotNull]
-			get { return m_type; }
-		}
+		public override Type Type => m_type;
 
 		/// <summary>Always return <see cref="ExpressionType.Extension"/></summary>
-		public override ExpressionType NodeType
-		{
-			get { return ExpressionType.Extension; }
-		}
+		public override ExpressionType NodeType => ExpressionType.Extension;
 
 		/// <summary>Shape of the query</summary>
 		public abstract FdbQueryShape Shape { get; }

@@ -32,6 +32,7 @@ namespace FoundationDB.Linq.Expressions
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -105,7 +106,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
 		{
 			// compile the key selector
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
@@ -117,13 +118,13 @@ namespace FoundationDB.Linq.Expressions
 				enumerables[i] = FdbExpressionHelpers.RewriteCall(this.Expressions[i].CompileSequence(), prmTrans);
 			}
 
-			var array = Expression.NewArrayInit(typeof(IFdbAsyncEnumerable<T>), enumerables);
+			var array = Expression.NewArrayInit(typeof(IAsyncEnumerable<T>), enumerables);
 			Expression body;
 			switch (this.MergeType)
 			{
 				case FdbQueryMergeType.Intersect:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>[], IComparer<T>, IFdbAsyncEnumerable<T>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<T>[], IComparer<T>, IAsyncEnumerable<T>>>(
 						(sources, comparer) => FdbMergeQueryExtensions.Intersect(sources, comparer),
 						array,
 						Expression.Constant(this.KeyComparer, typeof(IComparer<T>))
@@ -132,7 +133,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 				case FdbQueryMergeType.Union:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>[], IComparer<T>, IFdbAsyncEnumerable<T>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<T>[], IComparer<T>, IAsyncEnumerable<T>>>(
 						(sources, comparer) => FdbMergeQueryExtensions.Union(sources, comparer),
 						array,
 						Expression.Constant(this.KeyComparer, typeof(IComparer<T>))
@@ -145,7 +146,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>>(
 				body,
 				prmTrans
 			);

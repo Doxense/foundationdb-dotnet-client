@@ -35,9 +35,9 @@ namespace FoundationDB.Layers.Directories
 	using System.Threading.Tasks;
 	using JetBrains.Annotations;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using FoundationDB.Filters.Logging;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
@@ -991,7 +991,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns the list of names and nodes of all children of the specified node</summary>
 		[NotNull]
-		private IFdbAsyncEnumerable<KeyValuePair<string, IDynamicKeySubspace>> SubdirNamesAndNodes([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IDynamicKeySubspace node)
+		private IAsyncEnumerable<KeyValuePair<string, IDynamicKeySubspace>> SubdirNamesAndNodes([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IDynamicKeySubspace node)
 		{
 			Contract.Requires(tr != null && node != null);
 

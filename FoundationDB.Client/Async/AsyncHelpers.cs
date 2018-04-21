@@ -26,7 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+using Doxense.Linq;
+
+namespace Doxense.Async
 {
 	using System;
 	using System.Collections.Generic;
@@ -39,13 +41,8 @@ namespace FoundationDB.Async
 	public static class AsyncHelpers
 	{
 		internal static readonly Action NoOpCompletion = () => { };
-#if NET_4_0
-		internal static readonly Action<Exception> NoOpError = (e) => { };
-		internal static readonly Action<Exception> RethrowError = (e) => { throw e; };
-#else
 		internal static readonly Action<ExceptionDispatchInfo> NoOpError = (e) => { };
 		internal static readonly Action<ExceptionDispatchInfo> RethrowError = (e) => { e.Throw(); };
-#endif
 
 		#region Targets...
 
@@ -53,11 +50,7 @@ namespace FoundationDB.Async
 		public static IAsyncTarget<T> CreateTarget<T>(
 			Func<T, CancellationToken, Task> onNextAsync,
 			Action onCompleted = null,
-#if NET_4_0
-			Action<Exception> onError = null
-#else
 			Action<ExceptionDispatchInfo> onError = null
-#endif
 		)
 		{
 			return new AnonymousAsyncTarget<T>(onNextAsync, onCompleted, onError);
@@ -67,11 +60,7 @@ namespace FoundationDB.Async
 		public static IAsyncTarget<T> CreateTarget<T>(
 				Action<T, CancellationToken> onNext,
 				Action onCompleted = null,
-#if NET_4_0
-				Action<Exception> onError = null
-#else
 				Action<ExceptionDispatchInfo> onError = null
-#endif
 		)
 		{
 			return new AnonymousTarget<T>(onNext, onCompleted, onError);
@@ -82,26 +71,22 @@ namespace FoundationDB.Async
 		{
 			Contract.Requires(target != null);
 
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			if (result.HasValue)
-			{
+			{ // we have the next value
 				return target.OnNextAsync(result.Value, ct);
 			}
-			else if (result.HasFailed)
-			{
-#if NET_4_0
-				target.OnError(result.Error);
-#else
+
+			if (result.Failed)
+			{ // we have failed
 				target.OnError(result.CapturedError);
-#endif
-				return TaskHelpers.CompletedTask;
+				return Task.CompletedTask;
 			}
-			else
-			{
-				target.OnCompleted();
-				return TaskHelpers.CompletedTask;
-			}
+
+			// this is the end of the stream
+			target.OnCompleted();
+			return Task.CompletedTask;
 		}
 
 		/// <summary>Wrapper class for use with async lambda callbacks</summary>
@@ -112,20 +97,12 @@ namespace FoundationDB.Async
 
 			private readonly Action m_onCompleted;
 
-#if NET_4_0
-			private readonly Action<Exception> m_onError;
-#else
 			private readonly Action<ExceptionDispatchInfo> m_onError;
-#endif
 
 			public AnonymousAsyncTarget(
 				Func<T, CancellationToken, Task> onNextAsync,
 				Action onCompleted,
-#if NET_4_0
-				Action<Exception> onError
-#else
 				Action<ExceptionDispatchInfo> onError
-#endif
 			)
 			{
 				m_onNextAsync = onNextAsync;
@@ -143,11 +120,7 @@ namespace FoundationDB.Async
 				m_onCompleted();
 			}
 
-#if NET_4_0
-			public void OnError(Exception error)
-#else
 			public void OnError(ExceptionDispatchInfo error)
-#endif
 			{
 				m_onError(error);
 			}
@@ -161,23 +134,15 @@ namespace FoundationDB.Async
 
 			private readonly Action m_onCompleted;
 
-#if NET_4_0
-			private readonly Action<Exception> m_onError;
-#else
 			private readonly Action<ExceptionDispatchInfo> m_onError;
-#endif
 
 			public AnonymousTarget(
 				Action<T, CancellationToken> onNext,
 				Action onCompleted,
-#if NET_4_0
-				Action<Exception> onError
-#else
 				Action<ExceptionDispatchInfo> onError
-#endif
 			)
 			{
-				if (onNext == null) throw new ArgumentNullException("onNext");
+				Contract.NotNull(onNext, nameof(onNext));
 
 				m_onNext = onNext;
 				m_onCompleted = onCompleted;
@@ -191,21 +156,9 @@ namespace FoundationDB.Async
 
 			public void OnCompleted()
 			{
-				if (m_onCompleted != null)
-				{
-					m_onCompleted();
-				}
+				m_onCompleted?.Invoke();
 			}
 
-#if NET_4_0
-			public void OnError(Exception error)
-			{
-				if (m_onError != null)
-					m_onError(error);
-				else
-					throw error;
-			}
-#else
 			public void OnError(ExceptionDispatchInfo error)
 			{
 				if (m_onError != null)
@@ -213,20 +166,98 @@ namespace FoundationDB.Async
 				else
 					error.Throw();
 			}
-#endif
 		}
 
 		#endregion
 
 		#region Pumps...
 
+		/// <summary>Consumes all the elements of the source, and publish them to the target, one by one and in order</summary>
+		/// <param name="source">Source that produces elements asynchronously</param>
+		/// <param name="target">Target that consumes elements asynchronously</param>
+		/// <param name="ct">Cancellation token</param>
+		/// <returns>Task that completes when all the elements of the source have been published to the target, or fails if on the first error, or the token is cancelled unexpectedly</returns>
+		/// <remarks>The pump will only read one element at a time, and wait for it to be published to the target, before reading the next element.</remarks>
 		public static async Task PumpToAsync<T>(this IAsyncSource<T> source, IAsyncTarget<T> target, CancellationToken ct)
 		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
-			using (var pump = new AsyncPump<T>(source, target))
+			bool notifiedCompletion = false;
+			bool notifiedError = false;
+
+			try
 			{
-				await pump.PumpAsync(stopOnFirstError: true, ct: ct).ConfigureAwait(false);
+				//LogPump("Starting pump");
+
+				while (!ct.IsCancellationRequested)
+				{
+					//LogPump("Waiting for next");
+
+					var current = await source.ReceiveAsync(ct).ConfigureAwait(false);
+
+					//LogPump("Received " + (current.HasValue ? "value" : current.Failed ? "error" : "completion") + ", publishing... " + current);
+					if (ct.IsCancellationRequested)
+					{
+						// REVIEW: should we notify the target?
+						// REVIEW: if the item is IDisposble, who will clean up?
+						break;
+					}
+
+					// push the data/error/completion on to the target, which will triage and update its state accordingly
+					await target.Publish(current, ct).ConfigureAwait(false);
+
+					if (current.Failed)
+					{ // bounce the error back to the caller
+					  //REVIEW: SHOULD WE? We poush the error to the target, and the SAME error to the caller... who should be responsible for handling it?
+					  // => target should know about the error (to cancel something)
+					  // => caller should maybe also know that the pump failed unexpectedly....
+						notifiedError = true;
+						current.ThrowForNonSuccess(); // throws an exception right here
+						return; // should not be reached
+					}
+					else if (current.IsEmpty)
+					{ // the source has completed, stop the pump
+					  //LogPump("Completed");
+						notifiedCompletion = true;
+						return;
+					}
+				}
+
+				// notify cancellation if it happend while we were pumping
+				if (ct.IsCancellationRequested)
+				{
+					//LogPump("We were cancelled!");
+					throw new OperationCanceledException(ct);
+				}
+			}
+			catch (Exception e)
+			{
+				//LogPump("Failed: " + e);
+
+				if (!notifiedCompletion && !notifiedError)
+				{ // notify the target that we crashed while fetching the next
+					try
+					{
+						//LogPump("Push error down to target: " + e.Message);
+						target.OnError(ExceptionDispatchInfo.Capture(e));
+						notifiedError = true;
+					}
+					catch (Exception x) when (!x.IsFatalError())
+					{
+						//LogPump("Failed to notify target of error: " + x.Message);
+					}
+				}
+
+				throw;
+			}
+			finally
+			{
+				if (!notifiedCompletion)
+				{ // we must be sure to complete the target if we haven't done so yet!
+					//LogPump("Notify target of completion due to unexpected conditions");
+					target.OnCompleted();
+				}
+				//LogPump("Stopped pump");
 			}
 		}
 
@@ -235,7 +266,7 @@ namespace FoundationDB.Async
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var buffer = new FoundationDB.Linq.FdbAsyncEnumerable.Buffer<T>();
+			var buffer = new Buffer<T>();
 
 			var target = CreateTarget<T>(
 				(x, _) => buffer.Add(x)
@@ -265,18 +296,18 @@ namespace FoundationDB.Async
 
 		#region Transforms...
 
-		public static AsyncTransform<T, R> CreateAsyncTransform<T, R>(Func<T, CancellationToken, Task<R>> transform, IAsyncTarget<Task<R>> target, TaskScheduler scheduler = null)
+		public static AsyncTransform<TInput, TOutput> CreateAsyncTransform<TInput, TOutput>(Func<TInput, CancellationToken, Task<TOutput>> transform, IAsyncTarget<Task<TOutput>> target, TaskScheduler scheduler = null)
 		{
-			return new AsyncTransform<T, R>(transform, target, scheduler);
+			return new AsyncTransform<TInput, TOutput>(transform, target, scheduler);
 		}
 
-		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken ct, int? maxConcurrency = null, TaskScheduler scheduler = null)
+		public static async Task<List<TOutput>> TransformToListAsync<TInput, TOutput>(IAsyncSource<TInput> source, Func<TInput, CancellationToken, Task<TOutput>> transform, CancellationToken ct, int? maxConcurrency = null, TaskScheduler scheduler = null)
 		{
 			ct.ThrowIfCancellationRequested();
 
-			using (var queue = CreateOrderPreservingAsyncBuffer<R>(maxConcurrency ?? 32))
+			using (var queue = CreateOrderPreservingAsyncBuffer<TOutput>(maxConcurrency ?? 32))
 			{
-				using (var pipe = CreateAsyncTransform<T, R>(transform, queue, scheduler))
+				using (var pipe = CreateAsyncTransform<TInput, TOutput>(transform, queue, scheduler))
 				{
 					// start the output pump
 					var output = PumpToListAsync(queue, ct);

@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define FULL_DEBUG
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Diagnostics;
@@ -60,7 +60,7 @@ namespace FoundationDB.Async
 
 		protected AsyncProducerConsumerQueue(int capacity)
 		{
-			if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity", "Capacity must be greater than zero");
+			if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than zero");
 
 			m_capacity = capacity;
 		}
@@ -69,11 +69,7 @@ namespace FoundationDB.Async
 
 		public abstract void OnCompleted();
 
-#if NET_4_0
-		public abstract void OnError(Exception error);
-#else
 		public abstract void OnError(ExceptionDispatchInfo error);
-#endif
 
 		/// <summary>Delcare the producer as beeing blocked on a full queue</summary>
 		/// <param name="ct"></param>
@@ -82,7 +78,7 @@ namespace FoundationDB.Async
 		{
 			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<object>(ct);
+				return Task.FromCanceled(ct);
 			}
 			if (m_producerLock.IsCompleted)
 			{
@@ -108,7 +104,7 @@ namespace FoundationDB.Async
 		{
 			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<object>(ct);
+				return Task.FromCanceled(ct);
 			}
 			if (m_consumerLock.IsCompleted)
 			{
@@ -123,7 +119,11 @@ namespace FoundationDB.Async
 		{
 			if (m_consumerLock.Set(async: true))
 			{
-				LogProducer("Woke up blocked consumer");				
+				LogProducer("Woke up blocked consumer");
+			}
+			else
+			{
+				LogProducer("Consumer was already unblocked?");
 			}
 		}
 

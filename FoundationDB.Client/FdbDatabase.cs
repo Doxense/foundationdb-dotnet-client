@@ -35,11 +35,10 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>

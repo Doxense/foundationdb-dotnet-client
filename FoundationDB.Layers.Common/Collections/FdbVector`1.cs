@@ -32,8 +32,8 @@ namespace FoundationDB.Layers.Collections
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 	using FoundationDB.Client;
-	using FoundationDB.Linq;
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
@@ -225,7 +225,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
-		public IFdbAsyncEnumerable<T> GetRangeAsync([NotNull] IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
+		public IAsyncEnumerable<T> GetRangeAsync([NotNull] IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 

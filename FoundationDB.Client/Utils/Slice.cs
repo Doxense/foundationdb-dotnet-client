@@ -40,8 +40,6 @@ namespace FoundationDB
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 
 	/// <summary>Delimits a section of a byte array</summary>
 	[ImmutableObject(true), PublicAPI, DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
@@ -2287,7 +2285,7 @@ namespace FoundationDB
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
 
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<Slice>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice>(ct);
 
 			int length;
 			checked { length = (int)data.Length; }

@@ -6,7 +6,7 @@
 //
 #endregion
 
-namespace FoundationDB
+namespace Doxense
 {
 	using Doxense.Diagnostics.Contracts;
 	using System;

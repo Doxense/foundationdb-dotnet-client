@@ -26,17 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Doxense.Linq;
+
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
-	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 	public static class FdbQueryExpressions
@@ -44,10 +44,10 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Return a single result from the query</summary>
 		[NotNull]
-		public static FdbQuerySingleExpression<T, R> Single<T, R>([NotNull] FdbQuerySequenceExpression<T> source, string name, [NotNull] Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
+		public static FdbQuerySingleExpression<T, R> Single<T, R>([NotNull] FdbQuerySequenceExpression<T> source, string name, [NotNull] Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
-			if (source == null) throw new ArgumentNullException("source");
-			if (lambda == null) throw new ArgumentNullException("lambda");
+			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (lambda == null) throw new ArgumentNullException(nameof(lambda));
 
 			if (name == null) name = lambda.Name ?? "Lambda";
 
@@ -56,9 +56,9 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Return a sequence of results from the query</summary>
 		[NotNull]
-		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>([NotNull] IFdbAsyncEnumerable<T> source)
+		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>([NotNull] IAsyncEnumerable<T> source)
 		{
-			if (source == null) throw new ArgumentNullException("source");
+			if (source == null) throw new ArgumentNullException(nameof(source));
 
 			return new FdbQueryAsyncEnumerableExpression<T>(source);
 		}
@@ -96,7 +96,7 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static FdbQueryIntersectExpression<T> Intersect<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
-			if (expressions == null) throw new ArgumentNullException("expressions");
+			if (expressions == null) throw new ArgumentNullException(nameof(expressions));
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
 
 			var type = expressions[0].Type;
@@ -109,7 +109,7 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static FdbQueryUnionExpression<T> Union<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
-			if (expressions == null) throw new ArgumentNullException("expressions");
+			if (expressions == null) throw new ArgumentNullException(nameof(expressions));
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
 
 			var type = expressions[0].Type;
@@ -122,10 +122,10 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static FdbQueryTransformExpression<T, R> Transform<T, R>([NotNull] FdbQuerySequenceExpression<T> source, [NotNull] Expression<Func<T, R>> transform)
 		{
-			if (source == null) throw new ArgumentNullException("source");
-			if (transform == null) throw new ArgumentNullException("transform");
+			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (transform == null) throw new ArgumentNullException(nameof(transform));
 
-			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with transform input type {1}", source.ElementType.Name, typeof(T).Name), "source");
+			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with transform input type {1}", source.ElementType.Name, typeof(T).Name), nameof(source));
 
 			return new FdbQueryTransformExpression<T, R>(source, transform);
 		}
@@ -134,10 +134,10 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static FdbQueryFilterExpression<T> Filter<T>([NotNull] FdbQuerySequenceExpression<T> source, [NotNull] Expression<Func<T, bool>> filter)
 		{
-			if (source == null) throw new ArgumentNullException("source");
-			if (filter == null) throw new ArgumentNullException("filter");
+			if (source == null) throw new ArgumentNullException(nameof(source));
+			if (filter == null) throw new ArgumentNullException(nameof(filter));
 
-			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with filter input type {1}", source.ElementType.Name, typeof(T).Name), "source");
+			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with filter input type {1}", source.ElementType.Name, typeof(T).Name), nameof(source));
 
 			return new FdbQueryFilterExpression<T>(source, filter);
 		}
@@ -146,7 +146,7 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static string ExplainSingle<T>([NotNull] FdbQueryExpression<T> expression, CancellationToken ct)
 		{
-			if (expression == null) throw new ArgumentNullException("expression");
+			if (expression == null) throw new ArgumentNullException(nameof(expression));
 			if (expression.Shape != FdbQueryShape.Single) throw new InvalidOperationException("Invalid shape (single expected)");
 
 			var expr = expression.CompileSingle();
@@ -158,7 +158,7 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static string ExplainSequence<T>([NotNull] FdbQuerySequenceExpression<T> expression)
 		{
-			if (expression == null) throw new ArgumentNullException("expression");
+			if (expression == null) throw new ArgumentNullException(nameof(expression));
 			if (expression.Shape != FdbQueryShape.Sequence) throw new InvalidOperationException("Invalid shape (sequence expected)");
 
 			var expr = expression.CompileSequence();

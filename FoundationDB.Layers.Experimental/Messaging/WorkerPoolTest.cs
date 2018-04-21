@@ -1,16 +1,15 @@
-﻿using FoundationDB.Async;
-using FoundationDB.Client;
-using FoundationDB.Filters.Logging;
-using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
+﻿
 namespace FoundationDB.Layers.Messaging
 {
-
+	using System;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Text;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Doxense.Async;
+	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
 
 	public class WorkerPoolTest
 	{

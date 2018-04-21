@@ -26,12 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Linq.Tests
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -39,6 +36,13 @@ namespace FoundationDB.Linq.Tests
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense;
+	using Doxense.Async;
+	using Doxense.Linq;
+	using Doxense.Linq.Async.Iterators;
+	using FoundationDB.Client.Tests;
+	using FoundationDB.Layers.Tuples;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class FdbAsyncEnumerableFacts : FdbTest
@@ -53,9 +57,9 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(source, Is.Not.Null);
 
 			var results = new List<int>();
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 			{
-				while (await iterator.MoveNextAsync(CancellationToken.None))
+				while (await iterator.MoveNextAsync())
 				{
 					Assert.That(results.Count, Is.LessThan(10));
 					results.Add(iterator.Current);
@@ -78,9 +82,9 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(source, Is.Not.Null);
 
 			var results = new List<int>();
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 			{
-				while (await iterator.MoveNextAsync(CancellationToken.None))
+				while (await iterator.MoveNextAsync())
 				{
 					Assert.That(results.Count, Is.LessThan(10));
 					results.Add(iterator.Current);
@@ -130,7 +134,7 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Empty()
 		{
-			var empty = FdbAsyncEnumerable.Empty<int>();
+			var empty = AsyncEnumerable.Empty<int>();
 			Assert.That(empty, Is.Not.Null);
 
 			var results = await empty.ToListAsync();
@@ -149,7 +153,7 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Singleton()
 		{
-			var singleton = FdbAsyncEnumerable.Singleton(42);
+			var singleton = AsyncEnumerable.Singleton(42);
 			Assert.That(singleton, Is.Not.Null);
 
 			var results = await singleton.ToListAsync();
@@ -170,15 +174,15 @@ namespace FoundationDB.Linq.Tests
 		{
 			// Func<T>
 
-			var singleton = FdbAsyncEnumerable.Single(() => 42);
+			var singleton = AsyncEnumerable.Single(() => 42);
 			Assert.That(singleton, Is.Not.Null);
 
-			using(var iterator = singleton.GetEnumerator())
+			using(var iterator = singleton.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 			{
-				var res = await iterator.MoveNextAsync(this.Cancellation);
+				var res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNextAsync(this.Cancellation);
+				res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.False);
 			}
 
@@ -196,15 +200,15 @@ namespace FoundationDB.Linq.Tests
 
 			// Func<Task<T>>
 
-			singleton = FdbAsyncEnumerable.Single(() => Task.Delay(50).ContinueWith(_ => 42));
+			singleton = AsyncEnumerable.Single(() => Task.Delay(50).ContinueWith(_ => 42));
 			Assert.That(singleton, Is.Not.Null);
 
-			using (var iterator = singleton.GetEnumerator())
+			using (var iterator = singleton.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 			{
-				var res = await iterator.MoveNextAsync(this.Cancellation);
+				var res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNextAsync(this.Cancellation);
+				res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.False);
 			}
 
@@ -222,15 +226,15 @@ namespace FoundationDB.Linq.Tests
 
 			// Func<CancellationToken, Task<T>>
 
-			singleton = FdbAsyncEnumerable.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42));
+			singleton = AsyncEnumerable.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42));
 			Assert.That(singleton, Is.Not.Null);
 
-			using (var iterator = singleton.GetEnumerator())
+			using (var iterator = singleton.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 			{
-				var res = await iterator.MoveNextAsync(this.Cancellation);
+				var res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNextAsync(this.Cancellation);
+				res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.False);
 			}
 
@@ -254,7 +258,7 @@ namespace FoundationDB.Linq.Tests
 
 			var selected = source.Select(x => x + 1);
 			Assert.That(selected, Is.Not.Null);
-			Assert.That(selected, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
+			Assert.That(selected, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
 			var results = await selected.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
@@ -271,7 +275,7 @@ namespace FoundationDB.Linq.Tests
 				return x + 1;
 			});
 			Assert.That(selected, Is.Not.Null);
-			Assert.That(selected, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
+			Assert.That(selected, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
 			var results = await selected.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
@@ -284,11 +288,11 @@ namespace FoundationDB.Linq.Tests
 
 			var squares = source.Select(x => (long)x * x);
 			Assert.That(squares, Is.Not.Null);
-			Assert.That(squares, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, long>>());
+			Assert.That(squares, Is.InstanceOf<WhereSelectAsyncIterator<int, long>>());
 
 			var roots = squares.Select(x => Math.Sqrt(x));
 			Assert.That(roots, Is.Not.Null);
-			Assert.That(roots, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, double>>());
+			Assert.That(roots, Is.InstanceOf<WhereSelectAsyncIterator<int, double>>());
 
 			var results = await roots.ToListAsync();
 			Assert.That(results, Is.EqualTo(new double[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
@@ -301,11 +305,11 @@ namespace FoundationDB.Linq.Tests
 
 			var squares = source.Select(x => Task.FromResult((long)x * x));
 			Assert.That(squares, Is.Not.Null);
-			Assert.That(squares, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, long>>());
+			Assert.That(squares, Is.InstanceOf<WhereSelectAsyncIterator<int, long>>());
 
 			var roots = squares.Select(x => Task.FromResult(Math.Sqrt(x)));
 			Assert.That(roots, Is.Not.Null);
-			Assert.That(roots, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, double>>());
+			Assert.That(roots, Is.InstanceOf<WhereSelectAsyncIterator<int, double>>());
 
 			var results = await roots.ToListAsync();
 			Assert.That(results, Is.EqualTo(new double[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
@@ -330,7 +334,7 @@ namespace FoundationDB.Linq.Tests
 
 			var query = source.Take(10);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
+			Assert.That(query, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
@@ -346,7 +350,7 @@ namespace FoundationDB.Linq.Tests
 				.Where(x => x % 2 == 1)
 				.Take(10);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
+			Assert.That(query, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 }));
@@ -361,7 +365,7 @@ namespace FoundationDB.Linq.Tests
 				.Take(10)
 				.Where(x => x % 2 == 1);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>());
+			Assert.That(query, Is.InstanceOf<WhereAsyncIterator<int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
@@ -376,7 +380,7 @@ namespace FoundationDB.Linq.Tests
 				.Where(x => x % 2 == 1)
 				.Where(x => x % 3 == 0);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>()); // should have been optimized
+			Assert.That(query, Is.InstanceOf<WhereAsyncIterator<int>>()); // should have been optimized
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 3, 9, 15, 21, 27, 33, 39 }));
@@ -391,7 +395,7 @@ namespace FoundationDB.Linq.Tests
 				.Skip(21)
 				.Where(x => x % 2 == 1);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>());
+			Assert.That(query, Is.InstanceOf<WhereAsyncIterator<int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41 }));
@@ -406,7 +410,7 @@ namespace FoundationDB.Linq.Tests
 				.Where(x => x % 2 == 1)
 				.Skip(15);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>()); // should be optimized
+			Assert.That(query, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>()); // should be optimized
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 31, 33, 35, 37, 39, 41 }));
@@ -431,7 +435,7 @@ namespace FoundationDB.Linq.Tests
 			int first = await source.FirstAsync();
 			Assert.That(first, Is.EqualTo(42));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			Assert.That(() => source.FirstAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 		}
@@ -443,7 +447,7 @@ namespace FoundationDB.Linq.Tests
 			int first = await source.FirstOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(42));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			first = await source.FirstOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
@@ -456,7 +460,7 @@ namespace FoundationDB.Linq.Tests
 			int first = await source.SingleAsync();
 			Assert.That(first, Is.EqualTo(42));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			Assert.That(() => source.SingleAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 			source = Enumerable.Range(42, 3).ToAsyncEnumerable();
@@ -471,7 +475,7 @@ namespace FoundationDB.Linq.Tests
 			int first = await source.SingleOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(42));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			first = await source.SingleOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
@@ -486,7 +490,7 @@ namespace FoundationDB.Linq.Tests
 			int first = await source.LastAsync();
 			Assert.That(first, Is.EqualTo(44));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			Assert.That(() => source.LastAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 		}
@@ -498,7 +502,7 @@ namespace FoundationDB.Linq.Tests
 			int first = await source.LastOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(44));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			first = await source.LastOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
@@ -522,7 +526,7 @@ namespace FoundationDB.Linq.Tests
 
 			Assert.That(() => source.ElementAtAsync(10).GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			Assert.That(() => source.ElementAtAsync(0).GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
@@ -545,7 +549,7 @@ namespace FoundationDB.Linq.Tests
 			item = await source.ElementAtOrDefaultAsync(10);
 			Assert.That(item, Is.EqualTo(0));
 
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			item = await source.ElementAtOrDefaultAsync(0);
 			Assert.That(item, Is.EqualTo(0));
 			item = await source.ElementAtOrDefaultAsync(42);
@@ -627,7 +631,7 @@ namespace FoundationDB.Linq.Tests
 			any = await source.AnyAsync();
 			Assert.That(any, Is.True);
 
-			any = await FdbAsyncEnumerable.Empty<int>().AnyAsync();
+			any = await AsyncEnumerable.Empty<int>().AnyAsync();
 			Assert.That(any, Is.False);
 		}
 
@@ -642,7 +646,7 @@ namespace FoundationDB.Linq.Tests
 			any = await source.AnyAsync(x => x < 0);
 			Assert.That(any, Is.False);
 
-			any = await FdbAsyncEnumerable.Empty<int>().AnyAsync(x => x == 42);
+			any = await AsyncEnumerable.Empty<int>().AnyAsync(x => x == 42);
 			Assert.That(any, Is.False);
 		}
 
@@ -657,7 +661,7 @@ namespace FoundationDB.Linq.Tests
 			none = await source.NoneAsync();
 			Assert.That(none, Is.False);
 
-			none = await FdbAsyncEnumerable.Empty<int>().NoneAsync();
+			none = await AsyncEnumerable.Empty<int>().NoneAsync();
 			Assert.That(none, Is.True);
 		}
 
@@ -672,7 +676,7 @@ namespace FoundationDB.Linq.Tests
 			any = await source.NoneAsync(x => x < 0);
 			Assert.That(any, Is.True);
 
-			any = await FdbAsyncEnumerable.Empty<int>().NoneAsync(x => x == 42);
+			any = await AsyncEnumerable.Empty<int>().NoneAsync(x => x == 42);
 			Assert.That(any, Is.True);
 		}
 
@@ -719,7 +723,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(min, Is.EqualTo(items.Min()));
 
 			// empty should fail
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			Assert.That(() => source.MinAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
@@ -746,7 +750,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(max, Is.EqualTo(items.Max()));
 
 			// empty should fail
-			source = FdbAsyncEnumerable.Empty<int>();
+			source = AsyncEnumerable.Empty<int>();
 			Assert.That(() => source.MaxAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
@@ -763,7 +767,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(sum, Is.EqualTo(expected));
 
 			// empty should return 0
-			source = FdbAsyncEnumerable.Empty<long>();
+			source = AsyncEnumerable.Empty<long>();
 			sum = await source.SumAsync();
 			Assert.That(sum, Is.EqualTo(0));
 		}
@@ -781,7 +785,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(sum, Is.EqualTo(expected));
 
 			// empty should return 0
-			source = FdbAsyncEnumerable.Empty<ulong>();
+			source = AsyncEnumerable.Empty<ulong>();
 			sum = await source.SumAsync();
 			Assert.That(sum, Is.EqualTo(0));
 		}
@@ -894,7 +898,7 @@ namespace FoundationDB.Linq.Tests
 
 			// empty
 
-			query = FdbAsyncEnumerable.Empty<int>().Batch(20);
+			query = AsyncEnumerable.Empty<int>().Batch(20);
 			Assert.That(query, Is.Not.Null);
 
 			results = await query.ToListAsync();
@@ -907,7 +911,7 @@ namespace FoundationDB.Linq.Tests
 
 			// generate a source that stalls every 13 items, from 0 to 49
 
-			var source = new FdbAnonymousAsyncGenerator<int>((index, ct) =>
+			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
 			{
 				if (index >= 50) return Task.FromResult(Maybe.Nothing<int>());
 				if (index % 13 == 0) return Task.Delay(100).ContinueWith((_) => Maybe.Return((int)index));
@@ -954,7 +958,7 @@ namespace FoundationDB.Linq.Tests
 			Console.WriteLine("CONSTANT LATENCY GENERATOR:");
 
 			// this iterator waits on each item produced
-			var source = new FdbAnonymousAsyncGenerator<int>((index, ct) =>
+			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
@@ -1004,7 +1008,7 @@ namespace FoundationDB.Linq.Tests
 			Console.WriteLine("BURSTY GENERATOR:");
 
 			// this iterator produce burst of items
-			var source = new FdbAnonymousAsyncGenerator<int>((index, ct) =>
+			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
@@ -1116,21 +1120,21 @@ namespace FoundationDB.Linq.Tests
 					return x;
 				});
 
-			using (var iterator = query.GetEnumerator())
+			using (var iterator = query.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 			{
 				// first move next should succeed
-				bool res = await iterator.MoveNextAsync(CancellationToken.None);
+				bool res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
 
 				// second move next should fail
-				var x = Assert.Throws<FormatException>(async () => await iterator.MoveNextAsync(CancellationToken.None), "Should have failed");
+				var x = Assert.Throws<FormatException>(async () => await iterator.MoveNextAsync(), "Should have failed");
 				Assert.That(x.Message, Is.EqualTo("KABOOM"));
 
 				// accessing current should rethrow the exception
 				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
 
 				// another attempt at MoveNext should fail immediately but with a different error
-				Assert.Throws<ObjectDisposedException>(async () => await iterator.MoveNextAsync(CancellationToken.None));
+				Assert.Throws<ObjectDisposedException>(async () => await iterator.MoveNextAsync());
 			}
 		}
 
@@ -1190,7 +1194,7 @@ namespace FoundationDB.Linq.Tests
 							throw;
 						}
 					},
-					new FdbParallelQueryOptions { MaxConcurrency = MAX_CONCURRENCY }
+					new ParallelAsyncQueryOptions { MaxConcurrency = MAX_CONCURRENCY }
 				);
 
 				var results = await query.ToListAsync(token);
@@ -1317,7 +1321,7 @@ namespace FoundationDB.Linq.Tests
 #endif
 						ct.ThrowIfCancellationRequested();
 						items.Add(x);
-						return TaskHelpers.CompletedTask;
+						return Task.CompletedTask;
 					},
 					onCompleted: () =>
 					{
@@ -1336,9 +1340,9 @@ namespace FoundationDB.Linq.Tests
 					}
 				);
 
-				using(var inner = source.GetEnumerator())
+				using(var inner = source.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
 				{
-					var pump = new FdbAsyncIteratorPump<int>(inner, queue);
+					var pump = new AsyncIteratorPump<int>(inner, queue);
 
 					Console.WriteLine("[PUMP] Start pumping on #" + Thread.CurrentThread.ManagedThreadId);
 					sw.Start();
@@ -1456,7 +1460,7 @@ namespace FoundationDB.Linq.Tests
 			for(int i=0;i<N;i++)
 			{
 
-				IFdbAsyncEnumerable<int> query = SourceOfInts.ToAsyncEnumerable();
+				IAsyncEnumerable<int> query = SourceOfInts.ToAsyncEnumerable();
 				IEnumerable<int> reference = SourceOfInts;
 				IQueryable<int> witness = Queryable.AsQueryable(SourceOfInts);
 

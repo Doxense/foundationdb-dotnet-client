@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -35,7 +36,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Linq;
+	using Doxense.Linq;
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB transaction implementations.</summary>
@@ -822,7 +823,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successfull call to <paramref name="handler"/>.</returns>
 		[ItemNotNull]
-		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken ct)
+		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));

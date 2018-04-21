@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Doxense.Async;
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -34,8 +36,6 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 
 	/// <summary>
@@ -252,7 +252,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
 			return ExecuteInternal(db, context, asyncHandler, onDone);
@@ -285,7 +285,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			return ExecuteInternal(db, context, asyncHandler, onDone);
@@ -296,7 +296,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			return ExecuteInternal(db, context, handler, onDone);

@@ -28,16 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Threading;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 #if DEBUG
 	using FoundationDB.Filters.Logging;
 #endif
 	using JetBrains.Annotations;
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Async;
 
 	/// <summary>
 	/// Provides a high-contention Queue class
@@ -130,7 +129,7 @@ namespace FoundationDB.Layers.Collections
 
 			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<Optional<T>>(ct);
+				return Task.FromCanceled<Optional<T>>(ct);
 			}
 
 			if (this.HighContention)
@@ -184,7 +183,7 @@ namespace FoundationDB.Layers.Collections
 						handler(this.Encoder.DecodeValue(kv.Value), offset);
 						++offset;
 					}
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
 				ct
 			);
@@ -227,7 +226,7 @@ namespace FoundationDB.Layers.Collections
 				(kvs, offset, _) =>
 				{
 					handler(this.Encoder.DecodeValues(kvs), offset);
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
 				ct
 			);

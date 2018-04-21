@@ -26,20 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Layers.Collections
 {
-	using FoundationDB.Client;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Multimap that tracks the number of times a specific key/value pair has been inserted or removed.</summary>
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
 	/// <typeparam name="TValue">Type of the values of the map</typeparam>
-	[DebuggerDisplay("Subspace={Subspace}")]
+	[DebuggerDisplay("Subspace={" + nameof(FdbMultiMap<TKey, TValue>.Subspace) + "}")]
 	public class FdbMultiMap<TKey, TValue>
 	{
 		// Inspired by https://foundationdb.com/recipes/developer/multimaps
@@ -64,8 +65,8 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="encoder">Encoder for the key/value pairs</param>
 		public FdbMultiMap(IKeySubspace subspace, bool allowNegativeValues, ICompositeKeyEncoder<TKey, TValue> encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			this.Subspace = subspace;
 			this.AllowNegativeValues = allowNegativeValues;
@@ -96,10 +97,10 @@ namespace FoundationDB.Layers.Collections
 		public Task AddAsync([NotNull] IFdbTransaction trans, TKey key, TValue value)
 		{
 			//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.AtomicAdd(this.Location.Keys.Encode(key, value), PlusOne);
-			return FoundationDB.Async.TaskHelpers.CompletedTask;
+			return Task.CompletedTask;
 		}
 
 		/// <summary>Decrements the count of an (index, value) pair in the multimap, and optionally removes it if the count reaches zero.</summary>
@@ -109,7 +110,7 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>If the updated count reaches zero or less, and AllowNegativeValues is not set, the key will be cleared from the map.</remarks>
 		public async Task SubtractAsync([NotNull] IFdbTransaction trans, TKey key, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			Slice k = this.Location.Keys.Encode(key, value);
 			if (this.AllowNegativeValues)
@@ -137,7 +138,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Checks if a (key, value) pair exists</summary>
 		public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 		
 			var v = await trans.GetAsync(this.Location.Keys.Encode(key, value)).ConfigureAwait(false);
 			return this.AllowNegativeValues ? v.IsPresent : v.ToInt64() > 0;
@@ -151,7 +152,7 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>The count can be zero or negative if AllowNegativeValues is enable.</remarks>
 		public async Task<long?> GetCountAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			Slice v = await trans.GetAsync(this.Location.Keys.Encode(key, value)).ConfigureAwait(false);
 			if (v.IsNullOrEmpty) return null;
@@ -164,9 +165,9 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="key"></param>
 		/// <returns></returns>
 		[NotNull]
-		public IFdbAsyncEnumerable<TValue> Get([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+		public IAsyncEnumerable<TValue> Get([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			var range = KeyRange.StartsWith(this.Location.Partial.Keys.Encode(key));
 			if (this.AllowNegativeValues)
@@ -198,7 +199,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="key"></param>
 		/// <returns></returns>
 		[NotNull]
-		public IFdbAsyncEnumerable<KeyValuePair<TValue, long>> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+		public IAsyncEnumerable<KeyValuePair<TValue, long>> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
 			var range = KeyRange.StartsWith(this.Location.Partial.Keys.Encode(key));
 
@@ -232,7 +233,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns></returns>
 		public void Remove([NotNull] IFdbTransaction trans, TKey key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.ClearRange(KeyRange.StartsWith(this.Location.Partial.Keys.Encode(key)));
 		}
@@ -244,7 +245,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns></returns>
 		public void Remove([NotNull] IFdbTransaction trans, TKey key, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.Clear(this.Location.Keys.Encode(key, value));
 		}

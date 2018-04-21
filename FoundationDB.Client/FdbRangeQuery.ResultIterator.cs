@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //enable this to enable verbose traces when doing paging
 //#define DEBUG_RANGE_ITERATOR
 
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -36,9 +37,10 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
-	using FoundationDB.Linq;
+	using Doxense.Linq;
+	using Doxense.Linq.Async.Iterators;
 	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>
@@ -46,7 +48,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInChunk={m_itemsRemainingInChunk}, OutOfChunks={m_outOfChunks}")]
-		private sealed class ResultIterator : FdbAsyncIterator<T>
+		private sealed class ResultIterator : AsyncIterator<T>
 		{
 
 			private readonly FdbRangeQuery<T> m_query;
@@ -57,7 +59,7 @@ namespace FoundationDB.Client
 			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
+			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;
@@ -82,22 +84,22 @@ namespace FoundationDB.Client
 				m_resultTransform = transform;
 			}
 
-			protected override FdbAsyncIterator<T> Clone()
+			protected override AsyncIterator<T> Clone()
 			{
 				return new ResultIterator(m_query, m_transaction, m_resultTransform);
 			}
 
-			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			protected override Task<bool> OnFirstAsync()
 			{
 				// on first call, setup the page iterator
 				if (m_chunkIterator == null)
 				{
-					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetEnumerator(m_mode);
+					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetEnumerator(m_transaction.Cancellation, m_mode);
 				}
-				return TaskHelpers.TrueTask;
+				return TaskHelpers.True;
 			}
 
-			protected override Task<bool> OnNextAsync(CancellationToken ct)
+			protected override Task<bool> OnNextAsync()
 			{
 				if (m_itemsRemainingInChunk > 0)
 				{ // we need can get another one from the batch
@@ -110,23 +112,23 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_ITERATOR
 					Debug.WriteLine("No more items and it was the last batch");
 #endif
-					return TaskHelpers.FalseTask;
+					return TaskHelpers.False;
 				}
 
 				// slower path, we need to actually read the first batch...
 				m_chunk = null;
 				m_currentOffsetInChunk = -1;
-				return ReadAnotherBatchAsync(ct);
+				return ReadAnotherBatchAsync();
 			}
 
-			private async Task<bool> ReadAnotherBatchAsync(CancellationToken ct)
+			private async Task<bool> ReadAnotherBatchAsync()
 			{
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				var iterator = m_chunkIterator;
 
 				// start reading the next batch
-				if (await iterator.MoveNextAsync(ct).ConfigureAwait(false))
+				if (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // we got a new chunk !
 
 					//note: Dispose() or Cleanup() maybe have been called concurrently!
@@ -170,7 +172,7 @@ namespace FoundationDB.Client
 
 			#region LINQ
 
-			public override FdbAsyncIterator<R> Select<R>(Func<T, R> selector)
+			public override AsyncIterator<R> Select<R>(Func<T, R> selector)
 			{
 				var query = new FdbRangeQuery<R>(
 					m_transaction,
@@ -184,7 +186,7 @@ namespace FoundationDB.Client
 				return new FdbRangeQuery<R>.ResultIterator(query, m_transaction, query.Transform);
 			}
 
-			public override FdbAsyncIterator<T> Take(int limit)
+			public override AsyncIterator<T> Take(int limit)
 			{
 				return new ResultIterator(m_query.Take(limit), m_transaction, m_resultTransform);
 			}

@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Runtime.ExceptionServices;
@@ -51,11 +51,7 @@ namespace FoundationDB.Async
 
 		/// <summary>Notifies the target that tere was an exception, and that no more values will be published</summary>
 		/// <param name="error">The error that occurred</param>
-#if NET_4_0
-		void OnError(Exception error);
-#else
 		void OnError(ExceptionDispatchInfo error);
-#endif
 	}
 
 }

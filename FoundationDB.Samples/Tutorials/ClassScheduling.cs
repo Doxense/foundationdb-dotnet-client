@@ -8,9 +8,9 @@ namespace FoundationDB.Samples.Tutorials
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 
 	public class ClassScheduling : IAsyncTest
 	{

@@ -30,17 +30,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Filters.Logging;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class QueuesFacts : FdbTest

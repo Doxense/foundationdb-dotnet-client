@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Doxense;
+
 namespace FoundationDB.Filters.Logging
 {
 	using System;
@@ -34,7 +36,6 @@ namespace FoundationDB.Filters.Logging
 	using System.Globalization;
 	using System.Text;
 	using System.Threading.Tasks;
-	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
@@ -236,7 +237,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.Error != null) return base.GetResult(resolver);
 
-				if (this.Result.HasFailed) return "<error>";
+				if (this.Result.Failed) return "<error>";
 				if (!this.Result.HasValue) return "<n/a>";
 				if (this.Result.Value == null) return "<null>";
 

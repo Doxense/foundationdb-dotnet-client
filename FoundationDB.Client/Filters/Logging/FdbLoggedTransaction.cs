@@ -26,15 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Filters.Logging
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	[Flags]
 	public enum FdbLoggingOptions

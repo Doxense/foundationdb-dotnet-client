@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Collections.Generic;
@@ -40,7 +40,7 @@ namespace FoundationDB.Async
 	/// <summary>Implements an async queue that asynchronously transform items, outputing them in arrival order, while throttling the producer</summary>
 	/// <typeparam name="TInput">Type of the input elements (from the inner async iterator)</typeparam>
 	/// <typeparam name="TOutput">Type of the output elements (produced by an async lambda)</typeparam>
-	internal class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
+	public class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
 	{
 		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
 		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new Queue<Task<Maybe<TOutput>>>();
@@ -53,7 +53,7 @@ namespace FoundationDB.Async
 
 		public AsyncTransformQueue([NotNull] Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
 		{
-			if (transform == null) throw new ArgumentNullException(nameof(transform));
+			Contract.NotNull(transform, nameof(transform));
 			if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than zero");
 
 			m_transform = transform;
@@ -61,16 +61,14 @@ namespace FoundationDB.Async
 			m_scheduler = scheduler ?? TaskScheduler.Default;
 		}
 
-		#region IFdbAsyncBuffer<TInput, TOutput>...
+		#region IAsyncBuffer<TInput, TOutput>...
 
 		/// <summary>Returns the current number of items in the queue</summary>
 		public int Count
 		{
 			get
 			{
-#if !CORE_CLR
 				Debugger.NotifyOfCrossThreadDependency();
-#endif
 				lock (m_lock)
 				{
 					return m_queue.Count;
@@ -79,22 +77,17 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Returns the maximum capacity of the queue</summary>
-		public int Capacity
-		{
-			get { return m_capacity; }
-		}
+		public int Capacity => m_capacity;
 
 		/// <summary>Returns true if the producer is blocked (queue is full)</summary>
 		public bool IsConsumerBlocked
 		{
 			get
 			{
-#if !CORE_CLR
 				Debugger.NotifyOfCrossThreadDependency();
-#endif
 				lock (m_lock)
 				{
-					return m_blockedConsumer != null && m_blockedConsumer.Task.IsCompleted;
+					return m_blockedConsumer?.Task.IsCompleted == true;
 				}
 			}
 		}
@@ -104,12 +97,10 @@ namespace FoundationDB.Async
 		{
 			get
 			{
-#if !CORE_CLR
 				Debugger.NotifyOfCrossThreadDependency();
-#endif
 				lock (m_lock)
 				{
-					return m_blockedProducer != null && m_blockedProducer.Task.IsCompleted;
+					return m_blockedProducer?.Task.IsCompleted == true;
 				}
 			}
 		}
@@ -121,7 +112,7 @@ namespace FoundationDB.Async
 
 		#endregion
 
-		#region IFdbAsyncTarget<TInput>...
+		#region IAsyncTarget<TInput>...
 
 		private static async Task<Maybe<TOutput>> ProcessItemHandler(object state)
 		{
@@ -137,11 +128,7 @@ namespace FoundationDB.Async
 			}
 			catch (Exception e)
 			{
-#if NET_4_0
-				return Maybe.Error<TOutput>(e);
-#else
 				return Maybe.Error<TOutput>(ExceptionDispatchInfo.Capture(e));
-#endif
 			}
 		}
 
@@ -208,13 +195,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		public void OnError(
-#if NET_4_0
-			Exception error
-#else
-			ExceptionDispatchInfo error
-#endif
-		)
+		public void OnError(ExceptionDispatchInfo error)
 		{
 			lock(m_lock)
 			{
@@ -230,26 +211,26 @@ namespace FoundationDB.Async
 
 		#endregion
 
-		#region IFdbAsyncBatchTarget<TInput>...
+		#region IAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken ct)
+		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken cancellationToken)
 		{
-			if (batch == null) throw new ArgumentNullException(nameof(batch));
+			Contract.NotNull(batch, nameof(batch));
 
 			if (batch.Length == 0) return;
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			//TODO: optimized version !
 			foreach (var item in batch)
 			{
-				await OnNextAsync(item, ct).ConfigureAwait(false);
+				await OnNextAsync(item, cancellationToken).ConfigureAwait(false);
 			}
 		}
 
 		#endregion
 
-		#region IFdbAsyncSource<TOutput>...
+		#region IAsyncSource<TOutput>...
 
 		public Task<Maybe<TOutput>> ReceiveAsync(CancellationToken ct)
 		{
@@ -308,11 +289,7 @@ namespace FoundationDB.Async
 			}
 			catch(Exception e)
 			{
-#if NET_4_0
-				return Maybe.Error<TOutput>(e);
-#else
 				return Maybe.Error<TOutput>(ExceptionDispatchInfo.Capture(e));
-#endif
 			}
 			finally
 			{
@@ -366,7 +343,7 @@ namespace FoundationDB.Async
 
 		#endregion
 
-		#region IFdbAsyncBatchSource<TOutput>...
+		#region IAsyncBatchSource<TOutput>...
 
 		public Task<Maybe<TOutput>[]> ReceiveBatchAsync(int count, CancellationToken ct)
 		{
@@ -450,7 +427,7 @@ namespace FoundationDB.Async
 
 		private Task WaitForNextItem_NeedsLocking(CancellationToken ct)
 		{
-			if (m_done) return TaskHelpers.CompletedTask;
+			if (m_done) return Task.CompletedTask;
 
 			Contract.Requires(m_blockedConsumer == null || m_blockedConsumer.Task.IsCompleted);
 
@@ -462,21 +439,15 @@ namespace FoundationDB.Async
 		private void WakeUpProducer_NeedsLocking()
 		{
 			var waiter = Interlocked.Exchange(ref m_blockedProducer, null);
-			if (waiter != null)
-			{
-				waiter.Set(async: true);
-			}
+			waiter?.Set(async: true);
 		}
 
 		private void WakeUpConsumer_NeedLocking()
 		{
 			var waiter = Interlocked.Exchange(ref m_blockedConsumer, null);
-			if (waiter != null)
-			{
-				waiter.Set(async: true);
-			}
+			waiter?.Set(async: true);
 		}
-	
+
 	}
 
 }

@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define FULL_DEBUG
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Collections.Generic;
@@ -62,25 +62,25 @@ namespace FoundationDB.Async
 		public AsyncTaskBuffer(AsyncOrderingMode mode, int capacity)
 			: base(capacity)
 		{
-			if (mode != AsyncOrderingMode.ArrivalOrder && mode != AsyncOrderingMode.CompletionOrder) throw new ArgumentOutOfRangeException("mode", "Unsupported ordering mode");
+			if (mode != AsyncOrderingMode.ArrivalOrder && mode != AsyncOrderingMode.CompletionOrder) throw new ArgumentOutOfRangeException(nameof(mode), "Unsupported ordering mode");
 
 			m_mode = mode;
 		}
 
 		#endregion
 
-		#region IFdbAsyncTarget<T>...
+		#region IAsyncTarget<T>...
 
 		public override Task OnNextAsync(Task<T> task, CancellationToken ct)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			LogProducer("Received task #" + task.Id + " (" + task.Status + ")");
 
 			Task wait;
 			lock (m_lock)
 			{
-				if (m_done) return TaskHelpers.FromException<object>(new InvalidOperationException("Cannot send any more values because this buffer has already completed"));
+				if (m_done) return Task.FromException<object>(new InvalidOperationException("Cannot send any more values because this buffer has already completed"));
 
 				if (m_queue.Count < m_capacity)
 				{ // quick path
@@ -100,7 +100,7 @@ namespace FoundationDB.Async
 						}
 					}
 
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				}
 
 				// we are blocked, we will need to wait !
@@ -124,7 +124,7 @@ namespace FoundationDB.Async
 		/// <summary>Observe the completion of a task to wake up the consumer</summary>
 		private void ObserveTaskCompletion([NotNull] Task<T> task)
 		{
-			var _ = task.ContinueWith(
+			task.ContinueWith(
 				(t, state) =>
 				{
 					LogProducer("Task #" + t.Id + " " + t.Status);
@@ -154,21 +154,6 @@ namespace FoundationDB.Async
 			}
 		}
 
-#if NET_4_0
-		public override void OnError(Exception error)
-		{
-			lock (m_lock)
-			{
-				if (!m_done)
-				{
-					LogProducer("Error received: " + error.Message);
-					m_queue.AddLast(new LinkedListNode<Task<T>>(TaskHelpers.FromException<T>(error)));
-					WakeUpBlockedConsumer_NeedsLocking();
-					if (m_mode == AsyncOrderingMode.CompletionOrder) NotifyConsumerOfTaskCompletion_NeedsLocking();
-				}
-			}
-		}
-#else
 		public override void OnError(ExceptionDispatchInfo error)
 		{
 			lock (m_lock)
@@ -176,13 +161,12 @@ namespace FoundationDB.Async
 				if (!m_done)
 				{
 					LogProducer("Error received: " + error.SourceException.Message);
-					m_queue.AddLast(new LinkedListNode<Task<T>>(TaskHelpers.FromException<T>(error.SourceException)));
+					m_queue.AddLast(new LinkedListNode<Task<T>>(Task.FromException<T>(error.SourceException)));
 					WakeUpBlockedConsumer_NeedsLocking();
 					if (m_mode == AsyncOrderingMode.CompletionOrder) NotifyConsumerOfTaskCompletion_NeedsLocking();
 				}
 			}
 		}
-#endif
 
 		private void Enqueue_NeedsLocking(Task<T> task)
 		{
@@ -196,22 +180,29 @@ namespace FoundationDB.Async
 
 			await wait.ConfigureAwait(false);
 
-			LogProducer("Wake up because one slot got freed");
+			LogProducer("Woke up because one slot got freed");
 
 			lock (m_lock)
 			{
 				Contract.Assert(m_queue.Count < m_capacity);
 				Enqueue_NeedsLocking(task);
+
+				if (m_mode == AsyncOrderingMode.CompletionOrder)
+				{ // we need to observe task completion to wake up the consumer as soon as one is ready !
+					LogConsumer("Task still pending after wait, and must be observed");
+					ObserveTaskCompletion(task);
+				}
+
 			}
 		}
 
 		#endregion
 
-		#region IFdbAsyncSource<R>...
+		#region IAsyncSource<R>...
 
 		public Task<Maybe<T>> ReceiveAsync(CancellationToken ct)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<Maybe<T>>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<Maybe<T>>(ct);
 
 			LogConsumer("Looking for next value...");
 
@@ -228,7 +219,8 @@ namespace FoundationDB.Async
 					throw new InvalidOperationException("Last item has already been received");
 				}
 
-				var current = m_queue.First;
+				var queue = m_queue;
+				var current = queue.First;
 				if (current != null)
 				{
 					if (m_mode == AsyncOrderingMode.ArrivalOrder)
@@ -236,7 +228,7 @@ namespace FoundationDB.Async
 						if (current.Value == null || current.Value.IsCompleted)
 						{ // it's ready
 
-							m_queue.RemoveFirst();
+							queue.RemoveFirst();
 							LogConsumer("First task #" + current.Value.Id + " was already " + current.Value.Status);
 							return CompleteTask(current.Value);
 						}
@@ -247,21 +239,22 @@ namespace FoundationDB.Async
 					else
 					{
 						// note: if one is already completed, it will be return immediately !
-						while(current != null)
+						while (current != null)
 						{
-							if (current.Value != null && current.Value.IsCompleted)
+							var t = current.Value;
+							if (t != null && t.IsCompleted)
 							{
-								m_queue.Remove(current);
-								LogConsumer("Found task #" + current.Value.Id + " that was already " + current.Value.Status);
-								return CompleteTask(current.Value);
+								queue.Remove(current);
+								LogConsumer("Found task #" + t.Id + " that was already " + t.Status);
+								return CompleteTask(t);
 							}
 							current = current.Next;
 						}
 
 						// in case of completion, it would be the last
-						if (m_queue.First == m_queue.Last && m_queue.First.Value == null)
+						if (queue.First == queue.Last && queue.First.Value == null)
 						{ // last one
-							m_queue.Clear();
+							queue.Clear();
 							m_receivedLast = true;
 							LogConsumer("Received completion notification");
 							return CompleteTask(null);
@@ -314,11 +307,7 @@ namespace FoundationDB.Async
 			catch(Exception e)
 			{
 				LogConsumer("Notified that task #" + task + " failed");
-#if NET_4_0
-				return Maybe.Error<T>(e);
-#else
 				return Maybe.Error<T>(ExceptionDispatchInfo.Capture(e));
-#endif
 			}
 		}
 
@@ -336,13 +325,15 @@ namespace FoundationDB.Async
 		{
 			Contract.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
 
-			if (m_completionLock.IsCompleted)
+			var cl = m_completionLock;
+			if (cl.IsCompleted)
 			{
 				LogConsumer("Creating new task completion lock");
-				m_completionLock = new AsyncCancelableMutex(ct);
+				cl = new AsyncCancelableMutex(ct);
+				m_completionLock = cl;
 			}
 			LogConsumer("marked as waiting for task completion");
-			return m_completionLock.Task;
+			return cl.Task;
 		}
 
 		#endregion
@@ -353,6 +344,7 @@ namespace FoundationDB.Async
 		{
 			if (disposing)
 			{
+				LogConsumer("Disposing consumer!");
 				lock (m_lock)
 				{
 					m_done = true;
@@ -360,6 +352,7 @@ namespace FoundationDB.Async
 					m_consumerLock.Abort();
 					m_completionLock.Abort();
 					m_queue.Clear();
+					LogConsumer("Consumer has been disposed");
 				}
 			}
 		}

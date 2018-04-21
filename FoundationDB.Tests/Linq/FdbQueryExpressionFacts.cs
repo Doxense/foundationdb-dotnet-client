@@ -26,15 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Linq.Expressions.Tests
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq.Expressions;
+	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts
@@ -59,7 +61,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Value, Is.Not.Null);
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
@@ -81,7 +83,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Value, Is.Not.Null);
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
@@ -100,7 +102,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00>"));
 			Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<01>"));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
@@ -130,7 +132,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Terms[0], Is.SameAs(expr1));
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
@@ -160,7 +162,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Terms[0], Is.SameAs(expr1));
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
@@ -179,7 +181,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
 			Assert.That(expr.Transform, Is.Not.Null);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<string>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<string>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
@@ -198,7 +200,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
 			Assert.That(expr.Filter, Is.Not.Null);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
 			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));

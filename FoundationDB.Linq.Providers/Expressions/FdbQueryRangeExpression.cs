@@ -26,15 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Threading;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
@@ -69,7 +70,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
@@ -80,7 +81,7 @@ namespace FoundationDB.Linq.Expressions
 				Expression.Constant(this.Options, typeof(FdbRangeOptions))
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
 				body,
 				prmTrans
 			);

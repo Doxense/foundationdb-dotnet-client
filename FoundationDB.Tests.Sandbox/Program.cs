@@ -26,20 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Tests.Sandbox
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
-	using System.Net;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
 
 	class Program
 	{

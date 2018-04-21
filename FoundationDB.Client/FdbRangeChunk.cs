@@ -58,10 +58,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns the number of results in this chunk</summary>
-		public int Count { get { return this.Chunk != null ? this.Chunk.Length : 0; } }
+		public int Count => Chunk?.Length ?? 0;
 
 		/// <summary>Returns true if the chunk does not contain any item.</summary>
-		public bool IsEmpty { get { return this.Chunk == null || this.Chunk.Length == 0; } }
+		public bool IsEmpty => this.Chunk == null || this.Chunk.Length == 0;
 
 		/// <summary>Returns the first item in the chunk</summary>
 		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
@@ -111,8 +111,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] Func<Slice, TKey> keyHandler, [NotNull] Func<Slice, TValue> valueHandler)
 		{
-			if (keyHandler == null) throw new ArgumentNullException("keyHandler");
-			if (valueHandler == null) throw new ArgumentNullException("valueHandler");
+			if (keyHandler == null) throw new ArgumentNullException(nameof(keyHandler));
+			if (valueHandler == null) throw new ArgumentNullException(nameof(valueHandler));
 
 			var chunk = this.Chunk;
 			var results = new KeyValuePair<TKey, TValue>[chunk.Length];
@@ -140,9 +140,9 @@ namespace FoundationDB.Client
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
-			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
+			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
 			var chunk = this.Chunk;
 			var results = new KeyValuePair<TKey, TValue>[chunk.Length];
@@ -168,8 +168,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
-			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
+			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
+			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
 			var chunk = this.Chunk;
 			var results = new KeyValuePair<TKey, TValue>[chunk.Length];
@@ -192,7 +192,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] Func<Slice, T> handler)
 		{
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			var results = new T[this.Count];
 			for (int i = 0; i < results.Length; i++)
@@ -209,8 +209,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<T> keyEncoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 
 			var results = new T[this.Count];
 			for(int i = 0; i< results.Length;i++)
@@ -227,7 +227,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] IKeyEncoder<T> keyEncoder)
 		{
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 
 			var results = new T[this.Count];
 			for (int i = 0; i < results.Length; i++)
@@ -244,7 +244,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeValues<T>([NotNull] Func<Slice, T> handler)
 		{
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			var results = new T[this.Count];
 			for (int i = 0; i < results.Length; i++)
@@ -261,7 +261,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeValues<T>([NotNull] IValueEncoder<T> valueEncoder)
 		{
-			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
+			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
 			var results = new T[this.Count];
 			for (int i = 0; i < results.Length; i++)

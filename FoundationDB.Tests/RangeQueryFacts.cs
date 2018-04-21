@@ -28,17 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Filters.Logging;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Linq;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
-	using System.Text;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
+	using Doxense.Linq.Async.Iterators;
+	using FoundationDB.Layers.Directories;
+	using FoundationDB.Layers.Tuples;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class RangeQueryFacts : FdbTest
@@ -519,7 +518,7 @@ namespace FoundationDB.Client.Tests
 						);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbMergeSortIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -589,7 +588,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbIntersectIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<IntersectAsyncIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -661,7 +660,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbExceptIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<ExceptAsyncIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);

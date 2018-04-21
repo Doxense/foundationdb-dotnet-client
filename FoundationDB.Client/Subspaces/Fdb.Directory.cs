@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -34,10 +35,8 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using SystemIO = System.IO;
-	using FoundationDB.Client.Utils;
+	using Doxense.Linq;
 	using FoundationDB.Layers.Directories;
-	using FoundationDB.Linq;
 	using JetBrains.Annotations;
 
 	public static partial class Fdb

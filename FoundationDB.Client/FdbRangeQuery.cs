@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using System.Threading;
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -34,13 +36,12 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
-	using FoundationDB.Linq;
+	using Doxense.Linq;
 	using JetBrains.Annotations;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
-	public sealed partial class FdbRangeQuery<T> : IFdbAsyncEnumerable<T>
+	public sealed partial class FdbRangeQuery<T> : IAsyncEnumerable<T>
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
@@ -268,12 +269,12 @@ namespace FoundationDB.Client
 
 		public IAsyncEnumerator<T> GetEnumerator()
 		{
-			return this.GetEnumerator(FdbAsyncMode.Default);
+			return this.GetEnumerator(this.Transaction.Cancellation, AsyncIterationHint.Default);
 		}
 
-		public IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncMode mode)
+		public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
-			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(mode);
+			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(ct, mode);
 		}
 
 		/// <summary>Return a list of all the elements of the range results</summary>
@@ -281,7 +282,7 @@ namespace FoundationDB.Client
 		public Task<List<T>> ToListAsync()
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
-			return FdbAsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
+			return AsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return an array with all the elements of the range results</summary>
@@ -289,7 +290,7 @@ namespace FoundationDB.Client
 		public Task<T[]> ToArrayAsync()
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
-			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
+			return AsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return the number of elements in the range, by reading them</summary>
@@ -297,7 +298,7 @@ namespace FoundationDB.Client
 		public Task<int> CountAsync()
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
-			return FdbAsyncEnumerable.CountAsync(this, this.Transaction.Cancellation);
+			return AsyncEnumerable.CountAsync(this, this.Transaction.Cancellation);
 		}
 
 		[NotNull]
@@ -328,9 +329,9 @@ namespace FoundationDB.Client
 		/// <summary>Filters the range results based on a predicate.</summary>
 		/// <remarks>Caution: filtering occurs on the client side !</remarks>
 		[NotNull]
-		public IFdbAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
+		public IAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
 		{
-			return FdbAsyncEnumerable.Where(this, predicate);
+			return AsyncEnumerable.Where(this, predicate);
 		}
 
 		public Task<T> FirstOrDefaultAsync()
@@ -392,7 +393,7 @@ namespace FoundationDB.Client
 		public Task ForEachAsync([NotNull] Action<T> action)
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
-			return FdbAsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
+			return AsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
 		}
 
 		internal async Task<T> HeadAsync(bool single, bool orDefault)
@@ -402,7 +403,7 @@ namespace FoundationDB.Client
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
 			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
-				return await FdbAsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
+				return await AsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
 
 			var options = new FdbRangeOptions()
@@ -442,9 +443,9 @@ namespace FoundationDB.Client
 			{ // fallback to the default implementation
 				// ReSharper disable InvokeAsExtensionMethod
 				if (any)
-					return await FdbAsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);
+					return await AsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);
 				else
-					return await FdbAsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation);
+					return await AsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation);
 				// ReSharper restore InvokeAsExtensionMethod
 			}
 

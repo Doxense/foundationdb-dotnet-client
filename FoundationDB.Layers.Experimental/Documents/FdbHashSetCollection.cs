@@ -30,12 +30,10 @@ namespace FoundationDB.Layers.Blobs
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using JetBrains.Annotations;
 
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
@@ -220,9 +218,8 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>Return the list the names of all fields of an hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
-		/// <param name="ct"></param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
-		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, ITuple id, CancellationToken ct = default(CancellationToken))
+		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, ITuple id)
 		{
 			//note: As of Beta2, FDB does not have a fdb_get_range that only return the keys. That means that we will have to also read the values from the db, in order to just get the names of the fields :(
 			//TODO: find a way to optimize this ?
@@ -236,7 +233,7 @@ namespace FoundationDB.Layers.Blobs
 			return trans
 				.GetRange(KeyRange.StartsWith(prefix))
 				.Select((kvp) => ParseFieldKey(STuple.Unpack(kvp.Key)))
-				.ToListAsync(ct);
+				.ToListAsync();
 		}
 
 		#endregion

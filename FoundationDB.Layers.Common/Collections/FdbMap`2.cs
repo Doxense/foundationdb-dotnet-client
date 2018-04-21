@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Layers.Collections
 {
 	using System;
@@ -33,10 +34,10 @@ namespace FoundationDB.Layers.Collections
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
+	using Doxense.Linq;
 	using FoundationDB.Client;
-	using FoundationDB.Linq;
 	using JetBrains.Annotations;
 
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
@@ -141,7 +142,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 		/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		[NotNull]
-		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
+		public IAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -227,7 +228,7 @@ namespace FoundationDB.Layers.Collections
 					{
 						handler(DecodeItem(item));
 					}
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
 				ct
 			);
@@ -278,7 +279,7 @@ namespace FoundationDB.Layers.Collections
 					{
 						handler(DecodeItems(batch));
 					}
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
 				ct
 			);
@@ -327,7 +328,7 @@ namespace FoundationDB.Layers.Collections
 				(batch, _, __) =>
 				{
 					state = handler(state, DecodeItems(batch));
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
 				ct
 			);
@@ -360,7 +361,7 @@ namespace FoundationDB.Layers.Collections
 				(batch, _, __) =>
 				{
 					state = handler(state, DecodeItems(batch));
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
 				ct
 			);

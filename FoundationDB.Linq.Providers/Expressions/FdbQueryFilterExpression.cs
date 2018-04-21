@@ -31,6 +31,7 @@ namespace FoundationDB.Linq.Expressions
 	using System;
 	using System.Linq.Expressions;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -78,7 +79,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
 		{
 			var lambda = this.Filter.Compile();
 
@@ -88,13 +89,13 @@ namespace FoundationDB.Linq.Expressions
 
 			// (tr) => sourceEnumerable(tr).Where(lambda);
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>, Func<T, bool>, IFdbAsyncEnumerable<T>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<T>, Func<T, bool>, IAsyncEnumerable<T>>>(
 				(sequence, predicate) => sequence.Where(predicate),
 				FdbExpressionHelpers.RewriteCall(enumerable, prmTrans),
 				Expression.Constant(lambda)
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>>(body, prmTrans);
 		}
 
 	}

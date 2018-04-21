@@ -26,19 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Doxense.Async;
+using Doxense.Linq;
+
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics.Contracts;
-	using System.Linq;
 	using System.Linq.Expressions;
-	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper class for working with extension expressions</summary>
 	public static class FdbExpressionHelpers
@@ -97,12 +97,12 @@ namespace FoundationDB.Linq.Expressions
 		{
 			try
 			{
-				if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T>(ct);
+				if (ct.IsCancellationRequested) return Task.FromCanceled<T>(ct);
 				return Task.FromResult(func(trans));
 			}
 			catch(Exception e)
 			{
-				return TaskHelpers.FromException<T>(e);
+				return Task.FromException<T>(e);
 			}
 		}
 
@@ -129,19 +129,19 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
-		internal static Task<R> ExecuteEnumerable<T, R>([NotNull] Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> generator, [NotNull] Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, [NotNull] IFdbReadOnlyTransaction trans, CancellationToken ct)
+		internal static Task<R> ExecuteEnumerable<T, R>([NotNull] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> generator, [NotNull] Func<IAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, [NotNull] IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
 			Contract.Requires(generator != null && lambda != null && trans != null);
 			try
 			{
-				if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(ct);
+				if (ct.IsCancellationRequested) return Task.FromCanceled<R>(ct);
 				var enumerable = generator(trans);
-				if (enumerable == null) return TaskHelpers.FromException<R>(new InvalidOperationException("Source query returned null"));
+				if (enumerable == null) return Task.FromException<R>(new InvalidOperationException("Source query returned null"));
 				return lambda(enumerable, ct);
 			}
 			catch (Exception e)
 			{
-				return TaskHelpers.FromException<R>(e);
+				return Task.FromException<R>(e);
 			}
 		}
 

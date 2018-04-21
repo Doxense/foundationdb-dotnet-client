@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define FULL_DEBUG
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using JetBrains.Annotations;
 	using System;
@@ -121,12 +121,12 @@ namespace FoundationDB.Async
 					m_state = STATE_WAITING_FOR_NEXT;
 					var current = await m_source.ReceiveAsync(ct).ConfigureAwait(false);
 
-					LogPump("Received " + (current.HasValue ? "value" : current.HasFailed ? "error" : "completion") + ", publishing...");
+					LogPump("Received " + (current.HasValue ? "value" : current.Failed ? "error" : "completion") + ", publishing...");
 					m_state = STATE_PUBLISHING_TO_TARGET;
 
 					await m_target.Publish(current, ct).ConfigureAwait(false);
 
-					if (current.HasFailed && stopOnFirstError)
+					if (current.Failed && stopOnFirstError)
 					{
 						m_state = STATE_FAILED;
 						LogPump("Stopping after this error");

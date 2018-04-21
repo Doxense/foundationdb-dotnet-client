@@ -32,8 +32,8 @@ namespace FoundationDB.Layers.Collections
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 	using FoundationDB.Client;
-	using FoundationDB.Linq;
 	using JetBrains.Annotations;
 
 	/// <summary>
@@ -53,14 +53,14 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Subspace where the set will be stored</param>
 		public FdbRankedSet([NotNull] IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Subspace = subspace.Using(TypeSystem.Tuples);
 		}
 
 		public Task OpenAsync([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			return SetupLevelsAsync(trans);
 		}
 
@@ -72,7 +72,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns></returns>
 		public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			return trans
 				.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).Keys.ToRange())
@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task InsertAsync([NotNull] IFdbTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (await ContainsAsync(trans, key).ConfigureAwait(false))
 			{
@@ -120,15 +120,15 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", "key");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
 
 			return (await trans.GetAsync(this.Subspace.Keys.Encode(0, key)).ConfigureAwait(false)).HasValue;
 		}
 
 		public async Task EraseAsync([NotNull] IFdbTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
 			{
@@ -154,8 +154,8 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task<long?> Rank([NotNull] IFdbReadOnlyTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", "key");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
 
 			if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
 			{

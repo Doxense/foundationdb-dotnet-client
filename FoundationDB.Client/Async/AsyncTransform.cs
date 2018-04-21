@@ -26,28 +26,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using JetBrains.Annotations;
 	using System;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Pump that takes items from a source, transform them, and outputs them</summary>
-	/// <typeparam name="T"></typeparam>
-	/// <typeparam name="R"></typeparam>
-	public sealed class AsyncTransform<T, R> : IAsyncTarget<T>, IDisposable
+	public sealed class AsyncTransform<TInput, TOutput> : IAsyncTarget<TInput>, IDisposable
 	{
-		private readonly IAsyncTarget<Task<R>> m_target;
-		private readonly Func<T, CancellationToken, Task<R>> m_transform;
+		private readonly IAsyncTarget<Task<TOutput>> m_target;
+		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
 		private readonly TaskScheduler m_scheduler;
 		private bool m_done;
 
-		public AsyncTransform([NotNull] Func<T, CancellationToken, Task<R>> transform, [NotNull] IAsyncTarget<Task<R>> target, TaskScheduler scheduler = null)
+		public AsyncTransform([NotNull] Func<TInput, CancellationToken, Task<TOutput>> transform, [NotNull] IAsyncTarget<Task<TOutput>> target, TaskScheduler scheduler = null)
 		{
-			if (transform == null) throw new ArgumentNullException("transform");
-			if (target == null) throw new ArgumentNullException("target");
+			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(target, nameof(target));
 
 			m_transform = transform;
 			m_target = target;
@@ -55,16 +54,16 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Target of the transform</summary>
-		public IAsyncTarget<Task<R>> Target { get { return m_target; } }
+		public IAsyncTarget<Task<TOutput>> Target { get { return m_target; } }
 
 		/// <summary>Optional scheduler used to run the tasks</summary>
 		public TaskScheduler Scheduler { get { return m_scheduler; } }
 
 		#region IAsyncTarget<T>...
 
-		public Task OnNextAsync(T value, CancellationToken ct)
+		public Task OnNextAsync(TInput value, CancellationToken ct)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.CompletedTask;
+			if (ct.IsCancellationRequested) return Task.CompletedTask;
 
 			if (m_done) throw new InvalidOperationException("Cannot send any more values because this transform has already completed");
 
@@ -73,7 +72,7 @@ namespace FoundationDB.Async
 
 				// we start the task here, but do NOT wait for its completion!
 				// It is the job of the target to handle that (and ordering)
-				Task<R> task;
+				Task<TOutput> task;
 				if (m_scheduler == null)
 				{ // execute inline
 					task = m_transform(value, ct);
@@ -83,7 +82,7 @@ namespace FoundationDB.Async
 					task = Task.Factory.StartNew(
 						(state) =>
 						{
-							var prms = (Tuple<AsyncTransform<T, R>, T, CancellationToken>)state;
+							var prms = (Tuple<AsyncTransform<TInput, TOutput>, TInput, CancellationToken>)state;
 							return prms.Item1.m_transform(prms.Item2, prms.Item3);
 						},
 						Tuple.Create(this, value, ct),
@@ -97,12 +96,8 @@ namespace FoundationDB.Async
 			}
 			catch(Exception e)
 			{
-#if NET_4_0
-				m_target.OnError(e);
-#else
 				m_target.OnError(ExceptionDispatchInfo.Capture(e));
-#endif
-				return TaskHelpers.FromException<object>(e);
+				return Task.FromException<object>(e);
 			}
 		}
 
@@ -111,15 +106,6 @@ namespace FoundationDB.Async
 			Dispose();
 		}
 
-#if NET_4_0
-		public void OnError(Exception e)
-		{
-			if (!m_done)
-			{
-				m_target.OnError(e);
-			}
-		}
-#else
 		public void OnError(ExceptionDispatchInfo e)
 		{
 			if (!m_done)
@@ -127,7 +113,6 @@ namespace FoundationDB.Async
 				m_target.OnError(e);
 			}
 		}
-#endif
 
 		#endregion
 

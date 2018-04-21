@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //enable this to enable verbose traces when doing paging
 //#define DEBUG_RANGE_PAGING
 
+using Doxense.Linq;
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -36,10 +38,9 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
+	using Doxense.Linq.Async.Iterators;
 	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>
@@ -47,7 +48,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
-		private sealed class PagingIterator : FdbAsyncIterator<KeyValuePair<Slice, Slice>[]>
+		private sealed class PagingIterator : AsyncIterator<KeyValuePair<Slice, Slice>[]>
 		{
 
 			#region Iterable Properties...
@@ -100,14 +101,14 @@ namespace FoundationDB.Client
 				this.Transaction = transaction ?? query.Transaction;
 			}
 
-			protected override FdbAsyncIterator<KeyValuePair<Slice, Slice>[]> Clone()
+			protected override AsyncIterator<KeyValuePair<Slice, Slice>[]> Clone()
 			{
 				return new PagingIterator(this.Query, this.Transaction);
 			}
 
 			#region IFdbAsyncEnumerator<T>...
 
-			protected override async Task<bool> OnFirstAsync(CancellationToken ct)
+			protected override async Task<bool> OnFirstAsync()
 			{
 				this.RemainingCount = this.Query.Limit;
 				this.RemainingSize = this.Query.TargetBytes;
@@ -141,7 +142,7 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			protected override Task<bool> OnNextAsync(CancellationToken ct)
+			protected override Task<bool> OnNextAsync()
 			{
 				// Make sure that we are not called while the previous fetch is still running
 				if (this.PendingReadTask != null && !this.PendingReadTask.IsCompleted)
@@ -155,17 +156,16 @@ namespace FoundationDB.Client
 				}
 
 				// slower path, we need to actually read the first batch...
-				return FetchNextPageAsync(ct);
+				return FetchNextPageAsync();
 			}
 
 			/// <summary>Asynchronously fetch a new page of results</summary>
 			/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-			private Task<bool> FetchNextPageAsync(CancellationToken ct)
+			private Task<bool> FetchNextPageAsync()
 			{
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				ct.ThrowIfCancellationRequested();
 				this.Transaction.EnsureCanRead();
 
 				this.Iteration++;
@@ -185,19 +185,19 @@ namespace FoundationDB.Client
 				// select the appropriate streaming mode if purpose is not default
 				switch(m_mode)
 				{
-					case FdbAsyncMode.Iterator:
+					case AsyncIterationHint.Iterator:
 					{
 						// the caller is responsible for calling MoveNext(..) and deciding if it wants to continue or not..
 						options.Mode = FdbStreamingMode.Iterator;
 						break;
 					}
-					case FdbAsyncMode.All:
+					case AsyncIterationHint.All:
 					{
 						// we are in a ToList or ForEach, we want to read everything in as few chunks as possible
 						options.Mode = FdbStreamingMode.WantAll;
 						break;
 					}
-					case FdbAsyncMode.Head:
+					case AsyncIterationHint.Head:
 					{
 						// the caller only expect one (or zero) values
 						options.Mode = FdbStreamingMode.Iterator;

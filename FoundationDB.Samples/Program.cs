@@ -8,7 +8,7 @@ namespace FoundationDB.Samples
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB.Async;
+	using Doxense.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
 	using FoundationDB.Samples.Benchmarks;

@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 //#define DEBUG_TRANSACTIONS
 
+using Doxense.Async;
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -37,10 +39,8 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 
 	/// <summary>FounrationDB transaction handle.</summary>

@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Threading.Tasks;
@@ -34,7 +34,7 @@ namespace FoundationDB.Async
 	/// <summary>Defines a producer/consumer buffer queue that can hold several items before blocking the producer</summary>
 	/// <typeparam name="TInput">Type of elements entering the buffer</typeparam>
 	/// <typeparam name="TOutput">Type of elements exiting the buffer. Can be different from <typeparamref name="TInput"/> if the buffer also transforms the elements.</typeparam>
-	interface IAsyncBuffer<in TInput, TOutput> : IAsyncTarget<TInput>, IAsyncSource<TOutput>
+	public interface IAsyncBuffer<in TInput, TOutput> : IAsyncTarget<TInput>, IAsyncSource<TOutput>
 	{
 		/// <summary>Returns the current number of items in the buffer</summary>
 		int Count { get; }

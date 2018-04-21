@@ -25,19 +25,20 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
-
+ 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
+	using FoundationDB.Client;
 
 	/// <summary>Base class of all queries that return a sequence of elements (Ranges, Index lookups, ...)</summary>
 	/// <typeparam name="T">Type of items returned</typeparam>
-	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IFdbAsyncEnumerable<T>>
+	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IAsyncEnumerable<T>>
 	{
 		/// <summary>Type of elements returned by the sequence</summary>
 		public Type ElementType
@@ -53,10 +54,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public abstract Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence();
+		public abstract Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence();
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IAsyncEnumerable<T>>>> CompileSingle()
 		{
 			//REVIEW: why is it called CompileSingle ??
 			return FdbExpressionHelpers.ToTask(CompileSequence());

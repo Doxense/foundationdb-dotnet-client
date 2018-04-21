@@ -26,12 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>Implements a async mutex that supports cancellation</summary>
 	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"cancelled\"})")]
@@ -43,7 +44,6 @@ namespace FoundationDB.Async
 		// note: this is not really a mutex because there is no "Reset()" method (not possible to reset a TCS)...
 
 		private static readonly Action<object> s_cancellationCallback = CancellationHandler;
-		private static readonly AsyncCancelableMutex s_alreadyCompleted = CreateAlreadyDone();
 
 		/// <summary>Returns an already completed, new mutex instance</summary>
 		private static AsyncCancelableMutex CreateAlreadyDone()
@@ -53,10 +53,8 @@ namespace FoundationDB.Async
 			return mtx;
 		}
 
-		public static AsyncCancelableMutex AlreadyDone
-		{
-			get { return s_alreadyCompleted; }
-		}
+		/// <summary>Mutex that has already completed</summary>
+		public static AsyncCancelableMutex AlreadyDone { [NotNull] get; } = CreateAlreadyDone();
 
 		private const int STATE_NONE = 0;
 		private const int STATE_SET = 1;

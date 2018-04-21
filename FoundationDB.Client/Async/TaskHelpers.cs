@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async
+namespace Doxense.Async
 {
 	using System;
 	using System.Threading;
@@ -39,7 +39,7 @@ namespace FoundationDB.Async
 	{
 
 		/// <summary>Helper type cache class</summary>
-		public static class Cache<T>
+		public static class CachedTasks<T>
 		{
 
 			public static readonly Task<T> Default = Task.FromResult<T>(default(T));
@@ -66,22 +66,18 @@ namespace FoundationDB.Async
 
 		}
 
-		/// <summary>Return a task that is already completed</summary>
-		// README: There is a Task.CompletedTask object in the BCL that is internal, and one 'easy' way to get access to it is via Task.Delay(0) that returns it if param is equal to 0...
-		public static readonly Task CompletedTask = Task.Delay(0);
-
 		/// <summary>Already completed task that returns false</summary>
-		public static readonly Task<bool> FalseTask = Task.FromResult<bool>(false);
+		public static readonly Task<bool> False = Task.FromResult<bool>(false);
 
 		/// <summary>Already completed task that returns true</summary>
-		public static readonly Task<bool> TrueTask = Task.FromResult<bool>(true);
+		public static readonly Task<bool> True = Task.FromResult<bool>(true);
 
 		/// <summary>Returns an already completed boolean task that is either true of false</summary>
 		/// <param name="value">Value of the task</param>
 		/// <returns>Already completed task the returns <paramref name="value"/></returns>
 		public static Task<bool> FromResult(bool value)
 		{
-			return value ? TrueTask : FalseTask;
+			return value ? TaskHelpers.True : TaskHelpers.False;
 		}
 
 		/// <summary>Returns a cached completed task that returns the default value of type <typeparamref name="T"/></summary>
@@ -89,7 +85,47 @@ namespace FoundationDB.Async
 		/// <returns>Task that is already completed, and returns default(<typeparamref name="T"/>)</returns>
 		public static Task<T> Default<T>()
 		{
-			return Cache<T>.Default;
+			return CachedTasks<T>.Default;
+		}
+
+		/// <summary>Fait en sorte que toute exception non gérée soit observée</summary>
+		/// <param name="task">Tâche, qui peut potentiellement déclencher une exception</param>
+		/// <returns>La même task, mais avec une continuation qui viendra observer toute erreur</returns>
+		/// <remarks>Cette méthode a pour unique but dans la vie de faire taire les warning du compilateur sur les tasks non awaitées (ou variable non utilisées)</remarks>
+		public static void Observed<TTask>(this TTask task)
+			where TTask : Task
+		{
+			if (task == null) return;
+
+			// A la base en .NET 4.0, le destructeur des task rethrow les errors non observées sur le TP ce qui pouvait killer le process
+			// => il faut que quelqu'un "touche" a la propriété "Exception" de la task, pour empecher cela.
+			switch (task.Status)
+			{
+				case TaskStatus.Faulted:
+				case TaskStatus.Canceled:
+					TouchFaultedTask(task);
+					return;
+
+				case TaskStatus.RanToCompletion:
+					return;
+
+				default:
+					task.ContinueWith((t) => TouchFaultedTask(t), TaskContinuationOptions.OnlyOnFaulted);
+					return;
+			}
+		}
+
+		private static void TouchFaultedTask(Task t)
+		{
+			// ReSharper disable once UnusedVariable
+			var error = t.Exception;
+#if DEBUG
+			if (t.IsFaulted)
+			{
+				// C'est une mauvaise pratique, donc râle quand même dans les logs en mode debug!
+				System.Diagnostics.Debug.WriteLine($"### muted unobserved failed Task[{t.Id}]: [{error?.InnerException?.GetType().Name}] {error?.InnerException?.Message}");
+			}
+#endif
 		}
 
 		/// <summary>Continue processing a task, if it succeeded</summary>
@@ -118,9 +154,9 @@ namespace FoundationDB.Async
 		/// <exception cref="System.ArgumentNullException">If <paramref name="lambda"/> is null</exception>
 		public static Task<R> Inline<R>([NotNull] Func<R> lambda, CancellationToken ct = default(CancellationToken))
 		{
-			if (lambda == null) throw new ArgumentNullException("lambda");
+			if (lambda == null) throw new ArgumentNullException(nameof(lambda));
 
-			if (ct.IsCancellationRequested) return FromCancellation<R>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<R>(ct);
 			try
 			{
 				var res = lambda();
@@ -142,13 +178,13 @@ namespace FoundationDB.Async
 		public static Task Inline<T1>([NotNull] Action<T1> action, T1 arg1, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
-			if (action == null) throw new ArgumentNullException("action");
+			if (action == null) throw new ArgumentNullException(nameof(action));
 			// for all other exceptions, they will be wrapped in the returned task
-			if (ct.IsCancellationRequested) return FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<object>(ct);
 			try
 			{
 				action(arg1);
-				return TaskHelpers.CompletedTask;
+				return Task.CompletedTask;
 			}
 			catch (Exception e)
 			{
@@ -168,13 +204,13 @@ namespace FoundationDB.Async
 		public static Task Inline<T1, T2>([NotNull] Action<T1, T2> action, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
-			if (action == null) throw new ArgumentNullException("action");
+			if (action == null) throw new ArgumentNullException(nameof(action));
 			// for all other exceptions, they will be wrapped in the returned task
-			if (ct.IsCancellationRequested) return FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<object>(ct);
 			try
 			{
 				action(arg1, arg2);
-				return TaskHelpers.CompletedTask;
+				return Task.CompletedTask;
 			}
 			catch (Exception e)
 			{
@@ -196,13 +232,13 @@ namespace FoundationDB.Async
 		public static Task Inline<T1, T2, T3>([NotNull] Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
-			if (action == null) throw new ArgumentNullException("action");
+			if (action == null) throw new ArgumentNullException(nameof(action));
 			// for all other exceptions, they will be wrapped in the returned task
-			if (ct.IsCancellationRequested) return FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<object>(ct);
 			try
 			{
 				action(arg1, arg2, arg3);
-				return TaskHelpers.CompletedTask;
+				return Task.CompletedTask;
 			}
 			catch (Exception e)
 			{
@@ -226,13 +262,13 @@ namespace FoundationDB.Async
 		public static Task Inline<T1, T2, T3, T4>([NotNull] Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
-			if (action == null) throw new ArgumentNullException("action");
+			if (action == null) throw new ArgumentNullException(nameof(action));
 			// for all other exceptions, they will be wrapped in the returned task
-			if (ct.IsCancellationRequested) return FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<object>(ct);
 			try
 			{
 				action(arg1, arg2, arg3, arg4);
-				return TaskHelpers.CompletedTask;
+				return Task.CompletedTask;
 			}
 			catch (Exception e)
 			{
@@ -258,13 +294,13 @@ namespace FoundationDB.Async
 		public static Task Inline<T1, T2, T3, T4, T5>([NotNull] Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
-			if (action == null) throw new ArgumentNullException("action");
+			if (action == null) throw new ArgumentNullException(nameof(action));
 			// for all other exceptions, they will be wrapped in the returned task
-			if (ct.IsCancellationRequested) return FromCancellation<object>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<object>(ct);
 			try
 			{
 				action(arg1, arg2, arg3, arg4, arg5);
-				return TaskHelpers.CompletedTask;
+				return Task.CompletedTask;
 			}
 			catch (Exception e)
 			{
@@ -293,25 +329,9 @@ namespace FoundationDB.Async
 			Contract.Requires(lambda != null);
 			return (value, ct) =>
 			{
-				if (ct.IsCancellationRequested) return FromCancellation<TResult>(ct);
+				if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 				return lambda(value);
 			};
-		}
-
-		/// <summary>Returns a cancelled Task that is linked with a specific token</summary>
-		/// <typeparam name="T">Type of the result of the task</typeparam>
-		/// <param name="ct">Cancellation token that should already be cancelled</param>
-		/// <returns>Task in the cancelled state that is linked with this cancellation token</returns>
-		public static Task<T> FromCancellation<T>(CancellationToken ct)
-		{
-			// There is a Task.FromCancellation<T>() method in the BCL, but unfortunately it is internal :(
-			// The "best" way I've seen to emulate the same behavior, is creating a fake task (with a dummy action) with the same alread-cancelled CancellationToken
-			// This should throw the correct TaskCanceledException that is linked with this token
-
-			// ensure that it is actually cancelled, so that we don't deadlock
-			if (!ct.IsCancellationRequested) throw new InvalidOperationException();
-
-			return new Task<T>(Cache<T>.Nop, ct);
 		}
 
 		/// <summary>Returns a cancelled Task that is not linked to any particular token</summary>
@@ -358,7 +378,7 @@ namespace FoundationDB.Async
 			if (e is OperationCanceledException)
 			{
 				if (ct.IsCancellationRequested)
-					return FromCancellation<T>(ct);
+					return Task.FromCanceled<T>(ct);
 				else
 					return Canceled<T>();
 			}

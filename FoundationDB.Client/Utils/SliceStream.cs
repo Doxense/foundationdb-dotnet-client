@@ -32,7 +32,6 @@ namespace FoundationDB
 	using System.IO;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Async;
 
 	/// <summary>Stream that wraps a Slice for reading</summary>
 	/// <remarks>This stream is optimized for blocking and async reads</remarks>
@@ -186,7 +185,7 @@ namespace FoundationDB
 
 			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<int>(ct);
+				return Task.FromCanceled<int>(ct);
 			}
 
 			try
@@ -199,7 +198,7 @@ namespace FoundationDB
 			}
 			catch (Exception e)
 			{
-				return TaskHelpers.FromException<int>(e);
+				return Task.FromException<int>(e);
 			}
 		}
 
@@ -212,7 +211,7 @@ namespace FoundationDB
 			if (!destination.CanWrite) throw new ArgumentException("The destination stream cannot be written to", nameof(destination));
 
 			int remaining = m_slice.Count - m_position;
-			if (remaining <= 0) return TaskHelpers.CompletedTask;
+			if (remaining <= 0) return Task.CompletedTask;
 
 			// simulate the read
 			m_position += remaining;
@@ -244,7 +243,7 @@ namespace FoundationDB
 		/// <summary>This methods is not supported</summary>
 		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
-			return TaskHelpers.FromException<object>(new NotSupportedException());
+			return Task.FromException<object>(new NotSupportedException());
 		}
 
 #endif
@@ -259,7 +258,7 @@ namespace FoundationDB
 		public override Task FlushAsync(System.Threading.CancellationToken ct)
 		{
 			// Not supported, but don't throw here
-			return TaskHelpers.CompletedTask;
+			return Task.CompletedTask;
 		}
 
 		#endregion

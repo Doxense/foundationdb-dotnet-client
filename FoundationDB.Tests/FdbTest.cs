@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Layers.Directories;
-	using NUnit.Framework;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Layers.Directories;
+	using NUnit.Framework;
 
 	/// <summary>Base class for all FoundationDB tests</summary>
 	public abstract class FdbTest
