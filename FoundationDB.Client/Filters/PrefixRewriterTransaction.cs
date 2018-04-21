@@ -165,10 +165,10 @@ namespace FoundationDB.Filters
 			base.AddConflictRange(Encode(beginKeyInclusive), Encode(endKeyExclusive), type);
 		}
 
-		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		public override FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			//BUGBUG: the watch returns the key, that would need to be decoded!
-			return base.Watch(Encode(key), cancellationToken);
+			return base.Watch(Encode(key), ct);
 		}
 
 	}

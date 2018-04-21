@@ -115,7 +115,7 @@ namespace FoundationDB.Linq
 			return true;
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
 			try
 			{
@@ -123,7 +123,7 @@ namespace FoundationDB.Linq
 
 				if (m_done) return false;
 
-				var next = await m_processingQueue.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+				var next = await m_processingQueue.ReceiveAsync(ct).ConfigureAwait(false);
 				LogDebug("[OnNextAsync] got result from queue");
 
 				if (!next.HasValue)

@@ -245,9 +245,9 @@ namespace FoundationDB.Linq.Providers
 				m_iterator = iterator;
 			}
 
-			public Task<bool> MoveNextAsync(CancellationToken cancellationToken)
+			public Task<bool> MoveNextAsync(CancellationToken ct)
 			{
-				return m_iterator.MoveNextAsync(cancellationToken);
+				return m_iterator.MoveNextAsync(ct);
 			}
 
 			public T Current

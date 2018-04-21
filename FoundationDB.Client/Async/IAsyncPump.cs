@@ -47,9 +47,9 @@ namespace FoundationDB.Async
 
 		/// <summary>Consume all the items of the source by passing them to the Target</summary>
 		/// <param name="stopOnFirstError">If true, aborts on the first error. If false, continue processing items until the source has finished.</param>
-		/// <param name="cancellationToken">Cancellation token that can be used to abort the pump at any time. Any unprocessed items will be lost.</param>
+		/// <param name="ct">Cancellation token that can be used to abort the pump at any time. Any unprocessed items will be lost.</param>
 		/// <returns>Task that will complete successfully if all the items from the source have been processed by the target, or fails if an error occurred or the pump was cancelled.</returns>
-		Task PumpAsync(bool stopOnFirstError, CancellationToken cancellationToken);
+		Task PumpAsync(bool stopOnFirstError, CancellationToken ct);
 	}
 
 }

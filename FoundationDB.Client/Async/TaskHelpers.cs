@@ -300,18 +300,18 @@ namespace FoundationDB.Async
 
 		/// <summary>Returns a cancelled Task that is linked with a specific token</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
-		/// <param name="cancellationToken">Cancellation token that should already be cancelled</param>
+		/// <param name="ct">Cancellation token that should already be cancelled</param>
 		/// <returns>Task in the cancelled state that is linked with this cancellation token</returns>
-		public static Task<T> FromCancellation<T>(CancellationToken cancellationToken)
+		public static Task<T> FromCancellation<T>(CancellationToken ct)
 		{
 			// There is a Task.FromCancellation<T>() method in the BCL, but unfortunately it is internal :(
 			// The "best" way I've seen to emulate the same behavior, is creating a fake task (with a dummy action) with the same alread-cancelled CancellationToken
 			// This should throw the correct TaskCanceledException that is linked with this token
 
 			// ensure that it is actually cancelled, so that we don't deadlock
-			if (!cancellationToken.IsCancellationRequested) throw new InvalidOperationException();
+			if (!ct.IsCancellationRequested) throw new InvalidOperationException();
 
-			return new Task<T>(Cache<T>.Nop, cancellationToken);
+			return new Task<T>(Cache<T>.Nop, ct);
 		}
 
 		/// <summary>Returns a cancelled Task that is not linked to any particular token</summary>
@@ -351,14 +351,14 @@ namespace FoundationDB.Async
 		/// <summary>Returns a failed Task that wraps an exception</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <param name="e">Exception that will be wrapped in the task</param>
-		/// <param name="cancellationToken">Original cancellation token that may have triggered</param>
+		/// <param name="ct">Original cancellation token that may have triggered</param>
 		/// <returns>Task that is already completed, and that will rethrow the exception once observed</returns>
-		public static Task<T> FromFailure<T>(Exception e, CancellationToken cancellationToken)
+		public static Task<T> FromFailure<T>(Exception e, CancellationToken ct)
 		{
 			if (e is OperationCanceledException)
 			{
-				if (cancellationToken.IsCancellationRequested)
-					return FromCancellation<T>(cancellationToken);
+				if (ct.IsCancellationRequested)
+					return FromCancellation<T>(ct);
 				else
 					return Canceled<T>();
 			}

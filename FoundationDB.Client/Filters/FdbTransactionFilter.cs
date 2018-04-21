@@ -263,10 +263,10 @@ namespace FoundationDB.Filters
 			return m_transaction.OnErrorAsync(code);
 		}
 
-		public virtual FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		public virtual FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return m_transaction.Watch(key, cancellationToken);
+			return m_transaction.Watch(key, ct);
 		}
 
 		public virtual void SetOption(FdbTransactionOption option)

@@ -106,16 +106,16 @@ namespace FoundationDB.Client
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
-		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
+		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
 		[ItemNotNull]
-		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken cancellationToken)
+		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken ct)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, ct: ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Opens a database on this cluster</summary>
@@ -123,13 +123,13 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="ownsCluster">If true, the database will dispose this cluster when it is disposed.</param>
-		/// <param name="cancellationToken">Cancellation Token</param>
+		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		[ItemNotNull]
-		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IKeySubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
+		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IKeySubspace subspace, bool readOnly, bool ownsCluster, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
@@ -137,9 +137,9 @@ namespace FoundationDB.Client
 
 			if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' ...", databaseName));
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var handler = await m_handler.OpenDatabaseAsync(databaseName, cancellationToken).ConfigureAwait(false);
+			var handler = await m_handler.OpenDatabaseAsync(databaseName, ct).ConfigureAwait(false);
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 

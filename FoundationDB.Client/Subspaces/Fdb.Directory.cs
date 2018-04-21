@@ -49,12 +49,12 @@ namespace FoundationDB.Client
 		{
 			/// <summary>Open a named partition of the default cluster</summary>
 			/// <param name="path">Path of the named partition to open</param>
-			/// <param name="cancellationToken">Token used to cancel this operation</param>
+			/// <param name="ct">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
 			[ItemNotNull]
-			public static Task<IFdbDatabase> OpenNamedPartitionAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+			public static Task<IFdbDatabase> OpenNamedPartitionAsync([NotNull] IEnumerable<string> path, CancellationToken ct)
 			{
-				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, readOnly: false, cancellationToken: cancellationToken);
+				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, readOnly: false, ct: ct);
 			}
 
 			/// <summary>Open a named partition of a specific cluster</summary>
@@ -62,14 +62,14 @@ namespace FoundationDB.Client
 			/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
 			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="readOnly">If true, the database instance will only allow read operations</param>
-			/// <param name="cancellationToken">Token used to cancel this operation</param>
+			/// <param name="ct">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
 			[ItemNotNull]
-			public static async Task<IFdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, [NotNull] IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
+			public static async Task<IFdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, [NotNull] IEnumerable<string> path, bool readOnly, CancellationToken ct)
 			{
-				if (path == null) throw new ArgumentNullException("path");
+				if (path == null) throw new ArgumentNullException(nameof(path));
 				var partitionPath = path.ToList();
-				if (partitionPath.Count == 0) throw new ArgumentException("The path to the named partition cannot be empty", "path");
+				if (partitionPath.Count == 0) throw new ArgumentException("The path to the named partition cannot be empty", nameof(path));
 
 				// looks at the global partition table for the specified named partition
 
@@ -78,12 +78,12 @@ namespace FoundationDB.Client
 				var rootSpace = KeySubspace.Empty;
 				try
 				{
-					db = await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+					db = await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, ct: ct).ConfigureAwait(false);
 					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
 
 					// look up in the root layer for the named partition
-					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.LayerId, cancellationToken: cancellationToken).ConfigureAwait(false);
+					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.LayerId, ct: ct).ConfigureAwait(false);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.FullName, descriptor));
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
@@ -106,13 +106,13 @@ namespace FoundationDB.Client
 			/// <summary>List and open the sub-directories of the given directory</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="parent">Parent directory</param>
-			/// <param name="cancellationToken">Token used to cancel this operation</param>
+			/// <param name="ct">Token used to cancel this operation</param>
 			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
 			[ItemNotNull]
-			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbDatabase db, [NotNull] IFdbDirectory parent, CancellationToken cancellationToken)
+			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbDatabase db, [NotNull] IFdbDirectory parent, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException("db");
-				if (parent == null) throw new ArgumentNullException("parent");
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (parent == null) throw new ArgumentNullException(nameof(parent));
 
 				return await db.ReadAsync(async (tr) =>
 				{
@@ -122,13 +122,13 @@ namespace FoundationDB.Client
 					// open all the subdirectories
 					var folders = await names
 						.ToAsyncEnumerable()
-						.SelectAsync((name, ct) => parent.OpenAsync(tr, name))
+						.SelectAsync((name, _) => parent.OpenAsync(tr, name))
 						.ToListAsync();
 
 					// map the result
 					return folders.ToDictionary(ds => ds.Name);
 
-				}, cancellationToken).ConfigureAwait(false);
+				}, ct).ConfigureAwait(false);
 			}
 		}
 

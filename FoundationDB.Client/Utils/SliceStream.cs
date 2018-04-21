@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		public override long Seek(long offset, SeekOrigin origin)
 		{
 			if (!m_slice.HasValue) StreamIsClosed();
-			if (offset > int.MaxValue) throw new ArgumentOutOfRangeException("offset");
+			if (offset > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(offset));
 
 			switch (origin)
 			{
@@ -180,13 +180,13 @@ namespace FoundationDB.Client
 #if !NET_4_0
 
 		/// <summary>Asynchronously reads a sequence of bytes from the underlying slice and advances the position within the slice by the number of bytes read.</summary>
-		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
 			ValidateBuffer(buffer, offset, count);
 
-			if (cancellationToken.IsCancellationRequested)
+			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<int>(cancellationToken);
+				return TaskHelpers.FromCancellation<int>(ct);
 			}
 
 			try
@@ -204,12 +204,12 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Asynchronously reads the bytes from the underlying slice and writes them to another stream, using a specified buffer size and cancellation token.</summary>
-		public override Task CopyToAsync(Stream destination, int bufferSize, System.Threading.CancellationToken cancellationToken)
+		public override Task CopyToAsync(Stream destination, int bufferSize, System.Threading.CancellationToken ct)
 		{
 			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 
-			if (destination == null) throw new ArgumentNullException("destination");
-			if (!destination.CanWrite) throw new ArgumentException("The destination stream cannot be written to", "destination");
+			if (destination == null) throw new ArgumentNullException(nameof(destination));
+			if (!destination.CanWrite) throw new ArgumentException("The destination stream cannot be written to", nameof(destination));
 
 			int remaining = m_slice.Count - m_position;
 			if (remaining <= 0) return TaskHelpers.CompletedTask;
@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 			m_position += remaining;
 
 			// we can write everyting in one go, so just call WriteAsync and return that
-			return destination.WriteAsync(m_slice.Array, m_slice.Offset, remaining, cancellationToken);
+			return destination.WriteAsync(m_slice.Array, m_slice.Offset, remaining, ct);
 		}
 
 #endif
@@ -242,7 +242,7 @@ namespace FoundationDB.Client
 #if !NET_4_0
 
 		/// <summary>This methods is not supported</summary>
-		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
 			return TaskHelpers.FromException<object>(new NotSupportedException());
 		}
@@ -256,7 +256,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>This methods does nothing.</summary>
-		public override Task FlushAsync(System.Threading.CancellationToken cancellationToken)
+		public override Task FlushAsync(System.Threading.CancellationToken ct)
 		{
 			// Not supported, but don't throw here
 			return TaskHelpers.CompletedTask;
@@ -266,9 +266,9 @@ namespace FoundationDB.Client
 
 		private static void ValidateBuffer(byte[] buffer, int offset, int count)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
+			if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
 			if (offset > buffer.Length - count) throw new ArgumentException("Offset and count must fit inside the buffer");
 		}
 

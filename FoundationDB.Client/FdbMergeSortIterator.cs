@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 			return new FdbMergeSortIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
-		protected override bool FindNext(CancellationToken cancellationToken, out int index, out TSource current)
+		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
 			index = -1;
 			current = default(TSource);
@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 				current = m_iterators[index].Iterator.Current;
 				if (m_remaining == null || m_remaining.Value > 1)
 				{ // start getting the next value on this iterator
-					AdvanceIterator(index, cancellationToken);
+					AdvanceIterator(index, ct);
 				}
 			}
 

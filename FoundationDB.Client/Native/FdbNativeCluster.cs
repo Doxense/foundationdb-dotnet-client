@@ -46,7 +46,7 @@ namespace FoundationDB.Client.Native
 			m_handle = handle;
 		}
 
-		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken)
+		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken ct)
 		{
 			var future = FdbNative.CreateCluster(clusterFile);
 			return FdbFuture.CreateTaskFromHandle(future,
@@ -62,7 +62,7 @@ namespace FoundationDB.Client.Native
 					var handler = new FdbNativeCluster(cluster);
 					return (IFdbClusterHandler) handler;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
@@ -92,9 +92,9 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken)
+		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken ct)
 		{
-			if (cancellationToken.IsCancellationRequested) return Task.FromCanceled<IFdbDatabaseHandler>(cancellationToken);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<IFdbDatabaseHandler>(ct);
 
 			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
 			return FdbFuture.CreateTaskFromHandle(
@@ -111,7 +111,7 @@ namespace FoundationDB.Client.Native
 					var handler = new FdbNativeDatabase(database);
 					return (IFdbDatabaseHandler) handler;
 				},
-				cancellationToken
+				ct
 			);
 		}
 

@@ -52,16 +52,16 @@ namespace FoundationDB.Linq
 			return new FdbObserverIterator<TSource>(m_source, m_observer);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(ct).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}
 
-				if (cancellationToken.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				TSource current = m_iterator.Current;
 				if (!m_observer.Async)
@@ -70,13 +70,13 @@ namespace FoundationDB.Linq
 				}
 				else
 				{
-					await m_observer.InvokeAsync(current, cancellationToken).ConfigureAwait(false);
+					await m_observer.InvokeAsync(current, ct).ConfigureAwait(false);
 				}
 
 				return Publish(current);
 			}
 
-			return Canceled(cancellationToken);
+			return Canceled(ct);
 		}
 	}
 

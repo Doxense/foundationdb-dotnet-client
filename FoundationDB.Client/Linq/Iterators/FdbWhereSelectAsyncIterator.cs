@@ -80,20 +80,20 @@ namespace FoundationDB.Linq
 			return base.OnFirstAsync(ct);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
 			if (m_remaining != null && m_remaining.Value <= 0)
 			{ // reached limit!
 				return Completed();
 			}
 
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(ct).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}
-				if (cancellationToken.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				#region Filtering...
 
@@ -106,7 +106,7 @@ namespace FoundationDB.Linq
 					}
 					else
 					{
-						if (!await m_filter.InvokeAsync(current, cancellationToken).ConfigureAwait(false)) continue;
+						if (!await m_filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
 					}
 				}
 
@@ -136,7 +136,7 @@ namespace FoundationDB.Linq
 				}
 				else
 				{
-					result = await m_transform.InvokeAsync(current, cancellationToken).ConfigureAwait(false);
+					result = await m_transform.InvokeAsync(current, ct).ConfigureAwait(false);
 				}
 
 				#endregion
@@ -153,7 +153,7 @@ namespace FoundationDB.Linq
 				#endregion
 			}
 
-			return Canceled(cancellationToken);
+			return Canceled(ct);
 		}
 
 		public override FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)

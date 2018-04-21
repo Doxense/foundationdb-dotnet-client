@@ -169,8 +169,8 @@ namespace FoundationDB.Client
 			{
 				return ptr == null ? Slice.Nil : Slice.Empty;
 			}
-			if (ptr == null) throw new ArgumentNullException("ptr");
-			if (count < 0) throw new ArgumentOutOfRangeException("count");
+			if (ptr == null) throw new ArgumentNullException(nameof(ptr));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
 
 			if (count == 1)
 			{
@@ -203,8 +203,8 @@ namespace FoundationDB.Client
 		/// <remarks>Warning: <see cref="System.Random"/> is not thread-safe ! If the <paramref name="prng"/> instance is shared between threads, then it needs to be locked before calling this method.</remarks>
 		public static Slice Random([NotNull] Random prng, int count)
 		{
-			if (prng == null) throw new ArgumentNullException("prng");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative");
+			if (prng == null) throw new ArgumentNullException(nameof(prng));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
 			if (count == 0) return Slice.Empty;
 
 			var bytes = new byte[count];
@@ -220,8 +220,8 @@ namespace FoundationDB.Client
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
 		public static Slice Random([NotNull] System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
-			if (rng == null) throw new ArgumentNullException("rng");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative");
+			if (rng == null) throw new ArgumentNullException(nameof(rng));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
 			if (count == 0) return Slice.Empty;
 
 			var bytes = new byte[count];
@@ -281,7 +281,7 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, [NotNull] Slice[] values)
 		{
-			if (values == null) throw new ArgumentNullException("values");
+			if (values == null) throw new ArgumentNullException(nameof(values));
 
 			int count = values.Length;
 			if (count == 0) return Slice.Empty;
@@ -302,11 +302,11 @@ namespace FoundationDB.Client
 			// Note: this method is modeled after String.Join() and should behave the same
 			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
 
-			if (values == null) throw new ArgumentNullException("values");
+			if (values == null) throw new ArgumentNullException(nameof(values));
 			//REVIEW: support negative indexing ?
-			if (startIndex < 0) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be a positive integer");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
-			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
+			if (startIndex < 0) throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must be a positive integer");
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count must be a positive integer");
+			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must fit within the array");
 
 			if (count == 0) return Slice.Empty;
 			if (count == 1) return values[startIndex];
@@ -337,7 +337,7 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, [NotNull] IEnumerable<Slice> values)
 		{
-			if (values == null) throw new ArgumentNullException("values");
+			if (values == null) throw new ArgumentNullException(nameof(values));
 			var array = (values as Slice[]) ?? values.ToArray();
 			return Join(separator, array, 0, array.Length);
 		}
@@ -356,11 +356,11 @@ namespace FoundationDB.Client
 			// Note: this method is modeled after String.Join() and should behave the same
 			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
 
-			if (values == null) throw new ArgumentNullException("values");
+			if (values == null) throw new ArgumentNullException(nameof(values));
 			//REVIEW: support negative indexing ?
-			if (startIndex < 0) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be a positive integer");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
-			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
+			if (startIndex < 0) throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must be a positive integer");
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count must be a positive integer");
+			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must fit within the array");
 
 			if (count == 0) return Slice.EmptyArray;
 			if (count == 1) return values[startIndex].GetBytes() ?? Slice.EmptyArray;
@@ -392,7 +392,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static byte[] JoinBytes(Slice separator, [NotNull] IEnumerable<Slice> values)
 		{
-			if (values == null) throw new ArgumentNullException("values");
+			if (values == null) throw new ArgumentNullException(nameof(values));
 			var array = (values as Slice[]) ?? values.ToArray();
 			return JoinBytes(separator, array, 0, array.Length);
 		}
@@ -417,7 +417,7 @@ namespace FoundationDB.Client
 
 			var list = new List<Slice>();
 
-			if (separator.Count <= 0) throw new ArgumentException("Separator must have at least one byte", "separator");
+			if (separator.Count <= 0) throw new ArgumentException("Separator must have at least one byte", nameof(separator));
 			if (options < StringSplitOptions.None || options > StringSplitOptions.RemoveEmptyEntries) throw new ArgumentException("options");
 
 			bool skipEmpty = options.HasFlag(StringSplitOptions.RemoveEmptyEntries);
@@ -893,7 +893,7 @@ namespace FoundationDB.Client
 				hexaString = hexaString.Replace(" ", "");
 			}
 
-			if ((hexaString.Length & 1) != 0) throw new ArgumentException("Hexadecimal string must be of even length", "hexaString");
+			if ((hexaString.Length & 1) != 0) throw new ArgumentException("Hexadecimal string must be of even length", nameof(hexaString));
 
 			var buffer = new byte[hexaString.Length >> 1];
 			for (int i = 0; i < hexaString.Length; i += 2)
@@ -941,8 +941,8 @@ namespace FoundationDB.Client
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
 
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0 || offset + count > this.Count) throw new ArgumentOutOfRangeException("count");
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
+			if (count < 0 || offset + count > this.Count) throw new ArgumentOutOfRangeException(nameof(count));
 
 			if (count == 0) return this.Array == null ? null : Slice.EmptyArray;
 			SliceHelpers.EnsureSliceIsValid(ref this);
@@ -1226,7 +1226,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public ushort ReadUInt16(int offset, int bytes)
 		{
-			if (bytes < 0 || bytes > 2) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes < 0 || bytes > 2) throw new ArgumentOutOfRangeException(nameof(bytes));
 
 			var buffer = this.Array;
 			int p = UnsafeMapToOffset(offset);
@@ -1246,7 +1246,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public ushort ReadUInt16BE(int offset, int bytes)
 		{
-			if (bytes < 0 || bytes > 2) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes < 0 || bytes > 2) throw new ArgumentOutOfRangeException(nameof(bytes));
 
 			var buffer = this.Array;
 			int p = UnsafeMapToOffset(offset);
@@ -1361,7 +1361,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public uint ReadUInt32(int offset, int bytes)
 		{
-			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException(nameof(bytes));
 			if (bytes == 0) return 0;
 
 			var buffer = this.Array;
@@ -1383,7 +1383,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public uint ReadUInt32BE(int offset, int bytes)
 		{
-			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException(nameof(bytes));
 			if (bytes == 0) return 0;
 
 			var buffer = this.Array;
@@ -1498,7 +1498,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public ulong ReadUInt64(int offset, int bytes)
 		{
-			if (bytes < 0 || bytes > 8) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes < 0 || bytes > 8) throw new ArgumentOutOfRangeException(nameof(bytes));
 			if (bytes == 0) return 0UL;
 
 			var buffer = this.Array;
@@ -1520,7 +1520,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public ulong ReadUInt64BE(int offset, int bytes)
 		{
-			if (bytes < 0 || bytes > 8) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes < 0 || bytes > 8) throw new ArgumentOutOfRangeException(nameof(bytes));
 			if (bytes == 0) return 0UL;
 
 			var buffer = this.Array;
@@ -1734,8 +1734,8 @@ namespace FoundationDB.Client
 			// negative values means from the end
 			if (offset < 0) offset = this.Count + offset;
 
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less then start of the slice");
-			if (offset > this.Count) throw new ArgumentOutOfRangeException("offset", "Offset cannot be larger than end of slice");
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less then start of the slice");
+			if (offset > this.Count) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be larger than end of slice");
 
 			return this.Count == offset ? Slice.Empty : new Slice(this.Array, this.Offset + offset, this.Count - offset);
 		}
@@ -1760,9 +1760,9 @@ namespace FoundationDB.Client
 			// negative values means from the end
 			if (offset < 0) offset = this.Count + offset;
 
-			if (offset < 0 || offset >= this.Count) throw new ArgumentOutOfRangeException("offset", "Offset must be inside the slice");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count must be a positive integer");
-			if (offset > this.Count - count) throw new ArgumentOutOfRangeException("count", "Offset and count must refer to a location within the slice");
+			if (offset < 0 || offset >= this.Count) throw new ArgumentOutOfRangeException(nameof(offset), "Offset must be inside the slice");
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count must be a positive integer");
+			if (offset > this.Count - count) throw new ArgumentOutOfRangeException(nameof(count), "Offset and count must refer to a location within the slice");
 
 			return new Slice(this.Array, this.Offset + offset, count);
 		}
@@ -1794,7 +1794,7 @@ namespace FoundationDB.Client
 		public int IndexOf(Slice value, int startIndex)
 		{
 			//REVIEW: support negative indexing ?
-			if (startIndex < 0 || startIndex > this.Count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be inside the buffer");
+			if (startIndex < 0 || startIndex > this.Count) throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must be inside the buffer");
 			if (this.Count == 0)
 			{
 				return value.Count == 0 ? startIndex : -1;
@@ -1809,7 +1809,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public bool StartsWith(Slice value)
 		{
-			if (!value.HasValue) throw new ArgumentNullException("value");
+			if (!value.HasValue) throw new ArgumentNullException(nameof(value));
 
 			// any strings starts with the empty string
 			if (value.Count == 0) return true;
@@ -1826,7 +1826,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public bool EndsWith(Slice value)
 		{
-			if (!value.HasValue) throw new ArgumentNullException("value");
+			if (!value.HasValue) throw new ArgumentNullException(nameof(value));
 
 			// any strings ends with the empty string
 			if (value.Count == 0) return true;
@@ -1896,7 +1896,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public Slice[] ConcatRange([NotNull] Slice[] slices)
 		{
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 			SliceHelpers.EnsureSliceIsValid(ref this);
 
 			// pre-allocate by computing final buffer capacity
@@ -1923,7 +1923,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public Slice[] ConcatRange([NotNull] IEnumerable<Slice> slices)
 		{
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 
 			// use optimized version for arrays
 			var array = slices as Slice[];
@@ -1981,7 +1981,7 @@ namespace FoundationDB.Client
 		/// <remarks>This method is optmized to reduce the amount of memory allocated</remarks>
 		public static Slice[] ConcatRange(Slice prefix, IEnumerable<Slice> slices)
 		{
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 
 			if (prefix.IsNullOrEmpty)
 			{ // nothing to do, but we still need to copy the array
@@ -2118,8 +2118,8 @@ namespace FoundationDB.Client
 		/// <returns>Smaller slice</returns>
 		public static Slice operator -(Slice s, int n)
 		{
-			if (n < 0) throw new ArgumentOutOfRangeException("n", "Cannot subtract a negative number from a slice");
-			if (n > s.Count) throw new ArgumentOutOfRangeException("n", "Cannout substract more bytes than the slice contains");
+			if (n < 0) throw new ArgumentOutOfRangeException(nameof(n), "Cannot subtract a negative number from a slice");
+			if (n > s.Count) throw new ArgumentOutOfRangeException(nameof(n), "Cannout substract more bytes than the slice contains");
 
 			if (n == 0) return s;
 			if (n == s.Count) return Slice.Empty;
@@ -2247,7 +2247,7 @@ namespace FoundationDB.Client
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static Slice FromStream([NotNull] Stream data)
 		{
-			if (data == null) throw new ArgumentNullException("data");
+			if (data == null) throw new ArgumentNullException(nameof(data));
 
 			// special case for empty values
 			if (data == Stream.Null) return Slice.Nil;
@@ -2271,13 +2271,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Asynchronously read the content of a stream into a slice</summary>
 		/// <param name="data">Source stream, that must be in a readable state</param>
-		/// <param name="cancellationToken">Optional cancellation token for this operation</param>
+		/// <param name="ct">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the stream content (or <see cref="Slice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="data"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
-		public static Task<Slice> FromStreamAsync([NotNull] Stream data, CancellationToken cancellationToken)
+		public static Task<Slice> FromStreamAsync([NotNull] Stream data, CancellationToken ct)
 		{
-			if (data == null) throw new ArgumentNullException("data");
+			if (data == null) throw new ArgumentNullException(nameof(data));
 
 			// special case for empty values
 			if (data == Stream.Null) return Task.FromResult(Slice.Nil);
@@ -2287,7 +2287,7 @@ namespace FoundationDB.Client
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
 
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<Slice>(cancellationToken);
+			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<Slice>(ct);
 
 			int length;
 			checked { length = (int)data.Length; }
@@ -2298,7 +2298,7 @@ namespace FoundationDB.Client
 			}
 
 			// read asynchronoulsy
-			return LoadFromBlockingStreamAsync(data, length, 0, cancellationToken);
+			return LoadFromBlockingStreamAsync(data, length, 0, ct);
 		}
 
 		/// <summary>Read from a non-blocking stream that already contains all the data in memory (MemoryStream, UnmanagedStream, ...)</summary>
@@ -2369,9 +2369,9 @@ namespace FoundationDB.Client
 		/// <param name="source">Source stream</param>
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
-		/// <param name="cancellationToken">Optional cancellation token for this operation</param>
+		/// <param name="ct">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static async Task<Slice> LoadFromBlockingStreamAsync([NotNull] Stream source, int length, int chunkSize, CancellationToken cancellationToken)
+		private static async Task<Slice> LoadFromBlockingStreamAsync([NotNull] Stream source, int length, int chunkSize, CancellationToken ct)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
@@ -2385,7 +2385,7 @@ namespace FoundationDB.Client
 			while (r > 0)
 			{
 				int c = Math.Min(r, chunkSize);
-				int n = await source.ReadAsync(buffer, p, c, cancellationToken);
+				int n = await source.ReadAsync(buffer, p, c, ct);
 				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
 				p += n;
 				r -= n;

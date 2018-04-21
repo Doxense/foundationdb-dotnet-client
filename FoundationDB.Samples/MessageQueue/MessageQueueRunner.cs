@@ -66,7 +66,7 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Samples", "MessageQueueTest" }, cancellationToken: ct);
+			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Samples", "MessageQueueTest" }, ct: ct);
 
 			this.WorkerPool = new FdbWorkerPool(this.Subspace);
 

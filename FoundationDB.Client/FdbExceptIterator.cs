@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 			return new FdbExceptIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
-		protected override bool FindNext(CancellationToken cancellationToken, out int index, out TSource current)
+		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
 			index = -1;
 			current = default(TSource);
@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 				{
 					output = false;
 					if (cmp == 0) discard = true;
-					AdvanceIterator(i, cancellationToken);
+					AdvanceIterator(i, ct);
 				}
 			}
 
@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 
 			if (output || discard)
 			{
-				AdvanceIterator(0, cancellationToken);
+				AdvanceIterator(0, ct);
 			}
 
 			return true;

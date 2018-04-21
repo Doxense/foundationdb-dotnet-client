@@ -169,12 +169,12 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
-		public static Task ClearRangeAsync(this IFdbRetryable db, [NotNull] IKeySubspace subspace, CancellationToken cancellationToken)
+		public static Task ClearRangeAsync(this IFdbRetryable db, [NotNull] IKeySubspace subspace, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(subspace, nameof(subspace));
 
-			return db.WriteAsync((tr) => ClearRange(tr, subspace), cancellationToken);
+			return db.WriteAsync((tr) => ClearRange(tr, subspace), ct);
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>

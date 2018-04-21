@@ -43,7 +43,7 @@ namespace FoundationDB.Client.Core
 		void SetOption(FdbClusterOption option, Slice data);
 
 		[ItemNotNull]
-		Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken);
+		Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken ct);
 	}
 
 }

@@ -79,7 +79,7 @@ namespace FoundationDB.Async
 		public IAsyncTarget<T> Target { [NotNull] get { return m_target; } }
 
 		/// <summary>Run the pump until the inner iterator is done, an error occurs, or the cancellation token is fired</summary>
-		public async Task PumpAsync(bool stopOnFirstError, CancellationToken cancellationToken)
+		public async Task PumpAsync(bool stopOnFirstError, CancellationToken ct)
 		{
 			if (m_state != STATE_IDLE)
 			{
@@ -115,16 +115,16 @@ namespace FoundationDB.Async
 			{
 				LogPump("Starting pump");
 
-				while (!cancellationToken.IsCancellationRequested && m_state != STATE_DISPOSED)
+				while (!ct.IsCancellationRequested && m_state != STATE_DISPOSED)
 				{
 					LogPump("Waiting for next");
 					m_state = STATE_WAITING_FOR_NEXT;
-					var current = await m_source.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+					var current = await m_source.ReceiveAsync(ct).ConfigureAwait(false);
 
 					LogPump("Received " + (current.HasValue ? "value" : current.HasFailed ? "error" : "completion") + ", publishing...");
 					m_state = STATE_PUBLISHING_TO_TARGET;
 
-					await m_target.Publish(current, cancellationToken).ConfigureAwait(false);
+					await m_target.Publish(current, ct).ConfigureAwait(false);
 
 					if (current.HasFailed && stopOnFirstError)
 					{
@@ -141,7 +141,7 @@ namespace FoundationDB.Async
 				}
 
 				// push the cancellation on the queue, and throw
-				throw new OperationCanceledException(cancellationToken);
+				throw new OperationCanceledException(ct);
 			}
 			catch (Exception e)
 			{

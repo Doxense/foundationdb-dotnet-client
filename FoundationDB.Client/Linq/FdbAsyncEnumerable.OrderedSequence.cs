@@ -193,13 +193,13 @@ namespace FoundationDB.Linq
 				return true;
 			}
 
-			public Task<bool> MoveNextAsync(CancellationToken cancellationToken)
+			public Task<bool> MoveNextAsync(CancellationToken ct)
 			{
 				// Firt call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
 
 				if (m_map == null)
 				{
-					return ReadAllThenSort(cancellationToken);
+					return ReadAllThenSort(ct);
 				}
 
 				int pos = checked(m_offset + 1);

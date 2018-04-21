@@ -107,7 +107,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			protected override async Task<bool> OnFirstAsync(CancellationToken cancellationToken)
+			protected override async Task<bool> OnFirstAsync(CancellationToken ct)
 			{
 				this.RemainingCount = this.Query.Limit;
 				this.RemainingSize = this.Query.TargetBytes;
@@ -141,7 +141,7 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			protected override Task<bool> OnNextAsync(CancellationToken cancellationToken)
+			protected override Task<bool> OnNextAsync(CancellationToken ct)
 			{
 				// Make sure that we are not called while the previous fetch is still running
 				if (this.PendingReadTask != null && !this.PendingReadTask.IsCompleted)
@@ -155,18 +155,17 @@ namespace FoundationDB.Client
 				}
 
 				// slower path, we need to actually read the first batch...
-				return FetchNextPageAsync(cancellationToken);
+				return FetchNextPageAsync(ct);
 			}
 
 			/// <summary>Asynchronously fetch a new page of results</summary>
-			/// <param name="cancellationToken"></param>
 			/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-			private Task<bool> FetchNextPageAsync(CancellationToken cancellationToken)
+			private Task<bool> FetchNextPageAsync(CancellationToken ct)
 			{
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				cancellationToken.ThrowIfCancellationRequested();
+				ct.ThrowIfCancellationRequested();
 				this.Transaction.EnsureCanRead();
 
 				this.Iteration++;

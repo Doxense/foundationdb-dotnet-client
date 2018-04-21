@@ -45,9 +45,9 @@ namespace FoundationDB.Linq
 			private EmptySequence()
 			{ }
 
-			Task<bool> IAsyncEnumerator<TSource>.MoveNextAsync(CancellationToken cancellationToken)
+			Task<bool> IAsyncEnumerator<TSource>.MoveNextAsync(CancellationToken ct)
 			{
-				cancellationToken.ThrowIfCancellationRequested();
+				ct.ThrowIfCancellationRequested();
 				return TaskHelpers.FalseTask;
 			}
 
@@ -107,9 +107,9 @@ namespace FoundationDB.Linq
 				return this.GetEnumerator();
 			}
 
-			async Task<bool> IAsyncEnumerator<TElement>.MoveNextAsync(CancellationToken cancellationToken)
+			async Task<bool> IAsyncEnumerator<TElement>.MoveNextAsync(CancellationToken ct)
 			{
-				cancellationToken.ThrowIfCancellationRequested();
+				ct.ThrowIfCancellationRequested();
 				if (m_called) return false;
 
 				//note: avoid using local variables as much as possible!
@@ -129,7 +129,7 @@ namespace FoundationDB.Linq
 
 				if (lambda is Func<CancellationToken, Task<TElement>>)
 				{
-					m_current = await ((Func<CancellationToken, Task<TElement>>)lambda)(cancellationToken).ConfigureAwait(false);
+					m_current = await ((Func<CancellationToken, Task<TElement>>)lambda)(ct).ConfigureAwait(false);
 					return true;
 				}
 

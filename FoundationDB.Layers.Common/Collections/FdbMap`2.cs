@@ -49,10 +49,10 @@ namespace FoundationDB.Layers.Collections
 
 		public FdbMap([NotNull] string name, [NotNull] IKeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
-			if (name == null) throw new ArgumentNullException("name");
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
-			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
+			if (name == null) throw new ArgumentNullException(nameof(name));
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
+			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
 			this.Name = name;
 			this.Subspace = subspace;
@@ -87,8 +87,8 @@ namespace FoundationDB.Layers.Collections
 		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
 		public async Task<TValue> GetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
 
@@ -102,8 +102,8 @@ namespace FoundationDB.Layers.Collections
 		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
 		public async Task<Optional<TValue>> TryGetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
 
@@ -118,8 +118,8 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
 		public void Set([NotNull] IFdbTransaction trans, TKey id, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			trans.Set(this.Location.Keys.Encode(id), this.ValueEncoder.EncodeValue(value));
 		}
@@ -130,8 +130,8 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
 		public void Remove([NotNull] IFdbTransaction trans, TKey id)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			trans.Clear(this.Location.Keys.Encode(id));
 		}
@@ -143,7 +143,7 @@ namespace FoundationDB.Layers.Collections
 		[NotNull]
 		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			return trans
 				.GetRange(this.Location.ToRange(), options)
@@ -156,8 +156,8 @@ namespace FoundationDB.Layers.Collections
 		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
 		public async Task<Optional<TValue>[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> ids)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (ids == null) throw new ArgumentNullException("ids");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
 			var results = await trans.GetValuesAsync(this.Location.Keys.Encode(ids)).ConfigureAwait(false);
 
@@ -200,7 +200,7 @@ namespace FoundationDB.Layers.Collections
 		/// <remarks>This will delete EVERYTHING in the map!</remarks>
 		public void Clear([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.ClearRange(this.Location.ToRange());
 		}
@@ -210,18 +210,18 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Handler called for each entry in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
-		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Action<KeyValuePair<TKey, TValue>> handler, CancellationToken cancellationToken)
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Action<KeyValuePair<TKey, TValue>> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				(batch, _, ct) =>
+				(batch, _, __) =>
 				{
 					foreach (var item in batch)
 					{
@@ -229,50 +229,50 @@ namespace FoundationDB.Layers.Collections
 					}
 					return TaskHelpers.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Handler called for each entry in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
-		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Func<KeyValuePair<TKey, TValue>, CancellationToken, Task> handler, CancellationToken cancellationToken)
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Func<KeyValuePair<TKey, TValue>, CancellationToken, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				async (batch, _, ct) =>
+				async (batch, _, __) =>
 				{
 					foreach (var item in batch)
 					{
-						await handler(DecodeItem(item), cancellationToken);
+						await handler(DecodeItem(item), ct);
 					}
 				},
-				cancellationToken
+				ct
 			);
 		}
 
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Handler called for each batch of items in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
-		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Action<KeyValuePair<TKey, TValue>[]> handler, CancellationToken cancellationToken)
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Action<KeyValuePair<TKey, TValue>[]> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				(batch, _, ct) =>
+				(batch, _, __) =>
 				{
 					if (batch.Length > 0)
 					{
@@ -280,26 +280,26 @@ namespace FoundationDB.Layers.Collections
 					}
 					return TaskHelpers.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Handler called for each batch of items in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
-		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Func<KeyValuePair<TKey, TValue>[], CancellationToken, Task> handler, CancellationToken cancellationToken)
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Func<KeyValuePair<TKey, TValue>[], CancellationToken, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				(batch, _, ct) => handler(DecodeItems(batch), ct),
-				cancellationToken
+				(batch, _, tok) => handler(DecodeItems(batch), tok),
+				ct
 			);
 		}
 
@@ -307,13 +307,13 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="init">Handler that is called once before the first batch, to produce the initial state.</param>
 		/// <param name="handler">Handler called for each batch of items in the map. It is given the previous state, and should return the updated state. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
-		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed and return the result of the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public async Task<TResult> AggregateAsync<TResult>([NotNull] IFdbDatabase db, Func<TResult> init, [NotNull] Func<TResult, KeyValuePair<TKey, TValue>[], TResult> handler, CancellationToken cancellationToken)
+		public async Task<TResult> AggregateAsync<TResult>([NotNull] IFdbDatabase db, Func<TResult> init, [NotNull] Func<TResult, KeyValuePair<TKey, TValue>[], TResult> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			var state = default(TResult);
 			if (init != null)
@@ -324,12 +324,12 @@ namespace FoundationDB.Layers.Collections
 			await Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				(batch, _, ct) =>
+				(batch, _, __) =>
 				{
 					state = handler(state, DecodeItems(batch));
 					return TaskHelpers.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 
 			return state;
@@ -340,13 +340,13 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="init">Handler that is called once before the first batch, to produce the initial state.</param>
 		/// <param name="handler">Handler called for each batch of items in the map. It is given the previous state, and should return the updated state. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
 		/// <param name="finish">Handler that is called one after the last batch, to produce the final result out of the last state.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <param name="ct">Token used to cancel the operation.</param>
 		/// <returns>Task that completes once all the entries have been processed and return the result of calling <paramref name="finish"/> with the state return by the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
-		public async Task<TResult> AggregateAsync<TState, TResult>([NotNull] IFdbDatabase db, Func<TState> init, [NotNull] Func<TState, KeyValuePair<TKey, TValue>[], TState> handler, Func<TState, TResult> finish, CancellationToken cancellationToken)
+		public async Task<TResult> AggregateAsync<TState, TResult>([NotNull] IFdbDatabase db, Func<TState> init, [NotNull] Func<TState, KeyValuePair<TKey, TValue>[], TState> handler, Func<TState, TResult> finish, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			var state = default(TState);
 			if (init != null)
@@ -357,15 +357,15 @@ namespace FoundationDB.Layers.Collections
 			await Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				(batch, _, ct) =>
+				(batch, _, __) =>
 				{
 					state = handler(state, DecodeItems(batch));
 					return TaskHelpers.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			var result = default(TResult);
 			if (finish != null)
@@ -383,22 +383,22 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Imports a potentially large sequence of items into the map.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="items">Sequence of items to import. If the item already exists in the map, its value will be overwritten.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
 		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
 		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
 		/// </remarks>
-		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken)
+		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (items == null) throw new ArgumentNullException("items");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			return Fdb.Bulk.InsertAsync(
 				db,
 				items,
 				(item, tr) => this.Set(tr, item.Key, item.Value),
-				cancellationToken		
+				ct		
 			);
 		}
 
@@ -406,23 +406,23 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
 		/// <param name="keySelector">Lambda that will extract the key of an element</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
 		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
 		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
 		/// </remarks>
-		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TValue> items, [NotNull] Func<TValue, TKey> keySelector, CancellationToken cancellationToken)
+		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TValue> items, [NotNull] Func<TValue, TKey> keySelector, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (items == null) throw new ArgumentNullException("items");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (items == null) throw new ArgumentNullException(nameof(items));
 			if (keySelector == null) throw new ArgumentException("keySelector");
 
 			return Fdb.Bulk.InsertAsync(
 				db,
 				items,
 				(item, tr) => this.Set(tr, keySelector(item), item),
-				cancellationToken
+				ct
 			);
 		}
 
@@ -431,16 +431,16 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
 		/// <param name="keySelector">Lambda that will return the key of an element</param>
 		/// <param name="valueSelector">Lambda that will return the value of an element</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
 		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
 		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
 		/// </remarks>
-		public Task ImportAsync<TElement>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TKey> keySelector, [NotNull] Func<TElement, TValue> valueSelector, CancellationToken cancellationToken)
+		public Task ImportAsync<TElement>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TKey> keySelector, [NotNull] Func<TElement, TValue> valueSelector, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (items == null) throw new ArgumentNullException("items");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (items == null) throw new ArgumentNullException(nameof(items));
 			if (keySelector == null) throw new ArgumentException("keySelector");
 			if (valueSelector == null) throw new ArgumentException("valueSelector");
 
@@ -448,7 +448,7 @@ namespace FoundationDB.Layers.Collections
 				db,
 				items,
 				(item, tr) => this.Set(tr, keySelector(item), valueSelector(item)),
-				cancellationToken
+				ct
 			);
 		}
 

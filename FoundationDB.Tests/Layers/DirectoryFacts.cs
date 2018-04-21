@@ -220,7 +220,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, new[] { "Foo" }, Slice.FromString("OtherLayer"), this.Cancellation), "Opening with invalid layer id should fail");
 
 				// opening without specifying a layer should disable the layer check
-				var foo3 = await directory.OpenAsync(logged, "Foo", layer: Slice.Nil, cancellationToken: this.Cancellation);
+				var foo3 = await directory.OpenAsync(logged, "Foo", layer: Slice.Nil, ct: this.Cancellation);
 				Assert.That(foo3, Is.Not.Null);
 				Assert.That(foo3.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 
@@ -522,7 +522,7 @@ namespace FoundationDB.Layers.Directories
 				var logged = db;
 #endif
 
-				var folder = await directory.CreateAsync(logged, "Test", layer: Slice.FromString("foo"), cancellationToken: this.Cancellation);
+				var folder = await directory.CreateAsync(logged, "Test", layer: Slice.FromString("foo"), ct: this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -541,11 +541,11 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder2.GetPrefix(), Is.EqualTo(folder.GetPrefix()));
 
 				// opening the directory with the new layer should succeed
-				var folder3 = await directory.OpenAsync(logged, "Test", layer: Slice.FromString("bar"), cancellationToken: this.Cancellation);
+				var folder3 = await directory.OpenAsync(logged, "Test", layer: Slice.FromString("bar"), ct: this.Cancellation);
 				Assert.That(folder3, Is.Not.Null);
 
 				// opening the directory with the old layer should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, "Test", layer: Slice.FromString("foo"), cancellationToken: this.Cancellation));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, "Test", layer: Slice.FromString("foo"), ct: this.Cancellation));
 
 #if ENABLE_LOGGING
 				foreach (var log in list)

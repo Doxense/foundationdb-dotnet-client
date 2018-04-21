@@ -271,11 +271,11 @@ namespace FoundationDB.Linq
 			this.Dispose();
 		}
 
-		protected bool Canceled(CancellationToken cancellationToken)
+		protected bool Canceled(CancellationToken ct)
 		{
 			//TODO: store the state "canceled" somewhere?
 			this.Dispose();
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 			return false;
 		}
 

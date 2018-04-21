@@ -71,9 +71,9 @@ namespace FoundationDB.Async
 
 		#region IFdbAsyncTarget<T>...
 
-		public override Task OnNextAsync(Task<T> task, CancellationToken cancellationToken)
+		public override Task OnNextAsync(Task<T> task, CancellationToken ct)
 		{
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
 
 			LogProducer("Received task #" + task.Id + " (" + task.Status + ")");
 
@@ -104,11 +104,11 @@ namespace FoundationDB.Async
 				}
 
 				// we are blocked, we will need to wait !
-				wait = MarkProducerAsBlocked_NeedsLocking(cancellationToken);
+				wait = MarkProducerAsBlocked_NeedsLocking(ct);
 			}
 
 			// slow path
-			return WaitForNextFreeSlotThenEnqueueAsync(task, wait, cancellationToken);
+			return WaitForNextFreeSlotThenEnqueueAsync(task, wait, ct);
 		}
 
 		private void NotifyConsumerOfTaskCompletion_NeedsLocking()

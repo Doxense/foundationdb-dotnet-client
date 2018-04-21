@@ -53,8 +53,8 @@ namespace FoundationDB.Async
 
 		public AsyncTransformQueue([NotNull] Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
 		{
-			if (transform == null) throw new ArgumentNullException("transform");
-			if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity", "Capacity must be greater than zero");
+			if (transform == null) throw new ArgumentNullException(nameof(transform));
+			if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than zero");
 
 			m_transform = transform;
 			m_capacity = capacity;
@@ -147,9 +147,9 @@ namespace FoundationDB.Async
 
 		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = ProcessItemHandler;
 
-		public async Task OnNextAsync(TInput value, CancellationToken cancellationToken)
+		public async Task OnNextAsync(TInput value, CancellationToken ct)
 		{
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
 				AsyncCancelableMutex waiter;
 				lock (m_lock)
@@ -160,8 +160,8 @@ namespace FoundationDB.Async
 					{
 						var t = Task.Factory.StartNew(
 							s_processItemHandler,
-							Tuple.Create(this, value, cancellationToken),
-							cancellationToken,
+							Tuple.Create(this, value, ct),
+							ct,
 							TaskCreationOptions.PreferFairness,
 							m_scheduler
 						).Unwrap();
@@ -184,14 +184,14 @@ namespace FoundationDB.Async
 					}
 
 					// no luck, we need to wait for the queue to become non-full
-					waiter = new AsyncCancelableMutex(cancellationToken);
+					waiter = new AsyncCancelableMutex(ct);
 					m_blockedProducer = waiter;
 				}
 
 				await waiter.Task.ConfigureAwait(false);
 			}
 
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 		}
 
 		public void OnCompleted()
@@ -232,18 +232,18 @@ namespace FoundationDB.Async
 
 		#region IFdbAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken cancellationToken)
+		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken ct)
 		{
-			if (batch == null) throw new ArgumentNullException("batch");
+			if (batch == null) throw new ArgumentNullException(nameof(batch));
 
 			if (batch.Length == 0) return;
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: optimized version !
 			foreach (var item in batch)
 			{
-				await OnNextAsync(item, cancellationToken).ConfigureAwait(false);
+				await OnNextAsync(item, ct).ConfigureAwait(false);
 			}
 		}
 

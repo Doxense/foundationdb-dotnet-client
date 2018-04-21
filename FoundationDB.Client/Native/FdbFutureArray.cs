@@ -55,11 +55,11 @@ namespace FoundationDB.Client.Native
 
 		#region Constructors...
 
-		internal FdbFutureArray([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> selector, CancellationToken cancellationToken)
+		internal FdbFutureArray([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			if (handles == null) throw new ArgumentNullException("handles");
-			if (handles.Length == 0) throw new ArgumentException("Handle array cannot be empty", "handles");
-			if (selector == null) throw new ArgumentNullException("selector");
+			if (handles == null) throw new ArgumentNullException(nameof(handles));
+			if (handles.Length == 0) throw new ArgumentException("Handle array cannot be empty", nameof(handles));
+			if (selector == null) throw new ArgumentNullException(nameof(selector));
 
 			m_handles = handles;
 			m_resultSelector = selector;
@@ -68,7 +68,7 @@ namespace FoundationDB.Client.Native
 
 			try
 			{
-				if (cancellationToken.IsCancellationRequested)
+				if (ct.IsCancellationRequested)
 				{ // already cancelled, we must abort everything
 
 					SetFlag(FdbFuture.Flags.COMPLETED);
@@ -111,9 +111,9 @@ namespace FoundationDB.Client.Native
 					abortAllHandles = true;
 					SetFlag(FdbFuture.Flags.COMPLETED);
 				}
-				else  if (cancellationToken.CanBeCanceled)
+				else  if (ct.CanBeCanceled)
 				{ // register for cancellation (if needed)
-					RegisterForCancellation(cancellationToken);
+					RegisterForCancellation(ct);
 				}
 			}
 			catch

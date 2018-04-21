@@ -29,7 +29,7 @@ namespace FdbShell
 		{
 			if (path != null && path.Length > 0)
 			{
-				return await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+				return await db.Directory.TryOpenAsync(path, ct: ct);
 			}
 			else
 			{
@@ -104,18 +104,18 @@ namespace FdbShell
 
 			log.WriteLine("# Creating directory {0} with layer '{1}'", String.Join("/", path), layer);
 
-			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder != null)
 			{
 				log.WriteLine("- Directory {0} already exists!", string.Join("/", path));
 				return;
 			}
 
-			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), cancellationToken: ct);
+			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), ct: ct);
 			log.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.GetPrefix()), folder.GetPrefix().ToHexaString(' '));
 
 			// look if there is already stuff under there
-			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.Keys.ToRange()).FirstOrDefaultAsync(), cancellationToken: ct);
+			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.Keys.ToRange()).FirstOrDefaultAsync(), ct: ct);
 			if (stuff.Key.IsPresent)
 			{
 				log.WriteLine("CAUTION: There is already some data under {0} !");
@@ -130,7 +130,7 @@ namespace FdbShell
 
 			string layer = extras.Count > 0 ? extras.Get<string>(0) : null;
 
-			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder == null)
 			{
 				log.WriteLine("# Directory {0} does not exist", string.Join("/", path));
@@ -155,14 +155,14 @@ namespace FdbShell
 		/// <summary>Move/Rename a directory</summary>
 		public static async Task MoveDirectory(string[] srcPath, string[] dstPath, ITuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			var folder = await db.Directory.TryOpenAsync(srcPath, cancellationToken: ct);
+			var folder = await db.Directory.TryOpenAsync(srcPath, ct: ct);
 			if (folder == null)
 			{
 				log.WriteLine("# Source directory {0} does not exist!", string.Join("/", srcPath));
 				return;
 			}
 
-			folder = await db.Directory.TryOpenAsync(dstPath, cancellationToken: ct);
+			folder = await db.Directory.TryOpenAsync(dstPath, ct: ct);
 			if (folder != null)
 			{
 				log.WriteLine("# Destination directory {0} already exists!", string.Join("/", dstPath));
@@ -239,7 +239,7 @@ namespace FdbShell
 			}
 
 			// look if there is something under there
-			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder != null)
 			{
 				log.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.GetPrefix()), folder.GetPrefix().ToHexaString(' '));
@@ -249,7 +249,7 @@ namespace FdbShell
 						return reverse
 							? query.Reverse().Take(count)
 							: query.Take(count + 1);
-					}, cancellationToken: ct);
+					}, ct: ct);
 				if (keys.Count > 0)
 				{
 					if (reverse) keys.Reverse();
@@ -277,7 +277,7 @@ namespace FdbShell
 			log.WriteLine("# Tree of {0}:", String.Join("/", path));
 
 			FdbDirectorySubspace root = null;
-			if (path.Length > 0) root = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+			if (path.Length > 0) root = await db.Directory.TryOpenAsync(path, ct: ct);
 
 			await TreeDirectoryWalk(root, new List<bool>(), db, log, ct);
 

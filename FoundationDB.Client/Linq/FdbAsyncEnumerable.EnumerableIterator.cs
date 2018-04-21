@@ -56,7 +56,7 @@ namespace FoundationDB.Linq
 				m_transform = transform;
 			}
 
-			public async Task<bool> MoveNextAsync(CancellationToken cancellationToken)
+			public async Task<bool> MoveNextAsync(CancellationToken ct)
 			{
 				if (m_disposed)
 				{
@@ -64,7 +64,7 @@ namespace FoundationDB.Linq
 					return false;
 				}
 
-				cancellationToken.ThrowIfCancellationRequested();
+				ct.ThrowIfCancellationRequested();
 
 				if (m_iterator.MoveNext())
 				{

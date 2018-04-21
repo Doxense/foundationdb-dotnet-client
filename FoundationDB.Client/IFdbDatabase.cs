@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Start a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
-		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 		///		await tr.CommitAsync();
 		/// }</example>
 		[NotNull]
-		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null);
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null);
 
 	}
 

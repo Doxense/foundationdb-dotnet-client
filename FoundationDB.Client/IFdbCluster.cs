@@ -58,10 +58,10 @@ namespace FoundationDB.Client
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
-		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
+		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		[ItemNotNull]
-		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken cancellationToken);
+		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken ct);
 	}
 
 }

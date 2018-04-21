@@ -133,9 +133,9 @@ namespace FoundationDB.Async
 				m_onError = onError;
 			}
 
-			public Task OnNextAsync(T value, CancellationToken cancellationToken)
+			public Task OnNextAsync(T value, CancellationToken ct)
 			{
-				return m_onNextAsync(value, cancellationToken);
+				return m_onNextAsync(value, ct);
 			}
 
 			public void OnCompleted()
@@ -184,9 +184,9 @@ namespace FoundationDB.Async
 				m_onError = onError;
 			}
 
-			public Task OnNextAsync(T value, CancellationToken cancellationToken)
+			public Task OnNextAsync(T value, CancellationToken ct)
 			{
-				return TaskHelpers.Inline(m_onNext, value, cancellationToken, cancellationToken);
+				return TaskHelpers.Inline(m_onNext, value, ct, ct);
 			}
 
 			public void OnCompleted()
@@ -220,20 +220,20 @@ namespace FoundationDB.Async
 
 		#region Pumps...
 
-		public static async Task PumpToAsync<T>(this IAsyncSource<T> source, IAsyncTarget<T> target, CancellationToken cancellationToken)
+		public static async Task PumpToAsync<T>(this IAsyncSource<T> source, IAsyncTarget<T> target, CancellationToken ct)
 		{
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			using (var pump = new AsyncPump<T>(source, target))
 			{
-				await pump.PumpAsync(stopOnFirstError: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+				await pump.PumpAsync(stopOnFirstError: true, ct: ct).ConfigureAwait(false);
 			}
 		}
 
 		/// <summary>Pump the content of a source into a list</summary>
-		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, CancellationToken cancellationToken)
+		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, CancellationToken ct)
 		{
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			var buffer = new FoundationDB.Linq.FdbAsyncEnumerable.Buffer<T>();
 
@@ -241,7 +241,7 @@ namespace FoundationDB.Async
 				(x, _) => buffer.Add(x)
 			);
 
-			await PumpToAsync<T>(source, target, cancellationToken).ConfigureAwait(false);
+			await PumpToAsync<T>(source, target, ct).ConfigureAwait(false);
 
 			return buffer.ToList();
 		}
@@ -270,19 +270,19 @@ namespace FoundationDB.Async
 			return new AsyncTransform<T, R>(transform, target, scheduler);
 		}
 
-		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken cancellationToken, int? maxConcurrency = null, TaskScheduler scheduler = null)
+		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken ct, int? maxConcurrency = null, TaskScheduler scheduler = null)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			using (var queue = CreateOrderPreservingAsyncBuffer<R>(maxConcurrency ?? 32))
 			{
 				using (var pipe = CreateAsyncTransform<T, R>(transform, queue, scheduler))
 				{
 					// start the output pump
-					var output = PumpToListAsync(queue, cancellationToken);
+					var output = PumpToListAsync(queue, ct);
 
 					// start the intput pump
-					var input = PumpToAsync(source, pipe, cancellationToken);
+					var input = PumpToAsync(source, pipe, ct);
 
 					await Task.WhenAll(input, output).ConfigureAwait(false);
 

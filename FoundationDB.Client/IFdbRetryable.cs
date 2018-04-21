@@ -41,58 +41,58 @@ namespace FoundationDB.Client
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task WriteAsync([NotNull, InstantHandle]  Action<IFdbTransaction> handler, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull, InstantHandle]  Action<IFdbTransaction> handler, CancellationToken ct);
 
 		/// <summary>Run an idempotent transactional block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent async handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task WriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> handler, CancellationToken ct);
 
 		/// <summary>Run an idempotent transactional block inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="asyncHandler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken);
+		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct);
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="asyncHandler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result of the lambda function if the transaction committed successfully.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<R> ReadWriteAsync<R>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
+		Task<R> ReadWriteAsync<R>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct);
 
 		//REVIEW: should we keep these ?
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task WriteAsync([NotNull, InstantHandle]  Action<IFdbTransaction> handler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull, InstantHandle]  Action<IFdbTransaction> handler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task WriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> handler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> handler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task<R> ReadWriteAsync<R>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task<R> ReadWriteAsync<R>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
 	}
 
 }

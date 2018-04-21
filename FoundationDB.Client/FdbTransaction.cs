@@ -311,7 +311,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
 #endif
 
-			return m_handler.GetAsync(key, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetAsync(key, snapshot: false, ct: m_cancellation);
 		}
 
 		#endregion
@@ -334,7 +334,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length));
 #endif
 
-			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetValuesAsync(keys, snapshot: false, ct: m_cancellation);
 		}
 
 		#endregion
@@ -364,7 +364,7 @@ namespace FoundationDB.Client
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, ct: m_cancellation);
 		}
 
 		#endregion
@@ -417,7 +417,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
 #endif
 
-			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: m_cancellation).ConfigureAwait(false);
+			var key = await m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation).ConfigureAwait(false);
 
 			// don't forget to truncate keys that would fall outside of the database's globalspace !
 			return m_database.BoundCheck(key);
@@ -445,7 +445,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", String.Format("Getting batch of {0} keys ...", selectors.Length));
 #endif
 
-			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetKeysAsync(selectors, snapshot: false, ct: m_cancellation);
 		}
 
 		#endregion
@@ -635,7 +635,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
 #endif
 
-			return m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_cancellation);
+			return m_handler.GetAddressesForKeyAsync(key, ct: m_cancellation);
 		}
 
 		#endregion
@@ -683,12 +683,12 @@ namespace FoundationDB.Client
 		/// Watch a key for any change in the database.
 		/// </summary>
 		/// <param name="key">Key to watch</param>
-		/// <param name="cancellationToken">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
+		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
-		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property</remarks>
-		public FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		/// <remarks>You can directly await an FdbWatch, or obtain a <see cref="Task{T}">Task&lt;Slice&gt;</see> by reading the <see cref="FdbWatch.Task"/> property</remarks>
+		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 			EnsureCanRead();
 
 			m_database.EnsureKeyIsValid(ref key);
@@ -699,14 +699,14 @@ namespace FoundationDB.Client
 			key = key.Memoize();
 
 #if DEBUG
-			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
+			if (Logging.On) Logging.Verbose(this, "WatchAsync", $"Watching key '{key.ToString()}'");
 #endif
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return m_handler.Watch(key, cancellationToken);
+			return m_handler.Watch(key, ct);
 		}
 
 		#endregion
@@ -725,7 +725,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRetry();
 
-			await m_handler.OnErrorAsync(code, cancellationToken: m_cancellation).ConfigureAwait(false);
+			await m_handler.OnErrorAsync(code, ct: m_cancellation).ConfigureAwait(false);
 
 			// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
 			var state = this.State;

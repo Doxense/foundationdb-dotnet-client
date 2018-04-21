@@ -49,13 +49,13 @@ namespace FoundationDB.Client
 
 		internal SliceListStream([NotNull] Slice[] slices)
 		{
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 			Init(slices);
 		}
 
 		public SliceListStream([NotNull] IEnumerable<Slice> slices)
 		{
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 			Init(slices.ToArray());
 		}
 
@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 		public override long Seek(long offset, SeekOrigin origin)
 		{
 			if (m_slices == null) StreamIsClosed();
-			if (offset > int.MaxValue) throw new ArgumentOutOfRangeException("offset");
+			if (offset > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(offset));
 
 			switch (origin)
 			{
@@ -247,13 +247,13 @@ namespace FoundationDB.Client
 
 #if !NET_4_0
 
-		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
 			ValidateBuffer(buffer, offset, count);
 
-			if (cancellationToken.IsCancellationRequested)
+			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<int>(cancellationToken);
+				return TaskHelpers.FromCancellation<int>(ct);
 			}
 
 			try
@@ -288,7 +288,7 @@ namespace FoundationDB.Client
 
 #if !NET_4_0
 
-		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
+		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
 			return TaskHelpers.FromException<object>(new NotSupportedException());
 		}
@@ -300,7 +300,7 @@ namespace FoundationDB.Client
 			// Not supported, but don't throw here
 		}
 
-		public override Task FlushAsync(System.Threading.CancellationToken cancellationToken)
+		public override Task FlushAsync(System.Threading.CancellationToken ct)
 		{
 			// Not supported, but don't throw here
 			return TaskHelpers.CompletedTask;
@@ -310,9 +310,9 @@ namespace FoundationDB.Client
 
 		private static void ValidateBuffer(byte[] buffer, int offset, int count)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
+			if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
 			if (offset > buffer.Length - count) throw new ArgumentException("Offset and count must fit inside the buffer");
 		}
 

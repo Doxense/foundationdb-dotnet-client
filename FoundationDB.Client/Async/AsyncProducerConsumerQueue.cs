@@ -65,7 +65,7 @@ namespace FoundationDB.Async
 			m_capacity = capacity;
 		}
 
-		public abstract Task OnNextAsync(T value, CancellationToken cancellationToken);
+		public abstract Task OnNextAsync(T value, CancellationToken ct);
 
 		public abstract void OnCompleted();
 

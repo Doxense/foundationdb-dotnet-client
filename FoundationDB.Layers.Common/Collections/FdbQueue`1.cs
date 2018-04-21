@@ -69,8 +69,8 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
 		public FdbQueue([NotNull] IKeySubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			this.Subspace = subspace.Using(TypeSystem.Tuples);
 			this.HighContention = highContention;
@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Remove all items from the queue.</summary>
 		public void Clear([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.ClearRange(this.Subspace);
 		}
@@ -108,7 +108,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the queue.</summary>
 		public async Task PushAsync([NotNull] IFdbTransaction trans, T value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 #if DEBUG
 			trans.Annotate("Push({0})", value);
@@ -124,22 +124,22 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Optional<T>> PopAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
+		public Task<Optional<T>> PopAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			if (cancellationToken.IsCancellationRequested)
+			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<Optional<T>>(cancellationToken);
+				return TaskHelpers.FromCancellation<Optional<T>>(ct);
 			}
 
 			if (this.HighContention)
 			{
-				return PopHighContentionAsync(db, cancellationToken);
+				return PopHighContentionAsync(db, ct);
 			}
 			else
 			{
-				return db.ReadWriteAsync((tr) => this.PopSimpleAsync(tr), cancellationToken);
+				return db.ReadWriteAsync((tr) => PopSimpleAsync(tr), ct);
 			}
 		}
 
@@ -165,86 +165,86 @@ namespace FoundationDB.Layers.Collections
 
 		#region Bulk Operations
 
-		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				(kvs, offset, ct) =>
+				(kvs, offset, _) =>
 				{
 					foreach(var kv in kvs)
 					{
-						if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 						handler(this.Encoder.DecodeValue(kv.Value), offset);
 						++offset;
 					}
 					return TaskHelpers.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				async (kvs, offset, ct) =>
+				async (kvs, offset, _) =>
 				{
 					foreach (var kv in kvs)
 					{
-						if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 						await handler(this.Encoder.DecodeValue(kv.Value), offset);
 						++offset;
 					}
 				},
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				(kvs, offset, ct) =>
+				(kvs, offset, _) =>
 				{
 					handler(this.Encoder.DecodeValues(kvs), offset);
 					return TaskHelpers.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				(kvs, offset, ct) => handler(this.Encoder.DecodeValues(kvs), offset),
-				cancellationToken
+				(kvs, offset, _) => handler(this.Encoder.DecodeValues(kvs), offset),
+				ct
 			);
 		}
 

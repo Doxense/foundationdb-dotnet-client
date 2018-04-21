@@ -57,23 +57,23 @@ namespace FoundationDB.Linq
 			return new FdbSelectManyAsyncIterator<TSource, TResult>(m_source, m_selector);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
 
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
 
 				if (m_batch == null)
 				{
 
-					if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+					if (!await m_iterator.MoveNextAsync(ct).ConfigureAwait(false))
 					{ // inner completed
 						return Completed();
 					}
 
-					if (cancellationToken.IsCancellationRequested) break;
+					if (ct.IsCancellationRequested) break;
 
 					IEnumerable<TResult> sequence;
 					if (!m_selector.Async)
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq
 					}
 					else
 					{
-						sequence = await m_selector.InvokeAsync(m_iterator.Current, cancellationToken).ConfigureAwait(false);
+						sequence = await m_selector.InvokeAsync(m_iterator.Current, ct).ConfigureAwait(false);
 					}
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
@@ -100,7 +100,7 @@ namespace FoundationDB.Linq
 				return Publish(m_batch.Current);
 			}
 
-			return Canceled(cancellationToken);
+			return Canceled(ct);
 		}
 
 		protected override void Cleanup()
@@ -149,23 +149,23 @@ namespace FoundationDB.Linq
 			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_resultSelector);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
 
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
 
 				if (m_batch == null)
 				{
 
-					if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+					if (!await m_iterator.MoveNextAsync(ct).ConfigureAwait(false))
 					{ // inner completed
 						return Completed();
 					}
 
-					if (cancellationToken.IsCancellationRequested) break;
+					if (ct.IsCancellationRequested) break;
 
 					m_sourceCurrent = m_iterator.Current;
 
@@ -177,7 +177,7 @@ namespace FoundationDB.Linq
 					}
 					else
 					{
-						sequence = await m_collectionSelector.InvokeAsync(m_sourceCurrent, cancellationToken).ConfigureAwait(false);
+						sequence = await m_collectionSelector.InvokeAsync(m_sourceCurrent, ct).ConfigureAwait(false);
 					}
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
@@ -196,7 +196,7 @@ namespace FoundationDB.Linq
 				return Publish(m_resultSelector(m_sourceCurrent, m_batch.Current));
 			}
 
-			return Canceled(cancellationToken);
+			return Canceled(ct);
 		}
 
 		protected override void Cleanup()

@@ -65,29 +65,29 @@ namespace FoundationDB.Client
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="asyncHandler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken);
+		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct);
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="asyncHandler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<T> ReadAsync<T>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<T>> asyncHandler, CancellationToken cancellationToken);
+		Task<T> ReadAsync<T>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<T>> asyncHandler, CancellationToken ct);
 
 		//REVIEW: should we keep these ?
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
+		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task<T> ReadAsync<T>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<T>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
+		Task<T> ReadAsync<T>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<T>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct);
 
 	}
 

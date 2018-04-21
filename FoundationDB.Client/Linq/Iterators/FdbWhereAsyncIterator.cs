@@ -54,16 +54,16 @@ namespace FoundationDB.Linq
 			return new FdbWhereAsyncIterator<TSource>(m_source, m_filter);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(ct).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}
 
-				if (cancellationToken.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				TSource current = m_iterator.Current;
 				if (!m_filter.Async)
@@ -75,7 +75,7 @@ namespace FoundationDB.Linq
 				}
 				else
 				{
-					if (!await m_filter.InvokeAsync(current, cancellationToken).ConfigureAwait(false))
+					if (!await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
 					{
 						continue;
 					}
@@ -84,7 +84,7 @@ namespace FoundationDB.Linq
 				return Publish(current);
 			}
 
-			return Canceled(cancellationToken);
+			return Canceled(ct);
 		}
 
 		public override FdbAsyncIterator<TSource> Where(Func<TSource, bool> predicate)

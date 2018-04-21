@@ -274,11 +274,11 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		public override FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			var cmd = new FdbTransactionLog.WatchCommand(Grab(key));
 			this.Log.AddOperation(cmd);
-			return m_transaction.Watch(cmd.Key, cancellationToken);
+			return m_transaction.Watch(cmd.Key, ct);
 		}
 
 		#endregion

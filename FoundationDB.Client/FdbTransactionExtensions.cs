@@ -626,15 +626,15 @@ namespace FoundationDB.Client
 		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
-		public static async Task<FdbWatch> GetAndWatchAsync([NotNull] this IFdbTransaction trans, Slice key, CancellationToken cancellationToken)
+		public static async Task<FdbWatch> GetAndWatchAsync([NotNull] this IFdbTransaction trans, Slice key, CancellationToken ct)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			var value = await trans.GetAsync(key);
-			var watch = trans.Watch(key, cancellationToken);
+			var watch = trans.Watch(key, ct);
 			watch.Value = value;
 
 			return watch;
@@ -644,15 +644,15 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
-		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch([NotNull] this IFdbTransaction trans, Slice key, Slice value, CancellationToken cancellationToken)
+		public static FdbWatch SetAndWatch([NotNull] this IFdbTransaction trans, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			trans.Set(key, value);
-			var watch = trans.Watch(key, cancellationToken);
+			var watch = trans.Watch(key, ct);
 			watch.Value = value;
 
 			return watch;
@@ -664,13 +664,13 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
 		/// <param name="encoder">Encoder use to convert <paramref name="value"/> into a slice</param>
-		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch<TValue>([NotNull] this IFdbTransaction trans, Slice key, TValue value, [NotNull] IValueEncoder<TValue> encoder, CancellationToken cancellationToken)
+		public static FdbWatch SetAndWatch<TValue>([NotNull] this IFdbTransaction trans, Slice key, TValue value, [NotNull] IValueEncoder<TValue> encoder, CancellationToken ct)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			cancellationToken.ThrowIfCancellationRequested();
-			return SetAndWatch(trans, key, encoder.EncodeValue(value), cancellationToken);
+			ct.ThrowIfCancellationRequested();
+			return SetAndWatch(trans, key, encoder.EncodeValue(value), ct);
 		}
 
 		#endregion
@@ -819,10 +819,10 @@ namespace FoundationDB.Client
 		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successfull call to <paramref name="handler"/>.</returns>
 		[ItemNotNull]
-		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken cancellationToken)
+		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -834,7 +834,7 @@ namespace FoundationDB.Client
 					if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
 					return query.ToListAsync();
 				},
-				cancellationToken
+				ct
 			);
 		}
 

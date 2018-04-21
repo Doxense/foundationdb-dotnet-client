@@ -241,7 +241,7 @@ namespace FoundationDB.Layers.Messaging
 			{
 				Interlocked.Increment(ref m_schedulingMessages);
 			},
-			cancellationToken: ct).ConfigureAwait(false);
+			ct: ct).ConfigureAwait(false);
 		}
 
 		static int counter = 0;
@@ -356,7 +356,7 @@ namespace FoundationDB.Layers.Messaging
 							previousTaskId = Slice.Nil;
 							workerId = myId;
 						},
-						cancellationToken: ct
+						ct: ct
 					).ConfigureAwait(false);
 
 					if (msg.Id.IsNullOrEmpty)

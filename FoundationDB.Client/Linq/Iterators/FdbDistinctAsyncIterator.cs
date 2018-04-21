@@ -64,17 +64,17 @@ namespace FoundationDB.Linq
 			return base.OnFirstAsync(ct);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
-			while (!cancellationToken.IsCancellationRequested)
+			while (!ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+				if (!await m_iterator.MoveNextAsync(ct).ConfigureAwait(false))
 				{ // completed
 					m_set = null;
 					return Completed();
 				}
 
-				if (cancellationToken.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
 				TSource current = m_iterator.Current;
 				if (!m_set.Add(current))
@@ -86,7 +86,7 @@ namespace FoundationDB.Linq
 			}
 
 			m_set = null;
-			return Canceled(cancellationToken);
+			return Canceled(ct);
 		}
 
 		public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)
