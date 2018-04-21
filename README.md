@@ -10,52 +10,52 @@ How to use
 
 ```CSharp
 
-// note: most operations require a valid CancellationToken, which you need to provide
-CancellationToken token = ....; // host-provided cancellation token
+// note: most operations require a valid CancellationToken, which you need to obtain from the context (HTTP request, component lifetime, timeout, ...)
+CancellationToken cancel = ....;
 
 // Connect to the db "DB" using the default cluster file
 using (var db = await Fdb.OpenAsync())
 {
     // we will use a "Test" directory to isolate our test data
-    var location = await db.Directory.CreateOrOpenAsync("Test", token);
-	// this location will remember the allocated prefix, and
-	// automatically add it as a prefix to all our keys
+    var location = await db.Directory.CreateOrOpenAsync("Test", cancel);
+    // this location will remember the allocated prefix, and
+    // automatically add it as a prefix to all our keys
     
     // we need a transaction to be able to make changes to the db
-    // note: production code should use "db.WriteAsync(..., token)" instead
-    using (var trans = db.BeginTransaction(token))
+    // note: production code should use "db.WriteAsync(..., cancel)" instead
+    using (var trans = db.BeginTransaction(cancel))
     {
-	    // For our convenience, we will use the Tuple Encoding format for our keys,
-		// which is accessible via the "location.Keys" helper. We could have used
-		// any other encoding for the keys. Tuples are simple to use and have some
-		// intereseting ordering properties that make it easy to work with.
-		// => All our keys will be encoded as the packed tuple ({Test}, "foo"),
-		//    making them very nice and compact. We could also use integers or GUIDs
-		//    for the keys themselves.
-	
+        // For our convenience, we will use the Tuple Encoding format for our keys,
+        // which is accessible via the "location.Keys" helper. We could have used
+        // any other encoding for the keys. Tuples are simple to use and have some
+        // intereseting ordering properties that make it easy to work with.
+        // => All our keys will be encoded as the packed tuple ({Test}, "foo"),
+        //    making them very nice and compact. We could also use integers or GUIDs
+        //    for the keys themselves.
+
         // Set "Hello" key to "World"
-        trans.Set(			
-			location.Keys.Encode("Hello"),
-			Slice.FromString("World") // UTF-8 encoded string
-		);
+        trans.Set(
+            location.Keys.Encode("Hello"),
+            Slice.FromString("World") // UTF-8 encoded string
+        );
 
         // Set "Count" key to 42
         trans.Set(
-			location.Keys.Encode("Count"),
-			Slice.FromInt32(42) // 1 byte
-		);
+            location.Keys.Encode("Count"),
+            Slice.FromInt32(42) // 1 byte
+        );
         
         // Atomically add 123 to "Total"
         trans.AtomicAdd(
-			location.Keys.Encode("Total"),
-			Slice.FromFixed32(123) // 4 bytes, Little Endian
-		);
+            location.Keys.Encode("Total"),
+            Slice.FromFixed32(123) // 4 bytes, Little Endian
+        );
 
         // Set bits 3, 9 and 30 in the bit map stored in the key "Bitmap"
         trans.AtomicOr(
-			location.Keys.Encode("Bitmap"),
-			Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)) // 4 bytes, Little Endian
-		);
+            location.Keys.Encode("Bitmap"),
+            Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)) // 4 bytes, Little Endian
+        );
         
         // commit the changes to the db
         await trans.CommitAsync();
@@ -64,9 +64,9 @@ using (var db = await Fdb.OpenAsync())
     }
     
     // we also need a transaction to read from the db
-    // note: production code should use "db.ReadAsync(..., token)" instead.
-    using (var trans = db.BeginReadOnlyTransaction(token))
-    {  
+    // note: production code should use "db.ReadAsync(..., cancel)" instead.
+    using (var trans = db.BeginReadOnlyTransaction(cancel))
+    {
         // Read ("Test", "Hello", ) as a string
         Slice value = await trans.GetAsync(location.Keys.Encode("Hello"));
         Console.WriteLine(value.ToUnicode()); // -> World
@@ -74,7 +74,7 @@ using (var db = await Fdb.OpenAsync())
         // Read ("Test", "Count", ) as an int
         value = await trans.GetAsync(location.Keys.Encode("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
-    
+
         // missing keys give a result of Slice.Nil, which is the equivalent
         // of "key not found". 
         value = await trans.GetAsync(location.Keys.Encode("NotFound"));
@@ -92,13 +92,13 @@ using (var db = await Fdb.OpenAsync())
 
     // First we will create a subdirectory for our little array,
     // just so that is does not interfere with other things in the cluster.
-    var list = await location.CreateOrOpenAsync(db, "List", token);
+    var list = await location.CreateOrOpenAsync(db, "List", cancel);
 
-	// here we will use db.WriteAsync(...) that implements a retry loop.
-	// this helps protect you against intermitent failures by automatically
-	// retrying the lambda method you provided.
-	await db.WriteAsync((trans) =>
-	{
+    // here we will use db.WriteAsync(...) that implements a retry loop.
+    // this helps protect you against intermitent failures by automatically
+    // retrying the lambda method you provided.
+    await db.WriteAsync((trans) =>
+    {
         // add some data to the list with the format: (..., index) = value
         trans.Set(list.Keys.Encode(0), Slice.FromString("AAA"));
         trans.Set(list.Keys.Encode(1), Slice.FromString("BBB"));
@@ -129,8 +129,8 @@ using (var db = await Fdb.OpenAsync())
         // If something goes wrong with the database, this lambda will be called again,
         // until the problems goes away, or the retry loop decides that there is no point
         // in retrying anymore, and the exception will be re-thrown.
-        
-	}, token); // don't forget the cancellation token, which can stop the retry loop !
+
+    }, cancel); // don't forget the CancellationToken, which can stop the retry loop !
 
     // We can read everything back in one shot, using an async "LINQ" query.
     var results = await db.QueryAsync((trans) =>
@@ -138,7 +138,7 @@ using (var db = await Fdb.OpenAsync())
         // do a range query on the list subspace, which should return all the pairs
         // in the subspace, one for each entry in the array.
         // We exploit the fact that subspace.Tuples.ToRange() usually does not include
-		// the subspace prefix itself, because we don't want our counter to be returned
+        // the subspace prefix itself, because we don't want our counter to be returned
         // with the query itself.
         return trans
             // ask for all keys that are _inside_ our subspace
@@ -157,11 +157,11 @@ using (var db = await Fdb.OpenAsync())
             // fetch ALL the values from the db!
             .Where((kvp) => kvp.Key % 2 == 0);
 
-	    // note that QueryAsync() is a shortcut for calling ReadAsync(...) and then
-	    // calling ToListAsync() on the async LINQ Query. If you want to call a
-	    // different operator than ToListAsync(), just use ReadAsync()
+        // note that QueryAsync() is a shortcut for calling ReadAsync(...) and then
+        // calling ToListAsync() on the async LINQ Query. If you want to call a
+        // different operator than ToListAsync(), just use ReadAsync()
             
-    }, token);
+    }, cancel);
 
     // results.Count -> 2
     // results[0] -> KeyValuePair<int, string>(0, "AAA")
@@ -188,14 +188,14 @@ Please note that the above sample is ok for a simple HelloWorld.exe app, but for
 
 - You should NEVER block on Tasks by using .Wait() from non-async code. This will either dead-lock your application, or greatly degrade the performances. If you cannot do otherwise (ex: top-level call in a `void Main()` then at least wrap your code inside a `static async Task MainAsync(string[] args)` method, and do a `MainAsync(args).GetAwaiter().GetResult()`.
 
-- Don't give in, and resist the tentation of passing `CancellationToken.None` everywhere! Try to obtain a valid `CancellationToken` from your execution context (HTTP host, Task Worker environment, ...). This will allow the environment to safely shutdown and abort all pending transactions, without any risks of data corruption. If you don't have any easy source (like in a unit test framework), then at list provide you own using a global `CancellationTokenSource` that you can `Cancel()` in your shutdown code path. From inside your transactional code, you can get back the token anytime via the `tr.Cancellation` property which will trigger if the transaction completes or is aborted.
+- Don't give in, and resist the tenmptation of passing `CancellationToken.None` everywhere! Try to obtain a valid `CancellationToken` from your execution context (HTTP host, Task Worker environment, ...). This will allow the environment to safely shutdown and abort all pending transactions, without any risks of data corruption. If you don't have any easy source (like in a unit test framework), then at list provide you own using a global `CancellationTokenSource` that you can `Cancel()` in your shutdown code path. From inside your transactional code, you can get back the token anytime via the `tr.Cancellation` property which will trigger if the transaction completes or is aborted.
 
 How to build
 ------------
 
 ### Visual Studio Solution
 
-You will need Visual Studio .NET 2012 or 2013 and .NET 4.6.1 minimum to compile the solution.
+You will need Visual Studio .NET 2017 and .NET 4.6.1 minimum to compile the solution.
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, by installing the client SDK:
 
@@ -254,7 +254,7 @@ Hosting on IIS
 * The underlying client library will not run on a 32-bit Application Pool. You will need to move your web application to a 64-bit Application Pool.
 * If you are using IIS Express with an ASP.NET or ASP.NET MVC application from Visual Studio, you need to configure your IIS Express instance to run in 64-bit. With Visual Studio 2013, this can be done by checking Tools | Options | Projects and Solutions | Web Projects | Use the 64 bit version of IIS Express for web sites and projects
 * The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. See http://community.foundationdb.com/questions/1146/using-foundationdb-in-a-webapi-2-project for more details. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
-* If you don't use the host's cancellation token for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
+* If you don't use the host's CancellationToken for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
 
 Hosting on OWIN
 ---------------
@@ -298,4 +298,3 @@ Contributing
 ------------
 
 * It is important to point out that this solution uses tabs instead of spaces for various reasons. In order to ease the transition for people who want to start contributing and avoid having to switch their Visual Studio configuration manually an .editorconfig file has been added to the root folder of the solution. The easiest way to use this is to install the [Extension for Visual Studio](http://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328). This will switch visual studio's settings for white space in csharp files to use tabs.
-
