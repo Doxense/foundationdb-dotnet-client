@@ -180,7 +180,7 @@ Please note that the above sample is ok for a simple HelloWorld.exe app, but for
 
 - You should NOT open a new connection (`Fdb.OpenAsync()`) everytime you need to read or write something. You should open a single database instance somewhere in your startup code, and use that instance everywhere. If you are using a Repository pattern, you can store the IFdbDatabase instance there. Another option is to use a Dependency Injection framework
 
-- You should probably not create and transactions yourself (`db.CreateTransaction()`), and instead prefer using the standard retry loops implemented by `db.ReadAsync(...)`, `db.WriteAsync(...)` and `db.ReadWriteAsync(...)` which will handle all the gory details for you. They will ensure that your transactions are retried in case of conflicts or transient errors. See https://foundationdb.com/key-value-store/documentation/developer-guide.html#conflict-ranges
+- You should probably not create and transactions yourself (`db.CreateTransaction()`), and instead prefer using the standard retry loops implemented by `db.ReadAsync(...)`, `db.WriteAsync(...)` and `db.ReadWriteAsync(...)` which will handle all the gory details for you. They will ensure that your transactions are retried in case of conflicts or transient errors. See https://apple.github.io/foundationdb/developer-guide.html#conflict-ranges
 
 - Use the `Tuple Layer` to encode and decode your keys, if possible. This will give you a better experience overall, since all the logging filters and key formatters will try to decode tuples by default, and display `(42, "hello", true)` instead of the cryptic `<15>*<02>hello<00><15><01>`. For simple values like strings (ex: JSON text) or 32-bit/64-bit numbers, you can also use `Slice.FromString(...)`, or `Slice.FromInt32(...)`. For composite values, you can also use the Tuple encoding, if the elements types are simple (string, numbers, dates, ...). You can also use custom encoders via the `IKeyEncoder<T>` and `IValueEncoder<T>`, which you can get from the helper class `KeyValueEncoders`, or roll your own by implementing these interfaces.
 
@@ -197,9 +197,9 @@ How to build
 
 You will need Visual Studio .NET 2017 and .NET 4.6.1 minimum to compile the solution.
 
-You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, by installing the client SDK:
+You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.org wesite, by installing the client SDK:
 
-* Go to http://foundationdb.com/get/ and download the Windows x64 MSI. You can use the free Community edition that gives you unlimited server processes for development and testing.
+* Go to https://www.foundationdb.org/download/ and download the Windows x64 MSI. You can use the free Community edition that gives you unlimited server processes for development and testing.
 * Install the MSI, selecting the default options.
 * Go to `C:\Program Files\foundationdb\bin\` and make sure that `fdb_c.dll` is there.
 * Open the FoundationDb.Client.sln file in Visual Studio 2012.
@@ -228,7 +228,7 @@ If you get `System.UnauthorizedAccessException: Access to the path './build/outp
 
 When building for Mono/Linux this version will look for `libfdb_c.so` instead of `fdb_c.dll`.
 
-More details on running FoundationDB on Linux can be found here: https://foundationdb.com/key-value-store/documentation/getting-started-linux.html
+More details on running FoundationDB on Linux can be found here: https://apple.github.io/foundationdb/getting-started-linux.html
 
 How to build the NuGet packages
 -------------------------------
@@ -253,7 +253,7 @@ Hosting on IIS
 * The .NET API is async-only, and should only be called inside async methods. You should NEVER write something like `tr.GetAsync(...).Wait()` or 'tr.GetAsync(...).Result' because it will GREATLY degrade performances and prevent you from scaling up past a few concurrent requests.
 * The underlying client library will not run on a 32-bit Application Pool. You will need to move your web application to a 64-bit Application Pool.
 * If you are using IIS Express with an ASP.NET or ASP.NET MVC application from Visual Studio, you need to configure your IIS Express instance to run in 64-bit. With Visual Studio 2013, this can be done by checking Tools | Options | Projects and Solutions | Web Projects | Use the 64 bit version of IIS Express for web sites and projects
-* The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. See http://community.foundationdb.com/questions/1146/using-foundationdb-in-a-webapi-2-project for more details. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
+* The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
 * If you don't use the host's CancellationToken for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
 
 Hosting on OWIN
@@ -265,7 +265,7 @@ Hosting on OWIN
 Implementation Notes
 --------------------
 
-Please refer to http://foundationdb.com/documentation/ to get an overview on the FoundationDB API, if you haven't already.
+Please refer to https://apple.github.io/foundationdb/ to get an overview on the FoundationDB API, if you haven't already.
 
 This .NET binding has been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
 
@@ -292,7 +292,7 @@ Known Limitations
 * The LINQ API is still a work in progress, and may change a lot. Simple LINQ queries, like Select() or Where() on the result of range queries (to convert Slice key/values into oter types) should work.
 * You cannot unload the fdb C native client from the process once the netork thread has started. You can stop the network thread once, but it does not support being restarted. This can cause problems when running under ASP.NET.
 * FoundationDB does not support long running batch or range queries if they take too much time. Such queries will fail with a 'past_version' error.
-* See https://foundationdb.com/documentation/known-limitations.html for other known limitations of the FoundationDB database.
+* See https://apple.github.io/foundationdb/known-limitations.html for other known limitations of the FoundationDB database.
 
 Contributing
 ------------
