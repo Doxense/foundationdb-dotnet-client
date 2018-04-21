@@ -12,7 +12,7 @@ namespace Doxense.Diagnostics.Contracts
 	using System.Runtime.CompilerServices;
 
 	[DebuggerNonUserCode]
-	public static class ThrowHelper
+	internal static class ThrowHelper
 	{
 
 		#region ArgumentNullException...

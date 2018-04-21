@@ -26,7 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+using FoundationDB.Client;
+
+namespace FoundationDB
 {
 	using System;
 	using System.Collections.Generic;
@@ -63,7 +65,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public static Slice Increment(Slice slice)
 		{
-			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", "slice");
+			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(slice));
 
 			int lastNonFFByte;
 			var tmp = slice.GetBytes();
@@ -91,8 +93,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
 		{
-			if (prefix.IsNull) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -120,8 +122,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
 		{
-			if (prefix.IsNull) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 

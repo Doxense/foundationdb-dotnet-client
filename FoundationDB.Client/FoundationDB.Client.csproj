@@ -223,6 +223,7 @@
     <Compile Include="Utils\DebugCounters.cs" />
     <Compile Include="TypeSystem\Encoders\KeyValueEncoders.cs" />
     <Compile Include="TypeSystem\TypeCodec`1.cs" />
+    <Compile Include="Utils\ExceptionExtensions.cs" />
     <Compile Include="Utils\ThrowHelper.cs" />
     <Compile Include="Utils\TinyJsonParser.cs" />
     <Compile Include="Utils\SlicePairComparer.cs" />

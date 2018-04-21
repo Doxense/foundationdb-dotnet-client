@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB
 {
 	using System;
 	using System.Collections.Generic;
@@ -133,7 +133,7 @@ namespace FoundationDB.Client.Utils
 		public KeyRange InternRangeFromKey(Slice key)
 		{
 			// Since the end key only adds \0 to the begin key, we can reuse the same bytes by making both overlap
-			var tmp = Intern(key, FdbKey.MinValue, aligned: true);
+			var tmp = Intern(key, Slice.FromByte(0), aligned: true);
 
 			return new KeyRange(
 				tmp.Substring(0, key.Count),

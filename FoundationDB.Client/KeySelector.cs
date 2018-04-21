@@ -26,7 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+
+namespace FoundationDB
 {
 	using System;
 	using System.Diagnostics;
@@ -34,7 +35,7 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 
 	/// <summary>Defines a selector for a key in the database</summary>
-	[DebuggerDisplay("{ToString()}")]
+	[DebuggerDisplay("{ToString(),nq}")]
 	public struct KeySelector : IEquatable<KeySelector>
 	{
 		/// <summary>Empty key selector</summary>

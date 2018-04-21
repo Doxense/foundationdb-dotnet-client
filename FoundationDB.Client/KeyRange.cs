@@ -26,21 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+
+namespace FoundationDB
 {
 	using System;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
 	public struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>
 	{
 		/// <summary>Returns an empty pair of keys</summary>
-		public static KeyRange Empty { get { return default(KeyRange); } }
+		public static KeyRange Empty => default(KeyRange);
 
 		/// <summary>Returns a range that contains all the keys in the database</summary>
-		public static KeyRange All { get { return new KeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
+		public static KeyRange All => new KeyRange(FdbKey.MinValue, FdbKey.MaxValue);
 
 		/// <summary>Start of the range</summary>
 		public Slice Begin { get { return m_begin; } }

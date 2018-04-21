@@ -28,22 +28,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
 	using System.Threading.Tasks;
+	using FoundationDB.Async;
+	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
+	using JetBrains.Annotations;
 
 	public partial class FdbTransactionLog
 	{
 
 		/// <summary>Base class of all types of operations performed on a transaction</summary>
-		[DebuggerDisplay("{ToString()}")]
+		[DebuggerDisplay("{ToString(),nq}")]
 		public abstract class Command
 		{
 

@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define USE_NATIVE_MEMORY_OPERATORS
 
-namespace FoundationDB.Client
+namespace FoundationDB
 {
 	using System;
 	using System.Runtime.CompilerServices;

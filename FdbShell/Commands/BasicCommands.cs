@@ -1,19 +1,21 @@
-﻿using FoundationDB.Client;
-using FoundationDB.Layers.Directories;
-using FoundationDB.Layers.Tuples;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
+﻿
 namespace FdbShell
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Globalization;
+	using System.IO;
+	using System.Linq;
+	using System.Net;
+	using System.Text;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using FoundationDB;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
+	using FoundationDB.Layers.Tuples;
+
 	public static class BasicCommands
 	{
 
