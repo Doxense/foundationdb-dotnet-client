@@ -28,17 +28,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using JetBrains.Annotations;
 
+	/// <summary>Represents a sub-partition of the global key space.</summary>
+	/// <remarks>
+	/// A subspace is the logical equivalent of a key prefix that is implicitly prepended to all keys generated from it.
+	/// A "vanilla" data subspace does not imply any encoding scheme by default, but can be wrapped into a more complex subspace which includes Key Codec.
+	/// </remarks>
+	/// 
+	/// <example>In pseudo code, and given a 'MySubspaceImpl' that implement <see cref="IKeySubspace"/>:
+	/// <code>
+	/// subspace = new MySubspaceImpl({ABC})
+	/// subspace.ConcatKey({123}) => {ABC123}
+	/// subspace.ExtractKey({ABC123}) => {123}
+	/// subspace.ExtractKey({DEF123}) => ERROR
+	/// </code>
+	/// </example>
 	[PublicAPI]
-	public interface IFdbSubspace
+	public interface IKeySubspace
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation
 
 		/// <summary>Returns the prefix of this subspace</summary>
-		Slice Key { [Pure] get; }
+		Slice GetPrefix();
 
 		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
@@ -54,7 +68,11 @@ namespace FoundationDB.Client
 		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
 		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
-		IFdbSubspace this[Slice suffix] { [Pure, NotNull] get; }
+		IKeySubspace this[Slice suffix]
+		{
+			[Pure, NotNull] get;
+		}
+		//REVIEW this should probably be renamed into GetSubspace(suffix) or Partition(suffix) in order to make it explicit that it is for creating subspaces instances that can be reused multiple times, and not single-use to generate a single key!
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="key">Key to test</param>
@@ -80,6 +98,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of <see cref="Slice"/> which is equivalent to calling <see cref="ConcatKey(Slice)"/> on each entry in <paramref name="suffixes"/></returns>
 		[Pure, NotNull]
 		Slice[] ConcatKeys([NotNull] IEnumerable<Slice> suffixes);
+		//REVIEW: could this be done via an extension method?
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
@@ -97,12 +116,14 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and at least one key in <paramref name="keys"/> is outside the current subspace.</exception>
 		[Pure, NotNull]
 		Slice[] ExtractKeys([NotNull] IEnumerable<Slice> keys, bool boundCheck = false);
+		//REVIEW: could this be done via an extension method?
 
 		/// <summary>Return a new slice buffer, initialized with the subspace prefix, that can be used for custom key serialization</summary>
 		/// <param name="capacity">If non-zero, the expected buffer capacity. The size of the subspace prefix will be added to this value.</param>
 		/// <returns>Instance of a SliceWriter with the prefix of this subspace already copied.</returns>
 		[Pure]
 		SliceWriter GetWriter(int capacity = 0);
+		//REVIEW: this is an internal implementation detail that may be moved to a different interface?
 
 	}
 

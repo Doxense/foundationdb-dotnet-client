@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Blobs
 	public class FdbHashSetCollection
 	{
 
-		public FdbHashSetCollection(IFdbSubspace subspace)
+		public FdbHashSetCollection(IKeySubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public IFdbDynamicSubspace Subspace { get; }
+		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
 		/// <param name="id"></param>

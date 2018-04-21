@@ -394,8 +394,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Partition.ByKey("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var minKey = location.Key + FdbKey.MinValue;
-				var maxKey = location.Key + FdbKey.MaxValue;
+				var minKey = location.GetPrefix() + FdbKey.MinValue;
+				var maxKey = location.GetPrefix() + FdbKey.MaxValue;
 
 				#region Insert a bunch of keys ...
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -483,7 +483,7 @@ namespace FoundationDB.Client.Tests
 			Slice key;
 
 			// note: we can't have any prefix on the keys, so open the test database in read-only mode
-			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, FdbSubspace.Empty, readOnly: true, cancellationToken: this.Cancellation))
+			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, KeySubspace.Empty, readOnly: true, cancellationToken: this.Cancellation))
 			{
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
@@ -586,8 +586,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Partition.ByKey("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var minKey = location.Key + FdbKey.MinValue;
-				var maxKey = location.Key + FdbKey.MaxValue;
+				var minKey = location.GetPrefix() + FdbKey.MinValue;
+				var maxKey = location.GetPrefix() + FdbKey.MaxValue;
 
 				#region Insert a bunch of keys ...
 				using (var tr = db.BeginTransaction(this.Cancellation))

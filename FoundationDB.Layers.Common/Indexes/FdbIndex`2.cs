@@ -44,11 +44,11 @@ namespace FoundationDB.Layers.Indexing
 	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbIndex([NotNull] string name, [NotNull] IFdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex([NotNull] string name, [NotNull] IKeySubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.CompositeKey<TValue, TId>())
 		{ }
 
-		public FdbIndex([NotNull] string name, [NotNull] IFdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
+		public FdbIndex([NotNull] string name, [NotNull] IKeySubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -63,9 +63,9 @@ namespace FoundationDB.Layers.Indexing
 
 		public string Name { [NotNull] get; private set; }
 
-		public IFdbSubspace Subspace { [NotNull] get; private set; }
+		public IKeySubspace Subspace { [NotNull] get; private set; }
 
-		protected IFdbEncoderSubspace<TValue, TId> Location { [NotNull] get; private set; }
+		protected ITypedKeySubspace<TValue, TId> Location { [NotNull] get; private set; }
 
 		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
 

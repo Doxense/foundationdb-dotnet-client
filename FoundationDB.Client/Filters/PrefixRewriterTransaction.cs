@@ -38,16 +38,16 @@ namespace FoundationDB.Filters
 	{
 		// We will add a prefix to all keys sent to the db, and remove it on the way back
 
-		private readonly IFdbSubspace m_prefix;
+		private readonly IKeySubspace m_prefix;
 
-		public PrefixRewriterTransaction(IFdbSubspace prefix, IFdbTransaction trans, bool ownsTransaction)
+		public PrefixRewriterTransaction(IKeySubspace prefix, IFdbTransaction trans, bool ownsTransaction)
 			: base(trans, false, ownsTransaction)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			m_prefix = prefix;
 		}
 
-		public IFdbSubspace Prefix { get { return m_prefix; } }
+		public IKeySubspace Prefix { get { return m_prefix; } }
 
 		private Slice Encode(Slice key)
 		{

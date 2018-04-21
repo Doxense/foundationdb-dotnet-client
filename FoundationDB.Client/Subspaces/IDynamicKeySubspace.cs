@@ -29,52 +29,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Diagnostics;
 	using JetBrains.Annotations;
 
-	public class FdbDynamicSubspace : FdbSubspace, IFdbDynamicSubspace
+	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size.</summary>
+	/// <remarks>This is usefull when dealing with subspaces that store keys of different types and shapes.</remarks>
+	/// <example>In pseudo code, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
+	/// <code>
+	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
+	/// subspace.GetPrefix() => {prefix}
+	/// subspace.Keys.Pack(("Hello", "World")) => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
+	/// subspace.Keys.Encode("Hello", "World") => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
+	/// subspace.Keys.Decode({prefix}'\x02Hello\x00\x15\x42') => ('Hello', 0x42)
+	/// </code>
+	/// </example>
+	[PublicAPI]
+	public interface IDynamicKeySubspace : IKeySubspace
 	{
-		/// <summary>Encoder for the keys of this subspace</summary>
-		private readonly IDynamicKeyEncoder m_encoder;
 
-		/// <summary>Create a new subspace from a binary prefix</summary>
-		/// <param name="rawPrefix">Prefix of the new subspace</param>
-		/// <param name="copy">If true, take a copy of the prefix</param>
-		/// <param name="encoder">Type System used to encode keys in this subspace (optional, will use Tuple Encoding by default)</param>
-		internal FdbDynamicSubspace(Slice rawPrefix, bool copy, IDynamicKeyEncoder encoder)
-			:  base (rawPrefix, copy)
-		{
-			this.m_encoder = encoder ?? TypeSystem.Default.GetDynamicEncoder();
-		}
+		/// <summary>Codec used by this subspace to convert keys into/from binary</summary>
+		[NotNull] 
+		IDynamicKeyEncoder Encoder {get; }
 
-		public FdbDynamicSubspace(Slice rawPrefix, IDynamicKeyEncoder encoder)
-			: this(rawPrefix, true, encoder)
-		{ }
-
-		protected override IFdbSubspace CreateChildren(Slice suffix)
-		{
-			return new FdbDynamicSubspace(ConcatKey(suffix), m_encoder);
-		}
-
-		public IDynamicKeyEncoder Encoder
-		{
-			get { return m_encoder; }
-		}
-
-		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
-		public FdbDynamicSubspaceKeys Keys
-		{
-			[DebuggerStepThrough]
-			get { return new FdbDynamicSubspaceKeys(this, m_encoder); }
-		}
+		/// <summary>View of the keys of this subspace</summary>
+		DynamicKeys Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		public FdbDynamicSubspacePartition Partition
-		{
-			//note: not cached, because this is probably not be called frequently (except in the init path)
-			[DebuggerStepThrough]
-			get { return new FdbDynamicSubspacePartition(this, m_encoder); }
-		}
+		DynamicPartition Partition { get; }
 
 	}
+
 }

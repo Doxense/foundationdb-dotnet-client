@@ -40,7 +40,7 @@ namespace FoundationDB.Layers.Directories
 		private readonly FdbDirectoryLayer m_parentDirectoryLayer;
 
 		internal FdbDirectoryPartition(ITuple location, ITuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FdbSubspace.CreateDynamic(prefix + FdbKey.Directory, TypeSystem.Tuples), FdbSubspace.CreateDynamic(prefix, TypeSystem.Tuples), location), LayerId, TypeSystem.Tuples.GetDynamicEncoder())
+			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(KeySubspace.CreateDynamic(prefix + FdbKey.Directory, TypeSystem.Tuples), KeySubspace.CreateDynamic(prefix, TypeSystem.Tuples), location), LayerId, TypeSystem.Tuples.GetDynamicEncoder())
 		{
 			m_parentDirectoryLayer = directoryLayer;
 		}

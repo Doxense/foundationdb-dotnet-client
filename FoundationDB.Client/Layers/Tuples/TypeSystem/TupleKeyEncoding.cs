@@ -32,7 +32,7 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using FoundationDB.Client;
 
-	public sealed class TupleKeyEncoding : IFdbKeyEncoding
+	public sealed class TupleKeyEncoding : IKeyEncoding
 	{
 		public IDynamicKeyEncoder GetDynamicEncoder()
 		{

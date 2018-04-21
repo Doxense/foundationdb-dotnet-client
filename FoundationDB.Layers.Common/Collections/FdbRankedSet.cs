@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Initializes a new ranked set at a given location</summary>
 		/// <param name="subspace">Subspace where the set will be stored</param>
-		public FdbRankedSet([NotNull] IFdbSubspace subspace)
+		public FdbRankedSet([NotNull] IKeySubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -65,7 +65,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Returns the number of items in the set.</summary>
 		/// <param name="trans"></param>

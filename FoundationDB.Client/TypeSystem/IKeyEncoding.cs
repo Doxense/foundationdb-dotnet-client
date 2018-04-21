@@ -31,8 +31,12 @@ using JetBrains.Annotations;
 
 namespace FoundationDB.Client //REVIEW: what namespace?
 {
-	/// <summary>Type system that handles values of arbitrary sizes and types</summary>
-	public interface IFdbKeyEncoding
+	/// <summary>Type system that handles encoding and decoding of differnt types of keys</summary>
+	/// <remarks>
+	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.
+	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.
+	/// </remarks>
+	public interface IKeyEncoding //REVIEW: rename to "IKeyEncodingScheme"? "IKeyTypeSystem"?
 	{
 
 		/// <summary>Returns an encoder which can process keys of any size and types</summary>

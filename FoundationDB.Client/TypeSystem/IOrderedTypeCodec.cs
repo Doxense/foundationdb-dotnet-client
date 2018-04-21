@@ -33,9 +33,11 @@ namespace FoundationDB.Client
 	public interface IOrderedTypeCodec<T>
 	{
 		void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
+
 		T DecodeOrderedSelfTerm(ref SliceReader input);
 
 		Slice EncodeOrdered(T value);
+
 		T DecodeOrdered(Slice input);
 	}
 

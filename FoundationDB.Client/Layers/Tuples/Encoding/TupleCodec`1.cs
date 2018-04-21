@@ -34,7 +34,7 @@ namespace FoundationDB.Layers.Tuples
 
 	/// <summary>Type codec that uses the Tuple Encoding format</summary>
 	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
-	public sealed class TupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
+	public sealed class TupleCodec<T> : TypeCodec<T>, IValueEncoder<T>
 	{
 
 		private static volatile TupleCodec<T> s_defaultSerializer;

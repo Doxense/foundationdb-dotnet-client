@@ -35,10 +35,10 @@ namespace FoundationDB.Client //REVIEW: what namespace?
 	public static class TypeSystem
 	{
 		[NotNull]
-		public static readonly IFdbKeyEncoding Default;
+		public static readonly IKeyEncoding Default;
 
 		[NotNull]
-		public static readonly IFdbKeyEncoding Tuples;
+		public static readonly IKeyEncoding Tuples;
 
 		static TypeSystem()
 		{

@@ -40,25 +40,25 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_Empty_Subspace_Is_Empty()
 		{
-			var subspace = FdbSubspace.Empty;
+			var subspace = KeySubspace.Empty;
 			Assert.That(subspace, Is.Not.Null, "FdbSubspace.Empty should not return null");
-			Assert.That(FdbSubspace.Empty, Is.SameAs(subspace), "FdbSubspace.Empty is a singleton");
+			Assert.That(KeySubspace.Empty, Is.SameAs(subspace), "FdbSubspace.Empty is a singleton");
 
-			Assert.That(subspace.Key.Count, Is.EqualTo(0), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
-			Assert.That(subspace.Key.HasValue, Is.True, "FdbSubspace.Empty.Key should be equal to Slice.Empty");
+			Assert.That(subspace.GetPrefix().Count, Is.EqualTo(0), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
+			Assert.That(subspace.GetPrefix().HasValue, Is.True, "FdbSubspace.Empty.Key should be equal to Slice.Empty");
 
-			Assert.That(FdbSubspace.Copy(subspace), Is.Not.SameAs(subspace));
+			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
 		}
 
 		[Test]
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Binary_Prefix()
 		{
-			var subspace = FdbSubspace.CreateDynamic(Slice.Create(new byte[] { 42, 255, 0, 127 }));
+			var subspace = KeySubspace.CreateDynamic(Slice.Create(new byte[] { 42, 255, 0, 127 }));
 
-			Assert.That(subspace.Key.ToString(), Is.EqualTo("*<FF><00><7F>"));
-			Assert.That(FdbSubspace.Copy(subspace), Is.Not.SameAs(subspace));
-			Assert.That(FdbSubspace.Copy(subspace).Key, Is.EqualTo(subspace.Key));
+			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("*<FF><00><7F>"));
+			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
+			Assert.That(KeySubspace.Copy(subspace).GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
 
 			// concat(Slice) should append the slice to the binary prefix directly
 			Assert.That(subspace.ConcatKey(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
@@ -92,12 +92,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_Subspace_Copy_Does_Not_Share_Key_Buffer()
 		{
-			var original = FdbSubspace.Create(Slice.FromString("Hello"));
-			var copy = FdbSubspace.Copy(original);
+			var original = KeySubspace.Create(Slice.FromString("Hello"));
+			var copy = KeySubspace.Copy(original);
 			Assert.That(copy, Is.Not.Null);
 			Assert.That(copy, Is.Not.SameAs(original), "Copy should be a new instance");
-			Assert.That(copy.Key, Is.EqualTo(original.Key), "Key should be equal");
-			Assert.That(copy.Key.Array, Is.Not.SameAs(original.Key.Array), "Key should be a copy of the original");
+			Assert.That(copy.GetPrefix(), Is.EqualTo(original.GetPrefix()), "Key should be equal");
+			Assert.That(copy.GetPrefix().Array, Is.Not.SameAs(original.GetPrefix().Array), "Key should be a copy of the original");
 
 			Assert.That(copy, Is.EqualTo(original), "Copy and original should be considered equal");
 			Assert.That(copy.ToString(), Is.EqualTo(original.ToString()), "Copy and original should have the same string representation");
@@ -107,8 +107,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_Cannot_Create_Or_Partition_Subspace_With_Slice_Nil()
 		{
-			Assert.That(() => new FdbSubspace(Slice.Nil), Throws.ArgumentException);
-			Assert.That(() => FdbSubspace.Create(Slice.Nil), Throws.ArgumentException);
+			Assert.That(() => new KeySubspace(Slice.Nil), Throws.ArgumentException);
+			Assert.That(() => KeySubspace.Create(Slice.Nil), Throws.ArgumentException);
 			//FIXME: typed subspaces refactoring !
 			//Assert.That(() => FdbSubspace.Empty.Partition[Slice.Nil], Throws.ArgumentException);
 			//Assert.That(() => FdbSubspace.Create(FdbKey.Directory).Partition[Slice.Nil], Throws.ArgumentException);
@@ -118,11 +118,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
-			var subspace = FdbSubspace.CreateDynamic(STuple.Create("hello"));
+			var subspace = KeySubspace.CreateDynamic(STuple.Create("hello"));
 
-			Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>hello<00>"));
-			Assert.That(FdbSubspace.Copy(subspace), Is.Not.SameAs(subspace));
-			Assert.That(FdbSubspace.Copy(subspace).Key, Is.EqualTo(subspace.Key));
+			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("<02>hello<00>"));
+			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
+			Assert.That(KeySubspace.Copy(subspace).GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
 
 			// concat(Slice) should append the slice to the tuple prefix directly
 			Assert.That(subspace.ConcatKey(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("<02>hello<00><04><03><02><01>"));
@@ -157,13 +157,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 		public void Test_Subspace_Partitioning_With_Binary_Suffix()
 		{
 			// start from a parent subspace
-			var parent = FdbSubspace.Empty.Using(TypeSystem.Tuples);
-			Assert.That(parent.Key.ToString(), Is.EqualTo("<empty>"));
+			var parent = KeySubspace.Empty.Using(TypeSystem.Tuples);
+			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<empty>"));
 
 			// create a child subspace using a tuple
 			var child = parent.Partition[FdbKey.Directory];
 			Assert.That(child, Is.Not.Null);
-			Assert.That(child.Key.ToString(), Is.EqualTo("<FE>"));
+			Assert.That(child.GetPrefix().ToString(), Is.EqualTo("<FE>"));
 
 			// create a key from this child subspace
 			var key = child.ConcatKey(Slice.FromFixed32(0x01020304));
@@ -172,13 +172,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 			// create another child
 			var grandChild = child.Partition[Slice.FromAscii("hello")];
 			Assert.That(grandChild, Is.Not.Null);
-			Assert.That(grandChild.Key.ToString(), Is.EqualTo("<FE>hello"));
+			Assert.That(grandChild.GetPrefix().ToString(), Is.EqualTo("<FE>hello"));
 
 			key = grandChild.ConcatKey(Slice.FromFixed32(0x01020304));
 			Assert.That(key.ToString(), Is.EqualTo("<FE>hello<04><03><02><01>"));
 
 			// cornercase
-			Assert.That(child.Partition[Slice.Empty].Key, Is.EqualTo(child.Key));
+			Assert.That(child.Partition[Slice.Empty].GetPrefix(), Is.EqualTo(child.GetPrefix()));
 		}
 
 		[Test]
@@ -186,13 +186,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 		public void Test_Subspace_Partitioning_With_Tuple_Suffix()
 		{
 			// start from a parent subspace
-			var parent = FdbSubspace.CreateDynamic(Slice.FromByte(254), TypeSystem.Tuples);
-			Assert.That(parent.Key.ToString(), Is.EqualTo("<FE>"));
+			var parent = KeySubspace.CreateDynamic(Slice.FromByte(254), TypeSystem.Tuples);
+			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<FE>"));
 
 			// create a child subspace using a tuple
 			var child = parent.Partition.ByKey("hca");
 			Assert.That(child, Is.Not.Null);
-			Assert.That(child.Key.ToString(), Is.EqualTo("<FE><02>hca<00>"));
+			Assert.That(child.GetPrefix().ToString(), Is.EqualTo("<FE><02>hca<00>"));
 
 			// create a tuple from this child subspace
 			var tuple = child.Keys.Append(123);
@@ -208,7 +208,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t2.ToSlice(), Is.EqualTo(t1.ToSlice()));
 
 			// cornercase
-			Assert.That(child.Partition[STuple.Empty].Key, Is.EqualTo(child.Key));
+			Assert.That(child.Partition[STuple.Empty].GetPrefix(), Is.EqualTo(child.GetPrefix()));
 
 		}
 

@@ -60,16 +60,16 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <remarks>Sparse entries will be assigned the value Slice.Empty</remarks>
-		public FdbVector([NotNull] FdbSubspace subspace)
+		public FdbVector([NotNull] KeySubspace subspace)
 			: this(subspace, default(T))
 		{ }
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector([NotNull] IFdbSubspace subspace, T defaultValue)
+		public FdbVector([NotNull] IKeySubspace subspace, T defaultValue)
 			: this(subspace, defaultValue, KeyValueEncoders.Tuples.Value<T>())
 		{ }
-		public FdbVector([NotNull] IFdbSubspace subspace, T defaultValue, [NotNull] IValueEncoder<T> encoder)
+		public FdbVector([NotNull] IKeySubspace subspace, T defaultValue, [NotNull] IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -81,7 +81,7 @@ namespace FoundationDB.Layers.Collections
 
 
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
-		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Default value for sparse entries</summary>
 		public T DefaultValue { get; private set; }

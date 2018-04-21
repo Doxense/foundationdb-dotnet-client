@@ -40,77 +40,51 @@ namespace FoundationDB.Client
 	[DebuggerDisplay("Database={Database.Name}, Partition={Directory.FullName}, Prefix={Database.GlobalSpace}")]
 	public sealed class FdbDatabasePartition : IFdbDirectory
 	{
-		private readonly IFdbDatabase m_database;
-		private readonly IFdbDirectory m_directory;
 
 		/// <summary>Wrap an existing database with a root directory</summary>
 		public FdbDatabasePartition(IFdbDatabase database, IFdbDirectory directory)
 		{
-			if (database == null) throw new ArgumentNullException("database");
-			if (directory == null) throw new ArgumentNullException("directory");
-
-			m_database = database;
-			m_directory = directory;
+			this.Database = database ?? throw new ArgumentNullException(nameof(database));
+			this.Directory = directory ?? throw new ArgumentNullException(nameof(directory));
 		}
 
 		/// <summary>Wrapped Directory instance</summary>
-		public IFdbDirectory Directory
-		{
-			[NotNull]
-			get { return m_directory; }
-		}
+		[NotNull]
+		public IFdbDirectory Directory { get; }
 
 		/// <summary>Wrapped Database instance</summary>
-		public IFdbDatabase Database
-		{
-			[NotNull]
-			get { return m_database; }
-		}
+		[NotNull]
+		public IFdbDatabase Database { get; }
 
 		/// <summary>Name of this <code>Partition</code>.</summary>
 		/// <remarks>This returns the last part of the path</remarks>
-		public string Name
-		{
-			get { return m_directory.Name; }
-		}
+		public string Name => this.Directory.Name;
 
 		/// <summary>Formatted path of this <code>Partition</code></summary>
 		/// <remarks>This returns the formatted path, using '/' as the separator</remarks>
-		public string FullName
-		{
-			[NotNull]
-			get { return m_directory.FullName; }
-		}
+		[NotNull]
+		public string FullName => this.Directory.FullName;
 
 		/// <summary>Gets the path represented by this <code>Partition</code>.</summary>
 		/// <remarks>Returns an empty list for the root partition of the database, or a non empty list for a sub-partition</remarks>
-		public IReadOnlyList<string> Path
-		{
-			[NotNull]
-			get { return m_directory.Path; }
-		}
+		[NotNull]
+		public IReadOnlyList<string> Path => this.Directory.Path;
 
 		/// <summary>Get the DirectoryLayer that was used to create this partition.</summary>
-		public FdbDirectoryLayer DirectoryLayer
-		{
-			[NotNull]
-			get { return m_directory.DirectoryLayer; }
-		}
+		[NotNull]
+		public FdbDirectoryLayer DirectoryLayer => this.Directory.DirectoryLayer;
 
 		#region Layer...
 
 		/// <summary>Returns "partition" (ASCII)</summary>
 		/// <remarks>This should be equal to <see cref="FdbDirectoryPartition.LayerId"/></remarks>
-		public Slice Layer
-		{
-			get { return m_directory.Layer; }
-		}
+		public Slice Layer => this.Directory.Layer;
 
 		void IFdbDirectory.CheckLayer(Slice layer)
 		{
 			if (layer.IsPresent && layer != this.Layer)
 			{
-				throw new InvalidOperationException(String.Format("The directory {0} is a partition which is not compatible with layer {1}.", this.FullName, layer.ToAsciiOrHexaString()));
+				throw new InvalidOperationException($"The directory {this.FullName} is a partition which is not compatible with layer {layer.ToAsciiOrHexaString()}.");
 			}
 		}
 
@@ -129,7 +103,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given path.
@@ -138,7 +112,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given path.
@@ -147,7 +121,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given path.
@@ -156,12 +130,12 @@ namespace FoundationDB.Client
 		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.CreateOrOpenAsync(IFdbTransaction trans, IEnumerable<string> subPath, Slice layer)
 		{
-			return m_directory.CreateOrOpenAsync(trans, subPath, layer);
+			return this.Directory.CreateOrOpenAsync(trans, subPath, layer);
 		}
 
 		#endregion
@@ -174,7 +148,7 @@ namespace FoundationDB.Client
 		/// <param name="name">Name of the subdirectory to open</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="name"/>.
@@ -184,7 +158,7 @@ namespace FoundationDB.Client
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -193,7 +167,7 @@ namespace FoundationDB.Client
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -203,12 +177,12 @@ namespace FoundationDB.Client
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, path, layer), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer)
 		{
-			return m_directory.OpenAsync(trans, path, layer);
+			return this.Directory.OpenAsync(trans, path, layer);
 		}
 
 		#endregion
@@ -222,7 +196,7 @@ namespace FoundationDB.Client
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.TryOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="name"/>.
@@ -233,7 +207,7 @@ namespace FoundationDB.Client
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -243,7 +217,7 @@ namespace FoundationDB.Client
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -254,12 +228,12 @@ namespace FoundationDB.Client
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, path, layer), cancellationToken);
+			return this.Database.ReadAsync((tr) => this.Directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer)
 		{
-			return m_directory.TryOpenAsync(trans, path, layer);
+			return this.Directory.TryOpenAsync(trans, path, layer);
 		}
 
 		#endregion
@@ -268,27 +242,27 @@ namespace FoundationDB.Client
 
 		public Task<FdbDirectorySubspace> CreateAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> CreateAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, new [] { name }, layer), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateAsync(tr, new [] { name }, layer), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> CreateAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, path, Slice.Nil), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> CreateAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, path, layer), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.CreateAsync(tr, path, layer), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.CreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
 		{
-			return m_directory.CreateAsync(trans, path, layer);
+			return this.Directory.CreateAsync(trans, path, layer);
 		}
 
 		#endregion
@@ -297,27 +271,27 @@ namespace FoundationDB.Client
 
 		public Task<FdbDirectorySubspace> TryCreateAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryCreateAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> TryCreateAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, new[] { name }, layer), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryCreateAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> TryCreateAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, path, Slice.Nil), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryCreateAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> TryCreateAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, path, layer), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryCreateAsync(tr, path, layer), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.TryCreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
 		{
-			return m_directory.TryCreateAsync(trans, path, layer);
+			return this.Directory.TryCreateAsync(trans, path, layer);
 		}
 
 		#endregion
@@ -330,7 +304,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		public Task<FdbDirectorySubspace> RegisterAsync([NotNull] string name, Slice layer, Slice prefix, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.RegisterAsync(tr, new[] { name }, layer, prefix), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.RegisterAsync(tr, new[] { name }, layer, prefix), cancellationToken);
 		}
 
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
@@ -339,12 +313,12 @@ namespace FoundationDB.Client
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		public Task<FdbDirectorySubspace> RegisterAsync([NotNull] IEnumerable<string> path, Slice layer, Slice prefix, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.RegisterAsync(tr, path, layer, prefix), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.RegisterAsync(tr, path, layer, prefix), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.RegisterAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer, Slice prefix)
 		{
-			return m_directory.RegisterAsync(trans, path, layer, prefix);
+			return this.Directory.RegisterAsync(trans, path, layer, prefix);
 		}
 
 		#endregion
@@ -353,12 +327,12 @@ namespace FoundationDB.Client
 
 		public Task<FdbDirectorySubspace> MoveAsync([NotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.MoveAsync(tr, oldPath, newPath), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.MoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
-			return m_directory.MoveAsync(trans, oldPath, newPath);
+			return this.Directory.MoveAsync(trans, oldPath, newPath);
 		}
 
 		#endregion
@@ -367,12 +341,12 @@ namespace FoundationDB.Client
 
 		public Task<FdbDirectorySubspace> TryMoveAsync([NotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryMoveAsync(tr, oldPath, newPath), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryMoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
-			return m_directory.TryMoveAsync(trans, oldPath, newPath);
+			return this.Directory.TryMoveAsync(trans, oldPath, newPath);
 		}
 
 		#endregion
@@ -399,17 +373,17 @@ namespace FoundationDB.Client
 
 		public Task RemoveAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.RemoveAsync(tr, new string[] { name }), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.RemoveAsync(tr, new string[] { name }), cancellationToken);
 		}
 
 		public Task RemoveAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.RemoveAsync(tr, path), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.RemoveAsync(tr, path), cancellationToken);
 		}
 
 		Task IFdbDirectory.RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
-			return m_directory.RemoveAsync(trans, path);
+			return this.Directory.RemoveAsync(trans, path);
 		}
 
 		#endregion
@@ -418,17 +392,17 @@ namespace FoundationDB.Client
 
 		public Task<bool> TryRemoveAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryRemoveAsync(tr, new string[] { name }), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryRemoveAsync(tr, new [] { name }), cancellationToken);
 		}
 
 		public Task<bool> TryRemoveAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryRemoveAsync(tr, path), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryRemoveAsync(tr, path), cancellationToken);
 		}
 
 		Task<bool> IFdbDirectory.TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
-			return m_directory.TryRemoveAsync(trans, path);
+			return this.Directory.TryRemoveAsync(trans, path);
 		}
 
 		#endregion
@@ -437,17 +411,17 @@ namespace FoundationDB.Client
 
 		public Task<bool> ExistsAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.ExistsAsync(tr, new string[] { name }), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.ExistsAsync(tr, new [] { name }), cancellationToken);
 		}
 
 		public Task<bool> ExistsAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.ExistsAsync(tr, path), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.ExistsAsync(tr, path), cancellationToken);
 		}
 
 		Task<bool> IFdbDirectory.ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			return m_directory.ExistsAsync(trans, path);
+			return this.Directory.ExistsAsync(trans, path);
 		}
 
 		#endregion
@@ -457,24 +431,24 @@ namespace FoundationDB.Client
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> ListAsync(CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.ListAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> ListAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr, new string[] { name }), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.ListAsync(tr, new string[] { name }), cancellationToken);
 		}
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> ListAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr, path), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.ListAsync(tr, path), cancellationToken);
 		}
 
 		Task<List<string>> IFdbDirectory.ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			return m_directory.ListAsync(trans, path);
+			return this.Directory.ListAsync(trans, path);
 		}
 
 		#endregion
@@ -486,7 +460,7 @@ namespace FoundationDB.Client
 		{
 			//REVIEW: is it possible for this method to fail on a top-level db partition?
 			// => it not, should be removed because it is a duplicate of ListAsync(..)
-			return m_database.ReadWriteAsync((tr) => m_directory.TryListAsync(tr), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryListAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
@@ -494,7 +468,7 @@ namespace FoundationDB.Client
 		{
 			//REVIEW: is it possible for this method to fail on a top-level db partition?
 			// => it not, should be removed because it is a duplicate of ListAsync(..)
-			return m_database.ReadWriteAsync((tr) => m_directory.TryListAsync(tr, new string[] { name }), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryListAsync(tr, new string[] { name }), cancellationToken);
 		}
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
@@ -502,12 +476,12 @@ namespace FoundationDB.Client
 		{
 			//REVIEW: is it possible for this method to fail on a top-level db partition?
 			// => it not, should be removed because it is a duplicate of ListAsync(..)
-			return m_database.ReadWriteAsync((tr) => m_directory.TryListAsync(tr, path), cancellationToken);
+			return this.Database.ReadWriteAsync((tr) => this.Directory.TryListAsync(tr, path), cancellationToken);
 		}
 
 		Task<List<string>> IFdbDirectory.TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			return m_directory.TryListAsync(trans, path);
+			return this.Directory.TryListAsync(trans, path);
 		}
 
 		#endregion

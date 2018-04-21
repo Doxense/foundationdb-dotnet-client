@@ -62,15 +62,15 @@ namespace FoundationDB.Layers.Messaging
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
-		public IFdbDynamicSubspace Subspace { get; }
+		public IDynamicKeySubspace Subspace { get; }
 
-		internal IFdbDynamicSubspace TaskStore { get; }
+		internal IDynamicKeySubspace TaskStore { get; }
 
-		internal IFdbDynamicSubspace IdleRing { get; }
+		internal IDynamicKeySubspace IdleRing { get; }
 
-		internal IFdbDynamicSubspace BusyRing { get; }
+		internal IDynamicKeySubspace BusyRing { get; }
 
-		internal IFdbDynamicSubspace UnassignedTaskRing { get; }
+		internal IDynamicKeySubspace UnassignedTaskRing { get; }
 
 		internal FdbCounterMap<int> Counters { get; }
 
@@ -106,7 +106,7 @@ namespace FoundationDB.Layers.Messaging
 
 		#endregion
 
-		public FdbWorkerPool(IFdbSubspace subspace)
+		public FdbWorkerPool(IKeySubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Messaging
 			this.Counters = new FdbCounterMap<int>(this.Subspace.Partition.ByKey(Slice.FromChar('C')));
 		}
 
-		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IFdbDynamicSubspace ring)
+		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IDynamicKeySubspace ring)
 		{
 			var range = ring.Keys.ToRange();
 
@@ -152,7 +152,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task PushQueueAsync(IFdbTransaction tr, IFdbDynamicSubspace queue, Slice taskId)
+		private async Task PushQueueAsync(IFdbTransaction tr, IDynamicKeySubspace queue, Slice taskId)
 		{
 			//TODO: use a high contention algo ?
 			// - must support Push and Pop
@@ -174,7 +174,7 @@ namespace FoundationDB.Layers.Messaging
 			var prefix = this.TaskStore.Partition.ByKey(taskId);
 
 			// store task body and timestamp
-			tr.Set(prefix.Key, taskBody);
+			tr.Set(prefix.GetPrefix(), taskBody);
 			tr.Set(prefix.Keys.Encode(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
 			// increment total and pending number of tasks
 			this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
@@ -320,7 +320,7 @@ namespace FoundationDB.Layers.Messaging
 								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(new [] {
-									prefix.Key,
+									prefix.GetPrefix(),
 									prefix.Keys.Encode(TASK_META_SCHEDULED)
 								}).ConfigureAwait(false);
 

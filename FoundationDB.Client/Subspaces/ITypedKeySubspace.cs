@@ -32,64 +32,64 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 
 	[PublicAPI]
-	public interface IFdbEncoderSubspace<T> : IFdbSubspace
+	public interface ITypedKeySubspace<T> : IKeySubspace
 	{
 
 		IKeyEncoder<T> Encoder { [NotNull] get; }
 
 		/// <summary>Return a view of all the possible keys of this subspace</summary>
-		FdbEncoderSubspaceKeys<T> Keys { get; }
+		TypedKeys<T> Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		FdbEncoderSubspacePartition<T> Partition { get; }
+		TypedSubspacePartition<T> Partition { get; }
 
 	}
 
-	public interface IFdbEncoderSubspace<T1, T2> : IFdbSubspace
+	public interface ITypedKeySubspace<T1, T2> : IKeySubspace
 	{
 
 		ICompositeKeyEncoder<T1, T2> Encoder {[NotNull] get; }
 
 		/// <summary>Return a view of all the possible keys of this subspace</summary>
-		FdbEncoderSubspaceKeys<T1, T2> Keys { get; }
+		TypedKeys<T1, T2> Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		FdbEncoderSubspacePartition<T1, T2> Partition { get; }
+		TypedSubspacePartition<T1, T2> Partition { get; }
 
-		IFdbEncoderSubspace<T1> Partial {[NotNull] get; }
+		ITypedKeySubspace<T1> Partial {[NotNull] get; }
 
 	}
 
-	public interface IFdbEncoderSubspace<T1, T2, T3> : IFdbSubspace
+	public interface ITypedKeySubspace<T1, T2, T3> : IKeySubspace
 	{
 
 		ICompositeKeyEncoder<T1, T2, T3> Encoder {[NotNull] get; }
 
 		/// <summary>Return a view of all the possible keys of this subspace</summary>
-		FdbEncoderSubspaceKeys<T1, T2, T3> Keys { get; }
+		TypedKeys<T1, T2, T3> Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		FdbEncoderSubspacePartition<T1, T2, T3> Partition { get; }
+		TypedSubspacePartition<T1, T2, T3> Partition { get; }
 
-		IFdbEncoderSubspace<T1> Head { [NotNull] get; }
+		ITypedKeySubspace<T1> Head { [NotNull] get; }
 
-		IFdbEncoderSubspace<T1, T2> Partial {[NotNull] get; }
+		ITypedKeySubspace<T1, T2> Partial {[NotNull] get; }
 	}
 
-	public interface IFdbEncoderSubspace<T1, T2, T3, T4> : IFdbSubspace
+	public interface ITypedKeySubspace<T1, T2, T3, T4> : IKeySubspace
 	{
 
 		ICompositeKeyEncoder<T1, T2, T3, T4> Encoder {[NotNull] get; }
 
 		/// <summary>Return a view of all the possible keys of this subspace</summary>
-		FdbEncoderSubspaceKeys<T1, T2, T3, T4> Keys { get; }
+		TypedKeys<T1, T2, T3, T4> Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		FdbEncoderSubspacePartition<T1, T2, T3, T4> Partition { get; }
+		TypedSubspacePartition<T1, T2, T3, T4> Partition { get; }
 
-		IFdbEncoderSubspace<T1> Head {[NotNull] get; }
+		ITypedKeySubspace<T1> Head {[NotNull] get; }
 
-		IFdbEncoderSubspace<T1, T2> Partial {[NotNull] get; }
+		ITypedKeySubspace<T1, T2> Partial {[NotNull] get; }
 
 	}
 

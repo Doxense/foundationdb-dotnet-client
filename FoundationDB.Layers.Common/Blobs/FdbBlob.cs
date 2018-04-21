@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Blobs
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
 		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
-		public FdbBlob([NotNull] IFdbSubspace subspace)
+		public FdbBlob([NotNull] IKeySubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IFdbDynamicSubspace Subspace {[NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace {[NotNull] get; private set; }
 
 		/// <summary>Returns the key for data chunk at the specified offset</summary>
 		/// <param name="offset"></param>

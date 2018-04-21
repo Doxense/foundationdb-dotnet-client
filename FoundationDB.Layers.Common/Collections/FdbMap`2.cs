@@ -43,11 +43,11 @@ namespace FoundationDB.Layers.Collections
 	public class FdbMap<TKey, TValue>
 	{
 
-		public FdbMap([NotNull] string name, [NotNull] IFdbSubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] IKeySubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
 			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap([NotNull] string name, [NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] IKeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -67,10 +67,10 @@ namespace FoundationDB.Layers.Collections
 		public string Name { [NotNull] get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public IFdbSubspace Subspace { [NotNull] get; private set; }
+		public IKeySubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		protected IFdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
+		protected ITypedKeySubspace<TKey> Location { [NotNull] get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public IValueEncoder<TValue> ValueEncoder { [NotNull] get; private set; }

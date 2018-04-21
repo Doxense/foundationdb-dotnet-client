@@ -110,7 +110,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public virtual IFdbDynamicSubspace GlobalSpace
+		public virtual IDynamicKeySubspace GlobalSpace
 		{
 			[NotNull]
 			get { return m_database.GlobalSpace; }
@@ -135,32 +135,32 @@ namespace FoundationDB.Filters
 			get { return m_readOnly; }
 		}
 
-		Slice IFdbSubspace.Key
+		Slice IKeySubspace.GetPrefix()
 		{
-			get { return this.GlobalSpace.Key; }
+			return this.GlobalSpace.GetPrefix();
 		}
 
-		KeyRange IFdbSubspace.ToRange()
+		KeyRange IKeySubspace.ToRange()
 		{
 			return this.GlobalSpace.ToRange();
 		}
 
-		KeyRange IFdbSubspace.ToRange(Slice suffix)
+		KeyRange IKeySubspace.ToRange(Slice suffix)
 		{
 			return this.GlobalSpace.ToRange(suffix);
 		}
 
-		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		IKeySubspace IKeySubspace.this[Slice suffix]
 		{
 			get { return this.GlobalSpace[suffix]; }
 		}
 
-		public virtual FdbDynamicSubspacePartition Partition
+		public virtual DynamicPartition Partition
 		{
 			get { return m_database.Partition; }
 		}
 
-		public virtual FdbDynamicSubspaceKeys Keys
+		public virtual DynamicKeys Keys
 		{
 			get { return m_database.Keys; }
 		}

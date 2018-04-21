@@ -46,11 +46,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	public class FdbCompressedBitmapIndex<TValue>
 	{
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] KeySubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.Key<TValue>())
 		{ }
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] IKeyEncoder<TValue> encoder)
+		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] KeySubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] IKeyEncoder<TValue> encoder)
 		{
 			Contract.NotNull(name, nameof(name));
 			Contract.NotNull(subspace, nameof(subspace));
@@ -65,9 +65,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public string Name { [NotNull] get; }
 
-		public FdbSubspace Subspace { [NotNull] get; }
+		public KeySubspace Subspace { [NotNull] get; }
 
-		protected IFdbEncoderSubspace<TValue> Location { [NotNull] get; }
+		protected ITypedKeySubspace<TValue> Location { [NotNull] get; }
 
 		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; }
 

@@ -78,9 +78,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private IFdbDynamicSubspace m_globalSpace;
+		private IDynamicKeySubspace m_globalSpace;
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private IFdbDynamicSubspace m_globalSpaceCopy;
+		private IDynamicKeySubspace m_globalSpaceCopy;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
 			Contract.Requires(cluster != null && handler != null && name != null && contentSubspace != null);
 
@@ -126,7 +126,7 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
 			if (cluster == null) throw new ArgumentNullException(nameof(cluster));
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -448,21 +448,21 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(IFdbSubspace subspace, IFdbDirectory directory, bool readOnly)
+		internal void ChangeRoot(IKeySubspace subspace, IFdbDirectory directory, bool readOnly)
 		{
 			//REVIEW: rename to "ChangeRootSubspace" ?
-			subspace = subspace ?? FdbSubspace.Empty;
+			subspace = subspace ?? KeySubspace.Empty;
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = FdbSubspace.CopyDynamic(subspace, TypeSystem.Tuples);
-				m_globalSpaceCopy = FdbSubspace.CopyDynamic(subspace, TypeSystem.Tuples); // keep another copy
+				m_globalSpace = KeySubspace.CopyDynamic(subspace, TypeSystem.Tuples);
+				m_globalSpaceCopy = KeySubspace.CopyDynamic(subspace, TypeSystem.Tuples); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public IFdbDynamicSubspace GlobalSpace
+		public IDynamicKeySubspace GlobalSpace
 		{
 			//REVIEW: rename to just "Subspace" ?
 			[NotNull]
@@ -511,7 +511,7 @@ namespace FoundationDB.Client
 				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
 				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
 				if (!endExclusive
-				 || !key.Equals(FdbKey.Increment(database.GlobalSpace.Key))) //TODO: cache this?
+				 || !key.Equals(FdbKey.Increment(database.GlobalSpace.GetPrefix()))) //TODO: cache this?
 				{
 					if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(database, key);
 					return false;
@@ -534,39 +534,39 @@ namespace FoundationDB.Client
 			return m_globalSpace.BoundCheck(key, allowSystemKeys);
 		}
 
-		Slice IFdbSubspace.ConcatKey(Slice key)
+		Slice IKeySubspace.ConcatKey(Slice key)
 		{
 			return m_globalSpace.ConcatKey(key);
 		}
 
-		Slice[] IFdbSubspace.ConcatKeys(IEnumerable<Slice> keys)
+		Slice[] IKeySubspace.ConcatKeys(IEnumerable<Slice> keys)
 		{
 			return m_globalSpace.ConcatKeys(keys);
 		}
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice IFdbSubspace.ExtractKey(Slice key, bool boundCheck)
+		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck)
 		{
 			return m_globalSpace.ExtractKey(key, boundCheck);
 		}
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice[] IFdbSubspace.ExtractKeys(IEnumerable<Slice> keys, bool boundCheck)
+		Slice[] IKeySubspace.ExtractKeys(IEnumerable<Slice> keys, bool boundCheck)
 		{
 			return m_globalSpace.ExtractKeys(keys, boundCheck);
 		}
 
-		SliceWriter IFdbSubspace.GetWriter(int capacity)
+		SliceWriter IKeySubspace.GetWriter(int capacity)
 		{
 			return m_globalSpace.GetWriter(capacity);
 		}
 
-		Slice IFdbSubspace.Key
+		Slice IKeySubspace.GetPrefix()
 		{
-			get { return m_globalSpace.Key; }
+			return m_globalSpace.GetPrefix();
 		}
 
-		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		IKeySubspace IKeySubspace.this[Slice suffix]
 		{
 			get
 			{
@@ -574,28 +574,28 @@ namespace FoundationDB.Client
 			}
 		}
 
-		KeyRange IFdbSubspace.ToRange()
+		KeyRange IKeySubspace.ToRange()
 		{
 			return m_globalSpace.ToRange();
 		}
 
-		KeyRange IFdbSubspace.ToRange(Slice suffix)
+		KeyRange IKeySubspace.ToRange(Slice suffix)
 		{
 			return m_globalSpace.ToRange(suffix);
 		}
 
-		public FdbDynamicSubspacePartition Partition
+		public DynamicPartition Partition
 		{
 			//REVIEW: should we hide this on the main db?
 			get { return m_globalSpace.Partition; }
 		}
 
-		IDynamicKeyEncoder IFdbDynamicSubspace.Encoder
+		IDynamicKeyEncoder IDynamicKeySubspace.Encoder
 		{
 			get { return m_globalSpace.Encoder; }
 		}
 
-		public FdbDynamicSubspaceKeys Keys
+		public DynamicKeys Keys
 		{
 			get { return m_globalSpace.Keys; }
 		}

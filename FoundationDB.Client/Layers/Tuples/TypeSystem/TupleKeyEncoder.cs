@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Tuples
 		private TupleKeyEncoder()
 		{ }
 
-		public IFdbKeyEncoding Encoding
+		public IKeyEncoding Encoding
 		{
 			get { return TypeSystem.Tuples; }
 		}

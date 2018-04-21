@@ -40,7 +40,7 @@ namespace FoundationDB.Layers.Directories
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
 	[DebuggerDisplay("Path={this.FullName}, Prefix={InternalKey}, Layer={Layer}")]
-	public class FdbDirectorySubspace : FdbDynamicSubspace, IFdbDirectory
+	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
 	{
 
 		internal FdbDirectorySubspace(ITuple location, ITuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer, IDynamicKeyEncoder encoder)

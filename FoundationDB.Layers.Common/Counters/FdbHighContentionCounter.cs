@@ -54,7 +54,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Create a new High Contention counter.</summary>
 		/// <param name="db">Database used by this layer</param>
 		/// <param name="subspace">Subspace to be used for storing the counter</param>
-		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace)
+		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace)
 			: this(db, subspace, KeyValueEncoders.Tuples.Value<long>())
 		{ }
 
@@ -62,7 +62,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="db">Database used by this layer</param>
 		/// <param name="subspace">Subspace to be used for storing the counter</param>
 		/// <param name="encoder">Encoder for the counter values</param>
-		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace, [NotNull] IValueEncoder<long> encoder)
+		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace, [NotNull] IValueEncoder<long> encoder)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -74,7 +74,7 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IFdbDynamicSubspace Subspace {[NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace {[NotNull] get; private set; }
 
 		/// <summary>Database instance that is used to perform background coalescing of the counter</summary>
 		public IFdbDatabase Database {[NotNull] get; private set; }

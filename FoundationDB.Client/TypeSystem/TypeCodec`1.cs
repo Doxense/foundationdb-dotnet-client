@@ -1,4 +1,4 @@
-#region BSD Licence
+﻿#region BSD Licence
 /* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
@@ -29,53 +29,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Collections.Generic;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 
-	public struct FdbEncoderSubspaceKeys<T1, T2, T3>
+	public abstract class TypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>
 	{
 
-		public readonly IFdbSubspace Subspace;
-		public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
+		public abstract void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
 
-		public FdbEncoderSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public abstract T DecodeOrderedSelfTerm(ref SliceReader input);
+
+		public virtual Slice EncodeOrdered(T value)
 		{
-			this.Subspace = subspace;
-			this.Encoder = encoder;
+			var writer = SliceWriter.Empty;
+			EncodeOrderedSelfTerm(ref writer, value);
+			return writer.ToSlice();
 		}
 
-		public Slice this[T1 value1, T2 value2, T3 value3]
+		public virtual T DecodeOrdered(Slice input)
 		{
-			get { return Encode(value1, value2, value3); }
+			var slicer = new SliceReader(input);
+			return DecodeOrderedSelfTerm(ref slicer);
 		}
 
-		public Slice Encode(T1 value1, T2 value2, T3 value3)
+		public virtual void EncodeUnorderedSelfTerm(ref SliceWriter output, T value)
 		{
-			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3));
+			EncodeOrderedSelfTerm(ref output, value);
 		}
 
-		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, [NotNull] Func<TSource, T1> selector1, [NotNull] Func<TSource, T2> selector2, [NotNull] Func<TSource, T3> selector3)
+		public virtual T DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
-			if (values == null) throw new ArgumentNullException("values");
-			return Batched<TSource, ICompositeKeyEncoder<T1, T2, T3>>.Convert(
-				this.Subspace.GetWriter(),
-				values,
-				(ref SliceWriter writer, TSource value, ICompositeKeyEncoder<T1, T2, T3> encoder) => writer.WriteBytes(encoder.EncodeKey(selector1(value), selector2(value), selector3(value))),
-				this.Encoder
-			);
+			return DecodeOrderedSelfTerm(ref input);
 		}
 
-		public STuple<T1, T2, T3> Decode(Slice packed)
+		public virtual Slice EncodeUnordered(T value)
 		{
-			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
+			var writer = SliceWriter.Empty;
+			EncodeUnorderedSelfTerm(ref writer, value);
+			return writer.ToSlice();
 		}
 
-		public KeyRange ToRange(T1 value1, T2 value2, T3 value3)
+		public virtual T DecodeUnordered(Slice input)
 		{
-			//REVIEW: which semantic for ToRange() should we use?
-			return STuple.ToRange(Encode(value1, value2, value3));
+			var reader = new SliceReader(input);
+			return DecodeUnorderedSelfTerm(ref reader);
 		}
 
 	}
+
 }

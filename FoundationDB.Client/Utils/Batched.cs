@@ -1,4 +1,4 @@
-#region BSD Licence
+﻿#region BSD Licence
 /* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
@@ -26,61 +26,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace FoundationDB.Client.Utils
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.Contracts;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	public struct FdbEncoderSubspaceKeys<T>
+	internal static class Batched<TValue, TState>
 	{
 
-		[NotNull]
-		public readonly IFdbSubspace Subspace;
+		public delegate void Handler(ref SliceWriter writer, TValue item, TState state);
 
 		[NotNull]
-		public readonly IKeyEncoder<T> Encoder;
-
-		public FdbEncoderSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		public static Slice[] Convert(SliceWriter writer, [NotNull, ItemNotNull] IEnumerable<TValue> values, Handler handler, TState state)
 		{
-			Contract.Requires(subspace != null && encoder != null);
-			this.Subspace = subspace;
-			this.Encoder = encoder;
-		}
+			Contract.Requires(values != null && handler != null);
 
-		public Slice this[T value]
-		{
-			get { return Encode(value); }
-		}
+			//Note on performance:
+			// - we will reuse the same buffer for each temp key, and copy them into a slice buffer
+			// - doing it this way adds a memory copy (writer => buffer) but reduce the number of byte[] allocations (and reduce the GC overhead)
 
-		public Slice Encode(T value)
-		{
-			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value));
-		}
+			int start = writer.Position;
 
-		public Slice[] Encode([NotNull] IEnumerable<T> values)
-		{
-			if (values == null) throw new ArgumentNullException("values");
-			return Batched<T, IKeyEncoder<T>>.Convert(
-				this.Subspace.GetWriter(),
-				values,
-				(ref SliceWriter writer, T value, IKeyEncoder<T> encoder) => { writer.WriteBytes(encoder.EncodeKey(value)); },
-				this.Encoder
-				);
-		}
+			var buffer = new SliceBuffer();
 
-		public T Decode(Slice packed)
-		{
-			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
-		}
+			if (values is ICollection<TValue> coll)
+			{ // pre-allocate the final array with the correct size
+				var res = new Slice[coll.Count];
+				int p = 0;
+				foreach (var tuple in coll)
+				{
+					// reset position to just after the subspace prefix
+					writer.Position = start;
 
-		public KeyRange ToRange(T value)
-		{
-			//REVIEW: which semantic for ToRange() should we use?
-			return STuple.ToRange(Encode(value));
-		}
+					handler(ref writer, tuple, state);
 
+					// copy full key in the buffer
+					res[p++] = buffer.Intern(writer.ToSlice());
+				}
+				Contract.Assert(p == res.Length);
+				return res;
+			}
+			else
+			{ // we won't now the array size until the end...
+				var res = new List<Slice>();
+				foreach (var tuple in values)
+				{
+					// reset position to just after the subspace prefix
+					writer.Position = start;
+
+					handler(ref writer, tuple, state);
+
+					// copy full key in the buffer
+					res.Add(buffer.Intern(writer.ToSlice()));
+				}
+				return res.ToArray();
+			}
+		}
 	}
+
 }

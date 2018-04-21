@@ -69,16 +69,16 @@ namespace FdbShell
 							if (!(subfolder is FdbDirectoryPartition))
 							{
 								long count = await Fdb.System.EstimateCountAsync(db, subfolder.Keys.ToRange(), ct);
-								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
+								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(KeySubspace.Copy(subfolder).GetPrefix()), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
 							}
 							else
 							{
-								log.WriteLine("  {0,-12} {1,-12} {3,9} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
+								log.WriteLine("  {0,-12} {1,-12} {3,9} {2}", FdbKey.Dump(KeySubspace.Copy(subfolder).GetPrefix()), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
 							}
 						}
 						else
 						{
-							log.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+							log.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(KeySubspace.Copy(subfolder).GetPrefix()), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
 						}
 					}
 					else
@@ -112,7 +112,7 @@ namespace FdbShell
 			}
 
 			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), cancellationToken: ct);
-			log.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
+			log.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.GetPrefix()), folder.GetPrefix().ToHexaString(' '));
 
 			// look if there is already stuff under there
 			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.Keys.ToRange()).FirstOrDefaultAsync(), cancellationToken: ct);
@@ -216,8 +216,8 @@ namespace FdbShell
 				return;
 			}
 
-			var copy = FdbSubspace.Copy(folder);
-			log.WriteLine("# Counting keys under {0} ...", FdbKey.Dump(copy.Key));
+			var copy = KeySubspace.Copy(folder);
+			log.WriteLine("# Counting keys under {0} ...", FdbKey.Dump(copy.GetPrefix()));
 
 			var progress = new Progress<STuple<long, Slice>>((state) =>
 			{
@@ -242,7 +242,7 @@ namespace FdbShell
 			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
 			if (folder != null)
 			{
-				log.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
+				log.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.GetPrefix()), folder.GetPrefix().ToHexaString(' '));
 				var keys = await db.QueryAsync((tr) =>
 					{
 						var query = tr.GetRange(folder.Keys.ToRange());
@@ -394,7 +394,7 @@ namespace FdbShell
 				n = dir.Name.Length;
 
 				var p = dir.Path.ToArray();
-				var key = ((FdbSubspace)dir).Key;
+				var key = ((KeySubspace)dir).GetPrefix();
 
 				// verify that the subspace has at least one key inside
 				var bounds = await db.ReadAsync(async (tr) =>
@@ -554,7 +554,7 @@ namespace FdbShell
 			var folder = (await TryOpenCurrentDirectoryAsync(path, db, ct)) as FdbDirectorySubspace;
 			if (folder != null)
 			{
-				var r = KeyRange.StartsWith(FdbSubspace.Copy(folder).Key);
+				var r = KeyRange.StartsWith(KeySubspace.Copy(folder).GetPrefix());
 				Console.WriteLine("Searching for shards that intersect with /{0} ...", String.Join("/", path));
 				ranges = await Fdb.System.GetChunksAsync(db, r, ct);
 				Console.WriteLine("Found {0} ranges intersecting {1}:", ranges.Count, r);
@@ -589,7 +589,7 @@ namespace FdbShell
 			KeyRange span;
 			if (folder is FdbDirectorySubspace)
 			{
-				span = KeyRange.StartsWith(FdbSubspace.Copy(folder as FdbDirectorySubspace).Key);
+				span = KeyRange.StartsWith(KeySubspace.Copy(folder as FdbDirectorySubspace).GetPrefix());
 				log.WriteLine("Reading list of shards for /{0} under {1} ...", String.Join("/", path), FdbKey.Dump(span.Begin));
 			}
 			else

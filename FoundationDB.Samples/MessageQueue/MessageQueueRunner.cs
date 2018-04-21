@@ -54,7 +54,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		public TimeSpan DelayMax { get; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public KeySubspace Subspace { get; private set; }
 
 		public FdbWorkerPool WorkerPool { get; private set; }
 

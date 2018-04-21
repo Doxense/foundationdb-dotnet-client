@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Interning
 		private readonly RandomNumberGenerator m_prng = RandomNumberGenerator.Create();
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 
-		public FdbStringIntern(IFdbSubspace subspace)
+		public FdbStringIntern(IKeySubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Interning
 
 		}
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; private set; }
 
 		#region Private Helpers...
 

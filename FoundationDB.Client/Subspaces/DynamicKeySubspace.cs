@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
@@ -26,82 +26,65 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDB.Client.Utils;
+
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 
-	internal static class Batched<TValue, TState>
+	public class DynamicKeySubspace : KeySubspace, IDynamicKeySubspace
 	{
-
-		public delegate void Handler(ref SliceWriter writer, TValue item, TState state);
-
-		[NotNull]
-		public static Slice[] Convert(SliceWriter writer, [NotNull, ItemNotNull] IEnumerable<TValue> values, Handler handler, TState state)
+		/// <summary>Create a new subspace from a binary prefix</summary>
+		/// <param name="rawPrefix">Prefix of the new subspace</param>
+		/// <param name="copy">If true, take a copy of the prefix</param>
+		/// <param name="encoder">Type System used to encode keys in this subspace (optional, will use Tuple Encoding by default)</param>
+		internal DynamicKeySubspace(Slice rawPrefix, bool copy, IDynamicKeyEncoder encoder)
+			:  base (rawPrefix, copy)
 		{
-			Contract.Requires(values != null && handler != null);
-
-			//Note on performance:
-			// - we will reuse the same buffer for each temp key, and copy them into a slice buffer
-			// - doing it this way adds a memory copy (writer => buffer) but reduce the number of byte[] allocations (and reduce the GC overhead)
-
-			int start = writer.Position;
-
-			var buffer = new SliceBuffer();
-
-			var coll = values as ICollection<TValue>;
-			if (coll != null)
-			{ // pre-allocate the final array with the correct size
-				var res = new Slice[coll.Count];
-				int p = 0;
-				foreach (var tuple in coll)
-				{
-					// reset position to just after the subspace prefix
-					writer.Position = start;
-
-					handler(ref writer, tuple, state);
-
-					// copy full key in the buffer
-					res[p++] = buffer.Intern(writer.ToSlice());
-				}
-				Contract.Assert(p == res.Length);
-				return res;
-			}
-			else
-			{ // we won't now the array size until the end...
-				var res = new List<Slice>();
-				foreach (var tuple in values)
-				{
-					// reset position to just after the subspace prefix
-					writer.Position = start;
-
-					handler(ref writer, tuple, state);
-
-					// copy full key in the buffer
-					res.Add(buffer.Intern(writer.ToSlice()));
-				}
-				return res.ToArray();
-			}
+			this.Encoder = encoder ?? TypeSystem.Default.GetDynamicEncoder();
+			this.Keys = new DynamicKeys(this, this.Encoder);
+			this.Partition = new DynamicPartition(this, this.Encoder);
 		}
+
+		public DynamicKeySubspace(Slice rawPrefix, IDynamicKeyEncoder encoder)
+			: this(rawPrefix, true, encoder)
+		{ }
+
+		protected override IKeySubspace CreateChildren(Slice suffix)
+		{
+			return new DynamicKeySubspace(ConcatKey(suffix), this.Encoder);
+		}
+
+		/// <summary>Encoder for the keys of this subspace</summary>
+		public IDynamicKeyEncoder Encoder { get; }
+
+		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
+		public DynamicKeys Keys { get; }
+
+		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
+		public DynamicPartition Partition { get; }
+
 	}
 
 	/// <summary>Key helper for a dynamic TypeSystem</summary>
-	public struct FdbDynamicSubspaceKeys
+	public /*readonly*/ struct DynamicKeys
 	{
 		//NOTE: everytime an ITuple is used here, it is as a container (vector of objects), and NOT as the Tuple Encoding scheme ! (separate concept)
 
 		/// <summary>Parent subspace</summary>
-		[NotNull] public readonly IFdbSubspace Subspace;
+		[NotNull]
+		public readonly IKeySubspace Subspace;
 
 		/// <summary>Encoder used to format keys in this subspace</summary>
-		[NotNull] public readonly IDynamicKeyEncoder Encoder;
+		[NotNull]
+		public readonly IDynamicKeyEncoder Encoder;
 
-		public FdbDynamicSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
+		public DynamicKeys([NotNull] IKeySubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
 			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
@@ -111,7 +94,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a key range that encompass all the keys inside this subspace, according to the current key encoder</summary>
 		public KeyRange ToRange()
 		{
-			return this.Encoder.ToRange(this.Subspace.Key);
+			return this.Encoder.ToRange(this.Subspace.GetPrefix());
 		}
 
 		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
@@ -130,19 +113,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
-		/// <remarks>This is a shortcut for <see cref="Pack(ITuple)"/></remarks>
-		public Slice this[[NotNull] ITuple tuple]
-		{
-			get { return Pack(tuple); }
-		}
+		/// <remarks>This is a shortcut for <see cref="Pack(Layers.Tuples.ITuple)"/></remarks>
+		public Slice this[[NotNull] ITuple tuple] => Pack(tuple);
 
 		/// <summary>Convert an item into a key of this subspace</summary>
 		/// <param name="item">Convertible item that will be packed and appended to the subspace prefix</param>
 		/// <remarks>This is a shortcut for <see cref="Pack(ITupleFormattable)"/></remarks>
-		public Slice this[[NotNull] ITupleFormattable item]
-		{
-			get { return Pack(item); }
-		}
+		public Slice this[[NotNull] ITupleFormattable item] => Pack(item);
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
@@ -159,7 +136,7 @@ namespace FoundationDB.Client
 		/// <param name="tuples">Sequence of tuple that will be packed and appended to the subspace prefix</param>
 		public Slice[] PackMany([NotNull, ItemNotNull] IEnumerable<ITuple> tuples)
 		{
-			if (tuples == null) throw new ArgumentNullException("tuples");
+			if (tuples == null) throw new ArgumentNullException(nameof(tuples));
 
 			return Batched<ITuple, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
@@ -173,7 +150,7 @@ namespace FoundationDB.Client
 		/// <param name="item">Convertible item that will be packed and appended to the subspace prefix</param>
 		public Slice Pack([NotNull] ITupleFormattable item)
 		{
-			if (item == null) throw new ArgumentNullException("item");
+			if (item == null) throw new ArgumentNullException(nameof(item));
 
 			return Pack(item.ToTuple());
 		}
@@ -182,7 +159,7 @@ namespace FoundationDB.Client
 		/// <param name="items">Sequence of convertible items that will be packed and appended to the subspace prefix</param>
 		public Slice[] PackMany([NotNull, ItemNotNull] IEnumerable<ITupleFormattable> items)
 		{
-			if (items == null) throw new ArgumentNullException("items");
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			return Batched<ITuple, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
@@ -356,17 +333,16 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
-		/// <param name="packed">Key that was produced by a previous call to <see cref="Pack(ITuple)"/></param>
+		/// <param name="packed">Key that was produced by a previous call to <see cref="Pack(Layers.Tuples.ITuple)"/></param>
 		/// <returns>Original tuple</returns>
 		public ITuple Unpack(Slice packed)
 		{
 			return this.Encoder.UnpackKey(this.Subspace.ExtractKey(packed));
 		}
 
-		private static T[] BatchDecode<T>(IEnumerable<Slice> packed, IFdbSubspace subspace, IDynamicKeyEncoder encoder, Func<Slice, IDynamicKeyEncoder, T> decode)
+		private static T[] BatchDecode<T>(IEnumerable<Slice> packed, IKeySubspace subspace, IDynamicKeyEncoder encoder, Func<Slice, IDynamicKeyEncoder, T> decode)
 		{
-			var coll = packed as ICollection<Slice>;
-			if (coll != null)
+			if (packed is ICollection<Slice> coll)
 			{
 				var res = new T[coll.Count];
 				int p = 0;
@@ -389,7 +365,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Unpack a batch of keys of this subspace, back into an array of tuples</summary>
-		/// <param name="packed">Sequence of keys that were produced by a previous call to <see cref="Pack(ITuple)"/> or <see cref="PackMany(IEnumerable{ITuple})"/></param>
+		/// <param name="packed">Sequence of keys that were produced by a previous call to <see cref="Pack(Layers.Tuples.ITuple)"/> or <see cref="PackMany(IEnumerable{Layers.Tuples.ITuple})"/></param>
 		/// <returns>Array containing the original tuples</returns>
 		public ITuple[] UnpackMany(IEnumerable<Slice> packed)
 		{
@@ -491,7 +467,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple ToTuple()
 		{
-			return new PrefixedTuple(this.Subspace.Key, STuple.Empty);
+			return new PrefixedTuple(this.Subspace.GetPrefix(), STuple.Empty);
 		}
 
 		/// <summary>Attach a tuple to an existing subspace.</summary>
@@ -500,7 +476,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Concat([NotNull] ITuple tuple)
 		{
-			return new PrefixedTuple(this.Subspace.Key, tuple);
+			return new PrefixedTuple(this.Subspace.GetPrefix(), tuple);
 		}
 
 		/// <summary>Convert a formattable item into a tuple that is attached to this subspace.</summary>
@@ -510,10 +486,10 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Concat([NotNull] ITupleFormattable formattable)
 		{
-			if (formattable == null) throw new ArgumentNullException("formattable");
+			if (formattable == null) throw new ArgumentNullException(nameof(formattable));
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException("Formattable item cannot return an empty tuple");
-			return new PrefixedTuple(this.Subspace.Key, tuple);
+			return new PrefixedTuple(this.Subspace.GetPrefix(), tuple);
 		}
 
 		/// <summary>Create a new 1-tuple that is attached to this subspace</summary>
@@ -524,7 +500,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Append<T>(T value)
 		{
-			return new PrefixedTuple(this.Subspace.Key, STuple.Create<T>(value));
+			return new PrefixedTuple(this.Subspace.GetPrefix(), STuple.Create<T>(value));
 		}
 
 		/// <summary>Create a new 2-tuple that is attached to this subspace</summary>
@@ -537,7 +513,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Append<T1, T2>(T1 item1, T2 item2)
 		{
-			return new PrefixedTuple(this.Subspace.Key, STuple.Create<T1, T2>(item1, item2));
+			return new PrefixedTuple(this.Subspace.GetPrefix(), STuple.Create<T1, T2>(item1, item2));
 		}
 
 		/// <summary>Create a new 3-tuple that is attached to this subspace</summary>
@@ -552,7 +528,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Append<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			return new PrefixedTuple(this.Subspace.Key, STuple.Create<T1, T2, T3>(item1, item2, item3));
+			return new PrefixedTuple(this.Subspace.GetPrefix(), STuple.Create<T1, T2, T3>(item1, item2, item3));
 		}
 
 		/// <summary>Create a new 4-tuple that is attached to this subspace</summary>
@@ -569,7 +545,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Append<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return new PrefixedTuple(this.Subspace.Key, STuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4));
+			return new PrefixedTuple(this.Subspace.GetPrefix(), STuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4));
 		}
 
 		/// <summary>Create a new 5-tuple that is attached to this subspace</summary>
@@ -588,10 +564,160 @@ namespace FoundationDB.Client
 		[NotNull]
 		public ITuple Append<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			return new PrefixedTuple(this.Subspace.Key, STuple.Create<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5));
+			return new PrefixedTuple(this.Subspace.GetPrefix(), STuple.Create<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5));
 		}
 
 		#endregion
 
 	}
+
+	public /*readonly*/ struct DynamicPartition
+	{
+
+		[NotNull]
+		public readonly IDynamicKeySubspace Subspace;
+
+		[NotNull]
+		public readonly IDynamicKeyEncoder Encoder;
+
+		public DynamicPartition([NotNull] IDynamicKeySubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
+		{
+			Contract.Requires(subspace != null && encoder != null);
+			this.Subspace = subspace;
+			this.Encoder = encoder;
+		}
+
+		/// <summary>Returns the same view but using a different Type System</summary>
+		/// <param name="encoding">Type System that will code keys in this new view</param>
+		/// <returns>Review that will partition this subspace using a different Type System</returns>
+		/// <remarks>
+		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
+		/// If you are calling this in a loop, consider creating a new subspace using that encoding.
+		/// </remarks>
+		[Pure]
+		public DynamicPartition Using([NotNull] IKeyEncoding encoding)
+		{
+			Contract.NotNull(encoding, nameof(encoding));
+			var encoder = encoding.GetDynamicEncoder();
+			return UsingEncoder(encoder);
+		}
+
+		/// <summary>Returns the same view but using a different Type System</summary>
+		/// <param name="encoder">Type System that will code keys in this new view</param>
+		/// <returns>Review that will partition this subspace using a different Type System</returns>
+		/// <remarks>
+		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
+		/// If you are calling this in a loop, consider creating a new subspace using that encoder.
+		/// </remarks>
+		[Pure]
+		public DynamicPartition UsingEncoder([NotNull] IDynamicKeyEncoder encoder)
+		{
+			return new DynamicPartition(this.Subspace, encoder);
+		}
+
+		/// <summary>Create a new subspace by appdending a suffix to the current subspace</summary>
+		/// <param name="suffix">Suffix of the new subspace</param>
+		/// <returns>New subspace with prefix equal to the current subspace's prefix, followed by <paramref name="suffix"/></returns>
+		public IDynamicKeySubspace this[Slice suffix]
+		{
+			[Pure, NotNull]
+			get
+			{
+				if (suffix.IsNull) throw new ArgumentException("Partition suffix cannot be null", nameof(suffix));
+				//TODO: find a way to limit the number of copies of the key?
+				return new DynamicKeySubspace(this.Subspace.ConcatKey(suffix), false, this.Encoder);
+			}
+		}
+
+		public IDynamicKeySubspace this[ITuple tuple]
+		{
+			[Pure, ContractAnnotation("null => halt; notnull => notnull")]
+			get
+			{
+				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+				//TODO: find a way to limit the number of copies of the packed tuple?
+				return new DynamicKeySubspace(this.Subspace.Keys.Pack(tuple), false, this.Encoder);
+			}
+		}
+
+		public IDynamicKeySubspace this[ITupleFormattable item]
+		{
+			[Pure, ContractAnnotation("null => halt; notnull => notnull")]
+			get
+			{
+				Contract.NotNull(item, nameof(item));
+				var tuple = item.ToTuple();
+				if (tuple == null) throw new InvalidOperationException("Formattable item returned an empty tuple");
+				return this[tuple];
+			}
+		}
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T">Type of the child subspace key</typeparam>
+		/// <param name="value">Value of the child subspace</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <remarks>Subspace([Foo, ]).Partition(Bar) is equivalent to Subspace([Foo, Bar, ])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
+		/// </example>
+		[Pure, NotNull]
+		public IDynamicKeySubspace ByKey<T>(T value)
+		{
+			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T>(value), false, this.Encoder);
+		}
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T1">Type of the first subspace key</typeparam>
+		/// <typeparam name="T2">Type of the second subspace key</typeparam>
+		/// <param name="value1">Value of the first subspace key</param>
+		/// <param name="value2">Value of the second subspace key</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <remarks>Subspace([Foo, ]).Partition(Bar, Baz) is equivalent to Subspace([Foo, Bar, Baz])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
+		/// </example>
+		[Pure, NotNull]
+		public IDynamicKeySubspace ByKey<T1, T2>(T1 value1, T2 value2)
+		{
+			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), false, this.Encoder);
+		}
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T1">Type of the first subspace key</typeparam>
+		/// <typeparam name="T2">Type of the second subspace key</typeparam>
+		/// <typeparam name="T3">Type of the third subspace key</typeparam>
+		/// <param name="value1">Value of the first subspace key</param>
+		/// <param name="value2">Value of the second subspace key</param>
+		/// <param name="value3">Value of the third subspace key</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
+		/// </example>
+		[Pure, NotNull]
+		public IDynamicKeySubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		{
+			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), false, this.Encoder);
+		}
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T1">Type of the first subspace key</typeparam>
+		/// <typeparam name="T2">Type of the second subspace key</typeparam>
+		/// <typeparam name="T3">Type of the third subspace key</typeparam>
+		/// <typeparam name="T4">Type of the fourth subspace key</typeparam>
+		/// <param name="value1">Value of the first subspace key</param>
+		/// <param name="value2">Value of the second subspace key</param>
+		/// <param name="value3">Value of the third subspace key</param>
+		/// <param name="value4">Value of the fourth subspace key</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
+		/// </example>
+		[Pure, NotNull]
+		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
+		{
+			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), false, this.Encoder);
+		}
+
+	}
+
 }

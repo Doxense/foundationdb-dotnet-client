@@ -150,7 +150,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		}
 
-		private static async Task RunMultiClientTest(IFdbDatabase db, FdbSubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
+		private static async Task RunMultiClientTest(IFdbDatabase db, KeySubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
 		{
 			Console.WriteLine("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
 

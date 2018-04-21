@@ -52,7 +52,7 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
-			var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
+			var subspace = new KeySubspace(TestGlobalPrefix.Memoize());
 			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
 		}
 
@@ -78,14 +78,14 @@ namespace FoundationDB.Client.Tests
 			// create new
 			var subspace = await db.Directory.CreateAsync(path, ct);
 			Assert.That(subspace, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
+			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True);
 			return subspace;
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace, CancellationToken ct)
+		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			// do not log
 			db = db.WithoutLogging();
@@ -96,14 +96,14 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IFdbSubspace subspace)
+		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IKeySubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 
 			Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 			int count = 0;
 			await tr
-				.GetRange(KeyRange.StartsWith(subspace.Key))
+				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))
 				.ForEachAsync((kvp) =>
 				{
 					var key = subspace.ExtractKey(kvp.Key, boundCheck: true);

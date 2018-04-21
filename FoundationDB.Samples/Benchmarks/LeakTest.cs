@@ -29,7 +29,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public TimeSpan Delay { get; }
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; private set; }
 
 		/// <summary>
 		/// Setup the initial state of the database
@@ -45,8 +45,8 @@ namespace FoundationDB.Samples.Benchmarks
 			// insert all the classes
 			await db.WriteAsync((tr) =>
 			{
-				tr.Set(this.Subspace.Key + FdbKey.MinValue, Slice.FromString("BEGIN"));
-				tr.Set(this.Subspace.Key + FdbKey.MaxValue, Slice.FromString("END"));
+				tr.Set(this.Subspace.GetPrefix() + FdbKey.MinValue, Slice.FromString("BEGIN"));
+				tr.Set(this.Subspace.GetPrefix() + FdbKey.MaxValue, Slice.FromString("END"));
 			}, ct);
 		}
 

@@ -130,13 +130,13 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpSubspace(IFdbDatabase db, IFdbSubspace subspace)
+		protected Task DumpSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
 			return TestHelpers.DumpSubspace(db, subspace, this.Cancellation);
 		}
 
 		[DebuggerStepThrough]
-		protected async Task DeleteSubspace(IFdbDatabase db, IFdbSubspace subspace)
+		protected async Task DeleteSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{

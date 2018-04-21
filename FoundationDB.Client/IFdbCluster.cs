@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		[ItemNotNull]
-		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken);
+		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken cancellationToken);
 	}
 
 }

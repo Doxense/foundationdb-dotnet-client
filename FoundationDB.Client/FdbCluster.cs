@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
 		[ItemNotNull]
-		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken)
+		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken cancellationToken)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		[ItemNotNull]
-		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IFdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
+		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IKeySubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");

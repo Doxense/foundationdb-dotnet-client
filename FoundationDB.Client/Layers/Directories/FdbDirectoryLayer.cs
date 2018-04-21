@@ -63,13 +63,13 @@ namespace FoundationDB.Layers.Directories
 		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
-		public IFdbDynamicSubspace ContentSubspace { [NotNull] get; }
+		public IDynamicKeySubspace ContentSubspace { [NotNull] get; }
 
 		/// <summary>Subspace where all the metadata nodes for each folder will be stored</summary>
-		public IFdbDynamicSubspace NodeSubspace { [NotNull] get; }
+		public IDynamicKeySubspace NodeSubspace { [NotNull] get; }
 
 		/// <summary>Root node of the directory</summary>
-		internal IFdbDynamicSubspace RootNode { [NotNull] get; }
+		internal IDynamicKeySubspace RootNode { [NotNull] get; }
 
 		/// <summary>Allocated used to generated prefix for new content</summary>
 		internal FdbHighContentionAllocator Allocator { [NotNull] get; }
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="nodeSubspace">Subspace where all the node metadata will be stored ('\xFE' by default)</param>
 		/// <param name="contentSubspace">Subspace where all automatically allocated directories will be stored (empty by default)</param>
 		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Ususally empty for the root partition of the database.</param>
-		internal FdbDirectoryLayer(IFdbDynamicSubspace nodeSubspace, IFdbDynamicSubspace contentSubspace, ITuple location)
+		internal FdbDirectoryLayer(IDynamicKeySubspace nodeSubspace, IDynamicKeySubspace contentSubspace, ITuple location)
 		{
 			Contract.Requires(nodeSubspace != null && contentSubspace != null);
 
@@ -137,7 +137,7 @@ namespace FoundationDB.Layers.Directories
 			this.NodeSubspace = nodeSubspace;
 
 			// The root node is the one whose contents are the node subspace
-			this.RootNode = nodeSubspace.Partition.ByKey(nodeSubspace.Key);
+			this.RootNode = nodeSubspace.Partition.ByKey(nodeSubspace.GetPrefix());
 			this.Allocator = new FdbHighContentionAllocator(this.RootNode.Partition.ByKey(HcaKey));
 			if (location == null || location.Count == 0)
 			{
@@ -164,7 +164,7 @@ namespace FoundationDB.Layers.Directories
 		[NotNull]
 		public static FdbDirectoryLayer Create(Slice prefix, IEnumerable<string> path = null)
 		{
-			var subspace = FdbSubspace.CreateDynamic(prefix, TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(prefix, TypeSystem.Tuples);
 			var location = path != null ? ParsePath(path) : STuple.Empty;
 			return new FdbDirectoryLayer(subspace.Partition[FdbKey.Directory], subspace, location);
 		}
@@ -173,7 +173,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="subspace">Subspace for the content. The nodes will be stored under <paramref name="subspace"/>.Key + &lt;FE&gt;</param>
 		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
 		[NotNull]
-		public static FdbDirectoryLayer Create(IFdbSubspace subspace, IEnumerable<string> path = null)
+		public static FdbDirectoryLayer Create(IKeySubspace subspace, IEnumerable<string> path = null)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -187,7 +187,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="contentSubspace">Subspace for the content of the Directory Layer.</param>
 		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database</param>
 		[NotNull]
-		public static FdbDirectoryLayer Create(IFdbDynamicSubspace nodeSubspace, IFdbDynamicSubspace contentSubspace, IEnumerable<string> path = null)
+		public static FdbDirectoryLayer Create(IDynamicKeySubspace nodeSubspace, IDynamicKeySubspace contentSubspace, IEnumerable<string> path = null)
 		{
 			if (nodeSubspace == null) throw new ArgumentNullException("nodeSubspace");
 			if (contentSubspace == null) throw new ArgumentNullException("contentSubspace");
@@ -480,7 +480,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.FullName, this.ContentSubspace.Key.ToAsciiOrHexaString(), this.NodeSubspace.Key.ToAsciiOrHexaString());
+			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.FullName, this.ContentSubspace.GetPrefix().ToAsciiOrHexaString(), this.NodeSubspace.GetPrefix().ToAsciiOrHexaString());
 		}
 
 		#endregion
@@ -490,7 +490,7 @@ namespace FoundationDB.Layers.Directories
 		private struct Node
 		{
 
-			public Node(IFdbDynamicSubspace subspace, ITuple path, ITuple targetPath, Slice layer)
+			public Node(IDynamicKeySubspace subspace, ITuple path, ITuple targetPath, Slice layer)
 			{
 				this.Subspace = subspace;
 				this.Path = path;
@@ -498,7 +498,7 @@ namespace FoundationDB.Layers.Directories
 				this.Layer = layer;
 			}
 
-			public readonly IFdbDynamicSubspace Subspace;
+			public readonly IDynamicKeySubspace Subspace;
 			public readonly ITuple Path;
 			public readonly ITuple TargetPath;
 			public Slice Layer; //PERF: readonly struct
@@ -514,7 +514,7 @@ namespace FoundationDB.Layers.Directories
 
 		}
 
-		private static void SetLayer([NotNull] IFdbTransaction trans, [NotNull] IFdbDynamicSubspace subspace, Slice layer)
+		private static void SetLayer([NotNull] IFdbTransaction trans, [NotNull] IDynamicKeySubspace subspace, Slice layer)
 		{
 			if (layer.IsNull) layer = Slice.Empty;
 			trans.Set(subspace.Keys.Encode(LayerSuffix), layer);
@@ -665,11 +665,11 @@ namespace FoundationDB.Layers.Directories
 			}
 
 			// we need to recursively create any missing parents
-			IFdbDynamicSubspace parentNode;
+			IDynamicKeySubspace parentNode;
 			if (path.Count > 1)
 			{
 				var parentSubspace = await CreateOrOpenInternalAsync(readTrans, trans, path.Substring(0, path.Count - 1), Slice.Nil, Slice.Nil, true, true, true).ConfigureAwait(false);
-				parentNode = NodeWithPrefix(parentSubspace.Key);
+				parentNode = NodeWithPrefix(parentSubspace.GetPrefix());
 			}
 			else
 			{
@@ -739,8 +739,8 @@ namespace FoundationDB.Layers.Directories
 				return null;
 			}
 
-			if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Register the prefix {0} to its new location in the folder sub-tree", oldNode.Subspace.Key);
-			trans.Set(GetSubDirKey(parentNode.Subspace, newPath.Get<string>(-1)), this.NodeSubspace.Keys.Decode<Slice>(oldNode.Subspace.Key));
+			if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Register the prefix {0} to its new location in the folder sub-tree", oldNode.Subspace.GetPrefix());
+			trans.Set(GetSubDirKey(parentNode.Subspace, newPath.Get<string>(-1)), this.NodeSubspace.Keys.Decode<Slice>(oldNode.Subspace.GetPrefix()));
 			await RemoveFromParent(trans, oldPath).ConfigureAwait(false);
 
 			return ContentsOfNode(oldNode.Subspace, newPath, oldNode.Layer);
@@ -893,7 +893,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[ItemCanBeNull]
-		private async Task<IFdbSubspace> NodeContainingKey([NotNull] IFdbReadOnlyTransaction tr, Slice key)
+		private async Task<IKeySubspace> NodeContainingKey([NotNull] IFdbReadOnlyTransaction tr, Slice key)
 		{
 			Contract.Requires(tr != null);
 
@@ -926,7 +926,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns the subspace to a node metadata, given its prefix</summary>
 		[CanBeNull]
-		private IFdbDynamicSubspace NodeWithPrefix(Slice prefix)
+		private IDynamicKeySubspace NodeWithPrefix(Slice prefix)
 		{
 			if (prefix.IsNullOrEmpty) return null;
 			return this.NodeSubspace.Partition.ByKey(prefix);
@@ -934,12 +934,12 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
 		[NotNull]
-		private FdbDirectorySubspace ContentsOfNode([NotNull] IFdbSubspace node, [NotNull] ITuple relativePath, Slice layer)
+		private FdbDirectorySubspace ContentsOfNode([NotNull] IKeySubspace node, [NotNull] ITuple relativePath, Slice layer)
 		{
 			Contract.Requires(node != null);
 
 			var path = this.Location.Concat(relativePath);
-			var prefix = this.NodeSubspace.Keys.Decode<Slice>(node.Key);
+			var prefix = this.NodeSubspace.Keys.Decode<Slice>(node.GetPrefix());
 			if (layer == FdbDirectoryPartition.LayerId)
 			{
 				return new FdbDirectoryPartition(path, relativePath, prefix, this);
@@ -970,14 +970,14 @@ namespace FoundationDB.Layers.Directories
 			Slice layer = Slice.Nil;
 			while (i < path.Count)
 			{
-				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Looking for child {0} under node {1}...", path.Get<string>(i), n.Key);
+				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Looking for child {0} under node {1}...", path.Get<string>(i), n.GetPrefix());
 				n = NodeWithPrefix(await tr.GetAsync(GetSubDirKey(n, path.Get<string>(i))).ConfigureAwait(false));
 				if (n == null)
 				{
 					return new Node(null, path.Substring(0, i + 1), path, Slice.Empty);
 				}
 
-				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Reading Layer value for subfolder {0} found at {1}", path, n.Key);
+				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Reading Layer value for subfolder {0} found at {1}", path, n.GetPrefix());
 				layer = await tr.GetAsync(n.Keys.Encode(LayerSuffix)).ConfigureAwait(false);
 				if (layer == FdbDirectoryPartition.LayerId)
 				{ // stop when reaching a partition
@@ -991,14 +991,14 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns the list of names and nodes of all children of the specified node</summary>
 		[NotNull]
-		private IFdbAsyncEnumerable<KeyValuePair<string, IFdbDynamicSubspace>> SubdirNamesAndNodes([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IFdbDynamicSubspace node)
+		private IFdbAsyncEnumerable<KeyValuePair<string, IDynamicKeySubspace>> SubdirNamesAndNodes([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IDynamicKeySubspace node)
 		{
 			Contract.Requires(tr != null && node != null);
 
 			var sd = node.Partition.ByKey(SUBDIRS);
 			return tr
 				.GetRange(sd.Keys.ToRange())
-				.Select(kvp => new KeyValuePair<string, IFdbDynamicSubspace>(
+				.Select(kvp => new KeyValuePair<string, IDynamicKeySubspace>(
 					sd.Keys.Decode<string>(kvp.Key),
 					NodeWithPrefix(kvp.Value)
 				));
@@ -1013,7 +1013,7 @@ namespace FoundationDB.Layers.Directories
 			var parent = await FindAsync(tr, path.Substring(0, path.Count - 1)).ConfigureAwait(false);
 			if (parent.Exists)
 			{
-				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing path {0} from its parent folder at {1}", path, parent.Subspace.Key);
+				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing path {0} from its parent folder at {1}", path, parent.Subspace.GetPrefix());
 				tr.Clear(GetSubDirKey(parent.Subspace, path.Get<string>(-1)));
 				return true;
 			}
@@ -1021,7 +1021,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Resursively remove a node (including the content), all its children</summary>
-		private async Task RemoveRecursive([NotNull] IFdbTransaction tr, [NotNull] IFdbDynamicSubspace node)
+		private async Task RemoveRecursive([NotNull] IFdbTransaction tr, [NotNull] IDynamicKeySubspace node)
 		{
 			Contract.Requires(tr != null && node != null);
 
@@ -1029,10 +1029,10 @@ namespace FoundationDB.Layers.Directories
 			await SubdirNamesAndNodes(tr, node).ForEachAsync((kvp) => RemoveRecursive(tr, kvp.Value)).ConfigureAwait(false);
 
 			// remove ALL the contents
-			if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all content located under {0}", node.Key);
+			if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all content located under {0}", node.GetPrefix());
 			tr.ClearRange(ContentsOfNode(node, STuple.Empty, Slice.Empty).ToRange());
 			// and all the metadata for this folder
-			if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all metadata for folder under {0}", node.Key);
+			if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all metadata for folder under {0}", node.GetPrefix());
 			tr.ClearRange(node.Keys.ToRange());
 		}
 
@@ -1056,7 +1056,7 @@ namespace FoundationDB.Layers.Directories
 				.ConfigureAwait(false);
 		}
 
-		private static Slice GetSubDirKey([NotNull] IFdbDynamicSubspace parent, [NotNull] string path)
+		private static Slice GetSubDirKey([NotNull] IDynamicKeySubspace parent, [NotNull] string path)
 		{
 			Contract.Requires(parent != null && path != null);
 

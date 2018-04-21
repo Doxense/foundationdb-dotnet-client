@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new High Contention Queue</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] FdbSubspace subspace)
+		public FdbQueue([NotNull] KeySubspace subspace)
 			: this(subspace, highContention: true, encoder: KeyValueEncoders.Tuples.Value<T>())
 		{ }
 
@@ -60,14 +60,14 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] FdbSubspace subspace, bool highContention)
+		public FdbQueue([NotNull] KeySubspace subspace, bool highContention)
 			: this(subspace, highContention: highContention, encoder: KeyValueEncoders.Tuples.Value<T>())
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		public FdbQueue([NotNull] IFdbSubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
+		public FdbQueue([NotNull] IKeySubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -83,7 +83,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
 		public bool HighContention { get; private set; }
@@ -91,11 +91,11 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Serializer for the elements of the queue</summary>
 		public IValueEncoder<T> Encoder { [NotNull] get; private set; }
 
-		internal IFdbDynamicSubspace ConflictedPop { get; private set; }
+		internal IDynamicKeySubspace ConflictedPop { get; private set; }
 
-		internal IFdbDynamicSubspace ConflictedItem { get; private set; }
+		internal IDynamicKeySubspace ConflictedItem { get; private set; }
 
-		internal IFdbDynamicSubspace QueueItem { get; private set; }
+		internal IDynamicKeySubspace QueueItem { get; private set; }
 
 		/// <summary>Remove all items from the queue.</summary>
 		public void Clear([NotNull] IFdbTransaction trans)
@@ -277,7 +277,7 @@ namespace FoundationDB.Layers.Collections
 			tr.Set(key, this.Encoder.EncodeValue(value));
 		}
 
-		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, IFdbDynamicSubspace subspace)
+		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, IDynamicKeySubspace subspace)
 		{
 			var range = subspace.Keys.ToRange();
 

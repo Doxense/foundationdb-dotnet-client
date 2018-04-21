@@ -34,7 +34,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]
-	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IFdbDynamicSubspace, IDisposable
+	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IDynamicKeySubspace, IDisposable
 	{
 		/// <summary>Name of the database</summary>
 		string Name { [NotNull] get; }
@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
-		IFdbDynamicSubspace GlobalSpace { [NotNull] get; }
+		IDynamicKeySubspace GlobalSpace { [NotNull] get; }
 
 		/// <summary>Directory partition of this database instance</summary>
 		FdbDatabasePartition Directory { [NotNull] get; }

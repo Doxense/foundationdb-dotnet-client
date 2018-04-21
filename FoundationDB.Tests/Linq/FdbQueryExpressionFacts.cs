@@ -40,8 +40,8 @@ namespace FoundationDB.Linq.Expressions.Tests
 	public class FdbQueryExpressionFacts
 	{
 
-		private FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", FdbSubspace.Create(STuple.EncodeKey("Foos", 1)));
-		private FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", FdbSubspace.Create(STuple.EncodeKey("Foos", 2)));
+		private FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.Create(STuple.EncodeKey("Foos", 1)));
+		private FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.Create(STuple.EncodeKey("Foos", 2)));
 
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression()

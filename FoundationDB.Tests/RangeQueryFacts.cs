@@ -296,8 +296,8 @@ namespace FoundationDB.Client.Tests
 						tr.Set(a.Keys.Encode(i), Slice.FromInt32(i));
 					}
 					// add guard keys
-					tr.Set(location.Key, Slice.FromInt32(-1));
-					tr.Set(location.Key + (byte)255, Slice.FromInt32(-1));
+					tr.Set(location.GetPrefix(), Slice.FromInt32(-1));
+					tr.Set(location.GetPrefix() + (byte)255, Slice.FromInt32(-1));
 				}, this.Cancellation);
 
 				// Take(5) should return the first 5 items

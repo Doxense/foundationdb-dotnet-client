@@ -6,7 +6,7 @@ namespace FoundationDB.Client
 	public abstract class DynamicKeyEncoderBase : IDynamicKeyEncoder
 	{
 
-		public abstract IFdbKeyEncoding Encoding { get; }
+		public abstract IKeyEncoding Encoding { get; }
 
 		public virtual KeyRange ToRange(Slice prefix)
 		{

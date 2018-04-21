@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Return the parent key encoding</summary>
-		IFdbKeyEncoding Encoding {[NotNull] get; }
+		IKeyEncoding Encoding {[NotNull] get; }
 
 		/// <summary>Return a range that contains all the keys under a subspace of the encoder subspace, using the semantic of the encoding</summary>
 		/// <param name="prefix">Optional binary prefix</param>

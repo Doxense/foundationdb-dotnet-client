@@ -138,7 +138,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentException">If at least on key in the result is outside <paramref name="subspace"/>.</exception>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="subspace"/>, <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
 		[NotNull]
-		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] FdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
@@ -207,7 +207,7 @@ namespace FoundationDB.Client
 		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
 		[NotNull]
-		public T[] DecodeKeys<T>([NotNull] FdbSubspace subspace, [NotNull] IKeyEncoder<T> keyEncoder)
+		public T[] DecodeKeys<T>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<T> keyEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");

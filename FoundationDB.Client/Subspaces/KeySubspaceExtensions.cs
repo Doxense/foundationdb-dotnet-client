@@ -35,8 +35,8 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	/// <summary>Extensions methods to add FdbSubspace overrides to various types</summary>
-	public static class FdbSubspaceExtensions
+	/// <summary>Extensions methods and helpers to work with Key Subspaces</summary>
+	public static class KeySubspaceExtensions
 	{
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -44,11 +44,11 @@ namespace FoundationDB.Client
 		/// <param name="encoding">If non-null, uses this specific instance of the TypeSystem. If null, uses the default instance for this particular TypeSystem</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbDynamicSubspace Using([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
+		public static IDynamicKeySubspace Using([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return FdbSubspace.CopyDynamic(subspace, encoding);
+			return KeySubspace.CopyDynamic(subspace, encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -56,11 +56,11 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbDynamicSubspace UsingEncoder([NotNull] this IFdbSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
+		public static IDynamicKeySubspace UsingEncoder([NotNull] this IKeySubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return FdbSubspace.CopyDynamic(subspace, encoder);
+			return KeySubspace.CopyDynamic(subspace, encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -68,11 +68,11 @@ namespace FoundationDB.Client
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T> UsingEncoder<T>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
+		public static ITypedKeySubspace<T> UsingEncoder<T>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return FdbSubspace.CopyEncoder<T>(subspace, encoding);
+			return KeySubspace.CopyEncoder<T>(subspace, encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -80,11 +80,11 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T> UsingEncoder<T>([NotNull] this IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		public static ITypedKeySubspace<T> UsingEncoder<T>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoder<T> encoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return FdbSubspace.CopyEncoder<T>(subspace, encoder);
+			return KeySubspace.CopyEncoder<T>(subspace, encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -92,11 +92,11 @@ namespace FoundationDB.Client
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
+		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return FdbSubspace.CopyEncoder<T1, T2>(subspace, encoding);
+			return KeySubspace.CopyEncoder<T1, T2>(subspace, encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -104,11 +104,11 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IKeySubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return FdbSubspace.CopyEncoder<T1, T2>(subspace, encoder);
+			return KeySubspace.CopyEncoder<T1, T2>(subspace, encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -116,11 +116,11 @@ namespace FoundationDB.Client
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
+		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return FdbSubspace.CopyEncoder<T1, T2, T3>(subspace, encoding);
+			return KeySubspace.CopyEncoder<T1, T2, T3>(subspace, encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -128,11 +128,11 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IKeySubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return FdbSubspace.CopyEncoder<T1, T2, T3>(subspace, encoder);
+			return KeySubspace.CopyEncoder<T1, T2, T3>(subspace, encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -140,11 +140,11 @@ namespace FoundationDB.Client
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
+		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return FdbSubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoding);
+			return KeySubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -152,15 +152,15 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static IFdbEncoderSubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return FdbSubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoder);
+			return KeySubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoder);
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
-		public static void ClearRange(this IFdbTransaction trans, [NotNull] IFdbSubspace subspace)
+		public static void ClearRange(this IFdbTransaction trans, [NotNull] IKeySubspace subspace)
 		{
 			Contract.Requires(trans != null && subspace != null);
 
@@ -169,7 +169,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
-		public static Task ClearRangeAsync(this IFdbRetryable db, [NotNull] IFdbSubspace subspace, CancellationToken cancellationToken)
+		public static Task ClearRangeAsync(this IFdbRetryable db, [NotNull] IKeySubspace subspace, CancellationToken cancellationToken)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(subspace, nameof(subspace));
@@ -179,7 +179,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns all the keys inside of a subspace</summary>
 		[Pure, NotNull]
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, [NotNull] IFdbSubspace subspace, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, [NotNull] IKeySubspace subspace, FdbRangeOptions options = null)
 		{
 			//REVIEW: should we remove this method?
 			Contract.Requires(trans != null && subspace != null);

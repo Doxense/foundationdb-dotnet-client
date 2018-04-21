@@ -41,11 +41,11 @@ namespace FoundationDB.Layers.Documents
 
 		public const int DefaultChunkSize = 1 << 20; // 1 MB
 
-		public FdbDocumentCollection(FdbSubspace subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
+		public FdbDocumentCollection(KeySubspace subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
 			: this(subspace, selector, KeyValueEncoders.Tuples.CompositeKey<TId, int>(), valueEncoder)
 		{ }
 
-		public FdbDocumentCollection(FdbSubspace subspace, Func<TDocument, TId> selector, ICompositeKeyEncoder<TId, int> keyEncoder, IValueEncoder<TDocument> valueEncoder)
+		public FdbDocumentCollection(KeySubspace subspace, Func<TDocument, TId> selector, ICompositeKeyEncoder<TId, int> keyEncoder, IValueEncoder<TDocument> valueEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 			if (selector == null) throw new ArgumentNullException(nameof(selector));
@@ -75,9 +75,9 @@ namespace FoundationDB.Layers.Documents
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public FdbSubspace Subspace { get; }
+		public KeySubspace Subspace { get; }
 
-		protected IFdbEncoderSubspace<TId, int> Location { get; }
+		protected ITypedKeySubspace<TId, int> Location { get; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; }

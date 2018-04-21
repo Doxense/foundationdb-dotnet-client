@@ -30,7 +30,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string[] ClassNames { get; }
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; private set; }
 
 		protected Slice ClassKey(string c)
 		{
