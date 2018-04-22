@@ -34,10 +34,11 @@ namespace FoundationDB.Layers.Directories
 	using System.Linq;
 	using System.Threading.Tasks;
 	using JetBrains.Annotations;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
+	using Doxense.Memory;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Filters.Logging;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
@@ -51,9 +52,9 @@ namespace FoundationDB.Layers.Directories
 	{
 		private const int SUBDIRS = 0;
 		internal static readonly Version LayerVersion = new Version(1, 0, 0);
-		internal static readonly Slice LayerSuffix = Slice.FromAscii("layer");
-		internal static readonly Slice HcaKey = Slice.FromAscii("hca");
-		internal static readonly Slice VersionKey = Slice.FromAscii("version");
+		internal static readonly Slice LayerSuffix = Slice.FromStringAscii("layer");
+		internal static readonly Slice HcaKey = Slice.FromStringAscii("hca");
+		internal static readonly Slice VersionKey = Slice.FromStringAscii("version");
 
 		/// <summary>Use this flag to make the Directory Layer start annotating the transactions with a descriptions of all operations.</summary>
 		/// <remarks>
@@ -111,7 +112,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (layer.IsPresent)
 			{
-				throw new InvalidOperationException(String.Format("The directory layer {0} is not compatible with layer {1}.", this.FullName, layer.ToAsciiOrHexaString()));
+				throw new InvalidOperationException($"The directory layer {this.FullName} is not compatible with layer {layer:P}.");
 			}
 		}
 
@@ -480,7 +481,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.FullName, this.ContentSubspace.GetPrefix().ToAsciiOrHexaString(), this.NodeSubspace.GetPrefix().ToAsciiOrHexaString());
+			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.FullName, this.ContentSubspace.GetPrefix().PrettyPrint(), this.NodeSubspace.GetPrefix().PrettyPrint());
 		}
 
 		#endregion
@@ -619,7 +620,7 @@ namespace FoundationDB.Layers.Directories
 
 				if (layer.IsPresent && layer != existingNode.Layer)
 				{
-					throw new InvalidOperationException(String.Format("The directory {0} was created with incompatible layer {1} instead of expected {2}.", path, layer.ToAsciiOrHexaString(), existingNode.Layer.ToAsciiOrHexaString()));
+					throw new InvalidOperationException(String.Format("The directory {0} was created with incompatible layer {1} instead of expected {2}.", path, layer.PrettyPrint(), existingNode.Layer.PrettyPrint()));
 				}
 				return ContentsOfNode(existingNode.Subspace, path, existingNode.Layer);
 			}
@@ -644,7 +645,7 @@ namespace FoundationDB.Layers.Directories
 				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Ensure that there is no data already present under prefix {0}", prefix);
 				if (await trans.GetRange(KeyRange.StartsWith(prefix)).AnyAsync().ConfigureAwait(false))
 				{
-					throw new InvalidOperationException(String.Format("The database has keys stored at the prefix chosen by the automatic prefix allocator: {0}", prefix.ToAsciiOrHexaString()));
+					throw new InvalidOperationException(String.Format("The database has keys stored at the prefix chosen by the automatic prefix allocator: {0}", prefix.PrettyPrint()));
 				}
 
 				// ensure that the prefix has not already been allocated
@@ -876,8 +877,8 @@ namespace FoundationDB.Layers.Directories
 			var minor = reader.ReadFixed32();
 			var upgrade = reader.ReadFixed32();
 
-			if (major > LayerVersion.Major) throw new InvalidOperationException(String.Format("Cannot load directory with version {0}.{1}.{2} using directory layer {3}", major, minor, upgrade, LayerVersion));
-			if (writeAccess && minor > LayerVersion.Minor) throw new InvalidOperationException(String.Format("Directory with version {0}.{1}.{2} is read-only when opened using directory layer {3}", major, minor, upgrade, LayerVersion));
+			if (major > LayerVersion.Major) throw new InvalidOperationException($"Cannot load directory with version {major}.{minor}.{upgrade} using directory layer {FdbDirectoryLayer.LayerVersion}");
+			if (writeAccess && minor > LayerVersion.Minor) throw new InvalidOperationException($"Directory with version {major}.{minor}.{upgrade} is read-only when opened using directory layer {FdbDirectoryLayer.LayerVersion}");
 		}
 
 		private void InitializeDirectory([NotNull] IFdbTransaction trans)

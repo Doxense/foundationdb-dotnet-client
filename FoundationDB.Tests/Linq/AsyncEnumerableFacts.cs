@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Linq.Tests
 {
 	using System;
@@ -38,14 +37,14 @@ namespace FoundationDB.Linq.Tests
 	using System.Threading.Tasks;
 	using Doxense;
 	using Doxense.Async;
+	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 
 	[TestFixture]
-	public class FdbAsyncEnumerableFacts : FdbTest
+	public class AsyncEnumerableFacts : FdbTest
 	{
 
 		[Test]

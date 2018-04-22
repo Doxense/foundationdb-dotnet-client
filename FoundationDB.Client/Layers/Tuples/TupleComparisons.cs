@@ -26,14 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
-	using FoundationDB.Client.Converters;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
+	using Doxense.Runtime.Converters;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper class for tuple comparisons</summary>
 	public static class TupleComparisons
@@ -44,8 +44,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Tuple comparer that uses the default BCL object comparison ("123" != 123 != 123L != 123.0d)</summary>
 		public static readonly EqualityComparer Bcl = new EqualityComparer(EqualityComparer<object>.Default);
 
+#if false
 		/// <summary>Tuple comparer that compared the packed bytes (slow!)</summary>
 		public static readonly BinaryComparer Binary = new BinaryComparer();
+#endif
 
 		public sealed class EqualityComparer : IEqualityComparer<ITuple>, IEqualityComparer
 		{
@@ -66,7 +68,7 @@ namespace FoundationDB.Layers.Tuples
 
 			public int GetHashCode(ITuple obj)
 			{
-				return obj != null ? obj.GetHashCode(m_comparer) : 0;
+				return HashCodes.Compute(obj, m_comparer);
 			}
 
 			public new bool Equals(object x, object y)
@@ -74,8 +76,7 @@ namespace FoundationDB.Layers.Tuples
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;
 
-				var t = x as ITuple;
-				if (t != null) return t.Equals(y, m_comparer);
+				if (x is ITuple t) return t.Equals(y, m_comparer);
 
 				t = y as ITuple;
 				if (t != null) return t.Equals(x, m_comparer);
@@ -94,7 +95,9 @@ namespace FoundationDB.Layers.Tuples
 				return RuntimeHelpers.GetHashCode(obj);
 			}
 		}
-	
+
+#if false
+
 		public sealed class BinaryComparer : IEqualityComparer<ITuple>, IEqualityComparer
 		{
 			internal BinaryComparer()
@@ -135,6 +138,8 @@ namespace FoundationDB.Layers.Tuples
 				return RuntimeHelpers.GetHashCode(obj);
 			}
 		}
+
+#endif
 
 		/// <summary>Create a new instance that compares a single item position in two tuples</summary>
 		/// <typeparam name="T1">Type of the item to compare</typeparam>
@@ -203,10 +208,10 @@ namespace FoundationDB.Layers.Tuples
 
 			/// <summary>Offset in the tuples where the comparison starts</summary>
 			/// <remarks>If negative, comparison starts from the end.</remarks>
-			public int Offset { get; private set; }
+			public int Offset { get; }
 
 			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
-			public IComparer<T1> Comparer { get; private set; }
+			public IComparer<T1> Comparer { get; }
 
 			/// <summary>Compare a single item in both tuples</summary>
 			/// <param name="x">First tuple</param>
@@ -258,13 +263,13 @@ namespace FoundationDB.Layers.Tuples
 
 			/// <summary>Offset in the tuples where the comparison starts</summary>
 			/// <remarks>If negative, comparison starts from the end.</remarks>
-			public int Offset { get; private set; }
+			public int Offset { get; }
 
 			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
-			public IComparer<T1> Comparer1 { get; private set; }
+			public IComparer<T1> Comparer1 { get; }
 
 			/// <summary>Comparer for the second element (at possition <see cref="Offset"/> + 1)</summary>
-			public IComparer<T2> Comparer2 { get; private set; }
+			public IComparer<T2> Comparer2 { get; }
 
 			/// <summary>Compare up to two items in both tuples</summary>
 			/// <param name="x">First tuple</param>
@@ -326,16 +331,16 @@ namespace FoundationDB.Layers.Tuples
 
 			/// <summary>Offset in the tuples where the comparison starts</summary>
 			/// <remarks>If negative, comparison starts from the end.</remarks>
-			public int Offset { get; private set; }
+			public int Offset { get; }
 
 			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
-			public IComparer<T1> Comparer1 { get; private set; }
+			public IComparer<T1> Comparer1 { get; }
 
 			/// <summary>Comparer for the second element (at possition <see cref="Offset"/> + 1)</summary>
-			public IComparer<T2> Comparer2 { get; private set; }
+			public IComparer<T2> Comparer2 { get; }
 
 			/// <summary>Comparer for the third element (at possition <see cref="Offset"/> + 2)</summary>
-			public IComparer<T3> Comparer3 { get; private set; }
+			public IComparer<T3> Comparer3 { get; }
 
 			/// <summary>Compare up to three items in both tuples</summary>
 			/// <param name="x">First tuple</param>

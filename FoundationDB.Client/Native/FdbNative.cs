@@ -711,7 +711,7 @@ namespace FoundationDB.Client.Native
 			}
 			else
 			{
-				key = Slice.Create(ptr, keyLength);
+				key = Slice.Copy(ptr, keyLength);
 			}
 			return err;
 		}

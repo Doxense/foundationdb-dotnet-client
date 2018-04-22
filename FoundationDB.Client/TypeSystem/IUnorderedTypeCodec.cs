@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using Doxense.Memory;
 
 	public interface IUnorderedTypeCodec<T>
 	{

@@ -28,18 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Converters.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq;
-	using System.Text;
+	using Doxense.Collections.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
+	using Doxense.Memory;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class TypeCodecFacts
+	public class TypeCodecFacts : FdbTest
 	{
 
 		[Test]
@@ -48,13 +45,13 @@ namespace FoundationDB.Client.Converters.Tests
 			var codec = TupleCodec<int>.Default;
 			Assert.That(codec, Is.Not.Null);
 
-			Assert.That(codec.EncodeOrdered(0), Is.EqualTo(STuple.EncodeKey(0)));
-			Assert.That(codec.EncodeOrdered(123), Is.EqualTo(STuple.EncodeKey(123)));
-			Assert.That(codec.EncodeOrdered(123456), Is.EqualTo(STuple.EncodeKey(123456)));
+			Assert.That(codec.EncodeOrdered(0), Is.EqualTo(TuPack.EncodeKey(0)));
+			Assert.That(codec.EncodeOrdered(123), Is.EqualTo(TuPack.EncodeKey(123)));
+			Assert.That(codec.EncodeOrdered(123456), Is.EqualTo(TuPack.EncodeKey(123456)));
 
-			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(0)), Is.EqualTo(0));
-			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(123)), Is.EqualTo(123));
-			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(123456)), Is.EqualTo(123456));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(0)), Is.EqualTo(0));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(123)), Is.EqualTo(123));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(123456)), Is.EqualTo(123456));
 		}
 
 		[Test]
@@ -63,13 +60,13 @@ namespace FoundationDB.Client.Converters.Tests
 			var codec = TupleCodec<string>.Default;
 			Assert.That(codec, Is.Not.Null);
 
-			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(STuple.EncodeKey("héllø Wörld")));
-			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(STuple.EncodeKey("")));
-			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(STuple.EncodeKey(default(string))));
+			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(TuPack.EncodeKey("héllø Wörld")));
+			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(TuPack.EncodeKey("")));
+			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(TuPack.EncodeKey(default(string))));
 
-			Assert.That(codec.DecodeOrdered(STuple.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
-			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(String.Empty)), Is.EqualTo(""));
-			Assert.That(codec.DecodeOrdered(STuple.EncodeKey(default(string))), Is.Null);
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(String.Empty)), Is.EqualTo(""));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(default(string))), Is.Null);
 		}
 
 		[Test]
@@ -85,12 +82,12 @@ namespace FoundationDB.Client.Converters.Tests
 			var second = TupleCodec<long>.Default;
 			var third = TupleCodec<Guid>.Default;
 
-			var writer = SliceWriter.Empty;
+			var writer = default(SliceWriter);
 			first.EncodeOrderedSelfTerm(ref writer, x);
 			second.EncodeOrderedSelfTerm(ref writer, y);
 			third.EncodeOrderedSelfTerm(ref writer, z);
 			var data = writer.ToSlice();
-			Assert.That(data, Is.EqualTo(STuple.EncodeKey(x, y, z)));
+			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x, y, z)));
 
 			var reader = new SliceReader(data);
 			Assert.That(first.DecodeOrderedSelfTerm(ref reader), Is.EqualTo(x));

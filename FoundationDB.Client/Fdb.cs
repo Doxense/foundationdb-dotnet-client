@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
 
 		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
-		internal const int DefaultApiVersion = 300; // v3.0.x
+		internal const int DefaultApiVersion = 510; // v5.1.x
 		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
@@ -716,7 +716,7 @@ namespace FoundationDB.Client
 		/// <summary>Set the value of a network option on the database handler</summary>
 		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
 		{
-			SliceHelpers.EnsureSliceIsValid(ref value);
+			value.EnsureSliceIsValid();
 			unsafe
 			{
 				fixed (byte* ptr = value.Array)

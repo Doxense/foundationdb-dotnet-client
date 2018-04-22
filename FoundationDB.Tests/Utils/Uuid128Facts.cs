@@ -28,14 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Client;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class UuidFacts
+	public class Uuid128Facts : FdbTest
 	{
 		[Test]
 		public void Test_Uuid_Empty()
@@ -127,6 +126,46 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_Uuid_Increment()
+		{
+			var @base = Uuid128.Parse("6be5d394-03a6-42ab-aac2-89b7d9312402");
+			Log(@base);
+			//DumpHexa(@base.ToByteArray());
+
+			{ // +1
+				var uuid = @base.Increment(1);
+				Log(uuid);
+				//DumpHexa(uuid.ToByteArray());
+				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ab-aac2-89b7d9312403"));
+			}
+			{ // +256
+				var uuid = @base.Increment(256);
+				Log(uuid);
+				//DumpHexa(uuid.ToByteArray());
+				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ab-aac2-89b7d9312502"));
+			}
+			{ // almost overflow (low)
+				var uuid = @base.Increment(0x553D764826CEDBFDUL); // delta nécessaire pour avoir 0xFFFFFFFFFFFFFFFF a la fin
+				Log(uuid);
+				//DumpHexa(uuid.ToByteArray());
+				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ab-ffff-ffffffffffff"));
+			}
+			{ // overflow (low)
+				var uuid = @base.Increment(0x553D764826CEDBFEUL); // encore 1 de plus pour trigger l'overflow
+				Log(uuid);
+				//DumpHexa(uuid.ToByteArray());
+				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ac-0000-000000000000"));
+			}
+			{ // overflow (cascade)
+				var uuid = Uuid128.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff").Increment(1);
+				Log(uuid);
+				//DumpHexa(uuid.ToByteArray());
+				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+			}
+
+		}
+
+		[Test]
 		public void Test_Uuid_ToSlice()
 		{
 			var uuid = Uuid128.NewUuid();
@@ -134,7 +173,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(uuid.ToSlice().Offset, Is.GreaterThanOrEqualTo(0));
 			Assert.That(uuid.ToSlice().Array, Is.Not.Null);
 			Assert.That(uuid.ToSlice().Array.Length, Is.GreaterThanOrEqualTo(16));
-			Assert.That(uuid.ToSlice(), Is.EqualTo(Slice.Create(uuid.ToByteArray())));
+			Assert.That(uuid.ToSlice(), Is.EqualTo(uuid.ToByteArray().AsSlice()));
 			Assert.That(uuid.ToSlice().GetBytes(), Is.EqualTo(uuid.ToByteArray()));
 		}
 

@@ -28,14 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Status;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using FoundationDB.Client;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class DatabaseFacts : FdbTest
@@ -205,7 +204,15 @@ namespace FoundationDB.Client.Tests
 			{
 				var coordinators = await Fdb.System.GetCoordinatorsAsync(db, this.Cancellation);
 				Assert.That(coordinators, Is.Not.Null);
-				Assert.That(coordinators.Description, Is.EqualTo("local"));
+				Log("raw : " + coordinators.RawValue);
+				Log("id  : "+ coordinators.Id);
+				Log("desc:" + coordinators.Description);
+				Log("coordinators:");
+				foreach (var x in coordinators.Coordinators)
+				{
+					Log($"-  {x.Address}:{x.Port}{(x.Tls ? " (TLS)" : "")}");
+				}
+				Assert.That(coordinators.Description, Is.Not.Null.Or.Empty); //note: it should be a long numerical string, but it changes for each installation
 				Assert.That(coordinators.Id, Is.Not.Null.And.Length.GreaterThan(0));
 				Assert.That(coordinators.Coordinators, Is.Not.Null.And.Length.GreaterThan(0));
 
@@ -231,16 +238,16 @@ namespace FoundationDB.Client.Tests
 				Slice actual;
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithReadAccessToSystemKeys())
 				{
-					actual = await tr.GetAsync(Slice.FromAscii("\xFF/conf/storage_engine"));
+					actual = await tr.GetAsync(Slice.FromByteString("\xFF/conf/storage_engine"));
 				}
 
 				if (mode == "ssd")
 				{ // ssd = '0'
-					Assert.That(actual, Is.EqualTo(Slice.FromAscii("0")));
+					Assert.That(actual, Is.EqualTo(Slice.FromStringAscii("0")));
 				}
 				else
 				{ // memory = '1'
-					Assert.That(actual, Is.EqualTo(Slice.FromAscii("1")));
+					Assert.That(actual, Is.EqualTo(Slice.FromStringAscii("1")));
 				}
 			}
 		}
@@ -270,7 +277,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", KeySubspace.Create(STuple.EncodeKey("test")), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(null, "DB", KeySubspace.Create(TuPack.EncodeKey("test")), false, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -280,14 +287,14 @@ namespace FoundationDB.Client.Tests
 				Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("<02>test<00><02>hello<00>"));
 
 				// keys inside the global space are valid
-				Assert.That(db.IsKeyValid(STuple.EncodeKey("test", 123)), Is.True);
+				Assert.That(db.IsKeyValid(TuPack.EncodeKey("test", 123)), Is.True);
 
 				// keys outside the global space are invalid
-				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 42 })), Is.False);
+				Assert.That(db.IsKeyValid(Slice.FromByte(42)), Is.False);
 			}
 
 			// using a random binary prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", new KeySubspace(Slice.Create(new byte[] { 42, 255, 0, 90 })), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(null, "DB", new KeySubspace(new byte[] { 42, 255, 0, 90 }.AsSlice()), false, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -300,7 +307,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.IsKeyValid(Slice.Unescape("*<FF><00>Z123")), Is.True);
 
 				// keys outside the global space are invalid
-				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 123 })), Is.False);
+				Assert.That(db.IsKeyValid(Slice.FromByte(123)), Is.False);
 				Assert.That(db.IsKeyValid(Slice.Unescape("*<FF>")), Is.False);
 
 			}

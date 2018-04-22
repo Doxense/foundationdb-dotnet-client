@@ -28,17 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
+	using System;
+	using System.Text;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	[Obsolete]
@@ -82,7 +77,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Console.WriteLine("> Pop empty: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
-					await vector.PushAsync(tr, Slice.FromAscii("foo"));
+					await vector.PushAsync(tr, Slice.FromString("foo"));
 					Console.WriteLine("> Pop size 1: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
@@ -98,12 +93,12 @@ namespace FoundationDB.Layers.Collections.Tests
 					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
 
 					Console.WriteLine("Settings values");
-					vector.Set(tr, 0, Slice.FromAscii("Portez"));
-					vector.Set(tr, 1, Slice.FromAscii("ce vieux"));
-					vector.Set(tr, 2, Slice.FromAscii("whisky"));
-					vector.Set(tr, 3, Slice.FromAscii("au juge"));
-					vector.Set(tr, 4, Slice.FromAscii("blond qui"));
-					vector.Set(tr, 5, Slice.FromAscii("fume"));
+					vector.Set(tr, 0, Slice.FromString("Portez"));
+					vector.Set(tr, 1, Slice.FromString("ce vieux"));
+					vector.Set(tr, 2, Slice.FromString("whisky"));
+					vector.Set(tr, 3, Slice.FromString("au juge"));
+					vector.Set(tr, 4, Slice.FromString("blond qui"));
+					vector.Set(tr, 5, Slice.FromString("fume"));
 					await PrintVector(vector, tr);
 
 					Console.WriteLine("FRONT");
@@ -149,7 +144,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
 
 					Console.WriteLine("> Adding 'word' to index 10, resize to 25");
-					vector.Set(tr, 10, Slice.FromAscii("word"));
+					vector.Set(tr, 10, Slice.FromString("word"));
 					await vector.ResizeAsync(tr, 25);
 					await PrintVector(vector, tr);
 					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
@@ -175,7 +170,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			await tr.GetRange(vector.Subspace.Keys.ToRange()).ForEachAsync((kvp) =>
 			{
 				if (!first) sb.Append(", "); else first = false;
-				sb.Append(vector.Subspace.Keys.DecodeLast<long>(kvp.Key) + ":" + kvp.Value.ToAsciiOrHexaString());
+				sb.Append($"{vector.Subspace.Keys.DecodeLast<long>(kvp.Key)}:{kvp.Value:P}");
 			});
 
 			Console.WriteLine("> Vector: (" + sb.ToString() + ")");

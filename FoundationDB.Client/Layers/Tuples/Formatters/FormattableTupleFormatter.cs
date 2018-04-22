@@ -26,12 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Specialized formatter for types that implement ITupleFormattable</summary>
-	internal sealed class FormattableTupleFormatter<T> : ITupleFormatter<T>
+	public sealed class FormattableTupleFormatter<T> : ITupleFormatter<T>
 		where T : ITupleFormattable, new()
 	{
 		public ITuple ToTuple(T key)
@@ -42,7 +43,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public T FromTuple(ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			Contract.NotNull(tuple, nameof(tuple));
 			var key = new T();
 			key.FromTuple(tuple);
 			return key;

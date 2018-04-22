@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
 
 namespace FoundationDB
 {
@@ -34,8 +33,10 @@ namespace FoundationDB
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Memory;
+	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
@@ -304,7 +305,7 @@ namespace FoundationDB
 										case 0xFF:
 											{
 												//***README*** if you break under here, see README in the last catch() block
-												tuple = FoundationDB.Layers.Tuples.STuple.Unpack(key[0, -1]);
+												tuple = TuPack.Unpack(key[0, -1]);
 												suffix = ".<FF>";
 												break;
 											}
@@ -312,7 +313,7 @@ namespace FoundationDB
 											{
 												var tmp = key[0, -1] + (byte)0;
 												//***README*** if you break under here, see README in the last catch() block
-												tuple = FoundationDB.Layers.Tuples.STuple.Unpack(tmp);
+												tuple = TuPack.Unpack(tmp);
 												suffix = " + 1";
 												break;
 											}
@@ -329,7 +330,7 @@ namespace FoundationDB
 									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										tuple = FoundationDB.Layers.Tuples.STuple.Unpack(key[0, -1]);
+										tuple = TuPack.Unpack(key[0, -1]);
 										suffix = ".<00>";
 									}
 									break;
@@ -345,7 +346,7 @@ namespace FoundationDB
 						if (tuple == null && !skip)
 						{ // attempt a regular decoding
 							//***README*** if you break under here, see README in the last catch() block
-							tuple = FoundationDB.Layers.Tuples.STuple.Unpack(key);
+							tuple = TuPack.Unpack(key);
 						}
 
 						if (tuple != null) return tuple.ToString() + suffix;

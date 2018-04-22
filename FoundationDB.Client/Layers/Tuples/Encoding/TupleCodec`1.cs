@@ -26,11 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples.Encoding
 {
+	using System;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
-	using System;
+	using Doxense.Memory;
 
 	/// <summary>Type codec that uses the Tuple Encoding format</summary>
 	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
@@ -54,28 +55,27 @@ namespace FoundationDB.Layers.Tuples
 
 		public override Slice EncodeOrdered(T value)
 		{
-			return STuple.EncodeKey<T>(value);
+			return TupleEncoder.EncodeKey(value);
 		}
 
 		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
 		{
 			//HACKHACK: we lose the current depth!
 			var writer = new TupleWriter(output);
-			TuplePacker<T>.Encoder(ref writer, value);
+			TuplePackers.SerializeTo(ref writer, value);
 			output = writer.Output;
 		}
 
 		public override T DecodeOrdered(Slice input)
 		{
-			return STuple.DecodeKey<T>(input);
+			return TuPack.DecodeKey<T>(input);
 		}
 
 		public override T DecodeOrderedSelfTerm(ref SliceReader input)
 		{
 			//HACKHACK: we lose the current depth!
 			var reader = new TupleReader(input);
-			T value;
-			bool res = STuple.DecodeNext<T>(ref reader, out value);
+			bool res = TuPack.DecodeNext<T>(ref reader, out T value);
 			input = reader.Input;
 			return res ? value : m_missingValue;
 		}

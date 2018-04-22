@@ -26,15 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
+	using Doxense.Runtime.Converters;
 
 	/// <summary>Represents an immutable tuple where the packed bytes are cached</summary>
 	[DebuggerDisplay("{ToString()}")]
@@ -67,12 +67,12 @@ namespace FoundationDB.Layers.Tuples
 
 		public object this[int index]
 		{
-			get { return m_items[STuple.MapIndex(index, m_items.Length)]; }
+			get { return m_items[TupleHelpers.MapIndex(index, m_items.Length)]; }
 		}
 
 		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return STuple.Splice(this, fromIncluded, toExcluded); }
+			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
 		}
 
 		public void PackTo(ref TupleWriter writer)
@@ -105,14 +105,14 @@ namespace FoundationDB.Layers.Tuples
 
 		public R Get<R>(int index)
 		{
-			return FdbConverters.ConvertBoxed<R>(this[index]);
+			return TypeConverters.ConvertBoxed<R>(this[index]);
 		}
 
 		public R Last<R>()
 		{
 			int n = m_items.Length;
 			if (n == 0) throw new InvalidOperationException("Tuple is emtpy");
-			return FdbConverters.ConvertBoxed<R>(m_items[n - 1]);
+			return TypeConverters.ConvertBoxed<R>(m_items[n - 1]);
 		}
 
 		ITuple ITuple.Append<T>(T value)
@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return STuple.ToString(m_items, 0, m_items.Length);
+			return STuple.Formatter.ToString(m_items, 0, m_items.Length);
 		}
 
 		public override bool Equals(object obj)
@@ -165,7 +165,7 @@ namespace FoundationDB.Layers.Tuples
 				return m_packed.Equals(memoized.m_packed);
 			}
 
-			return STuple.Equals(this, other, SimilarValueComparer.Default);
+			return TupleHelpers.Equals(this, other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
@@ -175,12 +175,12 @@ namespace FoundationDB.Layers.Tuples
 
 		bool IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
 		{
-			return STuple.Equals(this, other, comparer);
+			return TupleHelpers.Equals(this, other, comparer);
 		}
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return STuple.StructuralGetHashCode(this, comparer);
+			return TupleHelpers.StructuralGetHashCode(this, comparer);
 		}
 
 	}

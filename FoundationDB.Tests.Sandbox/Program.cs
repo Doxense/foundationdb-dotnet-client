@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Tests.Sandbox
 {
 	using System;
@@ -37,9 +36,9 @@ namespace FoundationDB.Tests.Sandbox
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 
 	class Program
 	{
@@ -180,7 +179,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.Create(STuple.EncodeKey(SUBSPACE)), false, ct))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.Create(TuPack.EncodeKey(SUBSPACE)), false, ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -266,8 +265,8 @@ namespace FoundationDB.Tests.Sandbox
 				// Writes some data in to the database
 				using (var tr = db.BeginTransaction(ct))
 				{
-					tr.Set(STuple.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
-					tr.Set(STuple.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
+					tr.Set(TuPack.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
+					tr.Set(TuPack.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
 				}
 
 			}
@@ -301,7 +300,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
 				var data = new byte[512];
 				new Random(1234).NextBytes(data);
-				trans.Set(location.Keys.Encode("TopSecret"), Slice.Create(data));
+				trans.Set(location.Keys.Encode("TopSecret"), data.AsSlice());
 
 				Console.WriteLine("Committing transaction...");
 				await trans.CommitAsync();
@@ -335,7 +334,7 @@ namespace FoundationDB.Tests.Sandbox
 						tmp[1] = (byte)(i >> 8);
 						// (Batch, 1) = [......]
 						// (Batch, 2) = [......]
-						trans.Set(subspace.Keys.Encode(k * N + i), Slice.Create(tmp));
+						trans.Set(subspace.Keys.Encode(k * N + i), tmp.AsSlice());
 					}
 					await trans.CommitAsync();
 				}
@@ -395,7 +394,7 @@ namespace FoundationDB.Tests.Sandbox
 							tmp[1] = (byte)(i >> 8);
 
 							// ("Batch", batch_index, i) = [..random..]
-							trans.Set(subspace.Keys.Encode(i), Slice.Create(tmp));
+							trans.Set(subspace.Keys.Encode(i), tmp.AsSlice());
 						}
 						x.Stop();
 						Console.WriteLine("> [" + offset + "] packaged " + n + " keys (" + trans.Size.ToString("N0", CultureInfo.InvariantCulture) + " bytes) in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
@@ -517,7 +516,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// clear a lot of small keys, in a single transaction
 
-			var location = db.Partition.ByKey(Slice.FromAscii("hello"));
+			var location = db.Partition.ByKey(Slice.FromStringAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
@@ -547,7 +546,7 @@ namespace FoundationDB.Tests.Sandbox
 				list[i] = (byte)i;
 				using (var trans = db.BeginTransaction(ct))
 				{
-					trans.Set(key, Slice.Create(list));
+					trans.Set(key, list.AsSlice());
 					await trans.CommitAsync();
 				}
 				if (i % 100 == 0) Console.Write("\r> " + i + " / " + N);
@@ -576,7 +575,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					for (int k = i; k < i + 1000 && k < N; k++)
 					{
-						trans.Set(keys[k], Slice.Create(segment));
+						trans.Set(keys[k], segment.AsSlice());
 					}
 					await trans.CommitAsync();
 					Console.Write("\r" + i + " / " + N);
@@ -597,7 +596,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					var list = data[i].Value.GetBytes();
 					list[(list.Length >> 1) + 1] = (byte) rnd.Next(256);
-					trans.Set(data[i].Key, Slice.Create(list));
+					trans.Set(data[i].Key, list.AsSlice());
 				}
 
 				Console.WriteLine("COMMIT");
@@ -646,7 +645,7 @@ namespace FoundationDB.Tests.Sandbox
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
 							{
-								tr.Set(subspace.Keys.Encode(i), Slice.Create(new byte[256]));
+								tr.Set(subspace.Keys.Encode(i), Slice.Create(256));
 								z++;
 							}
 

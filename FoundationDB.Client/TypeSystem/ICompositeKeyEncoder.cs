@@ -26,11 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using FoundationDB.Layers.Tuples;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using Doxense.Collections.Tuples;
+
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<STuple<T1, T2, T3, T4>>
 	{
 		Slice EncodeKey(T1 value1, T2 value2, T3 value3, T4 value4);

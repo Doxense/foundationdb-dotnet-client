@@ -26,20 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
+	using JetBrains.Annotations;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Customer formatter that will called the provided lambda functions to convert to and from a tuple</summary>
-	internal sealed class AnonymousTupleFormatter<T> : ITupleFormatter<T>
+	public sealed class AnonymousTupleFormatter<T> : ITupleFormatter<T>
 	{
 		private readonly Func<T, ITuple> m_to;
 		private readonly Func<ITuple, T> m_from;
 
-		public AnonymousTupleFormatter(Func<T, ITuple> to, Func<ITuple, T> from)
+		public AnonymousTupleFormatter([NotNull] Func<T, ITuple> to, [NotNull] Func<ITuple, T> from)
 		{
-			if (to == null) throw new ArgumentNullException(nameof(to));
-			if (from == null) throw new ArgumentNullException(nameof(@from));
+			Contract.NotNull(to, nameof(to));
+			Contract.NotNull(from, nameof(from));
 
 			m_to = to;
 			m_from = from;
@@ -52,7 +54,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public T FromTuple(ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException(nameof(tuple));
+			Contract.NotNull(tuple, nameof(tuple));
 			return m_from(tuple);
 		}
 	}

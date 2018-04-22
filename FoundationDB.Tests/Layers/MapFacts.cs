@@ -28,14 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Net;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class MapFacts : FdbTest
@@ -168,11 +168,11 @@ namespace FoundationDB.Layers.Collections.Tests
 			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
 			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
 			var keyEncoder = KeyValueEncoders.Bind<IPEndPoint>(
-				(ipe) => ipe == null ? Slice.Empty : STuple.EncodeKey(ipe.Address, ipe.Port),
+				(ipe) => ipe == null ? Slice.Empty : TuPack.EncodeKey(ipe.Address, ipe.Port),
 				(packed) =>
 				{
 					if (packed.IsNullOrEmpty) return default(IPEndPoint);
-					var t = STuple.Unpack(packed);
+					var t = TuPack.Unpack(packed);
 					return new IPEndPoint(t.Get<IPAddress>(0), t.Get<int>(1));
 				}
 			);

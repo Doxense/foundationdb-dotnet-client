@@ -26,15 +26,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB
+namespace Doxense.Memory
 {
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB;
 
 	/// <summary>Performs optimized equality and comparison checks on key/value pairs of <see cref="Slice"/></summary>
 	public sealed class SlicePairComparer : IComparer<KeyValuePair<Slice, Slice>>, IEqualityComparer<KeyValuePair<Slice, Slice>>
 	{
+		//TODO: move this inside Slmice? (Slice.PairComparer.Default ...)
+
 		private const int BOTH = 0;
 		private const int KEY_ONLY = 1;
 		private const int VALUE_ONLY = 2;

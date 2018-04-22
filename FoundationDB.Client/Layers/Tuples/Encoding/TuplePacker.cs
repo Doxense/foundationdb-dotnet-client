@@ -26,31 +26,52 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using System;
-
-namespace FoundationDB.Layers.Tuples
+ namespace Doxense.Collections.Tuples.Encoding
 {
+	using System;
+	using System.Runtime.CompilerServices;
+	using Doxense.Memory;
+	using FoundationDB;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
 	public static class TuplePacker<T>
 	{
 
+		[NotNull]
 		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true);
 
+		[NotNull]
 		internal static readonly Func<Slice, T> Decoder = TuplePackers.GetDeserializer<T>(required: true);
+
+		/// <summary>Serialize a <typeparamref name="T"/> using a Tuple Writer</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Value that will be serialized</param>
+		/// <remarks>
+		/// The buffer does not need to be preallocated.
+		/// This method supports embedded tuples.
+		/// </remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, T value)
+		{
+			Encoder(ref writer, value);
+		}
 
 		/// <summary>Serialize a <typeparamref name="T"/> into a binary buffer</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Value that will be serialized</param>
-		/// <remarks>The buffer does not need to be preallocated.</remarks>
-#if !NET_4_0
-		[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void SerializeTo(ref TupleWriter writer, T value)
+		/// <remarks>
+		/// The buffer does not need to be preallocated.
+		/// This method DOES NOT support embedded tupels, and assumes that we are serializing a top-level Tuple!
+		/// If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!
+		/// </remarks>
+		public static void SerializeTo(ref SliceWriter writer, T value)
 		{
-			Encoder(ref writer, value);
+			var tw = new TupleWriter(writer);
+			Encoder(ref tw, value);
+			writer = tw.Output;
+			//REVIEW: we loose the depth information here! :(
 		}
 
 		/// <summary>Serialize a value of type <typeparamref name="T"/> into a tuple segment</summary>
@@ -66,14 +87,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>
 		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
 		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
-#if !NET_4_0
-		[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-#endif
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T Deserialize(Slice slice)
 		{
 			return Decoder(slice);
 		}
 
 	}
-
 }

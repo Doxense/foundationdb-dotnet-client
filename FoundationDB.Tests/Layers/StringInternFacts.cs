@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Interning.Tests
 {
+	using System;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
-	using System;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class StringInternFacts : FdbTest

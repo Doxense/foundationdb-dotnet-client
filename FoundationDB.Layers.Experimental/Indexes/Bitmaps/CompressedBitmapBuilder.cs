@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -94,7 +95,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			Contract.Requires(size >= 0 && data.Count >= 4 && (data.Count & 3) == 0);
 
-			int capacity = SliceHelpers.NextPowerOfTwo(size);
+			int capacity = BitHelpers.NextPowerOfTwo(size);
 			if (capacity < 0) capacity = size;
 			var words = new CompressedWord[capacity];
 
@@ -154,7 +155,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (minSize > m_size)
 			{
-				int newSize = SliceHelpers.NextPowerOfTwo(minSize);
+				int newSize = BitHelpers.NextPowerOfTwo(minSize);
 				if (newSize < 0) newSize = minSize;
 				if (newSize < 8) newSize = 8;
 				Array.Resize(ref m_words, newSize);

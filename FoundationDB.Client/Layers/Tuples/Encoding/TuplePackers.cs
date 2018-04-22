@@ -26,16 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+//#define ENABLE_VALUETUPLES
+
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
+	using System.Runtime.CompilerServices;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
+	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
@@ -48,67 +52,147 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
-		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
-		[ContractAnnotation("true => notnull")]
+		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or that throws an exception if the type is not supported</returns>
+		[CanBeNull, ContractAnnotation("true => notnull")]
 		internal static Encoder<T> GetSerializer<T>(bool required)
 		{
-			var encoder = (Encoder<T>)GetSerializerFor(typeof(T));
+			//note: this method is only called once per initializing of TuplePackers<T> to create the cached delegate.
+
+			var encoder = (Encoder<T>) GetSerializerFor(typeof(T));
 			if (encoder == null && required)
 			{
-				encoder = delegate { throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name)); };
+				encoder = delegate { throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys"); };
 			}
 			return encoder;
 		}
 
+		[CanBeNull]
 		private static Delegate GetSerializerFor([NotNull] Type type)
 		{
-			if (type == null) throw new ArgumentNullException("type");
+			Contract.NotNull(type, nameof(type));
 
 			if (type == typeof(object))
 			{ // return a generic serializer that will inspect the runtime type of the object
-				return new Encoder<object>(TuplePackers.SerializeObjectTo);
+				return new Encoder<object>(SerializeObjectTo);
 			}
 
+			// look for well-known types that have their own (non-generic) TuplePackers.SerializeTo(...) method
 			var typeArgs = new[] { typeof(TupleWriter).MakeByRefType(), type };
-			var method = typeof(TuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
+			var method = typeof(TuplePackers).GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: typeArgs, modifiers: null);
 			if (method != null)
 			{ // we have a direct serializer
 				return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 			}
 
-			// maybe if it is a tuple ?
-			if (typeof(ITuple).IsAssignableFrom(type))
-			{
-				method = typeof(TuplePackers).GetMethod("SerializeTupleTo", BindingFlags.Static | BindingFlags.Public);
-				if (method != null)
-				{
-					return method.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
-				}
-			}
-
-			if (typeof(ITupleFormattable).IsAssignableFrom(type))
-			{
-				method = typeof(TuplePackers).GetMethod("SerializeFormattableTo", BindingFlags.Static | BindingFlags.Public);
-				if (method != null)
-				{
-					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
-				}
-			}
-
+			// maybe it is a nullable type ?
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{ // nullable types can reuse the underlying type serializer
-				method = typeof(TuplePackers).GetMethod("SerializeNullableTo", BindingFlags.Static | BindingFlags.Public);
+				method = typeof(TuplePackers).GetMethod(nameof(SerializeNullableTo), BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
 					return method.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 				}
 			}
 
-			// TODO: look for a static SerializeTo(BWB, T) method on the type itself ?
+			// maybe it is a tuple ?
+			if (typeof(ITuple).IsAssignableFrom(type))
+			{
+				// If so, try to use the corresponding TuplePackers.SerializeTupleTo(...) method
+				method = typeof(TuplePackers).GetMethod(nameof(SerializeTupleTo), BindingFlags.Static | BindingFlags.Public);
+				if (method != null)
+				{
+					return method.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+			}
+
+			// Can it transform itself into a tuple?
+			if (typeof(ITupleFormattable).IsAssignableFrom(type))
+			{
+				// If so, try to use the corresponding TuplePackers.SerializeFormattableTo(...) method
+				method = typeof(TuplePackers).GetMethod(nameof(SerializeFormattableTo), BindingFlags.Static | BindingFlags.Public);
+				if (method != null)
+				{
+					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+			}
+
+#if ENABLE_VALUETUPLES
+			if ((type.Name == nameof(System.ValueTuple) || type.Name.StartsWith(nameof(System.ValueTuple) + "`", StringComparison.Ordinal)) && type.Namespace == "System")
+			{
+				typeArgs = type.GetGenericArguments();
+				method = FindValueTupleSerializerMethod(typeArgs);
+				if (method != null)
+				{
+					return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+			}
+#endif
+
+			// TODO: look for a static SerializeTo(ref TupleWriter, T) method on the type itself ?
 
 			// no luck..
 			return null;
+		}
+
+#if ENABLE_VALUETUPLES
+		private static MethodInfo FindValueTupleSerializerMethod(Type[] args)
+		{
+			//note: we want to find the correct SerializeValueTuple<...>(ref TupleWriter, ValueTuple<...>), but this cannot be done with Type.GetMethod(...) directly
+			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
+			return typeof(TuplePackers)
+				.GetMethods(BindingFlags.Static | BindingFlags.Public)
+				.SingleOrDefault(m => m.Name == nameof(SerializeValueTupleTo) && m.GetGenericArguments().Length == args.Length);
+		}
+#endif
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
+		{
+			//<JIT_HACK>
+			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invokatino of the correct WriteXYZ method
+			// - In Debug builds, we have to disabled this, because it would be too slow
+			//IMPORTANT: only ValueTypes and they must have a corresponding Write$TYPE$(ref TupleWriter, $TYPE) in TupleParser!
+#if !DEBUG
+			if (typeof(T) == typeof(bool)) { TupleParser.WriteBool(ref writer, (bool) (object) value); return; }
+			if (typeof(T) == typeof(int)) { TupleParser.WriteInt32(ref writer, (int) (object) value); return; }
+			if (typeof(T) == typeof(long)) { TupleParser.WriteInt64(ref writer, (long) (object) value); return; }
+			if (typeof(T) == typeof(uint)) { TupleParser.WriteUInt32(ref writer, (uint) (object) value); return; }
+			if (typeof(T) == typeof(ulong)) { TupleParser.WriteUInt64(ref writer, (ulong) (object) value); return; }
+			if (typeof(T) == typeof(short)) { TupleParser.WriteInt32(ref writer, (short) (object) value); return; }
+			if (typeof(T) == typeof(ushort)) { TupleParser.WriteUInt32(ref writer, (ushort) (object) value); return; }
+			if (typeof(T) == typeof(sbyte)) { TupleParser.WriteInt32(ref writer, (sbyte) (object) value); return; }
+			if (typeof(T) == typeof(byte)) { TupleParser.WriteUInt32(ref writer, (byte) (object) value); return; }
+			if (typeof(T) == typeof(float)) { TupleParser.WriteSingle(ref writer, (float) (object) value); return; }
+			if (typeof(T) == typeof(double)) { TupleParser.WriteDouble(ref writer, (double) (object) value); return; }
+			if (typeof(T) == typeof(char)) { TupleParser.WriteChar(ref writer, (char) (object) value); return; }
+			if (typeof(T) == typeof(Guid)) { TupleParser.WriteGuid(ref writer, (Guid) (object) value); return; }
+			if (typeof(T) == typeof(Uuid128)) { TupleParser.WriteUuid128(ref writer, (Uuid128) (object) value); return; }
+			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value); return; }
+			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
+			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value); return; }
+
+			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value); return; }
+			if (typeof(T) == typeof(int?)) { TupleParser.WriteInt32(ref writer, (int?) (object) value); return; }
+			if (typeof(T) == typeof(long?)) { TupleParser.WriteInt64(ref writer, (long?) (object) value); return; }
+			if (typeof(T) == typeof(uint?)) { TupleParser.WriteUInt32(ref writer, (uint?) (object) value); return; }
+			if (typeof(T) == typeof(ulong?)) { TupleParser.WriteUInt64(ref writer, (ulong?) (object) value); return; }
+			if (typeof(T) == typeof(short?)) { TupleParser.WriteInt32(ref writer, (short?) (object) value); return; }
+			if (typeof(T) == typeof(ushort?)) { TupleParser.WriteUInt32(ref writer, (ushort?) (object) value); return; }
+			if (typeof(T) == typeof(sbyte?)) { TupleParser.WriteInt32(ref writer, (sbyte?) (object) value); return; }
+			if (typeof(T) == typeof(byte?)) { TupleParser.WriteUInt32(ref writer, (byte?) (object) value); return; }
+			if (typeof(T) == typeof(float?)) { TupleParser.WriteSingle(ref writer, (float?) (object) value); return; }
+			if (typeof(T) == typeof(double?)) { TupleParser.WriteDouble(ref writer, (double?) (object) value); return; }
+			if (typeof(T) == typeof(char?)) { TupleParser.WriteChar(ref writer, (char?) (object) value); return; }
+			if (typeof(T) == typeof(Guid?)) { TupleParser.WriteGuid(ref writer, (Guid?) (object) value); return; }
+			if (typeof(T) == typeof(Uuid128?)) { TupleParser.WriteUuid128(ref writer, (Uuid128?) (object) value); return; }
+			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value); return; }
+			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
+#endif
+			//</JIT_HACK>
+
+			// invoke the encoder directly
+			TuplePacker<T>.Encoder(ref writer, value);
 		}
 
 		/// <summary>Serialize a nullable value, by checking for null at runtime</summary>
@@ -116,19 +200,23 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeNullableTo<T>(ref TupleWriter writer, T? value)
 			where T : struct
 		{
 			if (value == null)
 				TupleParser.WriteNil(ref writer);
 			else
-				TuplePacker<T>.Encoder(ref writer, value.Value);
+				SerializeTo(ref writer, value.Value);
 		}
 
-		/// <summary>Serialize an untyped object, by checking its type at runtime</summary>
+		/// <summary>Serialize an untyped object, by checking its type at runtime [VERY SLOW]</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Untyped value whose type will be inspected at runtime</param>
-		/// <remarks>May throw at runtime if the type is not supported</remarks>
+		/// <remarks>
+		/// May throw at runtime if the type is not supported.
+		/// This method will be very slow! Please consider using typed tuples instead!
+		/// </remarks>
 		public static void SerializeObjectTo(ref TupleWriter writer, object value)
 		{
 			if (value == null)
@@ -143,46 +231,39 @@ namespace FoundationDB.Layers.Tuples
 				case TypeCode.Empty:
 				case TypeCode.Object:
 				{
-					byte[] bytes = value as byte[];
-					if (bytes != null)
+					if (value is byte[] bytes)
 					{
 						SerializeTo(ref writer, bytes);
 						return;
 					}
 
-					if (value is Slice)
+					if (value is Slice slice)
 					{
-						SerializeTo(ref writer, (Slice)value);
+						SerializeTo(ref writer, slice);
 						return;
 					}
 
-					if (value is Guid)
+					if (value is Guid g)
 					{
-						SerializeTo(ref writer, (Guid)value);
+						SerializeTo(ref writer, g);
 						return;
 					}
 
-					if (value is Uuid128)
+					if (value is Uuid128 u128)
 					{
-						SerializeTo(ref writer, (Uuid128)value);
+						SerializeTo(ref writer, u128);
 						return;
 					}
 
-					if (value is Uuid64)
+					if (value is Uuid64 u64)
 					{
-						SerializeTo(ref writer, (Uuid64)value);
+						SerializeTo(ref writer, u64);
 						return;
 					}
 
-					if (value is TimeSpan)
+					if (value is TimeSpan ts)
 					{
-						SerializeTo(ref writer, (TimeSpan)value);
-						return;
-					}
-
-					if (value is FdbTupleAlias)
-					{
-						SerializeTo(ref writer, (FdbTupleAlias)value);
+						SerializeTo(ref writer, ts);
 						return;
 					}
 
@@ -264,58 +345,54 @@ namespace FoundationDB.Layers.Tuples
 					SerializeTo(ref writer, (float)value);
 					return;
 				}
+				case TypeCode.Decimal:
+				{
+					SerializeTo(ref writer, (decimal)value);
+					return;
+				}
 			}
 
-			var tuple = value as ITuple;
-			if (tuple != null)
+			if (value is ITuple tuple)
 			{
 				SerializeTupleTo(ref writer, tuple);
 				return;
 			}
 
-			var fmt = value as ITupleFormattable;
-			if (fmt != null)
+			if (value is ITupleFormattable fmt)
 			{
 				tuple = fmt.ToTuple();
-				if (tuple == null) throw new InvalidOperationException(String.Format("An instance of type {0} returned a null Tuple while serialiazing", value.GetType().Name));
+				if (tuple == null) throw new InvalidOperationException($"An instance of type '{value.GetType().Name}' returned a null Tuple while serialiazing");
 				SerializeTupleTo(ref writer, tuple);
 				return;
 			}
 
 			// Not Supported ?
-			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0} into Tuple Encoding format", value.GetType().Name));
+			throw new NotSupportedException($"Doesn't know how to serialize objects of type '{value.GetType().Name}' into Tuple Encoding format");
 		}
 
 		/// <summary>Writes a slice as a byte[] array</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Slice value)
 		{
-			if (value.IsNull)
-			{
-				TupleParser.WriteNil(ref writer);
-			}
-			else if (value.Offset == 0 && value.Count == value.Array.Length)
-			{
-				TupleParser.WriteBytes(ref writer, value.Array);
-			}
-			else
-			{
-				TupleParser.WriteBytes(ref writer, value.Array, value.Offset, value.Count);
-			}
+			TupleParser.WriteBytes(ref writer, value);
 		}
 
 		/// <summary>Writes a byte[] array</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, byte[] value)
 		{
 			TupleParser.WriteBytes(ref writer, value);
 		}
 
 		/// <summary>Writes an array segment as a byte[] array</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, ArraySegment<byte> value)
 		{
-			SerializeTo(ref writer, Slice.Create(value));
+			TupleParser.WriteBytes(ref writer, value);
 		}
 
 		/// <summary>Writes a char as Unicode string</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, char value)
 		{
 			TupleParser.WriteChar(ref writer, value);
@@ -323,49 +400,50 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Writes a boolean as an integer</summary>
 		/// <remarks>Uses 0 for false, and -1 for true</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, bool value)
 		{
 			TupleParser.WriteBool(ref writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer or null</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, bool? value)
 		{
-			if (value == null)
-			{ // null => 00
-				TupleParser.WriteNil(ref writer);
-			}
-			else
-			{
-				TupleParser.WriteBool(ref writer, value.Value);
-			}
+			//REVIEW: only method for a nullable type? add others? or remove this one?
+			TupleParser.WriteBool(ref writer, value);
 		}
 
 		/// <summary>Writes a signed byte as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, sbyte value)
 		{
 			TupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned byte as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, byte value)
 		{
 			TupleParser.WriteByte(ref writer, value);
 		}
 
 		/// <summary>Writes a signed word as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, short value)
 		{
 			TupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned word as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, ushort value)
 		{
 			TupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed int as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, int value)
 		{
 			TupleParser.WriteInt32(ref writer, value);
@@ -378,36 +456,48 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a signed long as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, long value)
 		{
 			TupleParser.WriteInt64(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned long as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, ulong value)
 		{
 			TupleParser.WriteUInt64(ref writer, value);
 		}
 
 		/// <summary>Writes a 32-bit IEEE floating point number</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, float value)
 		{
 			TupleParser.WriteSingle(ref writer, value);
 		}
 
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, double value)
 		{
 			TupleParser.WriteDouble(ref writer, value);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, decimal value)
+		{
+			TupleParser.WriteDecimal(ref writer, value);
+		}
+
 		/// <summary>Writes a string as an Unicode string</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, string value)
 		{
 			TupleParser.WriteString(ref writer, value);
 		}
 
 		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, DateTime value)
 		{
 			// The problem of serializing DateTime: TimeZone? Precision?
@@ -422,12 +512,11 @@ namespace FoundationDB.Layers.Tuples
 			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
 
 			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
-			double ms = (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double)TimeSpan.TicksPerDay;
-
-			TupleParser.WriteDouble(ref writer, ms);
+			TupleParser.WriteDouble(ref writer, (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double)TimeSpan.TicksPerDay);
 		}
 
 		/// <summary>Writes a TimeSpan converted to to a number seconds encoded as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, TimeSpan value)
 		{
 			// We have the same precision problem with storing DateTimes:
@@ -442,6 +531,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Guid value)
 		{
 			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty bytestring) ?
@@ -450,12 +540,14 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Uuid128 value)
 		{
 			TupleParser.WriteUuid128(ref writer, value);
 		}
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Uuid64 value)
 		{
 			TupleParser.WriteUuid64(ref writer, value);
@@ -464,26 +556,21 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
 		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value)
 		{
-			TupleParser.WriteBytes(ref writer, value != null ? value.GetAddressBytes() : null);
+			TupleParser.WriteBytes(ref writer, value?.GetAddressBytes());
 		}
 
-		public static void SerializeTo(ref TupleWriter writer, FdbTupleAlias value)
-		{
-			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
-
-			writer.Output.WriteByte((byte)value);
-		}
-
+		/// <summary>Serialize an embedded tuples</summary>
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
 			where TTuple : ITuple
 		{
 			Contract.Requires(tuple != null);
 
 			TupleParser.BeginTuple(ref writer);
-			tuple.PackTo(ref writer);
+			TupleEncoder.WriteTo(ref writer, tuple);
 			TupleParser.EndTuple(ref writer);
 		}
 
+		/// <summary>Serialize an embedded tuple formattable</summary>
 		public static void SerializeFormattableTo(ref TupleWriter writer, ITupleFormattable formattable)
 		{
 			if (formattable == null)
@@ -493,44 +580,108 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			var tuple = formattable.ToTuple();
-			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
+			if (tuple == null) throw new InvalidOperationException($"Custom formatter {formattable.GetType().Name}.ToTuple() cannot return null");
 
 			TupleParser.BeginTuple(ref writer);
-			tuple.PackTo(ref writer);
+			TupleEncoder.WriteTo(ref writer, tuple);
 			TupleParser.EndTuple(ref writer);
 		}
+
+#if ENABLE_VALUETUPLES
+
+		public static void SerializeValueTupleTo<T1>(ref TupleWriter writer, ValueTuple<T1> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeValueTupleTo<T1, T2>(ref TupleWriter writer, ValueTuple<T1, T2> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeValueTupleTo<T1, T2, T3>(ref TupleWriter writer, ValueTuple<T1, T2, T3> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeValueTupleTo<T1, T2, T3, T4>(ref TupleWriter writer, ValueTuple<T1, T2, T3, T4> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			SerializeTo(ref writer, tuple.Item4);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeValueTupleTo<T1, T2, T3, T4, T5>(ref TupleWriter writer, ValueTuple<T1, T2, T3, T4, T5> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			SerializeTo(ref writer, tuple.Item4);
+			SerializeTo(ref writer, tuple.Item5);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeValueTupleTo<T1, T2, T3, T4, T5, T6>(ref TupleWriter writer, ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			SerializeTo(ref writer, tuple.Item4);
+			SerializeTo(ref writer, tuple.Item5);
+			SerializeTo(ref writer, tuple.Item6);
+			TupleParser.EndTuple(ref writer);
+		}
+
+#endif
 
 		#endregion
 
 		#region Deserializers...
 
-		private static readonly Dictionary<Type, Delegate> s_sliceUnpackers = InitializeDefaultUnpackers();
+		private static readonly Dictionary<Type, Delegate> WellKnownUnpackers = InitializeDefaultUnpackers();
 
 		[NotNull]
 		private static Dictionary<Type, Delegate> InitializeDefaultUnpackers()
 		{
-			var map = new Dictionary<Type, Delegate>();
-
-			map[typeof(Slice)] = new Func<Slice, Slice>(TuplePackers.DeserializeSlice);
-			map[typeof(byte[])] = new Func<Slice, byte[]>(TuplePackers.DeserializeBytes);
-			map[typeof(bool)] = new Func<Slice, bool>(TuplePackers.DeserializeBoolean);
-			map[typeof(string)] = new Func<Slice, string>(TuplePackers.DeserializeString);
-			map[typeof(sbyte)] = new Func<Slice, sbyte>(TuplePackers.DeserializeSByte);
-			map[typeof(short)] = new Func<Slice, short>(TuplePackers.DeserializeInt16);
-			map[typeof(int)] = new Func<Slice, int>(TuplePackers.DeserializeInt32);
-			map[typeof(long)] = new Func<Slice, long>(TuplePackers.DeserializeInt64);
-			map[typeof(byte)] = new Func<Slice, byte>(TuplePackers.DeserializeByte);
-			map[typeof(ushort)] = new Func<Slice, ushort>(TuplePackers.DeserializeUInt16);
-			map[typeof(uint)] = new Func<Slice, uint>(TuplePackers.DeserializeUInt32);
-			map[typeof(ulong)] = new Func<Slice, ulong>(TuplePackers.DeserializeUInt64);
-			map[typeof(float)] = new Func<Slice, float>(TuplePackers.DeserializeSingle);
-			map[typeof(double)] = new Func<Slice, double>(TuplePackers.DeserializeDouble);
-			map[typeof(Guid)] = new Func<Slice, Guid>(TuplePackers.DeserializeGuid);
-			map[typeof(Uuid128)] = new Func<Slice, Uuid128>(TuplePackers.DeserializeUuid128);
-			map[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64);
-			map[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan);
-			map[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime);
-			map[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress);
+			var map = new Dictionary<Type, Delegate>
+			{
+				[typeof(Slice)] = new Func<Slice, Slice>(TuplePackers.DeserializeSlice),
+				[typeof(byte[])] = new Func<Slice, byte[]>(TuplePackers.DeserializeBytes),
+				[typeof(bool)] = new Func<Slice, bool>(TuplePackers.DeserializeBoolean),
+				[typeof(string)] = new Func<Slice, string>(TuplePackers.DeserializeString),
+				[typeof(char)] = new Func<Slice, char>(TuplePackers.DeserializeChar),
+				[typeof(sbyte)] = new Func<Slice, sbyte>(TuplePackers.DeserializeSByte),
+				[typeof(short)] = new Func<Slice, short>(TuplePackers.DeserializeInt16),
+				[typeof(int)] = new Func<Slice, int>(TuplePackers.DeserializeInt32),
+				[typeof(long)] = new Func<Slice, long>(TuplePackers.DeserializeInt64),
+				[typeof(byte)] = new Func<Slice, byte>(TuplePackers.DeserializeByte),
+				[typeof(ushort)] = new Func<Slice, ushort>(TuplePackers.DeserializeUInt16),
+				[typeof(uint)] = new Func<Slice, uint>(TuplePackers.DeserializeUInt32),
+				[typeof(ulong)] = new Func<Slice, ulong>(TuplePackers.DeserializeUInt64),
+				[typeof(float)] = new Func<Slice, float>(TuplePackers.DeserializeSingle),
+				[typeof(double)] = new Func<Slice, double>(TuplePackers.DeserializeDouble),
+				[typeof(Guid)] = new Func<Slice, Guid>(TuplePackers.DeserializeGuid),
+				[typeof(Uuid128)] = new Func<Slice, Uuid128>(TuplePackers.DeserializeUuid128),
+				[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64),
+				[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan),
+				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
+				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress),
+				[typeof(ITuple)] = new Func<Slice, ITuple>(TuplePackers.DeserializeTuple),
+			};
 
 			// add Nullable versions for all these types
 			return map;
@@ -544,36 +695,60 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Type type = typeof(T);
 
-			Delegate decoder;
-			if (s_sliceUnpackers.TryGetValue(type, out decoder))
-			{
-				return (Func<Slice, T>)decoder;
+			if (WellKnownUnpackers.TryGetValue(type, out var decoder))
+			{ // We already know how to decode this type
+				return (Func<Slice, T>) decoder;
 			}
 
-			//TODO: handle nullable types?
+			// Nullable<T>
 			var underlyingType = Nullable.GetUnderlyingType(typeof(T));
-			if (underlyingType != null && s_sliceUnpackers.TryGetValue(underlyingType, out decoder))
-			{
-				decoder = MakeNullableDeserializer(type, underlyingType, decoder);
-				if (decoder != null) return (Func<Slice, T>)decoder;
+			if (underlyingType != null && WellKnownUnpackers.TryGetValue(underlyingType, out decoder))
+			{ 
+				return (Func<Slice, T>) MakeNullableDeserializer(type, underlyingType, decoder);
 			}
+
+			// STuple<...>
+			if (typeof(ITuple).IsAssignableFrom(type))
+			{
+				if (type.IsValueType && type.IsGenericType && type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal))
+				return (Func<Slice, T>) MakeSTupleDeserializer(type);
+			}
+
+#if ENABLE_VALUETUPLES
+			if ((type.Name == nameof(ValueTuple) || type.Name.StartsWith(nameof(ValueTuple) + "`", StringComparison.Ordinal)) && type.Namespace == "System")
+			{
+				return (Func<Slice, T>) MakeValueTupleDeserializer(type);
+			}
+#endif
 
 			if (required)
-			{
-				return (_) => { throw new InvalidOperationException(String.Format("Does not know how to deserialize keys into values of type {0}", typeof(T).Name)); };
+			{ // will throw at runtime
+				return MakeNotSupportedDeserializer<T>();
 			}
-			else
-			{ // when all else fails...
-				return (value) => FdbConverters.ConvertBoxed<T>(DeserializeBoxed(value));
-			}
+			// when all else fails...
+			return MakeConvertBoxedDeserializer<T>();
+		}
+
+		[Pure, NotNull]
+		private static Func<Slice, T> MakeNotSupportedDeserializer<T>()
+		{
+			return (_) => throw new InvalidOperationException($"Does not know how to deserialize keys into values of type {typeof(T).Name}");
+		}
+
+		[Pure, NotNull]
+		private static Func<Slice, T> MakeConvertBoxedDeserializer<T>()
+		{
+			return (value) => TypeConverters.ConvertBoxed<T>(DeserializeBoxed(value));
 		}
 
 		/// <summary>Check if a tuple segment is the equivalent of 'Nil'</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static bool IsNilSegment(Slice slice)
 		{
 			return slice.IsNullOrEmpty || slice[0] == TupleTypes.Nil;
 		}
 
+		[Pure, NotNull]
 		private static Delegate MakeNullableDeserializer([NotNull] Type nullableType, [NotNull] Type type, [NotNull] Delegate decoder)
 		{
 			Contract.Requires(nullableType != null && type != null && decoder != null);
@@ -582,7 +757,7 @@ namespace FoundationDB.Layers.Tuples
 			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
 			var body = Expression.Condition(
 				// IsNilSegment(slice) ?
-				Expression.Call(typeof(TuplePackers).GetMethod("IsNilSegment", BindingFlags.Static | BindingFlags.NonPublic), prmSlice),
+				Expression.Call(typeof(TuplePackers).GetMethod(nameof(IsNilSegment), BindingFlags.Static | BindingFlags.NonPublic), prmSlice),
 				// True => default(Nullable<T>)
 				Expression.Default(nullableType),
 				// False => decoder(slice)
@@ -591,6 +766,62 @@ namespace FoundationDB.Layers.Tuples
 
 			return Expression.Lambda(body, prmSlice).Compile();
 		}
+
+		[Pure, NotNull]
+		private static Delegate MakeSTupleDeserializer(Type type)
+		{
+			Contract.Requires(type != null);
+
+			// (slice) => TuPack.DeserializeTuple<T...>(slice)
+
+			var targs = type.GetGenericArguments();
+			var method = typeof(TuplePackers)
+				.GetMethods()
+				.Single(m =>
+				{ // find the matching "DeserializeTuple<Ts..>(Slice)" method that we want to call
+					if (m.Name != nameof(DeserializeTuple)) return false;
+					if (!m.IsGenericMethod || m.GetGenericArguments().Length != targs.Length) return false;
+					var args = m.GetParameters();
+					if (args.Length != 1 && args[0].ParameterType != typeof(Slice)) return false;
+					return true;
+				})
+				.MakeGenericMethod(targs);
+
+			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
+			var body = Expression.Call(method, prmSlice);
+
+			return Expression.Lambda(body, prmSlice).Compile();
+		}
+
+#if ENABLE_VALUETUPLES
+
+		[Pure, NotNull]
+		private static Delegate MakeValueTupleDeserializer(Type type)
+		{
+			Contract.Requires(type != null);
+
+			// (slice) => TuPack.DeserializeValueTuple<T...>(slice)
+
+			var targs = type.GetGenericArguments();
+			var method = typeof(TuplePackers)
+				.GetMethods()
+				.Single(m =>
+				{ // find the matching "DeserializeValueTuple<Ts..>(Slice)" method that we want to call
+					if (m.Name != nameof(DeserializeValueTuple)) return false;
+					if (!m.IsGenericMethod || m.GetGenericArguments().Length != targs.Length) return false;
+					var args = m.GetParameters();
+					if (args.Length != 1 && args[0].ParameterType != typeof(Slice)) return false;
+					return true;
+				})
+				.MakeGenericMethod(targs);
+
+			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
+			var body = Expression.Call(method, prmSlice);
+
+			return Expression.Lambda(body, prmSlice).Compile();
+		}
+
+#endif
 
 		/// <summary>Deserialize a packed element into an object by choosing the most appropriate type at runtime</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -620,14 +851,14 @@ namespace FoundationDB.Layers.Tuples
 				{
 					case TupleTypes.Single: return TupleParser.ParseSingle(slice);
 					case TupleTypes.Double: return TupleParser.ParseDouble(slice);
+					//TODO: Triple
+					case TupleTypes.Decimal: return TupleParser.ParseDecimal(slice);
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
-					case TupleTypes.AliasDirectory: return FdbTupleAlias.Directory;
-					case TupleTypes.AliasSystem: return FdbTupleAlias.System;
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment with unknown type code {0}", type));
+			throw new FormatException($"Cannot convert tuple segment with unknown type code 0x{type:X}");
 		}
 
 		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
@@ -680,6 +911,8 @@ namespace FoundationDB.Layers.Tuples
 
 				case TupleTypes.Single: return Slice.FromSingle(TupleParser.ParseSingle(slice));
 				case TupleTypes.Double: return Slice.FromDouble(TupleParser.ParseDouble(slice));
+				//TODO: triple
+				case TupleTypes.Decimal: return Slice.FromDecimal(TupleParser.ParseDecimal(slice));
 
 				case TupleTypes.Uuid128: return Slice.FromGuid(TupleParser.ParseGuid(slice));
 				case TupleTypes.Uuid64: return Slice.FromUuid64(TupleParser.ParseUuid64(slice));
@@ -691,11 +924,11 @@ namespace FoundationDB.Layers.Tuples
 				return Slice.FromUInt64(DeserializeUInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Slice", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a Slice");
 		}
 
 		/// <summary>Deserialize a tuple segment into a byte array</summary>
-		[CanBeNull] //REVIEW: because of Slice.GetBytes()
+		[CanBeNull, MethodImpl(MethodImplOptions.AggressiveInlining)] //REVIEW: because of Slice.GetBytes()
 		public static byte[] DeserializeBytes(Slice slice)
 		{
 			return DeserializeSlice(slice).GetBytes();
@@ -716,16 +949,258 @@ namespace FoundationDB.Layers.Tuples
 				}
 				case TupleTypes.Bytes:
 				{
-					return STuple.Unpack(TupleParser.ParseBytes(slice));
+					return TupleEncoder.Unpack(TupleParser.ParseBytes(slice));
 				}
 				case TupleTypes.TupleStart:
 				{
 					return TupleParser.ParseTuple(slice);
 				}
+				default:
+				{
+					throw new FormatException("Cannot convert tuple segment into a Tuple");
+				}
 			}
-
-			throw new FormatException("Cannot convert tuple segment into a Tuple");
 		}
+
+		[Pure]
+		public static STuple<T1> DeserializeTuple<T1>(Slice slice)
+		{
+			var res = default(STuple<T1>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.TupleStart:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+		}
+
+		[Pure]
+		public static STuple<T1, T2> DeserializeTuple<T1, T2>(Slice slice)
+		{
+			var res = default(STuple<T1, T2>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.TupleStart:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+		}
+
+		[Pure]
+		public static STuple<T1, T2, T3> DeserializeTuple<T1, T2, T3>(Slice slice)
+		{
+			var res = default(STuple<T1, T2, T3>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.TupleStart:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+
+		}
+
+		[Pure]
+		public static STuple<T1, T2, T3, T4> DeserializeTuple<T1, T2, T3, T4>(Slice slice)
+		{
+			var res = default(STuple<T1, T2, T3, T4>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.TupleStart:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+
+		}
+
+		[Pure]
+		public static STuple<T1, T2, T3, T4, T5> DeserializeTuple<T1, T2, T3, T4, T5>(Slice slice)
+		{
+			var res = default(STuple<T1, T2, T3, T4, T5>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.TupleStart:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+		}
+
+		[Pure]
+		public static STuple<T1, T2, T3, T4, T5, T6> DeserializeTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		{
+			var res = default(STuple<T1, T2, T3, T4, T5, T6>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.TupleStart:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+		}
+
+#if ENABLE_VALUETUPLES
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
+		{
+			return DeserializeTuple<T1>(slice).ToValueTuple();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueTuple<T1, T2> DeserializeValueTuple<T1, T2>(Slice slice)
+		{
+			return DeserializeTuple<T1, T2>(slice).ToValueTuple();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueTuple<T1, T2, T3> DeserializeValueTuple<T1, T2, T3>(Slice slice)
+		{
+			return DeserializeTuple<T1, T2, T3>(slice).ToValueTuple();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueTuple<T1, T2, T3, T4> DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
+		{
+			return DeserializeTuple<T1, T2, T3, T4>(slice).ToValueTuple();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueTuple<T1, T2, T3, T4, T5> DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
+		{
+			return DeserializeTuple<T1, T2, T3, T4, T5>(slice).ToValueTuple();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueTuple<T1, T2, T3, T4, T5, T6> DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		{
+			return DeserializeTuple<T1, T2, T3, T4, T5, T6>(slice).ToValueTuple();
+		}
+
+#endif
 
 		/// <summary>Deserialize a tuple segment into a Boolean</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -755,18 +1230,27 @@ namespace FoundationDB.Layers.Tuples
 				case TupleTypes.Single:
 				{
 					//TODO: should NaN considered to be false ?
+					//=> it is the "null" of the floats, so if we do, 'null' should also be considered false
+					// ReSharper disable once CompareOfFloatsByEqualityOperator
 					return 0f != TupleParser.ParseSingle(slice);
 				}
 				case TupleTypes.Double:
 				{
 					//TODO: should NaN considered to be false ?
-					return 0f != TupleParser.ParseDouble(slice);
+					//=> it is the "null" of the floats, so if we do, 'null' should also be considered false
+					// ReSharper disable once CompareOfFloatsByEqualityOperator
+					return 0d != TupleParser.ParseDouble(slice);
+				}
+				//TODO: triple
+				case TupleTypes.Decimal:
+				{
+					return 0m != TupleParser.ParseDecimal(slice);
 				}
 			}
 
 			//TODO: should we handle weird cases like strings "True" and "False"?
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a boolean", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a boolean");
 		}
 
 		/// <summary>Deserialize a tuple segment into an Int16</summary>
@@ -809,7 +1293,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a signed integer", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a signed integer");
 		}
 
 		/// <summary>Deserialize a tuple segment into an UInt32</summary>
@@ -853,7 +1337,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an unsigned integer", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an unsigned integer");
 		}
 
 		public static float DeserializeSingle(Slice slice)
@@ -865,11 +1349,12 @@ namespace FoundationDB.Layers.Tuples
 			{
 				case TupleTypes.Nil:
 				{
+					//REVIEW: or should we retourne NaN?
 					return 0;
 				}
 				case TupleTypes.Utf8:
 				{
-					return Single.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					return float.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 				case TupleTypes.Single:
 				{
@@ -877,16 +1362,20 @@ namespace FoundationDB.Layers.Tuples
 				}
 				case TupleTypes.Double:
 				{
-					return (float)TupleParser.ParseDouble(slice);
+					return (float) TupleParser.ParseDouble(slice);
+				}
+				case TupleTypes.Decimal:
+				{
+					return (float) TupleParser.ParseDecimal(slice);
 				}
 			}
 
 			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				return checked((float)DeserializeInt64(slice));
+				return DeserializeInt64(slice);
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Single", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a Single");
 		}
 
 		public static double DeserializeDouble(Slice slice)
@@ -898,28 +1387,38 @@ namespace FoundationDB.Layers.Tuples
 			{
 				case TupleTypes.Nil:
 				{
+					//REVIEW: or should we retourne NaN?
 					return 0;
 				}
 				case TupleTypes.Utf8:
 				{
-					return Double.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					return double.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 				case TupleTypes.Single:
 				{
-					return (double)TupleParser.ParseSingle(slice);
+					return TupleParser.ParseSingle(slice);
 				}
 				case TupleTypes.Double:
 				{
 					return TupleParser.ParseDouble(slice);
 				}
+				case TupleTypes.Decimal:
+				{
+					return (double) TupleParser.ParseDecimal(slice);
+				}
 			}
 
 			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				return checked((double)DeserializeInt64(slice));
+				return DeserializeInt64(slice);
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Double", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a Double");
+		}
+
+		public static decimal DeserializeDecimal(Slice slice)
+		{
+			throw new NotImplementedException();
 		}
 
 		/// <summary>Deserialize a tuple segment into a DateTime (UTC)</summary>
@@ -952,6 +1451,14 @@ namespace FoundationDB.Layers.Tuples
 					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
+
+				case TupleTypes.Decimal:
+				{
+					const long UNIX_EPOCH_TICKS = 621355968000000000L;
+					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
+					return new DateTime(ticks, DateTimeKind.Utc);
+				}
 			}
 
 			// If we have an integer, we consider it to be a number of Ticks (Windows Only)
@@ -960,7 +1467,7 @@ namespace FoundationDB.Layers.Tuples
 				return new DateTime(DeserializeInt64(slice), DateTimeKind.Utc);
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a DateTime", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a DateTime");
 		}
 
 		/// <summary>Deserialize a tuple segment into a TimeSpan</summary>
@@ -983,10 +1490,20 @@ namespace FoundationDB.Layers.Tuples
 				{ // "HH:MM:SS.fffff"
 					return TimeSpan.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
+				case TupleTypes.Single:
+				{ // Number of seconds
+					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
+					return new TimeSpan((long) (TupleParser.ParseSingle(slice) * TimeSpan.TicksPerSecond));
+				}
 				case TupleTypes.Double:
 				{ // Number of seconds
 					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
-					return new TimeSpan((long)(TupleParser.ParseDouble(slice) * (double)TimeSpan.TicksPerSecond));
+					return new TimeSpan((long) (TupleParser.ParseDouble(slice) * TimeSpan.TicksPerSecond));
+				}
+				case TupleTypes.Decimal:
+				{ // Number of seconds
+					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
+					return new TimeSpan((long) (TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerSecond));
 				}
 			}
 
@@ -996,7 +1513,44 @@ namespace FoundationDB.Layers.Tuples
 				return new TimeSpan(DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a TimeSpan", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a TimeSpan");
+		}
+
+		/// <summary>Deserialize a tuple segment into a Unicode character</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static char DeserializeChar(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return '\0';
+
+			byte type = slice[0];
+			switch (type)
+			{
+				case TupleTypes.Nil:
+				{
+					return '\0';
+				}
+				case TupleTypes.Bytes:
+				{
+					var s = TupleParser.ParseBytes(slice);
+					if (s.Count == 0) return '\0';
+					if (s.Count == 1) return (char) s[0];
+					throw new FormatException($"Cannot convert buffer of size {s.Count} into a Char");
+				}
+				case TupleTypes.Utf8:
+				{
+					var s = TupleParser.ParseUnicode(slice);
+					if (s.Length == 0) return '\0';
+					if (s.Length == 1) return s[0];
+					throw new FormatException($"Cannot convert string of size {s.Length} into a Char");
+				}
+			}
+
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
+			{
+				return (char) TupleParser.ParseInt64(type, slice);
+			}
+
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a Char");
 		}
 
 		/// <summary>Deserialize a tuple segment into a Unicode string</summary>
@@ -1029,6 +1583,10 @@ namespace FoundationDB.Layers.Tuples
 				{
 					return TupleParser.ParseDouble(slice).ToString(CultureInfo.InvariantCulture);
 				}
+				case TupleTypes.Decimal:
+				{
+					return TupleParser.ParseDecimal(slice).ToString(CultureInfo.InvariantCulture);
+				}
 				case TupleTypes.Uuid128:
 				{
 					return TupleParser.ParseGuid(slice).ToString();
@@ -1044,7 +1602,7 @@ namespace FoundationDB.Layers.Tuples
 				return TupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a String", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a String");
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
@@ -1072,7 +1630,7 @@ namespace FoundationDB.Layers.Tuples
 				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a System.Guid", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a System.Guid");
 		}
 
 		/// <summary>Deserialize a tuple segment into 128-bit UUID</summary>
@@ -1100,7 +1658,7 @@ namespace FoundationDB.Layers.Tuples
 				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an Uuid128", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid128");
 		}
 
 		/// <summary>Deserialize a tuple segment into 64-bit UUID</summary>
@@ -1115,11 +1673,11 @@ namespace FoundationDB.Layers.Tuples
 			{
 				case TupleTypes.Bytes:
 				{ // expect binary representation as a 16-byte array
-					return new Uuid64(TupleParser.ParseBytes(slice));
+					return Uuid64.Read(TupleParser.ParseBytes(slice));
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return new Uuid64(TupleParser.ParseUnicode(slice));
+					return Uuid64.Parse(TupleParser.ParseUnicode(slice));
 				}
 				case TupleTypes.Uuid64:
 				{
@@ -1133,7 +1691,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			// we don't support negative numbers!
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an Uuid64", type));
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid64");
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
@@ -1149,7 +1707,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				case TupleTypes.Bytes:
 				{
-					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).GetBytes());
+					return new System.Net.IPAddress(TupleParser.ParseBytes(slice).GetBytesOrEmpty());
 				}
 				case TupleTypes.Utf8:
 				{
@@ -1157,7 +1715,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 				case TupleTypes.Uuid128:
 				{ // could be an IPv6 encoded as a 128-bits UUID
-					return new System.Net.IPAddress(slice.GetBytes());
+					return new System.Net.IPAddress(slice.GetBytesOrEmpty());
 				}
 			}
 
@@ -1168,24 +1726,26 @@ namespace FoundationDB.Layers.Tuples
 				return new System.Net.IPAddress(value);
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into System.Net.IPAddress", type));
-		}
-
-		public static FdbTupleAlias DeserializeAlias(Slice slice)
-		{
-			if (slice.Count != 1) throw new FormatException("Cannot convert tuple segment into this type");
-			return (FdbTupleAlias)slice[0];
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into System.Net.IPAddress");
 		}
 
 		/// <summary>Unpack a tuple from a buffer</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
+		/// <param name="embedded"></param>
 		/// <returns>Decoded tuple</returns>
 		[NotNull]
 		internal static SlicedTuple Unpack(Slice buffer, bool embedded)
 		{
 			var reader = new TupleReader(buffer);
 			if (embedded) reader.Depth = 1;
+			return Unpack(ref reader);
+		}
 
+		/// <summary>Unpack a tuple from a buffer</summary>
+		/// <param name="reader">Reader positionned on the start of the packed representation of a tuple with zero or more elements</param>
+		/// <returns>Decoded tuple</returns>
+		internal static SlicedTuple Unpack(ref TupleReader reader)
+		{
 			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
 			var items = new Slice[4];
 
@@ -1202,8 +1762,9 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			if (reader.Input.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-			return new SlicedTuple(p == 0 ? Slice.EmptySliceArray : items, 0, p);
+			return new SlicedTuple(p == 0 ? Array.Empty<Slice>() : items, 0, p);
 		}
+
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
 		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>

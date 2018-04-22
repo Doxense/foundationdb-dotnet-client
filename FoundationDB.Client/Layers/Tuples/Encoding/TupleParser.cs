@@ -26,12 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
+	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
@@ -48,7 +50,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{ // inside a tuple, NILs are escaped as <00><FF>
-				writer.Output.WriteByte2(TupleTypes.Nil, 0xFF);
+				writer.Output.WriteBytes(TupleTypes.Nil, 0xFF);
 			}
 		}
 
@@ -57,7 +59,24 @@ namespace FoundationDB.Layers.Tuples
 			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
 			if (value)
 			{ // true => 15 01
-				writer.Output.WriteByte2(TupleTypes.IntPos1, 1);
+				writer.Output.WriteBytes(TupleTypes.IntPos1, 1);
+			}
+			else
+			{ // false => 14
+				writer.Output.WriteByte(TupleTypes.IntZero);
+			}
+		}
+
+		public static void WriteBool(ref TupleWriter writer, bool? value)
+		{
+			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
+			if (value == null)
+			{ // null => 00
+				writer.Output.WriteByte(TupleTypes.Nil);
+			}
+			else if (value.Value)
+			{ // true => 15 01
+				writer.Output.WriteBytes(TupleTypes.IntPos1, 1);
 			}
 			else
 			{ // false => 14
@@ -76,7 +95,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{ // 1..255: frequent for array index
-				writer.Output.WriteByte2(TupleTypes.IntPos1, value);
+				writer.Output.WriteBytes(TupleTypes.IntPos1, value);
 			}
 		}
 
@@ -95,18 +114,24 @@ namespace FoundationDB.Layers.Tuples
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.Output.WriteByte2(TupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteBytes(TupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
 
 			WriteInt64Slow(ref writer, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt32(ref TupleWriter writer, int? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteInt32(ref writer, value.Value);
 		}
 
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
@@ -124,18 +149,25 @@ namespace FoundationDB.Layers.Tuples
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.Output.WriteByte2(TupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteBytes(TupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
 
 			WriteInt64Slow(ref writer, value);
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteInt64(ref TupleWriter writer, long? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteInt64(ref writer, value.Value);
 		}
 
 		private static void WriteInt64Slow(ref TupleWriter writer, long value)
@@ -195,13 +227,19 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{ // 1..255
-					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
 			{ // >= 256
 				WriteUInt64Slow(ref writer, value);
 			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt32(ref TupleWriter writer, uint? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUInt32(ref writer, value.Value);
 		}
 
 		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
@@ -217,13 +255,19 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{ // 1..255
-					writer.Output.WriteByte2(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
 			{ // >= 256
 				WriteUInt64Slow(ref writer, value);
 			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUInt64(ref TupleWriter writer, ulong? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUInt64(ref writer, value.Value);
 		}
 
 		private static void WriteUInt64Slow(ref TupleWriter writer, ulong value)
@@ -295,6 +339,13 @@ namespace FoundationDB.Layers.Tuples
 			writer.Output.Position = p + 5;
 		}
 
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteSingle(ref TupleWriter writer, float? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteSingle(ref writer, value.Value);
+		}
+
 		/// <summary>Writes an Double at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">IEEE Floating point, 64 bits, High Endian</param>
@@ -335,17 +386,21 @@ namespace FoundationDB.Layers.Tuples
 			writer.Output.Position = p + 9;
 		}
 
-		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref TupleWriter writer, byte[] value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteDouble(ref TupleWriter writer, double? value)
 		{
-			if (value == null)
-			{
-				WriteNil(ref writer);
-			}
-			else
-			{
-				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);
-			}
+			if (!value.HasValue) WriteNil(ref writer); else WriteDouble(ref writer, value.Value);
+		}
+
+		public static void WriteDecimal(ref TupleWriter writer, decimal value)
+		{
+			throw new NotImplementedException();
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteDecimal(ref TupleWriter writer, decimal? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteDecimal(ref writer, value.Value);
 		}
 
 		/// <summary>Writes a string encoded in UTF-8</summary>
@@ -357,7 +412,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else if (value.Length == 0)
 			{ // "02 00"
-				writer.Output.WriteByte2(TupleTypes.Utf8, 0x00);
+				writer.Output.WriteBytes(TupleTypes.Utf8, 0x00);
 			}
 			else
 			{
@@ -384,7 +439,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{ // "02 00"
-					writer.Output.WriteByte2(TupleTypes.Utf8, 0x00);
+					writer.Output.WriteBytes(TupleTypes.Utf8, 0x00);
 				}
 			}
 			else
@@ -484,11 +539,10 @@ namespace FoundationDB.Layers.Tuples
 			// note: encoder.Convert() tries to fill up the buffer as much as possible with complete chars, and will set 'done' to true when all chars have been converted.
 			do
 			{
-				int charsUsed, bytesUsed;
-				encoder.Convert(ptr, remaining, buf, bufLen, true, out charsUsed, out bytesUsed, out done);
+				encoder.Convert(ptr, remaining, buf, bufLen, true, out int charsUsed, out int bytesUsed, out done);
 				if (bytesUsed > 0)
 				{
-					writer.Output.WriteBytes(buf, bytesUsed);
+					writer.Output.WriteBytes(buf, (uint) bytesUsed);
 				}
 				remaining -= charsUsed;
 				ptr += charsUsed;
@@ -510,15 +564,15 @@ namespace FoundationDB.Layers.Tuples
 			if (value == 0)
 			{ // NUL => "00 0F"
 				// note: \0 is the only unicode character that will produce a zero byte when converted in UTF-8
-				writer.Output.WriteByte4(TupleTypes.Utf8, 0x00, 0xFF, 0x00);
+				writer.Output.WriteBytes(TupleTypes.Utf8, 0x00, 0xFF, 0x00);
 			}
 			else if (value < 0x80)
 			{ // 0x00..0x7F => 0xxxxxxx
-				writer.Output.WriteByte3(TupleTypes.Utf8, (byte)value, 0x00);
+				writer.Output.WriteBytes(TupleTypes.Utf8, (byte)value, 0x00);
 			}
 			else if (value <  0x800)
 			{ // 0x80..0x7FF => 110xxxxx 10xxxxxx => two bytes
-				writer.Output.WriteByte4(TupleTypes.Utf8, (byte)(0xC0 | (value >> 6)), (byte)(0x80 | (value & 0x3F)), 0x00);
+				writer.Output.WriteBytes(TupleTypes.Utf8, (byte)(0xC0 | (value >> 6)), (byte)(0x80 | (value & 0x3F)), 0x00);
 			}
 			else
 			{ // 0x800..0xFFFF => 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
@@ -532,6 +586,25 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteChar(ref TupleWriter writer, char? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteChar(ref writer, value.Value);
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(ref TupleWriter writer, byte[] value)
+		{
+			if (value == null)
+			{
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);
+			}
+		}
+
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref TupleWriter writer, [NotNull] byte[] value, int offset, int count)
 		{
@@ -541,7 +614,31 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref TupleWriter writer, ArraySegment<byte> value)
 		{
-			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array, value.Offset, value.Count);
+			if (value.Count == 0 && value.Array == null)
+			{ // default(ArraySegment<byte>) ~= null
+				WriteNil(ref writer);
+			}
+			else
+			{
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array, value.Offset, value.Count);
+			}
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(ref TupleWriter writer, Slice value)
+		{
+			if (value.IsNull)
+			{
+				WriteNil(ref writer);
+			}
+			else if (value.Offset == 0 && value.Count == value.Array.Length)
+			{
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array);
+			}
+			else
+			{
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array, value.Offset, value.Count);
+			}
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
@@ -554,6 +651,7 @@ namespace FoundationDB.Layers.Tuples
 			for (int i = offset, end = offset + count; i < end; ++i)
 			{
 				if (value[i] == 0) ++n;
+				//TODO: optimize this!
 			}
 
 			writer.Output.EnsureBytes(n + 2);
@@ -564,13 +662,14 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (n == count)
 				{ // no NULs in the string, can copy all at once
-					SliceHelpers.CopyBytesUnsafe(buffer, p, value, offset, n);
+					UnsafeHelpers.CopyUnsafe(buffer, p, value, offset, n);
 					p += n;
 				}
 				else
 				{ // we need to escape all NULs
 					for(int i = offset, end = offset + count; i < end; ++i)
 					{
+						//TODO: optimize this!
 						byte b = value[i];
 						buffer[p++] = b;
 						if (b == 0) buffer[p++] = 0xFF;
@@ -600,7 +699,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (n == value.Length)
 				{ // no NULs in the string, can copy all at once
-					SliceHelpers.CopyBytesUnsafe(buffer, p, value, 0, n);
+					UnsafeHelpers.CopyUnsafe(buffer, p, value, 0, n);
 					p += n;
 				}
 				else
@@ -621,14 +720,14 @@ namespace FoundationDB.Layers.Tuples
 		{
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
-			unsafe
-			{
-				// UUIDs are stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid
+			// Guids should be stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid (handled by Uuid128)
+			writer.Output.UnsafeWriteUuid128(new Uuid128(value));
+		}
 
-				byte* ptr = stackalloc byte[16];
-				Uuid128.Write(value, ptr);
-				writer.Output.UnsafeWriteBytes(ptr, 16);
-			}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteGuid(ref TupleWriter writer, Guid? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteGuid(ref writer, value.Value);
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
@@ -636,12 +735,13 @@ namespace FoundationDB.Layers.Tuples
 		{
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
-			unsafe
-			{
-				byte* ptr = stackalloc byte[16];
-				value.WriteTo(ptr);
-				writer.Output.UnsafeWriteBytes(ptr, 16);
-			}
+			writer.Output.UnsafeWriteUuid128(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid128(ref TupleWriter writer, Uuid128? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUuid128(ref writer, value.Value);
 		}
 
 		/// <summary>Writes a 64-bit UUID</summary>
@@ -649,12 +749,13 @@ namespace FoundationDB.Layers.Tuples
 		{
 			writer.Output.EnsureBytes(9);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid64);
-			unsafe
-			{
-				byte* ptr = stackalloc byte[8];
-				value.WriteTo(ptr);
-				writer.Output.UnsafeWriteBytes(ptr, 8);
-			}
+			writer.Output.UnsafeWriteUuid64(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid64(ref TupleWriter writer, Uuid64? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUuid64(ref writer, value.Value);
 		}
 
 		/// <summary>Mark the start of a new embedded tuple</summary>
@@ -702,7 +803,7 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
-		internal static ArraySegment<byte> UnescapeByteString([NotNull] byte[] buffer, int offset, int count)
+		internal static Slice UnescapeByteString([NotNull] byte[] buffer, int offset, int count)
 		{
 			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
 
@@ -719,10 +820,10 @@ namespace FoundationDB.Layers.Tuples
 				++p;
 			}
 			// buffer is clean, we can return it as-is
-			return new ArraySegment<byte>(buffer, offset, count);
+			return buffer.AsSlice(offset, count);
 		}
 
-		internal static ArraySegment<byte> UnescapeByteStringSlow([NotNull] byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
+		internal static Slice UnescapeByteStringSlow([NotNull] byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
 		{
 			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
 
@@ -733,7 +834,7 @@ namespace FoundationDB.Layers.Tuples
 			int i = 0;
 			if (offsetOfFirstZero > 0)
 			{
-				SliceHelpers.CopyBytesUnsafe(tmp, 0, buffer, offset, offsetOfFirstZero);
+				UnsafeHelpers.CopyUnsafe(tmp, 0, buffer, offset, offsetOfFirstZero);
 				p += offsetOfFirstZero;
 				i = offsetOfFirstZero;
 			}
@@ -749,7 +850,7 @@ namespace FoundationDB.Layers.Tuples
 				tmp[i++] = b;
 			}
 
-			return new ArraySegment<byte>(tmp, 0, i);
+			return tmp.AsSlice(0, i);
 		}
 
 		/// <summary>Parse a tuple segment containing a byte array</summary>
@@ -772,7 +873,7 @@ namespace FoundationDB.Layers.Tuples
 
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
 
-			return Slice.DefaultEncoding.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
@@ -856,6 +957,19 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
+		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
+		public static decimal ParseDecimal(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Decimal);
+
+			if (slice.Count != 17)
+			{
+				throw new FormatException("Slice has invalid size for a Decimal");
+			}
+
+			throw new NotImplementedException();
+		}
+
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
 		public static Guid ParseGuid(Slice slice)
 		{
@@ -867,7 +981,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return Uuid128.Convert(new Slice(slice.Array, slice.Offset + 1, 16));
+			return Uuid128.Convert(slice.Substring(1, 16));
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
@@ -880,7 +994,7 @@ namespace FoundationDB.Layers.Tuples
 				throw new FormatException("Slice has invalid size for a 128-bit UUID");
 			}
 
-			return new Uuid128(new Slice(slice.Array, slice.Offset + 1, 16));
+			return new Uuid128(slice.Substring(1, 16));
 		}
 
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
@@ -893,7 +1007,7 @@ namespace FoundationDB.Layers.Tuples
 				throw new FormatException("Slice has invalid size for a 64-bit UUID");
 			}
 
-			return new Uuid64(new Slice(slice.Array, slice.Offset + 1, 8));
+			return Uuid64.Read(slice.Substring(1, 8));
 		}
 
 		#endregion
@@ -962,6 +1076,16 @@ namespace FoundationDB.Layers.Tuples
 					return reader.Input.ReadBytes(9);
 				}
 
+				case TupleTypes.Triple:
+				{ // <22>(10 bytes)
+					return reader.Input.ReadBytes(11);
+				}
+
+				case TupleTypes.Decimal:
+				{ // <23>(16 bytes)
+					return reader.Input.ReadBytes(17);
+				}
+
 				case TupleTypes.Uuid128:
 				{ // <30>(16 bytes)
 					return reader.Input.ReadBytes(17);
@@ -987,7 +1111,7 @@ namespace FoundationDB.Layers.Tuples
 				return reader.Input.ReadBytes(1 + bytes);
 			}
 
-			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Input.Position, reader.Input.Buffer.Count));
+			throw new FormatException($"Invalid tuple type byte {type} at index {reader.Input.Position}/{reader.Input.Buffer.Count}");
 		}
 
 		/// <summary>Read an embedded tuple, without parsing it</summary>
@@ -1015,7 +1139,7 @@ namespace FoundationDB.Layers.Tuples
 				// else: ignore this token, it will be processed later if the tuple is unpacked and accessed
 			}
 
-			throw new FormatException(String.Format("Truncated embedded tuple started at index {0}/{1}", start, reader.Input.Buffer.Count));
+			throw new FormatException($"Truncated embedded tuple started at index {start}/{reader.Input.Buffer.Count}");
 		}
 
 		/// <summary>Skip a number of tokens</summary>
@@ -1042,7 +1166,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
 			var token = TupleParser.ParseNext(ref reader);
-			return visitor(token, TupleTypes.DecodeSegmentType(ref token));
+			return visitor(token, TupleTypes.DecodeSegmentType(token));
 		}
 
 		#endregion
@@ -1092,7 +1216,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			// from: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 
-			v |= v >> 1; // first round down to one less than a power of 2 
+			v |= v >> 1; // first round down to one less than a power of 2
 			v |= v >> 2;
 			v |= v >> 4;
 			v |= v >> 8;

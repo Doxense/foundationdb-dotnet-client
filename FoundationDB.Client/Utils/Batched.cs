@@ -31,6 +31,7 @@ namespace FoundationDB
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	internal static class Batched<TValue, TState>

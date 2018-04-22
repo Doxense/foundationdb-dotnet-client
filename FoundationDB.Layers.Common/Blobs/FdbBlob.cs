@@ -218,7 +218,7 @@ namespace FoundationDB.Layers.Blobs
 			if (value.IsNullOrEmpty) return default(long?);
 
 			//note: python code stores the size as a string
-			long size = Int64.Parse(value.ToAscii());
+			long size = Int64.Parse(value.ToString());
 			if (size < 0) throw new InvalidOperationException("The internal blob size cannot be negative");
 			return size;
 		}

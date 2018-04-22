@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Converters
+namespace Doxense.Runtime.Converters
 {
 	using System;
 	using System.Collections;

@@ -28,21 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Tests
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq.Expressions;
 	using FoundationDB.Linq.Providers;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class FdbAsyncQueryableFacts : FdbTest
+	public class AsyncQueryableFacts : FdbTest
 	{
 
 		[Test]

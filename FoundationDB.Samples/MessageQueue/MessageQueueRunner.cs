@@ -2,10 +2,6 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
-	using Doxense.Mathematics.Statistics;
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Messaging;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -13,6 +9,10 @@ namespace FoundationDB.Samples.Tutorials
 	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Mathematics.Statistics;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Messaging;
 
 	public class MessageQueueRunner : IAsyncTest
 	{
@@ -84,7 +84,7 @@ namespace FoundationDB.Samples.Tutorials
 			while (!ct.IsCancellationRequested)
 			{
 				int k = cnt++;
-				Slice taskId = STuple.EncodeKey(this.Id.GetHashCode(), k);
+				Slice taskId = TuPack.EncodeKey(this.Id.GetHashCode(), k);
 
 				string msg = "Message #" + k + " from producer " + this.Id + " (" + DateTime.UtcNow.ToString("O") + ")";
 
@@ -116,7 +116,7 @@ namespace FoundationDB.Samples.Tutorials
 				var latency = msg.Received - msg.Scheduled;
 				Interlocked.Increment(ref received);
 
-				Console.Write("[" + received.ToString("N0") + " msg, ~" + latency.TotalMilliseconds.ToString("N3") + " ms] " + msg.Id.ToAsciiOrHexaString() + "            \r");
+				Console.Write($"[{received:N0} msg, ~{latency.TotalMilliseconds:N3} ms] {msg.Id:P}            \r");
 
 				this.TimeLine.Add(latency.TotalMilliseconds);
 
@@ -155,22 +155,22 @@ namespace FoundationDB.Samples.Tutorials
 				Console.WriteLine("> Idle");
 				await tr.Snapshot.GetRange(idleLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Idle." + idleLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Idle.{idleLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Busy");
 				await tr.Snapshot.GetRange(busyLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Busy." + busyLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Busy.{busyLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Unassigned");
 				await tr.Snapshot.GetRange(unassignedLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Unassigned." + unassignedLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Unassigned.{unassignedLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Tasks");
 				await tr.Snapshot.GetRange(tasksLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Tasks." + tasksLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Tasks.{tasksLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("<");
 			}

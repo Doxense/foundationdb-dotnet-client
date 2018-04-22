@@ -26,20 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
-	using System.Collections;
+	using JetBrains.Annotations;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
-	using JetBrains.Annotations;
+	using Doxense.Runtime.Converters;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
-	[DebuggerDisplay("{ToString()}")]
-	public sealed class LinkedTuple<T> : ITuple
+	[DebuggerDisplay("{ToString(),nq}")]
+	public sealed class LinkedTuple<T> : ITuple, ITupleSerializable
 	{
 		//TODO: consider changing this to a struct ?
 
@@ -56,9 +55,9 @@ namespace FoundationDB.Layers.Tuples
 		public readonly int Depth;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		internal LinkedTuple(ITuple head, T tail)
+		public LinkedTuple([NotNull] ITuple head, T tail)
 		{
-			Contract.Requires(head != null);
+			Contract.NotNull(head, nameof(head));
 
 			this.Head = head;
 			this.Tail = tail;
@@ -66,25 +65,20 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Pack this tuple into a buffer</summary>
-		public void PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
-			this.Head.PackTo(ref writer);
+			PackTo(ref writer);
+		}
+
+		/// <summary>Pack this tuple into a buffer</summary>
+		internal void PackTo(ref TupleWriter writer)
+		{
+			TupleEncoder.WriteTo(ref writer, this.Head);
 			TuplePacker<T>.SerializeTo(ref writer, this.Tail);
 		}
 
-		/// <summary>Pack this tuple into a slice</summary>
-		public Slice ToSlice()
-		{
-			var writer = new TupleWriter();
-			PackTo(ref writer);
-			return writer.Output.ToSlice();
-		}
-
 		/// <summary>Returns the number of elements in this tuple</summary>
-		public int Count
-		{
-			get { return this.Depth + 1; }
-		}
+		public int Count => this.Depth + 1;
 
 		public object this[int index]
 		{
@@ -98,39 +92,39 @@ namespace FoundationDB.Layers.Tuples
 
 		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return STuple.Splice(this, fromIncluded, toExcluded); }
+			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
 		}
 
-		public R Get<R>(int index)
+		public TItem Get<TItem>(int index)
 		{
-			if (index == this.Depth || index == -1) return FdbConverters.Convert<T, R>(this.Tail);
+			if (index == this.Depth || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
 			if (index < -1) index++;
-			return this.Head.Get<R>(index);
+			return this.Head.Get<TItem>(index);
 		}
 
-		public R Last<R>()
+		public T Last
 		{
-			return FdbConverters.Convert<T, R>(this.Tail);
+			[Pure]
+			get { return this.Tail; }
 		}
 
-		ITuple ITuple.Append<R>(R value)
+		ITuple ITuple.Append<TItem>(TItem value)
 		{
-			return this.Append<R>(value);
+			return this.Append<TItem>(value);
 		}
 
 		[NotNull]
-		public LinkedTuple<R> Append<R>(R value)
+		public LinkedTuple<TItem> Append<TItem>(TItem value)
 		{
-			return new LinkedTuple<R>(this, value);
+			return new LinkedTuple<TItem>(this, value);
 		}
 
-		[NotNull]
-		public ITuple Concat([NotNull] ITuple tuple)
+		public ITuple Concat(ITuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
 
-		public void CopyTo([NotNull] object[] array, int offset)
+		public void CopyTo(object[] array, int offset)
 		{
 			this.Head.CopyTo(array, offset);
 			array[offset + this.Depth] = this.Tail;
@@ -152,22 +146,22 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return STuple.ToString(this);
+			return STuple.Formatter.ToString(this);
 		}
 
 		public override bool Equals(object obj)
 		{
-			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
+			return obj != null && ((System.Collections.IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(ITuple other)
 		{
-			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+			return !object.ReferenceEquals(other, null) && ((System.Collections.IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
 		{
-			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+			return ((System.Collections.IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
 		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
@@ -186,13 +180,13 @@ namespace FoundationDB.Layers.Tuples
 				return this.Head.Equals(linked.Tail, comparer);
 			}
 
-			return STuple.Equals(this, other, comparer);
+			return TupleHelpers.Equals(this, other, comparer);
 		}
 
-		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return STuple.CombineHashCodes(
-				this.Head != null ? this.Head.GetHashCode(comparer) : 0,
+			return HashCodes.Combine(
+				HashCodes.Compute(this.Head, comparer),
 				comparer.GetHashCode(this.Tail)
 			);
 		}

@@ -141,6 +141,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test][Category("LongRunning")]
+		[Ignore("This tests a bug in an old version (v2.0.7) and takes a long time to run!")]
 		public async Task Test_Transactionals_Retries_Do_Not_Leak_When_Reading_Too_Much()
 		{
 			// we have a transaction that tries to read too much data, and will always take more than 5 seconds to execute

@@ -26,9 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+using FoundationDB;
+
+namespace Doxense.Collections.Tuples.Encoding
 {
-	using FoundationDB.Client;
 	using System;
 
 	/// <summary>
@@ -73,6 +74,10 @@ namespace FoundationDB.Layers.Tuples
 		internal const byte Single = 32;
 		/// <summary>Double precision decimals (64-bit, Big-Endian) [DRAFT]</summary>
 		internal const byte Double = 33;
+		/// <summary>Triple precision decimals (80-bit, Big-Endian) [DRAFT]</summary>
+		internal const byte Triple = 34; //note: javascript numbers
+		/// <summary>Quadruple precision decimals (128-bit, Big-Endian) [DRAFT]</summary>
+		internal const byte Decimal = 35;
 
 		/// <summary>RFC4122 UUID (128 bits) [DRAFT]</summary>
 		internal const byte Uuid128 = 48;
@@ -88,7 +93,7 @@ namespace FoundationDB.Layers.Tuples
 		internal const byte AliasSystem = 255;
 
 		/// <summary>Return the type of a tuple segment, from its header</summary>
-		public static TupleSegmentType DecodeSegmentType(ref Slice segment)
+		public static TupleSegmentType DecodeSegmentType(Slice segment)
 		{
 			if (segment.Count == 0) return TupleSegmentType.Nil;
 
@@ -101,6 +106,8 @@ namespace FoundationDB.Layers.Tuples
 				case TupleStart: return TupleSegmentType.Tuple;
 				case Single: return TupleSegmentType.Single;
 				case Double: return TupleSegmentType.Double;
+				case Triple: return TupleSegmentType.Triple;
+				case Decimal: return TupleSegmentType.Decimal;
 				case Uuid128: return TupleSegmentType.Uuid128;
 				case Uuid64: return TupleSegmentType.Uuid64;
 			}
@@ -125,6 +132,8 @@ namespace FoundationDB.Layers.Tuples
 		Integer = 20,
 		Single = 32,
 		Double = 33,
+		Triple = 34,
+		Decimal = 35,
 		Uuid128 = 48,
 		Uuid64 = 49,
 	}

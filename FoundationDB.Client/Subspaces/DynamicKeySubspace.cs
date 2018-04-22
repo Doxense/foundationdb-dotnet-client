@@ -26,15 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client.Utils;
-
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Doxense.Collections.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	public class DynamicKeySubspace : KeySubspace, IDynamicKeySubspace
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
-		/// <remarks>This is a shortcut for <see cref="Pack(Layers.Tuples.ITuple)"/></remarks>
+		/// <remarks>This is a shortcut for <see cref="Pack(Doxense.Collections.Tuples.ITuple)"/></remarks>
 		public Slice this[[NotNull] ITuple tuple] => Pack(tuple);
 
 		/// <summary>Convert an item into a key of this subspace</summary>
@@ -333,7 +333,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
-		/// <param name="packed">Key that was produced by a previous call to <see cref="Pack(Layers.Tuples.ITuple)"/></param>
+		/// <param name="packed">Key that was produced by a previous call to <see cref="Pack(Doxense.Collections.Tuples.ITuple)"/></param>
 		/// <returns>Original tuple</returns>
 		public ITuple Unpack(Slice packed)
 		{
@@ -365,7 +365,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Unpack a batch of keys of this subspace, back into an array of tuples</summary>
-		/// <param name="packed">Sequence of keys that were produced by a previous call to <see cref="Pack(Layers.Tuples.ITuple)"/> or <see cref="PackMany(IEnumerable{Layers.Tuples.ITuple})"/></param>
+		/// <param name="packed">Sequence of keys that were produced by a previous call to <see cref="Pack(Doxense.Collections.Tuples.ITuple)"/> or <see cref="PackMany(IEnumerable{Doxense.Collections.Tuples.ITuple})"/></param>
 		/// <returns>Array containing the original tuples</returns>
 		public ITuple[] UnpackMany(IEnumerable<Slice> packed)
 		{

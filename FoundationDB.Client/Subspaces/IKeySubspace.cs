@@ -26,10 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a sub-partition of the global key space.</summary>

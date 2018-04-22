@@ -28,16 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define TRACE_COUNTING
 
+
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Status;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 
 	public static partial class Fdb
@@ -51,41 +52,41 @@ namespace FoundationDB.Client
 			// => eg. Fdb.System.MaxValue.Array[0] = 42;
 
 			/// <summary>"\xFF\xFF"</summary>
-			public static readonly Slice MaxValue = Slice.FromAscii("\xFF\xFF");
+			public static readonly Slice MaxValue = Slice.FromByteString("\xFF\xFF");
 
 			/// <summary>"\xFF\x00"</summary>
-			public static readonly Slice MinValue = Slice.FromAscii("\xFF\x00");
+			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
 			/// <summary>"\xFF/backupDataFormat"</summary>
-			public static readonly Slice BackupDataFormat = Slice.FromAscii("\xFF/backupDataFormat");
+			public static readonly Slice BackupDataFormat = Slice.FromByteString("\xFF/backupDataFormat");
 
 			/// <summary>"\xFF/conf/"</summary>
-			public static readonly Slice ConfigPrefix = Slice.FromAscii("\xFF/conf/");
+			public static readonly Slice ConfigPrefix = Slice.FromByteString("\xFF/conf/");
 
 			/// <summary>"\xFF/coordinators"</summary>
-			public static readonly Slice Coordinators = Slice.FromAscii("\xFF/coordinators");
+			public static readonly Slice Coordinators = Slice.FromByteString("\xFF/coordinators");
 
 			/// <summary>"\xFF/globals/"</summary>
-			public static readonly Slice GlobalsPrefix = Slice.FromAscii("\xFF/globals/");
+			public static readonly Slice GlobalsPrefix = Slice.FromByteString("\xFF/globals/");
 
 			/// <summary>"\xFF/init_id"</summary>
-			public static readonly Slice InitId = Slice.FromAscii("\xFF/init_id");
+			public static readonly Slice InitId = Slice.FromByteString("\xFF/init_id");
 
 			/// <summary>"\xFF/keyServer/(key_boundary)" => (..., node_id, ...)</summary>
-			public static readonly Slice KeyServers = Slice.FromAscii("\xFF/keyServers/");
+			public static readonly Slice KeyServers = Slice.FromByteString("\xFF/keyServers/");
 
 			/// <summary>"\xFF/serverKeys/(node_id)/(key_boundary)" => ('' | '1')</summary>
-			public static readonly Slice ServerKeys = Slice.FromAscii("\xFF/serverKeys/");
+			public static readonly Slice ServerKeys = Slice.FromByteString("\xFF/serverKeys/");
 
 			/// <summary>"\xFF/serverList/(node_id)" => (..., node_id, machine_id, datacenter_id, ...)</summary>
-			public static readonly Slice ServerList = Slice.FromAscii("\xFF/serverList/");
+			public static readonly Slice ServerList = Slice.FromByteString("\xFF/serverList/");
 
 			/// <summary>"\xFF/workers/(ip:port)/..." => datacenter + machine + mclass</summary>
-			public static readonly Slice WorkersPrefix = Slice.FromAscii("\xFF/workers/");
+			public static readonly Slice WorkersPrefix = Slice.FromByteString("\xFF/workers/");
 
 			#region JSON Status
 
-			private static readonly Slice StatusJsonKey = Slice.FromAscii("\xFF\xFF/status/json");
+			private static readonly Slice StatusJsonKey = Slice.FromByteString("\xFF\xFF/status/json");
 
 			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
@@ -148,7 +149,7 @@ namespace FoundationDB.Client
 
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
 
-				return FdbClusterFile.Parse(coordinators.ToAscii());
+				return FdbClusterFile.Parse(coordinators.ToStringAscii());
 			}
 
 			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
@@ -177,7 +178,7 @@ namespace FoundationDB.Client
 			public static Slice ConfigKey([NotNull] string name)
 			{
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
-				return ConfigPrefix + Slice.FromAscii(name);
+				return ConfigPrefix + Slice.FromByteString(name);
 			}
 
 			/// <summary>Return the corresponding key for a global attribute</summary>
@@ -186,7 +187,7 @@ namespace FoundationDB.Client
 			public static Slice GlobalsKey([NotNull] string name)
 			{
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
-				return GlobalsPrefix + Slice.FromAscii(name);
+				return GlobalsPrefix + Slice.FromByteString(name);
 			}
 
 			/// <summary>Return the corresponding key for a global attribute</summary>
@@ -197,7 +198,7 @@ namespace FoundationDB.Client
 			{
 				if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty", nameof(id));
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
-				return WorkersPrefix + Slice.FromAscii(id) + Slice.FromChar('/') + Slice.FromAscii(name);
+				return WorkersPrefix + Slice.FromByteString(id) + Slice.FromChar('/') + Slice.FromByteString(name);
 			}
 
 			/// <summary>Returns the current storage engine mode of the cluster</summary>
@@ -221,7 +222,7 @@ namespace FoundationDB.Client
 					default:
 					{
 						// welcome to the future!
-						return "unknown(" + value.ToAsciiOrHexaString() + ")";
+						return "unknown(" + value.PrettyPrint() + ")";
 					}
 				}
 			}
@@ -236,7 +237,7 @@ namespace FoundationDB.Client
 			public static async Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				Contract.Assert(trans.Context != null && trans.Context.Database != null);
+				Contract.Assert(trans.Context?.Database != null);
 
 				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
 				{

@@ -28,17 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
+	using System;
+	using System.Diagnostics;
+	using System.Text;
+	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	[Obsolete]
@@ -65,7 +62,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				for (int i = 0; i < 100; i++)
 				{
 					Console.Write("\rInserting " + i);
-					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, STuple.EncodeKey(rnd.Next())), this.Cancellation);
+					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, TuPack.EncodeKey(rnd.Next())), this.Cancellation);
 				}
 				sw.Stop();
 				Console.WriteLine("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);

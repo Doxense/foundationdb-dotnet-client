@@ -26,16 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB
+namespace Doxense.Memory
 {
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
+	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB;
 	using JetBrains.Annotations;
+
+	//REVIEW: this is somewhat similar to the proposed new IBufferList (from System.IO.Pipeline) ?
 
 	/// <summary>Merge multiple slices into a single stream</summary>
 	public sealed class SliceListStream : Stream
@@ -49,13 +52,13 @@ namespace FoundationDB
 
 		internal SliceListStream([NotNull] Slice[] slices)
 		{
-			if (slices == null) throw new ArgumentNullException(nameof(slices));
+			Contract.NotNull(slices, nameof(slices));
 			Init(slices);
 		}
 
 		public SliceListStream([NotNull] IEnumerable<Slice> slices)
 		{
-			if (slices == null) throw new ArgumentNullException(nameof(slices));
+			Contract.NotNull(slices, nameof(slices));
 			Init(slices.ToArray());
 		}
 
@@ -72,31 +75,19 @@ namespace FoundationDB
 
 		#region Seeking...
 
-		public override bool CanSeek
-		{
-			get { return m_slices != null; }
-		}
+		public override bool CanSeek => m_slices != null;
 
 		public override long Position
 		{
-			get
-			{
-				return m_position;
-			}
-			set
-			{
-				Seek(value, SeekOrigin.Begin);
-			}
+			get => m_position;
+			set => Seek(value, SeekOrigin.Begin);
 		}
 
-		public override long Length
-		{
-			get { return m_length; }
-		}
+		public override long Length => m_length;
 
 		public override long Seek(long offset, SeekOrigin origin)
 		{
-			if (m_slices == null) StreamIsClosed();
+			if (m_slices == null) throw StreamIsClosed();
 			if (offset > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(offset));
 
 			switch (origin)
@@ -157,10 +148,7 @@ namespace FoundationDB
 
 		#region Reading...
 
-		public override bool CanRead
-		{
-			get { return m_position < m_length; }
-		}
+		public override bool CanRead => m_position < m_length;
 
 		private bool AdvanceToNextSlice()
 		{
@@ -198,7 +186,7 @@ namespace FoundationDB
 		{
 			ValidateBuffer(buffer, offset, count);
 
-			if (m_slices == null) StreamIsClosed();
+			if (m_slices == null) throw StreamIsClosed();
 
 			Contract.Ensures(m_position >= 0 && m_position <= m_length);
 
@@ -245,8 +233,6 @@ namespace FoundationDB
 			return read;
 		}
 
-#if !NET_4_0
-
 		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
 			ValidateBuffer(buffer, offset, count);
@@ -266,34 +252,25 @@ namespace FoundationDB
 			}
 			catch (Exception e)
 			{
-				return TaskHelpers.FromException<int>(e);
+				return Task.FromException<int>(e);
 			}
 		}
-
-#endif
 
 		#endregion
 
 		#region Writing...
 
-		public override bool CanWrite
-		{
-			get { return false; }
-		}
+		public override bool CanWrite => false;
 
 		public override void Write(byte[] buffer, int offset, int count)
 		{
 			throw new NotSupportedException();
 		}
 
-#if !NET_4_0
-
 		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
-			return TaskHelpers.FromException<object>(new NotSupportedException());
+			return Task.FromException<object>(new NotSupportedException());
 		}
-
-#endif
 
 		public override void Flush()
 		{
@@ -310,16 +287,16 @@ namespace FoundationDB
 
 		private static void ValidateBuffer(byte[] buffer, int offset, int count)
 		{
-			if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
-			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
-			if (offset > buffer.Length - count) throw new ArgumentException("Offset and count must fit inside the buffer");
+			Contract.NotNull(buffer, nameof(buffer));
+			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
+			if (offset < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
+			if (offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Offset and count must fit inside the buffer");
 		}
 
-		[ContractAnnotation("=> halt")]
-		private static void StreamIsClosed()
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		private static Exception StreamIsClosed()
 		{
-			throw new ObjectDisposedException(null, "The stream was already closed");
+			return ThrowHelper.ObjectDisposedException("The stream was already closed");
 		}
 
 		protected override void Dispose(bool disposing)

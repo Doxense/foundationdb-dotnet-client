@@ -28,17 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
-	using FoundationDB.Client;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
-	using System.Text;
-	using MathNet.Numerics.Distributions;
 	using System.Diagnostics;
 	using System.Globalization;
-	using FoundationDB.Layers.Tuples;
 	using System.IO;
+	using System.Linq;
+	using System.Text;
+	using Doxense.Collections.Tuples;
+	using MathNet.Numerics.Distributions;
+	using NUnit.Framework;
 
 	[TestFixture]
 	[Category("LongRunning")]
@@ -290,10 +289,10 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				return buf;
 			};
 
-			compress(Slice.Create(mostlyZeroes(1)));
-			compress(Slice.Create(mostlyZeroes(10)));
-			compress(Slice.Create(mostlyZeroes(42)));
-			compress(Slice.Create(mostlyZeroes(100)));
+			compress(mostlyZeroes(1).AsSlice());
+			compress(mostlyZeroes(10).AsSlice());
+			compress(mostlyZeroes(42).AsSlice());
+			compress(mostlyZeroes(100).AsSlice());
 
 
 			// mostly ones
@@ -310,10 +309,10 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				return buf;
 			};
 
-			compress(Slice.Create(mostlyOnes(1)));
-			compress(Slice.Create(mostlyOnes(10)));
-			compress(Slice.Create(mostlyOnes(42)));
-			compress(Slice.Create(mostlyOnes(100)));
+			compress(mostlyOnes(1).AsSlice());
+			compress(mostlyOnes(10).AsSlice());
+			compress(mostlyOnes(42).AsSlice());
+			compress(mostlyOnes(100).AsSlice());
 
 			// progressive
 			Func<byte[], int, bool> testBit = (b, p) => (b[p >> 3] & (1 << (p & 7))) != 0;
@@ -321,7 +320,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			const int VALUES = 8192;
 			var buffer = new byte[VALUES / 8];
 			var output = new CompressedBitmapWriter();
-			WordAlignHybridEncoder.CompressTo(Slice.Create(buffer), output);
+			WordAlignHybridEncoder.CompressTo(buffer.AsSlice(), output);
 			Console.WriteLine("{0}\t{1}\t1024", 0, output.Length);
 			for (int i = 0; i < VALUES / 8; i++)
 			{
@@ -335,7 +334,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				setBit(buffer, p);
 
 				output.Reset();
-				WordAlignHybridEncoder.CompressTo(Slice.Create(buffer), output);
+				WordAlignHybridEncoder.CompressTo(buffer.AsSlice(), output);
 				Console.WriteLine("{0}\t{1}\t1024", 1.0d * (i + 1) / VALUES, output.Length);
 			}
 
@@ -366,14 +365,12 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 			public CompressedBitmap Lookup(TKey value)
 			{
-				CompressedBitmap bmp;
-				return this.Values.TryGetValue(value, out bmp) ? bmp : null;
+				return this.Values.TryGetValue(value, out CompressedBitmap bmp) ? bmp : null;
 			}
 
 			public int Count(TKey value)
 			{
-				int cnt;
-				return this.Statistics.TryGetValue(value, out cnt) ? cnt : 0;
+				return this.Statistics.TryGetValue(value, out int cnt) ? cnt : 0;
 			}
 
 			public double Frequency(TKey value)
@@ -388,9 +385,8 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			{
 				int docId = idFunc(doc);
 				TKey indexedValue = keyFunc(doc);
-				CompressedBitmap bmp;
 				int count;
-				if (!index.Values.TryGetValue(indexedValue, out bmp))
+				if (!index.Values.TryGetValue(indexedValue, out CompressedBitmap bmp))
 				{
 					bmp = CompressedBitmap.Empty;
 					count = 0;
@@ -410,15 +406,15 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		private static string MakeHeatMap(int[] map)
 		{
 			int max = map.Max();
-			string scale = "`.:;+=xX$&#";
-			double r = (double)(scale.Length - 1) / max;
+			const string SCALE = "`.:;+=xX$&#";
+			double r = (double)(SCALE.Length - 1) / max;
 			var chars = new char[map.Length];
 			for (int i = 0; i < map.Length; i++)
 			{
 				if (map[i] == 0)
 					chars[i] = '\xA0';
 				else
-					chars[i] = scale[(int)Math.Round(r * map[i], MidpointRounding.AwayFromZero)];
+					chars[i] = SCALE[(int)Math.Round(r * map[i], MidpointRounding.AwayFromZero)];
 			}
 			return new string(chars);
 		}
@@ -437,11 +433,9 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			foreach (var kv in index.Values.OrderBy((kv) => orderBy(kv.Key, index.Count(kv.Key)), comparer))
 			{
 				var t = STuple.Create(kv.Key);
-				var tk = t.ToSlice();
+				var tk = TuPack.Pack(t);
 
-				int bits, words, literals, fillers;
-				double ratio;
-				kv.Value.GetStatistics(out bits, out words, out literals, out fillers, out ratio);
+				kv.Value.GetStatistics(out int bits, out int words, out int literals, out int _, out double ratio);
 
 				long legacyIndexSize = 0; // size estimate of a regular FDB index (..., "Value", GUID) = ""
 				Array.Clear(map, 0, map.Length);
@@ -487,8 +481,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			var results = new List<Character>();
 			foreach (var docId in bitmap.GetView())
 			{
-				Character charac;
-				Assert.That(characters.TryGetValue(docId, out charac), Is.True);
+				Assert.That(characters.TryGetValue(docId, out Character charac), Is.True);
 
 				results.Add(charac);
 				Console.WriteLine("- {0}: {1} {2}{3}", docId, charac.Name, charac.Gender == "Male" ? "\u2642" : charac.Gender == "Female" ? "\u2640" : charac.Gender, charac.Dead ? " (\u271D)" : "");
@@ -773,6 +766,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		#endregion
 
+		[Test]
 		public void Test_BigBadIndexOfTheDead()
 		{
 			// simulate a dataset where 50,000 users create a stream of 10,000,000  events, with a non uniform distribution, ie: few users making the bulk, and a long tail of mostly inactive users
@@ -905,12 +899,9 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			j = 0;
 			foreach (var kv in controlStats)
 			{
-				CompressedBitmapBuilder builder;
-				Assert.That(index.TryGetValue(kv.Value, out builder), Is.True, "{0} is missing from index", kv.Value);
+				Assert.That(index.TryGetValue(kv.Value, out CompressedBitmapBuilder builder), Is.True, "{0} is missing from index", kv.Value);
 				var bmp = builder.ToBitmap();
-				int bits, words, a, b;
-				double ratio;
-				bmp.GetStatistics(out bits, out words, out a, out b, out ratio);
+				bmp.GetStatistics(out int bits, out int words, out int a, out int b, out _);
 				Assert.That(bits, Is.EqualTo(kv.Count), "{0} has invalid count", kv.Value);
 				int sz = bmp.ToSlice().Count;
 				log.WriteLine("{0,8} : {1,5} bits, {2} words ({3} lit. / {4} fil.), {5:N0} bytes, {6:N3} bytes/doc, {7:N2}% compression", kv.Value, bits, words, a, b, sz, 1.0 * sz / bits, 100.0 * (4 + 17 + sz) / (17 + (4 + 17) * bits));

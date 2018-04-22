@@ -31,7 +31,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
+	using Doxense.Memory;
 
 	/// <summary>Iterator that reads 32-bit compressed words from a compressed bitmap</summary>
 	public struct CompressedBitmapWordIterator : IEnumerator<CompressedWord>

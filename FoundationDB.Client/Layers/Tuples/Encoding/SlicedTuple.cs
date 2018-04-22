@@ -26,17 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
+	using Doxense.Runtime.Converters;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	internal sealed class SlicedTuple : ITuple
+	public sealed class SlicedTuple : ITuple, ITupleSerializable
 	{
 		// STuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.
 		// This is helpful because in most cases, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
@@ -61,40 +61,31 @@ namespace FoundationDB.Layers.Tuples
 			m_count = count;
 		}
 
-		public void PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		{
+			PackTo(ref writer);
+		}
+		internal void PackTo(ref TupleWriter writer)
 		{
 			var slices = m_slices;
-			for (int n = m_count, p = m_offset; n > 0; n--)
+			int offset = m_offset;
+			int count = m_count;
+			for (int i = 0; i < count; i++)
 			{
-				writer.Output.WriteBytes(slices[p++]);
+				writer.Output.WriteBytes(slices[i + offset]);
 			}
 		}
 
-		public Slice ToSlice()
-		{
-			// merge all the slices making up this segment
-			//TODO: should we get the sum of all slices to pre-allocated the buffer ?
-			var writer = new TupleWriter();
-			PackTo(ref writer);
-			return writer.Output.ToSlice();
-		}
+		public int Count => m_count;
 
-		public int Count
-		{
-			get { return m_count; }
-		}
-
-		public object this[int index]
-		{
-			get { return TuplePackers.DeserializeBoxed(GetSlice(index)); }
-		}
+		public object this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
 
 		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
-				int begin = fromIncluded.HasValue ? STuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
-				int end = toExcluded.HasValue ? STuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
+				int begin = fromIncluded.HasValue ? TupleHelpers.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? TupleHelpers.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
 				int len = end - begin;
 				if (len <= 0) return STuple.Empty;
@@ -103,20 +94,20 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public R Get<R>(int index)
+		public T Get<T>(int index)
 		{
-			return TuplePacker<R>.Deserialize(GetSlice(index));
+			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 
-		public R Last<R>()
+		public T Last<T>()
 		{
 			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			return TuplePacker<R>.Deserialize(m_slices[m_offset + m_count - 1]);
+			return TuplePacker<T>.Deserialize(m_slices[m_offset + m_count - 1]);
 		}
 
 		public Slice GetSlice(int index)
 		{
-			return m_slices[m_offset + STuple.MapIndex(index, m_count)];
+			return m_slices[m_offset + TupleHelpers.MapIndex(index, m_count)];
 		}
 
 		ITuple ITuple.Append<T>(T value)
@@ -154,7 +145,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			//OPTIMIZE: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
 			// => each slice has a type prefix that could be used to format it to a StringBuilder faster, maybe?
-			return STuple.ToString(this);
+			return STuple.Formatter.ToString(this);
 		}
 
 		public override bool Equals(object obj)
@@ -190,7 +181,7 @@ namespace FoundationDB.Layers.Tuples
 				return false;
 			}
 
-			return STuple.Equals(this, other, comparer);
+			return TupleHelpers.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
@@ -205,7 +196,7 @@ namespace FoundationDB.Layers.Tuples
 			int h = 0;
 			for (int i = 0; i < m_count; i++)
 			{
-				h = STuple.CombineHashCodes(h, comparer.GetHashCode(m_slices[i + m_offset]));
+				h = HashCodes.Combine(h, comparer.GetHashCode(m_slices[i + m_offset]));
 			}
 			if (canUseCache) m_hashCode = h;
 			return h;

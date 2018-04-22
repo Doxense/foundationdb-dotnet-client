@@ -26,22 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 
-	/// <summary>Represents a Tuple of N elements</summary>
+	/// <summary>Represents a Tuple of N elements of any type</summary>
 	[ImmutableObject(true)]
 	[CannotApplyEqualityOperator]
-	public interface ITuple : IEnumerable<object>, IEquatable<ITuple>, IReadOnlyCollection<object>
-#if !NET_4_0
-		, IReadOnlyList<object>
-		, System.Collections.IStructuralEquatable
-#endif
+	public interface ITuple : IEquatable<ITuple>, IReadOnlyList<object>, System.Collections.IStructuralEquatable
 	{
 		// Tuples should, by default, behave as closely to Python's tuples as possible. See http://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences
 
@@ -58,58 +53,40 @@ namespace FoundationDB.Layers.Tuples
 		// - Getting the substring of a tuple should as fast as possible, if possible O(1). For list-based tuples, it should return a view of the list (offset/count) and avoid copying the list
 		// - If an operation returns an empty tuple, then it should return the STuple.Empty singleton instance
 		// - If an operation does not change the tuple (like Append(STuple.Empty), or tuple.Substring(0)), then the tuple should return itself
-		// - If the same tuple will be packed frequently, it should be memoized (converted into a FdbMemoizedTuple)
-
-#if NET_4_0
-		/// <summary>[DANGEROUS] Return an item of the tuple, given its position</summary>
-		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
-		/// <returns>Value of the item</returns>
-		/// <remarks>The type of the returned value will be either null, string, byte[], Guid, long or ulong. You should use tuple.Get&lt;T&gt(...) instead if you are working with non standard values!</remarks>
-		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
-		/// <example>
-		/// ("Hello", "World", 123,)[0] => "Hello"
-		/// ("Hello", "World", 123,)[-1] => 123L
-		/// </example>
-		object this[int index] { get; }
-#endif
+		// - If the same tuple will be packed frequently, it should be memoized (converted into a MemoizedTuple)
 
 		/// <summary>Return a section of the tuple</summary>
 		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
 		/// <returns>Tuple that include all items in the current tuple whose offset are greather than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
-		ITuple this[int? fromIncluded, int? toExcluded] { [NotNull] get; }
+		ITuple this[int? fromIncluded, int? toExcluded] { [NotNull, Pure] get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
-		/// <typeparam name="T">Expected type of the item</typeparam>
+		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
-		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="T"/>.</returns>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
 		/// <example>
 		/// ("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"
 		/// ("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123
 		/// ("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"
 		/// </example>
-		T Get<T>(int index);
-
-		/// <summary>Return the typed value of the last item in the tuple</summary>
-		/// <typeparam name="T">Expected type of the item</typeparam>
-		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
-		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
-		T Last<T>();
+		[Pure]
+		TItem Get<TItem>(int index);
 
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
-		/// <typeparam name="T">Type of the new value</typeparam>
+		/// <typeparam name="TItem">Type of the new value</typeparam>
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
-		/// <remarks>If <typeparamref name="T"/> is an <see cref="ITuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="ITuple.Concat"/></remarks>
-		[NotNull]
-		ITuple Append<T>(T value);
+		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="ITuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="ITuple.Concat"/></remarks>
+		[Pure, NotNull]
+		ITuple Append<TItem>(TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
 		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
-		[NotNull]
+		[Pure, NotNull]
 		ITuple Concat([NotNull] ITuple tuple);
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
@@ -120,16 +97,6 @@ namespace FoundationDB.Layers.Tuples
 		/// ("Hello", "World", 123,).CopyTo(tmp, 0);
 		/// </example>
 		void CopyTo([NotNull] object[] array, int offset);
-
-		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
-		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
-		void PackTo(ref TupleWriter writer);
-
-		/// <summary>Pack this instance into a Slice</summary>
-		/// <example>
-		/// ("Hello", "World", 123).ToSlice() => '\x02Hello\x00\x02World\x00\x15\x7B'
-		/// </example>
-		Slice ToSlice();
 
 	}
 

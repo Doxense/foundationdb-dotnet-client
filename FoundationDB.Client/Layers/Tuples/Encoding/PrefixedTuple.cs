@@ -26,20 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
+	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple that has a fixed abitrary binary prefix</summary>
-	[DebuggerDisplay("{ToString()}")]
-	public sealed class PrefixedTuple : ITuple
+	[DebuggerDisplay("{ToString(),nq}")]
+	public sealed class PrefixedTuple : ITuple, ITupleSerializable
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Tuples
 		private Slice m_prefix; //PERF: readonly struct
 		private readonly ITuple m_items;
 
-		internal PrefixedTuple(Slice prefix, ITuple items)
+		public PrefixedTuple(Slice prefix, ITuple items)
 		{
 			Contract.Requires(!prefix.IsNull && items != null);
 
@@ -56,15 +56,16 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Binary prefix to all the keys produced by this tuple</summary>
-		public Slice Prefix
-		{
-			get { return m_prefix; }
-		}
+		public Slice Prefix => m_prefix;
 
-		public void PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		{
+			PackTo(ref writer);
+		}
+		internal void PackTo(ref TupleWriter writer)
 		{
 			writer.Output.WriteBytes(m_prefix);
-			m_items.PackTo(ref writer);
+			TupleEncoder.WriteTo(ref writer, m_items);
 		}
 
 		public Slice ToSlice()
@@ -74,57 +75,48 @@ namespace FoundationDB.Layers.Tuples
 			return writer.Output.ToSlice();
 		}
 
-		public int Count
+		public int Count => m_items.Count;
+
+		public object this[int index] => m_items[index];
+
+		public ITuple this[int? fromIncluded, int? toExcluded] => m_items[fromIncluded, toExcluded];
+
+		public T Get<T>(int index)
 		{
-			get { return m_items.Count; }
+			return m_items.Get<T>(index);
 		}
 
-		public object this[int index]
+		public T Last<T>()
 		{
-			get { return m_items[index]; }
+			return m_items.Last<T>();
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
+		ITuple ITuple.Append<T>(T value)
 		{
-			get { return m_items[fromIncluded, toExcluded]; }
-		}
-
-		public R Get<R>(int index)
-		{
-			return m_items.Get<R>(index);
-		}
-
-		public R Last<R>()
-		{
-			return m_items.Last<R>();
-		}
-
-		ITuple ITuple.Append<R>(R value)
-		{
-			return this.Append<R>(value);
+			return Append<T>(value);
 		}
 
 		ITuple ITuple.Concat(ITuple tuple)
 		{
-			return this.Concat(tuple);
+			return Concat(tuple);
 		}
 
 		[NotNull]
-		public PrefixedTuple Append<R>(R value)
+		public PrefixedTuple Append<T>(T value)
 		{
-			return new PrefixedTuple(m_prefix, m_items.Append<R>(value));
+			return new PrefixedTuple(m_prefix, m_items.Append<T>(value));
 		}
 
-		[NotNull]
+		[Pure, NotNull]
 		public PrefixedTuple Concat([NotNull] ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			Contract.NotNull(tuple, nameof(tuple));
 			if (tuple.Count == 0) return this;
 
 			return new PrefixedTuple(m_prefix, m_items.Concat(tuple));
 		}
 
-		public void CopyTo([NotNull] object[] array, int offset)
+		public void CopyTo(object[] array, int offset)
 		{
 			m_items.CopyTo(array, offset);
 		}
@@ -143,7 +135,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			//TODO: should we add the prefix to the string representation ?
 			// => something like "<prefix>(123, 'abc', true)"
-			return STuple.ToString(this);
+			return STuple.Formatter.ToString(this);
 		}
 
 		public override bool Equals(object obj)
@@ -188,12 +180,12 @@ namespace FoundationDB.Layers.Tuples
 				return comparer.Equals(m_items, linked.m_items);
 			}
 
-			return STuple.Equals(this, other, comparer);
+			return TupleHelpers.Equals(this, other, comparer);
 		}
 
 		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return STuple.CombineHashCodes(
+			return HashCodes.Combine(
 				m_prefix.GetHashCode(),
 				comparer.GetHashCode(m_items)
 			);

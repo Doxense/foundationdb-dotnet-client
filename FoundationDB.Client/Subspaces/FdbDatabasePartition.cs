@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 		{
 			if (layer.IsPresent && layer != this.Layer)
 			{
-				throw new InvalidOperationException($"The directory {this.FullName} is a partition which is not compatible with layer {layer.ToAsciiOrHexaString()}.");
+				throw new InvalidOperationException($"The directory {this.FullName} is a partition which is not compatible with layer {layer:P}.");
 			}
 		}
 

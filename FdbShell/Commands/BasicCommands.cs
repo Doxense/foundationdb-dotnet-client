@@ -11,10 +11,10 @@ namespace FdbShell
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using FoundationDB;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
 
 	public static class BasicCommands
 	{
@@ -43,7 +43,7 @@ namespace FdbShell
 		{
 			if (log == null) log = Console.Out;
 
-			log.WriteLine("# Listing {0}:", String.Join("/", path));
+			log.WriteLine("# Listing {0}:", string.Join("/", path));
 
 			var parent = await TryOpenCurrentDirectoryAsync(path, db, ct);
 			if (parent == null)
@@ -54,7 +54,7 @@ namespace FdbShell
 
 			if (parent.Layer.IsPresent)
 			{
-				log.WriteLine("# Layer: {0}", parent.Layer.ToAsciiOrHexaString());
+				log.WriteLine("# Layer: {0:P}", parent.Layer);
 			}
 
 			var folders = await Fdb.Directory.BrowseAsync(db, parent, ct);
@@ -121,7 +121,7 @@ namespace FdbShell
 			if (stuff.Key.IsPresent)
 			{
 				log.WriteLine("CAUTION: There is already some data under {0} !");
-				log.WriteLine("  {0} = {1}", FdbKey.Dump(stuff.Key), stuff.Value.ToAsciiOrHexaString());
+				log.WriteLine("  {0} = {1:V}", FdbKey.Dump(stuff.Key), stuff.Value);
 			}
 		}
 
@@ -187,7 +187,7 @@ namespace FdbShell
 				if (dir.Layer == FdbDirectoryPartition.LayerId)
 					log.WriteLine("# Directory {0} is a partition", String.Join("/", path));
 				else if (dir.Layer.IsPresent)
-					log.WriteLine("# Directory {0} has layer {1}", String.Join("/", path), dir.Layer.ToAsciiOrHexaString());
+					log.WriteLine("# Directory {0} has layer {1:P}", String.Join("/", path), dir.Layer);
 				else
 					log.WriteLine("# Directory {0} does not have a layer defined", String.Join("/", path));
 			}
@@ -203,7 +203,7 @@ namespace FdbShell
 			else
 			{
 				dir = await db.ReadWriteAsync((tr) => dir.ChangeLayerAsync(tr, Slice.FromString(layer)), ct);
-				log.WriteLine("# Directory {0} layer changed to {1}", String.Join("/", path), dir.Layer.ToAsciiOrHexaString());
+				log.WriteLine("# Directory {0} layer changed to {1:P}", String.Join("/", path), dir.Layer);
 			}
 		}
 
@@ -257,7 +257,7 @@ namespace FdbShell
 					if (reverse) keys.Reverse();
 					foreach (var key in keys.Take(count))
 					{
-						log.WriteLine("...{0} = {1}", FdbKey.Dump(folder.ExtractKey(key.Key)), key.Value.ToAsciiOrHexaString());
+						log.WriteLine("...{0} = {1:V}", FdbKey.Dump(folder.ExtractKey(key.Key)), key.Value);
 					}
 					if (!reverse && keys.Count == count + 1)
 					{

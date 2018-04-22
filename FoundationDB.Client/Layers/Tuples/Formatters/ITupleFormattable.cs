@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
 
@@ -36,11 +36,14 @@ namespace FoundationDB.Layers.Tuples
 	public interface ITupleFormattable
 	{
 		/// <summary>Return the tuple representation of this instance</summary>
-		ITuple ToTuple();
+		ITuple ToTuple(); //REVIEW: [NotNull] ?
 
 		/// <summary>Load a tuple representation into a newly created instance</summary>
 		/// <param name="tuple"></param>
+		[Obsolete("Use an ITupleFormater<T> instead!")]
 		void FromTuple(ITuple tuple);
+		//REVIEW: REMOVE THIS! This does not work well with private ctors and readonly
+		// => use ITupleFormatter<T> to serialize/deseralize stuff
 	}
 
 }

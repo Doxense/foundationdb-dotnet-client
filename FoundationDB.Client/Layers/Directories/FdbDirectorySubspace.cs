@@ -32,9 +32,9 @@ namespace FoundationDB.Layers.Directories
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (layer.IsPresent && layer != this.Layer)
 			{
-				throw new InvalidOperationException(String.Format("The directory {0} was created with incompatible layer {1} instead of expected {2}.", this.FullName, this.Layer.ToAsciiOrHexaString(), layer.ToAsciiOrHexaString()));
+				throw new InvalidOperationException(String.Format("The directory {0} was created with incompatible layer {1} instead of expected {2}.", this.FullName, this.Layer.PrettyPrint(), layer.PrettyPrint()));
 			}
 		}
 
@@ -435,11 +435,11 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (this.Layer.IsNullOrEmpty)
 			{
-				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.FullName, this.InternalKey.ToAsciiOrHexaString());
+				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.FullName, this.InternalKey.PrettyPrint());
 			}
 			else
 			{
-				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.FullName, this.InternalKey.ToAsciiOrHexaString(), this.Layer.ToAsciiOrHexaString());
+				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.FullName, this.InternalKey.PrettyPrint(), this.Layer.PrettyPrint());
 			}
 		}
 

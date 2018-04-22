@@ -293,7 +293,7 @@ namespace FoundationDB.Filters.Logging
 					p++;
 				}
 
-				Array.Sort(prefixes, paths, SliceComparer.Default);
+				Array.Sort(prefixes, paths, Slice.Comparer.Default);
 				this.Prefixes = prefixes;
 				this.Paths = paths;
 			}
@@ -309,7 +309,7 @@ namespace FoundationDB.Filters.Logging
 				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix
 				var keys = await tr.GetRange(location.ToRange()).ToListAsync();
 
-				var map = new Dictionary<Slice, string>(SliceComparer.Default);
+				var map = new Dictionary<Slice, string>(Slice.Comparer.Default);
 
 				foreach (var entry in keys)
 				{
@@ -333,7 +333,7 @@ namespace FoundationDB.Filters.Logging
 
 				if (key.IsNullOrEmpty) return false;
 
-				int p = Array.BinarySearch(this.Prefixes, key, SliceComparer.Default);
+				int p = Array.BinarySearch(this.Prefixes, key, Slice.Comparer.Default);
 				if (p >= 0)
 				{ // direct match!
 					prefix = this.Prefixes[p];
@@ -465,7 +465,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToAsciiOrHexaString());
+				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.PrettyPrint());
 			}
 
 		}
@@ -547,7 +547,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToAsciiOrHexaString());
+				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.PrettyPrint());
 			}
 
 			public override string ToString(KeyResolver resolver)
@@ -630,7 +630,7 @@ namespace FoundationDB.Filters.Logging
 
 			protected override string Dump(Slice value)
 			{
-				return value.ToAsciiOrHexaString();
+				return value.PrettyPrint();
 			}
 
 		}
@@ -712,8 +712,8 @@ namespace FoundationDB.Filters.Logging
 				if (!this.Result.HasValue) return base.GetResult(resolver);
 				var res = this.Result.Value;
 				string s = String.Concat("[", res.Length.ToString(), "] {");
-				if (res.Length > 0) s += res[0].ToAsciiOrHexaString();
-				if (res.Length > 1) s += " ... " + res[res.Length - 1].ToAsciiOrHexaString();
+				if (res.Length > 0) s += res[0].PrettyPrint();
+				if (res.Length > 1) s += " ... " + res[res.Length - 1].PrettyPrint();
 				return s + " }";
 
 			}

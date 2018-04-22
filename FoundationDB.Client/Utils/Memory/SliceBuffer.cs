@@ -26,20 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB
+namespace Doxense.Memory
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
 	/// <remarks>
-	/// This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the referce to the buffer will automatically reclaim all the slices that were stored with it.
+	/// This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the reference to the buffer will automatically reclaim all the slices that were stored with it.
 	/// This class is not thread safe.
 	/// </remarks>
-	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Used={m_used+m_pos}, Allocated={m_allocated+m_pos+m_remaining}")]
+	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Size={Size}, Allocated={Allocated}")]
 	public sealed class SliceBuffer
 	{
 		private const int DefaultPageSize = 256;
@@ -69,27 +70,18 @@ namespace FoundationDB
 		/// <param name="pageSize">Initial page size</param>
 		public SliceBuffer(int pageSize)
 		{
-			if (pageSize < 0) throw new ArgumentOutOfRangeException("pageSize", "Page size cannt be less than zero");
-			m_pageSize = pageSize == 0 ? DefaultPageSize : SliceHelpers.Align(pageSize);
+			if (pageSize < 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size cannt be less than zero");
+			m_pageSize = pageSize == 0 ? DefaultPageSize : BitHelpers.AlignPowerOfTwo(pageSize, 16);
 		}
 
 		/// <summary>Gets the number of bytes used by all the slice allocated in this buffer</summary>
-		public int Size
-		{
-			get { return m_used + m_pos; }
-		}
+		public int Size => m_used + m_pos;
 
 		/// <summary>Gets the total memory size allocated to store all the slices in this buffer</summary>
-		public int Allocated
-		{
-			get { return m_allocated + m_pos + m_remaining; }
-		}
+		public int Allocated => m_allocated + m_pos + m_remaining;
 
 		/// <summary>Number of memory pages used by this buffer</summary>
-		public int PageCount
-		{
-			get { return m_chunks == null ? 1 : (m_chunks.Count + 1); }
-		}
+		public int PageCount => m_chunks?.Count + 1 ?? 1;
 
 		/// <summary>Return the list of all the pages used by this buffer</summary>
 		/// <returns>Array of pages used by the buffer</returns>
@@ -97,74 +89,9 @@ namespace FoundationDB
 		public Slice[] GetPages()
 		{
 			var pages = new Slice[this.PageCount];
-			if (m_chunks != null) m_chunks.CopyTo(pages);
+			m_chunks?.CopyTo(pages);
 			pages[pages.Length - 1] = new Slice(m_current, 0, m_pos);
 			return pages;
-		}
-
-		/// <summary>Copy a pair of keys into the buffer, and return a new identical pair</summary>
-		/// <param name="range">Key range</param>
-		/// <returns>Equivalent pair of keys, that are backed by the buffer.</returns>
-		public KeyRange InternRange(KeyRange range)
-		{
-			//TODO: if end is prefixed by begin, we could merge both keys (frequent when dealing with ranges on tuples that add \xFF
-			return new KeyRange(
-				Intern(range.Begin, aligned: true),
-				Intern(range.End, aligned: true)
-			);
-		}
-
-		/// <summary>Copy a pair of keys into the buffer, and return a new identical pair</summary>
-		/// <param name="begin">Begin key of the range</param>
-		/// <param name="end">End key of the range</param>
-		/// <returns>Equivalent pair of keys, that are backed by the buffer.</returns>
-		public KeyRange InternRange(Slice begin, Slice end)
-		{
-			//TODO: if end is prefixed by begin, we could merge both keys (frequent when dealing with ranges on tuples that add \xFF
-			return new KeyRange(
-				Intern(begin, aligned: true), 
-				Intern(end, aligned: true)
-			);
-		}
-
-		/// <summary>Copy a key into the buffer, and return a new range containing only that key</summary>
-		/// <param name="key">Key to copy to the buffer</param>
-		/// <returns>Range equivalent to [key, key + '\0') that is backed by the buffer.</returns>
-		public KeyRange InternRangeFromKey(Slice key)
-		{
-			// Since the end key only adds \0 to the begin key, we can reuse the same bytes by making both overlap
-			var tmp = Intern(key, Slice.FromByte(0), aligned: true);
-
-			return new KeyRange(
-				tmp.Substring(0, key.Count),
-				tmp
-			);
-		}
-
-		/// <summary>Copy a key selector into the buffer, and return a new identical selector</summary>
-		/// <param name="selector">Key selector to copy to the buffer</param>
-		/// <returns>Equivalent key selector that is backed by the buffer.</returns>
-		public KeySelector InternSelector(KeySelector selector)
-		{
-			return new KeySelector(
-				Intern(selector.Key, aligned: true),
-				selector.OrEqual,
-				selector.Offset
-			);
-		}
-
-		/// <summary>Copy a pair of key selectors into the buffer, and return a new identical pair</summary>
-		/// <param name="pair">Pair of key selectors to copy to the buffer</param>
-		/// <returns>Equivalent pair of key selectors that is backed by the buffer.</returns>
-		public KeySelectorPair InternSelectorPair(KeySelectorPair pair)
-		{
-			var begin = Intern(pair.Begin.Key, default(Slice), aligned: true);
-			var end = Intern(pair.End.Key, default(Slice), aligned: true);
-
-			return new KeySelectorPair(
-				new KeySelector(begin, pair.Begin.OrEqual, pair.Begin.Offset),
-				new KeySelector(end, pair.End.OrEqual, pair.End.Offset)
-			);
 		}
 
 		/// <summary>Allocate an empty space in the buffer</summary>
@@ -174,7 +101,7 @@ namespace FoundationDB
 		/// <remarks>There is NO garantees that the allocated slice will be pre-filled with zeroes.</remarks>
 		public Slice Allocate(int count, bool aligned = false)
 		{
-			if (count < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", "count");
+			if (count < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(count));
 
 			const int ALIGNMENT = 4;
 
@@ -183,19 +110,20 @@ namespace FoundationDB
 				return Slice.Empty;
 			}
 
-			int start = m_pos;
-			int extra = aligned ? (ALIGNMENT - (start & (ALIGNMENT - 1))) : 0;
-			if (count + extra > m_remaining)
+			int p = m_pos;
+			int r = m_remaining;
+			int extra = aligned ? (ALIGNMENT - (p & (ALIGNMENT - 1))) : 0;
+			if (count + extra > r)
 			{ // does not fit
 				return AllocateFallback(count);
 			}
 
 			Contract.Assert(m_current != null && m_pos >= 0);
-			m_pos += count + extra;
-			m_remaining -= count + extra;
+			m_pos = p + (count + extra);
+			m_remaining = r - (count + extra);
 			Contract.Ensures(m_remaining >= 0);
 			//note: we rely on the fact that the buffer was pre-filled with zeroes
-			return Slice.Create(m_current, start + extra, count);
+			return new Slice(m_current, p + extra, count);
 		}
 
 		private Slice AllocateFallback(int count)
@@ -224,7 +152,7 @@ namespace FoundationDB
 			m_pos = count;
 			m_remaining = pageSize - count;
 
-			return Slice.Create(buffer, 0, count);
+			return new Slice(buffer, 0, count);
 		}
 
 		/// <summary>Copy a slice into the buffer, with optional alignement, and return a new identical slice.</summary>
@@ -239,11 +167,11 @@ namespace FoundationDB
 				return data.Memoize();
 			}
 
-			SliceHelpers.EnsureSliceIsValid(ref data);
+			data.EnsureSliceIsValid();
 
 			// allocate the slice
 			var slice = Allocate(data.Count, aligned);
-			SliceHelpers.CopyBytesUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
+			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
 			return slice;
 		}
 
@@ -261,12 +189,12 @@ namespace FoundationDB
 				return suffix.Count > 0 ? suffix : data.Array == null ? Slice.Nil : Slice.Empty;
 			}
 
-			SliceHelpers.EnsureSliceIsValid(ref data);
-			SliceHelpers.EnsureSliceIsValid(ref suffix);
+			data.EnsureSliceIsValid();
+			suffix.EnsureSliceIsValid();
 
 			var slice = Allocate(data.Count + suffix.Count, aligned);
-			SliceHelpers.CopyBytesUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
-			SliceHelpers.CopyBytesUnsafe(slice.Array, slice.Offset + data.Count, suffix.Array, suffix.Offset, suffix.Count);
+			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
+			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset + data.Count, suffix.Array, suffix.Offset, suffix.Count);
 			return slice;
 		}
 
@@ -302,7 +230,15 @@ namespace FoundationDB
 			m_used = 0;
 			if (!keep) m_current = null;
 		}
-	}
 
+		/// <summary>Return a lock that will prevent the underlying byte arrays used by this buffer from moving around in memory during the next GC.</summary>
+		/// <returns>Lock instance that MUST be disposed to release the GC lock.</returns>
+		/// <remarks>Any data added to the buffer WHILE the buffer is pinned MAY NOT be pinned itself! For safety, caller should make sure to write everything to the buffer before pinning it</remarks>
+		public Slice.Pinned Pin()
+		{
+			return new Slice.Pinned(this, m_current, m_chunks);
+		}
+
+	}
 
 }

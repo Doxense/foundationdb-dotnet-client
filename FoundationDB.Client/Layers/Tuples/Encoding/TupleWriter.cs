@@ -26,15 +26,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples.Encoding
 {
-	using FoundationDB.Client;
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
+	using Doxense.Memory;
 
 	[DebuggerDisplay("{Output.Position}/{Output.Buffer.Length} @ {Depth}")]
 	public struct TupleWriter
 	{
+		//TODO: Could we use "ref SliceWriter" here with C# 7?
+
 		public SliceWriter Output;
 		public int Depth;
 
@@ -49,7 +52,13 @@ namespace FoundationDB.Layers.Tuples
 			this.Output = new SliceWriter(capacity);
 			this.Depth = 0;
 		}
-	
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice ToSlice()
+		{
+			return this.Output.ToSlice();
+		}
+
 	}
 
 }

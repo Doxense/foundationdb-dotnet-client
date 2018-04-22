@@ -76,9 +76,9 @@ namespace FoundationDB.Layers.Collections
 			this.Encoder = encoder;
 
 			//TODO: rewrite this, using FdbEncoderSubpsace<..> !
-			this.ConflictedPop = this.Subspace.Partition.ByKey(Slice.FromAscii("pop"));
-			this.ConflictedItem = this.Subspace.Partition.ByKey(Slice.FromAscii("conflict"));
-			this.QueueItem = this.Subspace.Partition.ByKey(Slice.FromAscii("item"));
+			this.ConflictedPop = this.Subspace.Partition.ByKey(Slice.FromStringAscii("pop"));
+			this.ConflictedItem = this.Subspace.Partition.ByKey(Slice.FromStringAscii("conflict"));
+			this.QueueItem = this.Subspace.Partition.ByKey(Slice.FromStringAscii("item"));
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>

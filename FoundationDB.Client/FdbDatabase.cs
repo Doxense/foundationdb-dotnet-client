@@ -37,6 +37,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Layers.Directories;

@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Filters
 {
 	using System;
@@ -35,6 +34,7 @@ namespace FoundationDB.Filters
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 

@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Documents.Tests
 {
+	using System;
+	using System.Threading.Tasks;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Types.Json;
 	using FoundationDB.Types.ProtocolBuffers;
 	using NUnit.Framework;
-	using System;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class DocumentCollectionFacts : FdbTest

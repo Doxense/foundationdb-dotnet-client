@@ -26,11 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Client //REVIEW: what namespace?
 {
 	using System;
 	using JetBrains.Annotations;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
 
 	public static class TypeSystem
 	{

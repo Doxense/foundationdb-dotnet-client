@@ -26,12 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using FoundationDB.Layers.Tuples;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using Doxense.Collections.Tuples;
+	using Doxense.Memory;
+	using JetBrains.Annotations;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
 	public interface IDynamicKeyEncoder

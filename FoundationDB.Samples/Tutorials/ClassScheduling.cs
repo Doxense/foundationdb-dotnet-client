@@ -8,9 +8,9 @@ namespace FoundationDB.Samples.Tutorials
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 
 	public class ClassScheduling : IAsyncTest
 	{
@@ -62,7 +62,7 @@ namespace FoundationDB.Samples.Tutorials
 			{
 				foreach (var c in this.ClassNames)
 				{
-					tr.Set(ClassKey(c), Slice.FromAscii("100"));
+					tr.Set(ClassKey(c), Slice.FromStringAscii("100"));
 				}
 			}, ct);
 
@@ -75,7 +75,7 @@ namespace FoundationDB.Samples.Tutorials
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
 			return tr.GetRange(this.Subspace.Keys.ToRange(STuple.Create("class")))
-				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToAscii(), out _); }) // (step 3)
+				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToStringAscii(), out _); }) // (step 3)
 				.Select(kvp => this.Subspace.Keys.Decode<string>(kvp.Key))
 				.ToListAsync();
 		}
@@ -91,7 +91,7 @@ namespace FoundationDB.Samples.Tutorials
 			{ // already signed up
 				return;
 			}
-			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToAscii());
+			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
 			if (seatsLeft <= 0)
 			{
 				throw new InvalidOperationException("No remaining seats");
@@ -100,7 +100,7 @@ namespace FoundationDB.Samples.Tutorials
 			var classes = await tr.GetRange(AttendsKeys(s)).ToListAsync();
 			if (classes.Count >= 5) throw new InvalidOperationException("Too many classes");
 
-			tr.Set(ClassKey(c), Slice.FromAscii((seatsLeft - 1).ToString()));
+			tr.Set(ClassKey(c), Slice.FromStringAscii((seatsLeft - 1).ToString()));
 			tr.Set(rec, Slice.Empty);
 		}
 
@@ -115,8 +115,8 @@ namespace FoundationDB.Samples.Tutorials
 				return;
 			}
 
-			var students = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToAscii());
-			tr.Set(ClassKey(c), Slice.FromAscii((students + 1).ToString()));
+			var students = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
+			tr.Set(ClassKey(c), Slice.FromStringAscii((students + 1).ToString()));
 			tr.Clear(rec);
 		}
 

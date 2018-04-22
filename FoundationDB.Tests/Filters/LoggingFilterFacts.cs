@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging.Tests
 {
+	using System;
+	using System.Linq;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
-	using System;
-	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class LoggingFilterFacts : FdbTest

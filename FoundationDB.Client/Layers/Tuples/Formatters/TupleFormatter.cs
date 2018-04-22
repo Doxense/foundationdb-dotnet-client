@@ -26,9 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
+	using JetBrains.Annotations;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Helper class to get or create tuple formatters</summary>
 	public static class TupleFormatter<T>
@@ -36,6 +38,7 @@ namespace FoundationDB.Layers.Tuples
 		private static ITupleFormatter<T> s_default;
 
 		/// <summary>Return the default tuple formatter for this type</summary>
+		[NotNull]
 		public static ITupleFormatter<T> Default
 		{
 			get
@@ -54,22 +57,24 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="from">Lambda that is called to convert a value into a tuple. It SHOULD NOT return null.</param>
 		/// <param name="to">Lambda that is called to convert a tuple back into a value. It CAN return null.</param>
 		/// <returns>Custom formatter</returns>
-		public static ITupleFormatter<T> Create(Func<T, ITuple> from, Func<ITuple, T> to)
+		[NotNull]
+		public static ITupleFormatter<T> Create([NotNull] Func<T, ITuple> from, [NotNull] Func<ITuple, T> to)
 		{
 			return new AnonymousTupleFormatter<T>(from, to);
 		}
 
 		/// <summary>Create a formatter that just add or remove a prefix to values</summary>
-		public static ITupleFormatter<T> CreateAppender(ITuple prefix)
+		[NotNull]
+		public static ITupleFormatter<T> CreateAppender([NotNull] ITuple prefix)
 		{
-			if (prefix == null) throw new ArgumentNullException(nameof(prefix));
+			Contract.NotNull(prefix, nameof(prefix));
 
 			return new AnonymousTupleFormatter<T>(
 				(value) => prefix.Append<T>(value),
 				(tuple) =>
 				{
-					if (tuple.Count != prefix.Count + 1) throw new ArgumentException("Tuple size is invalid", nameof(tuple));
-					if (!STuple.StartsWith(tuple, prefix)) throw new ArgumentException("Tuple does not start with the expected prefix", nameof(tuple));
+					if (tuple.Count != prefix.Count + 1) throw new ArgumentException("Tuple size is invalid", "tuple");
+					if (!TupleHelpers.StartsWith(tuple, prefix)) throw new ArgumentException("Tuple does not start with the expected prefix", "tuple");
 					return tuple.Last<T>();
 				}
 			);
@@ -77,6 +82,7 @@ namespace FoundationDB.Layers.Tuples
 
 
 		/// <summary>Creates and instance of a tuple formatter that is best suited for this type</summary>
+		[NotNull]
 		private static ITupleFormatter<T> CreateDefaultFormatter()
 		{
 			var type = typeof(T);

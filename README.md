@@ -109,14 +109,14 @@ using (var db = await Fdb.OpenAsync())
         // and 5 bytes). The values are raw slices, which means that your
         // application MUST KNOW that they are strings in order to decode
         // them. If you wan't any tool to be able to find out the type of
-        // your values, you can also use STuple.Pack("AAA") to create
+        // your values, you can also use TuPack.EncodeKey("AAA") to create
         // the values, at the cost of 2 extra bytes per entry.
         
         // This is always a good idea to maintain a counter of keys in our array.
         // The cheapest way to do that, is to reuse the subspace key itself, which
         // is 'in' the subspace, but not 'inside':
         trans.Set(list.Key, Slice.FromFixed32(3));
-        // We could use STuple.Pack<int>(3) here, but have a fixed size counter
+        // We could use TuPack.EncodeKey<int>(3) here, but have a fixed size counter
         // makes it easy to use AtomicAdd(...) to increment (or decrement) the value
         // when adding or removing entries in the array.
         

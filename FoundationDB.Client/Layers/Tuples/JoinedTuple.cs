@@ -26,19 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using Doxense.Collections.Tuples.Encoding;
+	using Doxense.Runtime.Converters;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
-	[DebuggerDisplay("{ToString()}")]
-	public sealed class JoinedTuple : ITuple
+	[DebuggerDisplay("{ToString(),nq}")]
+	public sealed class JoinedTuple : ITuple, ITupleSerializable
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
@@ -56,8 +57,8 @@ namespace FoundationDB.Layers.Tuples
 
 		public JoinedTuple(ITuple head, ITuple tail)
 		{
-			if (head == null) throw new ArgumentNullException("head");
-			if (tail == null) throw new ArgumentNullException("tail");
+			Contract.NotNull(head, nameof(head));
+			Contract.NotNull(tail, nameof(tail));
 
 			this.Head = head;
 			this.Tail = tail;
@@ -65,34 +66,30 @@ namespace FoundationDB.Layers.Tuples
 			m_count = m_split + tail.Count;
 		}
 
-		public void PackTo(ref TupleWriter writer)
+
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
-			this.Head.PackTo(ref writer);
-			this.Tail.PackTo(ref writer);
+			PackTo(ref writer);
 		}
 
-		public Slice ToSlice()
+		internal void PackTo(ref TupleWriter writer)
 		{
-			var writer = new TupleWriter();
-			PackTo(ref writer);
-			return writer.Output.ToSlice();
+			TupleEncoder.WriteTo(ref writer, this.Head);
+			TupleEncoder.WriteTo(ref writer, this.Tail);
 		}
 
 		public override string ToString()
 		{
-			return STuple.ToString(this);
+			return STuple.Formatter.ToString(this);
 		}
 
-		public int Count
-		{
-			get { return m_count; }
-		}
+		public int Count => m_count;
 
 		public object this[int index]
 		{
 			get
 			{
-				index = STuple.MapIndex(index, m_count);
+				index = TupleHelpers.MapIndex(index, m_count);
 				return index < m_split ? this.Head[index] : this.Tail[index - m_split];
 			}
 		}
@@ -101,8 +98,8 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				int begin = fromIncluded.HasValue ? STuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
-				int end = toExcluded.HasValue ? STuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
+				int begin = fromIncluded.HasValue ? TupleHelpers.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? TupleHelpers.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
 				if (end <= begin) return STuple.Empty;
 
@@ -111,29 +108,19 @@ namespace FoundationDB.Layers.Tuples
 				{ // all selected items are in the tail
 					return this.Tail[begin - p, end - p];
 				}
-				else if (end <= p)
+				if (end <= p)
 				{ // all selected items are in the head
 					return this.Head[begin, end];
 				}
-				else
-				{ // selected items are both in head and tail
-					return new JoinedTuple(this.Head[begin, null], this.Tail[null, end - p]);
-				}
+				// selected items are both in head and tail
+				return new JoinedTuple(this.Head[begin, null], this.Tail[null, end - p]);
 			}
 		}
 
 		public T Get<T>(int index)
 		{
-			index = STuple.MapIndex(index, m_count);
+			index = TupleHelpers.MapIndex(index, m_count);
 			return index < m_split ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - m_split);
-		}
-
-		public T Last<T>()
-		{
-			if (this.Tail.Count > 0)
-				return this.Tail.Last<T>();
-			else
-				return this.Head.Last<T>();
 		}
 
 		ITuple ITuple.Append<T>(T value)
@@ -147,10 +134,9 @@ namespace FoundationDB.Layers.Tuples
 			return new LinkedTuple<T>(this, value);
 		}
 
-		[NotNull]
-		public ITuple Concat([NotNull] ITuple tuple)
+		public ITuple Concat(ITuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			Contract.NotNull(tuple, nameof(tuple));
 
 			int n1 = tuple.Count;
 			if (n1 == 0) return this;
@@ -161,11 +147,8 @@ namespace FoundationDB.Layers.Tuples
 			{ // it's getting bug, merge to a new List tuple
 				return new ListTuple(this.Head, this.Tail, tuple);
 			}
-			else
-			{
-				// REVIEW: should we always concat with the tail?
-				return new JoinedTuple(this.Head, this.Tail.Concat(tuple));
-			}
+			// REVIEW: should we always concat with the tail?
+			return new JoinedTuple(this.Head, this.Tail.Concat(tuple));
 		}
 
 		public void CopyTo(object[] array, int offset)
@@ -235,9 +218,9 @@ namespace FoundationDB.Layers.Tuples
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return STuple.CombineHashCodes(
-				this.Head != null ? this.Head.GetHashCode(comparer) : 0,
-				this.Tail != null ? this.Tail.GetHashCode(comparer) : 0
+			return HashCodes.Combine(
+				HashCodes.Compute(this.Head, comparer),
+				HashCodes.Compute(this.Tail, comparer)
 			);
 		}
 	}

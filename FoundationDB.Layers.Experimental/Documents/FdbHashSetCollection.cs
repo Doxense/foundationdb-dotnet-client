@@ -31,9 +31,9 @@ namespace FoundationDB.Layers.Blobs
 	using System;
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
@@ -127,7 +127,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException(nameof(id));
 			if (fields == null) throw new ArgumentNullException(nameof(fields));
 
-			var keys = STuple.EncodePrefixedKeys(GetKey(id), fields);
+			var keys = TuPack.EncodePrefixedKeys(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
@@ -232,7 +232,7 @@ namespace FoundationDB.Layers.Blobs
 
 			return trans
 				.GetRange(KeyRange.StartsWith(prefix))
-				.Select((kvp) => ParseFieldKey(STuple.Unpack(kvp.Key)))
+				.Select((kvp) => ParseFieldKey(TuPack.Unpack(kvp.Key)))
 				.ToListAsync();
 		}
 

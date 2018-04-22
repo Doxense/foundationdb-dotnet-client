@@ -26,16 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
-namespace FoundationDB.Client.Tests
+namespace Doxense.Memory.Tests
 {
-	using FoundationDB.Client;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
 	using System.Text;
+	using Doxense.Memory;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class SliceStreamFacts : FdbTest
@@ -137,13 +137,12 @@ namespace FoundationDB.Client.Tests
 			}
 
 		}
-	
+
 		[Test]
 		public void Test_SliceListStream_Basics()
 		{
 			const int N = 65536;
 			var rnd = new Random();
-			Slice slice;
 
 			// create a random buffer
 			var bytes = new byte[N];
@@ -156,7 +155,7 @@ namespace FoundationDB.Client.Tests
 			while(r > 0)
 			{
 				int sz = Math.Min(1 + rnd.Next(1024), r);
-				slice = Slice.Create(bytes, p, sz);
+				Slice slice = bytes.AsSlice(p, sz);
 				if (rnd.Next(2) == 1) slice = slice.Memoize();
 				slices.Add(slice);
 

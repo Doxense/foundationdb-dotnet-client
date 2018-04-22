@@ -26,16 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB
+namespace System
 {
-	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
 	using System.ComponentModel;
+	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using JetBrains.Annotations;
 
-	/// <summary>RFC 4122 compliant 128-bit UUID</summary>
-	/// <remarks>You should use this type if you are primarily exchanged UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
-	[ImmutableObject(true), PublicAPI, StructLayout(LayoutKind.Explicit), Serializable]
+	/// <summary>Represents an RFC 4122 compliant 128-bit UUID</summary>
+	/// <remarks>You should use this type if you are primarily exchanging UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
+	[DebuggerDisplay("[{ToString(),nq}]")]
+	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), Serializable]
 	public struct Uuid128 : IFormattable, IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
@@ -93,6 +99,7 @@ namespace FoundationDB
 
 		#region Constructors...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Guid guid)
 			: this()
 		{
@@ -103,33 +110,56 @@ namespace FoundationDB
 			: this(new Guid(value))
 		{ }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(Slice slice)
 			: this()
 		{
 			m_packed = Convert(slice);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(byte[] bytes)
-			: this(Slice.Create(bytes))
-		{ }
+			: this()
+		{
+			m_packed = Convert(bytes.AsSlice());
+		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(int a, short b, short c, byte[] d)
 			: this(new Guid(a, b, c, d))
 		{ }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
 			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
 		{ }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
 			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
 		{ }
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128(Uuid64 a, Uuid64 b)
+			: this()
+		{
+			m_packed = Convert(a, b);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128(Uuid64 a, uint b, uint c)
+			: this()
+		{
+			m_packed = Convert(a, b, c);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Guid(Uuid128 uuid)
 		{
 			return uuid.m_packed;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator Uuid128(Guid guid)
 		{
 			return new Uuid128(guid);
@@ -137,30 +167,67 @@ namespace FoundationDB
 
 		public static readonly Uuid128 Empty = default(Uuid128);
 
-		public static readonly Uuid128 MaxValue = new Uuid128(uint.MaxValue, ushort.MaxValue, ushort.MaxValue, 255, 255, 255, 255, 255, 255, 255, 255);
+		/// <summary>Size is 16 bytes</summary>
+		public const int SizeOf = 16;
 
 		public static Uuid128 NewUuid()
 		{
 			return new Uuid128(Guid.NewGuid());
 		}
 
-		internal static Guid Convert(Slice input)
+		public static Guid Convert(Slice input)
 		{
-			if (input.Count <= 0) return default(Guid);
+			input.EnsureSliceIsValid();
+			if (input.Count == 0) return default(Guid);
+			if (input.Count != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
 
-			if (input.Array == null) throw new ArgumentNullException("input");
-			if (input.Count == 16)
+			unsafe
 			{
-				unsafe
+				fixed (byte* buf = &input.DangerousGetPinnableReference())
 				{
-					fixed (byte* buf = input.Array)
-					{
-						return Read(buf + input.Offset);
-					}
+					return ReadUnsafe(buf);
 				}
 			}
+		}
 
-			throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
+		public static unsafe Guid Convert(byte* buffer, int count)
+		{
+			if (count == 0) return default(Guid);
+			if (count != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
+
+			return ReadUnsafe(buffer);
+		}
+
+		public static Guid Convert(Uuid64 a, Uuid64 b)
+		{
+			unsafe
+			{
+				byte* buf = stackalloc byte[16];
+				a.WriteToUnsafe(buf);
+				b.WriteToUnsafe(buf + 8);
+				return ReadUnsafe(buf);
+			}
+		}
+
+		public static Guid Convert(Uuid64 a, uint b, uint c)
+		{
+			unsafe
+			{
+				byte* buf = stackalloc byte[16];
+				a.WriteToUnsafe(buf);
+
+				buf[8] = (byte) b;
+				buf[9] = (byte)(b >> 8);
+				buf[10] = (byte)(b >> 16);
+				buf[11] = (byte)(b >> 24);
+
+				buf[12] = (byte) c;
+				buf[13] = (byte)(c >> 8);
+				buf[14] = (byte)(c >> 16);
+				buf[15] = (byte)(c >> 24);
+
+				return ReadUnsafe(buf);
+			}
 		}
 
 		public static Uuid128 Parse([NotNull] string input)
@@ -175,8 +242,7 @@ namespace FoundationDB
 
 		public static bool TryParse(string input, out Uuid128 result)
 		{
-			Guid guid;
-			if (!Guid.TryParse(input, out guid))
+			if (!Guid.TryParse(input, out Guid guid))
 			{
 				result = default(Uuid128);
 				return false;
@@ -187,8 +253,7 @@ namespace FoundationDB
 
 		public static bool TryParseExact(string input, string format, out Uuid128 result)
 		{
-			Guid guid;
-			if (!Guid.TryParseExact(input, format, out guid))
+			if (!Guid.TryParseExact(input, format, out Guid guid))
 			{
 				result = default(Uuid128);
 				return false;
@@ -201,6 +266,7 @@ namespace FoundationDB
 
 		public long Timestamp
 		{
+			[Pure]
 			get
 			{
 				long ts = m_timeLow;
@@ -212,6 +278,7 @@ namespace FoundationDB
 
 		public int Version
 		{
+			[Pure]
 			get
 			{
 				return m_timeHiAndVersion >> 12;
@@ -220,6 +287,7 @@ namespace FoundationDB
 
 		public int ClockSequence
 		{
+			[Pure]
 			get
 			{
 				int clk = m_clkSeqLow;
@@ -230,6 +298,7 @@ namespace FoundationDB
 
 		public long Node
 		{
+			[Pure]
 			get
 			{
 				long node;
@@ -238,15 +307,17 @@ namespace FoundationDB
 				node |= ((long)m_node2) << 24;
 				node |= ((long)m_node3) << 16;
 				node |= ((long)m_node4) << 8;
-				node |= (long)m_node5;
+				node |= m_node5;
 				return node;
 			}
 		}
 
-		#region Conversion...
+		#region Unsafe I/O...
 
-		internal unsafe static Guid Read(byte* src)
+		[Pure]
+		public static unsafe Guid ReadUnsafe([NotNull] byte* src)
 		{
+			Contract.Requires(src != null);
 			Guid tmp;
 
 			if (BitConverter.IsLittleEndian)
@@ -277,11 +348,30 @@ namespace FoundationDB
 			return tmp;
 		}
 
-		internal unsafe static void Write(Guid value, byte* ptr)
+		public static Guid ReadUnsafe([NotNull] byte[] buffer, int offset)
 		{
+			Contract.Requires(buffer != null && offset >= 0 && offset + 15 < buffer.Length);
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[offset])
+				{
+					return ReadUnsafe(ptr);
+				}
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe void WriteUnsafe(Guid value, [NotNull] byte* ptr)
+		{
+			WriteUnsafe(&value, ptr);
+		}
+
+		internal static unsafe void WriteUnsafe([NotNull] Guid* value, [NotNull] byte* ptr)
+		{
+			Contract.Requires(value != null && ptr != null);
 			if (BitConverter.IsLittleEndian)
 			{
-				byte* src = (byte*)&value;
+				byte* src = (byte*) value;
 
 				// Data1: 32 bits, must swap
 				ptr[0] = src[3];
@@ -299,19 +389,91 @@ namespace FoundationDB
 			}
 			else
 			{
-				long* src = (long*)&value;
+				long* src = (long*) value;
 				*(long*)(ptr) = src[0];
 				*(long*)(ptr + 8) = src[1];
 			}
 
 		}
 
-		internal unsafe void WriteTo(byte* ptr)
+		public static void WriteUnsafe(Guid value, [NotNull] byte[] buffer, int offset)
 		{
-			Write(m_packed, ptr);
+			Contract.Requires(buffer != null && offset >= 0 && offset + 15 < buffer.Length);
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[offset])
+				{
+					WriteUnsafe(value, ptr);
+				}
+			}
 		}
 
-		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public unsafe void WriteToUnsafe([NotNull] byte* ptr)
+		{
+			WriteUnsafe(m_packed, ptr);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteToUnsafe([NotNull] byte[] buffer, int offset)
+		{
+			WriteUnsafe(m_packed, buffer, offset);
+		}
+
+		#endregion
+
+		#region Decomposition...
+
+		/// <summary>Split this 128-bit UUID into two 64-bit UUIDs</summary>
+		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
+		/// <param name="low">Receives the last 8 bytes (in network order) of this UUID</param>
+		public void Split(out Uuid64 high, out Uuid64 low)
+		{
+			unsafe
+			{
+				byte* buffer = stackalloc byte[16];
+				WriteUnsafe(m_packed, buffer);
+				high = new Uuid64(Uuid64.ReadUnsafe(buffer));
+				low = new Uuid64(Uuid64.ReadUnsafe(buffer + 8));
+			}
+		}
+
+		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
+		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
+		/// <param name="low">Receives the last 8 bytes (in network order) of this UUID</param>
+		public void Split(out ulong high, out ulong low)
+		{
+			unsafe
+			{
+				byte* buffer = stackalloc byte[16];
+				WriteUnsafe(m_packed, buffer);
+				high = Uuid64.ReadUnsafe(buffer);
+				low = Uuid64.ReadUnsafe(buffer + 8);
+			}
+		}
+
+		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
+		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
+		/// <param name="mid">Receives the middle 4 bytes (in network order) of this UUID</param>
+		/// <param name="low">Receives the last 4 bytes (in network order) of this UUID</param>
+		public void Split(out ulong high, out uint mid, out uint low)
+		{
+			unsafe
+			{
+				byte* buffer = stackalloc byte[16];
+				WriteUnsafe(m_packed, buffer);
+				high = Uuid64.ReadUnsafe(buffer);
+				var id = Uuid64.ReadUnsafe(buffer + 8);
+				mid = (uint) (id >> 32);
+				low = (uint) id;
+			}
+		}
+
+		#endregion
+
+		#region Conversion...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Guid ToGuid()
 		{
 			return m_packed;
@@ -326,14 +488,15 @@ namespace FoundationDB
 			unsafe
 			{
 				fixed (byte* ptr = res)
+				fixed (Uuid128* self = &this)
 				{
-					Write(m_packed, ptr);
+					WriteUnsafe((Guid*) self, ptr);
 				}
 			}
 			return res;
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice ToSlice()
 		{
 			//TODO: optimize this ?
@@ -355,6 +518,57 @@ namespace FoundationDB
 			return m_packed.ToString(format, provider);
 		}
 
+		/// <summary>Increment the value of this UUID</summary>
+		/// <param name="value">Positive value</param>
+		/// <returns>Incremented UUID</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128 Increment([Positive] int value)
+		{
+			Contract.Requires(value >= 0);
+			return Increment(checked((ulong)value));
+		}
+
+		/// <summary>Increment the value of this UUID</summary>
+		/// <param name="value">Positive value</param>
+		/// <returns>Incremented UUID</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Uuid128 Increment([Positive] long value)
+		{
+			Contract.Requires(value >= 0);
+			return Increment(checked((ulong)value));
+		}
+
+		/// <summary>Increment the value of this UUID</summary>
+		/// <param name="value">Value to add to this UUID</param>
+		/// <returns>Incremented UUID</returns>
+		[Pure]
+		public Uuid128 Increment(ulong value)
+		{
+			unsafe
+			{
+				fixed (Uuid128* self = &this)
+				{
+					// serialize GUID into High Endian format
+					byte* buf = stackalloc byte[16];
+					WriteUnsafe((Guid*)self, buf);
+
+					// Add the low 64 bits (in HE)
+					ulong lo = UnsafeHelpers.LoadUInt64BE(buf + 8);
+					ulong sum = lo + value;
+					if (sum < value)
+					{ // overflow occured, we must carry to the high 64 bits (in HE)
+						ulong hi = UnsafeHelpers.LoadUInt64BE(buf);
+						UnsafeHelpers.StoreUInt64BE(buf, unchecked(hi + 1));
+					}
+					UnsafeHelpers.StoreUInt64BE(buf + 8, sum);
+					// deserialize back to GUID
+					return new Uuid128(ReadUnsafe(buf));
+				}
+			}
+		}
+
+		//TODO: Decrement
+
 		#endregion
 
 		#region Equality / Comparison ...
@@ -362,46 +576,55 @@ namespace FoundationDB
 		public override bool Equals(object obj)
 		{
 			if (obj == null) return false;
-			if (obj is Uuid128) return m_packed == ((Uuid128)obj);
-			if (obj is Guid) return m_packed == ((Guid)obj);
+			if (obj is Uuid128 u128) return m_packed == u128.m_packed;
+			if (obj is Guid g) return m_packed == g;
+			//TODO: Slice? string?
 			return false;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Uuid128 other)
 		{
 			return m_packed == other.m_packed;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Guid other)
 		{
 			return m_packed == other;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(Uuid128 a, Uuid128 b)
 		{
 			return a.m_packed == b.m_packed;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(Uuid128 a, Uuid128 b)
 		{
 			return a.m_packed != b.m_packed;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(Uuid128 a, Guid b)
 		{
 			return a.m_packed == b;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(Uuid128 a, Guid b)
 		{
 			return a.m_packed != b;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(Guid a, Uuid128 b)
 		{
 			return a == b.m_packed;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(Guid a, Uuid128 b)
 		{
 			return a != b.m_packed;
@@ -412,6 +635,7 @@ namespace FoundationDB
 			return m_packed.GetHashCode();
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Uuid128 other)
 		{
 			return m_packed.CompareTo(other.m_packed);
@@ -419,15 +643,41 @@ namespace FoundationDB
 
 		public int CompareTo(object obj)
 		{
-			if (obj == null) return 1;
-
-			if (obj is Uuid128)
-				return m_packed.CompareTo(((Uuid128)obj).m_packed);
-			else
-				return m_packed.CompareTo(obj);
+			switch (obj)
+			{
+				case null: return 1;
+				case Uuid128 u128: return m_packed.CompareTo(u128.m_packed);
+				case Guid g: return m_packed.CompareTo(g);
+			}
+			return m_packed.CompareTo(obj);
 		}
 
 		#endregion
+
+		/// <summary>Instance of this times can be used to test Uuid128 for equality and ordering</summary>
+		public sealed class Comparer : IEqualityComparer<Uuid128>, IComparer<Uuid128>
+		{
+
+			public static readonly Comparer Default = new Comparer();
+
+			private Comparer()
+			{ }
+
+			public bool Equals(Uuid128 x, Uuid128 y)
+			{
+				return x.m_packed.Equals(y.m_packed);
+			}
+
+			public int GetHashCode(Uuid128 obj)
+			{
+				return obj.m_packed.GetHashCode();
+			}
+
+			public int Compare(Uuid128 x, Uuid128 y)
+			{
+				return x.m_packed.CompareTo(y.m_packed);
+			}
+		}
 
 	}
 

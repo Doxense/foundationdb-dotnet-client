@@ -25,7 +25,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
-
+ 
 namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -33,10 +33,10 @@ namespace FoundationDB.Client.Tests
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -501,7 +501,7 @@ namespace FoundationDB.Client.Tests
 					{
 						for (int i = 0; i < N; i++)
 						{
-							tr.Set(lists[k].Keys.Encode((i * K) + k), STuple.EncodeKey(k, i));
+							tr.Set(lists[k].Keys.Encode((i * K) + k), TuPack.EncodeKey(k, i));
 						}
 						await tr.CommitAsync();
 					}
@@ -526,8 +526,8 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < K * N; i++)
 					{
-						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(STuple.EncodeKey(i % K, i)));
-						Assert.That(results[i].Value, Is.EqualTo(STuple.EncodeKey(i % K, i / K)));
+						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(TuPack.EncodeKey(i % K, i)));
+						Assert.That(results[i].Value, Is.EqualTo(TuPack.EncodeKey(i % K, i / K)));
 					}
 				}
 			}
@@ -566,7 +566,7 @@ namespace FoundationDB.Client.Tests
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
-							var value = STuple.EncodeKey(k, i);
+							var value = TuPack.EncodeKey(k, i);
 							//Console.WriteLine("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
@@ -638,7 +638,7 @@ namespace FoundationDB.Client.Tests
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
-							var value = STuple.EncodeKey(k, i);
+							var value = TuPack.EncodeKey(k, i);
 							//Console.WriteLine("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
@@ -711,7 +711,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var query = tr.Except(
 						new[] { locItems.Keys.ToRange(), locProcessed.Keys.ToRange() },
-						(kv) => STuple.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
+						(kv) => TuPack.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
 						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
 

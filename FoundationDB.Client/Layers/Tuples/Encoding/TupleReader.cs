@@ -26,11 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+ namespace Doxense.Collections.Tuples.Encoding
 {
-	using FoundationDB.Client;
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using JetBrains.Annotations;
 
 	[DebuggerDisplay("{Input.Position}/{Input.Buffer.Count} @ {Depth}")]
 	public struct TupleReader
@@ -38,16 +41,31 @@ namespace FoundationDB.Layers.Tuples
 		public SliceReader Input;
 		public int Depth;
 
+		[ MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TupleReader(Slice buffer)
 		{
 			this.Input = new SliceReader(buffer);
 			this.Depth = 0;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TupleReader(Slice buffer, int depth)
+		{
+			this.Input = new SliceReader(buffer);
+			this.Depth = depth;
+		}
+
 		public TupleReader(SliceReader input)
 		{
 			this.Input = input;
 			this.Depth = 0;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static TupleReader Embedded(Slice packed)
+		{
+			Contract.Requires(packed.Count >= 2 && packed[0] == TupleTypes.TupleStart && packed[-1] == 0);
+			return new TupleReader(packed.Substring(1, packed.Count - 2), 1);
 		}
 	}
 

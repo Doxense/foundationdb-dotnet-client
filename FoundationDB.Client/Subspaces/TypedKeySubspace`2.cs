@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client.Utils;
-
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Collections.Tuples;
+	using Doxense.Memory;
 
 	/// <summary>Subspace that knows how to encode and decode its key</summary>
 	/// <typeparam name="T1">Type of the first item of the keys handled by this subspace</typeparam>
@@ -108,7 +107,7 @@ namespace FoundationDB.Client
 		public KeyRange ToRange(T1 value1, T2 value2)
 		{
 			//REVIEW: which semantic for ToRange() should we use?
-			return STuple.ToRange(Encode(value1, value2));
+			return TuPack.ToRange(Encode(value1, value2));
 		}
 
 	}

@@ -26,24 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
-namespace FoundationDB.Linq.Expressions.Tests
+ namespace FoundationDB.Linq.Expressions.Tests
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
+	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts
 	{
 
-		private FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.Create(STuple.EncodeKey("Foos", 1)));
-		private FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.Create(STuple.EncodeKey("Foos", 2)));
+		private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.Create(TuPack.EncodeKey("Foos", 1)));
+		private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.Create(TuPack.EncodeKey("Foos", 2)));
 
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression()
@@ -94,7 +93,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 		public void Test_FdbQueryRangeExpression()
 		{
 			var expr = FdbQueryExpressions.Range(
-				STuple.Create("Foo").ToSelectorPair()
+				KeySelectorPair.Create(TuPack.ToRange(STuple.Create("Foo")))
 			);
 			Console.WriteLine(expr);
 

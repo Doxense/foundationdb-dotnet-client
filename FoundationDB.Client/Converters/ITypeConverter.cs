@@ -26,27 +26,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Converters
+namespace Doxense.Runtime.Converters
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Base class of all value converters</summary>
-	public interface IFdbConverter
+	public interface ITypeConverter
 	{
+		/// <summary>Type of the instance to be converted</summary>
+		[NotNull]
 		Type Source { get; }
+
+		/// <summary>Type of the result of the conversion</summary>
+		[NotNull]
 		Type Destination { get; }
 
+		[Pure]
 		object ConvertBoxed(object value);
 	}
 
 	/// <summary>Class that can convert values of type <typeparamref name="TSource"/> into values of type <typeparamref name="TDestination"/></summary>
 	/// <typeparam name="TSource">Source type</typeparam>
 	/// <typeparam name="TDestination">Destination type</typeparam>
-	public interface IFdbConverter<in TSource, out TDestination> : IFdbConverter
+	public interface ITypeConverter<in TSource, out TDestination> : ITypeConverter
 	{
 		/// <summary>Converts a <typeparamref name="TSource"/> into a <typeparamref name="TDestination"/></summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Converted value</returns>
+		[Pure]
 		TDestination Convert(TSource value);
 	}
 

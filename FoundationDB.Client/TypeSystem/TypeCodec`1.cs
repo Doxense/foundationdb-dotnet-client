@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using Doxense.Memory;
 
 	public abstract class TypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>
 	{
@@ -39,7 +40,7 @@ namespace FoundationDB.Client
 
 		public virtual Slice EncodeOrdered(T value)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = default(SliceWriter);
 			EncodeOrderedSelfTerm(ref writer, value);
 			return writer.ToSlice();
 		}
@@ -62,7 +63,7 @@ namespace FoundationDB.Client
 
 		public virtual Slice EncodeUnordered(T value)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = default(SliceWriter);
 			EncodeUnorderedSelfTerm(ref writer, value);
 			return writer.ToSlice();
 		}

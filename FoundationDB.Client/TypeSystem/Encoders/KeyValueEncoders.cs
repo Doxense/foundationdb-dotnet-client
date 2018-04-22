@@ -26,13 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class for all key/value encoders</summary>
@@ -444,7 +446,7 @@ namespace FoundationDB.Client
 				{
 					Contract.Requires(count > 0);
 
-					var writer = SliceWriter.Empty;
+					var writer = default(SliceWriter);
 					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
 					if (count >= 2) m_codec2.EncodeOrderedSelfTerm(ref writer, items.Item2);
 					return writer.ToSlice();
@@ -482,7 +484,7 @@ namespace FoundationDB.Client
 				{
 					Contract.Requires(count > 0 && count <= 3);
 
-					var writer = SliceWriter.Empty;
+					var writer = default(SliceWriter);
 					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
 					if (count >= 2) m_codec2.EncodeOrderedSelfTerm(ref writer, items.Item2);
 					if (count >= 3) m_codec3.EncodeOrderedSelfTerm(ref writer, items.Item3);
@@ -500,7 +502,7 @@ namespace FoundationDB.Client
 					if (count >= 1) key1 = m_codec1.DecodeOrderedSelfTerm(ref reader);
 					if (count >= 2) key2 = m_codec2.DecodeOrderedSelfTerm(ref reader);
 					if (count >= 3) key3 = m_codec3.DecodeOrderedSelfTerm(ref reader);
-					if (reader.HasMore) throw new InvalidOperationException(String.Format("Unexpected data at the end of composite key after {0} items", count));
+					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
 					return STuple.Create<T1, T2, T3>(key1, key2, key3);
 				}
 
@@ -510,7 +512,7 @@ namespace FoundationDB.Client
 			[NotNull]
 			public static IKeyEncoder<T> Bind<T>([NotNull] IOrderedTypeCodec<T> codec)
 			{
-				if (codec == null) throw new ArgumentNullException("codec");
+				if (codec == null) throw new ArgumentNullException(nameof(codec));
 
 				return new OrderedKeyEncoder<T>(codec);
 			}
@@ -519,8 +521,8 @@ namespace FoundationDB.Client
 			[NotNull]
 			public static ICompositeKeyEncoder<T1, T2> Bind<T1, T2>([NotNull] IOrderedTypeCodec<T1> codec1, [NotNull] IOrderedTypeCodec<T2> codec2)
 			{
-				if (codec1 == null) throw new ArgumentNullException("codec1");
-				if (codec2 == null) throw new ArgumentNullException("codec2");
+				if (codec1 == null) throw new ArgumentNullException(nameof(codec1));
+				if (codec2 == null) throw new ArgumentNullException(nameof(codec2));
 
 				return new CodecCompositeKeyEncoder<T1, T2>(codec1, codec2);
 			}
@@ -529,9 +531,9 @@ namespace FoundationDB.Client
 			[NotNull]
 			public static ICompositeKeyEncoder<T1, T2, T3> Bind<T1, T2, T3>([NotNull] IOrderedTypeCodec<T1> codec1, [NotNull] IOrderedTypeCodec<T2> codec2, [NotNull] IOrderedTypeCodec<T3> codec3)
 			{
-				if (codec1 == null) throw new ArgumentNullException("codec1");
-				if (codec2 == null) throw new ArgumentNullException("codec2");
-				if (codec3 == null) throw new ArgumentNullException("codec2");
+				if (codec1 == null) throw new ArgumentNullException(nameof(codec1));
+				if (codec2 == null) throw new ArgumentNullException(nameof(codec2));
+				if (codec3 == null) throw new ArgumentNullException(nameof(codec2));
 
 				return new CodecCompositeKeyEncoder<T1, T2, T3>(codec1, codec2, codec3);
 			}
@@ -567,7 +569,7 @@ namespace FoundationDB.Client
 			[NotNull]
 			public static IKeyEncoder<T> Bind<T>([NotNull] IUnorderedTypeCodec<T> codec)
 			{
-				if (codec == null) throw new ArgumentNullException("codec");
+				if (codec == null) throw new ArgumentNullException(nameof(codec));
 
 				var encoder = codec as IKeyEncoder<T>;
 				if (encoder != null) return encoder;
@@ -619,7 +621,7 @@ namespace FoundationDB.Client
 			[NotNull]
 			public static IValueEncoder<T> Bind<T>([NotNull] IUnorderedTypeCodec<T> codec)
 			{
-				if (codec == null) throw new ArgumentNullException("codec");
+				if (codec == null) throw new ArgumentNullException(nameof(codec));
 
 				var encoder = codec as IValueEncoder<T>;
 				if (encoder != null) return encoder;
@@ -700,24 +702,24 @@ namespace FoundationDB.Client
 
 				public Slice EncodeKey(T key)
 				{
-					return STuple.EncodeKey(key);
+					return TuPack.EncodeKey(key);
 				}
 
 				public T DecodeKey(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return STuple.DecodeKey<T>(encoded);
+					return TuPack.DecodeKey<T>(encoded);
 				}
 
 				public Slice EncodeValue(T key)
 				{
-					return STuple.EncodeKey(key);
+					return TuPack.EncodeKey(key);
 				}
 
 				public T DecodeValue(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return STuple.DecodeKey<T>(encoded);
+					return TuPack.DecodeKey<T>(encoded);
 				}
 
 			}
@@ -733,17 +735,17 @@ namespace FoundationDB.Client
 				{
 					switch (items)
 					{
-						case 2: return key.ToSlice();
-						case 1: return STuple.EncodeKey<T1>(key.Item1);
-						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
+						case 2: return TuPack.EncodeKey(key.Item1, key.Item2);
+						case 1: return TuPack.EncodeKey(key.Item1);
+						default: throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be either 1 or 2");
 					}
 				}
 
 				public override STuple<T1, T2> DecodeComposite(Slice encoded, int items)
 				{
-					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
+					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be either 1 or 2");
 
-					var t = STuple.Unpack(encoded).OfSize(items);
+					var t = TuPack.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
 
 					return STuple.Create<T1, T2>(
@@ -764,18 +766,18 @@ namespace FoundationDB.Client
 				{
 					switch (items)
 					{
-						case 3: return key.ToSlice();
-						case 2: return STuple.EncodeKey<T1, T2>(key.Item1, key.Item2);
-						case 1: return STuple.EncodeKey<T1>(key.Item1);
-						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
+						case 3: return TuPack.EncodeKey(key.Item1, key.Item2, key.Item3);
+						case 2: return TuPack.EncodeKey(key.Item1, key.Item2);
+						case 1: return TuPack.EncodeKey(key.Item1);
+						default: throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 3");
 					}
 				}
 
 				public override STuple<T1, T2, T3> DecodeComposite(Slice encoded, int items)
 				{
-					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
+					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 3");
 
-					var t = STuple.Unpack(encoded).OfSize(items);
+					var t = TuPack.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
 
 					return STuple.Create<T1, T2, T3>(
@@ -797,19 +799,19 @@ namespace FoundationDB.Client
 				{
 					switch (items)
 					{
-						case 4: return key.ToSlice();
-						case 3: return STuple.EncodeKey(key.Item1, key.Item2, key.Item3);
-						case 2: return STuple.EncodeKey(key.Item1, key.Item2);
-						case 1: return STuple.EncodeKey(key.Item1);
-						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
+						case 4: return TuPack.EncodeKey(key.Item1, key.Item2, key.Item3, key.Item4);
+						case 3: return TuPack.EncodeKey(key.Item1, key.Item2, key.Item3);
+						case 2: return TuPack.EncodeKey(key.Item1, key.Item2);
+						case 1: return TuPack.EncodeKey(key.Item1);
+						default: throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 4");
 					}
 				}
 
 				public override STuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int items)
 				{
-					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
+					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 4");
 
-					var t = STuple.Unpack(encoded).OfSize(items);
+					var t = TuPack.Unpack(encoded).OfSize(items);
 
 					return STuple.Create<T1, T2, T3, T4>(
 						t.Get<T1>(0),
@@ -870,8 +872,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IKeyEncoder<T> Bind<T>([NotNull] Func<T, Slice> encoder, [NotNull] Func<Slice, T> decoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (decoder == null) throw new ArgumentNullException("decoder");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (decoder == null) throw new ArgumentNullException(nameof(decoder));
 			return new Singleton<T>(encoder, decoder);
 		}
 
@@ -879,8 +881,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params T[] values)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (values == null) throw new ArgumentNullException("values");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (values == null) throw new ArgumentNullException(nameof(values));
 
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
@@ -894,9 +896,9 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] IEnumerable<TElement> elements, Func<TElement, TKey> selector)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (elements == null) throw new ArgumentNullException("elements");
-			if (selector == null) throw new ArgumentNullException("selector");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (elements == null) throw new ArgumentNullException(nameof(elements));
+			if (selector == null) throw new ArgumentNullException(nameof(selector));
 
 			TElement[] arr;
 			ICollection<TElement> coll;
@@ -928,9 +930,9 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (elements == null) throw new ArgumentNullException("elements");
-			if (selector == null) throw new ArgumentNullException("selector");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (elements == null) throw new ArgumentNullException(nameof(elements));
+			if (selector == null) throw new ArgumentNullException(nameof(selector));
 
 			var slices = new Slice[elements.Length];
 			for (int i = 0; i < elements.Length; i++)
@@ -944,8 +946,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (values == null) throw new ArgumentNullException("values");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (values == null) throw new ArgumentNullException(nameof(values));
 
 			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
 
@@ -974,8 +976,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 
 			var values = new T[slices.Length];
 			for (int i = 0; i < slices.Length; i++)
@@ -989,8 +991,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (items == null) throw new ArgumentNullException("items");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			var values = new T[items.Length];
 			for (int i = 0; i < items.Length; i++)
@@ -1004,8 +1006,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<T> DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 
 			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
 
@@ -1015,14 +1017,14 @@ namespace FoundationDB.Client
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
 		public static HeadEncoder<T1, T2> Head<T1, T2>([NotNull] this ICompositeKeyEncoder<T1, T2> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 			return new HeadEncoder<T1, T2>(encoder);
 		}
 
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
 		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			return new HeadEncoder<T1, T2, T3>(encoder);
 		}
@@ -1030,7 +1032,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
 		public static HeadEncoder<T1, T2, T3, T4> Head<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			return new HeadEncoder<T1, T2, T3, T4>(encoder);
 		}
@@ -1038,7 +1040,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
 		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			return new PairEncoder<T1, T2, T3>(encoder);
 		}
@@ -1046,7 +1048,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
 		public static PairEncoder<T1, T2, T3, T4> Pair<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			return new PairEncoder<T1, T2, T3, T4>(encoder);
 		}
@@ -1059,8 +1061,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params T[] values)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (values == null) throw new ArgumentNullException("values");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (values == null) throw new ArgumentNullException(nameof(values));
 
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
@@ -1075,8 +1077,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<Slice> EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (values == null) throw new ArgumentNullException("values");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (values == null) throw new ArgumentNullException(nameof(values));
 
 			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
 
@@ -1104,8 +1106,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 
 			var values = new T[slices.Length];
 			for (int i = 0; i < slices.Length; i++)
@@ -1120,8 +1122,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (items == null) throw new ArgumentNullException("items");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			var values = new T[items.Length];
 			for (int i = 0; i < items.Length; i++)
@@ -1136,8 +1138,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<T> DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
+			if (slices == null) throw new ArgumentNullException(nameof(slices));
 
 			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
 

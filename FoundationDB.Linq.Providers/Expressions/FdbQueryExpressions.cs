@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense.Linq;
-
 namespace FoundationDB.Linq.Expressions
 {
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Linq;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
@@ -89,7 +88,7 @@ namespace FoundationDB.Linq.Expressions
 		[NotNull]
 		public static FdbQueryRangeExpression RangeStartsWith(ITuple tuple, FdbRangeOptions options = null)
 		{
-			return Range(tuple.ToSelectorPair(), options);
+			return RangeStartsWith(TuPack.Pack(tuple), options);
 		}
 
 		/// <summary>Return the intersection between one of more sequences of results</summary>

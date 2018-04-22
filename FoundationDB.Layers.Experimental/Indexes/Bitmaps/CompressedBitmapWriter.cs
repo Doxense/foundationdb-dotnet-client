@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using System;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -64,7 +65,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Create a new compressed bitmap writer</summary>
 		public CompressedBitmapWriter()
-			: this(SliceWriter.Empty, true)
+			: this(default(SliceWriter), true)
 		{ }
 
 		/// <summary>Create a new compressed bitmap writer, with a hint for the initial capacity</summary>

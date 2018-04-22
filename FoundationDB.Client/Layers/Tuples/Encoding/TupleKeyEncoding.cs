@@ -27,11 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using FoundationDB.Client;
 
+	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>
 	public sealed class TupleKeyEncoding : IKeyEncoding
 	{
 		public IDynamicKeyEncoder GetDynamicEncoder()

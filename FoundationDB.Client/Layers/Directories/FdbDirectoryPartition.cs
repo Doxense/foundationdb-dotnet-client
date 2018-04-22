@@ -28,9 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Directories
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using Doxense.Collections.Tuples;
+	using FoundationDB.Client;
+
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
@@ -76,7 +77,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.FullName, this.InternalKey.ToAsciiOrHexaString());
+			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.FullName, this.InternalKey.PrettyPrint());
 		}
 
 	}

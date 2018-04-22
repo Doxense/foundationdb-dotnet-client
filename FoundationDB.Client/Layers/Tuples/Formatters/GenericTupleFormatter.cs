@@ -26,12 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
 
 	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
-	internal sealed class GenericTupleFormatter<T> : ITupleFormatter<T>
+	public sealed class GenericTupleFormatter<T> : ITupleFormatter<T>
 	{
 
 		public ITuple ToTuple(T key)

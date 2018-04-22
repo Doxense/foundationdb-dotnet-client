@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 
 	internal static class TestHelpers
 	{
@@ -43,7 +44,7 @@ namespace FoundationDB.Client.Tests
 
 		public static readonly string TestClusterFile = null;
 		public static readonly string TestDbName = "DB";
-		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
+		public static readonly Slice TestGlobalPrefix = Slice.FromStringAscii("T");
 		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
 		public static readonly int DefaultTimeout = 15 * 1000;
 
@@ -112,7 +113,7 @@ namespace FoundationDB.Client.Tests
 					try
 					{
 						// attemps decoding it as a tuple
-						keyDump = key.ToTuple().ToString();
+						keyDump = TuPack.Unpack(key).ToString();
 					}
 					catch (Exception)
 					{

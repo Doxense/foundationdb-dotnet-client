@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing.Tests
 {
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Text;
+	using NUnit.Framework;
 
 	/// <summary>Super Naive and Slow reference implementation of a 'Compressed' Bitmap</summary>
 	/// <remarks>This is basically a bool[] that is used to verify other implementations</remarks>

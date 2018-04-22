@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 

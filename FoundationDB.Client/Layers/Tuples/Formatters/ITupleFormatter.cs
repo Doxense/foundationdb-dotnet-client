@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace Doxense.Collections.Tuples
 {
 	using System;
 
@@ -39,12 +39,12 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Convert a key into a tuple sequence</summary>
 		/// <param name="key">Key to convert to a tuple</param>
 		/// <returns>Tuple that represent the key (can contain a single item for primitive keys, or several items for composite keys)</returns>
-		ITuple ToTuple(TKey key);
+		ITuple ToTuple(TKey key); //REVIEW: [NotNull] result?
 
 		/// <summary>Convert a tuple sequence into a key</summary>
 		/// <param name="tuple">Tuple to convert back into a key</param>
 		/// <returns>Key that corresponds to the tuple</returns>
-		TKey FromTuple(ITuple tuple);
+		TKey FromTuple(ITuple tuple); //REVIEW: [NotNull] tuple?
 	}
 
 }

@@ -26,12 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB
+namespace Doxense.Memory
 {
 	using System;
 	using System.IO;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB;
+	using JetBrains.Annotations;
 
 	/// <summary>Stream that wraps a Slice for reading</summary>
 	/// <remarks>This stream is optimized for blocking and async reads</remarks>
@@ -50,29 +52,17 @@ namespace FoundationDB
 		#region Seeking...
 
 		/// <summary>Returns true if the underlying slice is not null</summary>
-		public override bool CanSeek
-		{
-			get { return m_slice.HasValue; }
-		}
+		public override bool CanSeek => m_slice.HasValue;
 
 		/// <summary>Gets or sets the current position in the underlying slice</summary>
 		public override long Position
 		{
-			get
-			{
-				return m_position;
-			}
-			set
-			{
-				Seek(value, SeekOrigin.Begin);
-			}
+			get => m_position;
+			set => Seek(value, SeekOrigin.Begin);
 		}
 
 		/// <summary>Getes the length of the underlying slice</summary>
-		public override long Length
-		{
-			get { return m_slice.Count; }
-		}
+		public override long Length => m_slice.Count;
 
 		/// <summary>Seeks to a specific location in the underlying slice</summary>
 		public override long Seek(long offset, SeekOrigin origin)
@@ -126,10 +116,7 @@ namespace FoundationDB
 		#region Reading...
 
 		/// <summary>Returns true unless the current position is after the end of the underlying slice</summary>
-		public override bool CanRead
-		{
-			get { return m_position < m_slice.Count; }
-		}
+		public override bool CanRead => m_position < m_slice.Count;
 
 		/// <summary>Reads from byte from the underyling slice and advances the position within the slice by one byte, or returns -1 if the end of the slice has been reached.</summary>
 		public override int ReadByte()
@@ -176,8 +163,6 @@ namespace FoundationDB
 			return remaining;
 		}
 
-#if !NET_4_0
-
 		/// <summary>Asynchronously reads a sequence of bytes from the underlying slice and advances the position within the slice by the number of bytes read.</summary>
 		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
@@ -207,7 +192,7 @@ namespace FoundationDB
 		{
 			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 
-			if (destination == null) throw new ArgumentNullException(nameof(destination));
+			Contract.NotNull(destination, nameof(destination));
 			if (!destination.CanWrite) throw new ArgumentException("The destination stream cannot be written to", nameof(destination));
 
 			int remaining = m_slice.Count - m_position;
@@ -220,16 +205,16 @@ namespace FoundationDB
 			return destination.WriteAsync(m_slice.Array, m_slice.Offset, remaining, ct);
 		}
 
-#endif
-
 		#endregion
 
 		#region Writing...
 
 		/// <summary>Always return false</summary>
-		public override bool CanWrite
+		public override bool CanWrite => false;
+
+		public override void WriteByte(byte value)
 		{
-			get { return false; }
+			throw new NotSupportedException();
 		}
 
 		/// <summary>This methods is not supported</summary>
@@ -238,15 +223,11 @@ namespace FoundationDB
 			throw new NotSupportedException();
 		}
 
-#if !NET_4_0
-
 		/// <summary>This methods is not supported</summary>
 		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken ct)
 		{
 			return Task.FromException<object>(new NotSupportedException());
 		}
-
-#endif
 
 		/// <summary>This methods does nothing.</summary>
 		public override void Flush()
@@ -265,15 +246,15 @@ namespace FoundationDB
 
 		private static void ValidateBuffer(byte[] buffer, int offset, int count)
 		{
-			if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
-			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
-			if (offset > buffer.Length - count) throw new ArgumentException("Offset and count must fit inside the buffer");
+			Contract.NotNull(buffer, nameof(buffer));
+			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero.");
+			if ((uint) offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Buffer is too small.");
 		}
 
+		[ContractAnnotation("=> halt")]
 		private static void StreamIsClosed()
 		{
-			throw new ObjectDisposedException(null, "The stream was already closed");
+			throw ThrowHelper.ObjectDisposedException("The stream was already closed");
 		}
 
 		/// <summary>Closes the stream</summary>

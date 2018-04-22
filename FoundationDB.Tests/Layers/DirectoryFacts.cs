@@ -30,15 +30,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Directories
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Filters.Logging;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using FoundationDB.Filters.Logging;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class DirectoryFacts : FdbTest
@@ -567,12 +567,12 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.Create(location);
 				Console.WriteLine(directory);
 
-				var partition = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"), this.Cancellation);
+				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
 				var partitionKey = KeySubspace.Copy(partition).GetPrefix();
 				Console.WriteLine(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
-				Assert.That(partition.Layer, Is.EqualTo(Slice.FromAscii("partition")));
+				Assert.That(partition.Layer, Is.EqualTo(Slice.FromStringAscii("partition")));
 				Assert.That(partition.FullName, Is.EqualTo("Foo"));
 				Assert.That(partition.Path, Is.EqualTo(new[] { "Foo" }), "Partition's path should be absolute");
 				Assert.That(partition.DirectoryLayer, Is.Not.SameAs(directory), "Partitions should have their own DL");
@@ -617,7 +617,7 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.Create(location);
 				Console.WriteLine(directory);
 
-				var foo = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"), this.Cancellation);
+				var foo = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				Console.WriteLine(foo);
 
 				// create a 'Bar' under the 'Foo' partition
@@ -646,7 +646,7 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.Create(location);
 				Console.WriteLine(directory);
 
-				var outer = await directory.CreateAsync(db, "Outer", Slice.FromAscii("partition"), this.Cancellation);
+				var outer = await directory.CreateAsync(db, "Outer", Slice.FromStringAscii("partition"), this.Cancellation);
 				Console.WriteLine(outer);
 
 				// create a 'Inner' subpartition under the 'Outer' partition
@@ -846,7 +846,7 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.Create(location);
 				Console.WriteLine(directory);
 
-				var partition = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"), this.Cancellation);
+				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
 				var subdir = await partition.CreateOrOpenAsync(db, "Bar", this.Cancellation);
 				var barKey = subdir.GetPrefix();
@@ -899,7 +899,7 @@ namespace FoundationDB.Layers.Directories
 
 				shouldFail(() => partition.ToRange());
 				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.ToRange(STuple.EncodeKey("hello")));
+				shouldFail(() => partition.ToRange(TuPack.EncodeKey("hello")));
 
  				// Tuples
 
@@ -915,13 +915,13 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
 				shouldFail(() => partition.Keys.Unpack(barKey));
-				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + STuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + TuPack.EncodeKey(123) }));
 				shouldFail(() => partition.Keys.Decode<int>(barKey));
 				shouldFail(() => partition.Keys.DecodeMany<int>(new[] { barKey, barKey }));
 				shouldFail(() => partition.Keys.DecodeLast<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + STuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + TuPack.EncodeKey(123) }));
 				shouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + STuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + TuPack.EncodeKey(123) }));
 
 				//FIXME: need to re-enable this code!
 #if REFACTORING_IN_PROGRESS

@@ -28,14 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
+	using System;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Net;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class MultiMapFacts : FdbTest

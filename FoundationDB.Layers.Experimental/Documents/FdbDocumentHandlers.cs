@@ -31,8 +31,7 @@ namespace FoundationDB.Layers.Documents
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
+	using Doxense.Collections.Tuples;
 
 	/// <summary>Interface that defines a class that knows of to chop instances of <typeparamref name="TDocument"/> into slices</summary>
 	/// <typeparam name="TDocument">Type of documents</typeparam>
@@ -103,7 +102,7 @@ namespace FoundationDB.Layers.Documents
 					// convert into tuples
 					.Select(kvp => new KeyValuePair<ITuple, Slice>(
 						STuple.Create(kvp.Key),
-						STuple.Create(kvp.Value).ToSlice()
+						TuPack.Pack(kvp.Value)
 					))
 					.ToArray();
 			}
@@ -117,7 +116,7 @@ namespace FoundationDB.Layers.Documents
 				{
 					list.Add(new KeyValuePair<string, ITuple>(
 						part.Key.Last<string>(),
-						STuple.Unpack(part.Value)
+						TuPack.Unpack(part.Value)
 					));
 				}
 				return list;

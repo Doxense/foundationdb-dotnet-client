@@ -28,13 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
+	using Doxense.Collections.Tuples;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class SubspaceFacts
+	public class SubspaceFacts : FdbTest
 	{
 
 		[Test]
@@ -54,7 +55,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Binary_Prefix()
 		{
-			var subspace = KeySubspace.CreateDynamic(Slice.Create(new byte[] { 42, 255, 0, 127 }));
+			var subspace = KeySubspace.CreateDynamic(new byte[] { 42, 255, 0, 127 }.AsSlice());
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("*<FF><00><7F>"));
 			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
@@ -62,12 +63,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// concat(Slice) should append the slice to the binary prefix directly
 			Assert.That(subspace.ConcatKey(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
-			Assert.That(subspace.ConcatKey(Slice.FromAscii("hello")).ToString(), Is.EqualTo("*<FF><00><7F>hello"));
+			Assert.That(subspace.ConcatKey(Slice.FromStringAscii("hello")).ToString(), Is.EqualTo("*<FF><00><7F>hello"));
 
 			// pack(...) should use tuple serialization
 			Assert.That(subspace.Keys.Encode(123).ToString(), Is.EqualTo("*<FF><00><7F><15>{"));
 			Assert.That(subspace.Keys.Encode("hello").ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
-			Assert.That(subspace.Keys.Encode(Slice.FromAscii("world")).ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
+			Assert.That(subspace.Keys.Encode(Slice.FromStringAscii("world")).ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
 			Assert.That(subspace.Keys.Pack(STuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 
 			// if we derive a tuple from this subspace, it should keep the binary prefix when converted to a key
@@ -77,7 +78,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t.Get<string>(0), Is.EqualTo("world"));
 			Assert.That(t.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t.Get<bool>(2), Is.False);
-			var k = t.ToSlice();
+			var k = TuPack.Pack(t);
 			Assert.That(k.ToString(), Is.EqualTo("*<FF><00><7F><02>world<00><15>{<14>"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
@@ -126,7 +127,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// concat(Slice) should append the slice to the tuple prefix directly
 			Assert.That(subspace.ConcatKey(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("<02>hello<00><04><03><02><01>"));
-			Assert.That(subspace.ConcatKey(Slice.FromAscii("world")).ToString(), Is.EqualTo("<02>hello<00>world"));
+			Assert.That(subspace.ConcatKey(Slice.FromStringAscii("world")).ToString(), Is.EqualTo("<02>hello<00>world"));
 
 			// pack(...) should use tuple serialization
 			Assert.That(subspace.Keys.Encode(123).ToString(), Is.EqualTo("<02>hello<00><15>{"));
@@ -140,7 +141,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t.Get<bool>(2), Is.False);
 			// but ToSlice() should include the prefix
-			var k = t.ToSlice();
+			var k = TuPack.Pack(t);
 			Assert.That(k.ToString(), Is.EqualTo("<02>hello<00><02>world<00><15>{<14>"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
@@ -170,7 +171,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(key.ToString(), Is.EqualTo("<FE><04><03><02><01>"));
 
 			// create another child
-			var grandChild = child.Partition[Slice.FromAscii("hello")];
+			var grandChild = child.Partition[Slice.FromStringAscii("hello")];
 			Assert.That(grandChild, Is.Not.Null);
 			Assert.That(grandChild.GetPrefix().ToString(), Is.EqualTo("<FE>hello"));
 
@@ -197,15 +198,15 @@ namespace FoundationDB.Layers.Tuples.Tests
 			// create a tuple from this child subspace
 			var tuple = child.Keys.Append(123);
 			Assert.That(tuple, Is.Not.Null);
-			Assert.That(tuple.ToSlice().ToString(), Is.EqualTo("<FE><02>hca<00><15>{"));
+			Assert.That(TuPack.Pack(tuple).ToString(), Is.EqualTo("<FE><02>hca<00><15>{"));
 
 			// derive another tuple from this one
 			var t1 = tuple.Append(false);
-			Assert.That(t1.ToSlice().ToString(), Is.EqualTo("<FE><02>hca<00><15>{<14>"));
+			Assert.That(TuPack.Pack(t1).ToString(), Is.EqualTo("<FE><02>hca<00><15>{<14>"));
 
 			// check that we could also create the same tuple starting from the parent subspace
 			var t2 = parent.Keys.Append("hca", 123, false);
-			Assert.That(t2.ToSlice(), Is.EqualTo(t1.ToSlice()));
+			Assert.That(TuPack.Pack(t2), Is.EqualTo(TuPack.Pack(t1)));
 
 			// cornercase
 			Assert.That(child.Partition[STuple.Empty].GetPrefix(), Is.EqualTo(child.GetPrefix()));

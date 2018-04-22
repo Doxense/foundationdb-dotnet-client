@@ -9,9 +9,9 @@ namespace FoundationDB.Samples.Benchmarks
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Mathematics.Statistics;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 
 	public class BenchRunner : IAsyncTest
 	{
@@ -111,7 +111,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									var foos = STuple.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
+									var foos = TuPack.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
 									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
 								}
 								break;

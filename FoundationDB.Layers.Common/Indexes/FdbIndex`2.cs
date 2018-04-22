@@ -28,14 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Indexing
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Globalization;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>

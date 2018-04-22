@@ -26,25 +26,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+//#define ENABLE_VALUETUPLES
+
+namespace Doxense.Collections.Tuples
 {
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
+	using System.Runtime.CompilerServices;
+	using Doxense.Collections.Tuples.Encoding;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple that holds a pair of items</summary>
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public struct STuple<T1, T2> : ITuple
+	public struct STuple<T1, T2> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2>>
+#if ENABLE_VALUETUPLES
+		, IEquatable<ValueTuple<T1, T2>>
+#endif
 	{
 		// This is mostly used by code that create a lot of temporary pair, to reduce the pressure on the Garbage Collector by allocating them on the stack.
-		// Please note that if you return an STuple<T1, T2> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
+		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the pair</summary>
 		public readonly T1 Item1;
@@ -58,7 +65,7 @@ namespace FoundationDB.Layers.Tuples
 			this.Item2 = item2;
 		}
 
-		public int Count { get { return 2; } }
+		public int Count => 2;
 
 		public object this[int index]
 		{
@@ -68,46 +75,56 @@ namespace FoundationDB.Layers.Tuples
 				{
 					case 0: case -2: return this.Item1;
 					case 1: case -1: return this.Item2;
-					default: STuple.FailIndexOutOfRange(index, 2); return null;
+					default: return TupleHelpers.FailIndexOutOfRange<object>(index, 2);
 				}
 			}
 		}
 
 		public ITuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return STuple.Splice(this, fromIncluded, toExcluded); }
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
 		}
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
-		/// <typeparam name="R">Expected type of the item</typeparam>
+		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
-		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="R"/>.</returns>
-		public R Get<R>(int index)
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
+		public TItem Get<TItem>(int index)
 		{
 			switch(index)
 			{
-				case 0: case -2: return FdbConverters.Convert<T1, R>(this.Item1);
-				case 1: case -1: return FdbConverters.Convert<T2, R>(this.Item2);
-				default: STuple.FailIndexOutOfRange(index, 2); return default(R);
+				case 0: case -2: return TypeConverters.Convert<T1, TItem>(this.Item1);
+				case 1: case -1: return TypeConverters.Convert<T2, TItem>(this.Item2);
+				default: return TupleHelpers.FailIndexOutOfRange<TItem>(index, 2);
 			}
 		}
 
 		/// <summary>Return the value of the last item in the tuple</summary>
 		public T2 Last
 		{
+			[Pure]
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return this.Item2; }
 		}
 
-		/// <summary>Return the typed value of the last item in the tuple</summary>
-		R ITuple.Last<R>()
+		/// <summary>Return a tuple without the first item</summary>
+		public STuple<T2> Tail
 		{
-			return FdbConverters.Convert<T2, R>(this.Item2);
+			[Pure]
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get { return new STuple<T2>(this.Item2); }
 		}
 
-		public void PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
 		{
-			TuplePacker<T1>.Encoder(ref writer, this.Item1);
-			TuplePacker<T2>.Encoder(ref writer, this.Item2);
+			PackTo(ref writer);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal void PackTo(ref TupleWriter writer)
+		{
+			TupleSerializer<T1, T2>.Default.PackTo(ref writer, ref this);
 		}
 
 		ITuple ITuple.Append<T3>(T3 value)
@@ -119,10 +136,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value">Value that will be added as an embedded item</param>
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public STuple<T1, T2, T3> Append<T3>(T3 value)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, this.Item2, value);
-			// Note: By create a STuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types). 
+			// Note: By create a STuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types).
 			// ex: if we have N possible types, then there could be N^3 possible variants of STuple<T1, T2, T3> that the JIT has to deal with.
 			// => if this starts becoming a problem, then we should return a list tuple !
 		}
@@ -130,7 +148,8 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
-		public ITuple Concat([NotNull] ITuple tuple)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ITuple Concat(ITuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
@@ -142,8 +161,17 @@ namespace FoundationDB.Layers.Tuples
 			array[offset + 1] = this.Item2;
 		}
 
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Deconstruct(out T1 item1, out T2 item2)
+		{
+			item1 = this.Item1;
+			item2 = this.Item2;
+		}
+
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void With([NotNull] Action<T1, T2> lambda)
 		{
 			lambda(this.Item1, this.Item2);
@@ -152,7 +180,8 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public R With<R>([NotNull] Func<T1, T2, R> lambda)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem With<TItem>([NotNull] Func<T1, T2, TItem> lambda)
 		{
 			return lambda(this.Item1, this.Item2);
 		}
@@ -168,14 +197,14 @@ namespace FoundationDB.Layers.Tuples
 			return this.GetEnumerator();
 		}
 
-		public Slice ToSlice()
-		{
-			return STuple.EncodeKey(this.Item1, this.Item2);
-		}
-
 		public override string ToString()
 		{
-			return "(" + STuple.Stringify(this.Item1) + ", " + STuple.Stringify(this.Item2) + ")";
+			return string.Concat(
+				"(",
+				STuple.Formatter.Stringify(this.Item1), ", ",
+				STuple.Formatter.Stringify(this.Item2),
+				")"
+			);
 		}
 
 		public override bool Equals(object obj)
@@ -186,6 +215,13 @@ namespace FoundationDB.Layers.Tuples
 		public bool Equals(ITuple other)
 		{
 			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2> other)
+		{
+			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1)
+			    && SimilarValueComparer.Default.Equals(this.Item2, other.Item2);
 		}
 
 		public override int GetHashCode()
@@ -205,35 +241,180 @@ namespace FoundationDB.Layers.Tuples
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
 		{
 			if (other == null) return false;
-			if (other is STuple<T1, T2>)
+			if (other is STuple<T1, T2> stuple)
 			{
-				var tuple = (STuple<T1, T2>)other;
-				return comparer.Equals(this.Item1, tuple.Item1)
-					&& comparer.Equals(this.Item2, tuple.Item2);
+				return comparer.Equals(this.Item1, stuple.Item1)
+					&& comparer.Equals(this.Item2, stuple.Item2);
 			}
-			return STuple.Equals(this, other, comparer);
+#if ENABLE_VALUETUPLES
+			if (other is ValueTuple<T1, T2> vtuple)
+			{
+				return comparer.Equals(this.Item1, vtuple.Item1)
+					&& comparer.Equals(this.Item2, vtuple.Item2);
+			}
+#endif
+			return TupleHelpers.Equals(this, other, comparer);
 		}
 
-		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
-			return STuple.CombineHashCodes(
+			return HashCodes.Combine(
 				comparer.GetHashCode(this.Item1),
 				comparer.GetHashCode(this.Item2)
 			);
 		}
 
-		public static implicit operator STuple<T1, T2>(Tuple<T1, T2> t)
+		[Pure]
+		public static implicit operator STuple<T1, T2>([NotNull] Tuple<T1, T2> t)
 		{
-			if (t == null) throw new ArgumentNullException("t");
+			Contract.NotNull(t, nameof(t));
 			return new STuple<T1, T2>(t.Item1, t.Item2);
 		}
 
+		[Pure, NotNull]
 		public static explicit operator Tuple<T1, T2>(STuple<T1, T2> t)
 		{
 			return new Tuple<T1, T2>(t.Item1, t.Item2);
+		}
+
+#if ENABLE_VALUETUPLES
+
+		// interop with System.ValueTuple<T1, T2>
+
+		public void Fill(ref ValueTuple<T1, T2> t)
+		{
+			t.Item1 = this.Item1;
+			t.Item2 = this.Item2;
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3> Concat<T3>(ValueTuple<T3> tuple)
+		{
+			return new STuple<T1, T2, T3>(this.Item1, this.Item2, tuple.Item1);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4> Concat<T3, T4>(ValueTuple<T3, T4> tuple)
+		{
+			return new STuple<T1, T2, T3, T4>(this.Item1, this.Item2, tuple.Item1, tuple.Item2);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5> Concat<T3, T4, T5>(ValueTuple<T3, T4, T5> tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ValueTuple<T1, T2> ToValueTuple()
+		{
+			return ValueTuple.Create(this.Item1, this.Item2);
+		}
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator STuple<T1, T2>(ValueTuple<T1, T2> t)
+		{
+			return new STuple<T1, T2>(t.Item1, t.Item2);
+		}
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator ValueTuple<T1, T2>(STuple<T1, T2> t)
+		{
+			return ValueTuple.Create(t.Item1, t.Item2);
+		}
+
+		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool IEquatable<ValueTuple<T1, T2>>.Equals(ValueTuple<T1, T2> other)
+		{
+			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1)
+				&& SimilarValueComparer.Default.Equals(this.Item2, other.Item2);
+		}
+
+		public static bool operator ==(STuple<T1, T2> left, ValueTuple<T1, T2> right)
+		{
+			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
+		public static bool operator ==(ValueTuple<T1, T2> left, STuple<T1, T2> right)
+		{
+			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
+		public static bool operator !=(STuple<T1, T2> left, ValueTuple<T1, T2> right)
+		{
+			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
+		public static bool operator !=(ValueTuple<T1, T2> left, STuple<T1, T2> right)
+		{
+			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
+#endif
+
+		public sealed class Comparer : IComparer<STuple<T1, T2>>
+		{
+
+			public static Comparer Default { [NotNull] get; } = new Comparer();
+
+			private static readonly Comparer<T1> Comparer1 = Comparer<T1>.Default;
+			private static readonly Comparer<T2> Comparer2 = Comparer<T2>.Default;
+
+			private Comparer() { }
+
+			public int Compare(STuple<T1, T2> x, STuple<T1, T2> y)
+			{
+				int cmp = Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
+			}
+
+		}
+
+		public sealed class EqualityComparer : IEqualityComparer<STuple<T1, T2>>
+		{
+
+			public static EqualityComparer Default { [NotNull] get; } = new EqualityComparer();
+
+			private static readonly EqualityComparer<T1> Comparer1 = EqualityComparer<T1>.Default;
+			private static readonly EqualityComparer<T2> Comparer2 = EqualityComparer<T2>.Default;
+
+			private EqualityComparer() { }
+
+			public bool Equals(STuple<T1, T2> x, STuple<T1, T2> y)
+			{
+				return Comparer1.Equals(x.Item1, y.Item1)
+				    && Comparer2.Equals(x.Item2, y.Item2);
+			}
+
+			public int GetHashCode(STuple<T1, T2> obj)
+			{
+				return HashCodes.Combine(
+					Comparer1.GetHashCode(obj.Item1),
+					Comparer2.GetHashCode(obj.Item2)
+				);
+			}
+
 		}
 
 	}

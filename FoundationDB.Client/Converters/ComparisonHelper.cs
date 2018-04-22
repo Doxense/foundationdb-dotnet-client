@@ -26,13 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Converters
+
+namespace Doxense.Runtime.Converters
 {
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper classe used to compare object of "compatible" types</summary>
@@ -103,18 +105,15 @@ namespace FoundationDB.Client.Converters
 		{
 			if (value == null) return null;
 
-			var s = value as string;
-			if (s != null) return s;
+			if (value is string s) return s;
 
-			if (value is char) return new string((char)value, 1);
+			if (value is char c) return new string(c, 1);
 
-			if (value is Slice) return ((Slice) value).ToAscii(); //REVIEW: or ToUnicode() ?
+			if (value is Slice slice) return slice.ToStringAscii(); //REVIEW: or ToUnicode() ?
 
-			var bstr = value as byte[];
-			if (bstr != null) return Slice.Create(bstr).ToAscii(); //REVIEW: or ToUnicode() ?
+			if (value is byte[] bstr) return bstr.AsSlice().ToStringAscii(); //REVIEW: or ToUnicode() ?
 
-			var fmt = value as IFormattable;
-			if (fmt != null) return fmt.ToString(null, CultureInfo.InvariantCulture);
+			if (value is IFormattable fmt) return fmt.ToString(null, CultureInfo.InvariantCulture);
 
 			return null;
 		}
