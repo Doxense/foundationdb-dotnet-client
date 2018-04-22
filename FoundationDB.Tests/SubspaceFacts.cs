@@ -45,8 +45,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace, Is.Not.Null, "FdbSubspace.Empty should not return null");
 			Assert.That(KeySubspace.Empty, Is.SameAs(subspace), "FdbSubspace.Empty is a singleton");
 
-			Assert.That(subspace.GetPrefix().Count, Is.EqualTo(0), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
-			Assert.That(subspace.GetPrefix().HasValue, Is.True, "FdbSubspace.Empty.Key should be equal to Slice.Empty");
+			Assert.That(subspace.GetPrefix(), Is.EqualTo(Slice.Empty), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
 
 			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
 		}

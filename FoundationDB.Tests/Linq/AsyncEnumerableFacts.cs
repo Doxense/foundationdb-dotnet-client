@@ -146,7 +146,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(none, Is.True);
 
 			int count = await empty.CountAsync();
-			Assert.That(count, Is.EqualTo(0));
+			Assert.That(count, Is.Zero);
 		}
 
 		[Test]

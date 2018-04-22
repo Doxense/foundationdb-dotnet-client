@@ -111,10 +111,10 @@ namespace FoundationDB.Layers.Tables.Tests
 					Assert.That(greens, Is.EqualTo(new int[] { 2, 4 }));
 
 					var blues = await index.LookupAsync(tr, "blue");
-					Assert.That(blues.Count, Is.EqualTo(0));
+					Assert.That(blues.Count, Is.Zero);
 
 					var yellows = await index.LookupAsync(tr, "yellow");
-					Assert.That(yellows.Count, Is.EqualTo(0));
+					Assert.That(yellows.Count, Is.Zero);
 
 					var indigos = await index.LookupAsync(tr, "indigo");
 					Assert.That(indigos, Is.EqualTo(new int[] { 3 }));

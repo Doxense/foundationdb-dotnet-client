@@ -122,7 +122,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Uuid64.Parse("{00000000-deadbeef}").ToUInt64(), Is.EqualTo(0xDEADBEEFUL));
 
 			// errors
-			Assert.That(() => Uuid64.Parse(default(string)), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Uuid64.Parse(default(string)), Throws.ArgumentNullException);
 			Assert.That(() => Uuid64.Parse("hello"), Throws.InstanceOf<FormatException>());
 			Assert.That(() => Uuid64.Parse("12345678-9ABCDEFG"), Throws.InstanceOf<FormatException>(), "Invalid hexa character 'G'");
 			Assert.That(() => Uuid64.Parse("00000000-0000000 "), Throws.InstanceOf<FormatException>(), "Two short + extra space");
@@ -302,7 +302,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(() => Uuid64.FromBase62("LygHa16AHYG"), Throws.InstanceOf<OverflowException>(), "ulong.MaxValue + 1 => OVERFLOW");
 
 			// invalid length
-			Assert.That(() => Uuid64.FromBase62(default(string)), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Uuid64.FromBase62(default(string)), Throws.ArgumentNullException);
 			Assert.That(() => Uuid64.FromBase62("100000000000"), Throws.InstanceOf<FormatException>(), "62^11 => TOO BIG");
 
 		}
@@ -639,12 +639,12 @@ namespace FoundationDB.Client.Tests
 
 			// errors
 
-			Assert.That(() => original.WriteTo(Slice.Empty), Throws.InstanceOf<ArgumentException>()); //, "Target buffer is empty");
-			Assert.That(() => original.WriteTo(null, 8), Throws.InstanceOf<ArgumentException>()); //, "Target buffer is null");
-			Assert.That(() => original.WriteTo(null, 0), Throws.InstanceOf<ArgumentException>()); //, "Target buffer is null");
+			Assert.That(() => original.WriteTo(Slice.Empty), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");
+			Assert.That(() => original.WriteTo(null, 8), Throws.InstanceOf<ArgumentException>(), "Target buffer is null");
+			Assert.That(() => original.WriteTo(null, 0), Throws.InstanceOf<ArgumentException>(), "Target buffer is null");
 
 			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(() => original.WriteTo(scratch.Substring(0, 7)), Throws.InstanceOf<ArgumentException>()); //, "Target buffer is too small");
+			Assert.That(() => original.WriteTo(scratch.Substring(0, 7)), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
 
 		}

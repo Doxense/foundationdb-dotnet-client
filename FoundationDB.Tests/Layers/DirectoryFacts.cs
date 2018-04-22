@@ -332,7 +332,7 @@ namespace FoundationDB.Layers.Directories
 
 				subdirs = await directory.ListAsync(logged, new[] { "Foo", "Bar", "Baz" }, this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
-				Assert.That(subdirs.Count, Is.EqualTo(0));
+				Assert.That(subdirs.Count, Is.Zero);
 
 				subdirs = await directory.ListAsync(logged, new[] { "numbers" }, this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
@@ -854,7 +854,7 @@ namespace FoundationDB.Layers.Directories
 				// the constraint will always be the same for all the checks
 				Action<TestDelegate> shouldFail = (del) =>
 				{
-					Assert.That(del, Throws.InstanceOf<InvalidOperationException>().With.Message.StringContaining("root of a directory partition"));
+					Assert.That(del, Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("root of a directory partition"));
 				};
 				Action<TestDelegate> shouldPass = (del) =>
 				{

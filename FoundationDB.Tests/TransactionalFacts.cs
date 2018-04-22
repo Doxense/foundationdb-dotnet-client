@@ -82,7 +82,7 @@ namespace FoundationDB.Client.Tests
 				// ReadAsync should return a failed Task, and not bubble up the exception.
 				var task = db.ReadAsync((tr) =>
 				{
-					Assert.That(called, Is.EqualTo(0), "ReadAsync should not retry on regular exceptions");
+					Assert.That(called, Is.Zero, "ReadAsync should not retry on regular exceptions");
 					++called;
 					throw new InvalidOperationException("Boom");
 				}, this.Cancellation);

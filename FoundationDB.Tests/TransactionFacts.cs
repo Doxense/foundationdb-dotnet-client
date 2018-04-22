@@ -56,7 +56,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
 					Assert.That(tr.Handler.IsClosed, Is.False, "Transaction handle should not be closed");
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
-					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");
+					Assert.That(tr.Size, Is.Zero, "Estimated size should be zero");
 					Assert.That(tr.IsReadOnly, Is.False, "Transaction is not read-only");
 					Assert.That(tr.IsSnapshot, Is.False, "Transaction is not in snapshot mode by default");
 
@@ -1297,7 +1297,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(A, Slice.FromString("aa"));
 					tr.Set(C, Slice.FromString("cc"));
 					await db.WriteAsync((tr2) =>
-					{
+					{ // have another transaction change B and D under our nose
 						tr2.Set(B, Slice.FromString("bb"));
 						tr2.Set(D, Slice.FromString("dd"));
 					}, this.Cancellation);
@@ -1466,9 +1466,9 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "RetryLimit (default)");
-					Assert.That(tr.MaxRetryDelay, Is.EqualTo(0), "MaxRetryDelay (default)");
+					Assert.That(tr.Timeout, Is.Zero, "Timeout (default)");
+					Assert.That(tr.RetryLimit, Is.Zero, "RetryLimit (default)");
+					Assert.That(tr.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
 
 					tr.Timeout = 1000; // 1 sec max
 					tr.RetryLimit = 5; // 5 retries max
@@ -1486,9 +1486,9 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
-				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(0), "db.DefaultMaxRetryDelay (default)");
+				Assert.That(db.DefaultTimeout, Is.Zero, "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
+				Assert.That(db.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
 
 				db.DefaultTimeout = 500;
 				db.DefaultRetryLimit = 3;
@@ -1535,8 +1535,8 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
+				Assert.That(db.DefaultTimeout, Is.Zero, "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 
 				// By default, a transaction that gets reset or retried, clears the RetryLimit and Timeout settings, which needs to be reset everytime.
 				// But if the DefaultRetryLimit and DefaultTimeout are set on the database instance, they should automatically be re-applied inside transaction loops!
@@ -1585,19 +1585,19 @@ namespace FoundationDB.Client.Tests
 					// simulate a first error
 					tr.RetryLimit = 10;
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// simulate some more errors
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we still haven't failed 10 times..
 					tr.RetryLimit = 10;
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we already have failed 6 times, so this one should abort
 					tr.RetryLimit = 2; // value is too low

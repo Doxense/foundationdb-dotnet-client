@@ -217,8 +217,8 @@ namespace Doxense.Memory.Tests
 			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(Random), 16), Throws.InstanceOf<ArgumentNullException>());
-			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Random(default(Random), 16), Throws.ArgumentNullException);
+			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		[Test]
@@ -247,7 +247,7 @@ namespace Doxense.Memory.Tests
 
 			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.ArgumentNullException);
 			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
 		}
 
@@ -2039,7 +2039,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.FromStream(null), Throws.InstanceOf<ArgumentNullException>(), "Should throw if null");
+			Assert.That(() => Slice.FromStream(null), Throws.ArgumentNullException, "Should throw if null");
 			Assert.That(Slice.FromStream(Stream.Null), Is.EqualTo(Slice.Nil), "Stream.Null should return Slice.Nil");
 
 			using(var ms = new MemoryStream())
@@ -2266,8 +2266,8 @@ namespace Doxense.Memory.Tests
 			Assert.That(joined.Length, Is.EqualTo(0));
 
 			// ReSharper disable AssignNullToNotNullAttribute
-			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.InstanceOf<ArgumentNullException>());
-			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.ArgumentNullException);
+			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.ArgumentNullException);
 			// ReSharper restore AssignNullToNotNullAttribute
 
 			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, 4), Throws.InstanceOf<ArgumentOutOfRangeException>());

@@ -109,8 +109,10 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// corner cases
-			Assert.That(() => FdbKey.Merge(Slice.Empty, default(Slice[])), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
-			Assert.That(() => FdbKey.Merge(Slice.Empty, default(IEnumerable<Slice>)), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
+			// ReSharper disable AssignNullToNotNullAttribute
+			Assert.That(() => FdbKey.Merge(Slice.Empty, default(Slice[])), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("keys"));
+			Assert.That(() => FdbKey.Merge(Slice.Empty, default(IEnumerable<Slice>)), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("keys"));
+			// ReSharper restore AssignNullToNotNullAttribute
 		}
 
 		[Test]

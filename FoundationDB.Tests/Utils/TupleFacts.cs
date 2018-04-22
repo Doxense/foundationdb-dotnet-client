@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_0()
 		{
 			var t0 = STuple.Create();
-			Assert.That(t0.Count, Is.EqualTo(0));
+			Assert.That(t0.Count, Is.Zero);
 			Assert.That(t0.ToArray(), Is.EqualTo(new object[0]));
 			Assert.That(t0.ToString(), Is.EqualTo("()"));
 			Assert.That(t0, Is.InstanceOf<STuple>());
@@ -1046,9 +1046,9 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// ReSharper disable ExpressionIsAlwaysNull
 			ITuple none = null;
-			Assert.That(() => none.OfSize(0), Throws.InstanceOf<ArgumentNullException>());
-			Assert.That(() => none.OfSizeAtLeast(0), Throws.InstanceOf<ArgumentNullException>());
-			Assert.That(() => none.OfSizeAtMost(0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => none.OfSize(0), Throws.ArgumentNullException);
+			Assert.That(() => none.OfSizeAtLeast(0), Throws.ArgumentNullException);
+			Assert.That(() => none.OfSizeAtMost(0), Throws.ArgumentNullException);
 			// ReSharper restore ExpressionIsAlwaysNull
 		}
 
@@ -1745,7 +1745,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(fmtr.FromTuple(STuple.Create("hello", "world", 42)), Is.EqualTo(42));
 			Assert.That(fmtr.FromTuple(STuple.Create("hello", "world", -1)), Is.EqualTo(-1));
 
-			Assert.That(() => fmtr.FromTuple(null), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => fmtr.FromTuple(null), Throws.ArgumentNullException);
 			Assert.That(() => fmtr.FromTuple(STuple.Empty), Throws.InstanceOf<ArgumentException>());
 			Assert.That(() => fmtr.FromTuple(STuple.Create("hello", "world", 42, 77)), Throws.InstanceOf<ArgumentException>(), "Too many values");
 			Assert.That(() => fmtr.FromTuple(STuple.Create("hello_world", 42)), Throws.InstanceOf<ArgumentException>(), "not enough values");
