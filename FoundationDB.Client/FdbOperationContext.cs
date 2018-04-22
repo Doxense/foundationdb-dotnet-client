@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense.Async;
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -35,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
@@ -239,10 +238,7 @@ namespace FoundationDB.Client
 		public void Dispose()
 		{
 			this.Abort = true;
-			if (this.TokenSource != null)
-			{
-				this.TokenSource.SafeCancelAndDispose();
-			}
+			this.TokenSource?.SafeCancelAndDispose();
 		}
 
 		#region Read-Only operations...

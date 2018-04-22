@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define TRACE_COUNTING
 
-
 namespace FoundationDB.Client
 {
 	using System;

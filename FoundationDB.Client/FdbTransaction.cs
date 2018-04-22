@@ -29,8 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 //#define DEBUG_TRANSACTIONS
 
-using Doxense.Async;
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -38,6 +36,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
@@ -46,7 +45,7 @@ namespace FoundationDB.Client
 	/// <summary>FounrationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
-	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction
+	public sealed partial class FdbTransaction : IFdbTransaction
 	{
 
 		#region Private Members...
@@ -117,10 +116,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Internal local identifier of the transaction</summary>
 		/// <remarks>Should only used for logging/debugging purpose.</remarks>
-		public int Id { get { return m_id; } }
+		public int Id => m_id;
 
 		/// <summary>Always returns false. Use the <see cref="FdbTransaction.Snapshot"/> property to get a different view of this transaction that will perform snapshot reads.</summary>
-		public bool IsSnapshot { get { return false; } }
+		public bool IsSnapshot => false;
 
 		/// <summary>Returns the context of this transaction</summary>
 		public FdbOperationContext Context
@@ -144,22 +143,19 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
-		internal bool StillAlive { get { return this.State == STATE_READY; } }
+		internal bool StillAlive => this.State == STATE_READY;
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
-		public int Size { get { return m_handler.Size; } }
+		public int Size => m_handler.Size;
 
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
-		public CancellationToken Cancellation { get { return m_cancellation; } }
+		public CancellationToken Cancellation => m_cancellation;
 
 		/// <summary>Returns true if this transaction only supports read operations, or false if it supports both read and write operations</summary>
-		public bool IsReadOnly { get { return m_readOnly; } }
+		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Returns the isolation level of this transaction.</summary>
-		public FdbIsolationLevel IsolationLevel
-		{
-			get { return m_handler.IsolationLevel; }
-		}
+		public FdbIsolationLevel IsolationLevel => m_handler.IsolationLevel;
 
 		#endregion
 
@@ -174,10 +170,10 @@ namespace FoundationDB.Client
 		/// The transaction can be used again after it is reset.</summary>
 		public int Timeout
 		{
-			get { return m_timeout; }
+			get => m_timeout;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Timeout value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Timeout value cannot be negative");
 				SetOption(FdbTransactionOption.Timeout, value);
 				m_timeout = value;
 			}
@@ -189,10 +185,10 @@ namespace FoundationDB.Client
 		/// </summary>
 		public int RetryLimit
 		{
-			get { return m_retryLimit; }
+			get => m_retryLimit;
 			set
 			{
-				if (value < -1) throw new ArgumentOutOfRangeException("value", value, "Retry count cannot be negative");
+				if (value < -1) throw new ArgumentOutOfRangeException(nameof(value), value, "Retry count cannot be negative");
 				SetOption(FdbTransactionOption.RetryLimit, value);
 				m_retryLimit = value;
 			}
@@ -204,10 +200,10 @@ namespace FoundationDB.Client
 		/// </summary>
 		public int MaxRetryDelay
 		{
-			get { return m_maxRetryDelay; }
+			get => m_maxRetryDelay;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Max retry delay cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Max retry delay cannot be negative");
 				SetOption(FdbTransactionOption.MaxRetryDelay, value);
 				m_maxRetryDelay = value;
 			}
@@ -221,7 +217,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0}", option.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()}");
 
 			m_handler.SetOption(option, Slice.Nil);
 		}
@@ -233,7 +229,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0} to '{1}'", option.ToString(), value ?? "<null>"));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -246,7 +242,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0} to {1}", option.ToString(), value));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			var data = Slice.FromFixed64(value);
@@ -308,7 +304,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
 			return m_handler.GetAsync(key, snapshot: false, ct: m_cancellation);
@@ -323,7 +319,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 			//TODO: should we make a copy of the key array ?
 
 			EnsureCanRead();
@@ -331,7 +327,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeysAreValid(keys);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
 			return m_handler.GetValuesAsync(keys, snapshot: false, ct: m_cancellation);
@@ -380,7 +376,7 @@ namespace FoundationDB.Client
 			options.EnsureLegalValues();
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
 #endif
 
 			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kv) => kv, snapshot, options);
@@ -414,7 +410,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
 			var key = await m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation).ConfigureAwait(false);
@@ -442,7 +438,7 @@ namespace FoundationDB.Client
 			}
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", String.Format("Getting batch of {0} keys ...", selectors.Length));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", $"Getting batch of {selectors.Length} keys ...");
 #endif
 
 			return m_handler.GetKeysAsync(selectors, snapshot: false, ct: m_cancellation);
@@ -466,7 +462,7 @@ namespace FoundationDB.Client
 			m_database.EnsureValueIsValid(ref value);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", String.Format("Setting '{0}' = {1}", FdbKey.Dump(key), Slice.Dump(value)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
 #endif
 
 			m_handler.Set(key, value);
@@ -541,7 +537,7 @@ namespace FoundationDB.Client
 			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", mutation.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", $"Atomic {mutation.ToString()} on '{FdbKey.Dump(key)}' = {Slice.Dump(param)}");
 #endif
 
 			m_handler.Atomic(key, param, mutation);
@@ -562,7 +558,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", String.Format("Clearing '{0}'", FdbKey.Dump(key)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
 #endif
 
 			m_handler.Clear(key);
@@ -586,7 +582,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref endKeyExclusive, endExclusive: true);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
 #endif
 
 			m_handler.ClearRange(beginKeyInclusive, endKeyExclusive);
@@ -632,7 +628,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
 #endif
 
 			return m_handler.GetAddressesForKeyAsync(key, ct: m_cancellation);
@@ -789,7 +785,7 @@ namespace FoundationDB.Client
 					case STATE_COMMITTED: throw new InvalidOperationException("Cannot cancel transaction that has already been committed");
 					case STATE_FAILED: throw new InvalidOperationException("Cannot cancel transaction because it is in a failed state");
 					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot cancel transaction because it already has been disposed");
-					default: throw new InvalidOperationException(String.Format("Cannot cancel transaction because it is in unknown state {0}", state));
+					default: throw new InvalidOperationException($"Cannot cancel transaction because it is in unknown state {state}");
 				}
 			}
 
@@ -807,7 +803,7 @@ namespace FoundationDB.Client
 		/// <summary>Get/Sets the internal state of the exception</summary>
 		internal int State
 		{
-			get { return Volatile.Read(ref m_state); }
+			get => Volatile.Read(ref m_state);
 			set
 			{
 				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, "Invalid state value");
@@ -896,7 +892,7 @@ namespace FoundationDB.Client
 				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
 				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
 				case STATE_CANCELED: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
-				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
+				default: throw new InvalidOperationException($"The transaction is unknown state {trans.State}");
 			}
 		}
 
@@ -920,7 +916,7 @@ namespace FoundationDB.Client
 					this.Database.UnregisterTransaction(this);
 					m_cts.SafeCancelAndDispose();
 
-					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));
+					if (Logging.On) Logging.Verbose(this, "Dispose", $"Transaction #{m_id} has been disposed");
 				}
 				finally
 				{
@@ -930,7 +926,7 @@ namespace FoundationDB.Client
 						try { m_handler.Dispose(); }
 						catch(Exception e)
 						{
-							if (Logging.On) Logging.Error(this, "Dispose", String.Format("Transaction #{0} failed to dispose the transaction handler: {1}", m_id, e.Message));
+							if (Logging.On) Logging.Error(this, "Dispose", $"Transaction #{m_id} failed to dispose the transaction handler: [{e.GetType().Name}] {e.Message}");
 						}
 					}
 					if (!m_context.Shared) m_context.Dispose();

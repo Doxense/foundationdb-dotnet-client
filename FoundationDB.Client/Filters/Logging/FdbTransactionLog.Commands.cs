@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense;
-
 namespace FoundationDB.Filters.Logging
 {
 	using System;
@@ -36,6 +34,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Globalization;
 	using System.Text;
 	using System.Threading.Tasks;
+	using Doxense;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
@@ -465,7 +464,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.PrettyPrint());
+				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("K"));
 			}
 
 		}
@@ -547,7 +546,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.PrettyPrint());
+				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToString("K"));
 			}
 
 			public override string ToString(KeyResolver resolver)
@@ -630,7 +629,7 @@ namespace FoundationDB.Filters.Logging
 
 			protected override string Dump(Slice value)
 			{
-				return value.PrettyPrint();
+				return value.ToString("P");
 			}
 
 		}
@@ -712,8 +711,8 @@ namespace FoundationDB.Filters.Logging
 				if (!this.Result.HasValue) return base.GetResult(resolver);
 				var res = this.Result.Value;
 				string s = String.Concat("[", res.Length.ToString(), "] {");
-				if (res.Length > 0) s += res[0].PrettyPrint();
-				if (res.Length > 1) s += " ... " + res[res.Length - 1].PrettyPrint();
+				if (res.Length > 0) s += res[0].ToString("P");
+				if (res.Length > 1) s += " ... " + res[res.Length - 1].ToString("P");
 				return s + " }";
 
 			}

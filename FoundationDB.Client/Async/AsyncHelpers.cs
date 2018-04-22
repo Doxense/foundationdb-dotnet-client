@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense.Linq;
-
 namespace Doxense.Async
 {
 	using System;
@@ -36,6 +34,7 @@ namespace Doxense.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 
 	/// <summary>Helper methods for creating and manipulating async sequences.</summary>
 	public static class AsyncHelpers

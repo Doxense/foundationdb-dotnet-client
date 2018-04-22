@@ -36,7 +36,6 @@ namespace Doxense.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Buffer that holds a fixed number of items and can rate-limit the producer</summary>

@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -415,7 +414,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
-		/// <param name="trans">Transaction instance</param>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Bit mask.</param>
 		public static void AtomicMin([NotNull] this IFdbTransaction trans, Slice key, Slice value)
@@ -438,12 +437,12 @@ namespace FoundationDB.Client
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
 		{
-			return FdbTransactionExtensions.GetRange(trans, KeySelectorPair.Create(range), options);
+			return GetRange(trans, KeySelectorPair.Create(range), options);
 		}
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, int limit, bool reverse = false)
 		{
-			return FdbTransactionExtensions.GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
+			return GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
@@ -547,7 +546,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans, nameof(trans));
 
-			trans.ClearRange(range.Begin, range.End);
+			trans.ClearRange(range.Begin, range.End.HasValue ? range.End : FdbKey.MaxValue);
 		}
 
 		#endregion
@@ -564,7 +563,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans, nameof(trans));
 
-			trans.AddConflictRange(range.Begin, range.End, type);
+			trans.AddConflictRange(range.Begin, range.End.HasValue ? range.End : FdbKey.MaxValue, type);
 		}
 
 
@@ -607,7 +606,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			Contract.NotNull(trans, nameof(trans));
 
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Write);
 		}

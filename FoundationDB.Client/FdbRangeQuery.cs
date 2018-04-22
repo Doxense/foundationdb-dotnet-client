@@ -26,14 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System.Threading;
-
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
@@ -120,9 +119,9 @@ namespace FoundationDB.Client
 		/// <param name="count">Maximum number of results to return</param>
 		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
 		[NotNull]
-		public FdbRangeQuery<T> Take(int count)
+		public FdbRangeQuery<T> Take([Positive] int count)
 		{
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
+			Contract.Positive(count, nameof(count));
 
 			if (this.Options.Limit == count)
 			{
@@ -139,9 +138,9 @@ namespace FoundationDB.Client
 		/// <param name="count"></param>
 		/// <returns>A new query object that will skip the first <paramref name="count"/> results when executed</returns>
 		[NotNull]
-		public FdbRangeQuery<T> Skip(int count)
+		public FdbRangeQuery<T> Skip([Positive] int count)
 		{
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
+			Contract.Positive(count, nameof(count));
 
 			var limit = this.Options.Limit;
 			var begin = this.Begin;
@@ -272,9 +271,9 @@ namespace FoundationDB.Client
 			return this.GetEnumerator(this.Transaction.Cancellation, AsyncIterationHint.Default);
 		}
 
-		public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
+		public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint hint)
 		{
-			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(ct, mode);
+			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(ct, hint);
 		}
 
 		/// <summary>Return a list of all the elements of the range results</summary>

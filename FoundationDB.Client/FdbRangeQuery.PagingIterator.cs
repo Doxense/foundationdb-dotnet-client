@@ -29,8 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //enable this to enable verbose traces when doing paging
 //#define DEBUG_RANGE_PAGING
 
-using Doxense.Linq;
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -40,6 +38,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 	using JetBrains.Annotations;
 

@@ -77,11 +77,8 @@ namespace FoundationDB.Filters
 		#region Public Properties...
 
 		/// <summary>Database instance configured to read and write data from this partition</summary>
-		protected IFdbDatabase Database
-		{
-			[NotNull]
-			get { return m_database; }
-		}
+		[NotNull]
+		protected IFdbDatabase Database => m_database;
 
 		[NotNull]
 		internal IFdbDatabase GetInnerDatabase()
@@ -90,31 +87,19 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Name of the database</summary>
-		public string Name
-		{
-			get { return m_database.Name; }
-		}
+		public string Name => m_database.Name;
 
 		/// <summary>Cluster of the database</summary>
-		public virtual IFdbCluster Cluster
-		{
-			//REVIEW: do we need a Cluster Filter ?
-			[NotNull]
-			get { return m_database.Cluster; }
-		}
+		[NotNull]
+		public virtual IFdbCluster Cluster => m_database.Cluster;
+		//REVIEW: do we need a Cluster Filter ?
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
-		public CancellationToken Cancellation
-		{
-			get { return m_database.Cancellation; }
-		}
+		public CancellationToken Cancellation => m_database.Cancellation;
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public virtual IDynamicKeySubspace GlobalSpace
-		{
-			[NotNull]
-			get { return m_database.GlobalSpace; }
-		}
+		[NotNull]
+		public virtual IDynamicKeySubspace GlobalSpace => m_database.GlobalSpace;
 
 		/// <summary>Directory partition of this database instance</summary>
 		public virtual FdbDatabasePartition Directory
@@ -130,10 +115,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
-		public virtual bool IsReadOnly
-		{
-			get { return m_readOnly; }
-		}
+		public virtual bool IsReadOnly => m_readOnly;
 
 		Slice IKeySubspace.GetPrefix()
 		{

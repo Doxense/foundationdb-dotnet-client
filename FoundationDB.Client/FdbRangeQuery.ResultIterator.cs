@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //enable this to enable verbose traces when doing paging
 //#define DEBUG_RANGE_ITERATOR
 
-
 namespace FoundationDB.Client
 {
 	using System;
