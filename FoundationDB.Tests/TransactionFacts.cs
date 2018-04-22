@@ -1252,10 +1252,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// By default:
 			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
-			// - Snapshot reads never see the writes made since the transaction read version, including the writes made by the transaction itself
-
-			//Fdb.Start(200); // <-- the test passes
-			//Fdb.Start(300); // <-- the test fails
+			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -1287,6 +1284,73 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
+
+					// check initial state
+					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("a"));
+					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"));
+					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("c"));
+					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
+
+					// mutate (not yet comitted)
+					tr.Set(A, Slice.FromString("aa"));
+					tr.Set(C, Slice.FromString("cc"));
+					await db.WriteAsync((tr2) =>
+					{ // have another transaction change B and D under our nose
+						tr2.Set(B, Slice.FromString("bb"));
+						tr2.Set(D, Slice.FromString("dd"));
+					}, this.Cancellation);
+
+					// check what the transaction sees
+					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
+					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
+					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("cc"), "The transaction own writes should be visible in snapshot reads");
+					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
+
+					//note: committing here would conflict
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Read_Isolation_From_Writes_Pre_300()
+		{
+			// By in API v200 and below:
+			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
+			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
+			// In API 300, this can be emulated by setting the SnapshotReadYourWriteDisable options
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test");
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				var A = location.Keys.Encode("A");
+				var B = location.Keys.Encode("B");
+				var C = location.Keys.Encode("C");
+				var D = location.Keys.Encode("D");
+
+				// Reads (before and after):
+				// - A and B will use regular reads
+				// - C and D will use snapshot reads
+				// Writes:
+				// - A and C will be modified by the transaction itself
+				// - B and D will be modified by a different transaction
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(A, Slice.FromString("a"));
+					tr.Set(B, Slice.FromString("b"));
+					tr.Set(C, Slice.FromString("c"));
+					tr.Set(D, Slice.FromString("d"));
+				}, this.Cancellation);
+
+				Log("Initial db state:");
+				await DumpSubspace(db, location);
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
+
 					// check initial state
 					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("a"));
 					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"));
