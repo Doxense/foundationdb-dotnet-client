@@ -555,19 +555,19 @@ namespace FoundationDB.Client.Tests
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
 				//foreach(var serie in series)
 				//{
-				//	Console.WriteLine(String.Join(", ", serie));
+				//	Log(String.Join(", ", serie));
 				//}
 
 				for (int k = 0; k < K; k++)
 				{
-					//Console.WriteLine("> k = " + k);
+					//Log("> k = " + k);
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
 							var value = TuPack.EncodeKey(k, i);
-							//Console.WriteLine("> " + key + " = " + value);
+							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
 						await tr.CommitAsync();
@@ -627,19 +627,19 @@ namespace FoundationDB.Client.Tests
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
 				//foreach(var serie in series)
 				//{
-				//	Console.WriteLine(String.Join(", ", serie));
+				//	Log(String.Join(", ", serie));
 				//}
 
 				for (int k = 0; k < K; k++)
 				{
-					//Console.WriteLine("> k = " + k);
+					//Log("> k = " + k);
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
 							var value = TuPack.EncodeKey(k, i);
-							//Console.WriteLine("> " + key + " = " + value);
+							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
 						await tr.CommitAsync();

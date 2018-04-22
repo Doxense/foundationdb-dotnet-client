@@ -223,7 +223,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -303,7 +303,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -321,7 +321,7 @@ namespace FoundationDB.Client.Tests
 						using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 						{
 							var res = await tr.GetAsync(subspace.Keys.Encode("K" + i.ToString("D4")));
-							Console.WriteLine(res);
+							Log(res);
 						}
 					}
 				}
@@ -333,7 +333,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -374,7 +374,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -411,7 +411,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -465,7 +465,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -500,7 +500,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -543,7 +543,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -582,7 +582,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 
@@ -619,7 +619,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					var subspace = db.GlobalSpace;
 

@@ -1379,7 +1379,7 @@ namespace Doxense.Collections.Tuples.Tests
 			tuples[13] = new LinkedTuple<string>(STuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"), "M");
 
 #if false
-			Console.Write("Checking tuples");
+			LogPartial("Checking tuples");
 
 			foreach (var tuple in tuples)
 			{
@@ -1390,9 +1390,10 @@ namespace Doxense.Collections.Tuples.Tests
 
 			var rnd = new Random(123456);
 
+			Log($"Generating {N:N0} random tuples:");
 			for (int i = 0; i < N; i++)
 			{
-				if (i % 500 == 0) Console.Write(".");
+				if (i % 1000 == 0) Log($"- {100.0 * i / N:N1} %");
 				var len = rnd.Next(tuples.Length);
 				var tuple = tuples[len];
 				if (tuple.Count != len)
@@ -1458,7 +1459,7 @@ namespace Doxense.Collections.Tuples.Tests
 				}
 
 			}
-			Log(" done");
+			Log("> success");
 
 		}
 
@@ -1816,7 +1817,7 @@ namespace Doxense.Collections.Tuples.Tests
 			string FUNKY_STRING = "hello\x00world";
 			string UNICODE_STRING = "héllø 世界";
 
-			Console.Write("Creating {0:N0} random tuples", N);
+			LogPartial("Creating {0:N0} random tuples", N);
 			var tuples = new List<ITuple>(N);
 			var rnd = new Random(777);
 			var guids = Enumerable.Range(0, 10).Select(_ => Guid.NewGuid()).ToArray();
@@ -1828,7 +1829,7 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				ITuple tuple = STuple.Empty;
 				int s = 1 + (int)Math.Sqrt(rnd.Next(128));
-				if (i % (N / 100) == 0) Console.Write(".");
+				if (i % (N / 100) == 0) LogPartial('.');
 				for (int j = 0; j < s; j++)
 				{
 					switch (rnd.Next(17))
@@ -1860,7 +1861,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Log(" > {0}", tuples[42]);
 			Log();
 
-			Console.Write("Packing tuples...");
+			LogPartial("Packing tuples...");
 			sw.Restart();
 			var slices = STuple.Pack(tuples);
 			sw.Stop();
@@ -1870,7 +1871,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Log(" > {0}", slices[42]);
 			Log();
 
-			Console.Write("Unpacking tuples...");
+			LogPartial("Unpacking tuples...");
 			sw.Restart();
 			var unpacked = slices.Select(slice => STuple.Unpack(slice)).ToList();
 			sw.Stop();
@@ -1879,14 +1880,14 @@ namespace Doxense.Collections.Tuples.Tests
 			Log(" > {0}", unpacked[42]);
 			Log();
 
-			Console.Write("Comparing ...");
+			LogPartial("Comparing ...");
 			sw.Restart();
 			tuples.Zip(unpacked, (x, y) => x.Equals(y)).All(b => b);
 			sw.Stop();
 			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
 			Log();
 
-			Console.Write("Tuples.ToString ...");
+			LogPartial("Tuples.ToString ...");
 			sw.Restart();
 			var strings = tuples.Select(x => x.ToString()).ToList();
 			sw.Stop();
@@ -1895,7 +1896,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Log(" > {0}", strings[42]);
 			Log();
 
-			Console.Write("Unpacked.ToString ...");
+			LogPartial("Unpacked.ToString ...");
 			sw.Restart();
 			strings = unpacked.Select(x => x.ToString()).ToList();
 			sw.Stop();
@@ -1904,7 +1905,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Log(" > {0}", strings[42]);
 			Log();
 
-			Console.Write("Memoizing ...");
+			LogPartial("Memoizing ...");
 			sw.Restart();
 			var memoized = tuples.Select(x => x.Memoize()).ToList();
 			sw.Stop();

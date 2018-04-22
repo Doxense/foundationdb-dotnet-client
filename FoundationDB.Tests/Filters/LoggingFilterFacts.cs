@@ -86,11 +86,11 @@ namespace FoundationDB.Filters.Logging.Tests
 				{
 					if (first)
 					{
-						Console.WriteLine(tr.Log.GetCommandsReport());
+						Log(tr.Log.GetCommandsReport());
 						first = false;
 					}
 
-					Console.WriteLine(tr.Log.GetTimingsReport(true));
+					Log(tr.Log.GetTimingsReport(true));
 				};
 
 				// create a logged version of the database
@@ -98,8 +98,8 @@ namespace FoundationDB.Filters.Logging.Tests
 
 				for (int k = 0; k < N; k++)
 				{
-					Console.WriteLine("==== " + k + " ==== ");
-					Console.WriteLine();
+					Log("==== " + k + " ==== ");
+					Log();
 
 					await logged.ReadWriteAsync(async (tr) =>
 					{

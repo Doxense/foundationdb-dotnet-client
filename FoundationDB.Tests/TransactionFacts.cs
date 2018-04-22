@@ -1958,13 +1958,14 @@ namespace FoundationDB.Client.Tests
 				int time = 0;
 
 				List<IFdbTransaction> m_alive = new List<IFdbTransaction>();
+				var sb = new StringBuilder();
 				while (DateTime.UtcNow - start < TimeSpan.FromSeconds(DURATION_SEC))
 				{
 					switch (rnd.Next(10))
 					{
 						case 0:
 						{ // start a new transaction
-							Console.Write('T');
+							sb.Append('T');
 							var tr = db.BeginTransaction(FdbTransactionMode.Default, this.Cancellation);
 							m_alive.Add(tr);
 							break;
@@ -1972,7 +1973,7 @@ namespace FoundationDB.Client.Tests
 						case 1:
 						{ // drop a random transaction
 							if (m_alive.Count == 0) continue;
-							Console.Write('L');
+							sb.Append('L');
 							int p = rnd.Next(m_alive.Count);
 
 							m_alive.RemoveAt(p);
@@ -1982,7 +1983,7 @@ namespace FoundationDB.Client.Tests
 						case 2:
 						{ // dispose a random transaction
 							if (m_alive.Count == 0) continue;
-							Console.Write('D');
+							sb.Append('D');
 							int p = rnd.Next(m_alive.Count);
 
 							var tr = m_alive[p];
@@ -1992,7 +1993,7 @@ namespace FoundationDB.Client.Tests
 						}
 						case 3:
 						{ // GC!
-							Console.Write('C');
+							sb.Append('C');
 							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
 							m_alive.Add(tr);
 							_ = await tr.GetReadVersionAsync();
@@ -2003,7 +2004,7 @@ namespace FoundationDB.Client.Tests
 						case 5:
 						case 6:
 						{ // read a random value from a random transaction
-							Console.Write('G');
+							sb.Append('G');
 							if (m_alive.Count == 0) break;
 							int p = rnd.Next(m_alive.Count);
 							var tr = m_alive[p];
@@ -2015,7 +2016,7 @@ namespace FoundationDB.Client.Tests
 							}
 							catch (FdbException)
 							{
-								Console.Write('!');
+								sb.Append('!');
 							}
 							break;
 						}
@@ -2023,13 +2024,13 @@ namespace FoundationDB.Client.Tests
 						case 8:
 						case 9:
 						{ // read a random value, but drop the task
-							Console.Write('g');
+							sb.Append('g');
 							if (m_alive.Count == 0) break;
 							int p = rnd.Next(m_alive.Count);
 							var tr = m_alive[p];
 
 							int x = rnd.Next(R);
-							_ = tr.GetAsync(location.Keys.Encode(x)).ContinueWith((_) => Console.Write('!'), TaskContinuationOptions.NotOnRanToCompletion);
+							_ = tr.GetAsync(location.Keys.Encode(x)).ContinueWith((_) => sb.Append('!') /*BUGBUG: locking ?*/, TaskContinuationOptions.NotOnRanToCompletion);
 							// => t is not stored
 							break;
 						}
@@ -2037,9 +2038,10 @@ namespace FoundationDB.Client.Tests
 					}
 					if ((time++) % 80 == 0)
 					{
-						Console.WriteLine();
+						Log(sb.ToString());
 						Log("State: {0}", m_alive.Count);
-						Console.Write('C');
+						sb.Clear();
+						sb.Append('C');
 						GC.Collect();
 						GC.WaitForPendingFinalizers();
 						GC.Collect();

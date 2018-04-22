@@ -101,7 +101,7 @@ namespace FoundationDB.Client.Tests
 		{
 			Assert.That(tr, Is.Not.Null);
 
-			Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
+			FdbTest.Log("Dumping content of subspace " + subspace.ToString() + " :");
 			int count = 0;
 			await tr
 				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))
@@ -121,13 +121,13 @@ namespace FoundationDB.Client.Tests
 						keyDump = "'" + key.ToString() + "'";
 					}
 						
-					Console.WriteLine("- " + keyDump + " = " + kvp.Value.ToString());
+					FdbTest.Log("- " + keyDump + " = " + kvp.Value.ToString());
 				});
 
 			if (count == 0)
-				Console.WriteLine("> empty !");
+				FdbTest.Log("> empty !");
 			else
-				Console.WriteLine("> Found " + count + " values");
+				FdbTest.Log("> Found " + count + " values");
 		}
 
 		public static async Task AssertThrowsFdbErrorAsync([NotNull] Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)

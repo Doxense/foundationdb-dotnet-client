@@ -51,11 +51,11 @@ namespace FoundationDB.Layers.Collections.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 
-					Console.WriteLine("Clearing any previous values in the vector");
+					Log("Clearing any previous values in the vector");
 					vector.Clear(tr);
 
-					Console.WriteLine();
-					Console.WriteLine("MODIFIERS");
+					Log();
+					Log("MODIFIERS");
 
 					// Set + Push
 					vector.Set(tr, 0, Slice.FromInt32(1));
@@ -68,31 +68,31 @@ namespace FoundationDB.Layers.Collections.Tests
 					await PrintVector(vector, tr);
 
 					// Pop
-					Console.WriteLine("> Popped: " + await vector.PopAsync(tr));
+					Log("> Popped: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
 					// Clear
 					vector.Clear(tr);
 
-					Console.WriteLine("> Pop empty: " + await vector.PopAsync(tr));
+					Log("> Pop empty: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
 					await vector.PushAsync(tr, Slice.FromString("foo"));
-					Console.WriteLine("> Pop size 1: " + await vector.PopAsync(tr));
+					Log("> Pop size 1: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
-					Console.WriteLine();
-					Console.WriteLine("CAPACITY OPERATIONS");
+					Log();
+					Log("CAPACITY OPERATIONS");
 
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
-					Console.WriteLine("> Empty: " + await vector.EmptyAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
+					Log("> Empty: " + await vector.EmptyAsync(tr));
 
-					Console.WriteLine("> Resizing to length 5");
+					Log("> Resizing to length 5");
 					await vector.ResizeAsync(tr, 5);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("Settings values");
+					Log("Settings values");
 					vector.Set(tr, 0, Slice.FromString("Portez"));
 					vector.Set(tr, 1, Slice.FromString("ce vieux"));
 					vector.Set(tr, 2, Slice.FromString("whisky"));
@@ -101,63 +101,63 @@ namespace FoundationDB.Layers.Collections.Tests
 					vector.Set(tr, 5, Slice.FromString("fume"));
 					await PrintVector(vector, tr);
 
-					Console.WriteLine("FRONT");
-					Console.WriteLine("> " + await vector.FrontAsync(tr));
+					Log("FRONT");
+					Log("> " + await vector.FrontAsync(tr));
 
-					Console.WriteLine("BACK");
-					Console.WriteLine("> " + await vector.BackAsync(tr));
+					Log("BACK");
+					Log("> " + await vector.BackAsync(tr));
 
-					Console.WriteLine();
-					Console.WriteLine("ELEMENT ACCESS");
-					Console.WriteLine("> Index 0: " + await vector.GetAsync(tr, 0));
-					Console.WriteLine("> Index 5: " + await vector.GetAsync(tr, 5));
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log();
+					Log("ELEMENT ACCESS");
+					Log("> Index 0: " + await vector.GetAsync(tr, 0));
+					Log("> Index 5: " + await vector.GetAsync(tr, 5));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine();
-					Console.WriteLine("RESIZING");
-					Console.WriteLine("> Resizing to 3");
+					Log();
+					Log("RESIZING");
+					Log("> Resizing to 3");
 					await vector.ResizeAsync(tr, 3);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("> Resizing to 3 again");
+					Log("> Resizing to 3 again");
 					await vector.ResizeAsync(tr, 3);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("> Resizing to 6");
+					Log("> Resizing to 6");
 					await vector.ResizeAsync(tr, 6);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine();
-					Console.WriteLine("SPARSE TEST");
+					Log();
+					Log("SPARSE TEST");
 
-					Console.WriteLine("> Popping sparse vector");
+					Log("> Popping sparse vector");
 					await vector.PopAsync(tr);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("> Resizing to 4");
+					Log("> Resizing to 4");
 					await vector.ResizeAsync(tr, 4);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("> Adding 'word' to index 10, resize to 25");
+					Log("> Adding 'word' to index 10, resize to 25");
 					vector.Set(tr, 10, Slice.FromString("word"));
 					await vector.ResizeAsync(tr, 25);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("> Swapping with sparse element");
+					Log("> Swapping with sparse element");
 					await vector.SwapAsync(tr, 10, 15);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 
-					Console.WriteLine("> Swapping sparse elements");
+					Log("> Swapping sparse elements");
 					await vector.SwapAsync(tr, 12, 13);
 					await PrintVector(vector, tr);
-					Console.WriteLine("> Size: " + await vector.SizeAsync(tr));
+					Log("> Size: " + await vector.SizeAsync(tr));
 				}
 			}
 		}
@@ -173,7 +173,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				sb.Append($"{vector.Subspace.Keys.DecodeLast<long>(kvp.Key)}:{kvp.Value:P}");
 			});
 
-			Console.WriteLine("> Vector: (" + sb.ToString() + ")");
+			Log("> Vector: (" + sb.ToString() + ")");
 		}
 
 	}

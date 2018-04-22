@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					await PrintRankedSet(vector, tr);
 				}, this.Cancellation);
 
-				Console.WriteLine();
+				Log();
 				var rnd = new Random();
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < 100; i++)
@@ -65,7 +65,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, TuPack.EncodeKey(rnd.Next())), this.Cancellation);
 				}
 				sw.Stop();
-				Console.WriteLine("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
+				Log("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
 
 				await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation);
 			}
@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Keys.Unpack(kvp.Key), kvp.Value.ToInt64());
 				});
 			}
-			Console.WriteLine(sb.ToString());
+			Log(sb.ToString());
 		}
 
 	}

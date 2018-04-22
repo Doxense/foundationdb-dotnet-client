@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach(var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true)); 
+					Log(log.GetTimingsReport(true)); 
 				}
 #endif
 			}
@@ -166,7 +166,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -238,7 +238,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -290,7 +290,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -343,7 +343,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -441,7 +441,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -501,7 +501,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -551,7 +551,7 @@ namespace FoundationDB.Layers.Directories
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -566,12 +566,12 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
-				Console.WriteLine(directory);
+				Log(directory);
 
 				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
 				var partitionKey = KeySubspace.Copy(partition).GetPrefix();
-				Console.WriteLine(partition);
+				Log(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromStringAscii("partition")));
 				Assert.That(partition.FullName, Is.EqualTo("Foo"));
@@ -581,14 +581,14 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(partition.DirectoryLayer.NodeSubspace.GetPrefix(), Is.EqualTo(partitionKey + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
 
 				var bar = await partition.CreateAsync(db, "Bar", this.Cancellation);
-				Console.WriteLine(bar);
+				Log(bar);
 				Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(bar.Path, Is.EqualTo(new [] { "Foo", "Bar" }), "Path of directories under a partition should be absolute");
 				Assert.That(bar.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", bar, partition);
 				Assert.That(bar.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", bar, partition);
 
 				var baz = await partition.CreateAsync(db, "Baz", this.Cancellation);
-				Console.WriteLine(baz);
+				Log(baz);
 				Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(baz.FullName, Is.EqualTo("Foo/Baz"));
 				Assert.That(baz.Path, Is.EqualTo(new[] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
@@ -597,7 +597,7 @@ namespace FoundationDB.Layers.Directories
 
 				// Rename 'Bar' to 'BarBar'
 				var bar2 = await bar.MoveToAsync(db, new[] { "Foo", "BarBar" }, this.Cancellation);
-				Console.WriteLine(bar2);
+				Log(bar2);
 				Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(bar2, Is.Not.SameAs(bar));
 				Assert.That(bar2.GetPrefix(), Is.EqualTo(bar.GetPrefix()));
@@ -616,14 +616,14 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
-				Console.WriteLine(directory);
+				Log(directory);
 
 				var foo = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
-				Console.WriteLine(foo);
+				Log(foo);
 
 				// create a 'Bar' under the 'Foo' partition
 				var bar = await foo.CreateAsync(db, "Bar", this.Cancellation);
-				Console.WriteLine(bar);
+				Log(bar);
 				Assert.That(bar.FullName, Is.EqualTo("Foo/Bar"));
 				Assert.That(bar.Path, Is.EqualTo(new string[] { "Foo", "Bar" }));
 				Assert.That(bar.DirectoryLayer, Is.Not.SameAs(directory));
@@ -645,14 +645,14 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
-				Console.WriteLine(directory);
+				Log(directory);
 
 				var outer = await directory.CreateAsync(db, "Outer", Slice.FromStringAscii("partition"), this.Cancellation);
-				Console.WriteLine(outer);
+				Log(outer);
 
 				// create a 'Inner' subpartition under the 'Outer' partition
 				var inner = await outer.CreateAsync(db, "Inner", Slice.FromString("partition"), this.Cancellation);
-				Console.WriteLine(inner);
+				Log(inner);
 				Assert.That(inner.FullName, Is.EqualTo("Outer/Inner"));
 				Assert.That(inner.Path, Is.EqualTo(new string[] { "Outer", "Inner" }));
 				Assert.That(inner.DirectoryLayer, Is.Not.SameAs(directory));
@@ -845,7 +845,7 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
-				Console.WriteLine(directory);
+				Log(directory);
 
 				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
@@ -952,12 +952,12 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
-				Console.WriteLine(directory);
+				Log(directory);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
 				await directory.CreateAsync(db, "Zero", this.Cancellation);
 
-				var logdb = db.Logged((tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var logdb = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 
 				var f = FdbDirectoryLayer.AnnotateTransactions;
 				try
@@ -979,14 +979,14 @@ namespace FoundationDB.Layers.Directories
 						var second = await directory.CreateAsync(tr2, new[] { "Second" }, Slice.Nil);
 						tr2.Set(second.GetPrefix(), Slice.FromString("This belongs to the second directory"));
 
-						Console.WriteLine("Committing T1...");
+						Log("Committing T1...");
 						await tr1.CommitAsync();
-						Console.WriteLine("T1 committed");
+						Log("T1 committed");
 						tr1.Dispose(); // force T1 to be dumped immediately
 
-						Console.WriteLine("Committing T2...");
+						Log("Committing T2...");
 						await tr2.CommitAsync();
-						Console.WriteLine("T2 committed");
+						Log("T2 committed");
 					}
 				}
 				finally
@@ -1011,12 +1011,12 @@ namespace FoundationDB.Layers.Directories
 				// ie: regular prefix would be ("DL", 123) and our custom prefixes will be ("DL", "abc")
 
 				var directory = FdbDirectoryLayer.Create(location);
-				Console.WriteLine(directory);
+				Log(directory);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
 				await directory.CreateAsync(db, "Zero", this.Cancellation);
 
-				var logdb = db.Logged((tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				var logdb = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 
 				var f = FdbDirectoryLayer.AnnotateTransactions;
 				try
@@ -1038,12 +1038,12 @@ namespace FoundationDB.Layers.Directories
 						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Keys.Encode("def"));
 						tr2.Set(second.GetPrefix(), Slice.FromString("This belongs to the second directory"));
 
-						Console.WriteLine("Committing T1...");
+						Log("Committing T1...");
 						await tr1.CommitAsync();
-						Console.WriteLine("T1 committed");
+						Log("T1 committed");
 						tr1.Dispose(); // force T1 to be dumped immediately
 
-						Console.WriteLine("Committing T2...");
+						Log("Committing T2...");
 						try
 						{
 							await tr2.CommitAsync();
@@ -1058,7 +1058,7 @@ namespace FoundationDB.Layers.Directories
 							}
 							throw;
 						}
-						Console.WriteLine("T2 committed");
+						Log("T2 committed");
 					}
 				}
 				finally

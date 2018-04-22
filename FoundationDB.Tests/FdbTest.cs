@@ -150,19 +150,19 @@ namespace FoundationDB.Client.Tests
 		// These methods are just there to help with the problem of culture-aware string formatting
 
 		[DebuggerStepThrough]
-		protected static void Log(string text)
+		public static void Log(string text)
 		{
-			Console.WriteLine(text);
+			TestContext.Progress.WriteLine(text);
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log()
+		public static void Log()
 		{
 			Log(String.Empty);
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(object item)
+		public static void Log(object item)
 		{
 			if (item == null)
 			{
@@ -175,19 +175,19 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(string format, object arg0)
+		public static void Log(string format, object arg0)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(string format, object arg0, object arg1)
+		public static void Log(string format, object arg0, object arg1)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(string format, params object[] args)
+		public static void Log(string format, params object[] args)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, args));
 		}

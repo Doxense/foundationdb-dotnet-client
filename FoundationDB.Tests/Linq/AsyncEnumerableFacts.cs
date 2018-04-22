@@ -955,7 +955,7 @@ namespace FoundationDB.Linq.Tests
 			int called = 0;
 			var sw = new Stopwatch();
 
-			Console.WriteLine("CONSTANT LATENCY GENERATOR:");
+			Log("CONSTANT LATENCY GENERATOR:");
 
 			// this iterator waits on each item produced
 			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
@@ -977,7 +977,7 @@ namespace FoundationDB.Linq.Tests
 			called = 0;
 			sw.Restart();
 			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
-			Console.WriteLine("P0: {0}", String.Join(", ", withoutPrefetching));
+			Log("P0: {0}", String.Join(", ", withoutPrefetching));
 			Assert.That(withoutPrefetching.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withoutPrefetching.Select(x => x.Item2), Is.EqualTo(Enumerable.Range(1, 10)));
 
@@ -985,7 +985,7 @@ namespace FoundationDB.Linq.Tests
 			called = 0;
 			sw.Restart();
 			var withPrefetching1 = await source.Prefetch().Select(record).ToListAsync(this.Cancellation);
-			Console.WriteLine("P1: {0}", String.Join(", ", withPrefetching1));
+			Log("P1: {0}", String.Join(", ", withPrefetching1));
 			Assert.That(withPrefetching1.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withPrefetching1.Select(x => x.Item2), Is.EqualTo(Enumerable.Range(2, 10)));
 
@@ -994,7 +994,7 @@ namespace FoundationDB.Linq.Tests
 			called = 0;
 			sw.Restart();
 			var withPrefetching2 = await source.Prefetch(2).Select(record).ToListAsync(this.Cancellation);
-			Console.WriteLine("P2: {0}", String.Join(", ", withPrefetching2));
+			Log("P2: {0}", String.Join(", ", withPrefetching2));
 			Assert.That(withPrefetching2.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withPrefetching2.Select(x => x.Item2), Is.EqualTo(Enumerable.Range(2, 10)));
 		}
@@ -1005,7 +1005,7 @@ namespace FoundationDB.Linq.Tests
 			int called = 0;
 			var sw = new Stopwatch();
 
-			Console.WriteLine("BURSTY GENERATOR:");
+			Log("BURSTY GENERATOR:");
 
 			// this iterator produce burst of items
 			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
@@ -1027,7 +1027,7 @@ namespace FoundationDB.Linq.Tests
 			called = 0;
 			sw.Restart();
 			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
-			Console.WriteLine("P0: {0}", String.Join(", ", withoutPrefetching));
+			Log("P0: {0}", String.Join(", ", withoutPrefetching));
 			Assert.That(withoutPrefetching.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 
 			// with prefetching K, the consumer should always have K items in advance
@@ -1037,7 +1037,7 @@ namespace FoundationDB.Linq.Tests
 				called = 0;
 				sw.Restart();
 				var withPrefetchingK = await source.Prefetch(K).Select(record).ToListAsync(this.Cancellation);
-				Console.WriteLine("P{0}: {1}", K, String.Join(", ", withPrefetchingK));
+				Log("P{0}: {1}", K, String.Join(", ", withPrefetchingK));
 				Assert.That(withPrefetchingK.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 				Assert.That(withPrefetchingK[0].Item2, Is.EqualTo(K + 1), "Generator must have {0} call(s) in advance!", K);
 				Assert.That(withPrefetchingK.Select(x => x.Item2), Is.All.LessThanOrEqualTo(11));
@@ -1047,7 +1047,7 @@ namespace FoundationDB.Linq.Tests
 			called = 0;
 			sw.Restart();
 			var withPrefetching5 = await source.Prefetch(5).Select(record).ToListAsync(this.Cancellation);
-			Console.WriteLine("P5: {0}", String.Join(", ", withPrefetching5));
+			Log("P5: {0}", String.Join(", ", withPrefetching5));
 			Assert.That(withPrefetching5.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withPrefetching5[0].Item2, Is.EqualTo(5), "Generator must have only 4 calls in advance because it only produces 4 items at a time!");
 			Assert.That(withPrefetching5.Select(x => x.Item2), Is.All.LessThanOrEqualTo(11));
@@ -1170,14 +1170,14 @@ namespace FoundationDB.Linq.Tests
 							try
 							{
 								Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
-								Console.WriteLine("** " + sw.Elapsed + " start " + x + " (" + n + ")");
+								Log("** " + sw.Elapsed + " start " + x + " (" + n + ")");
 #if DEBUG_STACK_TRACES
-								Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+								Log("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
 #endif
 								int ms;
 								lock (rnd) { ms = rnd.Next(25) + 50; }
 								await Task.Delay(ms);
-								Console.WriteLine("** " + sw.Elapsed + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
+								Log("** " + sw.Elapsed + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
 
 								return x * x;
 							}
@@ -1199,7 +1199,7 @@ namespace FoundationDB.Linq.Tests
 				var results = await query.ToListAsync(token);
 
 				Assert.That(Volatile.Read(ref concurrent), Is.EqualTo(0));
-				Console.WriteLine("Results: " + string.Join(", ", results));
+				Log("Results: " + string.Join(", ", results));
 				Assert.That(results, Is.EqualTo(Enumerable.Range(1, N).Select(x => x * x).ToArray()));
 			}
 
@@ -1224,24 +1224,24 @@ namespace FoundationDB.Linq.Tests
 				{
 					while (!token.IsCancellationRequested)
 					{
-						Console.WriteLine("[consumer] start receiving next...");
+						Log("[consumer] start receiving next...");
 						var msg = await buffer.ReceiveAsync(token);
 #if DEBUG_STACK_TRACES
-						Console.WriteLine("[consumer] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[consumer] > "));
+						Log("[consumer] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[consumer] > "));
 #endif
 						if (msg.HasValue)
 						{
-							Console.WriteLine("[consumer] Got value " + msg.Value);
+							Log("[consumer] Got value " + msg.Value);
 						}
 						else if (msg.HasValue)
 						{
-							Console.WriteLine("[consumer] Got error: " + msg.Error);
+							Log("[consumer] Got error: " + msg.Error);
 							msg.ThrowForNonSuccess();
 							break;
 						}
 						else
 						{
-							Console.WriteLine("[consumer] Done!");
+							Log("[consumer] Done!");
 							break;
 						}
 
@@ -1254,25 +1254,25 @@ namespace FoundationDB.Linq.Tests
 				// first 5 calls to enqueue should already be completed
 				while (!token.IsCancellationRequested && i < MAX_CAPACITY * 10)
 				{
-					Console.WriteLine("[PRODUCER] Publishing " + i);
+					Log("[PRODUCER] Publishing " + i);
 #if DEBUG_STACK_TRACES
-					Console.WriteLine("[PRODUCER] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[PRODUCER] > "));
+					Log("[PRODUCER] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[PRODUCER] > "));
 #endif
 					await buffer.OnNextAsync(i, token);
 					++i;
-					Console.WriteLine("[PRODUCER] Published");
+					Log("[PRODUCER] Published");
 #if DEBUG_STACK_TRACES
-					Console.WriteLine("[PRODUCER] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[PRODUCER] > "));
+					Log("[PRODUCER] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[PRODUCER] > "));
 #endif
 
 					if (rnd.Next(10) < 2)
 					{
-						Console.WriteLine("[PRODUCER] Thinking " + i);
+						Log("[PRODUCER] Thinking " + i);
 						await Task.Delay(10);
 					}
 				}
 
-				Console.WriteLine("[PRODUCER] COMPLETED!");
+				Log("[PRODUCER] COMPLETED!");
 				buffer.OnCompleted();
 
 				var t = await Task.WhenAny(pump, Task.Delay(TimeSpan.FromSeconds(10), token));
@@ -1298,7 +1298,7 @@ namespace FoundationDB.Linq.Tests
 					{
 						await Task.Delay(15);
 					}
-					Console.WriteLine("[PRODUCER] publishing " + x + " at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+					Log("[PRODUCER] publishing " + x + " at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
 					return x;
 				});
 
@@ -1314,9 +1314,9 @@ namespace FoundationDB.Linq.Tests
 				var queue = AsyncHelpers.CreateTarget<int>(
 					onNextAsync: (x, ct) =>
 					{
-						Console.WriteLine("[consumer] onNextAsync(" + x + ") at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+						Log("[consumer] onNextAsync(" + x + ") at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
 #if DEBUG_STACK_TRACES
-						Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+						Log("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
 #endif
 						ct.ThrowIfCancellationRequested();
 						items.Add(x);
@@ -1324,16 +1324,16 @@ namespace FoundationDB.Linq.Tests
 					},
 					onCompleted: () =>
 					{
-						Console.WriteLine("[consumer] onCompleted() at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+						Log("[consumer] onCompleted() at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
 #if DEBUG_STACK_TRACES
-						Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+						Log("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
 #endif
 						done = true;
 					},
 					onError: (x) =>
 					{
-						Console.WriteLine("[consumer] onError()  at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
-						Console.WriteLine("[consumer] > " + x);
+						Log("[consumer] onError()  at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+						Log("[consumer] > " + x);
 						error = x;
 						go.Cancel();
 					}
@@ -1343,11 +1343,11 @@ namespace FoundationDB.Linq.Tests
 				{
 					var pump = new AsyncIteratorPump<int>(inner, queue);
 
-					Console.WriteLine("[PUMP] Start pumping on #" + Thread.CurrentThread.ManagedThreadId);
+					Log("[PUMP] Start pumping on #" + Thread.CurrentThread.ManagedThreadId);
 					sw.Start();
 					await pump.PumpAsync(token);
 					sw.Stop();
-					Console.WriteLine("[PUMP] Pumping completed! at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+					Log("[PUMP] Pumping completed! at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
 
 					// We should have N items, plus 1 message for the completion
 					Assert.That(items.Count, Is.EqualTo(N));
@@ -1395,7 +1395,7 @@ namespace FoundationDB.Linq.Tests
 				}
 				catch(AssertionException x)
 				{
-					Console.WriteLine("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
+					Log("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
 				}
 			}
 
@@ -1433,7 +1433,7 @@ namespace FoundationDB.Linq.Tests
 				}
 				catch (AssertionException x)
 				{
-					Console.WriteLine("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
+					Log("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
 				}
 			}
 
@@ -1655,14 +1655,14 @@ namespace FoundationDB.Linq.Tests
 				.Observe((x) => after.Add(x))
 				.Select((x) => x + 1);
 
-			Console.WriteLine("query: " + query);
+			Log("query: " + query);
 
 			var results = await query.ToListAsync();
 
-			Console.WriteLine("input : " + String.Join(", ", items));
-			Console.WriteLine("before: " + String.Join(", ", before));
-			Console.WriteLine("after : " + String.Join(", ", after));
-			Console.WriteLine("output: " + String.Join(", ", results));
+			Log("input : " + String.Join(", ", items));
+			Log("before: " + String.Join(", ", before));
+			Log("after : " + String.Join(", ", after));
+			Log("output: " + String.Join(", ", results));
 
 			Assert.That(before, Is.EqualTo(Enumerable.Range(0, 10).ToList()));
 			Assert.That(after, Is.EqualTo(Enumerable.Range(0, 10).Where(x => x % 2 == 1).ToList()));

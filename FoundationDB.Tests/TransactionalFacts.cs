@@ -160,19 +160,19 @@ namespace FoundationDB.Client.Tests
 				// insert a good amount of test data
 
 				var sw = Stopwatch.StartNew();
-				Console.WriteLine("Inserting test data (this may take a few minutes)...");
+				Log("Inserting test data (this may take a few minutes)...");
 				var rnd = new Random();
 				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Keys.Encode(i), Slice.Random(rnd, 4096))), this.Cancellation);
 				sw.Stop();
-				Console.WriteLine("> done in " + sw.Elapsed);
+				Log("> done in " + sw.Elapsed);
 
-				using (var timer = new System.Threading.Timer((_) => { Console.WriteLine("WorkingSet: {0:N0}, Managed: {1:N0}", Environment.WorkingSet, GC.GetTotalMemory(false)); }, null, 1000, 1000))
+				using (var timer = new System.Threading.Timer((_) => { Log("WorkingSet: {0:N0}, Managed: {1:N0}", Environment.WorkingSet, GC.GetTotalMemory(false)); }, null, 1000, 1000))
 				{
 					try
 					{
 						var result = await db.ReadAsync((tr) =>
 						{
-							Console.WriteLine("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
+							Log("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
 							return tr.GetRange(location.Keys.ToRange()).ToListAsync();
 						}, this.Cancellation);
 
@@ -188,18 +188,18 @@ namespace FoundationDB.Client.Tests
 					}
 				}
 				// to help see the effect in a profiler, dispose the transaction first, wait 5 sec then do a full GC, and then wait a bit before exiting the process
-				Console.WriteLine("Transaction destroyed!");
+				Log("Transaction destroyed!");
 				Thread.Sleep(5000);
 
-				Console.WriteLine("Cleaning managed memory");
+				Log("Cleaning managed memory");
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
 
-				Console.WriteLine("Waiting...");
+				Log("Waiting...");
 				Thread.Sleep(5000);
 
-				Console.WriteLine("byte");
+				Log("byte");
 			}
 		}
 
@@ -218,7 +218,7 @@ namespace FoundationDB.Client.Tests
 					var t = db.ReadAsync((tr) =>
 					{
 						called = true;
-						Console.WriteLine("FAILED");
+						Log("FAILED");
 						throw new InvalidOperationException("Failed");
 					}, go.Token);
 
