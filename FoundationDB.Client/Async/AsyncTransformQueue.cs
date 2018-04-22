@@ -213,18 +213,18 @@ namespace Doxense.Async
 
 		#region IAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken cancellationToken)
+		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken ct)
 		{
 			Contract.NotNull(batch, nameof(batch));
 
 			if (batch.Length == 0) return;
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: optimized version !
 			foreach (var item in batch)
 			{
-				await OnNextAsync(item, cancellationToken).ConfigureAwait(false);
+				await OnNextAsync(item, ct).ConfigureAwait(false);
 			}
 		}
 
