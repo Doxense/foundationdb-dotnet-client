@@ -30,10 +30,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("FoundationDB.Linq")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-
 [assembly: ComVisible(false)]
 
 [assembly: Guid("dfd43b61-0d9b-42d6-bbec-a74eafed2631")]

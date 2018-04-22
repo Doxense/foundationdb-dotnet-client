@@ -29,10 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("FoundationDB.Layers.Common")]
-[assembly: AssemblyDescription("Common Layers for the FoundationDB .NET Binding")]
-[assembly: AssemblyConfiguration("")]
-
 [assembly: ComVisible(false)]
 
 [assembly: Guid("0fce138d-cb61-49fd-bb0a-a0ecb37abe79")]
