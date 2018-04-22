@@ -179,7 +179,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.Create(TuPack.EncodeKey(SUBSPACE)), false, ct))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.FromKey(STuple.Create(SUBSPACE)), false, ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -701,7 +701,7 @@ namespace FoundationDB.Tests.Sandbox
 		private static async Task BenchMergeSortAsync(IFdbDatabase db, int N, int K, int B, CancellationToken ct)
 		{
 			// create multiple lists
-			var location = db.Partition.ByKey("MergeSort");
+			var location = db.GlobalSpace.Partition.ByKey("MergeSort");
 			await db.ClearRangeAsync(location, ct);
 
 			var sources = Enumerable.Range(0, K).Select(i => 'A' + i).ToArray();

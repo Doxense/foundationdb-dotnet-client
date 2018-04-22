@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Collections
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 	using Doxense.Linq;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -169,7 +170,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			var range = KeyRange.StartsWith(this.Location.Partial.Keys.Encode(key));
+			var range = KeyRange.StartsWith(this.Location.Keys.EncodePartial(key));
 			if (this.AllowNegativeValues)
 			{
 				return trans
@@ -201,7 +202,7 @@ namespace FoundationDB.Layers.Collections
 		[NotNull]
 		public IAsyncEnumerable<KeyValuePair<TValue, long>> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
-			var range = KeyRange.StartsWith(this.Location.Partial.Keys.Encode(key));
+			var range = KeyRange.StartsWith(this.Location.Keys.EncodePartial(key));
 
 			var query = trans
 				.GetRange(range)
@@ -235,7 +236,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.ClearRange(KeyRange.StartsWith(this.Location.Partial.Keys.Encode(key)));
+			trans.ClearRange(KeyRange.StartsWith(this.Location.Keys.EncodePartial(key)));
 		}
 
 		/// <summary>Remove a value for a specific key</summary>

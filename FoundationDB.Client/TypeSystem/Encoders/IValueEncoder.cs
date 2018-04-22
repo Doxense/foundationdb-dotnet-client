@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
@@ -26,16 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace Doxense.Serialization.Encoders
 {
 	using System;
+	using JetBrains.Annotations;
 
-	public interface IKeyEncoder<T1>
+	/// <summary>Class that know how to encode and decode values of a fixed type</summary>
+	/// <typeparam name="T">Type of the values</typeparam>
+	public interface IValueEncoder<T>
 	{
-		/// <summary>Encode a single value</summary>
-		Slice EncodeKey(T1 value);
+		/// <summary>Encode a single value into a compact binary representation</summary>
+		Slice EncodeValue(T value);
 
-		/// <summary>Decode a single value</summary>
-		T1 DecodeKey(Slice encoded);
+		/// <summary>Decode a single value from a compact binary representation</summary>
+		/// <param name="encoded">Packed value</param>
+		[CanBeNull]
+		T DecodeValue(Slice encoded);
 	}
+
 }

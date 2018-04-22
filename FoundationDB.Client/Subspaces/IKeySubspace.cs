@@ -26,12 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Collections.Generic;
 	using Doxense.Memory;
+	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a sub-partition of the global key space.</summary>
@@ -61,27 +60,17 @@ namespace FoundationDB.Client
 		[Pure]
 		KeyRange ToRange();
 
-		/// <summary>Return a key range that contains all the keys under a suffix in this subspace</summary>
-		/// <param name="suffix">Binary suffix that will be appended to the current prefix, before computing the range</param>
-		/// <returns>Return the range: (this.Key + suffix) &lt;= x &lt;= Increment(this.Key + suffix)</returns>
-		[Pure]
-		KeyRange ToRange(Slice suffix);
-
-		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
-		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
-		IKeySubspace this[Slice suffix]
-		{
-			[Pure, NotNull] get;
-		}
-		//REVIEW this should probably be renamed into GetSubspace(suffix) or Partition(suffix) in order to make it explicit that it is for creating subspaces instances that can be reused multiple times, and not single-use to generate a single key!
+		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
+		Slice this[Slice relativeKey] { [Pure] get; }
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
-		/// <param name="key">Key to test</param>
+		/// <param name="absoluteKey">Key to test</param>
 		/// <returns>True if the key can exist inside the current subspace.</returns>
 		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
 		[Pure]
-		bool Contains(Slice key);
+		bool Contains(Slice absoluteKey); //REVIEW: should this be renamed to "ContainsKey" ?
 
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
 		/// <param name="key">Key that needs to be checked</param>
@@ -89,43 +78,14 @@ namespace FoundationDB.Client
 		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
 		Slice BoundCheck(Slice key, bool allowSystemKeys);
 
-		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
-		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>Full binary key</returns>
-		[Pure]
-		Slice ConcatKey(Slice suffix);
-
-		/// <summary>Concatenate a batch of keys under this subspace</summary>
-		/// <param name="suffixes">List of suffixes to process</param>
-		/// <returns>Array of <see cref="Slice"/> which is equivalent to calling <see cref="ConcatKey(Slice)"/> on each entry in <paramref name="suffixes"/></returns>
-		[Pure, NotNull]
-		Slice[] ConcatKeys([NotNull] IEnumerable<Slice> suffixes);
-		//REVIEW: could this be done via an extension method?
-
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
-		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
-		/// <param name="boundCheck">If true, verify that <paramref name="key"/> is inside the bounds of the subspace</param>
+		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
+		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or Slice.Empty if the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
-		/// <remarks>This is the inverse operation of <see cref="ConcatKey(Slice)"/></remarks>
-		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="key"/> is outside the current subspace.</exception>
+		/// <remarks>This is the inverse operation of <see cref="this[Slice]"/></remarks>
+		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]
-		Slice ExtractKey(Slice key, bool boundCheck = false);
-
-		/// <summary>Remove the subspace prefix from a batch of binary keys, and only return the tail, or Slice.Nil if a key does not fit inside the namespace</summary>
-		/// <param name="keys">Sequence of complete keys that contains the current subspace prefix, and a binary suffix</param>
-		/// <param name="boundCheck">If true, verify that each key in <paramref name="keys"/> is inside the bounds of the subspace</param>
-		/// <returns>Array of only the binary suffix of the keys, Slice.Empty for a key that is exactly equal to the subspace prefix, or Slice.Nil for a key that is outside of the subspace</returns>
-		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and at least one key in <paramref name="keys"/> is outside the current subspace.</exception>
-		[Pure, NotNull]
-		Slice[] ExtractKeys([NotNull] IEnumerable<Slice> keys, bool boundCheck = false);
-		//REVIEW: could this be done via an extension method?
-
-		/// <summary>Return a new slice buffer, initialized with the subspace prefix, that can be used for custom key serialization</summary>
-		/// <param name="capacity">If non-zero, the expected buffer capacity. The size of the subspace prefix will be added to this value.</param>
-		/// <returns>Instance of a SliceWriter with the prefix of this subspace already copied.</returns>
-		[Pure]
-		SliceWriter GetWriter(int capacity = 0);
-		//REVIEW: this is an internal implementation detail that may be moved to a different interface?
+		Slice ExtractKey(Slice absoluteKey, bool boundCheck = false);
 
 	}
 

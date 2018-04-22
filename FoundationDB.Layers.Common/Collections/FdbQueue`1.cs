@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Collections
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 #if DEBUG
 	using FoundationDB.Filters.Logging;

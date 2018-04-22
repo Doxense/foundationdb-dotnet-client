@@ -35,6 +35,7 @@ namespace FoundationDB.Filters
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -127,25 +128,9 @@ namespace FoundationDB.Filters
 			return this.GlobalSpace.ToRange();
 		}
 
-		KeyRange IKeySubspace.ToRange(Slice suffix)
-		{
-			return this.GlobalSpace.ToRange(suffix);
-		}
+		public virtual DynamicPartition Partition => m_database.Partition;
 
-		IKeySubspace IKeySubspace.this[Slice suffix]
-		{
-			get { return this.GlobalSpace[suffix]; }
-		}
-
-		public virtual DynamicPartition Partition
-		{
-			get { return m_database.Partition; }
-		}
-
-		public virtual DynamicKeys Keys
-		{
-			get { return m_database.Keys; }
-		}
+		public virtual DynamicKeys Keys => m_database.Keys;
 
 		public virtual bool Contains(Slice key)
 		{
@@ -157,35 +142,14 @@ namespace FoundationDB.Filters
 			return m_database.BoundCheck(key, allowSystemKeys);
 		}
 
-		public virtual Slice ConcatKey(Slice key)
-		{
-			return m_database.ConcatKey(key);
-		}
-
-		public virtual Slice[] ConcatKeys(IEnumerable<Slice> keys)
-		{
-			return m_database.ConcatKeys(keys);
-		}
+		public virtual Slice this[Slice key] => m_database[key];
 
 		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
 		{
 			return m_database.ExtractKey(key, boundCheck);
 		}
 
-		public virtual Slice[] ExtractKeys(IEnumerable<Slice> keys, bool boundCheck = false)
-		{
-			return m_database.ExtractKeys(keys, boundCheck);
-		}
-
-		public virtual SliceWriter GetWriter(int capacity = 0)
-		{
-			return m_database.GetWriter(capacity);
-		}
-
-		public virtual IDynamicKeyEncoder Encoder
-		{
-			get { return m_database.Encoder; }
-		}
+		public virtual IKeyEncoding Encoding => m_database.Encoding;
 
 		#endregion
 

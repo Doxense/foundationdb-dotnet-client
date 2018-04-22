@@ -26,20 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
-namespace FoundationDB.Client
+namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class for all key/value encoders</summary>
 	[PublicAPI]
-	public static class KeyValueEncoders
+	public static partial class KeyValueEncoders
 	{
 		/// <summary>Identity function for binary slices</summary>
 		public static readonly IdentityEncoder Binary = new IdentityEncoder();
@@ -52,14 +53,14 @@ namespace FoundationDB.Client
 
 			internal IdentityEncoder() { }
 
-			public Slice EncodeKey(Slice key)
+			public void WriteKeyTo(ref SliceWriter writer, Slice key)
 			{
-				return key;
+				writer.WriteBytes(key);
 			}
 
-			public Slice DecodeKey(Slice encoded)
+			public void ReadKeyFrom(ref SliceReader reader, out Slice value)
 			{
-				return encoded;
+				value = reader.ReadToEnd();
 			}
 
 			public Slice EncodeValue(Slice value)
@@ -92,14 +93,14 @@ namespace FoundationDB.Client
 				return new[] { typeof(T) };
 			}
 
-			public Slice EncodeKey(T value)
+			public void WriteKeyTo(ref SliceWriter writer, T value)
 			{
-				return m_encoder(value);
+				writer.WriteBytes(m_encoder(value));
 			}
 
-			public T DecodeKey(Slice encoded)
+			public void ReadKeyFrom(ref SliceReader reader, out T value)
 			{
-				return m_decoder(encoded);
+				value = m_decoder(reader.ReadToEnd());
 			}
 
 			public Slice EncodeValue(T value)
@@ -118,33 +119,19 @@ namespace FoundationDB.Client
 		public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
 		{
 
-			public abstract Slice EncodeComposite(STuple<T1, T2> key, int items);
+			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2> items);
 
-			public abstract STuple<T1, T2> DecodeComposite(Slice encoded, int items);
+			public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2> items);
 
-			public Slice EncodeKey(STuple<T1, T2> key)
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void WriteKeyTo(ref SliceWriter writer, STuple<T1, T2> items)
 			{
-				return EncodeComposite(key, 2);
+				WriteKeyPartsTo(ref writer, 2, ref items);
 			}
 
-			public virtual Slice EncodeKey(T1 item1, T2 item2)
+			public void ReadKeyFrom(ref SliceReader reader, out STuple<T1, T2> items)
 			{
-				return EncodeComposite(STuple.Create<T1, T2>(item1, item2), 2);
-			}
-
-			public virtual STuple<T1, T2> DecodeKey(Slice encoded)
-			{
-				return DecodeComposite(encoded, 2);
-			}
-
-			public T1 DecodePartialKey(Slice encoded)
-			{
-				return DecodeComposite(encoded, 1).Item1;
-			}
-
-			public HeadEncoder<T1, T2> Head()
-			{
-				return new HeadEncoder<T1, T2>(this);
+				ReadKeyPartsFrom(ref reader, 2, out items);
 			}
 
 		}
@@ -153,38 +140,18 @@ namespace FoundationDB.Client
 		public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
 		{
 
-			public abstract Slice EncodeComposite(STuple<T1, T2, T3> items, int count);
+			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3> items);
 
-			public abstract STuple<T1, T2, T3> DecodeComposite(Slice encoded, int count);
+			public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2, T3> items);
 
-			public Slice EncodeKey(STuple<T1, T2, T3> key)
+			public void WriteKeyTo(ref SliceWriter writer, STuple<T1, T2, T3> items)
 			{
-				return EncodeComposite(key, 3);
+				WriteKeyPartsTo(ref writer, 3, ref items);
 			}
 
-			public virtual Slice EncodeKey(T1 item1, T2 item2, T3 item3)
+			public void ReadKeyFrom(ref SliceReader reader, out STuple<T1, T2, T3> items)
 			{
-				return EncodeComposite(STuple.Create<T1, T2, T3>(item1, item2, item3), 3);
-			}
-
-			public virtual STuple<T1, T2, T3> DecodeKey(Slice encoded)
-			{
-				return DecodeComposite(encoded, 3);
-			}
-
-			public STuple<T1, T2, T3> DecodeKey(Slice encoded, int items)
-			{
-				return DecodeComposite(encoded, items);
-			}
-
-			public HeadEncoder<T1, T2, T3> Head()
-			{
-				return new HeadEncoder<T1, T2, T3>(this);
-			}
-
-			public PairEncoder<T1, T2, T3> Pair()
-			{
-				return new PairEncoder<T1, T2, T3>(this);
+				ReadKeyPartsFrom(ref reader, 3, out items);
 			}
 
 		}
@@ -193,674 +160,43 @@ namespace FoundationDB.Client
 		public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
 		{
 
-			public abstract Slice EncodeComposite(STuple<T1, T2, T3, T4> items, int count);
+			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3, T4> items);
 
-			public abstract STuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int count);
+			public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2, T3, T4> items);
 
-			public Slice EncodeKey(STuple<T1, T2, T3, T4> key)
+			public void WriteKeyTo(ref SliceWriter writer, STuple<T1, T2, T3, T4> items)
 			{
-				return EncodeComposite(key, 4);
+				WriteKeyPartsTo(ref writer, 4, ref items);
 			}
 
-			public virtual Slice EncodeKey(T1 item1, T2 item2, T3 item3, T4 item4)
+			public void ReadKeyFrom(ref SliceReader reader, out STuple<T1, T2, T3, T4> items)
 			{
-				return EncodeComposite(STuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4), 4);
+				ReadKeyPartsFrom(ref reader, 4, out items);
 			}
 
-			public virtual STuple<T1, T2, T3, T4> DecodeKey(Slice encoded)
-			{
-				return DecodeComposite(encoded, 4);
-			}
-
-			public STuple<T1, T2, T3, T4> DecodeKey(Slice encoded, int items)
-			{
-				return DecodeComposite(encoded, items);
-			}
 		}
 
-		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
-		public struct HeadEncoder<T1, T2> : IKeyEncoder<T1>
+		/// <summary>Wrapper for encoding and decoding a quad with lambda functions</summary>
+		public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5> : ICompositeKeyEncoder<T1, T2, T3, T4, T5>
 		{
-			[NotNull]
-			public readonly ICompositeKeyEncoder<T1, T2> Encoder;
 
-			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3, T4, T5> items);
+
+			public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2, T3, T4, T5> items);
+
+			public void WriteKeyTo(ref SliceWriter writer, STuple<T1, T2, T3, T4, T5> items)
 			{
-				Contract.Requires(encoder != null);
-				this.Encoder = encoder;
+				WriteKeyPartsTo(ref writer, 5, ref items);
 			}
 
-			public Slice EncodeKey(T1 value)
+			public void ReadKeyFrom(ref SliceReader reader, out STuple<T1, T2, T3, T4, T5> items)
 			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2>(value, default(T2)), 1);
+				ReadKeyPartsFrom(ref reader, 5, out items);
 			}
 
-			public T1 DecodeKey(Slice encoded)
-			{
-				return this.Encoder.DecodeComposite(encoded, 1).Item1;
-			}
-		}
-
-		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
-		public struct HeadEncoder<T1, T2, T3> : IKeyEncoder<T1>
-		{
-			[NotNull]
-			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
-
-			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
-			{
-				Contract.Requires(encoder != null);
-				this.Encoder = encoder;
-			}
-
-			public Slice EncodeKey(T1 value)
-			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3>(value, default(T2), default(T3)), 1);
-			}
-
-			public T1 DecodeKey(Slice encoded)
-			{
-				return this.Encoder.DecodeComposite(encoded, 1).Item1;
-			}
-		}
-
-		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
-		public struct HeadEncoder<T1, T2, T3, T4> : IKeyEncoder<T1>
-		{
-			[NotNull]
-			public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
-
-			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
-			{
-				Contract.Requires(encoder != null);
-				this.Encoder = encoder;
-			}
-
-			public Slice EncodeKey(T1 value)
-			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3, T4>(value, default(T2), default(T3), default(T4)), 1);
-			}
-
-			public T1 DecodeKey(Slice encoded)
-			{
-				return this.Encoder.DecodeComposite(encoded, 1).Item1;
-			}
-		}
-
-		/// <summary>Wrapper for a composite encoder that will only output the first and second keys</summary>
-		public struct PairEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2>
-		{
-			[NotNull]
-			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
-
-			public PairEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
-			{
-				Contract.Requires(encoder != null);
-				this.Encoder = encoder;
-			}
-
-			public Slice EncodeKey(T1 value1, T2 value2)
-			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3>(value1, value2, default(T3)), 2);
-			}
-
-			public Slice EncodeComposite(STuple<T1, T2> key, int items)
-			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3>(key.Item1, key.Item2, default(T3)), items);
-			}
-
-			public STuple<T1, T2> DecodeComposite(Slice encoded, int items)
-			{
-				var t = this.Encoder.DecodeComposite(encoded, items);
-				return new STuple<T1, T2>(t.Item1, t.Item2);
-			}
-
-			public Slice EncodeKey(STuple<T1, T2> value)
-			{
-				return EncodeComposite(value, 2);
-			}
-
-			public STuple<T1, T2> DecodeKey(Slice encoded)
-			{
-				return DecodeComposite(encoded, 2);
-			}
-
-			public HeadEncoder<T1, T2, T3> Head()
-			{
-				return new HeadEncoder<T1, T2, T3>(this.Encoder);
-			}
-		}
-
-		/// <summary>Wrapper for a composite encoder that will only output the first and second keys</summary>
-		public struct PairEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2>
-		{
-			[NotNull]
-			public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
-
-			public PairEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
-			{
-				Contract.Requires(encoder != null);
-				this.Encoder = encoder;
-			}
-
-			public Slice EncodeKey(T1 value1, T2 value2)
-			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3, T4>(value1, value2, default(T3), default(T4)), 2);
-			}
-
-			public Slice EncodeComposite(STuple<T1, T2> key, int items)
-			{
-				return this.Encoder.EncodeComposite(new STuple<T1, T2, T3, T4>(key.Item1, key.Item2, default(T3), default(T4)), items);
-			}
-
-			public STuple<T1, T2> DecodeComposite(Slice encoded, int items)
-			{
-				var t = this.Encoder.DecodeComposite(encoded, items);
-				return new STuple<T1, T2>(t.Item1, t.Item2);
-			}
-
-			public Slice EncodeKey(STuple<T1, T2> value)
-			{
-				return EncodeComposite(value, 2);
-			}
-
-			public STuple<T1, T2> DecodeKey(Slice encoded)
-			{
-				return DecodeComposite(encoded, 2);
-			}
-
-			public HeadEncoder<T1, T2, T3, T4> Head()
-			{
-				return new HeadEncoder<T1, T2, T3, T4>(this.Encoder);
-			}
 		}
 
 		#endregion
-
-		/// <summary>Encoders that produce lexicographically ordered slices, suitable for keys where lexicographical ordering is required</summary>
-		public static class Ordered
-		{
-			public static IKeyEncoder<Slice> BinaryEncoder
-			{
-				[NotNull]
-				get { return Tuples.Key<Slice>(); }
-			}
-
-			public static IKeyEncoder<string> StringEncoder
-			{
-				[NotNull]
-				get { return Tuples.Key<string>(); }
-			}
-
-			public static IKeyEncoder<int> Int32Encoder
-			{
-				[NotNull]
-				get { return Tuples.Key<int>(); }
-			}
-
-			public static IKeyEncoder<long> Int64Encoder
-			{
-				[NotNull]
-				get { return Tuples.Key<long>(); }
-			}
-
-			public static IKeyEncoder<ulong> UInt64Encoder
-			{
-				[NotNull]
-				get { return Tuples.Key<ulong>(); }
-			}
-
-			public sealed class OrderedKeyEncoder<T> : IKeyEncoder<T>
-			{
-				private readonly IOrderedTypeCodec<T> m_codec;
-
-				public OrderedKeyEncoder(IOrderedTypeCodec<T> codec)
-				{
-					Contract.Requires(codec != null);
-					m_codec = codec;
-				}
-
-				public Slice EncodeKey(T key)
-				{
-					return m_codec.EncodeOrdered(key);
-				}
-
-				public T DecodeKey(Slice encoded)
-				{
-					return m_codec.DecodeOrdered(encoded);
-				}
-			}
-
-			public sealed class CodecCompositeKeyEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
-			{
-				private readonly IOrderedTypeCodec<T1> m_codec1;
-				private readonly IOrderedTypeCodec<T2> m_codec2;
-
-				public CodecCompositeKeyEncoder(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2)
-				{
-					m_codec1 = codec1;
-					m_codec2 = codec2;
-				}
-
-				public override Slice EncodeComposite(STuple<T1, T2> items, int count)
-				{
-					Contract.Requires(count > 0);
-
-					var writer = default(SliceWriter);
-					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
-					if (count >= 2) m_codec2.EncodeOrderedSelfTerm(ref writer, items.Item2);
-					return writer.ToSlice();
-				}
-
-				public override STuple<T1, T2> DecodeComposite(Slice encoded, int count)
-				{
-					Contract.Requires(count > 0);
-
-					var reader = new SliceReader(encoded);
-					T1 key1 = default(T1);
-					T2 key2 = default(T2);
-					if (count >= 1) key1 = m_codec1.DecodeOrderedSelfTerm(ref reader);
-					if (count >= 2) key2 = m_codec2.DecodeOrderedSelfTerm(ref reader);
-					if (reader.HasMore) throw new InvalidOperationException(String.Format("Unexpected data at the end of composite key after {0} items", count));
-					return STuple.Create<T1, T2>(key1, key2);
-				}
-
-			}
-
-			public sealed class CodecCompositeKeyEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
-			{
-				private readonly IOrderedTypeCodec<T1> m_codec1;
-				private readonly IOrderedTypeCodec<T2> m_codec2;
-				private readonly IOrderedTypeCodec<T3> m_codec3;
-
-				public CodecCompositeKeyEncoder(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2, IOrderedTypeCodec<T3> codec3)
-				{
-					m_codec1 = codec1;
-					m_codec2 = codec2;
-					m_codec3 = codec3;
-				}
-
-				public override Slice EncodeComposite(STuple<T1, T2, T3> items, int count)
-				{
-					Contract.Requires(count > 0 && count <= 3);
-
-					var writer = default(SliceWriter);
-					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
-					if (count >= 2) m_codec2.EncodeOrderedSelfTerm(ref writer, items.Item2);
-					if (count >= 3) m_codec3.EncodeOrderedSelfTerm(ref writer, items.Item3);
-					return writer.ToSlice();
-				}
-
-				public override STuple<T1, T2, T3> DecodeComposite(Slice encoded, int count)
-				{
-					Contract.Requires(count > 0);
-
-					var reader = new SliceReader(encoded);
-					T1 key1 = default(T1);
-					T2 key2 = default(T2);
-					T3 key3 = default(T3);
-					if (count >= 1) key1 = m_codec1.DecodeOrderedSelfTerm(ref reader);
-					if (count >= 2) key2 = m_codec2.DecodeOrderedSelfTerm(ref reader);
-					if (count >= 3) key3 = m_codec3.DecodeOrderedSelfTerm(ref reader);
-					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
-					return STuple.Create<T1, T2, T3>(key1, key2, key3);
-				}
-
-			}
-
-			/// <summary>Create a simple encoder from a codec</summary>
-			[NotNull]
-			public static IKeyEncoder<T> Bind<T>([NotNull] IOrderedTypeCodec<T> codec)
-			{
-				if (codec == null) throw new ArgumentNullException(nameof(codec));
-
-				return new OrderedKeyEncoder<T>(codec);
-			}
-
-			/// <summary>Create a composite encoder from a pair of codecs</summary>
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2> Bind<T1, T2>([NotNull] IOrderedTypeCodec<T1> codec1, [NotNull] IOrderedTypeCodec<T2> codec2)
-			{
-				if (codec1 == null) throw new ArgumentNullException(nameof(codec1));
-				if (codec2 == null) throw new ArgumentNullException(nameof(codec2));
-
-				return new CodecCompositeKeyEncoder<T1, T2>(codec1, codec2);
-			}
-
-			/// <summary>Create a composite encoder from a triplet of codecs</summary>
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2, T3> Bind<T1, T2, T3>([NotNull] IOrderedTypeCodec<T1> codec1, [NotNull] IOrderedTypeCodec<T2> codec2, [NotNull] IOrderedTypeCodec<T3> codec3)
-			{
-				if (codec1 == null) throw new ArgumentNullException(nameof(codec1));
-				if (codec2 == null) throw new ArgumentNullException(nameof(codec2));
-				if (codec3 == null) throw new ArgumentNullException(nameof(codec2));
-
-				return new CodecCompositeKeyEncoder<T1, T2, T3>(codec1, codec2, codec3);
-			}
-
-			public static void Partial<T1>(ref SliceWriter writer, IOrderedTypeCodec<T1> codec1, T1 value1)
-			{
-				Contract.Assert(codec1 != null);
-				codec1.EncodeOrderedSelfTerm(ref writer, value1);
-			}
-
-			public static void Encode<T1, T2>(ref SliceWriter writer, [NotNull] IOrderedTypeCodec<T1> codec1, T1 value1, [NotNull] IOrderedTypeCodec<T2> codec2, T2 value2)
-			{
-				Contract.Assert(codec1 != null && codec2 != null);
-				codec1.EncodeOrderedSelfTerm(ref writer, value1);
-				codec2.EncodeOrderedSelfTerm(ref writer, value2);
-			}
-
-			public static void Encode<T1, T2, T3>(ref SliceWriter writer, [NotNull] IOrderedTypeCodec<T1> codec1, T1 value1, [NotNull] IOrderedTypeCodec<T2> codec2, T2 value2, [NotNull] IOrderedTypeCodec<T3> codec3, T3 value3)
-			{
-				Contract.Assert(codec1 != null && codec2 != null && codec3 != null);
-				codec1.EncodeOrderedSelfTerm(ref writer, value1);
-				codec2.EncodeOrderedSelfTerm(ref writer, value2);
-				codec3.EncodeOrderedSelfTerm(ref writer, value3);
-			}
-
-		}
-
-		/// <summary>Encoders that produce compact but unordered slices, suitable for keys that don't benefit from having lexicographical ordering</summary>
-		public static class Unordered
-		{
-
-			/// <summary>Create a simple encoder from a codec</summary>
-			[NotNull]
-			public static IKeyEncoder<T> Bind<T>([NotNull] IUnorderedTypeCodec<T> codec)
-			{
-				if (codec == null) throw new ArgumentNullException(nameof(codec));
-
-				var encoder = codec as IKeyEncoder<T>;
-				if (encoder != null) return encoder;
-
-				return new Singleton<T>(
-					(value) => codec.EncodeUnordered(value),
-					(encoded) => codec.DecodeUnordered(encoded)
-				);
-			}
-
-		}
-
-		/// <summary>Encoders that produce compact but unordered slices, suitable for values</summary>
-		public static class Values
-		{
-			private static readonly GenericEncoder s_default = new GenericEncoder();
-
-			public static IValueEncoder<Slice> BinaryEncoder
-			{
-				[NotNull]
-				get { return s_default; }
-			}
-
-			public static IValueEncoder<string> StringEncoder
-			{
-				[NotNull]
-				get { return s_default; }
-			}
-
-			public static IValueEncoder<int> Int32Encoder
-			{
-				[NotNull]
-				get { return s_default; }
-			}
-
-			public static IValueEncoder<long> Int64Encoder
-			{
-				[NotNull]
-				get { return s_default; }
-			}
-
-			public static IValueEncoder<Guid> GuidEncoder
-			{
-				[NotNull]
-				get { return s_default; }
-			}
-
-			/// <summary>Create a simple encoder from a codec</summary>
-			[NotNull]
-			public static IValueEncoder<T> Bind<T>([NotNull] IUnorderedTypeCodec<T> codec)
-			{
-				if (codec == null) throw new ArgumentNullException(nameof(codec));
-
-				var encoder = codec as IValueEncoder<T>;
-				if (encoder != null) return encoder;
-
-				return new Singleton<T>(
-					(value) => codec.EncodeUnordered(value),
-					(encoded) => codec.DecodeUnordered(encoded)
-				);
-			}
-
-			internal sealed class GenericEncoder : IValueEncoder<Slice>, IValueEncoder<string>, IValueEncoder<int>, IValueEncoder<long>, IValueEncoder<Guid>
-			{
-
-				public Slice EncodeValue(Slice value)
-				{
-					return value;
-				}
-
-				Slice IValueEncoder<Slice>.DecodeValue(Slice encoded)
-				{
-					return encoded;
-				}
-
-				public Slice EncodeValue(string value)
-				{
-					return Slice.FromString(value);
-				}
-
-				string IValueEncoder<string>.DecodeValue(Slice encoded)
-				{
-					return encoded.ToUnicode();
-				}
-
-				public Slice EncodeValue(int value)
-				{
-					return Slice.FromInt32(value);
-				}
-
-				int IValueEncoder<int>.DecodeValue(Slice encoded)
-				{
-					return encoded.ToInt32();
-				}
-
-				public Slice EncodeValue(long value)
-				{
-					return Slice.FromInt64(value);
-				}
-
-				long IValueEncoder<long>.DecodeValue(Slice encoded)
-				{
-					return encoded.ToInt64();
-				}
-
-				public Slice EncodeValue(Guid value)
-				{
-					return Slice.FromGuid(value);
-				}
-
-				Guid IValueEncoder<Guid>.DecodeValue(Slice encoded)
-				{
-					return encoded.ToGuid();
-				}
-
-			}
-
-		}
-
-		/// <summary>Encoders that use the Tuple Encoding, suitable for keys</summary>
-		public static class Tuples
-		{
-
-			//TODO: rename to TupleEncoder<T>!
-			internal class TupleKeyEncoder<T> : IKeyEncoder<T>, IValueEncoder<T>
-			{
-				public static readonly TupleKeyEncoder<T> Default = new TupleKeyEncoder<T>();
-
-				private TupleKeyEncoder() { }
-
-				public Slice EncodeKey(T key)
-				{
-					return TuPack.EncodeKey(key);
-				}
-
-				public T DecodeKey(Slice encoded)
-				{
-					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return TuPack.DecodeKey<T>(encoded);
-				}
-
-				public Slice EncodeValue(T key)
-				{
-					return TuPack.EncodeKey(key);
-				}
-
-				public T DecodeValue(Slice encoded)
-				{
-					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return TuPack.DecodeKey<T>(encoded);
-				}
-
-			}
-
-			internal class TupleCompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2> Default = new TupleCompositeEncoder<T1, T2>();
-
-				private TupleCompositeEncoder() { }
-
-				public override Slice EncodeComposite(STuple<T1, T2> key, int items)
-				{
-					switch (items)
-					{
-						case 2: return TuPack.EncodeKey(key.Item1, key.Item2);
-						case 1: return TuPack.EncodeKey(key.Item1);
-						default: throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be either 1 or 2");
-					}
-				}
-
-				public override STuple<T1, T2> DecodeComposite(Slice encoded, int items)
-				{
-					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be either 1 or 2");
-
-					var t = TuPack.Unpack(encoded).OfSize(items);
-					Contract.Assert(t != null);
-
-					return STuple.Create<T1, T2>(
-						t.Get<T1>(0),
-						items >= 2 ? t.Get<T2>(1) : default(T2)
-					);
-				}
-			}
-
-			internal class TupleCompositeEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2, T3> Default = new TupleCompositeEncoder<T1, T2, T3>();
-
-				private TupleCompositeEncoder() { }
-
-				public override Slice EncodeComposite(STuple<T1, T2, T3> key, int items)
-				{
-					switch (items)
-					{
-						case 3: return TuPack.EncodeKey(key.Item1, key.Item2, key.Item3);
-						case 2: return TuPack.EncodeKey(key.Item1, key.Item2);
-						case 1: return TuPack.EncodeKey(key.Item1);
-						default: throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 3");
-					}
-				}
-
-				public override STuple<T1, T2, T3> DecodeComposite(Slice encoded, int items)
-				{
-					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 3");
-
-					var t = TuPack.Unpack(encoded).OfSize(items);
-					Contract.Assert(t != null);
-
-					return STuple.Create<T1, T2, T3>(
-						t.Get<T1>(0),
-						items >= 2 ? t.Get<T2>(1) : default(T2),
-						items >= 3 ? t.Get<T3>(2) : default(T3)
-					);
-				}
-			}
-
-			internal class TupleCompositeEncoder<T1, T2, T3, T4> : CompositeKeyEncoder<T1, T2, T3, T4>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2, T3, T4> Default = new TupleCompositeEncoder<T1, T2, T3, T4>();
-
-				private TupleCompositeEncoder() { }
-
-				public override Slice EncodeComposite(STuple<T1, T2, T3, T4> key, int items)
-				{
-					switch (items)
-					{
-						case 4: return TuPack.EncodeKey(key.Item1, key.Item2, key.Item3, key.Item4);
-						case 3: return TuPack.EncodeKey(key.Item1, key.Item2, key.Item3);
-						case 2: return TuPack.EncodeKey(key.Item1, key.Item2);
-						case 1: return TuPack.EncodeKey(key.Item1);
-						default: throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 4");
-					}
-				}
-
-				public override STuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int items)
-				{
-					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException(nameof(items), items, "Item count must be between 1 and 4");
-
-					var t = TuPack.Unpack(encoded).OfSize(items);
-
-					return STuple.Create<T1, T2, T3, T4>(
-						t.Get<T1>(0),
-						items >= 2 ? t.Get<T2>(1) : default(T2),
-						items >= 3 ? t.Get<T3>(2) : default(T3),
-						items >= 4 ? t.Get<T4>(3) : default(T4)
-					);
-				}
-			}
-
-			#region Keys
-
-			[NotNull]
-			public static IKeyEncoder<T1> Key<T1>()
-			{
-				return TupleKeyEncoder<T1>.Default;
-			}
-
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2> CompositeKey<T1, T2>()
-			{
-				return TupleCompositeEncoder<T1, T2>.Default;
-			}
-
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2, T3> CompositeKey<T1, T2, T3>()
-			{
-				return TupleCompositeEncoder<T1, T2, T3>.Default;
-			}
-
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2, T3, T4> CompositeKey<T1, T2, T3, T4>()
-			{
-				return TupleCompositeEncoder<T1, T2, T3, T4>.Default;
-			}
-
-			#endregion
-
-			#region Values...
-
-			[NotNull]
-			public static IValueEncoder<T> Value<T>()
-			{
-				return TupleKeyEncoder<T>.Default;
-			}
-
-			#endregion
-
-		}
 
 		#region Keys...
 
@@ -872,8 +208,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IKeyEncoder<T> Bind<T>([NotNull] Func<T, Slice> encoder, [NotNull] Func<Slice, T> decoder)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (decoder == null) throw new ArgumentNullException(nameof(decoder));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(decoder, nameof(decoder));
 			return new Singleton<T>(encoder, decoder);
 		}
 
@@ -881,8 +217,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params T[] values)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (values == null) throw new ArgumentNullException(nameof(values));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
 
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
@@ -896,9 +232,9 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] IEnumerable<TElement> elements, Func<TElement, TKey> selector)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (elements == null) throw new ArgumentNullException(nameof(elements));
-			if (selector == null) throw new ArgumentNullException(nameof(selector));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(elements, nameof(elements));
+			Contract.NotNull(selector, nameof(selector));
 
 			TElement[] arr;
 			ICollection<TElement> coll;
@@ -907,7 +243,7 @@ namespace FoundationDB.Client
 			{ // fast path for arrays
 				return EncodeKeys<TKey, TElement>(encoder, arr, selector);
 			}
-			else if ((coll = elements as ICollection<TElement>) != null)
+			if ((coll = elements as ICollection<TElement>) != null)
 			{ // we can pre-allocate the result array
 				var slices = new Slice[coll.Count];
 				int p = 0;
@@ -917,22 +253,17 @@ namespace FoundationDB.Client
 				}
 				return slices;
 			}
-			else
-			{ // slow path
-				return elements
-					.Select((item) => encoder.EncodeKey(selector(item)))
-					.ToArray();
-			}
-
+			// slow path
+			return elements.Select((item) => encoder.EncodeKey(selector(item))).ToArray();
 		}
 
 		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
 		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (elements == null) throw new ArgumentNullException(nameof(elements));
-			if (selector == null) throw new ArgumentNullException(nameof(selector));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(elements, nameof(elements));
+			Contract.NotNull(selector, nameof(selector));
 
 			var slices = new Slice[elements.Length];
 			for (int i = 0; i < elements.Length; i++)
@@ -946,19 +277,17 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (values == null) throw new ArgumentNullException(nameof(values));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
 
 			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
 
-			var array = values as T[];
-			if (array != null)
+			if (values is T[] array)
 			{ // optimized path for arrays
 				return EncodeKeys<T>(encoder, array);
 			}
 
-			var coll = values as ICollection<T>;
-			if (coll != null)
+			if (values is ICollection<T> coll)
 			{ // optimized path when we know the count
 				var slices = new List<Slice>(coll.Count);
 				foreach (var value in coll)
@@ -976,8 +305,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (slices == null) throw new ArgumentNullException(nameof(slices));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(slices, nameof(slices));
 
 			var values = new T[slices.Length];
 			for (int i = 0; i < slices.Length; i++)
@@ -991,8 +320,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (items == null) throw new ArgumentNullException(nameof(items));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(items, nameof(items));
 
 			var values = new T[items.Length];
 			for (int i = 0; i < items.Length; i++)
@@ -1006,51 +335,12 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<T> DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (slices == null) throw new ArgumentNullException(nameof(slices));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(slices, nameof(slices));
 
 			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
 
 			return slices.Select(slice => encoder.DecodeKey(slice));
-		}
-
-		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2> Head<T1, T2>([NotNull] this ICompositeKeyEncoder<T1, T2> encoder)
-		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			return new HeadEncoder<T1, T2>(encoder);
-		}
-
-		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
-		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-
-			return new HeadEncoder<T1, T2, T3>(encoder);
-		}
-
-		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2, T3, T4> Head<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
-		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-
-			return new HeadEncoder<T1, T2, T3, T4>(encoder);
-		}
-
-		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
-		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
-		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-
-			return new PairEncoder<T1, T2, T3>(encoder);
-		}
-
-		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
-		public static PairEncoder<T1, T2, T3, T4> Pair<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
-		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-
-			return new PairEncoder<T1, T2, T3, T4>(encoder);
 		}
 
 		#endregion
@@ -1061,8 +351,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params T[] values)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (values == null) throw new ArgumentNullException(nameof(values));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
 
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
@@ -1077,8 +367,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<Slice> EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (values == null) throw new ArgumentNullException(nameof(values));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
 
 			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
 
@@ -1106,8 +396,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (slices == null) throw new ArgumentNullException(nameof(slices));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(slices, nameof(slices));
 
 			var values = new T[slices.Length];
 			for (int i = 0; i < slices.Length; i++)
@@ -1122,8 +412,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (items == null) throw new ArgumentNullException(nameof(items));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(items, nameof(items));
 
 			var values = new T[items.Length];
 			for (int i = 0; i < items.Length; i++)
@@ -1138,8 +428,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IEnumerable<T> DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-			if (slices == null) throw new ArgumentNullException(nameof(slices));
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(slices, nameof(slices));
 
 			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
 

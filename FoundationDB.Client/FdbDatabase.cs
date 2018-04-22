@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Layers.Directories;
@@ -455,8 +456,8 @@ namespace FoundationDB.Client
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = KeySubspace.CopyDynamic(subspace, TypeSystem.Tuples);
-				m_globalSpaceCopy = KeySubspace.CopyDynamic(subspace, TypeSystem.Tuples); // keep another copy
+				m_globalSpace = KeySubspace.Copy(subspace).Using(TypeSystem.Tuples);
+				m_globalSpaceCopy = KeySubspace.Copy(subspace).Using(TypeSystem.Tuples); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
@@ -534,15 +535,7 @@ namespace FoundationDB.Client
 			return m_globalSpace.BoundCheck(key, allowSystemKeys);
 		}
 
-		Slice IKeySubspace.ConcatKey(Slice key)
-		{
-			return m_globalSpace.ConcatKey(key);
-		}
-
-		Slice[] IKeySubspace.ConcatKeys(IEnumerable<Slice> keys)
-		{
-			return m_globalSpace.ConcatKeys(keys);
-		}
+		Slice IKeySubspace.this[Slice relativeKey] => m_globalSpace[relativeKey];
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
 		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck)
@@ -550,28 +543,9 @@ namespace FoundationDB.Client
 			return m_globalSpace.ExtractKey(key, boundCheck);
 		}
 
-		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice[] IKeySubspace.ExtractKeys(IEnumerable<Slice> keys, bool boundCheck)
-		{
-			return m_globalSpace.ExtractKeys(keys, boundCheck);
-		}
-
-		SliceWriter IKeySubspace.GetWriter(int capacity)
-		{
-			return m_globalSpace.GetWriter(capacity);
-		}
-
 		Slice IKeySubspace.GetPrefix()
 		{
 			return m_globalSpace.GetPrefix();
-		}
-
-		IKeySubspace IKeySubspace.this[Slice suffix]
-		{
-			get
-			{
-				return m_globalSpace[suffix];
-			}
 		}
 
 		KeyRange IKeySubspace.ToRange()
@@ -579,26 +553,12 @@ namespace FoundationDB.Client
 			return m_globalSpace.ToRange();
 		}
 
-		KeyRange IKeySubspace.ToRange(Slice suffix)
-		{
-			return m_globalSpace.ToRange(suffix);
-		}
+		public DynamicPartition Partition => m_globalSpace.Partition;
+		//REVIEW: should we hide this on the main db?
 
-		public DynamicPartition Partition
-		{
-			//REVIEW: should we hide this on the main db?
-			get { return m_globalSpace.Partition; }
-		}
+		IKeyEncoding IDynamicKeySubspace.Encoding => m_globalSpace.Encoding;
 
-		IDynamicKeyEncoder IDynamicKeySubspace.Encoder
-		{
-			get { return m_globalSpace.Encoder; }
-		}
-
-		public DynamicKeys Keys
-		{
-			get { return m_globalSpace.Keys; }
-		}
+		public DynamicKeys Keys => m_globalSpace.Keys;
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(ref Slice key)

@@ -545,7 +545,7 @@ namespace FoundationDB.Client
 			dbName = dbName ?? "DB";
 			globalSpace = globalSpace ?? KeySubspace.Empty;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", dbName, clusterFile, globalSpace));
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;

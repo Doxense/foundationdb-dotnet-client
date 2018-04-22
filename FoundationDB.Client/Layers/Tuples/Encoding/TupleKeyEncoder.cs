@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB;
 	using FoundationDB.Client;
 
@@ -49,7 +50,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			get { return TypeSystem.Tuples; }
 		}
 
-		public void PackKey(ref SliceWriter writer, ITuple items)
+		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items)
+			where TTuple : ITuple
 		{
 			var tw = new TupleWriter(writer);
 			TupleEncoder.WriteTo(ref tw, items);
@@ -178,6 +180,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		public STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
+		}
+
+		public STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
+		{
+			return TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
 		}
 
 		public KeyRange ToRange(Slice prefix)

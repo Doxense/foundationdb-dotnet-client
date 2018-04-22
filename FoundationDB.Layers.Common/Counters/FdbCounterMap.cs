@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Counters
 	using JetBrains.Annotations;
 	using System;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>

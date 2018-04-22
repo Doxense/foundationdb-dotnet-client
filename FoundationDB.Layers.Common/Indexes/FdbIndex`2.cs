@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Indexing
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -146,7 +147,7 @@ namespace FoundationDB.Layers.Indexing
 		[NotNull]
 		public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var prefix = this.Location.Partial.Keys.Encode(value);
+			var prefix = this.Location.Keys.EncodePartial(value);
 
 			return trans
 				.GetRange(KeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
@@ -156,7 +157,7 @@ namespace FoundationDB.Layers.Indexing
 		[NotNull]
 		public FdbRangeQuery<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Location.Partial.Keys.Encode(value);
+			var prefix = this.Location.Keys.EncodePartial(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new KeySelectorPair(
@@ -172,7 +173,7 @@ namespace FoundationDB.Layers.Indexing
 		[NotNull]
 		public FdbRangeQuery<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Location.Partial.Keys.Encode(value);
+			var prefix = this.Location.Keys.EncodePartial(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new KeySelectorPair(

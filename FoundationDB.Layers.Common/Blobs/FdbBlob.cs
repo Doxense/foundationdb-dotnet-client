@@ -35,6 +35,7 @@ namespace FoundationDB.Layers.Blobs
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={Subspace}")]

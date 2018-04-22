@@ -30,6 +30,7 @@ namespace FoundationDB.Client.Converters.Tests
 {
 	using System;
 	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
@@ -120,23 +121,23 @@ namespace FoundationDB.Client.Converters.Tests
 
 			// partial key encoding
 
-			data = encoder.EncodeComposite(items, 2);
+			data = encoder.EncodeKeyParts(2, items);
 			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x, y)));
-			items = encoder.DecodeComposite(TuPack.EncodeKey(x, y), 2);
+			items = encoder.DecodeKeyParts(2, TuPack.EncodeKey(x, y));
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(y));
 			Assert.That(items.Item3, Is.EqualTo(default(Guid)));
 
-			data = encoder.EncodeComposite(items, 1);
+			data = encoder.EncodeKeyParts(1, items);
 			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x)));
-			items = encoder.DecodeComposite(TuPack.EncodeKey(x), 1);
+			items = encoder.DecodeKeyParts(1, TuPack.EncodeKey(x));
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(default(long)));
 			Assert.That(items.Item3, Is.EqualTo(default(Guid)));
 
 			// should fail if number of items to encode is out of range
-			Assert.That(() => { encoder.EncodeComposite(items, 4); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => { encoder.EncodeComposite(items, 0); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => { encoder.EncodeKeyParts(4, items); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => { encoder.EncodeKeyParts(0, items); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 	}

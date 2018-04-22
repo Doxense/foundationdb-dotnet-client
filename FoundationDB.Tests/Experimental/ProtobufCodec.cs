@@ -32,6 +32,7 @@ namespace FoundationDB.Types.ProtocolBuffers
 	using System.IO;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 
 	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>

@@ -26,141 +26,206 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+//#define ENABLE_VALUETUPLES
+
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
-	/// <summary>Subspace that knows how to encode and decode its key</summary>
-	/// <typeparam name="T1">Type of the first item of the keys handled by this subspace</typeparam>
-	/// <typeparam name="T2">Type of the second item of the keys handled by this subspace</typeparam>
-	/// <typeparam name="T3">Type of the third item of the keys handled by this subspace</typeparam>
+	public interface ITypedKeySubspace<T1, T2, T3> : IKeySubspace
+	{
+		/// <summary>Helper to encode/decode keys using this subspace's default encoding</summary>
+		[NotNull] 
+		TypedKeys<T1, T2, T3> Keys { get; }
+
+		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
+		[NotNull] 
+		ICompositeKeyEncoder<T1, T2, T3> KeyEncoder { get; }
+
+	}
+
 	public sealed class TypedKeySubspace<T1, T2, T3> : KeySubspace, ITypedKeySubspace<T1, T2, T3>
 	{
-		public TypedKeySubspace(Slice rawPrefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
-			: this(rawPrefix, true, encoder)
-		{ }
+		public ICompositeKeyEncoder<T1, T2, T3> KeyEncoder { get; }
 
-		internal TypedKeySubspace(Slice rawPrefix, bool copy, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
-			: base(rawPrefix, copy)
+		internal TypedKeySubspace(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+			: base(prefix)
 		{
 			Contract.Requires(encoder != null);
-			this.Encoder = encoder;
-			this.Keys = new TypedKeys<T1, T2, T3>(this, encoder);
-			this.Partition = new TypedSubspacePartition<T1, T2, T3>(this, Encoder);
+			this.KeyEncoder = encoder;
+			this.Keys = new TypedKeys<T1, T2, T3>(this, this.KeyEncoder);
 		}
-
-		public ITypedKeySubspace<T1> Head => m_head ?? (m_head = new TypedKeySubspace<T1>(GetKeyPrefix(), false, KeyValueEncoders.Head(Encoder)));
-		private TypedKeySubspace<T1> m_head;
-
-		public ITypedKeySubspace<T1, T2> Partial => m_partial ?? (m_partial = new TypedKeySubspace<T1, T2>(GetKeyPrefix(), false, KeyValueEncoders.Pair(Encoder)));
-		private TypedKeySubspace<T1, T2> m_partial;
-
-		public ICompositeKeyEncoder<T1, T2, T3> Encoder { get; }
 
 		public TypedKeys<T1, T2, T3> Keys { get; }
 
-		public TypedSubspacePartition<T1, T2, T3> Partition { get; }
-
 	}
 
-	/// <summary>Encodes and Decodes keys composed of three elements</summary>
-	/// <typeparam name="T1">Type of the first item of the keys handled by this subspace</typeparam>
-	/// <typeparam name="T2">Type of the second item of the keys handled by this subspace</typeparam>
-	/// <typeparam name="T3">Type of the third item of the keys handled by this subspace</typeparam>
-	public /*readonly*/ struct TypedKeys<T1, T2, T3>
+	public sealed class TypedKeys<T1, T2, T3>
 	{
 
-		public readonly IKeySubspace Subspace;
-		public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
+		[NotNull]
+		private readonly TypedKeySubspace<T1, T2, T3> Parent;
 
-		public TypedKeys([NotNull] IKeySubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		[NotNull]
+		public ICompositeKeyEncoder<T1, T2, T3> Encoder { get; }
+
+		internal TypedKeys(
+			[NotNull] TypedKeySubspace<T1, T2, T3> parent,
+			[NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			this.Subspace = subspace;
+			Contract.Requires(parent != null && encoder != null);
+			this.Parent = parent;
 			this.Encoder = encoder;
 		}
 
-		public Slice this[T1 value1, T2 value2, T3 value3] => Encode(value1, value2, value3);
-
-		public Slice Encode(T1 value1, T2 value2, T3 value3)
+		/// <summary>Return the range of all legal keys in this subpsace</summary>
+		/// <returns>A "legal" key is one that can be decoded into the original triple of values</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange()
 		{
-			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3));
+			return this.Parent.ToRange();
 		}
 
-		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, [NotNull] Func<TSource, T1> selector1, [NotNull] Func<TSource, T2> selector2, [NotNull] Func<TSource, T3> selector3)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange(STuple<T1, T2, T3> tuple)
 		{
-			if (values == null) throw new ArgumentNullException(nameof(values));
-			return Batched<TSource, ICompositeKeyEncoder<T1, T2, T3>>.Convert(
-				this.Subspace.GetWriter(),
-				values,
-				(ref SliceWriter writer, TSource value, ICompositeKeyEncoder<T1, T2, T3> encoder) => writer.WriteBytes(encoder.EncodeKey(selector1(value), selector2(value), selector3(value))),
-				this.Encoder
-			);
+			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		public STuple<T1, T2, T3> Decode(Slice packed)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange(ValueTuple<T1, T2, T3> tuple)
 		{
-			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
+			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		public KeyRange ToRange(T1 value1, T2 value2, T3 value3)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		public KeyRange ToRange(T1 item1, T2 item2, T3 item3)
 		{
-			//REVIEW: which semantic for ToRange() should we use?
-			return TuPack.ToRange(Encode(value1, value2, value3));
+			//HACKHACK: add concept of "range" on  IKeyEncoder ?
+			return KeyRange.PrefixedBy(Encode(item1, item2, item3));
 		}
 
-	}
-
-	public /*readonly*/ struct TypedSubspacePartition<T1, T2, T3>
-	{
-		[NotNull]
-		public readonly IKeySubspace Subspace;
-
-		[NotNull]
-		public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
-
-		public TypedSubspacePartition([NotNull] IKeySubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		public KeyRange ToRangePartial(STuple<T1, T2> tuple)
 		{
-			Contract.Requires(subspace != null && encoder != null);
-			this.Subspace = subspace;
-			this.Encoder = encoder;
+			//HACKHACK: add concept of "range" on  IKeyEncoder ?
+			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2));
 		}
 
-		[NotNull]
-		public IKeySubspace this[T1 value1, T2 value2, T3 value3] => ByKey(value1, value2, value3);
-
-		[NotNull]
-		public IKeySubspace ByKey(T1 value1, T2 value2, T3 value3)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		public KeyRange ToRangePartial(ValueTuple<T1, T2> tuple)
 		{
-			return this.Subspace[this.Encoder.EncodeKey(value1, value2, value3)];
+			//HACKHACK: add concept of "range" on  IKeyEncoder ?
+			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2));
 		}
 
-		[NotNull]
-		public IDynamicKeySubspace ByKey(T1 value1, T2 value2, T3 value3, IKeyEncoding encoding)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		public KeyRange ToRangePartial(T1 item1, T2 item2)
 		{
-			return KeySubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoding);
+			//HACKHACK: add concept of "range" on  IKeyEncoder ?
+			return KeyRange.PrefixedBy(EncodePartial(item1, item2));
 		}
 
-		[NotNull]
-		public IDynamicKeySubspace ByKey(T1 value1, T2 value2, T3 value3, IDynamicKeyEncoder encoder)
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		public KeyRange ToRangePartial(T1 item1)
 		{
-			return KeySubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoder);
+			//HACKHACK: add concept of "range" on  IKeyEncoder ?
+			return KeyRange.PrefixedBy(EncodePartial(item1));
 		}
 
-		[NotNull]
-		public ITypedKeySubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, T3 value3, IKeyEncoding encoding)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack(STuple<T1, T2, T3> tuple)
 		{
-			return KeySubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoding);
+			return Encode(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		[NotNull]
-		public ITypedKeySubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, T3 value3, IKeyEncoder<TNext> encoder)
+#if ENABLE_VALUETUPLES
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack(ValueTuple<T1, T2, T3> tuple)
 		{
-			return KeySubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoder);
+			return Encode(tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+#endif
+
+		[Pure]
+		public Slice Pack<TTuple>(TTuple tuple)
+			where TTuple : ITuple
+		{
+			tuple.OfSize(3);
+			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
+		}
+
+		[Pure]
+		public Slice Encode(T1 item1, T2 item2, T3 item3)
+		{
+			var bytes = this.Encoder.EncodeKey(item1, item2, item3);
+			var sw = this.Parent.OpenWriter(bytes.Count);
+			sw.WriteBytes(bytes);
+			return sw.ToSlice();
+		}
+
+		[Pure]
+		public Slice EncodePartial(T1 item1, T2 item2)
+		{
+			var sw = this.Parent.OpenWriter(16);
+			var tuple = new STuple<T1, T2, T3>(item1, item2, default(T3));
+			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
+			return sw.ToSlice();
+		}
+
+		[Pure]
+		public Slice EncodePartial(T1 item1)
+		{
+			var sw = this.Parent.OpenWriter(16);
+			var tuple = new STuple<T1, T2, T3>(item1, default(T2), default(T3));
+			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
+			return sw.ToSlice();
+		}
+
+		[Pure]
+		public STuple<T1, T2, T3> Decode(Slice packedKey)
+		{
+			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
+		}
+
+		public void Decode(Slice packedKey, out T1 item1, out T2 item2, out T3 item3)
+		{
+			var tuple = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
+			item1 = tuple.Item1;
+			item2 = tuple.Item2;
+			item3 = tuple.Item3;
+		}
+
+		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
+		[Pure]
+		public string Dump(Slice packedKey)
+		{
+			if (packedKey.IsNull) return String.Empty;
+			//TODO: defer to the encoding itself?
+			var key = this.Parent.ExtractKey(packedKey);
+			try
+			{
+				//REVIEW: we need a TryUnpack!
+				return this.Encoder.DecodeKey(key).ToString();
+			}
+			catch (Exception)
+			{ // decoding failed, or some other non-trival
+				return key.PrettyPrint();
+			}
 		}
 
 	}

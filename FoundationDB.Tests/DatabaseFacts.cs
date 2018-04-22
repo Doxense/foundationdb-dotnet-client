@@ -278,7 +278,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", KeySubspace.Create(TuPack.EncodeKey("test")), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(null, "DB", KeySubspace.FromKey(STuple.Create("test")), false, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -353,7 +353,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(dl.ContentSubspace, Is.Not.Null);
 				Assert.That(dl.ContentSubspace.GetPrefix(), Is.EqualTo(db.GlobalSpace.GetPrefix()));
 				Assert.That(dl.NodeSubspace, Is.Not.Null);
-				Assert.That(dl.NodeSubspace.GetPrefix(), Is.EqualTo(db.GlobalSpace.ConcatKey(Slice.FromByte(254))));
+				Assert.That(dl.NodeSubspace.GetPrefix(), Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
 				Assert.That(db.GlobalSpace.Contains(dl.ContentSubspace.GetPrefix()), Is.True);
 				Assert.That(db.GlobalSpace.Contains(dl.NodeSubspace.GetPrefix()), Is.True);
 

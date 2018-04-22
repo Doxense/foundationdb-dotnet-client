@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Filters.Logging
 {
 	using System;
@@ -147,7 +146,11 @@ namespace FoundationDB.Filters.Logging
 
 		private KeySelector Grab(KeySelector selector)
 		{
-			return new KeySelector(Grab(selector.Key), selector.OrEqual, selector.Offset);
+			return new KeySelector(
+				Grab(selector.Key),
+				selector.OrEqual,
+				selector.Offset
+			);
 		}
 
 		private KeySelector[] Grab(KeySelector[] selectors)

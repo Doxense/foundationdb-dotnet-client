@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Counters
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents an integer value which can be incremented without conflict.
 	/// Uses a sharded representation (which scales with contention) along with background coalescing...

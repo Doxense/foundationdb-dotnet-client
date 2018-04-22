@@ -26,29 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
-namespace FoundationDB.Client //REVIEW: what namespace?
+namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using JetBrains.Annotations;
 	using Doxense.Collections.Tuples.Encoding;
+	using JetBrains.Annotations;
 
 	public static class TypeSystem
 	{
 		[NotNull]
-		public static readonly IKeyEncoding Default;
+		public static readonly IKeyEncoding Default = new TupleKeyEncoding();
 
 		[NotNull]
-		public static readonly IKeyEncoding Tuples;
+		public static readonly IKeyEncoding Tuples = Default;
 
-		static TypeSystem()
-		{
-			var tuples = new TupleKeyEncoding();
-			Tuples = tuples;
-
-			// default is the same a Tuples (for now?)
-			Default = tuples;
-		}
+		//TODO: more? or remove this class?
 
 	}
 

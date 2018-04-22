@@ -1,4 +1,4 @@
-#region BSD Licence
+﻿#region BSD Licence
 /* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
@@ -26,22 +26,44 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using JetBrains.Annotations;
+	using Doxense.Memory;
 
-	/// <summary>Class that know how to encode and decode values of a fixed type</summary>
-	/// <typeparam name="T">Type of the values</typeparam>
-	public interface IValueEncoder<T>
+	public interface IKeyEncoder<T1>
 	{
-		/// <summary>Encode a single value into a compact binary representation</summary>
-		Slice EncodeValue(T value);
+		/// <summary>Encode a single value</summary>
+		void WriteKeyTo(ref SliceWriter writer, T1 value);
 
-		/// <summary>Decode a single value from a compact binary representation</summary>
-		/// <param name="encoded">Packed value</param>
-		[CanBeNull]
-		T DecodeValue(Slice encoded);
+		/// <summary>Decode a single value</summary>
+		void ReadKeyFrom(ref SliceReader reader, out T1 value);
 	}
 
+	public static partial class KeyEncoderExtensions
+	{
+
+		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, T1 value)
+		{
+			var writer = default(SliceWriter);
+			encoder.WriteKeyTo(ref writer, value);
+			return writer.ToSlice();
+		}
+
+		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
+		{
+			var writer = new SliceWriter(prefix.Count + 16); // ~16 bytes si T1 = Guid
+			writer.WriteBytes(prefix);
+			encoder.WriteKeyTo(ref writer, value);
+			return writer.ToSlice();
+		}
+
+		public static T1 DecodeKey<T1>(this IKeyEncoder<T1> decoder, Slice encoded)
+		{
+			var reader = new SliceReader(encoded);
+			decoder.ReadKeyFrom(ref reader, out T1 item);
+			//TODO: should we fail if extra bytes?
+			return item;
+		}
+	}
 }

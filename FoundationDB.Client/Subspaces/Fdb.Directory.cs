@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -79,24 +78,24 @@ namespace FoundationDB.Client
 				{
 					db = await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, ct: ct).ConfigureAwait(false);
 					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
+					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer of database {db.Name} using cluster file '{db.Cluster.Path}'");
 
 					// look up in the root layer for the named partition
 					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.LayerId, ct: ct).ConfigureAwait(false);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.FullName, descriptor));
+					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
 					rootSpace = KeySubspace.Copy(descriptor); //note: create a copy of the key
 					//TODO: find a nicer way to do that!
 					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace, partitionPath), readOnly);
 
-					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.FullName, db.GlobalSpace, db.Directory.DirectoryLayer.NodeSubspace));
+					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.FullName} at {db.GlobalSpace}, using directory layer at {db.Directory.DirectoryLayer.NodeSubspace}");
 
 					return db;
 				}
 				catch(Exception e)
 				{
-					if (db != null) db.Dispose();
+					db?.Dispose();
 					if (Logging.On) Logging.Exception(typeof(Fdb.Directory), "OpenNamedPartitionAsync", e);
 					throw;
 				}

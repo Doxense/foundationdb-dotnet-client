@@ -29,133 +29,122 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics.Contracts;
 	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
-	/// <summary>Subspace that knows how to encode and decode its key</summary>
-	/// <typeparam name="T">Type of the key handled by this subspace</typeparam>
-	public sealed class TypedKeySubspace<T> : KeySubspace, ITypedKeySubspace<T>
+	[PublicAPI]
+	public interface ITypedKeySubspace<T1> : IKeySubspace
 	{
-		public TypedKeySubspace(Slice rawPrefix, [NotNull] IKeyEncoder<T> encoder)
-			: this(rawPrefix, true, encoder)
-		{ }
+		/// <summary>Return a view of all the possible keys of this subspace</summary>
+		[NotNull]
+		TypedKeys<T1> Keys { get; }
 
-		internal TypedKeySubspace(Slice rawPrefix, bool copy, [NotNull] IKeyEncoder<T> encoder)
-			: base(rawPrefix, copy)
+		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
+		[NotNull]
+		IKeyEncoder<T1> KeyEncoder { get; }
+
+	}
+
+	/// <summary>Subspace that knows how to encode and decode its key</summary>
+	/// <typeparam name="T1">Type of the key handled by this subspace</typeparam>
+	public sealed class TypedKeySubspace<T1> : KeySubspace, ITypedKeySubspace<T1>
+	{
+		public IKeyEncoder<T1> KeyEncoder { get; }
+
+		internal TypedKeySubspace(Slice prefix, [NotNull] IKeyEncoder<T1> encoder)
+			: base(prefix)
 		{
-			this.Encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
-			this.Keys = new TypedKeys<T>(this, encoder);
+			Contract.Requires(encoder != null);
+			this.KeyEncoder = encoder;
+			this.Keys = new TypedKeys<T1>(this, this.KeyEncoder);
 		}
 
-		[NotNull]
-		public IKeyEncoder<T> Encoder { get; }
+		public TypedKeys<T1> Keys { get; }
 
-		public TypedKeys<T> Keys { get; }
-
-		public TypedSubspacePartition<T> Partition => new TypedSubspacePartition<T>(this, Encoder);
 	}
 
 	/// <summary>Encodes and Decodes keys composed of a single element</summary>
-	/// <typeparam name="T">Type of the key handled by this subspace</typeparam>
-	public /*readonly*/ struct TypedKeys<T>
+	/// <typeparam name="T1">Type of the key handled by this subspace</typeparam>
+	public sealed class TypedKeys<T1>
 	{
 
 		[NotNull]
-		public readonly IKeySubspace Subspace;
+		private readonly TypedKeySubspace<T1> Parent;
 
 		[NotNull]
-		public readonly IKeyEncoder<T> Encoder;
+		public IKeyEncoder<T1> Encoder { get; }
 
-		public TypedKeys([NotNull] IKeySubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		internal TypedKeys(
+			[NotNull] TypedKeySubspace<T1> parent,
+			[NotNull] IKeyEncoder<T1> encoder)
 		{
-			Contract.Requires(subspace != null && encoder != null);
-			this.Subspace = subspace;
+			Contract.Requires(parent != null && encoder != null);
+			this.Parent = parent;
 			this.Encoder = encoder;
 		}
 
-		public Slice this[T value] => Encode(value);
-
-		public Slice Encode(T value)
+		public KeyRange ToRange(T1 item1)
 		{
-			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value));
+			//HACKHACK: add concept of "range" on  IKeyEncoder ?
+			var prefix = Encode(item1);
+			return KeyRange.PrefixedBy(prefix);
 		}
 
-		public Slice[] Encode([NotNull] IEnumerable<T> values)
+		[Pure]
+		public Slice Pack(STuple<T1> tuple)
 		{
-			if (values == null) throw new ArgumentNullException(nameof(values));
-			return Batched<T, IKeyEncoder<T>>.Convert(
-				this.Subspace.GetWriter(),
-				values,
-				(ref SliceWriter writer, T value, IKeyEncoder<T> encoder) => { writer.WriteBytes(encoder.EncodeKey(value)); },
-				this.Encoder
-			);
+			return Encode(tuple.Item1);
 		}
 
-		public T Decode(Slice packed)
+		[Pure]
+		public Slice Pack([NotNull] ITuple tuple)
 		{
-			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
+			return Encode(tuple.OfSize(1).Get<T1>(0));
 		}
 
-		public KeyRange ToRange(T value)
+		[Pure]
+		public Slice Encode(T1 item1)
 		{
-			//REVIEW: which semantic for ToRange() should we use?
-			return TuPack.ToRange(Encode(value));
+			var bytes = this.Encoder.EncodeKey(item1);
+			var sw = this.Parent.OpenWriter(bytes.Count);
+			sw.WriteBytes(bytes);
+			return sw.ToSlice();
+		}
+
+		[Pure]
+		public T1 Decode(Slice packedKey)
+		{
+			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
+		}
+
+		public void Decode(Slice packedKey, out T1 item1)
+		{
+			item1 = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
+		}
+
+		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
+		[Pure]
+		public string Dump(Slice packedKey)
+		{
+			if (packedKey.IsNull) return String.Empty;
+			//TODO: defer to the encoding itself?
+			var key = this.Parent.ExtractKey(packedKey);
+			try
+			{
+				//REVIEW: we need a TryUnpack!
+				return this.Encoder.DecodeKey(key).ToString();
+			}
+			catch (Exception)
+			{ // decoding failed, or some other non-trival
+				return key.PrettyPrint();
+			}
 		}
 
 	}
 
-	public /*readonly*/ struct TypedSubspacePartition<T>
-	{
-
-		[NotNull]
-		public readonly IKeySubspace Subspace;
-
-		[NotNull]
-		public readonly IKeyEncoder<T> Encoder;
-
-		public TypedSubspacePartition([NotNull] IKeySubspace subspace, [NotNull] IKeyEncoder<T> encoder)
-		{
-			Contract.Requires(subspace != null && encoder != null);
-			this.Subspace = subspace;
-			this.Encoder = encoder;
-		}
-
-		[NotNull]
-		public IKeySubspace this[T value] => ByKey(value);
-
-		[NotNull]
-		public IKeySubspace ByKey(T value)
-		{
-			return this.Subspace[this.Encoder.EncodeKey(value)];
-		}
-
-		[NotNull]
-		public IDynamicKeySubspace ByKey(T value, [NotNull] IKeyEncoding encoding)
-		{
-			return KeySubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public IDynamicKeySubspace ByKey(T value, [NotNull] IDynamicKeyEncoder encoder)
-		{
-			return KeySubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
-		[NotNull]
-		public ITypedKeySubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoding encoding)
-		{
-			return KeySubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public ITypedKeySubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoder<TNext> encoder)
-		{
-			return KeySubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
-	}
 
 }

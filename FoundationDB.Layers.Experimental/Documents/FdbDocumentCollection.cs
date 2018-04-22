@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Documents
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 
 	/// <summary>Represents a collection of dictionaries of fields.</summary>
@@ -60,7 +61,7 @@ namespace FoundationDB.Layers.Documents
 
 		protected virtual Task<List<Slice>> LoadPartsAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
-			var key = this.Location.Partial.Keys.Encode(id);
+			var key = this.Location.Keys.EncodePartial(id);
 
 			return trans
 				.GetRange(KeyRange.StartsWith(key)) //TODO: options ?
@@ -101,7 +102,7 @@ namespace FoundationDB.Layers.Documents
 			var packed = this.ValueEncoder.EncodeValue(document);
 
 			// Key Prefix = ...(id,)
-			var key = this.Location.Partial.Keys.Encode(id);
+			var key = this.Location.Keys.EncodePartial(id);
 
 			// clear previous value
 			trans.ClearRange(KeyRange.StartsWith(key));
@@ -166,7 +167,7 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var key = this.Location.Partial.Keys.Encode(id);
+			var key = this.Location.Keys.EncodePartial(id);
 			trans.ClearRange(KeyRange.StartsWith(key));
 		}
 
@@ -179,8 +180,9 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
-			foreach (var key in this.Location.Partial.Keys.Encode(ids))
+			foreach (var id in ids)
 			{
+				var key = this.Location.Keys.EncodePartial(id);
 				trans.ClearRange(KeyRange.StartsWith(key));
 			}
 		}

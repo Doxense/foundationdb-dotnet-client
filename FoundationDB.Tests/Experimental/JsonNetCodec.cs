@@ -33,6 +33,7 @@ namespace FoundationDB.Types.Json
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using Newtonsoft.Json;
 

@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 
 	public abstract class DynamicKeyEncoderBase : IDynamicKeyEncoder
 	{
@@ -43,7 +44,7 @@ namespace FoundationDB.Client
 			return KeyRange.StartsWith(prefix);
 		}
 
-		public abstract void PackKey(ref SliceWriter writer, ITuple items);
+		public abstract void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : ITuple;
 
 		public virtual void EncodeKey<T1>(ref SliceWriter writer, T1 item1)
 		{
@@ -120,6 +121,11 @@ namespace FoundationDB.Client
 		public virtual STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
 		{
 			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d, T5 e) => STuple.Create(a, b, c, d, e));
+		}
+
+		public virtual STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
+		{
+			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d, T5 e, T6 f) => STuple.Create(a, b, c, d, e, f));
 		}
 
 		public virtual KeyRange ToRange(Slice prefix, ITuple items)

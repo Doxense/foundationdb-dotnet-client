@@ -1,5 +1,5 @@
 #region BSD Licence
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
+	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
@@ -40,19 +41,13 @@ namespace FoundationDB.Client
 		/// <summary>Return the parent key encoding</summary>
 		IKeyEncoding Encoding {[NotNull] get; }
 
-		/// <summary>Return a range that contains all the keys under a subspace of the encoder subspace, using the semantic of the encoding</summary>
-		/// <param name="prefix">Optional binary prefix</param>
-		/// <returns>Key range which derives from the semantic of the current encoding</returns>
-		/// <remarks>For example, the Tuple encoding will produce ranges of the form "(Key + \x00) &lt;= x &lt; (Key + \xFF)", while a binary-based encoding would produce ranges of the form "Key &lt;= x &lt; Increment(Key)"</remarks>
-		KeyRange ToRange(Slice prefix = default(Slice));
-
 		#region Encoding...
 
 		/// <summary>Pack a tuple of arbitrary length into a binary slice</summary>
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="items">Tuple of any size (0 to N)</param>
 		/// <exception cref="System.FormatException">If some elements in <paramref name="items"/> are not supported by this type system</exception>
-		void PackKey(ref SliceWriter writer, ITuple items);
+		void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : ITuple;
 
 		/// <summary>Encode a key composed of a single element into a binary slice</summary>
 		/// <typeparam name="T">Type of the element</typeparam>
@@ -211,9 +206,26 @@ namespace FoundationDB.Client
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
 		STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed);
 
+		/// <summary>Decode a binary slice containing exactly six elements</summary>
+		/// <typeparam name="T1">Expected type of the first element</typeparam>
+		/// <typeparam name="T2">Expected type of the second element</typeparam>
+		/// <typeparam name="T3">Expected type of the third element</typeparam>
+		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
+		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
+		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
+		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
+		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
+		STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
+
 		#endregion
 
 		#region Ranges...
+
+		/// <summary>Return a range that contains all the keys under a subspace of the encoder subspace, using the semantic of the encoding</summary>
+		/// <param name="prefix">Optional binary prefix</param>
+		/// <returns>Key range which derives from the semantic of the current encoding</returns>
+		/// <remarks>For example, the Tuple encoding will produce ranges of the form "(Key + \x00) &lt;= x &lt; (Key + \xFF)", while a binary-based encoding would produce ranges of the form "Key &lt;= x &lt; Increment(Key)"</remarks>
+		KeyRange ToRange(Slice prefix = default(Slice));
 
 		/// <summary>Return a key range using a tuple as a prefix</summary>
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>

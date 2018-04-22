@@ -38,6 +38,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Globalization;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>

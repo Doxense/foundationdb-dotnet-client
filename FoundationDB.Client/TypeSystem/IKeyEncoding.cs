@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System;
 using JetBrains.Annotations;
 
-namespace FoundationDB.Client //REVIEW: what namespace?
+namespace Doxense.Serialization.Encoders
 {
 	/// <summary>Type system that handles encoding and decoding of differnt types of keys</summary>
 	/// <remarks>

@@ -30,27 +30,31 @@ namespace FoundationDB.Layers.Directories
 {
 	using System;
 	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
-		public static Slice LayerId { get { return Slice.FromString("partition"); } }
-
-		private readonly FdbDirectoryLayer m_parentDirectoryLayer;
+		public static Slice LayerId => Slice.FromString("partition");
 
 		internal FdbDirectoryPartition(ITuple location, ITuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(KeySubspace.CreateDynamic(prefix + FdbKey.Directory, TypeSystem.Tuples), KeySubspace.CreateDynamic(prefix, TypeSystem.Tuples), location), LayerId, TypeSystem.Tuples.GetDynamicEncoder())
+			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).Using(TypeSystem.Default), FromKey(prefix).Using(TypeSystem.Default), location), LayerId, TypeSystem.Default)
 		{
-			m_parentDirectoryLayer = directoryLayer;
+			this.ParentDirectoryLayer = directoryLayer;
 		}
 
-		internal FdbDirectoryLayer ParentDirectoryLayer { get { return m_parentDirectoryLayer; } }
+		internal FdbDirectoryLayer ParentDirectoryLayer { get; }
 
 		protected override Slice GetKeyPrefix()
 		{
 			throw new InvalidOperationException("Cannot create keys in the root of a directory partition.");
+		}
+
+		protected override KeyRange GetKeyRange()
+		{
+			throw new InvalidOperationException("Cannot create a key range in the root of a directory partition.");
 		}
 
 		public override bool Contains(Slice key)
@@ -77,7 +81,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.FullName, this.InternalKey.PrettyPrint());
+			return $"DirectoryPartition(path={this.FullName}, prefix={GetPrefixUnsafe():K})";
 		}
 
 	}

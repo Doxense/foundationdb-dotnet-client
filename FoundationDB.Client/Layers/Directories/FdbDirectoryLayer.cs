@@ -38,6 +38,7 @@ namespace FoundationDB.Layers.Directories
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
 
@@ -165,7 +166,7 @@ namespace FoundationDB.Layers.Directories
 		[NotNull]
 		public static FdbDirectoryLayer Create(Slice prefix, IEnumerable<string> path = null)
 		{
-			var subspace = KeySubspace.CreateDynamic(prefix, TypeSystem.Tuples);
+			var subspace = KeySubspace.FromKey(prefix).Using(TypeSystem.Tuples);
 			var location = path != null ? ParsePath(path) : STuple.Empty;
 			return new FdbDirectoryLayer(subspace.Partition[FdbKey.Directory], subspace, location);
 		}
@@ -481,7 +482,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.FullName, this.ContentSubspace.GetPrefix().PrettyPrint(), this.NodeSubspace.GetPrefix().PrettyPrint());
+			return $"DirectoryLayer(path={this.FullName}, contents={this.ContentSubspace.GetPrefix():K}, nodes={this.NodeSubspace.GetPrefix():K})";
 		}
 
 		#endregion
@@ -947,7 +948,7 @@ namespace FoundationDB.Layers.Directories
 			}
 			else
 			{
-				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TypeSystem.Default.GetDynamicEncoder());
+				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TypeSystem.Default);
 			}
 		}
 

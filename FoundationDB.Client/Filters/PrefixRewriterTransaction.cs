@@ -30,6 +30,7 @@ namespace FoundationDB.Filters
 {
 	using FoundationDB.Client;
 	using System;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -38,31 +39,28 @@ namespace FoundationDB.Filters
 	{
 		// We will add a prefix to all keys sent to the db, and remove it on the way back
 
-		private readonly IKeySubspace m_prefix;
-
 		public PrefixRewriterTransaction(IKeySubspace prefix, IFdbTransaction trans, bool ownsTransaction)
 			: base(trans, false, ownsTransaction)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			m_prefix = prefix;
+			this.Prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
 		}
 
-		public IKeySubspace Prefix { get { return m_prefix; } }
+		public IKeySubspace Prefix { get; }
 
 		private Slice Encode(Slice key)
 		{
-			return m_prefix.ConcatKey(key);
+			return this.Prefix[key];
 		}
 
 		private Slice[] Encode(Slice[] keys)
 		{
-			return m_prefix.ConcatKeys(keys);
+			return keys.Select(k => this.Prefix[k]).ToArray();
 		}
 
 		private KeySelector Encode(KeySelector selector)
 		{
 			return new KeySelector(
-				m_prefix.ConcatKey(selector.Key),
+				this.Prefix[selector.Key],
 				selector.OrEqual,
 				selector.Offset
 			);
@@ -73,9 +71,8 @@ namespace FoundationDB.Filters
 			var keys = new Slice[selectors.Length];
 			for (int i = 0; i < selectors.Length;i++)
 			{
-				keys[i] = selectors[i].Key;
+				keys[i] = this.Prefix[selectors[i].Key];
 			}
-			keys = m_prefix.ConcatKeys(keys);
 
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
@@ -91,7 +88,7 @@ namespace FoundationDB.Filters
 
 		private Slice Decode(Slice key)
 		{
-			return m_prefix.ExtractKey(key);
+			return this.Prefix.ExtractKey(key);
 		}
 
 		private Slice[] Decode(Slice[] keys)
@@ -99,7 +96,7 @@ namespace FoundationDB.Filters
 			var res = new Slice[keys.Length];
 			for (int i = 0; i < keys.Length;i++)
 			{
-				res[i] = m_prefix.ExtractKey(keys[i]);
+				res[i] = this.Prefix.ExtractKey(keys[i]);
 			}
 			return res;
 		}

@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
+	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB transaction implementations.</summary>

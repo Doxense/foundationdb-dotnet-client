@@ -43,9 +43,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	{
 
-	private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.Create(TuPack.EncodeKey("Foos", 1)));
+	private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.FromKey(STuple.Create("Foos", 1)));
 
-	private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.Create(TuPack.EncodeKey("Foos", 2)));
+	private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.FromKey(STuple.Create("Foos", 2)));
 
 	[Test]
 	public void Test_FdbQueryIndexLookupExpression()

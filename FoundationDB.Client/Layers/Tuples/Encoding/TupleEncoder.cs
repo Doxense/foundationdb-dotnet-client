@@ -19,9 +19,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Internal helper that serializes the content of a Tuple into a TupleWriter, meant to be called by implementers of <see cref="ITuple"/> types.</summary>
 		/// <remarks>Warning: This method will call into <see cref="ITupleSerializable.PackTo"/> if <paramref name="tuple"/> inmplements <see cref="ITupleSerializable"/></remarks>
 
-		internal static void WriteTo(ref TupleWriter writer, [NotNull] ITuple tuple)
+		internal static void WriteTo<TTuple>(ref TupleWriter writer, [NotNull] TTuple tuple)
+			where TTuple : ITuple
 		{
-			Contract.Requires(tuple != null);
 			// ReSharper disable once SuspiciousTypeConversion.Global
 			if (tuple is ITupleSerializable ts)
 			{ // optimized version

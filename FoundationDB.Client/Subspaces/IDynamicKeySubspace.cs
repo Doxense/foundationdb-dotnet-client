@@ -29,11 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size.</summary>
 	/// <remarks>This is usefull when dealing with subspaces that store keys of different types and shapes.</remarks>
-	/// <example>In pseudo code, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
+	/// <example>In pseudo code, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="Doxense.Collections.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
 	/// <code>
 	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
 	/// subspace.GetPrefix() => {prefix}
@@ -46,16 +47,16 @@ namespace FoundationDB.Client
 	public interface IDynamicKeySubspace : IKeySubspace
 	{
 
-		/// <summary>Codec used by this subspace to convert keys into/from binary</summary>
-		[NotNull] 
-		IDynamicKeyEncoder Encoder {get; }
-
 		/// <summary>View of the keys of this subspace</summary>
+		[NotNull]
 		DynamicKeys Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
+		[NotNull]
 		DynamicPartition Partition { get; }
 
-	}
+		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
+		[NotNull] IKeyEncoding Encoding { get; }
 
+	}
 }

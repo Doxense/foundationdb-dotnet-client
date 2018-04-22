@@ -1953,10 +1953,10 @@ namespace FoundationDB.Client.Tests
 				{
 					await tr.GetReadVersionAsync();
 
-					var a = location.ConcatKey(Slice.FromString("A"));
-					var b = location.ConcatKey(Slice.FromString("B"));
-					var c = location.ConcatKey(Slice.FromString("C"));
-					var z = location.ConcatKey(Slice.FromString("Z"));
+					var a = location[Slice.FromString("A")];
+					var b = location[Slice.FromString("B")];
+					var c = location[Slice.FromString("C")];
+					var z = location[Slice.FromString("Z")];
 
 					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
 

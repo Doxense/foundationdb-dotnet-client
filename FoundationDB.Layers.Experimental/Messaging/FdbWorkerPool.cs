@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Messaging
 	using System.Security.Cryptography;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Counters;

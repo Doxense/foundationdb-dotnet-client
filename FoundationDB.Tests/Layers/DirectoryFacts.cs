@@ -40,6 +40,7 @@ namespace FoundationDB.Layers.Directories
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
+	using NUnit.Framework.Constraints;
 
 	[TestFixture]
 	public class DirectoryFacts : FdbTest
@@ -853,92 +854,73 @@ namespace FoundationDB.Layers.Directories
 				var barKey = subdir.GetPrefix();
 
 				// the constraint will always be the same for all the checks
-				Action<TestDelegate> shouldFail = (del) =>
+				void ShouldFail<T>(ActualValueDelegate<T> del)
 				{
 					Assert.That(del, Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("root of a directory partition"));
-				};
-				Action<TestDelegate> shouldPass = (del) =>
+				}
+
+				void ShouldPass<T>(ActualValueDelegate<T> del)
 				{
 					Assert.That(del, Throws.Nothing);
-				};
+				}
 
 				// === PASS ===
 				// these methods are allowed to succeed on directory partitions, because we need them for the rest to work
 
-				shouldPass(() => { var _ = KeySubspace.Copy(partition).GetPrefix(); }); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
-				shouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
-				shouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
-				shouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
+				ShouldPass(() => KeySubspace.Copy(partition).GetPrefix()); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
+				ShouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
+				ShouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
+				ShouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
 
 				// === FAIL ====
 
 				// Key
-				shouldFail(() => { var _ = partition.GetPrefix(); });
+				ShouldFail(() => partition.GetPrefix());
 
 				// Contains
-				shouldFail(() => partition.Contains(barKey));
+				ShouldFail(() => partition.Contains(barKey));
 
 				// Extract / ExtractAndCheck / BoundCheck
-				shouldFail(() => partition.ExtractKey(barKey, boundCheck: false));
-				shouldFail(() => partition.ExtractKey(barKey, boundCheck: true));
-				shouldFail(() => partition.ExtractKeys(new[] { barKey, barKey + FdbKey.MinValue }));
+				ShouldFail(() => partition.ExtractKey(barKey, boundCheck: false));
+				ShouldFail(() => partition.ExtractKey(barKey, boundCheck: true));
 
 				// Partition
-				shouldFail(() => partition.Partition.ByKey(123));
-				shouldFail(() => partition.Partition.ByKey(123, "hello"));
-				shouldFail(() => partition.Partition.ByKey(123, "hello", false));
-				shouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
+				ShouldFail(() => partition.Partition.ByKey(123));
+				ShouldFail(() => partition.Partition.ByKey(123, "hello"));
+				ShouldFail(() => partition.Partition.ByKey(123, "hello", false));
+				ShouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
 
 				// Keys
 
-				shouldFail(() => partition.ConcatKey(Slice.FromString("hello")));
-				shouldFail(() => partition.ConcatKey(location.GetPrefix()));
-				shouldFail(() => partition.ConcatKeys(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
+				ShouldFail(() => partition[Slice.FromString("hello")]);
+				ShouldFail(() => partition[location.GetPrefix()]);
+				ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
-				shouldFail(() => { var _ = partition[Slice.FromString("hello")]; });
-				shouldFail(() => { var _ = partition[location.GetPrefix()]; });
-
-				shouldFail(() => partition.ToRange());
-				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.ToRange(TuPack.EncodeKey("hello")));
+				ShouldFail(() => partition.ToRange());
+				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				ShouldFail(() => partition.ToRange(TuPack.EncodeKey("hello")));
 
  				// Tuples
 
-				shouldFail(() => partition.Keys.Encode(123));
-				shouldFail(() => partition.Keys.Encode(123, "hello"));
-				shouldFail(() => partition.Keys.Encode(123, "hello", false));
-				shouldFail(() => partition.Keys.Encode(123, "hello", false, "world"));
-				shouldFail(() => partition.Keys.Encode<object>(123));
+				ShouldFail(() => partition.Keys.Encode(123));
+				ShouldFail(() => partition.Keys.Encode(123, "hello"));
+				ShouldFail(() => partition.Keys.Encode(123, "hello", false));
+				ShouldFail(() => partition.Keys.Encode(123, "hello", false, "world"));
+				ShouldFail(() => partition.Keys.Encode<object>(123));
 
-				shouldFail(() => partition.Keys.EncodeMany<int>(new[] { 123, 456, 789 }));
-				shouldFail(() => partition.Keys.EncodeMany<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
-				shouldFail(() => partition.Keys.EncodeMany<object>(new object[] { 123, "hello", true }));
-				shouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
+				ShouldFail(() => partition.Keys.EncodeMany<int>(new[] { 123, 456, 789 }));
+				ShouldFail(() => partition.Keys.EncodeMany<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
+				ShouldFail(() => partition.Keys.EncodeMany<object>(new object[] { 123, "hello", true }));
+				ShouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
-				shouldFail(() => partition.Keys.Unpack(barKey));
-				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + TuPack.EncodeKey(123) }));
-				shouldFail(() => partition.Keys.Decode<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeMany<int>(new[] { barKey, barKey }));
-				shouldFail(() => partition.Keys.DecodeLast<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + TuPack.EncodeKey(123) }));
-				shouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + TuPack.EncodeKey(123) }));
+				ShouldFail(() => partition.Keys.Unpack(barKey));
+				ShouldFail(() => partition.Keys.Decode<int>(barKey));
+				ShouldFail(() => partition.Keys.DecodeLast<int>(barKey));
+				ShouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
 
-				//FIXME: need to re-enable this code!
-#if REFACTORING_IN_PROGRESS
-				shouldFail(() => partition.Keys.ToTuple());
-
-				shouldFail(() => partition.Keys.Append(123));
-				shouldFail(() => partition.Keys.Append(123, "hello"));
-				shouldFail(() => partition.Keys.Append(123, "hello", false));
-				shouldFail(() => partition.Keys.Append(123, "hello", false, "world"));
-				shouldFail(() => partition.Keys.Concat(STuple.Create(123, "hello", false, "world")));
-				shouldFail(() => partition.Keys.Append(new object[] { 123, "hello", false, "world" }));
-#endif
-
-				shouldFail(() => partition.Keys.ToRange());
-				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.Keys.ToRange(STuple.Create("hello")));
+				ShouldFail(() => partition.Keys.ToRange());
+				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				ShouldFail(() => partition.Keys.ToRange(STuple.Create("hello")));
 
 			}
 		}

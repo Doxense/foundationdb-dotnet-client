@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Blobs
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 

@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 
-namespace FoundationDB.Client
+namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using Doxense.Memory;

@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>

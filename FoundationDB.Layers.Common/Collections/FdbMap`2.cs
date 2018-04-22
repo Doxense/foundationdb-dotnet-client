@@ -26,17 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Layers.Collections
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
-			var results = await trans.GetValuesAsync(this.Location.Keys.Encode(ids)).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(ids.Select(id => this.Location.Keys.Encode(id))).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}

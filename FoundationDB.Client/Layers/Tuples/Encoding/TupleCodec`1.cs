@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Type codec that uses the Tuple Encoding format</summary>
 	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>

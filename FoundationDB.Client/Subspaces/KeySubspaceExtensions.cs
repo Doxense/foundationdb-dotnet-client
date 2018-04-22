@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
 	/// <summary>Extensions methods and helpers to work with Key Subspaces</summary>
@@ -48,7 +49,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return KeySubspace.CopyDynamic(subspace, encoding);
+			return new DynamicKeySubspace(subspace.GetPrefix(), encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -60,7 +61,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return KeySubspace.CopyDynamic(subspace, encoder);
+			return new DynamicKeySubspace(subspace.GetPrefix(), encoder.Encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -72,7 +73,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return KeySubspace.CopyEncoder<T>(subspace, encoding);
+			return new TypedKeySubspace<T>(subspace.GetPrefix(), encoding.GetEncoder<T>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -84,7 +85,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return KeySubspace.CopyEncoder<T>(subspace, encoder);
+			return new TypedKeySubspace<T>(subspace.GetPrefix(), encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -96,7 +97,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return KeySubspace.CopyEncoder<T1, T2>(subspace, encoding);
+			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), encoding.GetEncoder<T1, T2>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -108,7 +109,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return KeySubspace.CopyEncoder<T1, T2>(subspace, encoder);
+			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -120,7 +121,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return KeySubspace.CopyEncoder<T1, T2, T3>(subspace, encoding);
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), encoding.GetEncoder<T1, T2, T3>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -132,7 +133,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return KeySubspace.CopyEncoder<T1, T2, T3>(subspace, encoder);
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -144,7 +145,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
-			return KeySubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoding);
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), encoding.GetEncoder<T1, T2, T3, T4>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -156,7 +157,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return KeySubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoder);
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), encoder);
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>

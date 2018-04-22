@@ -33,6 +33,7 @@ namespace FoundationDB.Layers
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Runtime.InteropServices;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Helper class for the <see cref="Optional{T}"/> value type</summary>
 	public static class Optional
