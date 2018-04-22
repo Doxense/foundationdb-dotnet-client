@@ -55,7 +55,7 @@ namespace FoundationDB.Client.Tests
 			{
 				cts.Cancel();
 
-				Assert.Throws<OperationCanceledException>(() => Fdb.CreateClusterAsync(cts.Token).GetAwaiter().GetResult());
+				Assert.That(() => Fdb.CreateClusterAsync(cts.Token).GetAwaiter().GetResult(), Throws.InstanceOf<OperationCanceledException>());
 			}
 		}
 

@@ -312,7 +312,7 @@ namespace FoundationDB.Client.Tests
 					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					cts.Cancel();
 
-					Assert.Throws<TaskCanceledException>(async () => await t, "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
+					Assert.That(async () => await t, Throws.InstanceOf<TaskCanceledException>(), "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
 				}
 			}
 		}
@@ -1864,7 +1864,7 @@ namespace FoundationDB.Client.Tests
 
 						// the node id seems to be at offset 12
 
-						//Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
+						//Log("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
 					Log();
 					Log("Distinct nodes: {0}", distinctNodes.Count);
@@ -1908,7 +1908,7 @@ namespace FoundationDB.Client.Tests
 					//tr.Set(location.Concat(Slice.FromString("C")), Slice.Empty);
 
 					//var slice = await tr.GetRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))).FirstOrDefaultAsync();
-					//Console.WriteLine(slice);
+					//Log(slice);
 
 					//tr.AddReadConflictKey(location.Concat(Slice.FromString("READ_CONFLICT")));
 					//tr.AddWriteConflictKey(location.Concat(Slice.FromString("WRITE_CONFLICT")));
@@ -1928,7 +1928,11 @@ namespace FoundationDB.Client.Tests
 		[Test, Category("LongRunning")]
 		public async Task Test_BadPractice_Future_Fuzzer()
 		{
-			const int DURATION_SEC = 30;
+#if DEBUG
+			const int DURATION_SEC = 5;
+#else
+			const int DURATION_SEC = 20;
+#endif
 			const int R = 100;
 
 			using (var db = await OpenTestDatabaseAsync())
@@ -1991,7 +1995,7 @@ namespace FoundationDB.Client.Tests
 							Console.Write('C');
 							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
 							m_alive.Add(tr);
-							await tr.GetReadVersionAsync();
+							_ = await tr.GetReadVersionAsync();
 							break;
 						}
 
@@ -2007,7 +2011,7 @@ namespace FoundationDB.Client.Tests
 							int x = rnd.Next(R);
 							try
 							{
-								var res = await tr.GetAsync(location.Keys.Encode(x));
+								_ = await tr.GetAsync(location.Keys.Encode(x));
 							}
 							catch (FdbException)
 							{
@@ -2025,7 +2029,7 @@ namespace FoundationDB.Client.Tests
 							var tr = m_alive[p];
 
 							int x = rnd.Next(R);
-							var t = tr.GetAsync(location.Keys.Encode(x)).ContinueWith((_) => Console.Write('!'), TaskContinuationOptions.NotOnRanToCompletion);
+							_ = tr.GetAsync(location.Keys.Encode(x)).ContinueWith((_) => Console.Write('!'), TaskContinuationOptions.NotOnRanToCompletion);
 							// => t is not stored
 							break;
 						}

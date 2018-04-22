@@ -88,7 +88,7 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 				Assert.That(task, Is.Not.Null);
 				// the exception should be unwrapped (ie: we should not see an AggregateException, but the actual exception)
-				Assert.Throws<InvalidOperationException>(async () => await task, "ReadAsync should rethrow any regular exceptions");
+				Assert.That(async () => await task, Throws.InstanceOf<InvalidOperationException>(), "ReadAsync should rethrow any regular exceptions");
 			}
 
 		}
@@ -253,7 +253,7 @@ namespace FoundationDB.Client.Tests
 					return Task.FromResult(123);
 				}, this.Cancellation);
 
-				Assert.Throws<InvalidOperationException>(async () => await t, "Forcing writes on a read-only transaction should fail");
+				Assert.That(async () => await t, Throws.InstanceOf<InvalidOperationException>(), "Forcing writes on a read-only transaction should fail");
 			}
 
 		}

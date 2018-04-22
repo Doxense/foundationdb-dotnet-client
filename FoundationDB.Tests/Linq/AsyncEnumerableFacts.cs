@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// ReSharper disable AccessToDisposedClosure
 namespace FoundationDB.Linq.Tests
 {
 	using System;
@@ -1126,14 +1127,13 @@ namespace FoundationDB.Linq.Tests
 				Assert.That(res, Is.True);
 
 				// second move next should fail
-				var x = Assert.Throws<FormatException>(async () => await iterator.MoveNextAsync(), "Should have failed");
-				Assert.That(x.Message, Is.EqualTo("KABOOM"));
+				Assert.That(async () => await iterator.MoveNextAsync(), Throws.InstanceOf<FormatException>().With.Message.EqualTo("KABOOM"), "Should have failed");
 
 				// accessing current should rethrow the exception
 				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
 
 				// another attempt at MoveNext should fail immediately but with a different error
-				Assert.Throws<ObjectDisposedException>(async () => await iterator.MoveNextAsync());
+				Assert.That(async () => await iterator.MoveNextAsync(), Throws.InstanceOf<ObjectDisposedException>());
 			}
 		}
 

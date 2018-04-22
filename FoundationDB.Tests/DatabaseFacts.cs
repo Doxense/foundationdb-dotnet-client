@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// ReSharper disable AccessToDisposedClosure
 namespace FoundationDB.Client.Tests
 {
 	using System;
@@ -77,7 +78,7 @@ namespace FoundationDB.Client.Tests
 				using (var cluster = await Fdb.CreateClusterAsync(cts.Token))
 				{
 					cts.Cancel();
-					Assert.Throws<OperationCanceledException>(() => cluster.OpenDatabaseAsync("DB", KeySubspace.Empty, false, cts.Token).GetAwaiter().GetResult());
+					Assert.That(async () => await cluster.OpenDatabaseAsync("DB", KeySubspace.Empty, false, cts.Token), Throws.InstanceOf<OperationCanceledException>());
 				}
 			}
 		}
