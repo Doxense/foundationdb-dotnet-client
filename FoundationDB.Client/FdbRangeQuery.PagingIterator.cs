@@ -165,6 +165,7 @@ namespace FoundationDB.Client
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
+				m_ct.ThrowIfCancellationRequested();
 				this.Transaction.EnsureCanRead();
 
 				this.Iteration++;
