@@ -302,20 +302,20 @@ namespace FoundationDB.Client
 									switch (key[-1])
 									{
 										case 0xFF:
-											{
-												//***README*** if you break under here, see README in the last catch() block
-												tuple = TuPack.Unpack(key[0, -1]);
-												suffix = ".<FF>";
-												break;
-											}
+										{
+											//***README*** if you break under here, see README in the last catch() block
+											tuple = TuPack.Unpack(key[0, -1]);
+											suffix = ".<FF>";
+											break;
+										}
 										case 0x01:
-											{
-												var tmp = key[0, -1] + (byte)0;
-												//***README*** if you break under here, see README in the last catch() block
-												tuple = TuPack.Unpack(tmp);
-												suffix = " + 1";
-												break;
-											}
+										{
+											var tmp = key[0, -1] + (byte)0;
+											//***README*** if you break under here, see README in the last catch() block
+											tuple = TuPack.Unpack(tmp);
+											suffix = " + 1";
+											break;
+										}
 									}
 									break;
 								}

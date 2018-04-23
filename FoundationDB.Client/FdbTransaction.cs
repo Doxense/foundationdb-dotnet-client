@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
-		private CancellationToken m_cancellation; //PERF: readonly struct
+		private CancellationToken m_cancellation;
 
 		#endregion
 

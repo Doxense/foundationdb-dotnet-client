@@ -46,14 +46,15 @@ namespace FoundationDB.Client
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
 
 		/// <summary>The database used by the operation</summary>
-		public IFdbDatabase Database { [NotNull] get; private set; /*readonly*/ }
+		[NotNull]
+		public IFdbDatabase Database { get; }
 
 		/// <summary>Result of the operation (or null)</summary>
 		public object Result { get; set; }
 		//REVIEW: should we force using a "SetResult()/TrySetResult()" method for this ?
 
 		/// <summary>Cancellation token associated with the operation</summary>
-		public CancellationToken Cancellation { get; private set; /*readonly*/ }
+		public CancellationToken Cancellation { get; }
 
 		/// <summary>If set to true, will abort and not commit the transaction. If false, will try to commit the transaction (and retry on failure)</summary>
 		public bool Abort { get; set; }
@@ -65,30 +66,32 @@ namespace FoundationDB.Client
 		public DateTime StartedUtc { get; private set; }
 
 		/// <summary>Stopwatch that is started at the creation of the transaction, and stopped when it commits or gets disposed</summary>
-		internal Stopwatch Clock { [NotNull] get; private set; /*readonly*/ }
+		[NotNull]
+		internal Stopwatch Clock { get; }
 
 		/// <summary>Duration of all the previous attemps before the current one (starts at 0, and gets updated at each reset/retry)</summary>
 		internal TimeSpan BaseDuration { get; private set; }
 
 		/// <summary>Time elapsed since the start of the first attempt</summary>
-		public TimeSpan ElapsedTotal { get { return this.Clock.Elapsed; } }
+		public TimeSpan ElapsedTotal => this.Clock.Elapsed;
 
 		/// <summary>Time elapsed since the start of the current attempt</summary>
 		/// <remarks>This value is reset to zero every time the transation fails and is retried.
 		/// Note that this may not represent the actual lifetime of the transaction with the database itself, which starts at the first read operation.</remarks>
-		public TimeSpan Elapsed { get { return this.Clock.Elapsed.Subtract(this.BaseDuration); } }
+		public TimeSpan Elapsed => this.Clock.Elapsed.Subtract(this.BaseDuration);
 
 		/// <summary>If true, the transaction has been committed successfully</summary>
 		public bool Committed { get; private set; }
 
 		/// <summary>If true, the lifetime of the context is handled by an external retry loop. If false, the context is linked to the lifetime of the transaction instance.</summary>
-		internal bool Shared { get { return (this.Mode & FdbTransactionMode.InsideRetryLoop) != 0; } }
+		internal bool Shared => (this.Mode & FdbTransactionMode.InsideRetryLoop) != 0;
 
 		/// <summary>Mode of the transaction</summary>
-		public FdbTransactionMode Mode { get; private set; /*readonly*/ }
+		public FdbTransactionMode Mode { get; }
 
 		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
-		internal CancellationTokenSource TokenSource { [CanBeNull] get; private set; /*readonly*/ }
+		[CanBeNull]
+		internal CancellationTokenSource TokenSource { get; }
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
