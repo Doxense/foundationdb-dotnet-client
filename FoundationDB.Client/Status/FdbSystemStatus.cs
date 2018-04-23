@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// ReSharper disable UnusedMember.Global
 namespace FoundationDB.Client.Status
 {
 	using FoundationDB.Client.Utils;
@@ -39,40 +40,34 @@ namespace FoundationDB.Client.Status
 	[PublicAPI]
 	public sealed class FdbSystemStatus : MetricsBase
 	{
-		private readonly ClientStatus m_client;
-		private readonly ClusterStatus m_cluster;
-		private readonly long m_readVersion;
-		private readonly string m_raw;
-
 		internal FdbSystemStatus(Dictionary<string, object> doc, long readVersion, string raw)
 			: base(doc)
 		{
-			m_client = new ClientStatus(TinyJsonParser.GetMapField(doc, "client"));
-			m_cluster = new ClusterStatus(TinyJsonParser.GetMapField(doc, "cluster"));
-			m_readVersion = readVersion;
-			m_raw = raw;
+			this.Client = new ClientStatus(TinyJsonParser.GetMapField(doc, "client"));
+			this.Cluster = new ClusterStatus(TinyJsonParser.GetMapField(doc, "cluster"));
+			this.ReadVersion = readVersion;
+			this.RawText = raw;
 		}
 
 		/// <summary>Details about the local Client</summary>
-		public ClientStatus Client { get { return m_client; } }
+		public ClientStatus Client { get; }
 
 		/// <summary>Details about the remote Cluster</summary>
-		public ClusterStatus Cluster { get { return m_cluster; } }
+		public ClusterStatus Cluster { get; }
 
 		/// <summary>Read Version of the snapshot</summary>
-		public long ReadVersion { get { return m_readVersion; } }
+		public long ReadVersion { get; }
 
 		/// <summary>Raw JSON text of this snapshot.</summary>
 		/// <remarks>This is the same value that is returned by running 'status json' in fdbcli</remarks>
-		public string RawText { get { return m_raw; } }
-
+		public string RawText { get; }
 	}
 
 	#region Common...
 
 	/// <summary>Details about a notification, alert or error, as reported by a component of a FoundationDB cluster</summary>
 	[DebuggerDisplay("{Name}")]
-	public struct Message
+	public /*readonly*/ struct Message
 	{
 		/// <summary>Code for this message</summary>
 		public readonly string Name;
@@ -107,7 +102,7 @@ namespace FoundationDB.Client.Status
 
 		public override string ToString()
 		{
-			return String.Format("[{0}] {1}", this.Name, this.Description);
+			return $"[{this.Name}] {this.Description}";
 		}
 
 		public override int GetHashCode()
@@ -117,7 +112,7 @@ namespace FoundationDB.Client.Status
 
 		public override bool Equals(object obj)
 		{
-			return (obj is Message) && Equals((Message)obj);
+			return obj is Message message && Equals(message);
 		}
 
 		public bool Equals(Message other)
@@ -129,7 +124,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Measured quantity that changes over time</summary>
 	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Roughness={Roughness}")]
-	public struct LoadCounter
+	public /*readonly*/ struct LoadCounter
 	{
 		/// <summary>Absolute value, since the start (ex: "UNIT")</summary>
 		public readonly long Counter;
@@ -237,51 +232,29 @@ namespace FoundationDB.Client.Status
 		private Message[] m_messages;
 
 		/// <summary>Path to the '.cluster' file used by the client to connect to the cluster</summary>
-		public string ClusterFilePath
-		{
-			get { return GetString("cluster_file", "path"); }
-		}
+		public string ClusterFilePath => GetString("cluster_file", "path");
 
 		/// <summary>Indicates if the content of the '.cluster' file is up to date with the current topology of the cluster</summary>
-		public bool ClusterFileUpToDate
-		{
-			get { return GetBoolean("cluster_file", "up_to_date") ?? false; }
-		}
+		public bool ClusterFileUpToDate => GetBoolean("cluster_file", "up_to_date") ?? false;
 
 		/// <summary>Liste of active messages for the client</summary>
 		/// <remarks>The most common client messages are listed in <see cref="ClientMessages"/>.</remarks>
-		public Message[] Messages
-		{
-			[NotNull]
-			get { return m_messages ?? (m_messages = Message.FromArray(m_data, "messages")); }
-		}
+		[NotNull]
+		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
 
 		/// <summary>Timestamp of the local client (unix time)</summary>
 		/// <remarks>Number of seconds since 1970-01-01Z, using the local system clock</remarks>
-		public long Timestamp
-		{
-			get { return GetInt64("timestamp") ?? 0; }
-		}
+		public long Timestamp => GetInt64("timestamp") ?? 0;
 
 		/// <summary>Local system time on the client</summary>
-		public DateTime SystemTime
-		{
-			get { return new DateTime(checked(621355968000000000L + this.Timestamp * TimeSpan.TicksPerSecond), DateTimeKind.Utc); }
-		}
+		public DateTime SystemTime => new DateTime(checked(621355968000000000L + this.Timestamp * TimeSpan.TicksPerSecond), DateTimeKind.Utc);
 
 		/// <summary>Specifies if the local client was able to connect to the cluster</summary>
-		public bool DatabaseAvailable
-		{
-			get { return GetBoolean("database_status", "available") ?? false; }
-		}
+		public bool DatabaseAvailable => GetBoolean("database_status", "available") ?? false;
 
 		/// <summary>Specifies if the database is currently healthy</summary>
 		//REVIEW: what does it mean if available=true, but healthy=false ?
-		public bool DatabaseHealthy
-		{
-			get { return GetBoolean("database_status", "healthy") ?? false; }
-		}
-
+		public bool DatabaseHealthy => GetBoolean("database_status", "healthy") ?? false;
 	}
 
 	/// <summary>List of well known client messages</summary>
@@ -321,58 +294,31 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Unix time of the cluster controller</summary>
 		/// <remarks>Number of seconds since the Unix epoch (1970-01-01Z)</remarks>
-		public long ClusterControllerTimestamp
-		{
-			get { return GetInt64("cluster_controller_timestamp") ?? 0; }
-		}
+		public long ClusterControllerTimestamp => GetInt64("cluster_controller_timestamp") ?? 0;
 
 		/// <summary>License string of the cluster</summary>
-		public string License
-		{
-			[NotNull]
-			get { return GetString("license") ?? String.Empty; }
-		}
+		[NotNull]
+		public string License => GetString("license") ?? String.Empty;
 
 		/// <summary>List of currently active messages</summary>
 		/// <remarks>Includes notifications, warnings, errors, ...</remarks>
-		public Message[] Messages
-		{
-			[NotNull]
-			get { return m_messages ?? (m_messages = Message.FromArray(m_data, "messages")); }
-		}
+		[NotNull]
+		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
 
 		/// <summary>Recovery state of the cluster</summary>
-		public Message RecoveryState
-		{
-			get { return Message.From(m_data, "recovery_state"); }
-		}
+		public Message RecoveryState => Message.From(m_data, "recovery_state");
 
-		public ClusterConfiguration Configuration
-		{
-			get { return m_configuration ?? (m_configuration = new ClusterConfiguration(GetMap("configuration"))); }
-		}
+		public ClusterConfiguration Configuration => m_configuration ?? (m_configuration = new ClusterConfiguration(GetMap("configuration")));
 
-		public DataMetrics Data
-		{
-			get { return m_dataMetrics ?? (m_dataMetrics = new DataMetrics(GetMap("data"))); }
-		}
+		public DataMetrics Data => m_dataMetrics ?? (m_dataMetrics = new DataMetrics(GetMap("data")));
 
-		public LatencyMetrics Latency
-		{
-			get { return m_latency ?? (m_latency = new LatencyMetrics(GetMap("latency_probe"))); }
-		}
+		public LatencyMetrics Latency => m_latency ?? (m_latency = new LatencyMetrics(GetMap("latency_probe")));
 
 		/// <summary>QoS metrics</summary>
-		public QosMetrics Qos
-		{
-			get { return m_qos ?? (m_qos = new QosMetrics(GetMap("qos"))); }
-		}
+		public QosMetrics Qos => m_qos ?? (m_qos = new QosMetrics(GetMap("qos")));
 
 		/// <summary>Workload metrics</summary>
-		public WorkloadMetrics Workload
-		{
-			get { return m_workload ?? (m_workload = new WorkloadMetrics(GetMap("workload"))); }
-		}
+		public WorkloadMetrics Workload => m_workload ?? (m_workload = new WorkloadMetrics(GetMap("workload")));
 
 		/// <summary>List of the processes that are currently active in the cluster</summary>
 		public IReadOnlyDictionary<string, ProcessStatus> Processes
@@ -445,11 +391,11 @@ namespace FoundationDB.Client.Status
 
 		private string[] m_excludedServers;
 
-		public int CoordinatorsCount { get; private set; }
+		public int CoordinatorsCount { get; }
 
-		public string StorageEngine { get; private set; }
+		public string StorageEngine { get; }
 
-		public string RedundancyFactor { get; private set; }
+		public string RedundancyFactor { get; }
 
 		public IReadOnlyList<string> ExcludedServers
 		{
@@ -482,11 +428,11 @@ namespace FoundationDB.Client.Status
 			this.TransactionStartSeconds = GetDouble("transaction_start_seconds") ?? 0;
 		}
 
-		public double CommitSeconds { get; private set; }
+		public double CommitSeconds { get; }
 
-		public double ReadSeconds { get; private set; }
+		public double ReadSeconds { get; set; }
 
-		public double TransactionStartSeconds { get; private set; }
+		public double TransactionStartSeconds { get; }
 	}
 
 	/// <summary>Details about the volume of data stored in the cluster</summary>
@@ -494,56 +440,25 @@ namespace FoundationDB.Client.Status
 	{
 		internal DataMetrics(Dictionary<string, object> data) : base(data) { }
 
-		public long AveragePartitionSizeBytes
-		{
-			get { return GetInt64("average_partition_size_bytes") ?? 0; }
-		}
+		public long AveragePartitionSizeBytes => GetInt64("average_partition_size_bytes") ?? 0;
 
-		public long LeastOperatingSpaceBytesLogServer
-		{
-			get { return GetInt64("least_operating_space_bytes_log_server") ?? 0; }
-		}
+		public long LeastOperatingSpaceBytesLogServer => GetInt64("least_operating_space_bytes_log_server") ?? 0;
 
-		public long LeastOperatingSpaceBytesStorageServer
-		{
-			get { return GetInt64("least_operating_space_bytes_storage_server") ?? 0; }
-		}
+		public long LeastOperatingSpaceBytesStorageServer => GetInt64("least_operating_space_bytes_storage_server") ?? 0;
 
-		public long MovingDataInFlightBytes
-		{
-			get { return GetInt64("moving_data", "in_flight_bytes") ?? 0; }
-		}
+		public long MovingDataInFlightBytes => GetInt64("moving_data", "in_flight_bytes") ?? 0;
 
-		public long MovingDataInQueueBytes
-		{
-			get { return GetInt64("moving_data", "in_queue_bytes") ?? 0; }
-		}
+		public long MovingDataInQueueBytes => GetInt64("moving_data", "in_queue_bytes") ?? 0;
 
-		public long PartitionsCount
-		{
-			get { return GetInt64("partitions_count") ?? 0; }
-		}
+		public long PartitionsCount => GetInt64("partitions_count") ?? 0;
 
-		public long TotalDiskUsedBytes
-		{
-			get { return GetInt64("total_disk_used_bytes") ?? 0; }
-		}
+		public long TotalDiskUsedBytes => GetInt64("total_disk_used_bytes") ?? 0;
 
-		public long TotalKVUsedBytes
-		{
-			get { return GetInt64("total_kv_size_bytes") ?? 0; }
-		}
+		public long TotalKVUsedBytes => GetInt64("total_kv_size_bytes") ?? 0;
 
-		public bool StateHealthy
-		{
-			get { return GetBoolean("state", "healthy") ?? false; }
-		}
+		public bool StateHealthy => GetBoolean("state", "healthy") ?? false;
 
-		public string StateName
-		{
-			get { return GetString("state", "name"); }
-		}
-
+		public string StateName => GetString("state", "name");
 	}
 
 	/// <summary>Details about the quality of service offered by the cluster</summary>
@@ -552,23 +467,13 @@ namespace FoundationDB.Client.Status
 		internal QosMetrics(Dictionary<string, object> data) : base(data) { }
 
 		/// <summary>Current limiting factor for the performance of the cluster</summary>
-		public Message PerformanceLimitedBy
-		{
-			get { return Message.From(m_data, "performance_limited_by"); }
-		}
+		public Message PerformanceLimitedBy => Message.From(m_data, "performance_limited_by");
 
 		//REVIEW: what is this?
-		public long WorstQueueBytesLogServer
-		{
-			get { return GetInt64("worst_queue_bytes_log_server") ?? 0; }
-		}
+		public long WorstQueueBytesLogServer => GetInt64("worst_queue_bytes_log_server") ?? 0;
 
 		//REVIEW: what is this?
-		public long WorstQueueBytesStorageServer
-		{
-			get { return GetInt64("worst_queue_bytes_storage_server") ?? 0; }
-		}
-
+		public long WorstQueueBytesStorageServer => GetInt64("worst_queue_bytes_storage_server") ?? 0;
 	}
 
 	/// <summary>Details about the current wokrload of the cluster</summary>
@@ -581,22 +486,13 @@ namespace FoundationDB.Client.Status
 		private WorkloadTransactionsMetrics m_transactions;
 
 		/// <summary>Performance counters for the volume of data processed by the database</summary>
-		public WorkloadBytesMetrics Bytes
-		{
-			get { return m_bytes ?? (m_bytes = new WorkloadBytesMetrics(GetMap("bytes"))); }
-		}
+		public WorkloadBytesMetrics Bytes => m_bytes ?? (m_bytes = new WorkloadBytesMetrics(GetMap("bytes")));
 
 		/// <summary>Performance counters for the operations on the keys in the database</summary>
-		public WorkloadOperationsMetrics Operations
-		{
-			get { return m_operations ?? (m_operations = new WorkloadOperationsMetrics(GetMap("operations"))); }
-		}
+		public WorkloadOperationsMetrics Operations => m_operations ?? (m_operations = new WorkloadOperationsMetrics(GetMap("operations")));
 
 		/// <summary>Performance counters for the transactions.</summary>
-		public WorkloadTransactionsMetrics Transactions
-		{
-			get { return m_transactions ?? (m_transactions = new WorkloadTransactionsMetrics(GetMap("transactions"))); }
-		}
+		public WorkloadTransactionsMetrics Transactions => m_transactions ?? (m_transactions = new WorkloadTransactionsMetrics(GetMap("transactions")));
 	}
 
 	/// <summary>Throughput of a FoundationDB cluster</summary>
@@ -610,7 +506,7 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Bytes written</summary>
 		//REVIEW: this looks like the size of writes in transactions, NOT the number of bytes written to the disk!
-		public LoadCounter Written { get; private set; }
+		public LoadCounter Written { get; }
 
 	}
 
@@ -625,10 +521,10 @@ namespace FoundationDB.Client.Status
 		}
 
 		/// <summary>Details about read operations</summary>
-		public LoadCounter Reads { get; private set; }
+		public LoadCounter Reads { get; }
 
 		/// <summary>Details about write operations</summary>
-		public LoadCounter Writes { get; private set; }
+		public LoadCounter Writes { get; }
 	}
 
 	/// <summary>Transaction workload of a FoundationDB cluster</summary>
@@ -642,11 +538,11 @@ namespace FoundationDB.Client.Status
 			this.Started = LoadCounter.From(data, "started");
 		}
 
-		public LoadCounter Committed { get; private set; }
+		public LoadCounter Committed { get; }
 
-		public LoadCounter Conflicted { get; private set; }
+		public LoadCounter Conflicted { get; }
 
-		public LoadCounter Started { get; private set; }
+		public LoadCounter Started { get; }
 	}
 
 	#endregion
@@ -674,75 +570,46 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Unique identifier for this process.</summary>
 		//TODO: is it stable accross reboots? what are the conditions for a process to change its ID ?
-		public string Id { [NotNull] get; private set; }
+		[NotNull]
+		public string Id { get; }
 
 		/// <summary>Identifier of the machine that is hosting this process</summary>
 		/// <remarks>All processes that have the same MachineId are running on the same (physical) machine.</remarks>
-		public string MachineId
-		{
-			[NotNull]
-			get { return m_machineId ?? (m_machineId = GetString("machine_id") ?? String.Empty); }
-		}
+		[NotNull]
+		public string MachineId => m_machineId ?? (m_machineId = GetString("machine_id") ?? String.Empty);
 
 		/// <summary>Version of this process</summary>
 		/// <example>"3.0.4"</example>
-		public string Version
-		{
-			[NotNull]
-			get { return GetString("version") ?? String.Empty; }
-		}
+		[NotNull]
+		public string Version => GetString("version") ?? String.Empty;
 
 		/// <summary>Address and port of this process, with syntax "IP_ADDRESS:port"</summary>
 		/// <example>"10.1.2.34:4500"</example>
-		public string Address
-		{
-			[NotNull]
-			get { return m_address ?? (m_address = GetString("address") ?? String.Empty); }
-		}
+		[NotNull]
+		public string Address => m_address ?? (m_address = GetString("address") ?? String.Empty);
 
 		/// <summary>Command line that was used to start this process</summary>
-		public string CommandLine
-		{
-			[NotNull]
-			get { return GetString("command_line") ?? String.Empty; }
-		}
+		[NotNull]
+		public string CommandLine => GetString("command_line") ?? String.Empty;
 
 		/// <summary>If true, this process is currently excluded from the cluster</summary>
-		public bool Excluded
-		{
-			get { return GetBoolean("excluded") ?? false; }
-		}
+		public bool Excluded => GetBoolean("excluded") ?? false;
 
 		/// <summary>List of messages that are currently published by this process</summary>
-		public Message[] Messages
-		{
-			[NotNull]
-			get { return m_messages ?? (m_messages = Message.FromArray(m_data, "messages")); }
-		}
+		[NotNull]
+		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
 
 		/// <summary>Network performance counters</summary>
-		public ProcessNetworkMetrics Network
-		{
-			get { return m_network ?? (m_network = new ProcessNetworkMetrics(GetMap("network"))); }
-		}
+		public ProcessNetworkMetrics Network => m_network ?? (m_network = new ProcessNetworkMetrics(GetMap("network")));
 
 		/// <summary>CPU performance counters</summary>
-		public ProcessCpuMetrics Cpu
-		{
-			get { return m_cpu ?? (m_cpu = new ProcessCpuMetrics(GetMap("cpu"))); }
-		}
+		public ProcessCpuMetrics Cpu => m_cpu ?? (m_cpu = new ProcessCpuMetrics(GetMap("cpu")));
 
 		/// <summary>Disk performance counters</summary>
-		public ProcessDiskMetrics Disk
-		{
-			get { return m_disk ?? (m_disk = new ProcessDiskMetrics(GetMap("disk"))); }
-		}
+		public ProcessDiskMetrics Disk => m_disk ?? (m_disk = new ProcessDiskMetrics(GetMap("disk")));
 
 		/// <summary>Memory performance counters</summary>
-		public ProcessMemoryMetrics Memory
-		{
-			get { return m_memory ?? (m_memory = new ProcessMemoryMetrics(GetMap("memory"))); }
-		}
+		public ProcessMemoryMetrics Memory => m_memory ?? (m_memory = new ProcessMemoryMetrics(GetMap("memory")));
 
 		/// <summary>List of the roles assumed by this process</summary>
 		/// <remarks>The key is the unique role ID in the cluster, and the value is the type of the role itself</remarks>
@@ -786,16 +653,9 @@ namespace FoundationDB.Client.Status
 			: base(data)
 		{ }
 
-		public long AvailableBytes
-		{
-			get { return GetInt64("available_bytes") ?? 0; }
-		}
+		public long AvailableBytes => GetInt64("available_bytes") ?? 0;
 
-		public long UsedBytes
-		{
-			get { return GetInt64("used_bytes") ?? 0; }
-		}
-
+		public long UsedBytes => GetInt64("used_bytes") ?? 0;
 	}
 
 	/// <summary>CPU performane counters for a FoundationDB process</summary>
@@ -805,11 +665,7 @@ namespace FoundationDB.Client.Status
 			: base(data)
 		{ }
 
-		public double UsageCores
-		{
-			get { return GetDouble("usage_cores") ?? 0; }
-		}
-
+		public double UsageCores => GetDouble("usage_cores") ?? 0;
 	}
 
 	/// <summary>Disk performane counters for a FoundationDB process</summary>
@@ -819,10 +675,7 @@ namespace FoundationDB.Client.Status
 			: base(data)
 		{ }
 
-		public double Busy
-		{
-			get { return GetDouble("busy") ?? 0; }
-		}
+		public double Busy => GetDouble("busy") ?? 0;
 	}
 
 	/// <summary>Network performane counters for a FoundationDB process or machine</summary>
@@ -835,9 +688,9 @@ namespace FoundationDB.Client.Status
 			this.MegabitsSent = LoadCounter.From(data, "megabits_sent");
 		}
 
-		public LoadCounter MegabitsReceived { get; private set; }
+		public LoadCounter MegabitsReceived { get; }
 
-		public LoadCounter MegabitsSent { get; private set; }
+		public LoadCounter MegabitsSent { get; }
 
 	}
 
@@ -861,47 +714,30 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Unique identifier for this machine.</summary>
 		//TODO: is it stable accross reboots? what are the conditions for a process to change its ID ?
-		public string Id { [NotNull] get; private set; }
+		[NotNull]
+		public string Id { get; }
 
 		/// <summary>Identifier of the data center that is hosting this machine</summary>
 		/// <remarks>All machines that have the same DataCenterId are probably running on the same (physical) network.</remarks>
-		public string DataCenterId
-		{
-			[NotNull]
-			get { return GetString("datacenter_id") ?? String.Empty; }
-		}
+		[NotNull]
+		public string DataCenterId => GetString("datacenter_id") ?? String.Empty;
 
 		/// <summary>Address of this machine</summary>
 		/// <example>"10.1.2.34"</example>
-		public string Address
-		{
-			[NotNull]
-			get { return m_address ?? (m_address = GetString("address") ?? String.Empty); }
-		}
+		[NotNull]
+		public string Address => m_address ?? (m_address = GetString("address") ?? String.Empty);
 
 		/// <summary>If true, this process is currently excluded from the cluster</summary>
-		public bool Excluded
-		{
-			get { return GetBoolean("excluded") ?? false; }
-		}
+		public bool Excluded => GetBoolean("excluded") ?? false;
 
 		/// <summary>Network performance counters</summary>
-		public MachineNetworkMetrics Network
-		{
-			get { return m_network ?? (m_network = new MachineNetworkMetrics(GetMap("network"))); }
-		}
+		public MachineNetworkMetrics Network => m_network ?? (m_network = new MachineNetworkMetrics(GetMap("network")));
 
 		/// <summary>CPU performance counters</summary>
-		public MachineCpuMetrics Cpu
-		{
-			get { return m_cpu ?? (m_cpu = new MachineCpuMetrics(GetMap("cpu"))); }
-		}
+		public MachineCpuMetrics Cpu => m_cpu ?? (m_cpu = new MachineCpuMetrics(GetMap("cpu")));
 
 		/// <summary>Memory performance counters</summary>
-		public MachineMemoryMetrics Memory
-		{
-			get { return m_memory ?? (m_memory = new MachineMemoryMetrics(GetMap("memory"))); }
-		}
+		public MachineMemoryMetrics Memory => m_memory ?? (m_memory = new MachineMemoryMetrics(GetMap("memory")));
 	}
 
 	/// <summary>Memory performane counters for machine hosting one or more FoundationDB processes</summary>
@@ -915,11 +751,11 @@ namespace FoundationDB.Client.Status
 			this.TotalBytes = GetInt64("total_bytes") ?? 0;
 		}
 
-		public long CommittedBytes { get; private set; }
+		public long CommittedBytes { get; }
 
-		public long FreeBytes { get; private set; }
+		public long FreeBytes { get; }
 
-		public long TotalBytes { get; private set; }
+		public long TotalBytes { get; }
 
 	}
 
@@ -932,7 +768,7 @@ namespace FoundationDB.Client.Status
 			this.LogicalCoreUtilization = GetDouble("logical_core_utilization") ?? 0;
 		}
 
-		public double LogicalCoreUtilization { get; private set; }
+		public double LogicalCoreUtilization { get; }
 
 	}
 
@@ -947,11 +783,11 @@ namespace FoundationDB.Client.Status
 			this.TcpSegmentsRetransmitted = LoadCounter.From(data, "tcp_segments_retransmitted");
 		}
 
-		public LoadCounter MegabitsReceived { get; private set; }
+		public LoadCounter MegabitsReceived { get; }
 
-		public LoadCounter MegabitsSent { get; private set; }
+		public LoadCounter MegabitsSent { get; }
 
-		public LoadCounter TcpSegmentsRetransmitted { get; private set; }
+		public LoadCounter TcpSegmentsRetransmitted { get; }
 
 	}
 

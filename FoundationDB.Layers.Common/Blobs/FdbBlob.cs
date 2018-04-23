@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Blobs
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
-	[DebuggerDisplay("Subspace={Subspace}")]
+	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Subspace) + "}")]
 	public class FdbBlob
 	{
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
@@ -55,7 +55,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
 		public FdbBlob([NotNull] IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Subspace = subspace.Using(TypeSystem.Tuples);
 		}
@@ -201,7 +201,7 @@ namespace FoundationDB.Layers.Blobs
 		/// </summary>
 		public void Delete([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.ClearRange(this.Subspace);
 		}
@@ -212,7 +212,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
 		public async Task<long?> GetSizeAsync([NotNull] IFdbReadOnlyTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
 
@@ -229,8 +229,8 @@ namespace FoundationDB.Layers.Blobs
 		/// </summary>
 		public async Task<Slice> ReadAsync([NotNull] IFdbReadOnlyTransaction trans, long offset, int n)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (offset < 0) throw new ArgumentNullException(nameof(offset), "Offset cannot be less than zero");
 
 			long? size = await GetSizeAsync(trans).ConfigureAwait(false);
 			if (size == null) return Slice.Nil; // not found
@@ -282,8 +282,8 @@ namespace FoundationDB.Layers.Blobs
 		/// </summary>
 		public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, Slice data)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
 
 			if (data.IsNullOrEmpty) return;
 
@@ -308,7 +308,7 @@ namespace FoundationDB.Layers.Blobs
 		/// </summary>
 		public async Task AppendAsync([NotNull] IFdbTransaction trans, Slice data)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (data.IsNullOrEmpty) return;
 
@@ -323,8 +323,8 @@ namespace FoundationDB.Layers.Blobs
 		/// </summary>
 		public async Task TruncateAsync([NotNull] IFdbTransaction trans, long newLength)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (newLength < 0) throw new ArgumentOutOfRangeException("newLength", "Length cannot be less than zero");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (newLength < 0) throw new ArgumentOutOfRangeException(nameof(newLength), "Length cannot be less than zero");
 
 			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
 			if (length != null)
