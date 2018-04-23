@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
- namespace Doxense.Collections.Tuples.Encoding
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Runtime.CompilerServices;

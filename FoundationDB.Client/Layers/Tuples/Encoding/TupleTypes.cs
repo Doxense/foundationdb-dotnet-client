@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB;
-
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;

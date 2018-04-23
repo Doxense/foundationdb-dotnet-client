@@ -184,7 +184,6 @@ namespace Doxense.Collections.Tuples
 				while (xs.MoveNext())
 				{
 					if (!ys.MoveNext()) return false;
-
 					if (!comparer.Equals(xs.Current, ys.Current)) return false;
 				}
 

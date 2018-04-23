@@ -29,10 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
+	using JetBrains.Annotations;
 
 	/// <summary>Type codec that uses the Tuple Encoding format</summary>
 	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>

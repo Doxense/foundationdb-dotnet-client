@@ -26,14 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB;
 	using FoundationDB.Client;
 
 	/// <summary>Encoder for variable-length elements, that uses the Tuple Binary Encoding format</summary>

@@ -26,12 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
- namespace Doxense.Collections.Tuples.Encoding
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
