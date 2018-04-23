@@ -33,23 +33,21 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]
-	public struct KeySelectorPair
+	public /*readonly*/ struct KeySelectorPair
 	{
 		/// <summary>Start of the range</summary>
-		public KeySelector Begin { get { return m_begin; } }
-		private KeySelector m_begin; //PERF: readonly struct
+		public /*readonly*/ KeySelector Begin;
 
 		/// <summary>End of the range</summary>
-		public KeySelector End { get { return m_end; } }
-		private KeySelector m_end; //PERF: readonly struct
+		public /*readonly*/ KeySelector End;
 
 		/// <summary>Create a new pair of key selectors</summary>
 		/// <param name="beginInclusive">Selector for key from which to start iterating</param>
 		/// <param name="endExclusive">Selector for key where to stop iterating</param>
 		public KeySelectorPair(KeySelector beginInclusive, KeySelector endExclusive)
 		{
-			m_begin = beginInclusive;
-			m_end = endExclusive;
+			this.Begin = beginInclusive;
+			this.End = endExclusive;
 		}
 
 		/// <summary>Factory method for a pair of key selectors</summary>
@@ -93,7 +91,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the pair of key selectors</summary>
 		public override string ToString()
 		{
-			return "[ " + m_begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", " + m_end.PrettyPrint(FdbKey.PrettyPrintMode.End) + " )";
+			return "[ " + this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End) + " )";
 		}
 
 	}
