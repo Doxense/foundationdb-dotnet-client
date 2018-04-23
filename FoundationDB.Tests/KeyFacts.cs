@@ -67,19 +67,19 @@ namespace FoundationDB.Client.Tests
 		{
 
 			var key = FdbKey.Increment(Slice.FromByteString("Hello"));
-			Assert.That(key.ToStringAscii(), Is.EqualTo("Hellp"));
+			Assert.That(key.ToString(), Is.EqualTo("Hellp"));
 			 
 			key = FdbKey.Increment(Slice.FromByteString("Hello\x00"));
-			Assert.That(key.ToStringAscii(), Is.EqualTo("Hello\x01"));
+			Assert.That(key.ToString(), Is.EqualTo("Hello<01>"));
 
 			key = FdbKey.Increment(Slice.FromByteString("Hello\xFE"));
-			Assert.That(key.ToStringAscii(), Is.EqualTo("Hello\xFF"));
+			Assert.That(key.ToString(), Is.EqualTo("Hello<FF>"));
 
 			key = FdbKey.Increment(Slice.FromByteString("Hello\xFF"));
-			Assert.That(key.ToStringAscii(), Is.EqualTo("Hellp"), "Should remove training \\xFF");
+			Assert.That(key.ToString(), Is.EqualTo("Hellp"), "Should remove training \\xFF");
 
 			key = FdbKey.Increment(Slice.FromByteString("A\xFF\xFF\xFF"));
-			Assert.That(key.ToStringAscii(), Is.EqualTo("B"), "Should truncate all trailing \\xFFs");
+			Assert.That(key.ToString(), Is.EqualTo("B"), "Should truncate all trailing \\xFFs");
 
 			// corner cases
 			Assert.That(() => FdbKey.Increment(Slice.Nil), Throws.InstanceOf<ArgumentException>().With.Property("ParamName").EqualTo("slice"));
@@ -346,19 +346,19 @@ namespace FoundationDB.Client.Tests
 			// tuples should be decoded properly
 
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(123)), Is.EqualTo("(123,)"), "Singleton tuples should end with a ','");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(Slice.FromByteString("hello"))), Is.EqualTo("('hello',)"), "ASCII strings should use single quotes");
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(Slice.FromByteString("hello"))), Is.EqualTo("(`hello`,)"), "ASCII strings should use single back quotes");
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings should use double quotes");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(new byte[] { 1, 2, 3 }.AsSlice())), Is.EqualTo("(<01 02 03>,)"));
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(new byte[] { 1, 2, 3 }.AsSlice())), Is.EqualTo("(`<01><02><03>`,)"));
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(true, false, default(object))), Is.EqualTo("(1, 0, null)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, 3.1415926535897931, 2.7182818284590451)"), "Doubles should used dot and have full precision (17 digits)");
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, 3.14159274, 2.71828175)"), "Singles should used dot and have full precision (10 digits)");
 			var guid = Guid.NewGuid();
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("B"))), "GUIDs should be displayed as a string literal, surrounded by {...}, and without quotes");
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("B"))), "GUIDs should be displayed as a string literal, surrounded by {{...}}, and without quotes");
 			var uuid128 = Uuid128.NewUuid();
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("B"))), "Uuid128s should be displayed as a string literal, surrounded by {...}, and without quotes");
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("B"))), "Uuid128s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
 			var uuid64 = Uuid64.NewUuid();
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("B"))), "Uuid64s should be displayed as a string literal, surrounded by {...}, and without quotes");
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("B"))), "Uuid64s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
 
 			// ranges should be decoded when possible
 			var key = TuPack.ToRange(STuple.Create("hello"));
