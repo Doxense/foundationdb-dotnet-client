@@ -32,6 +32,7 @@ namespace Doxense.Runtime.Converters
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
@@ -53,8 +54,7 @@ namespace Doxense.Runtime.Converters
 
 			public override bool Equals(object obj)
 			{
-				if (obj == null) return false;
-				return Equals((TypePair)obj);
+				return obj is TypePair tp && Equals(tp);
 			}
 
 			public bool Equals(TypePair other)
@@ -65,11 +65,7 @@ namespace Doxense.Runtime.Converters
 
 			public override int GetHashCode()
 			{
-				// note: we cannot just xor both hash codes, because if left and right are the same, we will return 0
-				int h = this.Left.GetHashCode();
-				h = (h >> 13) | (h << 19);
-				h ^= this.Right.GetHashCode();
-				return h;
+				return HashCodes.Combine(this.Left.GetHashCode(), this.Right.GetHashCode());
 			}
 		}
 
@@ -99,20 +95,23 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Tries to convert an object into an equivalent string representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
 		/// <returns>String equivalent of the object</returns>
-		internal static string TryAdaptToString(object value)
+		public static string TryAdaptToString(object value)
 		{
-			if (value == null) return null;
-
-			if (value is string s) return s;
-
-			if (value is char c) return new string(c, 1);
-
-			if (value is Slice slice) return slice.ToStringAscii(); //REVIEW: or ToUnicode() ?
-
-			if (value is byte[] bstr) return bstr.AsSlice().ToStringAscii(); //REVIEW: or ToUnicode() ?
-
-			if (value is IFormattable fmt) return fmt.ToString(null, CultureInfo.InvariantCulture);
-
+			switch (value)
+			{
+				case null:
+					return null;
+				case string s:
+					return s;
+				case char c:
+					return new string(c, 1);
+				case Slice sl:
+					return sl.ToStringUtf8(); //BUGBUG: ASCII? Ansi? UTF8?
+				case byte[] bstr:
+					return bstr.AsSlice().ToStringUtf8(); //BUGBUG: ASCII? Ansi? UTF8?
+				case IFormattable fmt:
+					return fmt.ToString(null, CultureInfo.InvariantCulture);
+			}
 			return null;
 		}
 
@@ -121,7 +120,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="type">Type of the object to adapt</param>
 		/// <param name="result">Double equivalent of the object</param>
 		/// <returns>True if <paramref name="value"/> is compatible with a decimal. False if the type is not compatible</returns>
-		internal static bool TryAdaptToDecimal(object value, [NotNull] Type type, out double result)
+		public static bool TryAdaptToDecimal(object value, [NotNull] Type type, out double result)
 		{
 			if (value != null)
 			{
@@ -147,7 +146,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="type">Type of the object to adapt</param>
 		/// <param name="result">Int64 equivalent of the object</param>
 		/// <returns>True if <paramref name="value"/> is compatible with a decimal. False if the type is not compatible</returns>
-		internal static bool TryAdaptToInteger(object value, [NotNull] Type type, out long result)
+		public static bool TryAdaptToInteger(object value, [NotNull] Type type, out long result)
 		{
 			if (value != null)
 			{
@@ -203,12 +202,7 @@ namespace Doxense.Runtime.Converters
 
 			if (IsStringType(t1) || IsStringType(t2))
 			{
-				return (x, y) =>
-				{
-					if (x == null) return y == null;
-					if (y == null) return false;
-					return object.ReferenceEquals(x, y) || (TryAdaptToString(x) == TryAdaptToString(y));
-				};
+				return (x, y) => x == null ? y == null : y != null && (object.ReferenceEquals(x, y) || (TryAdaptToString(x) == TryAdaptToString(y)));
 			}
 
 			if (IsNumericType(t1) || IsNumericType(t2))
@@ -218,6 +212,7 @@ namespace Doxense.Runtime.Converters
 					return (x, y) =>
 					{
 						double d1, d2;
+						// ReSharper disable once CompareOfFloatsByEqualityOperator
 						return x == null ? y == null : y != null && TryAdaptToDecimal(x, t1, out d1) && TryAdaptToDecimal(y, t2, out d2) && d1 == d2;
 					};
 				}
@@ -241,7 +236,7 @@ namespace Doxense.Runtime.Converters
 			return (x, y) => false;
 		}
 
-		internal static Func<object, object, bool> GetTypeComparator(Type t1, Type t2)
+		public static Func<object, object, bool> GetTypeComparator(Type t1, Type t2)
 		{
 			var pair = new TypePair(t1, t2);
 			Func<object, object, bool> comparator;
@@ -264,7 +259,7 @@ namespace Doxense.Runtime.Converters
 		/// AreSimilar(false, 0) => true
 		/// AreSimilar(true, 1) => true
 		/// </example>
-		internal static bool AreSimilar(object x, object y)
+		public static bool AreSimilar(object x, object y)
 		{
 			if (object.ReferenceEquals(x, y)) return true;
 			if (x == null || y == null) return false;
@@ -274,7 +269,7 @@ namespace Doxense.Runtime.Converters
 			return comparator(x, y);
 		}
 
-		internal static bool AreSimilar<T1, T2>(T1 x, T2 y)
+		public static bool AreSimilar<T1, T2>(T1 x, T2 y)
 		{
 			var comparator = GetTypeComparator(typeof(T1), typeof(T2));
 			Contract.Requires(comparator != null);

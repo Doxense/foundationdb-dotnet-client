@@ -31,11 +31,13 @@ namespace Doxense.Runtime.Converters
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using JetBrains.Annotations;
 
 	/// <summary>Object comparer that returns true if both values are "similar"</summary>
 	/// <remarks>This comparer SHOULD NOT be used in a Dictioanry, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>
-	internal class SimilarValueComparer : IEqualityComparer<object>, IEqualityComparer
+	internal sealed class SimilarValueComparer : IEqualityComparer<object>, IEqualityComparer
 	{
+		[NotNull]
 		public static readonly IEqualityComparer Default = new SimilarValueComparer();
 
 		private SimilarValueComparer()
@@ -48,7 +50,7 @@ namespace Doxense.Runtime.Converters
 
 		int IEqualityComparer<object>.GetHashCode(object obj)
 		{
-			return obj == null ? -1 : obj.GetHashCode();
+			return obj?.GetHashCode() ?? -1;
 		}
 
 		bool IEqualityComparer.Equals(object x, object y)
