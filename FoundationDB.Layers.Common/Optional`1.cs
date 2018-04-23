@@ -246,6 +246,7 @@ namespace FoundationDB.Layers
 	/// <summary>Container that is either empty (no value) or null (for reference types), or contains a value of type <typeparamref name="T"/>. </summary>
 	/// <typeparam name="T">Type of the value</typeparam>
 	[Serializable, StructLayout(LayoutKind.Sequential)]
+	[Obsolete("Use Maybe<T> instead")]
 	public struct Optional<T> : IEquatable<Optional<T>>, IEquatable<T>
 	{
 		// This is the equivalent of Nullable<T> that would accept reference types.
