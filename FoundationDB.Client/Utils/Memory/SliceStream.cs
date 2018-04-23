@@ -32,7 +32,6 @@ namespace Doxense.Memory
 	using System.IO;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Stream that wraps a Slice for reading</summary>

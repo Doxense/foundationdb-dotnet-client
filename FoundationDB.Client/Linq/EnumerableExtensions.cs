@@ -32,8 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	using System.Collections.Generic;
 	using System.Linq;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq.Async.Iterators;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IEnumerable{T}"/>.</summary>

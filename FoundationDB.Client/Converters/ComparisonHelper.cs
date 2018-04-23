@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace Doxense.Runtime.Converters
 {
 	using System;
@@ -34,7 +33,6 @@ namespace Doxense.Runtime.Converters
 	using System.Collections.Generic;
 	using System.Globalization;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper classe used to compare object of "compatible" types</summary>

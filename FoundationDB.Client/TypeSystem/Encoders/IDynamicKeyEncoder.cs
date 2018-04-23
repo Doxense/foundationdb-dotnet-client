@@ -31,7 +31,7 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
-	using FoundationDB;
+	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>

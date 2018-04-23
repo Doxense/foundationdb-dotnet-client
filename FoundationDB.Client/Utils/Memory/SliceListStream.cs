@@ -35,7 +35,6 @@ namespace Doxense.Memory
 	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	//REVIEW: this is somewhat similar to the proposed new IBufferList (from System.IO.Pipeline) ?

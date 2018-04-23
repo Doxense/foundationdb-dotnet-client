@@ -33,7 +33,6 @@ namespace Doxense.Memory
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>

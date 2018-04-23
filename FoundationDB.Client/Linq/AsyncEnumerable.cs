@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense.Async;
-using FoundationDB;
 
 namespace Doxense.Linq
 {
@@ -35,10 +33,10 @@ namespace Doxense.Linq
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>

@@ -37,7 +37,6 @@ namespace Doxense.Memory
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 #if ENABLE_SPAN
 	using System.Runtime.InteropServices;

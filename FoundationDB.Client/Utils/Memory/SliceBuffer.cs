@@ -32,7 +32,6 @@ namespace Doxense.Memory
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 	using JetBrains.Annotations;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>

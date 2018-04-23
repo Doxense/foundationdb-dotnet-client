@@ -12,7 +12,6 @@ namespace FdbShell
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using FoundationDB;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
 

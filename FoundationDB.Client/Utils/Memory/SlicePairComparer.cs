@@ -31,7 +31,6 @@ namespace Doxense.Memory
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB;
 
 	/// <summary>Performs optimized equality and comparison checks on key/value pairs of <see cref="Slice"/></summary>
 	public sealed class SlicePairComparer : IComparer<KeyValuePair<Slice, Slice>>, IEqualityComparer<KeyValuePair<Slice, Slice>>

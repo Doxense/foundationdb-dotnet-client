@@ -27,12 +27,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 
-namespace FoundationDB
+namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]

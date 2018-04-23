@@ -9,7 +9,6 @@ namespace FdbBurner
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB;
 	using FoundationDB.Client;
 
 	public class Program
