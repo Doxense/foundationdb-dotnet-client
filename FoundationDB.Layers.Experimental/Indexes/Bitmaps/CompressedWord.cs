@@ -35,7 +35,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 	/// <summary>Represent a 32-bit word in a Compressed Bitmap</summary>
 	[DebuggerDisplay("Literal={IsLiteral}, {WordCount} x {WordValue}")]
-	public /*readonly*/ struct CompressedWord
+	public readonly struct CompressedWord
 	{
 		internal const uint ALL_ZEROES = 0x0;
 		internal const uint ALL_ONES = 0x7FFFFFFF;

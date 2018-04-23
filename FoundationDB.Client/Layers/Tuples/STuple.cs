@@ -43,14 +43,14 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public struct STuple : ITuple, ITupleSerializable
+	public readonly struct STuple : ITuple, ITupleSerializable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
 		/// <summary>Empty tuple</summary>
 		/// <remarks>Not to be mistaken with a 1-tuple containing 'null' !</remarks>
 		[NotNull]
-		public static ITuple Empty => new STuple();
+		public static readonly ITuple Empty = new STuple();
 
 		#region Empty Tuple
 

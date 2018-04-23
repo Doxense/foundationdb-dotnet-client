@@ -43,7 +43,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
-		private Slice m_prefix; //PERF: readonly struct
+		private readonly Slice m_prefix;
 		private readonly ITuple m_items;
 
 		public PrefixedTuple(Slice prefix, ITuple items)

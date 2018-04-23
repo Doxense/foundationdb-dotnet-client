@@ -342,11 +342,11 @@ namespace FoundationDB.Client
 
 	}
 
-	public /*readonly*/ struct DynamicPartition
+	public sealed class DynamicPartition
 	{
 
 		[NotNull]
-		public readonly IDynamicKeySubspace Subspace;
+		public IDynamicKeySubspace Subspace { get; }
 
 
 		internal DynamicPartition([NotNull] DynamicKeySubspace subspace)

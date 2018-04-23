@@ -489,10 +489,10 @@ namespace FoundationDB.Layers.Directories
 
 		#region Internal Helpers...
 
-		private struct Node
+		private readonly struct Node
 		{
 
-			public /*readonly*/ Node(IDynamicKeySubspace subspace, ITuple path, ITuple targetPath, Slice layer)
+			public Node(IDynamicKeySubspace subspace, ITuple path, ITuple targetPath, Slice layer)
 			{
 				this.Subspace = subspace;
 				this.Path = path;
@@ -503,7 +503,7 @@ namespace FoundationDB.Layers.Directories
 			public readonly IDynamicKeySubspace Subspace;
 			public readonly ITuple Path;
 			public readonly ITuple TargetPath;
-			public /*readonly*/ Slice Layer; //PERF: readonly struct
+			public readonly Slice Layer;
 
 			public bool Exists => this.Subspace != null;
 

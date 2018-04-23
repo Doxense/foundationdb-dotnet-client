@@ -33,13 +33,13 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]
-	public /*readonly*/ struct KeySelectorPair
+	public readonly struct KeySelectorPair
 	{
 		/// <summary>Start of the range</summary>
-		public /*readonly*/ KeySelector Begin;
+		public readonly KeySelector Begin;
 
 		/// <summary>End of the range</summary>
-		public /*readonly*/ KeySelector End;
+		public readonly KeySelector End;
 
 		/// <summary>Create a new pair of key selectors</summary>
 		/// <param name="beginInclusive">Selector for key from which to start iterating</param>

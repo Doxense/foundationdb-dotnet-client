@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Internal Helpers...
 
-		private /*readonly*/ struct Chunk
+		private readonly struct Chunk
 		{
 			public readonly Slice Key;
 			public readonly Slice Data;

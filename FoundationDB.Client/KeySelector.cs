@@ -35,11 +35,11 @@ namespace FoundationDB.Client
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public /*readonly*/ struct KeySelector : IEquatable<KeySelector>
+	public readonly struct KeySelector : IEquatable<KeySelector>
 	{
 
 		/// <summary>Key of the selector</summary>
-		public /*readonly*/ Slice Key;
+		public readonly Slice Key;
 
 		/// <summary>If true, the selected key can be equal to <see cref="Key"/>.</summary>
 		public readonly bool OrEqual;

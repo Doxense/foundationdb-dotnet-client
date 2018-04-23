@@ -35,7 +35,7 @@ namespace FoundationDB.Client
 	using Doxense.Serialization.Encoders;
 
 	[DebuggerDisplay("Count={Chunk!=null?Chunk.Length:0}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
-	public /*readonly*/ struct FdbRangeChunk
+	public readonly struct FdbRangeChunk
 	{
 		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
 		public readonly bool HasMore;

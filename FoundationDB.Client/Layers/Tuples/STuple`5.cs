@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T4">Type of the 4th item</typeparam>
 	/// <typeparam name="T5">Type of the 5th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public struct STuple<T1, T2, T3, T4, T5> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4, T5>>
+	public readonly struct STuple<T1, T2, T3, T4, T5> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4, T5>>
 #if ENABLE_VALUETUPLES
 		, IEquatable<ValueTuple<T1, T2, T3, T4, T5>>
 #endif
@@ -145,7 +145,7 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void PackTo(ref TupleWriter writer)
 		{
-			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(ref writer, ref this);
+			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(ref writer, in this);
 		}
 
 		ITuple ITuple.Append<T6>(T6 value)

@@ -49,7 +49,7 @@ namespace System
 	/// <remarks>A Slice if the logical equivalent to a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see></remarks>
 	[PublicAPI, ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public /*readonly*/ partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, IFormattable
+	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, IFormattable
 	{
 		#region Static Members...
 

@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		//REVIEW: sould we change this to a class?
 
 		private readonly FdbFuture<Slice> m_future; //REVIEW: this is specific to the native handler, we should find a better abstraction for the generic case! (we need a Task-like object that can be cancelled/disposed)
-		private Slice m_key; //PERF: readonly slice
+		private readonly Slice m_key;
 		private Slice m_value;
 
 		internal FdbWatch(FdbFuture<Slice> future, Slice key, Slice value)

@@ -45,7 +45,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public struct STuple<T1, T2> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2>>
+	public readonly struct STuple<T1, T2> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2>>
 #if ENABLE_VALUETUPLES
 		, IEquatable<ValueTuple<T1, T2>>
 #endif
@@ -124,7 +124,7 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void PackTo(ref TupleWriter writer)
 		{
-			TupleSerializer<T1, T2>.Default.PackTo(ref writer, ref this);
+			TupleSerializer<T1, T2>.Default.PackTo(ref writer, in this);
 		}
 
 		ITuple ITuple.Append<T3>(T3 value)

@@ -44,7 +44,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>
+	public readonly struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>
 #if ENABLE_VALUETUPLES
 		, IEquatable<ValueTuple<T1>>
 #endif
@@ -95,7 +95,7 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal void PackTo(ref TupleWriter writer)
 		{
-			TupleSerializer<T1>.Default.PackTo(ref writer, ref this);
+			TupleSerializer<T1>.Default.PackTo(ref writer, in this);
 		}
 
 		ITuple ITuple.Append<T2>(T2 value)

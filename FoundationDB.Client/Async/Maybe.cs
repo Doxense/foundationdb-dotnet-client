@@ -37,7 +37,7 @@ namespace Doxense
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
-	public /*readonly*/ struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
+	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
 		/// <summary>Réprésente un résultat vide (no computation)</summary>
 		public static readonly Maybe<T> Nothing = new Maybe<T>();

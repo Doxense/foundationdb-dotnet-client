@@ -44,7 +44,7 @@ namespace System
 	/// <summary>Represents a 64-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), Serializable]
-	public struct Uuid64 : IFormattable, IEquatable<Uuid64>, IComparable<Uuid64>
+	public readonly struct Uuid64 : IFormattable, IEquatable<Uuid64>, IComparable<Uuid64>
 	{
 		public static readonly Uuid64 Empty = default(Uuid64);
 

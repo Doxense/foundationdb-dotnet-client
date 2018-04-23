@@ -38,14 +38,14 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
-	public /*readonly*/ struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>
+	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>
 	{
 
 		/// <summary>Start of the range</summary>
-		public /*readonly*/ Slice Begin;
+		public readonly Slice Begin;
 
 		/// <summary>End of the range</summary>
-		public /*readonly*/ Slice End;
+		public readonly Slice End;
 
 		/// <summary>Create a new range of keys</summary>
 		/// <param name="begin">Start of range (usually included)</param>

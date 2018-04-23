@@ -44,7 +44,7 @@ namespace Doxense.Collections.Tuples
 		private readonly object[] m_items;
 
 		/// <summary>Packed version of the tuple</summary>
-		private Slice m_packed; //PERF: readonly struct
+		private readonly Slice m_packed;
 
 		internal MemoizedTuple(object[] items, Slice packed)
 		{

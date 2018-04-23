@@ -67,7 +67,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Details about a notification, alert or error, as reported by a component of a FoundationDB cluster</summary>
 	[DebuggerDisplay("{Name}")]
-	public /*readonly*/ struct Message
+	public readonly struct Message
 	{
 		/// <summary>Code for this message</summary>
 		public readonly string Name;
@@ -124,7 +124,7 @@ namespace FoundationDB.Client.Status
 
 	/// <summary>Measured quantity that changes over time</summary>
 	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Roughness={Roughness}")]
-	public /*readonly*/ struct LoadCounter
+	public readonly struct LoadCounter
 	{
 		/// <summary>Absolute value, since the start (ex: "UNIT")</summary>
 		public readonly long Counter;

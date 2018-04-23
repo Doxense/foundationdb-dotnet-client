@@ -43,8 +43,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Returns a new instance of an empty bitmap</summary>
 		public static readonly CompressedBitmap Empty = new CompressedBitmap(Slice.Empty, BitRange.Empty);
 
-		private /*readonly*/ Slice m_data;
-		private /*readonly*/ BitRange m_bounds;
+		private readonly Slice m_data;
+		private readonly BitRange m_bounds;
 
 		public CompressedBitmap(Slice data)
 		{
