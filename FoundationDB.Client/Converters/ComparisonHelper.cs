@@ -41,7 +41,7 @@ namespace Doxense.Runtime.Converters
 	{
 
 		/// <summary>Pair of types that can be used as a key in a dictionary</summary>
-		internal struct TypePair : IEquatable<TypePair>
+		internal /*readonly*/ struct TypePair : IEquatable<TypePair>
 		{
 			public readonly Type Left;
 			public readonly Type Right;

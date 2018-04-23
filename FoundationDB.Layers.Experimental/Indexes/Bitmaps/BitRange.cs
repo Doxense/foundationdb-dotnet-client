@@ -33,7 +33,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 	/// <summary>Bounds of a Compressed Bitmaps, from the Lowest Set Bit to the Highest Set Bit</summary>
 	[DebuggerDisplay("[{Lowest}, {Highest}]")]
-	public struct BitRange : IEquatable<BitRange>
+	public /*readonly*/ struct BitRange : IEquatable<BitRange>
 	{
 		private const int LOWEST_UNDEFINED = 0;
 		private const int HIGHEST_UNDEFINED = -1;

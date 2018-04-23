@@ -492,7 +492,7 @@ namespace FoundationDB.Layers.Directories
 		private struct Node
 		{
 
-			public Node(IDynamicKeySubspace subspace, ITuple path, ITuple targetPath, Slice layer)
+			public /*readonly*/ Node(IDynamicKeySubspace subspace, ITuple path, ITuple targetPath, Slice layer)
 			{
 				this.Subspace = subspace;
 				this.Path = path;
@@ -503,11 +503,12 @@ namespace FoundationDB.Layers.Directories
 			public readonly IDynamicKeySubspace Subspace;
 			public readonly ITuple Path;
 			public readonly ITuple TargetPath;
-			public Slice Layer; //PERF: readonly struct
+			public /*readonly*/ Slice Layer; //PERF: readonly struct
 
-			public bool Exists { get { return this.Subspace != null; } }
+			public bool Exists => this.Subspace != null;
 
-			public ITuple PartitionSubPath { [NotNull] get { return this.TargetPath.Substring(this.Path.Count); } }
+			[NotNull]
+			public ITuple PartitionSubPath => this.TargetPath.Substring(this.Path.Count);
 
 			public bool IsInPartition(bool includeEmptySubPath)
 			{
