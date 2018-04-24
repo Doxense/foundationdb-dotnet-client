@@ -1553,15 +1553,25 @@ namespace System
 
 			var sb = new StringBuilder(count * (sep == '\0' ? 2 : 3));
 			int letters = lower ? 87 : 55;
-			while (count-- > 0)
+			unsafe
 			{
-				if (sep != '\0' && sb.Length > 0) sb.Append(sep);
-				byte b = buffer[offset++];
-				int x = b >> 4;
-				sb.Append((char)(x + (x < 10 ? 48 : letters)));
-				x = b & 0xF;
-				sb.Append((char)(x + (x < 10 ? 48 : letters)));
+				fixed (byte* ptr = &buffer[offset])
+				{
+					byte* inp = ptr;
+					byte* stop = ptr + count;
+					while (inp < stop)
+					{
+						if ((sep != '\0') & (sb.Length > 0)) sb.Append(sep);
+						byte b = *inp++;
+						int h = b >> 4;
+						int l = b & 0xF;
+						h += h < 10 ? 48 : letters;
+						l += l < 10 ? 48 : letters;
+						sb.Append((char) h).Append((char) l);
+					}
+				}
 			}
+
 			return sb.ToString();
 		}
 
