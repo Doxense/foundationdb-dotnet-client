@@ -195,7 +195,7 @@ How to build
 
 ### Visual Studio Solution
 
-You will need Visual Studio .NET 2017 and .NET 4.6.1 minimum to compile the solution.
+You will need Visual Studio 2017 version 15.5 or above to build the solution (C# 7.2 and .NET Standard 2.0 support is required).
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.org wesite, by installing the client SDK:
 
@@ -204,10 +204,6 @@ You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb
 * Go to `C:\Program Files\foundationdb\bin\` and make sure that `fdb_c.dll` is there.
 * Open the FoundationDb.Client.sln file in Visual Studio 2012.
 * Choose the Release or Debug configuration, and rebuild the solution.
-
-If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 RC, and not an earlier version.
-
-If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should redownload the missing packages during the first build.
 
 ### From the Command Line
 
