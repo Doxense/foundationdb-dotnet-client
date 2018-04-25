@@ -95,6 +95,7 @@
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
+    <Compile Include="Utils\TuPackFacts.cs" />
     <Compile Include="Utils\TypeConvertersFacts.cs" />
     <Compile Include="Utils\SliceComparerFacts.cs" />
     <Compile Include="Utils\SliceStreamFacts.cs" />
