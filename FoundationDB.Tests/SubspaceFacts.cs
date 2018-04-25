@@ -81,6 +81,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t2.Get<string>(0), Is.EqualTo("world"));
 			Assert.That(t2.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t2.Get<bool>(2), Is.False);
+
+			// ValueTuple
+			Assert.That(subspace.Keys.Pack(new ValueTuple<string>("hello")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
+			Assert.That(subspace.Keys.Pack(("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Keys.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00>"));
+			Assert.That(subspace.Keys.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00><16><01><C8>"));
 		}
 
 		[Test]
@@ -168,6 +174,177 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// cornercase
 			Assert.That(child.Partition[Slice.Empty].GetPrefix(), Is.EqualTo(child.GetPrefix()));
+		}
+
+		[Test]
+		public void Test_DynamicKeySpace_API()
+		{
+			var location = new KeySubspace(Slice.FromString("PREFIX")).Using(TypeSystem.Tuples);
+
+			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
+
+			// Encode<T...>(...)
+			Assert.That(location.Keys.Encode("hello").ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Keys.Encode("hello", 123).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Keys.Encode("hello", 123, "world").ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Keys.Encode("hello", 123, "world", 456).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Keys.Encode("hello", 123, "world", 456, "!").ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Keys.Encode("hello", 123, "world", 456, "!", 789).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+
+			// Pack(ITuple)
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456, "!")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456, "!", 789)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+
+			// Pack(ValueTuple)
+			Assert.That(location.Keys.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Keys.Pack(("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Keys.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Keys.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Keys.Pack(("hello", 123, "world", 456, "!")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Keys.Pack(("hello", 123, "world", 456, "!", 789)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+
+			// ITuple Unpack(Slice)
+			Assert.That(location.Keys.Unpack(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo(STuple.Create("hello")));
+			Assert.That(location.Keys.Unpack(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(STuple.Create("hello", 123)));
+			Assert.That(location.Keys.Unpack(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(STuple.Create("hello", 123, "world")));
+			Assert.That(location.Keys.Unpack(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456)));
+			Assert.That(location.Keys.Unpack(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456, "!")));
+			Assert.That(location.Keys.Unpack(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456, "!", 789)));
+
+			// STuple<T...> Decode(Slice)
+			Assert.That(location.Keys.Decode<string>(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo("hello"));
+			Assert.That(location.Keys.Decode<string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(STuple.Create("hello", 123)));
+			Assert.That(location.Keys.Decode<string, int, string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(STuple.Create("hello", 123, "world")));
+			Assert.That(location.Keys.Decode<string, int, string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456)));
+			Assert.That(location.Keys.Decode<string, int, string, int, string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456, "!")));
+			Assert.That(location.Keys.Decode<string, int, string, int, string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456, "!", 789)));
+
+			// DecodeFirst/DecodeLast
+			Assert.That(location.Keys.DecodeFirst<string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo("hello"));
+			Assert.That(location.Keys.DecodeLast<int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo(789));
+
+		}
+
+		[Test]
+		public void Test_TypedKeySpace_T1()
+		{
+			var location = new KeySubspace(Slice.FromString("PREFIX"))
+				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string>());
+
+			// shortcuts
+			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
+			Assert.That(location.Keys["hello"].ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Keys[ValueTuple.Create("hello")].ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+
+			// Encode<T...>(...)
+			Assert.That(location.Keys.Encode("hello").ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+
+			// Pack(ITuple)
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+
+			// Pack(ValueTuple)
+			Assert.That(location.Keys.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+
+			// STuple<T...> Decode(...)
+			Assert.That(location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo("hello"));
+
+			// Decode(..., out T)
+			location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00>"), out string x);
+			Assert.That(x, Is.EqualTo("hello"));
+		}
+
+		[Test]
+		public void Test_TypedKeySpace_T2()
+		{
+			var location = new KeySubspace(Slice.FromString("PREFIX"))
+				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string, int>());
+
+			// shortcuts
+			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
+			Assert.That(location.Keys["hello", 123].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Keys[("hello", 123)].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+
+			// Encode<T...>(...)
+			Assert.That(location.Keys.Encode("hello", 123).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+
+			// Pack(ITuple)
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+
+			// Pack(ValueTuple)
+			Assert.That(location.Keys.Pack(("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+
+			// STuple<T...> Decode(...)
+			Assert.That(location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(("hello", 123)));
+
+			// Decode(..., out T)
+			location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{"), out string x1, out int x2);
+			Assert.That(x1, Is.EqualTo("hello"));
+			Assert.That(x2, Is.EqualTo(123));
+		}
+
+		[Test]
+		public void Test_TypedKeySpace_T3()
+		{
+			var location = new KeySubspace(Slice.FromString("PREFIX"))
+				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string, int, string>());
+
+			// shortcuts
+			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
+			Assert.That(location.Keys["hello", 123, "world"].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Keys[("hello", 123, "world")].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+
+			// Encode<T...>(...)
+			Assert.That(location.Keys.Encode("hello", 123, "world").ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+
+			// Pack(ITuple)
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+
+			// Pack(ValueTuple)
+			Assert.That(location.Keys.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+
+			// STuple<T...> Decode(...)
+			Assert.That(location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(("hello", 123, "world")));
+
+			// Decode(..., out T)
+			location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>"), out string x1, out int x2, out string x3);
+			Assert.That(x1, Is.EqualTo("hello"));
+			Assert.That(x2, Is.EqualTo(123));
+			Assert.That(x3, Is.EqualTo("world"));
+		}
+
+		[Test]
+		public void Test_TypedKeySpace_T4()
+		{
+			var location = new KeySubspace(Slice.FromString("PREFIX"))
+				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string, int, string, int>());
+
+			// shortcuts
+			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
+			Assert.That(location.Keys["hello", 123, "world", 456].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Keys[("hello", 123, "world", 456)].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+
+			// Encode<T...>(...)
+			Assert.That(location.Keys.Encode("hello", 123, "world", 456).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+
+			// Pack(ITuple)
+			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+
+			// Pack(ValueTuple)
+			Assert.That(location.Keys.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+
+			// STuple<T...> Decode(...)
+			Assert.That(location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(("hello", 123, "world", 456)));
+
+			// Decode(..., out T)
+			location.Keys.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"), out string x1, out int x2, out string x3, out int x4);
+			Assert.That(x1, Is.EqualTo("hello"));
+			Assert.That(x2, Is.EqualTo(123));
+			Assert.That(x3, Is.EqualTo("world"));
+			Assert.That(x4, Is.EqualTo(456));
 		}
 
 	}

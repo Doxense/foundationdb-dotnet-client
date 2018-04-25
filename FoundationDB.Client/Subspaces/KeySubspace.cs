@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	[PublicAPI]
+	[DebuggerDisplay("{ToString(),nq}")]
 	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
 	{
 

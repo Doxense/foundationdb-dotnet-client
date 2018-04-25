@@ -26,10 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#define ENABLE_VALUETUPLES
+
 namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
@@ -72,6 +75,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Key helper for a dynamic TypeSystem</summary>
+	[DebuggerDisplay("{Parent.ToString(),nq)}")]
 	public sealed class DynamicKeys
 	{
 
@@ -92,6 +96,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
+		[Pure]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)
 			where TTuple : ITuple
 		{
@@ -101,6 +106,46 @@ namespace FoundationDB.Client
 			this.Encoder.PackKey(ref sw, tuple);
 			return sw.ToSlice();
 		}
+
+#if ENABLE_VALUETUPLES
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1>(ValueTuple<T1> items)
+		{
+			return Encode<T1>(items.Item1);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2>((T1, T2) items)
+		{
+			return Encode<T1, T2>(items.Item1, items.Item2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3>((T1, T2, T3) items)
+		{
+			return Encode<T1, T2, T3>(items.Item1, items.Item2, items.Item3);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3, T4>((T1, T2, T3, T4) items)
+		{
+			return Encode<T1, T2, T3, T4>(items.Item1, items.Item2, items.Item3, items.Item4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) items)
+		{
+			return Encode<T1, T2, T3, T4, T5>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) items)
+		{
+			return Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
+		}
+
+#endif
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
 		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>

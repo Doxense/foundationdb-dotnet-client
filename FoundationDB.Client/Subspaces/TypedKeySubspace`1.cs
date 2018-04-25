@@ -26,14 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#define ENABLE_VALUETUPLES
+
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
@@ -69,6 +71,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Encodes and Decodes keys composed of a single element</summary>
 	/// <typeparam name="T1">Type of the key handled by this subspace</typeparam>
+	[DebuggerDisplay("{Parent.ToString(),nq)}")]
 	public sealed class TypedKeys<T1>
 	{
 
@@ -87,23 +90,82 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public KeyRange ToRange(T1 item1)
+		#region ToRange()
+
+		/// <summary>Return the range of all legal keys in this subpsace</summary>
+		/// <returns>A "legal" key is one that can be decoded into the original pair of values</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange()
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
-			var prefix = Encode(item1);
-			return KeyRange.PrefixedBy(prefix);
+			return this.Parent.ToRange();
 		}
 
-		[Pure]
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified value</summary>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange(STuple<T1> tuple)
+		{
+			return ToRange(tuple.Item1);
+		}
+
+#if ENABLE_VALUETUPLES
+		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified value</summary>
+		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange(ValueTuple<T1> tuple)
+		{
+			return ToRange(tuple.Item1);
+		}
+#endif
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToRange(T1 item1)
+		{
+			//TODO: add concept of "range" on IKeyEncoder ?
+			return KeyRange.PrefixedBy(Encode(item1));
+		}
+
+		#endregion
+
+		#region Pack()
+
+#if ENABLE_VALUETUPLES
+		public Slice this[ValueTuple<T1> items]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Encode(items.Item1);
+		}
+#endif
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack(STuple<T1> tuple)
 		{
 			return Encode(tuple.Item1);
 		}
 
-		[Pure]
-		public Slice Pack([NotNull] ITuple tuple)
+#if ENABLE_VALUETUPLES
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack(ValueTuple<T1> tuple)
+		{
+			return Encode(tuple.Item1);
+		}
+#endif
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<TTuple>([NotNull] TTuple tuple)
+			where TTuple : ITuple
 		{
 			return Encode(tuple.OfSize(1).Get<T1>(0));
+		}
+
+		#endregion
+
+		#region Encode()
+
+		public Slice this[T1 item1]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Encode(item1);
 		}
 
 		[Pure]
@@ -115,6 +177,10 @@ namespace FoundationDB.Client
 			return sw.ToSlice();
 		}
 
+		#endregion
+
+		#region Decode()
+
 		[Pure]
 		public T1 Decode(Slice packedKey)
 		{
@@ -125,6 +191,10 @@ namespace FoundationDB.Client
 		{
 			item1 = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
+
+		#endregion
+
+		#region Dump()
 
 		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
 		[Pure]
@@ -144,7 +214,8 @@ namespace FoundationDB.Client
 			}
 		}
 
-	}
+		#endregion
 
+	}
 
 }
