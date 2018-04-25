@@ -34,6 +34,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
@@ -758,6 +759,28 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteUuid64(ref writer, value.Value);
 		}
 
+		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp value)
+		{
+			if (value.HasUserVersion)
+			{ // 96-bits Versionstamp
+				writer.Output.EnsureBytes(13);
+				writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
+				value.WriteTo(writer.Output.Allocate(12));
+			}
+			else
+			{ // 80-bits Versionstamp
+				writer.Output.EnsureBytes(11);
+				writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
+				value.WriteTo(writer.Output.Allocate(10));
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteVersionStamp(ref writer, value.Value);
+		}
+
 		/// <summary>Mark the start of a new embedded tuple</summary>
 		public static void BeginTuple(ref TupleWriter writer)
 		{
@@ -1094,6 +1117,16 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Uuid64:
 				{ // <31>(8 bytes)
 					return reader.Input.ReadBytes(9);
+				}
+
+				case TupleTypes.VersionStamp80:
+				{ // <32>(10 bytes)
+					return reader.Input.ReadBytes(11);
+				}
+
+				case TupleTypes.VersionStamp96:
+				{ // <33>(12 bytes)
+					return reader.Input.ReadBytes(13);
 				}
 
 				case TupleTypes.AliasDirectory:

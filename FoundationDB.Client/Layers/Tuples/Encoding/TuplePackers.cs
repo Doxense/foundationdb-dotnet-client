@@ -40,6 +40,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
+	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
@@ -553,6 +554,11 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteUuid64(ref writer, value);
 		}
 
+		public static void SerializeTo(ref TupleWriter writer, VersionStamp value)
+		{
+			TupleParser.WriteVersionStamp(ref writer, value);
+		}
+
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
 		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value)
 		{
@@ -680,6 +686,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan),
 				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
 				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress),
+				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
 				[typeof(ITuple)] = new Func<Slice, ITuple>(TuplePackers.DeserializeTuple),
 			};
 
@@ -1692,6 +1699,24 @@ namespace Doxense.Collections.Tuples.Encoding
 			// we don't support negative numbers!
 
 			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid64");
+		}
+
+		public static VersionStamp DeserializeVersionStamp(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return default(VersionStamp);
+
+			int type = slice[0];
+
+			if (type == TupleTypes.VersionStamp80 || type == TupleTypes.VersionStamp96)
+			{
+				if (VersionStamp.TryParse(slice.Substring(1), out var stamp))
+				{
+					return stamp;
+				}
+				throw new FormatException("Cannot convert malformed tuple segment into a VersionStamp");
+			}
+
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a VersionStamp");
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>

@@ -86,6 +86,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>UUID (64 bits) [DRAFT]</summary>
 		internal const byte Uuid64 = 49; //TODO: this is not official yet! may change!
 
+		//TODO: xmldoc
+		internal const byte VersionStamp80 = 0x32;
+		//TODO: xmldoc
+		internal const byte VersionStamp96 = 0x33;
+
 		/// <summary>Standard prefix of the Directory Layer</summary>
 		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print tuples that would otherwise be unparsable.</remarks>
 		internal const byte AliasDirectory = 254;
@@ -112,6 +117,8 @@ namespace Doxense.Collections.Tuples.Encoding
 				case Decimal: return TupleSegmentType.Decimal;
 				case Uuid128: return TupleSegmentType.Uuid128;
 				case Uuid64: return TupleSegmentType.Uuid64;
+				case VersionStamp80: return TupleSegmentType.VersionStamp80;
+				case VersionStamp96: return TupleSegmentType.VersionStamp96;
 			}
 
 			if (type <= IntPos8 && type >= IntNeg8)
@@ -138,6 +145,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		Decimal = 35,
 		Uuid128 = 48,
 		Uuid64 = 49,
+		VersionStamp80 = 0x32,
+		VersionStamp96 = 0x33,
 	}
 
 }
