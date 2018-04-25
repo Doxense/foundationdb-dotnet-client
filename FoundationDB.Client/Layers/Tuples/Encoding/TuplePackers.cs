@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_VALUETUPLES
+#define ENABLE_VALUETUPLES
 
 namespace Doxense.Collections.Tuples.Encoding
 {
