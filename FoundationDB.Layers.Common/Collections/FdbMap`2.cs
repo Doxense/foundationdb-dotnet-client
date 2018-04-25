@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Location.Keys[id]).ConfigureAwait(false);
 
 			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
 			return this.ValueEncoder.DecodeValue(data);
@@ -106,7 +106,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Location.Keys[id]).ConfigureAwait(false);
 
 			if (data.IsNull) return default(Optional<TValue>);
 			return this.ValueEncoder.DecodeValue(data);
@@ -122,7 +122,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			trans.Set(this.Location.Keys.Encode(id), this.ValueEncoder.EncodeValue(value));
+			trans.Set(this.Location.Keys[id], this.ValueEncoder.EncodeValue(value));
 		}
 
 		/// <summary>Remove a single entry from the map</summary>
@@ -134,7 +134,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			trans.Clear(this.Location.Keys.Encode(id));
+			trans.Clear(this.Location.Keys[id]);
 		}
 
 		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
-			var results = await trans.GetValuesAsync(ids.Select(id => this.Location.Keys.Encode(id))).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(ids.Select(id => this.Location.Keys[id])).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}

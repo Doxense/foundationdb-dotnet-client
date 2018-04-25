@@ -123,7 +123,7 @@ namespace FoundationDB.Layers.Documents
 				while (remaining > 0)
 				{
 					int sz = Math.Max(remaining, this.ChunkSize);
-					trans.Set(this.Location.Keys.Encode(id, index), packed.Substring(p, sz));
+					trans.Set(this.Location.Keys[id, index], packed.Substring(p, sz));
 					++index;
 					p += sz;
 					remaining -= sz;

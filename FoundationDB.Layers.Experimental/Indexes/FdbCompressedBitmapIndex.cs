@@ -87,7 +87,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			if (this.IndexNullValues || value != null)
 			{
-				var key = this.Location.Keys.Encode(value);
+				var key = this.Location.Keys[value];
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
 				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 
@@ -117,7 +117,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					var key = this.Location.Keys.Encode(previousValue);
+					var key = this.Location.Keys[previousValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
@@ -130,7 +130,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					var key = this.Location.Keys.Encode(newValue);
+					var key = this.Location.Keys[newValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 					builder.Set((int)id); //BUGBUG: 64 bit id!
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			var key = this.Location.Keys.Encode(value);
+			var key = this.Location.Keys[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
@@ -170,7 +170,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
 		public async Task<IEnumerable<long>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var key = this.Location.Keys.Encode(value);
+			var key = this.Location.Keys[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.IsNull) return null;
 			if (data.IsEmpty) return Enumerable.Empty<long>();
