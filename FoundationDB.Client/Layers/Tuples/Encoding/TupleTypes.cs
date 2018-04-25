@@ -44,8 +44,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>UTF-8 String</summary>
 		internal const byte Utf8 = 2;
 
-		/// <summary>Nested tuple [DRAFT]</summary>
+		/// <summary>Nested tuple start [OBSOLETE]</summary>
 		internal const byte TupleStart = 3;
+		/// <summary>Nested tuple end [OBSOLETE]</summary>
+		internal const byte TupleEnd = 4;
+
+		internal const byte TupleStartNew = 5;
 
 		internal const byte IntNeg8 = 12;
 		internal const byte IntNeg7 = 13;
