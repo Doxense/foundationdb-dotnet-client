@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -98,7 +99,7 @@ namespace FoundationDB.Client
 
 				return RunWriteOperationAsync(
 					db,
-					data,
+					data.Select(x => (x.Key, x.Value)),
 					new WriteOptions(),
 					ct
 				);
@@ -120,13 +121,56 @@ namespace FoundationDB.Client
 
 				return RunWriteOperationAsync(
 					db,
+					data.Select(x => (x.Key, x.Value)),
+					options ?? new WriteOptions(),
+					ct
+				);
+			}
+
+			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="data">Sequence of key/value pairs</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Total number of values inserted in the database</returns>
+			/// <remarks>In case of a non-retryable error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
+			public static Task<long> WriteAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<(Slice Key, Slice Value)> data, CancellationToken ct)
+			{
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (data == null) throw new ArgumentNullException(nameof(data));
+
+				ct.ThrowIfCancellationRequested();
+
+				return RunWriteOperationAsync(
+					db,
+					data,
+					new WriteOptions(),
+					ct
+				);
+			}
+
+			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="data">Sequence of key/value pairs</param>
+			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Total number of values inserted in the database</returns>
+			/// <remarks>In case of a non-retryable error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
+			public static Task<long> WriteAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<(Slice Key, Slice Value)> data, WriteOptions options, CancellationToken ct)
+			{
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (data == null) throw new ArgumentNullException(nameof(data));
+
+				ct.ThrowIfCancellationRequested();
+
+				return RunWriteOperationAsync(
+					db,
 					data,
 					options ?? new WriteOptions(),
 					ct
 				);
 			}
 
-			internal static async Task<long> RunWriteOperationAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions options, CancellationToken ct)
+			internal static async Task<long> RunWriteOperationAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<(Slice Key, Slice Value)> data, WriteOptions options, CancellationToken ct)
 			{
 				Contract.Requires(db != null && data != null && options != null);
 
@@ -145,7 +189,7 @@ namespace FoundationDB.Client
 					throw new NotImplementedException("Multiple concurrent transactions are not yet supported");
 				}
 
-				var chunk = new List<KeyValuePair<Slice, Slice>>();
+				var chunk = new List<(Slice Key, Slice Value)>();
 
 				long items = 0;
 				using (var iterator = data.GetEnumerator())

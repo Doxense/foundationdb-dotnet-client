@@ -59,7 +59,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
-					.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.ToString("x8")), Slice.Random(rnd, 16 + rnd.Next(240))))
+					.Select((x) => (Key: location.Keys.Encode(x.ToString("x8")), Value: Slice.Random(rnd, 16 + rnd.Next(240))))
 					.ToArray();
 
 				Log("Total data size is {0:N0} bytes", data.Sum(x => x.Key.Count + x.Value.Count));
@@ -197,7 +197,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -348,7 +348,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -413,7 +413,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -473,7 +473,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
+					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
@@ -534,7 +534,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
+					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
@@ -603,7 +603,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db.WithoutLogging(),
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.Key), x.Value)),
+					source.Select((x) => (location.Keys.Encode(x.Key), x.Value)),
 					this.Cancellation
 				);
 
