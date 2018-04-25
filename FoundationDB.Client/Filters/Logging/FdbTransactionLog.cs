@@ -552,6 +552,7 @@ namespace FoundationDB.Filters.Logging
 			Reset,
 			OnError,
 			SetOption,
+			GetVersionStamp,
 
 			Log,
 		}

@@ -284,6 +284,19 @@ namespace FoundationDB.Client
 			m_handler.SetReadVersion(version);
 		}
 
+		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
+		/// <remarks>
+		/// The Task will be ready only after the successful completion of a call to <see cref="CommitAsync"/> on this transaction.
+		/// Read-only transactions do not modify the database when committed and will result in the Task completing with an error.
+		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
+		/// </remarks>
+		public Task<VersionStamp> GetVersionStampAsync()
+		{
+			EnsureNotFailedOrDisposed();
+
+			return m_handler.GetVersionStampAsync(m_cancellation);
+		}
+
 		#endregion
 
 		#region Get...
@@ -507,6 +520,23 @@ namespace FoundationDB.Client
 					else
 					{
 						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 3.x. You need to update the version of the client, and select API level 300 or more at the start of your process..");
+					}
+				}
+				// ok!
+				return;
+			}
+
+			if (mutation == FdbMutationType.VersionStampedKey || mutation == FdbMutationType.VersionStampedValue)
+			{
+				if (selectedApiVersion < 400)
+				{
+					if (Fdb.GetMaxApiVersion() >= 400)
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations for VersionStamps are only supported starting from API level 400. You need to select API level 400 or more at the start of your process.");
+					}
+					else
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 4.x. You need to update the version of the client, and select API level 400 or more at the start of your process..");
 					}
 				}
 				// ok!

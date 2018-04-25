@@ -832,6 +832,12 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
+		public sealed class GetVersionStampCommand : Command<VersionStamp>
+		{
+			public override Operation Op { get { return Operation.GetVersionStamp; } }
+
+		}
+
 		public sealed class GetReadVersionCommand : Command<long>
 		{
 			public override Operation Op { get { return Operation.GetReadVersion; } }

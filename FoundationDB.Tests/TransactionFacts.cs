@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 
 	[TestFixture]
 	public class TransactionFacts : FdbTest
@@ -1986,6 +1987,46 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 				}
 
+			}
+		}
+
+		[Test]
+		public async Task Test_VersionStamp_Operations()
+		{
+			Fdb.Start(510);
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				Log("API Version: " + Fdb.ApiVersion);
+
+				var location = db.Partition.ByKey("versionstamps");
+
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					Slice HACKHACK_Packify(VersionStamp stamp)
+					{
+						var x = location.Keys.Encode(stamp);
+						x =  x.Concat(Slice.FromFixed16((short) (location.GetPrefix().Count + 1)));
+						Log(x.ToHexaString(' ') + " | " + location.Keys.Dump(x));
+						return x;
+					}
+
+					tr.SetVersionStampedKey(HACKHACK_Packify(VersionStamp.Incomplete()), Slice.FromString("Hello, World!"));
+					tr.SetVersionStampedKey(HACKHACK_Packify(VersionStamp.Incomplete(0)), Slice.FromString("Zero"));
+					tr.SetVersionStampedKey(HACKHACK_Packify(VersionStamp.Incomplete(1)), Slice.FromString("One"));
+					tr.SetVersionStampedKey(HACKHACK_Packify(VersionStamp.Incomplete(2)), Slice.FromString("Two"));
+
+					var vsTask = tr.GetVersionStampAsync();
+
+					await tr.CommitAsync();
+					Log(tr.GetCommittedVersion());
+
+					var vs = await vsTask;
+					Log(vs);
+				}
+
+				await DumpSubspace(db, location);
 			}
 		}
 

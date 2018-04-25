@@ -393,6 +393,25 @@ namespace FoundationDB.Client.Native
 			return version;
 		}
 
+		public Task<VersionStamp> GetVersionStampAsync(CancellationToken ct)
+		{
+			var future = FdbNative.TransactionGetVersionStamp(m_handle);
+			return FdbFuture.CreateTaskFromHandle<VersionStamp>(future, GetVersionStampResult, ct);
+		}
+
+		private static VersionStamp GetVersionStampResult(FutureHandle h)
+		{
+			Contract.Requires(h != null);
+			var err = FdbNative.FutureGetVersionStamp(h, out VersionStamp stamp);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[" + m_id + "].FutureGetVersionStamp() => err=" + err + ", vs=" + stamp + ")");
+#endif
+			Fdb.DieOnError(err);
+
+			return stamp;
+		}
+
+
 		/// <summary>
 		/// Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 
 		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 

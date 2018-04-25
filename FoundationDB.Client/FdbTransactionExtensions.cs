@@ -425,6 +425,22 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Min);
 		}
 
+		//TODO: XML Comments!
+		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, value, FdbMutationType.VersionStampedKey);
+		}
+
+		//TODO: XML Comments!
+		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, value, FdbMutationType.VersionStampedValue);
+		}
+
 		#endregion
 
 		#region GetRange...

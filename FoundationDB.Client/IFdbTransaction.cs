@@ -112,6 +112,14 @@ namespace FoundationDB.Client
 		/// </remarks>
 		long GetCommittedVersion();
 
+		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
+		/// <remarks>
+		/// The Task will be ready only after the successful completion of a call to <see cref="CommitAsync"/> on this transaction.
+		/// Read-only transactions do not modify the database when committed and will result in the Task completing with an error.
+		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
+		/// </remarks>
+		Task<VersionStamp> GetVersionStampAsync();
+
 		/// <summary>
 		/// Watch a key for any change in the database.
 		/// </summary>

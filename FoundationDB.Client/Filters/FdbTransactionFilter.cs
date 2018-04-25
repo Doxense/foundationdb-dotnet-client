@@ -251,6 +251,12 @@ namespace FoundationDB.Filters
 			return m_transaction.GetCommittedVersion();
 		}
 
+		public virtual Task<VersionStamp> GetVersionStampAsync()
+		{
+			ThrowIfDisposed();
+			return m_transaction.GetVersionStampAsync();
+		}
+
 		public virtual void SetReadVersion(long version)
 		{
 			ThrowIfDisposed();
