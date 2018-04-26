@@ -55,7 +55,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public override Slice EncodeOrdered(T value)
 		{
-			return TupleEncoder.EncodeKey(value);
+			return TupleEncoder.EncodeKey(default(Slice), value);
 		}
 
 		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)

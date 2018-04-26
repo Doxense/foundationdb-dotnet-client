@@ -44,11 +44,6 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Tuple comparer that uses the default BCL object comparison ("123" != 123 != 123L != 123.0d)</summary>
 		public static readonly EqualityComparer Bcl = new EqualityComparer(EqualityComparer<object>.Default);
 
-#if false
-		/// <summary>Tuple comparer that compared the packed bytes (slow!)</summary>
-		public static readonly BinaryComparer Binary = new BinaryComparer();
-#endif
-
 		public sealed class EqualityComparer : IEqualityComparer<ITuple>, IEqualityComparer
 		{
 			private readonly IEqualityComparer m_comparer;
@@ -96,51 +91,6 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-#if false
-
-		public sealed class BinaryComparer : IEqualityComparer<ITuple>, IEqualityComparer
-		{
-			internal BinaryComparer()
-			{ }
-
-
-			public bool Equals(ITuple x, ITuple y)
-			{
-				if (object.ReferenceEquals(x, y)) return true;
-				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
-
-				return x.ToSlice().Equals(y.ToSlice());
-			}
-
-			public int GetHashCode(ITuple obj)
-			{
-				return object.ReferenceEquals(obj, null) ? 0 : obj.ToSlice().GetHashCode();
-			}
-
-			public new bool Equals(object x, object y)
-			{
-				if (object.ReferenceEquals(x, y)) return true;
-				if (x == null || y == null) return false;
-
-				var tx = x as ITuple;
-				var ty = y as ITuple;
-				if (object.ReferenceEquals(tx, null) || object.ReferenceEquals(ty, null)) return false;
-				return tx.ToSlice().Equals(ty.ToSlice());
-			}
-
-			public int GetHashCode(object obj)
-			{
-				if (obj == null) return 0;
-
-				var tuple = obj as ITuple;
-				if (!object.ReferenceEquals(tuple, null)) return tuple.ToSlice().GetHashCode();
-
-				return RuntimeHelpers.GetHashCode(obj);
-			}
-		}
-
-#endif
-
 		/// <summary>Create a new instance that compares a single item position in two tuples</summary>
 		/// <typeparam name="T1">Type of the item to compare</typeparam>
 		/// <param name="offset">Offset of the item to compare (can be negative)</param>
@@ -160,7 +110,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<ITuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		public static CompositeComparer<T1, T2> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
 		}
@@ -235,7 +185,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Comparer that compares tuples with at least 2 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
-		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>
+		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>, IComparer<STuple<T1, T2>>, IComparer<(T1, T2)>
 		{
 
 			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2>();
@@ -286,13 +236,37 @@ namespace Doxense.Collections.Tuples
 
 				int p = this.Offset;
 
-				int c = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
-				if (c != 0) return c;
+				int cmp = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				if (cmp != 0) return cmp;
 
 				if (ny == 1 || nx == 1) return nx - ny;
-				c = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
+				cmp = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
 
-				return c;
+				return cmp;
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(STuple<T1, T2> x, STuple<T1, T2> y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				int cmp = this.Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = this.Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare((T1, T2) x, (T1, T2) y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				int cmp = this.Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = this.Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
 			}
 
 		}

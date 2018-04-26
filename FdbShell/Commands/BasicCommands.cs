@@ -220,9 +220,9 @@ namespace FdbShell
 			var copy = KeySubspace.Copy(folder);
 			log.WriteLine("# Counting keys under {0} ...", FdbKey.Dump(copy.GetPrefix()));
 
-			var progress = new Progress<STuple<long, Slice>>((state) =>
+			var progress = new Progress<(long Count, Slice Current)>((state) =>
 			{
-				log.Write("\r# Found {0:N0} keys...", state.Item1);
+				log.Write("\r# Found {0:N0} keys...", state.Count);
 			});
 
 			long count = await Fdb.System.EstimateCountAsync(db, copy.ToRange(), progress, ct);

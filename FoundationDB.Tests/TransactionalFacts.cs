@@ -162,7 +162,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				Log("Inserting test data (this may take a few minutes)...");
 				var rnd = new Random();
-				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Keys.Encode(i), Slice.Random(rnd, 4096))), this.Cancellation);
+				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => (location.Keys.Encode(i), Slice.Random(rnd, 4096))), this.Cancellation);
 				sw.Stop();
 				Log("> done in " + sw.Elapsed);
 

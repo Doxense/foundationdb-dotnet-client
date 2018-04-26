@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
@@ -43,17 +44,32 @@ namespace FoundationDB.Client
 		/// <summary>Encoder for the keys of this subspace</summary>
 		public IKeyEncoding Encoding { get; }
 
+		[NotNull]
 		internal IDynamicKeyEncoder KeyEncoder { get; }
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
-		/// <param name="encoding">Type System used to encode keys in this subspace (optional, will use Tuple Encoding by default)</param>
-		internal DynamicKeySubspace(Slice prefix, IKeyEncoding encoding)
+		/// <param name="encoding">Type System used to encode keys in this subspace</param>
+		internal DynamicKeySubspace(Slice prefix, [NotNull] IKeyEncoding encoding)
 			: base(prefix)
 		{
+			Contract.Requires(encoding != null);
 			this.Encoding = encoding;
 			this.KeyEncoder = encoding.GetDynamicEncoder();
 			this.Keys = new DynamicKeys(this, this.KeyEncoder);
+			this.Partition = new DynamicPartition(this);
+		}
+
+		/// <summary>Create a new subspace from a binary prefix</summary>
+		/// <param name="prefix">Prefix of the new subspace</param>
+		/// <param name="encoder">Encoder that will be used by this subspace</param>
+		internal DynamicKeySubspace(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
+			: base(prefix)
+		{
+			Contract.Requires(encoder != null);
+			this.Encoding = encoder.Encoding;
+			this.KeyEncoder = encoder;
+			this.Keys = new DynamicKeys(this, encoder);
 			this.Partition = new DynamicPartition(this);
 		}
 
@@ -63,7 +79,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
 		public DynamicPartition Partition { get; }
 
-		public Slice this[ITuple item]
+		public Slice this[[NotNull] ITuple item]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Keys.Pack(item);
@@ -72,6 +88,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Key helper for a dynamic TypeSystem</summary>
+	[DebuggerDisplay("{Parent.ToString(),nq)}")]
 	public sealed class DynamicKeys
 	{
 
@@ -92,6 +109,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
+		[Pure]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)
 			where TTuple : ITuple
 		{
@@ -100,6 +118,42 @@ namespace FoundationDB.Client
 			var sw = this.Parent.OpenWriter();
 			this.Encoder.PackKey(ref sw, tuple);
 			return sw.ToSlice();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1>(ValueTuple<T1> items)
+		{
+			return Encode<T1>(items.Item1);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2>((T1, T2) items)
+		{
+			return Encode<T1, T2>(items.Item1, items.Item2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3>((T1, T2, T3) items)
+		{
+			return Encode<T1, T2, T3>(items.Item1, items.Item2, items.Item3);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3, T4>((T1, T2, T3, T4) items)
+		{
+			return Encode<T1, T2, T3, T4>(items.Item1, items.Item2, items.Item3, items.Item4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) items)
+		{
+			return Encode<T1, T2, T3, T4, T5>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice Pack<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) items)
+		{
+			return Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -127,30 +181,62 @@ namespace FoundationDB.Client
 
 		public KeyRange ToRange<T1>(STuple<T1> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1);
 		}
 
 		public KeyRange ToRange<T1, T2>(STuple<T1, T2> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		public KeyRange ToRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		public KeyRange ToRange<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
+
 		public KeyRange ToRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
+
 		public KeyRange ToRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+		}
+
+		public KeyRange ToRange<T1>(ValueTuple<T1> tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1);
+		}
+
+		public KeyRange ToRange<T1, T2>((T1, T2) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2);
+		}
+
+		public KeyRange ToRange<T1, T2, T3>((T1, T2, T3) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
+		public KeyRange ToRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+		}
+
+		public KeyRange ToRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+		}
+
+		public KeyRange ToRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		#endregion

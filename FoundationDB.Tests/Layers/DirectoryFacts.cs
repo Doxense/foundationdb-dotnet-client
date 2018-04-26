@@ -539,7 +539,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder2, Is.Not.Null);
 				Assert.That(folder2.Layer.ToUnicode(), Is.EqualTo("bar"));
 				Assert.That(folder2.FullName, Is.EqualTo("Test"));
-				Assert.That(folder2.Path, Is.EqualTo(STuple.Create("Test")));
+				Assert.That(folder2.Path, Is.EqualTo(new [] { "Test" }));
 				Assert.That(folder2.GetPrefix(), Is.EqualTo(folder.GetPrefix()));
 
 				// opening the directory with the new layer should succeed

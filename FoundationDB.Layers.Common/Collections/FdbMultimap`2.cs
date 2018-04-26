@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Collections
 			//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.AtomicAdd(this.Location.Keys.Encode(key, value), PlusOne);
+			trans.AtomicAdd(this.Location.Keys[key, value], PlusOne);
 			return Task.CompletedTask;
 		}
 
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			Slice k = this.Location.Keys.Encode(key, value);
+			Slice k = this.Location.Keys[key, value];
 			if (this.AllowNegativeValues)
 			{
 				trans.AtomicAdd(k, MinusOne);
@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 		
-			var v = await trans.GetAsync(this.Location.Keys.Encode(key, value)).ConfigureAwait(false);
+			var v = await trans.GetAsync(this.Location.Keys[key, value]).ConfigureAwait(false);
 			return this.AllowNegativeValues ? v.IsPresent : v.ToInt64() > 0;
 		}
 
@@ -155,7 +155,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			Slice v = await trans.GetAsync(this.Location.Keys.Encode(key, value)).ConfigureAwait(false);
+			Slice v = await trans.GetAsync(this.Location.Keys[key, value]).ConfigureAwait(false);
 			if (v.IsNullOrEmpty) return null;
 			long c = v.ToInt64();
 			return this.AllowNegativeValues || c > 0 ? c : default(long?);
@@ -200,22 +200,17 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="key"></param>
 		/// <returns></returns>
 		[NotNull]
-		public IAsyncEnumerable<KeyValuePair<TValue, long>> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+		public IAsyncEnumerable<(TValue Value, long Count)> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
 			var range = KeyRange.StartsWith(this.Location.Keys.EncodePartial(key));
 
 			var query = trans
 				.GetRange(range)
-				.Select(kvp => new KeyValuePair<TValue, long>(this.Location.Keys.Decode(kvp.Key).Item2, kvp.Value.ToInt64()));
+				.Select(kvp => (Value: this.Location.Keys.Decode(kvp.Key).Item2, Count: kvp.Value.ToInt64()));
 
-			if (this.AllowNegativeValues)
-			{
-				return query;
-			}
-			else
-			{
-				return query.Where(kvp => kvp.Value > 0);
-			}
+			return this.AllowNegativeValues
+				? query
+				: query.Where(x => x.Count > 0);
 		}
 
 		/// <summary>Returns a dictionary with of the counts of each value for a specific key</summary>
@@ -225,7 +220,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns></returns>
 		public Task<Dictionary<TValue, long>> GetCountsAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key, IEqualityComparer<TValue> comparer = null)
 		{
-			return GetCounts(trans, key).ToDictionaryAsync(comparer);
+			return GetCounts(trans, key).ToDictionaryAsync(x => x.Value, x => x.Count, comparer);
 		}
 
 		/// <summary>Remove all the values for a specific key</summary>
@@ -248,7 +243,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.Clear(this.Location.Keys.Encode(key, value));
+			trans.Clear(this.Location.Keys[key, value]);
 		}
 
 		#endregion

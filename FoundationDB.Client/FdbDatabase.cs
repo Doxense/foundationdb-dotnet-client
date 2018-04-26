@@ -456,8 +456,8 @@ namespace FoundationDB.Client
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = KeySubspace.Copy(subspace).Using(TypeSystem.Tuples);
-				m_globalSpaceCopy = KeySubspace.Copy(subspace).Using(TypeSystem.Tuples); // keep another copy
+				m_globalSpace = KeySubspace.Copy(subspace, TypeSystem.Tuples);
+				m_globalSpaceCopy = KeySubspace.Copy(subspace, TypeSystem.Tuples); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}

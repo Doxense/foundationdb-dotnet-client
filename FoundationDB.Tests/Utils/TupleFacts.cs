@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_VALUETUPLE
-
 // ReSharper disable AccessToModifiedClosure
 namespace Doxense.Collections.Tuples.Tests
 {
@@ -121,13 +119,11 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 			}
-#if ENABLE_VALUETUPLE
 			{ // Deconstruct
 				(string item1, int item2) = t2;
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 			}
-#endif
 		}
 
 		[Test]
@@ -174,14 +170,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 			}
-#if ENABLE_VALUETUPLE
 			{ // Deconstruct
 				(string item1, int item2, bool item3) = t3;
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 			}
-#endif
 		}
 
 		[Test]
@@ -235,7 +229,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
 			}
-#if ENABLE_VALUETUPLE
 			{ // Deconstruct
 				(string item1, int item2, bool item3, long item4) = t4;
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -243,7 +236,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
 			}
-#endif
 		}
 
 		[Test]
@@ -287,7 +279,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item4, Is.EqualTo(1234L));
 				Assert.That(item5, Is.EqualTo(-1234L));
 			}
-#if ENABLE_VALUETUPLE
 			{ // Deconstruct
 				(string item1, int item2, bool item3, long item4, long item5) = t5;
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -296,7 +287,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item4, Is.EqualTo(1234L));
 				Assert.That(item5, Is.EqualTo(-1234L));
 			}
-#endif
 		}
 
 		[Test]
@@ -344,7 +334,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item5, Is.EqualTo(-1234L));
 				Assert.That(item6, Is.EqualTo("six"));
 			}
-#if ENABLE_VALUETUPLE
 			{ // Deconstruct
 				(string item1, int item2, bool item3, long item4, long item5, string item6) = t6;
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -354,7 +343,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item5, Is.EqualTo(-1234L));
 				Assert.That(item6, Is.EqualTo("six"));
 			}
-#endif
 		}
 
 		[Test]
@@ -1936,8 +1924,6 @@ namespace Doxense.Collections.Tuples.Tests
 
 		#region System.ValueTuple integration...
 
-#if ENABLE_VALUETUPLE
-
 		[Test]
 		public void Test_Implicit_Cast_STuple_To_ValueTuple()
 		{
@@ -1946,25 +1932,25 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item1, Is.EqualTo(11));
 			}
 			{
-				ValueTuple<int, int> t = STuple.Create(11, 22);
+				(int, int) t = STuple.Create(11, 22);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 			}
 			{
-				ValueTuple<int, int, int> t = STuple.Create(11, 22, 33);
+				(int, int, int) t = STuple.Create(11, 22, 33);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 			}
 			{
-				ValueTuple<int, int, int, int> t = STuple.Create(11, 22, 33, 44);
+				(int, int, int, int) t = STuple.Create(11, 22, 33, 44);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 				Assert.That(t.Item4, Is.EqualTo(44));
 			}
 			{
-				ValueTuple<int, int, int, int, int> t = STuple.Create(11, 22, 33, 44, 55);
+				(int, int, int, int, int) t = STuple.Create(11, 22, 33, 44, 55);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -1972,7 +1958,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item5, Is.EqualTo(55));
 			}
 			{
-				ValueTuple<int, int, int, int, int, int> t = STuple.Create(11, 22, 33, 44, 55, 66);
+				(int, int, int, int, int, int) t = STuple.Create(11, 22, 33, 44, 55, 66);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -1990,25 +1976,25 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item1, Is.EqualTo(11));
 			}
 			{
-				STuple<int, int> t = ValueTuple.Create(11, 22);
+				STuple<int, int> t = (11, 22);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 			}
 			{
-				STuple<int, int, int> t = ValueTuple.Create(11, 22, 33);
+				STuple<int, int, int> t = (11, 22, 33);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 			}
 			{
-				STuple<int, int, int, int> t = ValueTuple.Create(11, 22, 33, 44);
+				STuple<int, int, int, int> t = (11, 22, 33, 44);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
 				Assert.That(t.Item4, Is.EqualTo(44));
 			}
 			{
-				STuple<int, int, int, int, int> t = ValueTuple.Create(11, 22, 33, 44, 55);
+				STuple<int, int, int, int, int> t = (11, 22, 33, 44, 55);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2016,7 +2002,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item5, Is.EqualTo(55));
 			}
 			{
-				STuple<int, int, int, int, int, int> t = ValueTuple.Create(11, 22, 33, 44, 55, 66);
+				STuple<int, int, int, int, int, int> t = (11, 22, 33, 44, 55, 66);
 				Assert.That(t.Item1, Is.EqualTo(11));
 				Assert.That(t.Item2, Is.EqualTo(22));
 				Assert.That(t.Item3, Is.EqualTo(33));
@@ -2026,7 +2012,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 		}
 
-		private static ValueTuple<int, int> ProduceValueTuple(int item1, int item2) => ValueTuple.Create(item1, item2);
+		private static (int, int) ProduceValueTuple(int item1, int item2) => (item1, item2);
 
 		private static int[] ConsumeValueTuple(STuple<int, int> t) => new[] { t.Item1, t.Item2 };
 
@@ -2044,7 +2030,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(res[1], Is.EqualTo(5));
 			}
 			{ // literal => STuple<int, int>
-				var res = ConsumeSTuple(ValueTuple.Create(1234, 5));
+				var res = ConsumeSTuple((1234, 5));
 				Assert.That(res[0], Is.EqualTo(1234));
 				Assert.That(res[1], Is.EqualTo(5));
 			}
@@ -2054,8 +2040,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(res[1], Is.EqualTo(5));
 			}
 		}
-
-#endif
 
 		[Test]
 		public void Test_Deconstruct_STuple()
@@ -2087,16 +2071,15 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(e, Is.EqualTo(55));
 			}
 			{
-				STuple.Create(11, 22, 33, 44, 55, 66).Deconstruct(out int a, out int b, out int c, out int d, out int e, out _);
+				STuple.Create(11, 22, 33, 44, 55, 66).Deconstruct(out int a, out int b, out int c, out int d, out int e, out int f);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 				Assert.That(c, Is.EqualTo(33));
 				Assert.That(d, Is.EqualTo(44));
 				Assert.That(e, Is.EqualTo(55));
+				Assert.That(f, Is.EqualTo(66));
 			}
 		}
-
-#if ENABLE_VALUETUPLE
 
 		[Test]
 		public void Test_Deconstruct_STuple_TupleSyntax()
@@ -2134,10 +2117,9 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(c, Is.EqualTo(33));
 				Assert.That(d, Is.EqualTo(44));
 				Assert.That(e, Is.EqualTo(55));
+				Assert.That(f, Is.EqualTo(66));
 			}
 		}
-
-#endif
 
 		#endregion
 

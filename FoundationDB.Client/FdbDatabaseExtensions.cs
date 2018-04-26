@@ -318,18 +318,18 @@ namespace FoundationDB.Client
 			return db.WriteAsync((tr) => tr.Set(key, value), ct);
 		}
 
-		/// <summary>Set the values of a list of keys in the database, using a dedicated transaction.</summary>
+		/// <summary>Set the values of a sequence of keys in the database, using a dedicated transaction.</summary>
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, KeyValuePair<Slice, Slice>[] keyValuePairs, CancellationToken ct)
+		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> items, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) =>
 			{
-				foreach (var kv in keyValuePairs)
+				foreach (var kv in items)
 				{
 					tr.Set(kv.Key, kv.Value);
 				}
@@ -342,12 +342,12 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs, CancellationToken ct)
+		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, IEnumerable<(Slice Key, Slice Value)> items, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) =>
 			{
-				foreach (var kv in keyValuePairs)
+				foreach (var kv in items)
 				{
 					tr.Set(kv.Key, kv.Value);
 				}

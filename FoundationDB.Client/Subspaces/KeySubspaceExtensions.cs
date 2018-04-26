@@ -46,6 +46,7 @@ namespace FoundationDB.Client
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
 		public static IDynamicKeySubspace Using([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
+		//REVIEW: rename to AsDynamic() ? ToDynamic() ? would all to make encoding arg optional (and default to Tuples)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoding, nameof(encoding));
@@ -53,7 +54,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
@@ -65,19 +66,18 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
-		/// <param name="encoding">Custom key encoder</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
+		/// <param name="encoding">Encoding by the keys of this subspace. If not specified, the <see cref="TypeSystem.Tuples">Tuples Type System</see> will be used to generate an encoder.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static ITypedKeySubspace<T> UsingEncoder<T>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
+		public static ITypedKeySubspace<T> UsingEncoder<T>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
-			return new TypedKeySubspace<T>(subspace.GetPrefix(), encoding.GetEncoder<T>());
+			return new TypedKeySubspace<T>(subspace.GetPrefix(), (encoding ?? TypeSystem.Tuples).GetEncoder<T>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
@@ -89,19 +89,18 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
-		/// <param name="encoding">Custom key encoder</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
+		/// <param name="encoding">Encoding used by the keys of this subspace. If not specified, the <see cref="TypeSystem.Tuples">Tuples Type System</see> will be used to generate an encoder.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
+		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
-			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), encoding.GetEncoder<T1, T2>());
+			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), (encoding ?? TypeSystem.Tuples).GetEncoder<T1, T2>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
@@ -113,19 +112,18 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
-		/// <param name="encoding">Custom key encoder</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
+		/// <param name="encoding">Encoding used by the keys of this subspace. If not specified, the <see cref="TypeSystem.Tuples">Tuples Type System</see> will be used to generate an encoder.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
+		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
-			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), encoding.GetEncoder<T1, T2, T3>());
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), (encoding ?? TypeSystem.Tuples).GetEncoder<T1, T2, T3>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
-		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
@@ -138,19 +136,18 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace</param>
-		/// <param name="encoding">Custom key encoder</param>
+		/// <param name="encoding">Encoding used by the keys of this namespace. If not specified, the <see cref="TypeSystem.Tuples">Tuples Type System</see> will be used to generate an encoder.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
-		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [NotNull] IKeyEncoding encoding)
+		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
-			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), encoding.GetEncoder<T1, T2, T3, T4>());
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), (encoding ?? TypeSystem.Tuples).GetEncoder<T1, T2, T3, T4>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace</param>
-		/// <param name="encoder">Custom key encoder</param>
+		/// <param name="encoder">Encoder used to serialize the keys of this namespace.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure, NotNull]
 		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
