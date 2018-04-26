@@ -26,11 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_VALUETUPLES
-
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
@@ -65,6 +64,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{Parent.ToString(),nq)}")]
 	public sealed class TypedKeys<T1, T2, T3>
 	{
 
@@ -82,6 +82,8 @@ namespace FoundationDB.Client
 			this.Parent = parent;
 			this.Encoder = encoder;
 		}
+
+		#region ToRange()
 
 		/// <summary>Return the range of all legal keys in this subpsace</summary>
 		/// <returns>A "legal" key is one that can be decoded into the original triple of values</returns>
@@ -102,7 +104,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(ValueTuple<T1, T2, T3> tuple)
+		public KeyRange ToRange((T1, T2, T3) tuple)
 		{
 			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
@@ -115,6 +117,10 @@ namespace FoundationDB.Client
 			return KeyRange.PrefixedBy(Encode(item1, item2, item3));
 		}
 
+		#endregion
+
+		#region ToRangePartial()
+
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
 		public KeyRange ToRangePartial(STuple<T1, T2> tuple)
@@ -125,7 +131,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRangePartial(ValueTuple<T1, T2> tuple)
+		public KeyRange ToRangePartial((T1, T2) tuple)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2));
@@ -147,19 +153,21 @@ namespace FoundationDB.Client
 			return KeyRange.PrefixedBy(EncodePartial(item1));
 		}
 
+		#endregion
+
+		#region Pack()
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack(STuple<T1, T2, T3> tuple)
 		{
 			return Encode(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-#if ENABLE_VALUETUPLES
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack(ValueTuple<T1, T2, T3> tuple)
+		public Slice Pack((T1, T2, T3) tuple)
 		{
 			return Encode(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
-#endif
 
 		[Pure]
 		public Slice Pack<TTuple>(TTuple tuple)
@@ -167,6 +175,22 @@ namespace FoundationDB.Client
 		{
 			tuple.OfSize(3);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
+		}
+
+		#endregion
+
+		#region Encode()
+
+		public Slice this[T1 item1, T2 item2, T3 item3]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Encode(item1, item2, item3);
+		}
+
+		public Slice this[(T1, T2, T3) items]
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Encode(items.Item1, items.Item2, items.Item3);
 		}
 
 		[Pure]
@@ -182,7 +206,7 @@ namespace FoundationDB.Client
 		public Slice EncodePartial(T1 item1, T2 item2)
 		{
 			var sw = this.Parent.OpenWriter(16);
-			var tuple = new STuple<T1, T2, T3>(item1, item2, default(T3));
+			var tuple = (item1, item2, default(T3));
 			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
 		}
@@ -191,12 +215,18 @@ namespace FoundationDB.Client
 		public Slice EncodePartial(T1 item1)
 		{
 			var sw = this.Parent.OpenWriter(16);
-			var tuple = new STuple<T1, T2, T3>(item1, default(T2), default(T3));
+			var tuple = (item1, default(T2), default(T3));
 			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
 			return sw.ToSlice();
 		}
 
+		#endregion
+
+		#region Decode()
+
 		[Pure]
+		//REVIEW: => Unpack()?
+		//REVIEW: return ValueTuple<..> instead? (C#7)
 		public STuple<T1, T2, T3> Decode(Slice packedKey)
 		{
 			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
@@ -204,11 +234,14 @@ namespace FoundationDB.Client
 
 		public void Decode(Slice packedKey, out T1 item1, out T2 item2, out T3 item3)
 		{
-			var tuple = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
-			item1 = tuple.Item1;
-			item2 = tuple.Item2;
-			item3 = tuple.Item3;
+			this.Encoder
+				.DecodeKey(this.Parent.ExtractKey(packedKey))
+				.Deconstruct(out item1, out item2, out item3);
 		}
+
+		#endregion
+
+		#region Dump()
 
 		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
 		[Pure]
@@ -227,6 +260,8 @@ namespace FoundationDB.Client
 				return key.PrettyPrint();
 			}
 		}
+
+		#endregion
 
 	}
 

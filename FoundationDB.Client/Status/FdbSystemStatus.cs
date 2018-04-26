@@ -83,8 +83,8 @@ namespace FoundationDB.Client.Status
 
 		internal static Message From(Dictionary<string, object> data, string field)
 		{
-			var kvp = TinyJsonParser.GetStringPair(TinyJsonParser.GetMapField(data, field), "name", "description");
-			return new Message(kvp.Key ?? String.Empty, kvp.Value ?? String.Empty);
+			(var key, var value) = TinyJsonParser.GetStringPair(TinyJsonParser.GetMapField(data, field), "name", "description");
+			return new Message(key ?? string.Empty, value ?? string.Empty);
 		}
 
 		internal static Message[] FromArray(Dictionary<string, object> data, string field)
@@ -94,8 +94,8 @@ namespace FoundationDB.Client.Status
 			for (int i = 0; i < res.Length; i++)
 			{
 				var obj = (Dictionary<string, object>)array[i];
-				var kvp = TinyJsonParser.GetStringPair(obj, "name", "description");
-				res[i] = new Message(kvp.Key, kvp.Value);
+				(var key, var value) = TinyJsonParser.GetStringPair(obj, "name", "description");
+				res[i] = new Message(key, value);
 			}
 			return res;
 		}
@@ -566,7 +566,7 @@ namespace FoundationDB.Client.Status
 		private ProcessCpuMetrics m_cpu;
 		private ProcessDiskMetrics m_disk;
 		private ProcessMemoryMetrics m_memory;
-		private KeyValuePair<string, string>[] m_roles;
+		private (string Id, string Role)[] m_roles;
 
 		/// <summary>Unique identifier for this process.</summary>
 		//TODO: is it stable accross reboots? what are the conditions for a process to change its ID ?
@@ -613,7 +613,7 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>List of the roles assumed by this process</summary>
 		/// <remarks>The key is the unique role ID in the cluster, and the value is the type of the role itself</remarks>
-		public KeyValuePair<string, string>[] Roles
+		public (string Id, string Role)[] Roles
 		{
 			get
 			{
@@ -622,7 +622,7 @@ namespace FoundationDB.Client.Status
 					//REVIEW: should we have (K=id, V=role) or (K=role, V=id) ?
 
 					var arr = GetArray("roles");
-					var res = new KeyValuePair<string, string>[arr.Count];
+					var res = new (string, string)[arr.Count];
 					for (int i = 0; i < res.Length; i++)
 					{
 						var obj = (Dictionary<string, object>)arr[i];

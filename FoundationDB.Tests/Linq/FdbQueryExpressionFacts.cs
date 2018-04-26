@@ -43,9 +43,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	{
 
-	private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.FromKey(STuple.Create("Foos", 1)));
+	private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.FromKey(TuPack.EncodeKey("Foos", 1)));
 
-	private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.FromKey(STuple.Create("Foos", 2)));
+	private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.FromKey(TuPack.EncodeKey("Foos", 2)));
 
 	[Test]
 	public void Test_FdbQueryIndexLookupExpression()
@@ -96,7 +96,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	public void Test_FdbQueryRangeExpression()
 	{
 		var expr = FdbQueryExpressions.Range(
-			KeySelectorPair.Create(TuPack.ToRange(STuple.Create("Foo")))
+			KeySelectorPair.Create(TuPack.ToKeyRange("Foo"))
 		);
 		Log(expr);
 
@@ -174,7 +174,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	public void Test_FdbQueryTransformExpression()
 	{
 		var expr = FdbQueryExpressions.Transform(
-			FdbQueryExpressions.RangeStartsWith(STuple.Create("Hello", "World")),
+			FdbQueryExpressions.RangeStartsWith(TuPack.EncodeKey("Hello", "World")),
 			(kvp) => kvp.Value.ToUnicode()
 		);
 		Log(expr);
@@ -193,7 +193,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	public void Test_FdbQueryFilterExpression()
 	{
 		var expr = FdbQueryExpressions.Filter(
-			FdbQueryExpressions.RangeStartsWith(STuple.Create("Hello", "World")),
+			FdbQueryExpressions.RangeStartsWith(TuPack.EncodeKey("Hello", "World")),
 			(kvp) => kvp.Value.ToInt32() % 2 == 0
 		);
 		Log(expr);

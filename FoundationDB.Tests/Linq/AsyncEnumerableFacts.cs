@@ -962,7 +962,7 @@ namespace FoundationDB.Linq.Tests
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
-				return Task.Delay(15).ContinueWith((_) => Maybe.Return((int)index));
+				return Task.Delay(15, ct).ContinueWith((_) => Maybe.Return((int)index), ct);
 			});
 
 			var results = await source.ToListAsync();
@@ -971,23 +971,23 @@ namespace FoundationDB.Linq.Tests
 
 			// record the timing and call history to ensure that inner is called at least twice before the first item gets out
 
-			Func<int, STuple<int, int>> record = (x) => STuple.Create(x, Volatile.Read(ref called));
+			Func<int, (int Value, int Called)> record = (x) => STuple.Create(x, Volatile.Read(ref called));
 
 			// without prefetching, the number of calls should match for the producer and the consumer
 			called = 0;
 			sw.Restart();
 			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
 			Log("P0: {0}", String.Join(", ", withoutPrefetching));
-			Assert.That(withoutPrefetching.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
-			Assert.That(withoutPrefetching.Select(x => x.Item2), Is.EqualTo(Enumerable.Range(1, 10)));
+			Assert.That(withoutPrefetching.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
+			Assert.That(withoutPrefetching.Select(x => x.Called), Is.EqualTo(Enumerable.Range(1, 10)));
 
 			// with prefetching, the consumer should always have one item in advance
 			called = 0;
 			sw.Restart();
 			var withPrefetching1 = await source.Prefetch().Select(record).ToListAsync(this.Cancellation);
 			Log("P1: {0}", String.Join(", ", withPrefetching1));
-			Assert.That(withPrefetching1.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
-			Assert.That(withPrefetching1.Select(x => x.Item2), Is.EqualTo(Enumerable.Range(2, 10)));
+			Assert.That(withPrefetching1.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
+			Assert.That(withPrefetching1.Select(x => x.Called), Is.EqualTo(Enumerable.Range(2, 10)));
 
 			// prefetching more than 1 item on a consumer that is not buffered should not change the picture (since we can only read one ahead anyway)
 			//REVIEW: maybe we should change the implementation of the operator so that it still prefetch items in the background if the rest of the query is lagging a bit?
@@ -995,8 +995,8 @@ namespace FoundationDB.Linq.Tests
 			sw.Restart();
 			var withPrefetching2 = await source.Prefetch(2).Select(record).ToListAsync(this.Cancellation);
 			Log("P2: {0}", String.Join(", ", withPrefetching2));
-			Assert.That(withPrefetching2.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
-			Assert.That(withPrefetching2.Select(x => x.Item2), Is.EqualTo(Enumerable.Range(2, 10)));
+			Assert.That(withPrefetching2.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
+			Assert.That(withPrefetching2.Select(x => x.Called), Is.EqualTo(Enumerable.Range(2, 10)));
 		}
 
 		[Test]

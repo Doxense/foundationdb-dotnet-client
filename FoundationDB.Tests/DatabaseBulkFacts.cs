@@ -59,7 +59,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
-					.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.ToString("x8")), Slice.Random(rnd, 16 + rnd.Next(240))))
+					.Select((x) => (Key: location.Keys.Encode(x.ToString("x8")), Value: Slice.Random(rnd, 16 + rnd.Next(240))))
 					.ToArray();
 
 				Log("Total data size is {0:N0} bytes", data.Sum(x => x.Key.Count + x.Value.Count));
@@ -197,7 +197,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -210,7 +210,7 @@ namespace FoundationDB.Client.Tests
 				await Fdb.Bulk.ForEachAsync(
 					db,
 					Enumerable.Range(1, N).Select(x => location.Keys.Encode(x)),
-					() => STuple.Create(0L, 0L),
+					() => (Total: 0L, Count: 0L),
 					async (xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -221,16 +221,19 @@ namespace FoundationDB.Client.Tests
 						await throttle;
 
 						long sum = 0;
-						for (int i = 0; i < results.Length; i++)
+						foreach (Slice x in results)
 						{
-							sum += results[i].ToInt32();
+							sum += x.ToInt32();
 						}
-						return STuple.Create(state.Item1 + sum, state.Item2 + results.Length);
+
+						state.Total += sum;
+						state.Count += results.Length;
+						return state;
 					},
 					(state) =>
 					{
-						Interlocked.Add(ref total, state.Item1);
-						Interlocked.Add(ref count, state.Item2);
+						Interlocked.Add(ref total, state.Total);
+						Interlocked.Add(ref count, state.Count);
 					},
 					this.Cancellation
 				);
@@ -348,7 +351,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -361,7 +364,7 @@ namespace FoundationDB.Client.Tests
 				await Fdb.Bulk.ForEachAsync(
 					db,
 					Enumerable.Range(1, N).Select(x => location.Keys.Encode(x)),
-					() => STuple.Create(0L, 0L), // (sum, count)
+					() => (Total: 0L, Count: 0L),
 					(xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -372,19 +375,19 @@ namespace FoundationDB.Client.Tests
 						var results = t.Result; // <-- this is bad practice, never do that in real life, 'mkay?
 
 						long sum = 0;
-						for (int i = 0; i < results.Length; i++)
+						foreach (Slice x in results)
 						{
-							sum += results[i].ToInt32();
+							sum += x.ToInt32();
 						}
-						return STuple.Create(
-							state.Item1 + sum, // updated sum
-							state.Item2 + results.Length // updated count
-						);
+
+						state.Total += sum;
+						state.Count += results.Length;
+						return state;
 					},
 					(state) =>
 					{
-						Interlocked.Add(ref total, state.Item1);
-						Interlocked.Add(ref count, state.Item2);
+						Interlocked.Add(ref total, state.Total);
+						Interlocked.Add(ref count, state.Count);
 					},
 					this.Cancellation
 				);
@@ -413,7 +416,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -473,7 +476,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
+					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
@@ -534,7 +537,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
+					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
@@ -545,7 +548,7 @@ namespace FoundationDB.Client.Tests
 				double average = await Fdb.Bulk.AggregateAsync(
 					db,
 					source.Select(x => location.Keys.Encode(x.Key)),
-					() => STuple.Create(0L, 0L),
+					() => (Total: 0L, Count: 0L),
 					async (xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -556,13 +559,15 @@ namespace FoundationDB.Client.Tests
 						await throttle;
 
 						long sum = 0L;
-						for (int i = 0; i < results.Length; i++)
+						foreach (Slice x in results)
 						{
-							sum += results[i].ToInt32();
+							sum += x.ToInt32();
 						}
-						return STuple.Create(state.Item1 + sum, state.Item2 + results.Length);
+						state.Total += sum;
+						state.Count += results.Length;
+						return state;
 					},
-					(state) => (double)state.Item1 / state.Item2,
+					(state) => (double) state.Total / state.Count,
 					this.Cancellation
 				);
 				sw.Stop();
@@ -603,7 +608,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db.WithoutLogging(),
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x.Key), x.Value)),
+					source.Select((x) => (location.Keys.Encode(x.Key), x.Value)),
 					this.Cancellation
 				);
 

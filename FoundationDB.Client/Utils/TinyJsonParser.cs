@@ -400,10 +400,10 @@ namespace FoundationDB.Client.Utils
 			return map != null && map.TryGetValue(field, out item) ? (bool)item : default(bool?);
 		}
 
-		internal static KeyValuePair<string, string> GetStringPair(Dictionary<string, object> map, string key, string value)
+		internal static (string Key, string Value) GetStringPair(Dictionary<string, object> map, string key, string value)
 		{
 			object item;
-			return new KeyValuePair<string, string>(
+			return (
 				map != null && map.TryGetValue(key, out item) ? (string)item : null,
 				map != null && map.TryGetValue(value, out item) ? (string)item : null
 			);

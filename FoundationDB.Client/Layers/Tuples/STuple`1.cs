@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -44,10 +42,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>
-#if ENABLE_VALUETUPLES
-		, IEquatable<ValueTuple<T1>>
-#endif
+	public readonly struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -208,12 +203,10 @@ namespace Doxense.Collections.Tuples
 			{
 				return comparer.Equals(this.Item1, stuple.Item1);
 			}
-#if ENABLE_VALUETUPLES
 			if (other is ValueTuple<T1> vtuple)
 			{
 				return comparer.Equals(this.Item1, vtuple.Item1);
 			}
-#endif
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
@@ -235,10 +228,6 @@ namespace Doxense.Collections.Tuples
 			return new Tuple<T1>(t.Item1);
 		}
 
-#if ENABLE_VALUETUPLES
-
-		// interop with System.ValueTuple<T1, T2>
-
 		public void Fill(ref ValueTuple<T1> t)
 		{
 			t.Item1 = this.Item1;
@@ -257,7 +246,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3> Concat<T2, T3>(ValueTuple<T2, T3> tuple)
+		public STuple<T1, T2, T3> Concat<T2, T3>((T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, tuple.Item1, tuple.Item2);
 		}
@@ -266,7 +255,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4> Concat<T2, T3, T4>(ValueTuple<T2, T3, T4> tuple)
+		public STuple<T1, T2, T3, T4> Concat<T2, T3, T4>((T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3);
 		}
@@ -275,7 +264,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4, T5> Concat<T2, T3, T4, T5>(ValueTuple<T2, T3, T4, T5> tuple)
+		public STuple<T1, T2, T3, T4, T5> Concat<T2, T3, T4, T5>((T2, T3, T4, T5) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
@@ -284,7 +273,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4, T5, T6> Concat<T2, T3, T4, T5, T6>(ValueTuple<T2, T3, T4, T5, T6> tuple)
+		public STuple<T1, T2, T3, T4, T5, T6> Concat<T2, T3, T4, T5, T6>((T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
@@ -336,8 +325,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
 		}
-
-#endif
 
 		public sealed class Comparer : IComparer<STuple<T1>>
 		{

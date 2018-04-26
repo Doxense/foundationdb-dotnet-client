@@ -43,10 +43,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		private TupleKeyEncoder()
 		{ }
 
-		public IKeyEncoding Encoding
-		{
-			get { return TypeSystem.Tuples; }
-		}
+		public IKeyEncoding Encoding => TypeSystem.Tuples;
 
 		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items)
 			where TTuple : ITuple
@@ -190,50 +187,49 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.ToRange(prefix);
 		}
 
-
 		public KeyRange ToRange(Slice prefix, ITuple items)
 		{
-			return TuPack.ToRange(prefix, items);
+			return TuPack.ToPrefixedKeyRange(prefix, items);
 		}
 
 		public KeyRange ToKeyRange<T1>(Slice prefix, T1 item1)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1));
+			return TuPack.ToPrefixedKeyRange(prefix, item1);
 		}
 
 		public KeyRange ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2);
 		}
 
 		public KeyRange ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2, item3));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3);
 		}
 
 		public KeyRange ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2, item3, item4));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4);
 		}
 
 		public KeyRange ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2, item3, item4, item5));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4, item5);
 		}
 
 		public KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2, item3, item4, item5, item6));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4, item5, item6);
 		}
 
 		public KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2, item3, item4, item5, item6, item7));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		public KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
-			return TuPack.ToRange(prefix, STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8));
+			return TuPack.ToPrefixedKeyRange(prefix, item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 	}

@@ -81,7 +81,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(this.Location.Keys.Encode(value, id), Slice.Empty);
+				trans.Set(this.Location.Keys[value, id], Slice.Empty);
 				return true;
 			}
 			return false;
@@ -101,13 +101,13 @@ namespace FoundationDB.Layers.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					trans.Clear(this.Location.Keys.Encode(previousValue, id));
+					trans.Clear(this.Location.Keys[previousValue, id]);
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					trans.Set(this.Location.Keys.Encode(newValue, id), Slice.Empty);
+					trans.Set(this.Location.Keys[newValue, id], Slice.Empty);
 				}
 
 				// cannot be both null, so we did at least something)
@@ -124,7 +124,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Clear(this.Location.Keys.Encode(value, id));
+			trans.Clear(this.Location.Keys[value, id]);
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>

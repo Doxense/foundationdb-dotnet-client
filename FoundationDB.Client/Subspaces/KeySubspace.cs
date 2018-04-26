@@ -26,22 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Client
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	[PublicAPI]
+	[DebuggerDisplay("{ToString(),nq}")]
 	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
 	{
 
@@ -56,24 +53,183 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static KeySubspace Empty => new KeySubspace(Slice.Empty);
 
-		/// <summary>Initializes a new subspace with the given prefix</summary>
+		#region FromKey...
+
+		/// <summary>Initializes a new generic subspace with the given prefix.</summary>
 		[Pure, NotNull]
 		public static KeySubspace FromKey(Slice prefix)
 		{
 			return new KeySubspace(prefix.Memoize());
 		}
 
-		/// <summary>Initializes a new subspace with the given prefix</summary>
+		/// <summary>Initializes a new dynamic subspace with the given binary <paramref name="prefix"/> and key <paramref name="encoder"/>.</summary>
+		/// <returns>A subspace that can handle keys of any types and size.</returns>
 		[Pure, NotNull]
-		public static KeySubspace FromKey(ITuple prefix)
+		public static DynamicKeySubspace CreateDynamic(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
 		{
-			return new KeySubspace(TuPack.Pack(prefix).Memoize());
+			Contract.NotNull(encoder, nameof(encoder));
+			return new DynamicKeySubspace(prefix, encoder);
 		}
 
-		public static KeySubspace Copy(IKeySubspace subspace)
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a dynamic key <paramref name="encoding"/>.</summary>
+		/// <returns>A subspace that can handle keys of any types and size.</returns>
+		[Pure, NotNull]
+		public static DynamicKeySubspace CreateDynamic(Slice prefix, [NotNull] IKeyEncoding encoding)
 		{
-			return subspace is KeySubspace ks ? new KeySubspace(ks.Key.Memoize()) : new KeySubspace(subspace.GetPrefix().Memoize());
+			Contract.NotNull(encoding, nameof(encoding));
+			return new DynamicKeySubspace(prefix, encoding.GetDynamicEncoder());
 		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
+		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
+		public static TypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		{
+			return new TypedKeySubspace<T1>(prefix, (encoding ?? TypeSystem.Tuples).GetEncoder<T1>());
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
+		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
+		public static TypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [NotNull] IKeyEncoder<T1> encoder)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			return new TypedKeySubspace<T1>(prefix, encoder);
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
+		public static TypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		{
+			return new TypedKeySubspace<T1, T2>(prefix, (encoding ?? TypeSystem.Tuples).GetEncoder<T1, T2>());
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
+		public static TypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			return new TypedKeySubspace<T1, T2>(prefix, encoder);
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		public static TypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		{
+			return new TypedKeySubspace<T1, T2, T3>(prefix, (encoding ?? TypeSystem.Tuples).GetEncoder<T1, T2, T3>());
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		public static TypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			return new TypedKeySubspace<T1, T2, T3>(prefix, encoder);
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		public static TypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		{
+			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, (encoding ?? TypeSystem.Tuples).GetEncoder<T1, T2, T3, T4>());
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		public static TypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, encoder);
+		}
+
+		#endregion
+
+		#region Copy...
+
+		/// <summary>Create a new copy of a subspace's prefix</summary>
+		[Pure]
+		internal static Slice StealPrefix([NotNull] IKeySubspace subspace)
+		{
+			//note: we can workaround the 'security' in top directory partition by accessing their key prefix without triggering an exception!
+			return subspace is KeySubspace ks
+				? ks.Key.Memoize()
+				: subspace.GetPrefix().Memoize();
+		}
+
+		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
+		[Pure, NotNull]
+		public static KeySubspace Copy([NotNull] IKeySubspace subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+
+			var prefix = StealPrefix(subspace);
+
+			if (subspace is IDynamicKeySubspace dyn)
+			{ // reuse the encoding of the original
+				return new DynamicKeySubspace(prefix, dyn.Encoding);
+			}
+
+			// no encoding
+			return new KeySubspace(prefix);
+		}
+
+		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
+		[Pure, NotNull]
+		public static DynamicKeySubspace Copy([NotNull] IKeySubspace subspace, IKeyEncoding encoding)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoding, nameof(encoding));
+			return new DynamicKeySubspace(StealPrefix(subspace), encoding);
+		}
+
+		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
+		[Pure, NotNull]
+		public static DynamicKeySubspace Copy([NotNull] IKeySubspace subspace, IDynamicKeyEncoder encoder)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
+			return new DynamicKeySubspace(StealPrefix(subspace), encoder);
+		}
+
+		/// <summary>Create a copy of a dynamic subspace, sharing the same binary prefix and encoder</summary>
+		[Pure, NotNull]
+		public static DynamicKeySubspace Copy([NotNull] IDynamicKeySubspace subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			return new DynamicKeySubspace(StealPrefix(subspace), subspace.Encoding);
+		}
+
+		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
+		[Pure, NotNull]
+		public static TypedKeySubspace<T1> Copy<T1>([NotNull] ITypedKeySubspace<T1> subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			return new TypedKeySubspace<T1>(StealPrefix(subspace), subspace.KeyEncoder);
+		}
+
+		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
+		[Pure, NotNull]
+		public static TypedKeySubspace<T1, T2> Copy<T1, T2>([NotNull] ITypedKeySubspace<T1, T2> subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			return new TypedKeySubspace<T1, T2>(StealPrefix(subspace), subspace.KeyEncoder);
+		}
+
+		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
+		[Pure, NotNull]
+		public static TypedKeySubspace<T1, T2, T3> Copy<T1, T2, T3>([NotNull] ITypedKeySubspace<T1, T2, T3> subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			return new TypedKeySubspace<T1, T2, T3>(StealPrefix(subspace), subspace.KeyEncoder);
+		}
+
+		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
+		[Pure, NotNull]
+		public static TypedKeySubspace<T1, T2, T3, T4> Copy<T1, T2, T3, T4>([NotNull] ITypedKeySubspace<T1, T2, T3, T4> subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			return new TypedKeySubspace<T1, T2, T3, T4>(StealPrefix(subspace), subspace.KeyEncoder);
+		}
+
+		#endregion
 
 		internal KeySubspace(Slice prefix)
 		{

@@ -819,7 +819,7 @@ namespace FdbTop
 				{
 					foreach(var role in proc.Roles)
 					{
-						map.Add(role.Value);
+						map.Add(role.Role);
 					}
 				}
 
@@ -860,7 +860,7 @@ namespace FdbTop
 					map = new RoleMap();
 					foreach (var role in proc.Roles)
 					{
-						map.Add(role.Value);
+						map.Add(role.Role);
 					}
 					Console.ForegroundColor = ConsoleColor.DarkGray;
 					WriteAt(1, y,
