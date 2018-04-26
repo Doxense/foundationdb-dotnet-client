@@ -355,55 +355,55 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[Pure]
-		public static STuple<T1, T2> Create<T1, T2>(ValueTuple<T1, T2> tuple)
+		public static STuple<T1, T2> Create<T1, T2>((T1, T2) tuple)
 		{
 			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
 		}
 
 		[Pure]
-		public static STuple<T1, T2> Create<T1, T2>(ref ValueTuple<T1, T2> tuple)
+		public static STuple<T1, T2> Create<T1, T2>(ref (T1, T2) tuple)
 		{
 			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3> Create<T1, T2, T3>(ValueTuple<T1, T2, T3> tuple)
+		public static STuple<T1, T2, T3> Create<T1, T2, T3>((T1, T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3> Create<T1, T2, T3>(ref ValueTuple<T1, T2, T3> tuple)
+		public static STuple<T1, T2, T3> Create<T1, T2, T3>(ref (T1, T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> tuple)
+		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(ref ValueTuple<T1, T2, T3, T4> tuple)
+		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(ref (T1, T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> tuple)
+		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(ref ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(ref (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}

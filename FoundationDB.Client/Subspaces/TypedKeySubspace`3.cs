@@ -216,7 +216,7 @@ namespace FoundationDB.Client
 		public Slice EncodePartial(T1 item1, T2 item2)
 		{
 			var sw = this.Parent.OpenWriter(16);
-			var tuple = new STuple<T1, T2, T3>(item1, item2, default(T3));
+			var tuple = (item1, item2, default(T3));
 			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
 		}
@@ -225,7 +225,7 @@ namespace FoundationDB.Client
 		public Slice EncodePartial(T1 item1)
 		{
 			var sw = this.Parent.OpenWriter(16);
-			var tuple = new STuple<T1, T2, T3>(item1, default(T2), default(T3));
+			var tuple = (item1, default(T2), default(T3));
 			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
 			return sw.ToSlice();
 		}

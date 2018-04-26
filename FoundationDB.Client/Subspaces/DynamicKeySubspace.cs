@@ -187,30 +187,62 @@ namespace FoundationDB.Client
 
 		public KeyRange ToRange<T1>(STuple<T1> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1);
 		}
 
 		public KeyRange ToRange<T1, T2>(STuple<T1, T2> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		public KeyRange ToRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		public KeyRange ToRange<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
+
 		public KeyRange ToRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
+
 		public KeyRange ToRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+		}
+
+		public KeyRange ToRange<T1>(ValueTuple<T1> tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1);
+		}
+
+		public KeyRange ToRange<T1, T2>((T1, T2) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2);
+		}
+
+		public KeyRange ToRange<T1, T2, T3>((T1, T2, T3) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
+		public KeyRange ToRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+		}
+
+		public KeyRange ToRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+		}
+
+		public KeyRange ToRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
+		{
+			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		#endregion

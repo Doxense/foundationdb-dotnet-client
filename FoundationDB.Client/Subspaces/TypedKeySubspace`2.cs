@@ -153,10 +153,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice Pack(STuple<T1, T2> tuple)
 		{
-			//REVIEW: how could we better guess the capacity, depending on the values of T1/T2?
-			var sw = this.Parent.OpenWriter(24);
-			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
-			return sw.ToSlice();
+			return Pack(tuple.ToValueTuple());
 		}
 
 #if ENABLE_VALUETUPLES
@@ -166,7 +163,10 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack((T1, T2) tuple)
 		{
-			return Encode(tuple.Item1, tuple.Item2);
+			//REVIEW: how could we better guess the capacity, depending on the values of T1/T2?
+			var sw = this.Parent.OpenWriter(24);
+			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
+			return sw.ToSlice();
 		}
 #endif
 
@@ -208,7 +208,7 @@ namespace FoundationDB.Client
 		public Slice Encode(T1 item1, T2 item2)
 		{
 			var sw = this.Parent.OpenWriter(24);
-			var tuple = new STuple<T1, T2>(item1, item2);
+			var tuple = (item1, item2);
 			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
 		}
@@ -221,7 +221,7 @@ namespace FoundationDB.Client
 		public Slice EncodePartial(T1 item1)
 		{
 			var sw = this.Parent.OpenWriter(16);
-			var tuple = new STuple<T1, T2>(item1, default(T2));
+			var tuple = (item1, default(T2));
 			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
 			return sw.ToSlice();
 		}

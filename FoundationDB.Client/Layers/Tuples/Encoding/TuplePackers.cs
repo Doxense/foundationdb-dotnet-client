@@ -596,7 +596,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeValueTupleTo<T1, T2>(ref TupleWriter writer, ValueTuple<T1, T2> tuple)
+		public static void SerializeValueTupleTo<T1, T2>(ref TupleWriter writer, (T1, T2) tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
 			SerializeTo(ref writer, tuple.Item1);
@@ -604,7 +604,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeValueTupleTo<T1, T2, T3>(ref TupleWriter writer, ValueTuple<T1, T2, T3> tuple)
+		public static void SerializeValueTupleTo<T1, T2, T3>(ref TupleWriter writer, (T1, T2, T3) tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
 			SerializeTo(ref writer, tuple.Item1);
@@ -613,7 +613,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeValueTupleTo<T1, T2, T3, T4>(ref TupleWriter writer, ValueTuple<T1, T2, T3, T4> tuple)
+		public static void SerializeValueTupleTo<T1, T2, T3, T4>(ref TupleWriter writer, (T1, T2, T3, T4) tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
 			SerializeTo(ref writer, tuple.Item1);
@@ -623,7 +623,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeValueTupleTo<T1, T2, T3, T4, T5>(ref TupleWriter writer, ValueTuple<T1, T2, T3, T4, T5> tuple)
+		public static void SerializeValueTupleTo<T1, T2, T3, T4, T5>(ref TupleWriter writer, (T1, T2, T3, T4, T5) tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
 			SerializeTo(ref writer, tuple.Item1);
@@ -634,7 +634,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeValueTupleTo<T1, T2, T3, T4, T5, T6>(ref TupleWriter writer, ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static void SerializeValueTupleTo<T1, T2, T3, T4, T5, T6>(ref TupleWriter writer, (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
 			SerializeTo(ref writer, tuple.Item1);
@@ -1171,31 +1171,31 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1, T2> DeserializeValueTuple<T1, T2>(Slice slice)
+		public static (T1, T2) DeserializeValueTuple<T1, T2>(Slice slice)
 		{
 			return DeserializeTuple<T1, T2>(slice).ToValueTuple();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1, T2, T3> DeserializeValueTuple<T1, T2, T3>(Slice slice)
+		public static (T1, T2, T3) DeserializeValueTuple<T1, T2, T3>(Slice slice)
 		{
 			return DeserializeTuple<T1, T2, T3>(slice).ToValueTuple();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1, T2, T3, T4> DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
+		public static (T1, T2, T3, T4) DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
 		{
 			return DeserializeTuple<T1, T2, T3, T4>(slice).ToValueTuple();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1, T2, T3, T4, T5> DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
+		public static (T1, T2, T3, T4, T5) DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
 		{
 			return DeserializeTuple<T1, T2, T3, T4, T5>(slice).ToValueTuple();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1, T2, T3, T4, T5, T6> DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		public static (T1, T2, T3, T4, T5, T6) DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
 		{
 			return DeserializeTuple<T1, T2, T3, T4, T5, T6>(slice).ToValueTuple();
 		}

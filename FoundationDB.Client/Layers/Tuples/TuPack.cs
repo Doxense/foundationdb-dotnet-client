@@ -379,63 +379,63 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1>(T1 item1)
 		{
-			return TupleEncoder.EncodeKey(item1);
+			return TupleEncoder.EncodeKey(default(Slice), item1);
 		}
 
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2>(T1 item1, T2 item2)
 		{
-			return TupleEncoder.EncodeKey(item1, item2);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2);
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			return TupleEncoder.EncodeKey(item1, item2, item3);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3);
 		}
 
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return TupleEncoder.EncodeKey(item1, item2, item3, item4);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4);
 		}
 
 		/// <summary>Pack a 5-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			return TupleEncoder.EncodeKey(item1, item2, item3, item4, item5);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
-			return TupleEncoder.EncodeKey(item1, item2, item3, item4, item5, item6);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
-			return TupleEncoder.EncodeKey(item1, item2, item3, item4, item5, item6, item7);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
-			return TupleEncoder.EncodeKey(item1, item2, item3, item4, item5, item6, item7, item8);
+			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodeKeys<T1>([NotNull] IEnumerable<T1> keys)
 		{
 			var empty = default(Slice);
-			return TupleEncoder.EncodePrefixedKeys(empty, keys);
+			return TupleEncoder.EncodeKeys(empty, keys);
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -446,14 +446,14 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, [NotNull] IEnumerable<T> keys)
 		{
-			return TupleEncoder.EncodePrefixedKeys(prefix, keys);
+			return TupleEncoder.EncodeKeys(prefix, keys);
 		}
 
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodeKeys<T>([NotNull] params T[] keys)
 		{
 			var empty = default(Slice);
-			return TupleEncoder.EncodePrefixedKeys(empty, keys);
+			return TupleEncoder.EncodeKeys(empty, keys);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -464,7 +464,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<T>(Slice prefix, [NotNull] params T[] keys)
 		{
-			return TupleEncoder.EncodePrefixedKeys(prefix, keys);
+			return TupleEncoder.EncodeKeys(prefix, keys);
 		}
 
 		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
@@ -477,7 +477,7 @@ namespace Doxense.Collections.Tuples
 		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] TElement[] elements, [NotNull] Func<TElement, TKey> selector)
 		{
 			var empty = default(Slice);
-			return TupleEncoder.EncodePrefixedKeys(empty, elements, selector);
+			return TupleEncoder.EncodeKeys(empty, elements, selector);
 		}
 
 		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
@@ -490,7 +490,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] EncodePrefixedKeys<TKey, TElement>(Slice prefix, [NotNull] TElement[] elements, [NotNull] Func<TElement, TKey> selector)
 		{
-			return TupleEncoder.EncodePrefixedKeys(prefix, elements, selector);
+			return TupleEncoder.EncodeKeys(prefix, elements, selector);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -564,7 +564,48 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(tuple);
+			var packed = TupleEncoder.EncodeKey(default(Slice), tuple.Item1);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToRange<T1>(ValueTuple<T1> tuple)
+		{
+			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), tuple.Item1);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1>(T1 item1)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1>(Slice prefix, T1 item1)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1);
 			return new KeyRange(
 				packed + 0x00,
 				packed + 0xFF
@@ -590,6 +631,48 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
+		public static KeyRange ToRange<T1, T2>((T1, T2) tuple)
+		{
+			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+
+			// tuple => [ packed."\0", packed."\xFF" )
+			var empty = default(Slice);
+			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2>(T1 item1, T2 item2)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
 		public static KeyRange ToRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
@@ -597,6 +680,46 @@ namespace Doxense.Collections.Tuples
 			// tuple => [ packed."\0", packed."\xFF" )
 			var empty = default(Slice);
 			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToRange<T1, T2, T3>((T1, T2, T3) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var empty = default(Slice);
+			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3);
 			return new KeyRange(
 				packed + 0x00,
 				packed + 0xFF
@@ -622,6 +745,46 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
+		public static KeyRange ToRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var empty = default(Slice);
+			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
@@ -638,6 +801,46 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
+		public static KeyRange ToRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var empty = default(Slice);
+			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
@@ -645,6 +848,98 @@ namespace Doxense.Collections.Tuples
 			// tuple => [ packed."\0", packed."\xFF" )
 			var empty = default(Slice);
 			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var empty = default(Slice);
+			var packed = TupleEncoder.Pack(empty, ref tuple);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7, item8);
+			return new KeyRange(
+				packed + 0x00,
+				packed + 0xFF
+			);
+		}
+
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		[Pure]
+		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7, item8);
 			return new KeyRange(
 				packed + 0x00,
 				packed + 0xFF
@@ -905,56 +1200,56 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1>(Slice prefix, T1 value)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value);
+			return TupleEncoder.EncodeKey(prefix, value);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2>(Slice prefix, T1 value1, T2 value2)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2);
+			return TupleEncoder.EncodeKey(prefix, value1, value2);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2, value3);
+			return TupleEncoder.EncodeKey(prefix, value1, value2, value3);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2, value3, value4);
+			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 5-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2, value3, value4, value5);
+			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2, value3, value4, value5, value6);
+			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 7-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2, value3, value4, value5, value6, value7);
+			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6, value7);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7, T8 value8)
 		{
-			return TupleEncoder.EncodePrefixedKey(prefix, value1, value2, value3, value4, value5, value6, value7, value8);
+			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6, value7, value8);
 		}
 
 		#endregion

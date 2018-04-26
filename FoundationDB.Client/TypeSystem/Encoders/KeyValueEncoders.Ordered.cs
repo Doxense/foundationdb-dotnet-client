@@ -114,21 +114,20 @@ namespace Doxense.Serialization.Encoders
 					m_codec2 = codec2;
 				}
 
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2> items)
+				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2) items)
 				{
 					Contract.Requires(count > 0);
 					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
 					if (count >= 2) m_codec2.EncodeOrderedSelfTerm(ref writer, items.Item2);
 				}
 
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2> items)
+				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items)
 				{
 					Contract.Requires(count > 0);
 
-					T1 key1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
-					T2 key2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
 					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
-					items = new STuple<T1, T2>(key1, key2);
 				}
 
 				public override IKeyEncoding Encoding => this;
@@ -166,7 +165,7 @@ namespace Doxense.Serialization.Encoders
 					m_codec3 = codec3;
 				}
 
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3> items)
+				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3) items)
 				{
 					Contract.Requires(count > 0 && count <= 3);
 					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
@@ -174,15 +173,14 @@ namespace Doxense.Serialization.Encoders
 					if (count >= 3) m_codec3.EncodeOrderedSelfTerm(ref writer, items.Item3);
 				}
 
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2, T3> items)
+				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items)
 				{
 					Contract.Requires(count > 0);
 
-					T1 key1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
-					T2 key2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
-					T3 key3 = count >= 3 ? m_codec3.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item3 = count >= 3 ? m_codec3.DecodeOrderedSelfTerm(ref reader) : default;
 					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
-					items = new STuple<T1, T2, T3>(key1, key2, key3);
 				}
 
 				public override IKeyEncoding Encoding => this;
@@ -206,7 +204,60 @@ namespace Doxense.Serialization.Encoders
 				#endregion
 			}
 
-			//TODO: CompositeKeyEncoder<T1, T2, T3, T4> !
+			public sealed class CodecCompositeKeyEncoder<T1, T2, T3, T4> : CompositeKeyEncoder<T1, T2, T3, T4>, IKeyEncoding
+			{
+				private readonly IOrderedTypeCodec<T1> m_codec1;
+				private readonly IOrderedTypeCodec<T2> m_codec2;
+				private readonly IOrderedTypeCodec<T3> m_codec3;
+				private readonly IOrderedTypeCodec<T4> m_codec4;
+
+				public CodecCompositeKeyEncoder(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2, IOrderedTypeCodec<T3> codec3, IOrderedTypeCodec<T4> codec4)
+				{
+					m_codec1 = codec1;
+					m_codec2 = codec2;
+					m_codec3 = codec3;
+					m_codec4 = codec4;
+				}
+
+				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4) items)
+				{
+					Contract.Requires(count > 0 && count <= 4);
+					if (count >= 1) m_codec1.EncodeOrderedSelfTerm(ref writer, items.Item1);
+					if (count >= 2) m_codec2.EncodeOrderedSelfTerm(ref writer, items.Item2);
+					if (count >= 3) m_codec3.EncodeOrderedSelfTerm(ref writer, items.Item3);
+					if (count >= 4) m_codec4.EncodeOrderedSelfTerm(ref writer, items.Item4);
+				}
+
+				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items)
+				{
+					Contract.Requires(count > 0);
+					items.Item1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item3 = count >= 3 ? m_codec3.DecodeOrderedSelfTerm(ref reader) : default;
+					items.Item4 = count >= 4 ? m_codec4.DecodeOrderedSelfTerm(ref reader) : default;
+					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
+				}
+
+				public override IKeyEncoding Encoding => this;
+
+				#region IKeyEncoding...
+
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+
+				IKeyEncoder<T1B> IKeyEncoding.GetEncoder<T1B>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetEncoder<T1B, T2B>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B, T3B> IKeyEncoding.GetEncoder<T1B, T2B, T3B>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B, T3B, T4B> IKeyEncoding.GetEncoder<T1B, T2B, T3B, T4B>()
+				{
+					if (typeof(T1B) != typeof(T1) && typeof(T2B) != typeof(T2) && typeof(T3B) != typeof(T3) && typeof(T4B) != typeof(T4)) throw new NotSupportedException();
+					return (ICompositeKeyEncoder<T1B, T2B, T3B, T4B>) (object) this;
+				}
+
+				#endregion
+			}
 
 			/// <summary>Create a simple encoder from a codec</summary>
 			[NotNull]
