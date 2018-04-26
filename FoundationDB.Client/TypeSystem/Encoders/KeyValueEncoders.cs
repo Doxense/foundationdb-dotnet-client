@@ -35,7 +35,6 @@ namespace Doxense.Serialization.Encoders
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class for all key/value encoders</summary>
@@ -48,10 +47,14 @@ namespace Doxense.Serialization.Encoders
 		#region Nested Classes
 
 		/// <summary>Identity encoder</summary>
-		public sealed class IdentityEncoder : IKeyEncoder<Slice>, IValueEncoder<Slice>
+		public sealed class IdentityEncoder : IKeyEncoder<Slice>, IValueEncoder<Slice>, IKeyEncoding
 		{
 
 			internal IdentityEncoder() { }
+
+			#region IKeyEncoder...
+
+			public IKeyEncoding Encoding => this;
 
 			public void WriteKeyTo(ref SliceWriter writer, Slice key)
 			{
@@ -72,10 +75,27 @@ namespace Doxense.Serialization.Encoders
 			{
 				return encoded;
 			}
+
+			#endregion
+
+			IKeyEncoder<T1> IKeyEncoding.GetEncoder<T1>()
+			{
+				if (typeof(T1) != typeof(Slice)) throw new NotSupportedException();
+				return (IKeyEncoder<T1>) (object) this;
+			}
+
+			IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+
+			ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetEncoder<T1, T2>() => throw new NotSupportedException();
+
+			ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetEncoder<T1, T2, T3>() => throw new NotSupportedException();
+
+			ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
+
 		}
 
 		/// <summary>Wrapper for encoding and decoding a singleton with lambda functions</summary>
-		internal sealed class Singleton<T> : IKeyEncoder<T>, IValueEncoder<T>
+		internal sealed class Singleton<T> : IKeyEncoder<T>, IValueEncoder<T>, IKeyEncoding
 		{
 			private readonly Func<T, Slice> m_encoder;
 			private readonly Func<Slice, T> m_decoder;
@@ -113,11 +133,28 @@ namespace Doxense.Serialization.Encoders
 				return m_decoder(encoded);
 			}
 
+			public IKeyEncoding Encoding => this;
+
+			IKeyEncoder<T1> IKeyEncoding.GetEncoder<T1>()
+			{
+				if (typeof(T1) != typeof(T)) throw new NotSupportedException();
+				return (IKeyEncoder<T1>) (object) this;
+			}
+
+			IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+
+			ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetEncoder<T1, T2>() => throw new NotSupportedException();
+
+			ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetEncoder<T1, T2, T3>() => throw new NotSupportedException();
+
+			ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
 		}
 
 		/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
 		public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
 		{
+
+			public abstract IKeyEncoding Encoding { get; }
 
 			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2> items);
 
@@ -140,6 +177,8 @@ namespace Doxense.Serialization.Encoders
 		public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
 		{
 
+			public abstract IKeyEncoding Encoding { get; }
+
 			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3> items);
 
 			public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2, T3> items);
@@ -160,6 +199,8 @@ namespace Doxense.Serialization.Encoders
 		public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
 		{
 
+			public abstract IKeyEncoding Encoding { get; }
+
 			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3, T4> items);
 
 			public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out STuple<T1, T2, T3, T4> items);
@@ -179,6 +220,8 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Wrapper for encoding and decoding a quad with lambda functions</summary>
 		public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5> : ICompositeKeyEncoder<T1, T2, T3, T4, T5>
 		{
+
+			public abstract IKeyEncoding Encoding { get; }
 
 			public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref STuple<T1, T2, T3, T4, T5> items);
 

@@ -1,4 +1,31 @@
-﻿
+﻿#region BSD Licence
+/* Copyright (c) 2013-2018, Doxense SAS
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of Doxense nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
+
 namespace Doxense.Serialization.Encoders
 {
 	using JetBrains.Annotations;
@@ -12,6 +39,7 @@ namespace Doxense.Serialization.Encoders
 	{
 
 		/// <summary>Encoders that produce lexicographically ordered slices, suitable for keys where lexicographical ordering is required</summary>
+		[PublicAPI]
 		public static class Ordered
 		{
 			[NotNull]
@@ -32,7 +60,7 @@ namespace Doxense.Serialization.Encoders
 			[NotNull]
 			public static IKeyEncoder<Guid> GuidEncoder => Tuples.Key<Guid>();
 
-			public sealed class OrderedKeyEncoder<T> : IKeyEncoder<T>
+			public sealed class OrderedKeyEncoder<T> : IKeyEncoder<T>, IKeyEncoding
 			{
 				private readonly IOrderedTypeCodec<T> m_codec;
 
@@ -52,9 +80,30 @@ namespace Doxense.Serialization.Encoders
 				{
 					key = m_codec.DecodeOrdered(reader.ReadToEnd());
 				}
+
+				public IKeyEncoding Encoding => this;
+
+				#region IKeyEncoding...
+
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+
+				IKeyEncoder<T1> IKeyEncoding.GetEncoder<T1>()
+				{
+					if (typeof(T1) != typeof(T)) throw new NotSupportedException();
+					return (IKeyEncoder<T1>) (object) this;
+				}
+
+				ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetEncoder<T1, T2>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetEncoder<T1, T2, T3>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
+
+				#endregion
+
 			}
 
-			public sealed class CodecCompositeKeyEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
+			public sealed class CodecCompositeKeyEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>, IKeyEncoding
 			{
 				private readonly IOrderedTypeCodec<T1> m_codec1;
 				private readonly IOrderedTypeCodec<T2> m_codec2;
@@ -76,14 +125,35 @@ namespace Doxense.Serialization.Encoders
 				{
 					Contract.Requires(count > 0);
 
-					T1 key1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default(T1);
-					T2 key2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default(T2);
+					T1 key1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
+					T2 key2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
 					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
 					items = new STuple<T1, T2>(key1, key2);
 				}
+
+				public override IKeyEncoding Encoding => this;
+
+				#region IKeyEncoding...
+
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+
+				IKeyEncoder<T1B> IKeyEncoding.GetEncoder<T1B>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetEncoder<T1B, T2B>()
+				{
+					if (typeof(T1B) != typeof(T1) && typeof(T2B) != typeof(T2)) throw new NotSupportedException();
+					return (ICompositeKeyEncoder<T1B, T2B>) (object) this;
+				}
+
+				ICompositeKeyEncoder<T1B, T2B, T3> IKeyEncoding.GetEncoder<T1B, T2B, T3>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B, T3, T4> IKeyEncoding.GetEncoder<T1B, T2B, T3, T4>() => throw new NotSupportedException();
+
+				#endregion
+
 			}
 
-			public sealed class CodecCompositeKeyEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
+			public sealed class CodecCompositeKeyEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>, IKeyEncoding
 			{
 				private readonly IOrderedTypeCodec<T1> m_codec1;
 				private readonly IOrderedTypeCodec<T2> m_codec2;
@@ -108,14 +178,35 @@ namespace Doxense.Serialization.Encoders
 				{
 					Contract.Requires(count > 0);
 
-					T1 key1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default(T1);
-					T2 key2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default(T2);
-					T3 key3 = count >= 3 ? m_codec3.DecodeOrderedSelfTerm(ref reader) : default(T3);
+					T1 key1 = count >= 1 ? m_codec1.DecodeOrderedSelfTerm(ref reader) : default;
+					T2 key2 = count >= 2 ? m_codec2.DecodeOrderedSelfTerm(ref reader) : default;
+					T3 key3 = count >= 3 ? m_codec3.DecodeOrderedSelfTerm(ref reader) : default;
 					if (reader.HasMore) throw new InvalidOperationException($"Unexpected data at the end of composite key after {count} items");
 					items = new STuple<T1, T2, T3>(key1, key2, key3);
 				}
 
+				public override IKeyEncoding Encoding => this;
+
+				#region IKeyEncoding...
+
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+
+				IKeyEncoder<T1B> IKeyEncoding.GetEncoder<T1B>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetEncoder<T1B, T2B>() => throw new NotSupportedException();
+
+				ICompositeKeyEncoder<T1B, T2B, T3B> IKeyEncoding.GetEncoder<T1B, T2B, T3B>()
+				{
+					if (typeof(T1B) != typeof(T1) && typeof(T2B) != typeof(T2) && typeof(T3B) != typeof(T3)) throw new NotSupportedException();
+					return (ICompositeKeyEncoder<T1B, T2B, T3B>) (object) this;
+				}
+
+				ICompositeKeyEncoder<T1B, T2B, T3B, T4> IKeyEncoding.GetEncoder<T1B, T2B, T3B, T4>() => throw new NotSupportedException();
+
+				#endregion
 			}
+
+			//TODO: CompositeKeyEncoder<T1, T2, T3, T4> !
 
 			/// <summary>Create a simple encoder from a codec</summary>
 			[NotNull]

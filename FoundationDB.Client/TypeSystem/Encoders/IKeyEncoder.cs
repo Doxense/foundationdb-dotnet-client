@@ -30,8 +30,17 @@ namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using Doxense.Memory;
+	using JetBrains.Annotations;
 
-	public interface IKeyEncoder<T1>
+	/// <summary>Base interface for all key encoders</summary>
+	public interface IKeyEncoder
+	{
+		/// <summary>Parent encoding</summary>
+		[NotNull]
+		IKeyEncoding Encoding { get; }
+	}
+
+	public interface IKeyEncoder<T1> : IKeyEncoder
 	{
 		/// <summary>Encode a single value</summary>
 		void WriteKeyTo(ref SliceWriter writer, T1 value);
@@ -43,14 +52,14 @@ namespace Doxense.Serialization.Encoders
 	public static partial class KeyEncoderExtensions
 	{
 
-		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, T1 value)
+		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, T1 value)
 		{
 			var writer = default(SliceWriter);
 			encoder.WriteKeyTo(ref writer, value);
 			return writer.ToSlice();
 		}
 
-		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
+		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
 		{
 			var writer = new SliceWriter(prefix.Count + 16); // ~16 bytes si T1 = Guid
 			writer.WriteBytes(prefix);
@@ -58,7 +67,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static T1 DecodeKey<T1>(this IKeyEncoder<T1> decoder, Slice encoded)
+		public static T1 DecodeKey<T1>([NotNull] this IKeyEncoder<T1> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			decoder.ReadKeyFrom(ref reader, out T1 item);
