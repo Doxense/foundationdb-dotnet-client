@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -110,8 +108,6 @@ namespace Doxense.Collections.Tuples
 			return TupleEncoder.Pack(empty, ref tuple);
 		}
 
-#if ENABLE_VALUETUPLES
-
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -165,8 +161,6 @@ namespace Doxense.Collections.Tuples
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuple.ToSTuple());
 		}
-
-#endif
 
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>

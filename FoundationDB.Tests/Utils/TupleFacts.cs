@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 // ReSharper disable AccessToModifiedClosure
 namespace Doxense.Collections.Tuples.Tests
 {
@@ -121,13 +119,11 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 			}
-#if ENABLE_VALUETUPLES
 			{ // Deconstruct
 				(string item1, int item2) = t2;
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 			}
-#endif
 		}
 
 		[Test]
@@ -174,14 +170,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 			}
-#if ENABLE_VALUETUPLES
 			{ // Deconstruct
 				(string item1, int item2, bool item3) = t3;
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 			}
-#endif
 		}
 
 		[Test]
@@ -235,7 +229,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
 			}
-#if ENABLE_VALUETUPLES
 			{ // Deconstruct
 				(string item1, int item2, bool item3, long item4) = t4;
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -243,7 +236,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
 			}
-#endif
 		}
 
 		[Test]
@@ -287,7 +279,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item4, Is.EqualTo(1234L));
 				Assert.That(item5, Is.EqualTo(-1234L));
 			}
-#if ENABLE_VALUETUPLES
 			{ // Deconstruct
 				(string item1, int item2, bool item3, long item4, long item5) = t5;
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -296,7 +287,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item4, Is.EqualTo(1234L));
 				Assert.That(item5, Is.EqualTo(-1234L));
 			}
-#endif
 		}
 
 		[Test]
@@ -344,7 +334,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item5, Is.EqualTo(-1234L));
 				Assert.That(item6, Is.EqualTo("six"));
 			}
-#if ENABLE_VALUETUPLES
 			{ // Deconstruct
 				(string item1, int item2, bool item3, long item4, long item5, string item6) = t6;
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -354,7 +343,6 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item5, Is.EqualTo(-1234L));
 				Assert.That(item6, Is.EqualTo("six"));
 			}
-#endif
 		}
 
 		[Test]
@@ -1936,8 +1924,6 @@ namespace Doxense.Collections.Tuples.Tests
 
 		#region System.ValueTuple integration...
 
-#if ENABLE_VALUETUPLES
-
 		[Test]
 		public void Test_Implicit_Cast_STuple_To_ValueTuple()
 		{
@@ -2055,8 +2041,6 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 		}
 
-#endif
-
 		[Test]
 		public void Test_Deconstruct_STuple()
 		{
@@ -2087,16 +2071,15 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(e, Is.EqualTo(55));
 			}
 			{
-				STuple.Create(11, 22, 33, 44, 55, 66).Deconstruct(out int a, out int b, out int c, out int d, out int e, out _);
+				STuple.Create(11, 22, 33, 44, 55, 66).Deconstruct(out int a, out int b, out int c, out int d, out int e, out int f);
 				Assert.That(a, Is.EqualTo(11));
 				Assert.That(b, Is.EqualTo(22));
 				Assert.That(c, Is.EqualTo(33));
 				Assert.That(d, Is.EqualTo(44));
 				Assert.That(e, Is.EqualTo(55));
+				Assert.That(f, Is.EqualTo(66));
 			}
 		}
-
-#if ENABLE_VALUETUPLES
 
 		[Test]
 		public void Test_Deconstruct_STuple_TupleSyntax()
@@ -2134,10 +2117,9 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(c, Is.EqualTo(33));
 				Assert.That(d, Is.EqualTo(44));
 				Assert.That(e, Is.EqualTo(55));
+				Assert.That(f, Is.EqualTo(66));
 			}
 		}
-
-#endif
 
 		#endregion
 

@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -102,7 +100,6 @@ namespace FoundationDB.Client
 			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
-#if ENABLE_VALUETUPLES
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -110,7 +107,6 @@ namespace FoundationDB.Client
 		{
 			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
-#endif
 
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
@@ -132,7 +128,6 @@ namespace FoundationDB.Client
 			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2, tuple.Item3));
 		}
 
-#if ENABLE_VALUETUPLES
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
 		public KeyRange ToRangePartial((T1, T2, T3) tuple)
@@ -140,7 +135,6 @@ namespace FoundationDB.Client
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2, tuple.Item3));
 		}
-#endif
 
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
@@ -176,13 +170,11 @@ namespace FoundationDB.Client
 			get => Encode(item1, item2, item3, item4);
 		}
 
-#if ENABLE_VALUETUPLES
 		public Slice this[(T1, T2, T3, T4) items]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(items.Item1, items.Item2, items.Item3, items.Item4);
 		}
-#endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack(STuple<T1, T2, T3, T4> tuple)
@@ -190,13 +182,11 @@ namespace FoundationDB.Client
 			return Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
-#if ENABLE_VALUETUPLES
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack(ValueTuple<T1, T2, T3, T4> tuple)
 		{
 			return Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
-#endif
 
 		[Pure]
 		public Slice Pack<TTuple>(TTuple tuple)

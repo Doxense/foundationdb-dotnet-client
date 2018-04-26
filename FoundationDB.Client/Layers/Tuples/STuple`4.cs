@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -47,10 +45,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	/// <typeparam name="T4">Type of the fourth item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2, T3, T4> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4>>
-#if ENABLE_VALUETUPLES
-		, IEquatable<ValueTuple<T1, T2, T3, T4>>
-#endif
+	public readonly struct STuple<T1, T2, T3, T4> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4>>, IEquatable<ValueTuple<T1, T2, T3, T4>>
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -283,7 +278,6 @@ namespace Doxense.Collections.Tuples
 					&& comparer.Equals(this.Item3, stuple.Item3)
 					&& comparer.Equals(this.Item4, stuple.Item4);
 			}
-#if ENABLE_VALUETUPLES
 			if (other is ValueTuple<T1, T2, T3, T4> vtuple)
 			{
 				return comparer.Equals(this.Item1, vtuple.Item1)
@@ -291,7 +285,6 @@ namespace Doxense.Collections.Tuples
 					&& comparer.Equals(this.Item3, vtuple.Item3)
 					&& comparer.Equals(this.Item4, vtuple.Item4);
 			}
-#endif
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
@@ -317,10 +310,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return new Tuple<T1, T2, T3, T4>(t.Item1, t.Item2, t.Item3, t.Item4);
 		}
-
-#if ENABLE_VALUETUPLES
-
-		// interop with System.ValueTuple<T1, T2, T3, T4>
 
 		public void Fill(ref ValueTuple<T1, T2, T3, T4> t)
 		{
@@ -410,8 +399,6 @@ namespace Doxense.Collections.Tuples
 				|| !SimilarValueComparer.Default.Equals(left.Item3, right.Item3)
 				|| !SimilarValueComparer.Default.Equals(left.Item4, right.Item4);
 		}
-
-#endif
 
 		public sealed class Comparer : IComparer<STuple<T1, T2, T3, T4>>
 		{

@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -45,10 +43,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2>>
-#if ENABLE_VALUETUPLES
-		, IEquatable<ValueTuple<T1, T2>>
-#endif
+	public readonly struct STuple<T1, T2> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2>>, IEquatable<ValueTuple<T1, T2>>
 	{
 		// This is mostly used by code that create a lot of temporary pair, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -249,13 +244,11 @@ namespace Doxense.Collections.Tuples
 				return comparer.Equals(this.Item1, stuple.Item1)
 					&& comparer.Equals(this.Item2, stuple.Item2);
 			}
-#if ENABLE_VALUETUPLES
 			if (other is ValueTuple<T1, T2> vtuple)
 			{
 				return comparer.Equals(this.Item1, vtuple.Item1)
 					&& comparer.Equals(this.Item2, vtuple.Item2);
 			}
-#endif
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
@@ -279,8 +272,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return new Tuple<T1, T2>(t.Item1, t.Item2);
 		}
-
-#if ENABLE_VALUETUPLES
 
 		// interop with System.ValueTuple<T1, T2>
 
@@ -369,8 +360,6 @@ namespace Doxense.Collections.Tuples
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
 		}
-
-#endif
 
 		public sealed class Comparer : IComparer<STuple<T1, T2>>
 		{

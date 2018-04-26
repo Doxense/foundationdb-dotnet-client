@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -122,8 +120,6 @@ namespace FoundationDB.Client
 			return sw.ToSlice();
 		}
 
-#if ENABLE_VALUETUPLES
-
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack<T1>(ValueTuple<T1> items)
 		{
@@ -159,8 +155,6 @@ namespace FoundationDB.Client
 		{
 			return Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
 		}
-
-#endif
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
 		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>

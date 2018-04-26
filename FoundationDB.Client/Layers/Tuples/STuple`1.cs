@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -44,10 +42,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>
-#if ENABLE_VALUETUPLES
-		, IEquatable<ValueTuple<T1>>
-#endif
+	public readonly struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -208,12 +203,10 @@ namespace Doxense.Collections.Tuples
 			{
 				return comparer.Equals(this.Item1, stuple.Item1);
 			}
-#if ENABLE_VALUETUPLES
 			if (other is ValueTuple<T1> vtuple)
 			{
 				return comparer.Equals(this.Item1, vtuple.Item1);
 			}
-#endif
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
@@ -234,10 +227,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return new Tuple<T1>(t.Item1);
 		}
-
-#if ENABLE_VALUETUPLES
-
-		// interop with System.ValueTuple<T1, T2>
 
 		public void Fill(ref ValueTuple<T1> t)
 		{
@@ -336,8 +325,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
 		}
-
-#endif
 
 		public sealed class Comparer : IComparer<STuple<T1>>
 		{

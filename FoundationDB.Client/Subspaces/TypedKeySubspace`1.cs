@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -108,7 +106,6 @@ namespace FoundationDB.Client
 			return ToRange(tuple.Item1);
 		}
 
-#if ENABLE_VALUETUPLES
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified value</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -116,7 +113,6 @@ namespace FoundationDB.Client
 		{
 			return ToRange(tuple.Item1);
 		}
-#endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToRange(T1 item1)
@@ -129,13 +125,11 @@ namespace FoundationDB.Client
 
 		#region Pack()
 
-#if ENABLE_VALUETUPLES
 		public Slice this[ValueTuple<T1> items]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(items.Item1);
 		}
-#endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack(STuple<T1> tuple)
@@ -143,13 +137,11 @@ namespace FoundationDB.Client
 			return Encode(tuple.Item1);
 		}
 
-#if ENABLE_VALUETUPLES
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack(ValueTuple<T1> tuple)
 		{
 			return Encode(tuple.Item1);
 		}
-#endif
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)

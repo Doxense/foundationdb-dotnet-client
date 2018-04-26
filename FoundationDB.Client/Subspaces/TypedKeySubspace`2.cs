@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace FoundationDB.Client
 {
 	using System;
@@ -104,7 +102,6 @@ namespace FoundationDB.Client
 			return ToRange(tuple.Item1, tuple.Item2);
 		}
 
-#if ENABLE_VALUETUPLES
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -112,7 +109,6 @@ namespace FoundationDB.Client
 		{
 			return ToRange(tuple.Item1, tuple.Item2);
 		}
-#endif
 
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, ..)</returns>
@@ -156,7 +152,6 @@ namespace FoundationDB.Client
 			return Pack(tuple.ToValueTuple());
 		}
 
-#if ENABLE_VALUETUPLES
 		/// <summary>Pack a 2-tuple into a key in this subspace</summary>
 		/// <param name="tuple">Pair of values</param>
 		/// <returns>Encoded key in this subspace</returns>
@@ -168,7 +163,6 @@ namespace FoundationDB.Client
 			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
 		}
-#endif
 
 		/// <summary>Pack a 2-tuple into a key in this subspace</summary>
 		/// <param name="tuple">Tuple that must be of size 2</param>
@@ -191,13 +185,11 @@ namespace FoundationDB.Client
 			get => Encode(item1, item2);
 		}
 
-#if ENABLE_VALUETUPLES
 		public Slice this[(T1, T2) items]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(items.Item1, items.Item2);
 		}
-#endif
 
 		/// <summary>Encode a pair of values into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>

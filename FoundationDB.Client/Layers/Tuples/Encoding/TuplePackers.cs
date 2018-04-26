@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
@@ -117,7 +115,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-#if ENABLE_VALUETUPLES
 			if ((type.Name == nameof(System.ValueTuple) || type.Name.StartsWith(nameof(System.ValueTuple) + "`", StringComparison.Ordinal)) && type.Namespace == "System")
 			{
 				typeArgs = type.GetGenericArguments();
@@ -127,7 +124,6 @@ namespace Doxense.Collections.Tuples.Encoding
 					return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 				}
 			}
-#endif
 
 			// TODO: look for a static SerializeTo(ref TupleWriter, T) method on the type itself ?
 
@@ -135,7 +131,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			return null;
 		}
 
-#if ENABLE_VALUETUPLES
 		private static MethodInfo FindValueTupleSerializerMethod(Type[] args)
 		{
 			//note: we want to find the correct SerializeValueTuple<...>(ref TupleWriter, ValueTuple<...>), but this cannot be done with Type.GetMethod(...) directly
@@ -144,7 +139,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				.GetMethods(BindingFlags.Static | BindingFlags.Public)
 				.SingleOrDefault(m => m.Name == nameof(SerializeValueTupleTo) && m.GetGenericArguments().Length == args.Length);
 		}
-#endif
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
@@ -587,8 +581,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-#if ENABLE_VALUETUPLES
-
 		public static void SerializeValueTupleTo<T1>(ref TupleWriter writer, ValueTuple<T1> tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
@@ -645,8 +637,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			SerializeTo(ref writer, tuple.Item6);
 			TupleParser.EndTuple(ref writer);
 		}
-
-#endif
 
 		#endregion
 
@@ -714,12 +704,10 @@ namespace Doxense.Collections.Tuples.Encoding
 				return (Func<Slice, T>) MakeSTupleDeserializer(type);
 			}
 
-#if ENABLE_VALUETUPLES
 			if ((type.Name == nameof(ValueTuple) || type.Name.StartsWith(nameof(ValueTuple) + "`", StringComparison.Ordinal)) && type.Namespace == "System")
 			{
 				return (Func<Slice, T>) MakeValueTupleDeserializer(type);
 			}
-#endif
 
 			if (required)
 			{ // will throw at runtime
@@ -793,8 +781,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Expression.Lambda(body, prmSlice).Compile();
 		}
 
-#if ENABLE_VALUETUPLES
-
 		[Pure, NotNull]
 		private static Delegate MakeValueTupleDeserializer(Type type)
 		{
@@ -820,8 +806,6 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			return Expression.Lambda(body, prmSlice).Compile();
 		}
-
-#endif
 
 		/// <summary>Deserialize a packed element into an object by choosing the most appropriate type at runtime</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -1162,8 +1146,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			return res;
 		}
 
-#if ENABLE_VALUETUPLES
-
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
 		{
@@ -1199,8 +1181,6 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			return DeserializeTuple<T1, T2, T3, T4, T5, T6>(slice).ToValueTuple();
 		}
-
-#endif
 
 		/// <summary>Deserialize a tuple segment into a Boolean</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>

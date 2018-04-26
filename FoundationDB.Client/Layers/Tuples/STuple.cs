@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -340,8 +338,6 @@ namespace Doxense.Collections.Tuples
 			     : new JoinedTuple(head, tail);
 		}
 
-#if ENABLE_VALUETUPLES
-
 		[Pure]
 		public static STuple<T1> Create<T1>(ValueTuple<T1> tuple)
 		{
@@ -407,8 +403,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
-
-#endif
 
 		#endregion
 

@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -46,10 +44,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2, T3> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3>>
-#if ENABLE_VALUETUPLES
-		, IEquatable<ValueTuple<T1, T2, T3>>
-#endif
+	public readonly struct STuple<T1, T2, T3> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3>>, IEquatable<ValueTuple<T1, T2, T3>>
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -277,14 +272,12 @@ namespace Doxense.Collections.Tuples
 					&& comparer.Equals(this.Item2, stuple.Item2)
 					&& comparer.Equals(this.Item3, stuple.Item3);
 			}
-#if ENABLE_VALUETUPLES
 			if (other is ValueTuple<T1, T2, T3> vtuple)
 			{
 				return comparer.Equals(this.Item1, vtuple.Item1)
 					&& comparer.Equals(this.Item2, vtuple.Item2)
 					&& comparer.Equals(this.Item3, vtuple.Item3);
 			}
-#endif
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
@@ -309,10 +302,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return new Tuple<T1, T2, T3>(t.Item1, t.Item2, t.Item3);
 		}
-
-#if ENABLE_VALUETUPLES
-
-		// interop with System.ValueTuple<T1, T2>
 
 		public void Fill(ref ValueTuple<T1, T2, T3> t)
 		{
@@ -405,8 +394,6 @@ namespace Doxense.Collections.Tuples
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
 				|| !SimilarValueComparer.Default.Equals(left.Item3, right.Item3);
 		}
-
-#endif
 
 		public sealed class Comparer : IComparer<STuple<T1, T2, T3>>
 		{

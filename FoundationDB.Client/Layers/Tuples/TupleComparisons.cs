@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -45,11 +43,6 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Tuple comparer that uses the default BCL object comparison ("123" != 123 != 123L != 123.0d)</summary>
 		public static readonly EqualityComparer Bcl = new EqualityComparer(EqualityComparer<object>.Default);
-
-#if false
-		/// <summary>Tuple comparer that compared the packed bytes (slow!)</summary>
-		public static readonly BinaryComparer Binary = new BinaryComparer();
-#endif
 
 		public sealed class EqualityComparer : IEqualityComparer<ITuple>, IEqualityComparer
 		{
@@ -97,51 +90,6 @@ namespace Doxense.Collections.Tuples
 				return RuntimeHelpers.GetHashCode(obj);
 			}
 		}
-
-#if false
-
-		public sealed class BinaryComparer : IEqualityComparer<ITuple>, IEqualityComparer
-		{
-			internal BinaryComparer()
-			{ }
-
-
-			public bool Equals(ITuple x, ITuple y)
-			{
-				if (object.ReferenceEquals(x, y)) return true;
-				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
-
-				return x.ToSlice().Equals(y.ToSlice());
-			}
-
-			public int GetHashCode(ITuple obj)
-			{
-				return object.ReferenceEquals(obj, null) ? 0 : obj.ToSlice().GetHashCode();
-			}
-
-			public new bool Equals(object x, object y)
-			{
-				if (object.ReferenceEquals(x, y)) return true;
-				if (x == null || y == null) return false;
-
-				var tx = x as ITuple;
-				var ty = y as ITuple;
-				if (object.ReferenceEquals(tx, null) || object.ReferenceEquals(ty, null)) return false;
-				return tx.ToSlice().Equals(ty.ToSlice());
-			}
-
-			public int GetHashCode(object obj)
-			{
-				if (obj == null) return 0;
-
-				var tuple = obj as ITuple;
-				if (!object.ReferenceEquals(tuple, null)) return tuple.ToSlice().GetHashCode();
-
-				return RuntimeHelpers.GetHashCode(obj);
-			}
-		}
-
-#endif
 
 		/// <summary>Create a new instance that compares a single item position in two tuples</summary>
 		/// <typeparam name="T1">Type of the item to compare</typeparam>
@@ -237,10 +185,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Comparer that compares tuples with at least 2 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
-		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>, IComparer<STuple<T1, T2>>
-#if ENABLE_VALUETUPLES
-			, IComparer<(T1, T2)>
-#endif
+		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>, IComparer<STuple<T1, T2>>, IComparer<(T1, T2)>
 		{
 
 			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2>();

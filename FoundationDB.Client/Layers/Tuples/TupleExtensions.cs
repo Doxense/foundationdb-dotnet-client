@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define ENABLE_VALUETUPLES
-
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -565,7 +563,7 @@ namespace Doxense.Collections.Tuples
 
 		#endregion
 
-		#region Deconstruction (C#7)
+		#region Deconstruction
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static void Deconstruct<T1>(this ITuple value, out T1 item1)
@@ -652,9 +650,7 @@ namespace Doxense.Collections.Tuples
 
 		#endregion
 
-		#region ValueTuple (C#7)
-
-#if ENABLE_VALUETUPLES
+		#region ValueTuple
 
 		[Pure]
 		public static STuple ToSTuple<T1>(this ValueTuple tuple)
@@ -697,8 +693,6 @@ namespace Doxense.Collections.Tuples
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
-
-#endif
 
 		#endregion
 
