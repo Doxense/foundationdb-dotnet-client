@@ -877,6 +877,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a byte array</summary>
+		[Pure]
 		public static Slice ParseBytes(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
@@ -888,6 +889,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
+		[Pure]
 		public static string ParseAscii(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
@@ -900,6 +902,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
+		[Pure]
 		public static string ParseUnicode(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
@@ -911,6 +914,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
+		[Pure]
 		public static ITuple ParseTuple(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.TupleStart && slice[-1] == 0);
@@ -920,6 +924,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
+		[Pure]
 		public static float ParseSingle(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Single);
@@ -950,6 +955,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a double precision number (float64)</summary>
+		[Pure]
 		public static double ParseDouble(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Double);
@@ -981,6 +987,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
+		[Pure]
 		public static decimal ParseDecimal(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Decimal);
@@ -994,6 +1001,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
+		[Pure]
 		public static Guid ParseGuid(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
@@ -1008,6 +1016,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
+		[Pure]
 		public static Uuid128 ParseUuid128(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
@@ -1021,6 +1030,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
+		[Pure]
 		public static Uuid64 ParseUuid64(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid64);
@@ -1031,6 +1041,20 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			return Uuid64.Read(slice.Substring(1, 8));
+		}
+
+		/// <summary>Parse a tuple segment containing an 80-bit or 96-bit VersionStamp</summary>
+		[Pure]
+		public static VersionStamp ParseVersionStamp(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && (slice[0] == TupleTypes.VersionStamp80 || slice[0] == TupleTypes.VersionStamp96));
+
+			if (slice.Count != 11 && slice.Count != 13)
+			{
+				throw new FormatException("Slice has invalid size for a VersionStamp");
+			}
+
+			return VersionStamp.Parse(slice.Substring(1));
 		}
 
 		#endregion

@@ -846,6 +846,8 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Decimal: return TupleParser.ParseDecimal(slice);
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
+					case TupleTypes.VersionStamp80: return TupleParser.ParseVersionStamp(slice);
+					case TupleTypes.VersionStamp96: return TupleParser.ParseVersionStamp(slice);
 				}
 			}
 
