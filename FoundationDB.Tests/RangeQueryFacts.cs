@@ -696,11 +696,11 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					// Items
-					tr.Set(locItems.Keys.Encode("userA", 10093), Slice.Empty);
-					tr.Set(locItems.Keys.Encode("userA", 19238), Slice.Empty);
-					tr.Set(locItems.Keys.Encode("userB", 20003), Slice.Empty);
+					tr.Set(locItems.Keys["userA", 10093], Slice.Empty);
+					tr.Set(locItems.Keys["userA", 19238], Slice.Empty);
+					tr.Set(locItems.Keys["userB", 20003], Slice.Empty);
 					// Processed
-					tr.Set(locProcessed.Keys.Encode("userA", 19238), Slice.Empty);
+					tr.Set(locProcessed.Keys["userA", 19238], Slice.Empty);
 				}, this.Cancellation);
 
 				// the query (Items ∩ Processed) should return (userA, 10093) and (userB, 20003)

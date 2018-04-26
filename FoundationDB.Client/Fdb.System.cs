@@ -408,7 +408,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<STuple<long, Slice>> onProgress, CancellationToken ct)
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
@@ -422,7 +422,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<STuple<long, Slice>> onProgress, CancellationToken ct)
+			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
 				const int INIT_WINDOW_SIZE = 1 << 8; // start at 256 //1024
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
