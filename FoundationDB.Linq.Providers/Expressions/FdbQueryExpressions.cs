@@ -86,6 +86,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
+		[Obsolete]
 		public static FdbQueryRangeExpression RangeStartsWith(ITuple tuple, FdbRangeOptions options = null)
 		{
 			return RangeStartsWith(TuPack.Pack(tuple), options);

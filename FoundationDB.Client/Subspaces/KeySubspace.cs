@@ -140,35 +140,6 @@ namespace FoundationDB.Client
 			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, encoder);
 		}
 
-		/// <summary>Initializes a new generic subspace with the given <paramref name="prefix"/>.</summary>
-		/// <returns>A subspace that can handle keys of any types and size.</returns>
-		[Pure, NotNull]
-		public static KeySubspace FromKey(ITuple prefix)
-		{
-			//REVIEW: this is tied to the Tuple Layer. Maybe this should be an extension method that lives in that namespace?
-			return new KeySubspace(TuPack.Pack(prefix).Memoize());
-		}
-
-		/// <summary>Initializes a new dynamic subspace with the given <paramref name="prefix"/> and key <paramref name="encoder"/>.</summary>
-		/// <returns>A subspace that can handle keys of any types and size.</returns>
-		[Pure, NotNull]
-		public static DynamicKeySubspace FromKey(ITuple prefix, [NotNull] IDynamicKeyEncoder encoder)
-		{
-			Contract.NotNull(encoder, nameof(encoder));
-			var writer = new SliceWriter();
-			encoder.PackKey(ref writer, prefix);
-			return new DynamicKeySubspace(writer.ToSlice(), encoder);
-		}
-
-		/// <summary>Initializes a new subspace with the given <paramref name="prefix"/>, that uses a dynamic key <paramref name="encoding"/>.</summary>
-		/// <returns>A subspace that can handle keys of any types and size.</returns>
-		[Pure, NotNull]
-		public static DynamicKeySubspace FromKey(ITuple prefix, [NotNull] IKeyEncoding encoding)
-		{
-			Contract.NotNull(encoding, nameof(encoding));
-			return FromKey(prefix, encoding.GetDynamicEncoder());
-		}
-
 		#endregion
 
 		#region Copy...

@@ -67,9 +67,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace.Keys.Encode("hello").ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
 			Assert.That(subspace.Keys.Encode(Slice.FromStringAscii("world")).ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
 			Assert.That(subspace.Keys.Pack(STuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Keys.Pack(("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 
 			// if we encode a tuple from this subspace, it should keep the binary prefix when converted to a key
-			var k = subspace.Keys.Pack(STuple.Create("world", 123, false));
+			var k = subspace.Keys.Pack(("world", 123, false));
 			Assert.That(k.ToString(), Is.EqualTo("*<FF><00><7F><02>world<00><15>{<14>"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
@@ -116,7 +117,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
-			var subspace = KeySubspace.FromKey(STuple.Create("hello"), TypeSystem.Tuples);
+			var subspace = KeySubspace.FromKey(TuPack.EncodeKey("hello"), TypeSystem.Tuples);
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("<02>hello<00>"));
 			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
@@ -131,7 +132,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace.Keys.Encode("world").ToString(), Is.EqualTo("<02>hello<00><02>world<00>"));
 
 			// even though the subspace prefix is a tuple, appending to it will only return the new items
-			var k = subspace.Keys.Pack(STuple.Create("world", 123, false));
+			var k = subspace.Keys.Pack(("world", 123, false));
 			Assert.That(k.ToString(), Is.EqualTo("<02>hello<00><02>world<00><15>{<14>"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
@@ -213,11 +214,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// STuple<T...> Decode(Slice)
 			Assert.That(location.Keys.Decode<string>(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo("hello"));
-			Assert.That(location.Keys.Decode<string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(STuple.Create("hello", 123)));
-			Assert.That(location.Keys.Decode<string, int, string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(STuple.Create("hello", 123, "world")));
-			Assert.That(location.Keys.Decode<string, int, string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456)));
-			Assert.That(location.Keys.Decode<string, int, string, int, string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456, "!")));
-			Assert.That(location.Keys.Decode<string, int, string, int, string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo(STuple.Create("hello", 123, "world", 456, "!", 789)));
+			Assert.That(location.Keys.Decode<string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(("hello", 123)));
+			Assert.That(location.Keys.Decode<string, int, string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(("hello", 123, "world")));
+			Assert.That(location.Keys.Decode<string, int, string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(("hello", 123, "world", 456)));
+			Assert.That(location.Keys.Decode<string, int, string, int, string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>")), Is.EqualTo(("hello", 123, "world", 456, "!")));
+			Assert.That(location.Keys.Decode<string, int, string, int, string, int>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo(("hello", 123, "world", 456, "!", 789)));
 
 			// DecodeFirst/DecodeLast
 			Assert.That(location.Keys.DecodeFirst<string>(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>")), Is.EqualTo("hello"));

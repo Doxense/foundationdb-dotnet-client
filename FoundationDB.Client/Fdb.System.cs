@@ -538,7 +538,7 @@ namespace FoundationDB.Client
 									.ConfigureAwait(false);
 
 								counter += n;
-								if (onProgress != null) onProgress.Report(STuple.Create(counter, end));
+								onProgress?.Report((counter, end));
 #if TRACE_COUNTING
 								++iter;
 #endif
@@ -552,7 +552,7 @@ namespace FoundationDB.Client
 						// the range is not finished, advance the cursor
 						counter += windowSize;
 						cursor = next;
-						if (onProgress != null) onProgress.Report(STuple.Create(counter, cursor));
+						onProgress?.Report((counter, cursor));
 
 						if (!last)
 						{ // double the size of the window if we are not in the last segment

@@ -726,8 +726,8 @@ namespace FoundationDB.Client.Tests
 					Trace.WriteLine(r);
 				}
 				Assert.That(results.Count, Is.EqualTo(2));
-				Assert.That(results[0], Is.EqualTo(STuple.Create("userA", 10093)));
-				Assert.That(results[1], Is.EqualTo(STuple.Create("userB", 20003)));
+				Assert.That(results[0], Is.EqualTo(("userA", 10093)));
+				Assert.That(results[1], Is.EqualTo(("userB", 20003)));
 
 				// Second Method: pre-parse the queries, and merge on the results directly
 				Trace.WriteLine("Method 2:");
@@ -753,8 +753,8 @@ namespace FoundationDB.Client.Tests
 					Trace.WriteLine(r);
 				}
 				Assert.That(results.Count, Is.EqualTo(2));
-				Assert.That(results[0], Is.EqualTo(STuple.Create("userA", 10093)));
-				Assert.That(results[1], Is.EqualTo(STuple.Create("userB", 20003)));
+				Assert.That(results[0], Is.EqualTo(("userA", 10093)));
+				Assert.That(results[1], Is.EqualTo(("userB", 20003)));
 
 			}
 
