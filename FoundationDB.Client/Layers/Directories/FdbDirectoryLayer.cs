@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Directories
 		[NotNull]
 		public static FdbDirectoryLayer Create(Slice prefix, IEnumerable<string> path = null, IKeyEncoding encoding = null)
 		{
-			var subspace = KeySubspace.FromKey(prefix, encoding ?? TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(prefix, encoding ?? TypeSystem.Tuples);
 			var location = path != null ? ParsePath(path) : STuple.Empty;
 			return new FdbDirectoryLayer(subspace.Partition[FdbKey.Directory], subspace, location);
 		}

@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Binary_Prefix()
 		{
-			var subspace = KeySubspace.FromKey(new byte[] { 42, 255, 0, 127 }.AsSlice(), TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(new byte[] { 42, 255, 0, 127 }.AsSlice(), TypeSystem.Tuples);
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("*<FF><00><7F>"));
 			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
@@ -117,7 +117,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
-			var subspace = KeySubspace.FromKey(TuPack.EncodeKey("hello"), TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(TuPack.EncodeKey("hello"), TypeSystem.Tuples);
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("<02>hello<00>"));
 			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
@@ -149,7 +149,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		public void Test_Subspace_Partitioning_With_Binary_Suffix()
 		{
 			// start from a parent subspace
-			var parent = KeySubspace.FromKey(Slice.Empty, TypeSystem.Tuples);
+			var parent = KeySubspace.CreateDynamic(Slice.Empty, TypeSystem.Tuples);
 			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<empty>"));
 
 			// create a child subspace using a tuple
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_DynamicKeySpace_API()
 		{
-			var location = KeySubspace.FromKey(Slice.FromString("PREFIX"), TypeSystem.Tuples);
+			var location = KeySubspace.CreateDynamic(Slice.FromString("PREFIX"), TypeSystem.Tuples);
 
 			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
 
@@ -229,7 +229,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_TypedKeySpace_T1()
 		{
-			var location = KeySubspace.FromKey<string>(Slice.FromString("PREFIX"));
+			var location = KeySubspace.CreateTyped<string>(Slice.FromString("PREFIX"));
 			Assert.That(location.KeyEncoder, Is.Not.Null, "Should have a Key Encoder");
 			Assert.That(location.KeyEncoder.Encoding, Is.SameAs(TypeSystem.Tuples), "Encoder should use Tuple type system");
 
