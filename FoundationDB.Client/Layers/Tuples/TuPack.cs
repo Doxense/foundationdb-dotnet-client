@@ -38,6 +38,7 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple Binary Encoding</summary>
+	[PublicAPI]
 	public static class TuPack
 	{
 
@@ -520,7 +521,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all tuples that are stored under the specified subspace: 'prefix\x00' &lt;= k &lt; 'prefix\xFF'</summary>
 		/// <param name="prefix">Subspace binary prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all possible tuples starting with the specified prefix.</returns>
-		/// <remarks>FdbTuple.ToRange(Slice.FromAscii("abc")) returns the range [ 'abc\x00', 'abc\xFF' )</remarks>
+		/// <remarks>TuPack.ToRange(Slice.FromAscii("abc")) returns the range [ 'abc\x00', 'abc\xFF' )</remarks>
 		[Pure]
 		public static KeyRange ToRange(Slice prefix)
 		{
@@ -535,7 +536,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<TTuple>([NotNull] TTuple tuple)
 			where TTuple : ITuple
@@ -551,7 +552,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1>(STuple<T1> tuple)
 		{
@@ -566,7 +567,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1>(ValueTuple<T1> tuple)
 		{
@@ -581,7 +582,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1>(T1 item1)
 		{
@@ -594,7 +595,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1>(Slice prefix, T1 item1)
 		{
@@ -607,7 +608,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2>(STuple<T1, T2> tuple)
 		{
@@ -623,7 +624,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2>((T1, T2) tuple)
 		{
@@ -639,7 +639,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToKeyRange("a", "b") includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2>(T1 item1, T2 item2)
 		{
@@ -652,7 +652,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>ToPrefixedKeyRange(..., "a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
 		{
@@ -665,7 +665,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
@@ -681,7 +680,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3>((T1, T2, T3) tuple)
 		{
@@ -695,7 +693,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
@@ -708,7 +705,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
@@ -721,7 +717,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
 		{
@@ -737,7 +732,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
@@ -751,7 +745,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
@@ -764,7 +757,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
@@ -777,7 +769,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
@@ -793,7 +784,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
@@ -807,7 +797,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
@@ -820,7 +809,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
@@ -833,7 +821,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
@@ -849,7 +836,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
@@ -863,7 +849,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
@@ -876,7 +861,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
@@ -889,7 +873,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
@@ -902,7 +885,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
@@ -915,7 +897,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
@@ -928,7 +909,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
@@ -941,7 +921,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(Slice.FromInt32(42), FdbTuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
+		/// <example>TuPack.ToRange(Slice.FromInt32(42), Stuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
 		[Pure]
 		public static KeyRange ToRange<TTuple>(Slice prefix, [NotNull] TTuple tuple)
@@ -958,7 +938,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>TuPack.ToRange(STuple.Create("a")) includes all tuples ("a", ...), but not the tuple ("a") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1>(Slice prefix, STuple<T1> tuple)
 		{
@@ -973,7 +953,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2>(Slice prefix, STuple<T1, T2> tuple)
 		{
@@ -988,7 +968,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3>(Slice prefix, STuple<T1, T2, T3> tuple)
 		{
@@ -1003,7 +982,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4>(Slice prefix, STuple<T1, T2, T3, T4> tuple)
 		{
@@ -1018,7 +996,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5>(Slice prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
@@ -1033,7 +1010,6 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static KeyRange ToRange<T1, T2, T3, T4, T5, T6>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
