@@ -46,17 +46,32 @@ namespace FoundationDB.Client
 		/// <summary>Encoder for the keys of this subspace</summary>
 		public IKeyEncoding Encoding { get; }
 
+		[NotNull]
 		internal IDynamicKeyEncoder KeyEncoder { get; }
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
-		/// <param name="encoding">Type System used to encode keys in this subspace (optional, will use Tuple Encoding by default)</param>
-		internal DynamicKeySubspace(Slice prefix, IKeyEncoding encoding)
+		/// <param name="encoding">Type System used to encode keys in this subspace</param>
+		internal DynamicKeySubspace(Slice prefix, [NotNull] IKeyEncoding encoding)
 			: base(prefix)
 		{
+			Contract.Requires(encoding != null);
 			this.Encoding = encoding;
 			this.KeyEncoder = encoding.GetDynamicEncoder();
 			this.Keys = new DynamicKeys(this, this.KeyEncoder);
+			this.Partition = new DynamicPartition(this);
+		}
+
+		/// <summary>Create a new subspace from a binary prefix</summary>
+		/// <param name="prefix">Prefix of the new subspace</param>
+		/// <param name="encoder">Encoder that will be used by this subspace</param>
+		internal DynamicKeySubspace(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
+			: base(prefix)
+		{
+			Contract.Requires(encoder != null);
+			this.Encoding = encoder.Encoding;
+			this.KeyEncoder = encoder;
+			this.Keys = new DynamicKeys(this, encoder);
 			this.Partition = new DynamicPartition(this);
 		}
 
@@ -66,7 +81,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
 		public DynamicPartition Partition { get; }
 
-		public Slice this[ITuple item]
+		public Slice this[[NotNull] ITuple item]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Keys.Pack(item);

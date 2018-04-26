@@ -1004,7 +1004,6 @@ namespace FoundationDB.Client
 			/// <param name="localFinally">Lambda function that will be called after the last batch, and will be passed the last known state.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="ct"/> is triggered</returns>
-			[Obsolete("EXPERIMENTAL: do not use yet!")]
 			public static Task ForEachAsync<TSource, TLocal>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,

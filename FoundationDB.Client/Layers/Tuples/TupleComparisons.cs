@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#define ENABLE_VALUETUPLES
+
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -160,7 +162,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<ITuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		public static CompositeComparer<T1, T2> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
 		}
@@ -235,7 +237,10 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Comparer that compares tuples with at least 2 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
-		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>
+		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>, IComparer<STuple<T1, T2>>
+#if ENABLE_VALUETUPLES
+			, IComparer<(T1, T2)>
+#endif
 		{
 
 			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2>();
@@ -286,13 +291,37 @@ namespace Doxense.Collections.Tuples
 
 				int p = this.Offset;
 
-				int c = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
-				if (c != 0) return c;
+				int cmp = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				if (cmp != 0) return cmp;
 
 				if (ny == 1 || nx == 1) return nx - ny;
-				c = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
+				cmp = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
 
-				return c;
+				return cmp;
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(STuple<T1, T2> x, STuple<T1, T2> y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				int cmp = this.Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = this.Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare((T1, T2) x, (T1, T2) y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				int cmp = this.Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = this.Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
 			}
 
 		}

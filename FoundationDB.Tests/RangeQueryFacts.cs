@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Tests
 	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Layers.Directories;
 	using NUnit.Framework;
 
@@ -687,9 +688,9 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "ExceptComposite");
 
 				// Items contains a list of all ("user", id) that were created
-				var locItems = await location.CreateOrOpenAsync(db, "Items", this.Cancellation);
+				var locItems = (await location.CreateOrOpenAsync(db, "Items", this.Cancellation)).UsingEncoder<string, int>();
 				// Processed contain the list of all ("user", id) that were processed
-				var locProcessed = await location.CreateOrOpenAsync(db, "Processed", this.Cancellation);
+				var locProcessed = (await location.CreateOrOpenAsync(db, "Processed", this.Cancellation)).UsingEncoder<string, int>();
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 
@@ -717,7 +718,7 @@ namespace FoundationDB.Client.Tests
 
 					// problem: Except() still returns the original (Slice,Slice) pairs from the first range,
 					// meaning that we still need to unpack agin the key (this time knowing the location)
-					return query.Select(kv => locItems.Keys.Unpack(kv.Key));
+					return query.Select(kv => locItems.Keys.Decode(kv.Key));
 				}, this.Cancellation);
 
 				foreach(var r in results)
@@ -734,11 +735,11 @@ namespace FoundationDB.Client.Tests
 				{
 					var items = tr
 						.GetRange(locItems.Keys.ToRange())
-						.Select(kv => locItems.Keys.Unpack(kv.Key));
+						.Select(kv => locItems.Keys.Decode(kv.Key));
 
 					var processed = tr
 						.GetRange(locProcessed.Keys.ToRange())
-						.Select(kv => locProcessed.Keys.Unpack(kv.Key));
+						.Select(kv => locProcessed.Keys.Decode(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly
 					var query = items.Except(processed, TupleComparisons.Composite<string, int>());
