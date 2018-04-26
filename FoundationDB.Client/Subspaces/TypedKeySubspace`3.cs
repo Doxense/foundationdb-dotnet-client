@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRangePartial(ValueTuple<T1, T2> tuple)
+		public KeyRange ToRangePartial((T1, T2) tuple)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2));

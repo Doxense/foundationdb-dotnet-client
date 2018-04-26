@@ -133,7 +133,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static MethodInfo FindValueTupleSerializerMethod(Type[] args)
 		{
-			//note: we want to find the correct SerializeValueTuple<...>(ref TupleWriter, ValueTuple<...>), but this cannot be done with Type.GetMethod(...) directly
+			//note: we want to find the correct SerializeValueTuple<...>(ref TupleWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
 			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
 			return typeof(TuplePackers)
 				.GetMethods(BindingFlags.Static | BindingFlags.Public)

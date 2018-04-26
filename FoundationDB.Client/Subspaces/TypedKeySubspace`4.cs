@@ -183,7 +183,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack(ValueTuple<T1, T2, T3, T4> tuple)
+		public Slice Pack((T1, T2, T3, T4) tuple)
 		{
 			return Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}

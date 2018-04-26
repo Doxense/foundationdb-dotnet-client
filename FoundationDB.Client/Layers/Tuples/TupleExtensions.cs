@@ -665,31 +665,31 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[Pure]
-		public static STuple<T1, T2> ToSTuple<T1, T2>(this ValueTuple<T1, T2> tuple)
+		public static STuple<T1, T2> ToSTuple<T1, T2>(this (T1, T2) tuple)
 		{
 			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3> ToSTuple<T1, T2, T3>(this ValueTuple<T1, T2, T3> tuple)
+		public static STuple<T1, T2, T3> ToSTuple<T1, T2, T3>(this (T1, T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4> ToSTuple<T1, T2, T3, T4>(this ValueTuple<T1, T2, T3, T4> tuple)
+		public static STuple<T1, T2, T3, T4> ToSTuple<T1, T2, T3, T4>(this (T1, T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5> ToSTuple<T1, T2, T3, T4, T5>(this ValueTuple<T1, T2, T3, T4, T5> tuple)
+		public static STuple<T1, T2, T3, T4, T5> ToSTuple<T1, T2, T3, T4, T5>(this (T1, T2, T3, T4, T5) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5, T6> ToSTuple<T1, T2, T3, T4, T5, T6>(this ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static STuple<T1, T2, T3, T4, T5, T6> ToSTuple<T1, T2, T3, T4, T5, T6>(this (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}

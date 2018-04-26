@@ -44,7 +44,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2, T3> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3>>, IEquatable<ValueTuple<T1, T2, T3>>
+	public readonly struct STuple<T1, T2, T3> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3>>, IEquatable<(T1, T2, T3)>
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -303,7 +303,7 @@ namespace Doxense.Collections.Tuples
 			return new Tuple<T1, T2, T3>(t.Item1, t.Item2, t.Item3);
 		}
 
-		public void Fill(ref ValueTuple<T1, T2, T3> t)
+		public void Fill(ref (T1, T2, T3) t)
 		{
 			t.Item1 = this.Item1;
 			t.Item2 = this.Item2;
@@ -332,63 +332,63 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4, T5, T6> Concat<T4, T5, T6>(ValueTuple<T4, T5, T6> tuple)
+		public STuple<T1, T2, T3, T4, T5, T6> Concat<T4, T5, T6>((T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, this.Item3, tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ValueTuple<T1, T2, T3> ToValueTuple()
+		public (T1, T2, T3) ToValueTuple()
 		{
-			return ValueTuple.Create(this.Item1, this.Item2, this.Item3);
+			return (this.Item1, this.Item2, this.Item3);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator STuple<T1, T2, T3>(ValueTuple<T1, T2, T3> t)
+		public static implicit operator STuple<T1, T2, T3>((T1, T2, T3) t)
 		{
 			return new STuple<T1, T2, T3>(t.Item1, t.Item2, t.Item3);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator ValueTuple<T1, T2, T3> (STuple<T1, T2, T3> t)
+		public static implicit operator (T1, T2, T3) (STuple<T1, T2, T3> t)
 		{
-			return ValueTuple.Create(t.Item1, t.Item2, t.Item3);
+			return (t.Item1, t.Item2, t.Item3);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IEquatable<ValueTuple<T1, T2, T3>>.Equals(ValueTuple<T1, T2, T3> other)
+		bool IEquatable<(T1, T2, T3)>.Equals((T1, T2, T3) other)
 		{
 			return SimilarValueComparer.Default.Equals(this.Item1, this.Item1)
 				&& SimilarValueComparer.Default.Equals(this.Item2, this.Item2)
 				&& SimilarValueComparer.Default.Equals(this.Item3, this.Item3);
 		}
 
-		public static bool operator ==(STuple<T1, T2, T3> left, ValueTuple<T1, T2, T3> right)
+		public static bool operator ==(STuple<T1, T2, T3> left, (T1, T2, T3) right)
 		{
 			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
 				&& SimilarValueComparer.Default.Equals(left.Item3, right.Item3);
 		}
 
-		public static bool operator ==(ValueTuple<T1, T2, T3> left, STuple<T1, T2, T3> right)
+		public static bool operator ==((T1, T2, T3) left, STuple<T1, T2, T3> right)
 		{
 			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
 				&& SimilarValueComparer.Default.Equals(left.Item3, right.Item3);
 		}
 
-		public static bool operator !=(STuple<T1, T2, T3> left, ValueTuple<T1, T2, T3> right)
+		public static bool operator !=(STuple<T1, T2, T3> left, (T1, T2, T3) right)
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
 				|| !SimilarValueComparer.Default.Equals(left.Item3, right.Item3);
 		}
 
-		public static bool operator !=(ValueTuple<T1, T2, T3> left, STuple<T1, T2, T3> right)
+		public static bool operator !=((T1, T2, T3) left, STuple<T1, T2, T3> right)
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)

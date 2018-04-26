@@ -246,7 +246,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3> Concat<T2, T3>(ValueTuple<T2, T3> tuple)
+		public STuple<T1, T2, T3> Concat<T2, T3>((T2, T3) tuple)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, tuple.Item1, tuple.Item2);
 		}
@@ -255,7 +255,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4> Concat<T2, T3, T4>(ValueTuple<T2, T3, T4> tuple)
+		public STuple<T1, T2, T3, T4> Concat<T2, T3, T4>((T2, T3, T4) tuple)
 		{
 			return new STuple<T1, T2, T3, T4>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3);
 		}
@@ -264,7 +264,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4, T5> Concat<T2, T3, T4, T5>(ValueTuple<T2, T3, T4, T5> tuple)
+		public STuple<T1, T2, T3, T4, T5> Concat<T2, T3, T4, T5>((T2, T3, T4, T5) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
@@ -273,7 +273,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4, T5, T6> Concat<T2, T3, T4, T5, T6>(ValueTuple<T2, T3, T4, T5, T6> tuple)
+		public STuple<T1, T2, T3, T4, T5, T6> Concat<T2, T3, T4, T5, T6>((T2, T3, T4, T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}

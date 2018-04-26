@@ -120,7 +120,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2>(ValueTuple<T1, T2> tuple)
+		public static Slice Pack<T1, T2>((T1, T2) tuple)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuple.ToSTuple());
@@ -129,7 +129,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2, T3>(ValueTuple<T1, T2, T3> tuple)
+		public static Slice Pack<T1, T2, T3>((T1, T2, T3) tuple)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuple.ToSTuple());
@@ -138,7 +138,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> tuple)
+		public static Slice Pack<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuple.ToSTuple());
@@ -147,7 +147,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> tuple)
+		public static Slice Pack<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuple.ToSTuple());
@@ -156,7 +156,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2, T3, T4, T5, T6>(ValueTuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuple.ToSTuple());

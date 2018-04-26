@@ -81,7 +81,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t2.Get<bool>(2), Is.False);
 
 			// ValueTuple
-			Assert.That(subspace.Keys.Pack(new ValueTuple<string>("hello")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
+			Assert.That(subspace.Keys.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
 			Assert.That(subspace.Keys.Pack(("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 			Assert.That(subspace.Keys.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00>"));
 			Assert.That(subspace.Keys.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00><16><01><C8>"));

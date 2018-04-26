@@ -45,7 +45,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	/// <typeparam name="T4">Type of the fourth item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2, T3, T4> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4>>, IEquatable<ValueTuple<T1, T2, T3, T4>>
+	public readonly struct STuple<T1, T2, T3, T4> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4>>, IEquatable<(T1, T2, T3, T4)>
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -311,7 +311,7 @@ namespace Doxense.Collections.Tuples
 			return new Tuple<T1, T2, T3, T4>(t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
-		public void Fill(ref ValueTuple<T1, T2, T3, T4> t)
+		public void Fill(ref (T1, T2, T3, T4) t)
 		{
 			t.Item1 = this.Item1;
 			t.Item2 = this.Item2;
@@ -332,35 +332,35 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
-		public STuple<T1, T2, T3, T4, T5, T6> Concat<T5, T6>(ValueTuple<T5, T6> tuple)
+		public STuple<T1, T2, T3, T4, T5, T6> Concat<T5, T6>((T5, T6) tuple)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ValueTuple<T1, T2, T3, T4> ToValueTuple()
+		public (T1, T2, T3, T4) ToValueTuple()
 		{
-			return ValueTuple.Create(this.Item1, this.Item2, this.Item3, this.Item4);
+			return (this.Item1, this.Item2, this.Item3, this.Item4);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator STuple<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> t)
+		public static implicit operator STuple<T1, T2, T3, T4>((T1, T2, T3, T4) t)
 		{
 			return new STuple<T1, T2, T3, T4>(t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator ValueTuple<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> t)
+		public static implicit operator (T1, T2, T3, T4) (STuple<T1, T2, T3, T4> t)
 		{
-			return ValueTuple.Create(t.Item1, t.Item2, t.Item3, t.Item4);
+			return (t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IEquatable<ValueTuple<T1, T2, T3, T4>>.Equals(ValueTuple<T1, T2, T3, T4> other)
+		bool IEquatable<(T1, T2, T3, T4)>.Equals((T1, T2, T3, T4) other)
 		{
 			return SimilarValueComparer.Default.Equals(this.Item1, this.Item1)
 				&& SimilarValueComparer.Default.Equals(this.Item2, this.Item2)
@@ -368,7 +368,7 @@ namespace Doxense.Collections.Tuples
 				&& SimilarValueComparer.Default.Equals(this.Item4, this.Item4);
 		}
 
-		public static bool operator ==(STuple<T1, T2, T3, T4> left, ValueTuple<T1, T2, T3, T4> right)
+		public static bool operator ==(STuple<T1, T2, T3, T4> left, (T1, T2, T3, T4) right)
 		{
 			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
@@ -376,7 +376,7 @@ namespace Doxense.Collections.Tuples
 				&& SimilarValueComparer.Default.Equals(left.Item4, right.Item4);
 		}
 
-		public static bool operator ==(ValueTuple<T1, T2, T3, T4> left, STuple<T1, T2, T3, T4> right)
+		public static bool operator ==((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
 		{
 			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
@@ -384,7 +384,7 @@ namespace Doxense.Collections.Tuples
 				&& SimilarValueComparer.Default.Equals(left.Item4, right.Item4);
 		}
 
-		public static bool operator !=(STuple<T1, T2, T3, T4> left, ValueTuple<T1, T2, T3, T4> right)
+		public static bool operator !=(STuple<T1, T2, T3, T4> left, (T1, T2, T3, T4) right)
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
@@ -392,7 +392,7 @@ namespace Doxense.Collections.Tuples
 				|| !SimilarValueComparer.Default.Equals(left.Item4, right.Item4);
 		}
 
-		public static bool operator !=(ValueTuple<T1, T2, T3, T4> left, STuple<T1, T2, T3, T4> right)
+		public static bool operator !=((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
 		{
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
 				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2)
