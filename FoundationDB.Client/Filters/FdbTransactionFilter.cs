@@ -257,6 +257,18 @@ namespace FoundationDB.Filters
 			return m_transaction.GetVersionStampAsync();
 		}
 
+		public virtual VersionStamp CreateVersionStamp()
+		{
+			ThrowIfDisposed();
+			return m_transaction.CreateVersionStamp();
+		}
+
+		public virtual VersionStamp CreateVersionStamp(int userVersion)
+		{
+			ThrowIfDisposed();
+			return m_transaction.CreateVersionStamp(userVersion);
+		}
+
 		public virtual void SetReadVersion(long version)
 		{
 			ThrowIfDisposed();

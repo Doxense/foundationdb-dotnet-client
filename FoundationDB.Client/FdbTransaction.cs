@@ -90,6 +90,9 @@ namespace FoundationDB.Client
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
 		private CancellationToken m_cancellation;
 
+		/// <summary>Random token (but constant per transaction retry) used to generate incomplete VersionStamps</summary>
+		private ulong m_versionStampToken;
+
 		#endregion
 
 		#region Constructors...
@@ -295,6 +298,68 @@ namespace FoundationDB.Client
 			EnsureNotFailedOrDisposed();
 
 			return m_handler.GetVersionStampAsync(m_cancellation);
+		}
+
+		private ulong GenerateNewVersionStampToken()
+		{
+			// We need to generate a 80-bits stamp, and also need to mark it as 'incomplete' by forcing the highest bit to 1.
+			// Since this is supposed to be a version number with a ~1M tickrate per seconds, we will play it safe, and force the 8 highest bits to 1,
+			// meaning that we only reduce the database potential lifetime but 1/256th, before getting into trouble.
+			//
+			// By doing some empirical testing, it also seems that the last 16 bits are a transction batch order which is usually a low number.
+			// Again, we will force the 4 highest bit to 1 to reduce the change of collision with a complete version stamp.
+			//
+			// So the final token will look like:  'FF xx xx xx xx xx xx xx Fy yy', were 'x' is the random token, and 'y' will lowest 12 bits of the transaction retry count
+
+			var rnd = new Random(); //TODO: singleton? (need locking!!)
+			ulong x;
+			unsafe
+			{
+				double r = rnd.NextDouble();
+				x = *(ulong*) &r;
+			}
+			x |= 0xFF00000000000000UL;
+
+			lock (this)
+			{
+				ulong token = m_versionStampToken;
+				if (token == 0)
+				{
+					token = x;
+					m_versionStampToken = x;
+				}
+				return token;
+			}
+		}
+
+		/// <summary>Return a place-holder 80-bit VersionStamp, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
+		/// <remarks>
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
+		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
+		/// </remarks>
+		[Pure]
+		public VersionStamp CreateVersionStamp()
+		{
+			var token = m_versionStampToken;
+			if (token == 0) token = GenerateNewVersionStampToken();
+			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), incomplete: true);
+		}
+
+		/// <summary>Return a place-holder 96-bit VersionStamp with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
+		/// <remarks>
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
+		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
+		/// </remarks>
+		public VersionStamp CreateVersionStamp(int userVersion)
+		{
+			var token = m_versionStampToken;
+			if (token == 0) token = GenerateNewVersionStampToken();
+
+			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), userVersion, incomplete: true);
 		}
 
 		#endregion
@@ -785,6 +850,11 @@ namespace FoundationDB.Client
 			{
 				this.Timeout = m_database.DefaultTimeout;
 			}
+
+			// if we have used a random token for versionstamps, we need to clear it (and generate a new one)
+			// => this ensure that if the error was due to a collision between the token and another part of the key,
+			//    a transaction retry will hopefully use a different token that does not collide.
+			m_versionStampToken = 0;
 		}
 
 		/// <summary>Reset the transaction to its initial state.</summary>

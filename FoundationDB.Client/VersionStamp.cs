@@ -115,6 +115,19 @@ namespace FoundationDB.Client
 			return new VersionStamp(PLACEHOLDER_VERSION, PLACEHOLDER_ORDER, userVersion, FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static VersionStamp Custom(ulong version, ushort order, bool incomplete)
+		{
+			return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static VersionStamp Custom(ulong version, ushort order, int userVersion, bool incomplete)
+		{
+			Contract.Between(userVersion, 0, 0xFFFF, nameof(userVersion), "Local version must fit in 16-bits.");
+			return new VersionStamp(version, order, (ushort) userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
+		}
+
 		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>, obtained from the database.</summary>
 		/// <returns>Complete stamp, without user version.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

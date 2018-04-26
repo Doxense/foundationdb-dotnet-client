@@ -120,6 +120,24 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<VersionStamp> GetVersionStampAsync();
 
+		/// <summary>Return a place-holder 80-bit VersionStamp, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
+		/// <remarks>
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
+		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
+		/// </remarks>
+		VersionStamp CreateVersionStamp();
+
+		/// <summary>Return a place-holder 96-bit VersionStamp with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
+		/// <remarks>
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
+		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
+		/// </remarks>
+		VersionStamp CreateVersionStamp(int userVersion);
+
 		/// <summary>
 		/// Watch a key for any change in the database.
 		/// </summary>
