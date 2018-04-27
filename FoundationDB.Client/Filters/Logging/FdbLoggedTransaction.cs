@@ -114,7 +114,7 @@ namespace FoundationDB.Filters.Logging
 				int start = m_offset;
 				slice.CopyTo(m_buffer, m_offset);
 				m_offset += slice.Count;
-				return new Slice(m_buffer, start, slice.Count);
+				return m_buffer.AsSlice(start, slice.Count);
 			}
 		}
 

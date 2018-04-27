@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 				throw Fdb.Errors.CannotIncrementKey();
 			}
 
-			return new Slice(tmp, 0, lastNonFFByte + 1);
+			return tmp.AsSlice(0, lastNonFFByte + 1);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -162,7 +162,7 @@ namespace FoundationDB.Client
 			int p = start;
 			foreach (var end in endOffsets)
 			{
-				result[i++] = new Slice(buffer, p, end - p);
+				result[i++] = buffer.AsSlice(p, end - p);
 				p = end;
 			}
 

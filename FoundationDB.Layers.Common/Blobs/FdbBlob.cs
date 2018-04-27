@@ -274,7 +274,7 @@ namespace FoundationDB.Layers.Blobs
 				})
 				.ConfigureAwait(false);
 
-			return new Slice(buffer, 0, buffer.Length);
+			return buffer.AsSlice(0, buffer.Length);
 		}
 
 		/// <summary>

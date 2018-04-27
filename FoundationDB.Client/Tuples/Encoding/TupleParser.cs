@@ -883,9 +883,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-
-			return new Slice(decoded.Array, decoded.Offset, decoded.Count);
+			return UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
 		}
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>

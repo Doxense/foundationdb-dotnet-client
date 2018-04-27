@@ -309,7 +309,7 @@ namespace FoundationDB.Client.Native
 			{
 				result = Slice.DefaultEncoding.GetBytes(value);
 			}
-			return new Slice(result, 0, result.Length);
+			return Slice.CreateUnsafe(result, 0, result.Length);
 		}
 
 
@@ -696,7 +696,7 @@ namespace FoundationDB.Client.Native
 			{
 				var bytes = new byte[valueLength];
 				Marshal.Copy(new IntPtr(ptr), bytes, 0, valueLength);
-				value = new Slice(bytes, 0, valueLength);
+				value = Slice.CreateUnsafe(bytes, 0, valueLength);
 			}
 			else
 			{
@@ -785,8 +785,8 @@ namespace FoundationDB.Client.Native
 						Marshal.Copy(kvp[i].Value, page, p + kl, vl);
 
 						result[i] = new KeyValuePair<Slice, Slice>(
-							new Slice(page, p, kl),
-							new Slice(page, p + kl, vl)
+							page.AsSlice(p, kl),
+							page.AsSlice(p + kl, vl)
 						);
 
 						p += kl + vl;
