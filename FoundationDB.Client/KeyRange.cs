@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
-	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>
+	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>, IEquatable<(Slice Begin, Slice End)>, IComparable<(Slice Begin, Slice End)>
 	{
 
 		/// <summary>Start of the range</summary>
@@ -50,11 +50,11 @@ namespace FoundationDB.Client
 		/// <summary>Create a new range of keys</summary>
 		/// <param name="begin">Start of range (usually included)</param>
 		/// <param name="end">End of range (usually excluded)</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange(Slice begin, Slice end)
 		{
 			this.Begin = begin;
 			this.End = end;
-
 			Contract.Ensures(this.Begin <= this.End, "The range is inverted");
 		}
 
@@ -122,17 +122,22 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object obj)
 		{
-			return obj is KeyRange range && Equals(range);
+			if (obj is KeyRange range) return Equals(range);
+			if (obj is ValueTuple<Slice, Slice> tuple) return Equals(tuple);
+			return false;
 		}
 
 		public override int GetHashCode()
 		{
-			// ReSharper disable NonReadonlyMemberInGetHashCode
 			return HashCodes.Combine(this.Begin.GetHashCode(), this.End.GetHashCode());
-			// ReSharper restore NonReadonlyMemberInGetHashCode
 		}
 
 		public bool Equals(KeyRange other)
+		{
+			return this.Begin.Equals(other.Begin) && this.End.Equals(other.End);
+		}
+
+		public bool Equals((Slice Begin, Slice End) other)
 		{
 			return this.Begin.Equals(other.Begin) && this.End.Equals(other.End);
 		}
@@ -152,6 +157,25 @@ namespace FoundationDB.Client
 			int c = this.Begin.CompareTo(other.Begin);
 			if (c == 0) c = this.End.CompareTo(other.End);
 			return c;
+		}
+
+		public int CompareTo((Slice Begin, Slice End) other)
+		{
+			int c = this.Begin.CompareTo(other.Begin);
+			if (c == 0) c = this.End.CompareTo(other.End);
+			return c;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator KeyRange((Slice Begin, Slice End) range)
+		{
+			return new KeyRange(range.Begin, range.End);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator (Slice Begin, Slice End)(KeyRange range)
+		{
+			return (range.Begin, range.End);
 		}
 
 		/// <summary>Combine another range with the current range, to produce a range that includes both (and all keys in between it the ranges are disjoint)</summary>

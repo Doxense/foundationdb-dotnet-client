@@ -231,18 +231,18 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="prefix">Optional binary prefix</param>
 		/// <returns>Key range which derives from the semantic of the current encoding</returns>
 		/// <remarks>For example, the Tuple encoding will produce ranges of the form "(Key + \x00) &lt;= x &lt; (Key + \xFF)", while a binary-based encoding would produce ranges of the form "Key &lt;= x &lt; Increment(Key)"</remarks>
-		KeyRange ToRange(Slice prefix = default(Slice));
+		(Slice Begin, Slice End) ToRange(Slice prefix = default(Slice));
 
 		/// <summary>Return a key range using a tuple as a prefix</summary>
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
 		/// <param name="items">Tuple of any size (0 to N)</param>
-		KeyRange ToRange(Slice prefix, ITuple items);
+		(Slice Begin, Slice End) ToRange(Slice prefix, ITuple items);
 
 		/// <summary>Return a key range using a single element as a prefix</summary>
 		/// <typeparam name="T1">Type of the element</typeparam>
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
 		/// <param name="item1">Element to encode</param>
-		KeyRange ToKeyRange<T1>(Slice prefix, T1 item1);
+		(Slice Begin, Slice End) ToKeyRange<T1>(Slice prefix, T1 item1);
 
 		/// <summary>Return a key range using two elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -250,7 +250,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
-		KeyRange ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2);
 
 		/// <summary>Return a key range using three elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -260,7 +260,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item1">First element to encode</param>
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
-		KeyRange ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3);
 
 		/// <summary>Return a key range using four elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -272,7 +272,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item2">Second element to encode</param>
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
-		KeyRange ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4);
 
 		/// <summary>Return a key range using five elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -286,7 +286,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item3">Third element to encode</param>
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
-		KeyRange ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5);
 
 		/// <summary>Return a key range using six elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -302,7 +302,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item4">Fourth element to encode</param>
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
-		KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6);
 
 		/// <summary>Return a key range using seven elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -320,7 +320,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item5">Fifth element to encode</param>
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
-		KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7);
 
 		/// <summary>Return a key range using eight elements as a prefix</summary>
 		/// <typeparam name="T1">Type of the first element</typeparam>
@@ -340,7 +340,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="item6">Sixth element to encode</param>
 		/// <param name="item7">Seventh element to encode</param>
 		/// <param name="item8">Eighth element to encode</param>
-		KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8);
+		(Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8);
 
 		//note: I will be billing $999.99 to anyone who wants up to T11 !!! :(
 
