@@ -280,20 +280,6 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		/// <summary>Creates pre-packed and isolated copy of this tuple</summary>
-		/// <param name="tuple"></param>
-		/// <returns>Create a copy of the tuple that can be reused frequently to pack values</returns>
-		/// <remarks>If the tuple is already memoized, the current instance will be returned</remarks>
-		[CanBeNull, ContractAnnotation("null => null")]
-		public static MemoizedTuple Memoize(this ITuple tuple)
-		{
-			if (tuple == null) return null;
-
-			var memoized = tuple as MemoizedTuple ?? new MemoizedTuple(tuple.ToArray(), TuPack.Pack(tuple));
-
-			return memoized;
-		}
-
 		/// <summary>Returns a typed version of a tuple of size 1</summary>
 		/// <typeparam name="T1">Expected type of the single element</typeparam>
 		/// <param name="tuple">Tuple that must be of size 1</param>
