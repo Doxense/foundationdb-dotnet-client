@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Async;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
@@ -456,8 +457,8 @@ namespace FoundationDB.Client
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = KeySubspace.Copy(subspace, TypeSystem.Tuples);
-				m_globalSpaceCopy = KeySubspace.Copy(subspace, TypeSystem.Tuples); // keep another copy
+				m_globalSpace = subspace.Copy(TuPack.Encoding);
+				m_globalSpaceCopy = subspace.Copy(TuPack.Encoding); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}

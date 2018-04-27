@@ -34,6 +34,9 @@ namespace Doxense.Collections.Tuples.Encoding
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>
 	public sealed class TupleKeyEncoding : IKeyEncoding
 	{
+
+		public static readonly TupleKeyEncoding Instance = new TupleKeyEncoding();
+
 		public IDynamicKeyEncoder GetDynamicEncoder()
 		{
 			return TupleKeyEncoder.Instance;

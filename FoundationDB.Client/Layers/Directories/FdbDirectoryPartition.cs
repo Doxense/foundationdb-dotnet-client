@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Directories
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
@@ -39,8 +40,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public static Slice LayerId => Slice.FromString("partition");
 
-		internal FdbDirectoryPartition(ITuple location, ITuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).Using(TypeSystem.Default), FromKey(prefix).Using(TypeSystem.Default), location), LayerId, TypeSystem.Default)
+		internal FdbDirectoryPartition([NotNull] ITuple location, [NotNull] ITuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
+			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).AsDynamic(keyEncoding), FromKey(prefix).AsDynamic(keyEncoding), location), LayerId, keyEncoding)
 		{
 			this.ParentDirectoryLayer = directoryLayer;
 		}

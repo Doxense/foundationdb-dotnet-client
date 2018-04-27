@@ -156,11 +156,11 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Create an instance of a Directory Layer located under a specific prefix and path</summary>
 		/// <param name="prefix">Prefix for the content. The nodes will be stored under <paramref name="prefix"/> + &lt;FE&gt;</param>
 		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
-		/// <param name="encoding">Optional key encoding scheme. If not specified, will use the <see cref="TypeSystem.Tuples"/> type system by default.</param>
+		/// <param name="encoding">Optional key encoding scheme. If not specified, will use the <see cref="TuPack"/> encoding by default.</param>
 		[NotNull]
 		public static FdbDirectoryLayer Create(Slice prefix, IEnumerable<string> path = null, IKeyEncoding encoding = null)
 		{
-			var subspace = KeySubspace.CreateDynamic(prefix, encoding ?? TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(prefix, encoding ?? TuPack.Encoding);
 			var location = path != null ? ParsePath(path) : STuple.Empty;
 			return new FdbDirectoryLayer(subspace.Partition[FdbKey.Directory], subspace, location);
 		}
@@ -168,14 +168,14 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Create an instance of a Directory Layer located under a specific subspace and path</summary>
 		/// <param name="subspace">Subspace for the content. The nodes will be stored under <paramref name="subspace"/>.Key + &lt;FE&gt;</param>
 		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
-		/// <param name="encoding">Optional key encoding scheme. If not specified, will use the <see cref="TypeSystem.Tuples"/> type system by default.</param>
+		/// <param name="encoding">Optional key encoding scheme. If not specified, will use the <see cref="TuPack"/> encoding by default.</param>
 		[NotNull]
 		public static FdbDirectoryLayer Create(IKeySubspace subspace, IEnumerable<string> path = null, IKeyEncoding encoding = null)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			var location = path != null ? ParsePath(path) : STuple.Empty;
-			var space = subspace.Using(encoding ?? TypeSystem.Tuples);
+			var space = subspace.AsDynamic(encoding ?? TuPack.Encoding);
 			return new FdbDirectoryLayer(space.Partition[FdbKey.Directory], space, location);
 		}
 
@@ -932,11 +932,11 @@ namespace FoundationDB.Layers.Directories
 			var prefix = this.NodeSubspace.Keys.Decode<Slice>(node.GetPrefix());
 			if (layer == FdbDirectoryPartition.LayerId)
 			{
-				return new FdbDirectoryPartition(path, relativePath, prefix, this);
+				return new FdbDirectoryPartition(path, relativePath, prefix, this, TuPack.Encoding);
 			}
 			else
 			{
-				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TypeSystem.Default);
+				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TuPack.Encoding);
 			}
 		}
 

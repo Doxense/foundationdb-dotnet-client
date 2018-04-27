@@ -50,7 +50,7 @@ namespace Doxense.Serialization.Encoders
 
 				private TupleEncoder() { }
 
-				public IKeyEncoding Encoding => TypeSystem.Tuples;
+				public IKeyEncoding Encoding => TuPack.Encoding;
 
 				public void WriteKeyTo(ref SliceWriter writer, T key)
 				{
@@ -84,7 +84,7 @@ namespace Doxense.Serialization.Encoders
 
 				private TupleCompositeEncoder() { }
 
-				public override IKeyEncoding Encoding => TypeSystem.Tuples;
+				public override IKeyEncoding Encoding => TuPack.Encoding;
 
 				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2) key)
 				{
@@ -114,7 +114,7 @@ namespace Doxense.Serialization.Encoders
 
 				private TupleCompositeEncoder() { }
 
-				public override IKeyEncoding Encoding => TypeSystem.Tuples;
+				public override IKeyEncoding Encoding => TuPack.Encoding;
 
 				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3) key)
 				{
@@ -146,7 +146,7 @@ namespace Doxense.Serialization.Encoders
 
 				private TupleCompositeEncoder() { }
 
-				public override IKeyEncoding Encoding => TypeSystem.Tuples;
+				public override IKeyEncoding Encoding => TuPack.Encoding;
 
 				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4) key)
 				{
@@ -180,7 +180,7 @@ namespace Doxense.Serialization.Encoders
 
 				private TupleCompositeEncoder() { }
 
-				public override IKeyEncoding Encoding => TypeSystem.Tuples;
+				public override IKeyEncoding Encoding => TuPack.Encoding;
 
 				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5) key)
 				{
@@ -216,7 +216,7 @@ namespace Doxense.Serialization.Encoders
 
 				private TupleCompositeEncoder() { }
 
-				public override IKeyEncoding Encoding => TypeSystem.Tuples;
+				public override IKeyEncoding Encoding => TuPack.Encoding;
 
 				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5, T6) key)
 				{

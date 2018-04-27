@@ -34,6 +34,7 @@ namespace Doxense.Collections.Tuples
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -41,6 +42,10 @@ namespace Doxense.Collections.Tuples
 	[PublicAPI]
 	public static class TuPack
 	{
+
+		/// <summary>Key Encoding that use the Tuple Binary Encoding</summary>
+		[NotNull]
+		public static IKeyEncoding Encoding => TupleKeyEncoding.Instance;
 
 		#region Packing...
 
