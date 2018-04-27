@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>FoundationDB.Client</RootNamespace>
     <AssemblyName>FoundationDB.Client</AssemblyName>
-    <SignAssembly>true</SignAssembly>
+    <SignAssembly Condition="'$(OS)' == 'Windows_NT'">true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <Version>5.1.0-alpha1</Version>
     <Authors>Doxense</Authors>
