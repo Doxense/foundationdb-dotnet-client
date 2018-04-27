@@ -458,7 +458,10 @@ namespace FoundationDB.Client
 			return p;
 		}
 
-		//TODO: XML Comments!
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
+		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
 			Contract.NotNull(trans, nameof(trans));
@@ -470,6 +473,25 @@ namespace FoundationDB.Client
 			var writer = new SliceWriter(key.Count + 2);
 			writer.WriteBytes(key);
 			writer.WriteFixed16(checked((ushort) offset)); //note: currently stored as 16-bits in Little Endian
+
+			trans.Atomic(writer.ToSlice(), value, FdbMutationType.VersionStampedKey);
+		}
+
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose start is defined by <paramref name="stampOffset"/>.</param>
+		/// <param name="stampOffset">Offset within <paramref name="key"/> of the start of the 80-bit VersionStamp.</param>
+		/// <param name="value">New value for this key.</param>
+		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+			
+			if (stampOffset > key.Count - 10) throw new ArgumentException("The VersionStamp overflows past the end of the key.", nameof(stampOffset));
+			if (stampOffset > 0xFFFF) throw new ArgumentException("The offset is too large to fit within 16-bits.");
+
+			var writer = new SliceWriter(key.Count + 2);
+			writer.WriteBytes(key);
+			writer.WriteFixed16(checked((ushort) stampOffset)); //note: currently stored as 16-bits in Little Endian
 
 			trans.Atomic(writer.ToSlice(), value, FdbMutationType.VersionStampedKey);
 		}
