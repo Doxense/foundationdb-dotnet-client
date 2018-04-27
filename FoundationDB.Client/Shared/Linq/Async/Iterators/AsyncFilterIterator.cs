@@ -31,8 +31,8 @@ namespace Doxense.Linq.Async.Iterators
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncIterator<TResult>

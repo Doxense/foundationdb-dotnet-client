@@ -33,8 +33,8 @@ namespace Doxense.Linq.Async.Expressions
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 
 	/// <summary>Expression that evalute a condition on each item</summary>
 	/// <typeparam name="TSource">Type of the filtered elements</typeparam>

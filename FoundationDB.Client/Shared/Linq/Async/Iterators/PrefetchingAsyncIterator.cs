@@ -32,8 +32,8 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 
 	/// <summary>Prefetches items from the inner sequence, before outputing them down the line.</summary>
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>

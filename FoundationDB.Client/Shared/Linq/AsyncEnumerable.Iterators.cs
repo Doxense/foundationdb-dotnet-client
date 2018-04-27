@@ -33,11 +33,11 @@ namespace Doxense.Linq
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Linq.Async.Iterators;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	public static partial class AsyncEnumerable

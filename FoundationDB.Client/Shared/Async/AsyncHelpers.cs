@@ -35,6 +35,7 @@ namespace Doxense.Async
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
+	using Doxense.Threading.Tasks;
 
 	/// <summary>Helper methods for creating and manipulating async sequences.</summary>
 	public static class AsyncHelpers

@@ -36,10 +36,10 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>

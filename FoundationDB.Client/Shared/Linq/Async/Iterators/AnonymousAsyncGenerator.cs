@@ -26,14 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense.Async;
-
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 
 	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>
 	/// <typeparam name="TOutput">Type of the items produced by this generator</typeparam>

@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace Doxense.Async
+namespace Doxense.Threading.Tasks
 {
 	using System;
 	using System.Threading;

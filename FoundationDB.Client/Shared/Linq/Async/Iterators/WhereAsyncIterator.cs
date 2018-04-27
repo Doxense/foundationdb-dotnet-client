@@ -31,9 +31,9 @@ namespace Doxense.Linq.Async.Iterators
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>Filters an async sequence of items</summary>

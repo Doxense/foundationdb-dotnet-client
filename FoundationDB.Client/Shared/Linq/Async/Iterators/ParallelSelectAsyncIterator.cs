@@ -36,6 +36,7 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading.Tasks;
 	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>

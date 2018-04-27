@@ -32,8 +32,8 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>

@@ -31,8 +31,8 @@ namespace Doxense.Linq.Async.Expressions
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>Expression that applies a transformation on each item</summary>

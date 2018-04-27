@@ -33,8 +33,8 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	/// <summary>
