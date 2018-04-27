@@ -44,233 +44,30 @@ namespace Doxense.Serialization.Encoders
 		public static class Tuples
 		{
 
-			internal class TupleEncoder<T> : IKeyEncoder<T>, IValueEncoder<T>
-			{
-				public static readonly TupleEncoder<T> Default = new TupleEncoder<T>();
-
-				private TupleEncoder() { }
-
-				public IKeyEncoding Encoding => TuPack.Encoding;
-
-				public void WriteKeyTo(ref SliceWriter writer, T key)
-				{
-					TupleEncoder.WriteKeysTo(ref writer, key);
-				}
-
-				public void ReadKeyFrom(ref SliceReader reader, out T key)
-				{
-					key = !reader.HasMore
-						? default //BUGBUG
-						: TuPack.DecodeKey<T>(reader.ReadToEnd());
-				}
-
-				public Slice EncodeValue(T key)
-				{
-					return TupleEncoder.EncodeKey(default(Slice), key);
-				}
-
-				public T DecodeValue(Slice encoded)
-				{
-					if (encoded.IsNullOrEmpty) return default; //BUGBUG
-					return TuPack.DecodeKey<T>(encoded);
-				}
-
-			}
-
-			internal class TupleCompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2> Default = new TupleCompositeEncoder<T1, T2>();
-
-				private TupleCompositeEncoder() { }
-
-				public override IKeyEncoding Encoding => TuPack.Encoding;
-
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2) key)
-				{
-					switch (count)
-					{
-						case 2: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2); break;
-						case 1: TupleEncoder.WriteKeysTo(ref writer, key.Item1); break;
-						default: throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be either 1 or 2");
-					}
-				}
-
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) key)
-				{
-					if (count != 1 & count != 2) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be either 1 or 2");
-
-					var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-					Contract.Assert(t != null);
-					key.Item1 = t.Get<T1>(0);
-					key.Item2 = count == 2 ? t.Get<T2>(1) : default;
-				}
-			}
-
-			internal class TupleCompositeEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2, T3> Default = new TupleCompositeEncoder<T1, T2, T3>();
-
-				private TupleCompositeEncoder() { }
-
-				public override IKeyEncoding Encoding => TuPack.Encoding;
-
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3) key)
-				{
-					switch (count)
-					{
-						case 3: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3); break;
-						case 2: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2); break;
-						case 1: TupleEncoder.WriteKeysTo(ref writer, key.Item1); break;
-						default: throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 3");
-					}
-				}
-
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) key)
-				{
-					if (count < 1 | count > 3) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 3");
-
-					var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-					Contract.Assert(t != null);
-					key.Item1 = t.Get<T1>(0);
-					key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-					key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-				}
-			}
-
-			internal class TupleCompositeEncoder<T1, T2, T3, T4> : CompositeKeyEncoder<T1, T2, T3, T4>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2, T3, T4> Default = new TupleCompositeEncoder<T1, T2, T3, T4>();
-
-				private TupleCompositeEncoder() { }
-
-				public override IKeyEncoding Encoding => TuPack.Encoding;
-
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4) key)
-				{
-					switch (count)
-					{
-						case 4: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3, key.Item4); break;
-						case 3: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3); break;
-						case 2: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2); break;
-						case 1: TupleEncoder.WriteKeysTo(ref writer, key.Item1); break;
-						default: throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 4");
-					}
-				}
-
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) key)
-				{
-					if (count < 1 || count > 4) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 4");
-
-					var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-					Contract.Assert(t != null);
-					key.Item1 = t.Get<T1>(0);
-					key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-					key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-					key.Item4 = count >= 4 ? t.Get<T4>(3) : default;
-				}
-			}
-
-			internal class TupleCompositeEncoder<T1, T2, T3, T4, T5> : CompositeKeyEncoder<T1, T2, T3, T4, T5>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2, T3, T4, T5> Default = new TupleCompositeEncoder<T1, T2, T3, T4, T5>();
-
-				private TupleCompositeEncoder() { }
-
-				public override IKeyEncoding Encoding => TuPack.Encoding;
-
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5) key)
-				{
-					switch (count)
-					{
-						case 5: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3, key.Item4, key.Item5); break;
-						case 4: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3, key.Item4); break;
-						case 3: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3); break;
-						case 2: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2); break;
-						case 1: TupleEncoder.WriteKeysTo(ref writer, key.Item1); break;
-						default: throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 5");
-					}
-				}
-
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) key)
-				{
-					if (count < 1 || count > 5) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 5");
-
-					var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-					Contract.Assert(t != null);
-					key.Item1 = t.Get<T1>(0);
-					key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-					key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-					key.Item4 = count >= 4 ? t.Get<T4>(3) : default;
-					key.Item5 = count >= 5 ? t.Get<T5>(4) : default;
-				}
-			}
-
-			internal class TupleCompositeEncoder<T1, T2, T3, T4, T5, T6> : CompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
-			{
-
-				public static readonly TupleCompositeEncoder<T1, T2, T3, T4, T5, T6> Default = new TupleCompositeEncoder<T1, T2, T3, T4, T5, T6>();
-
-				private TupleCompositeEncoder() { }
-
-				public override IKeyEncoding Encoding => TuPack.Encoding;
-
-				public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5, T6) key)
-				{
-					switch (count)
-					{
-						case 6: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3, key.Item4, key.Item5, key.Item6); break;
-						case 5: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3, key.Item4, key.Item5); break;
-						case 4: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3, key.Item4); break;
-						case 3: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2, key.Item3); break;
-						case 2: TupleEncoder.WriteKeysTo(ref writer, key.Item1, key.Item2); break;
-						case 1: TupleEncoder.WriteKeysTo(ref writer, key.Item1); break;
-						default: throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 6");
-					}
-				}
-
-				public override void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) key)
-				{
-					if (count < 1 || count > 6) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 6");
-
-					var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-					Contract.Assert(t != null);
-					key.Item1 = t.Get<T1>(0);
-					key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-					key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-					key.Item4 = count >= 4 ? t.Get<T4>(3) : default;
-					key.Item5 = count >= 5 ? t.Get<T5>(4) : default;
-					key.Item6 = count >= 6 ? t.Get<T6>(5) : default;
-				}
-			}
-
 			#region Keys
 
 			[NotNull]
 			public static IKeyEncoder<T1> Key<T1>()
 			{
-				return TupleEncoder<T1>.Default;
+				return TupleEncoder.KeyEncoder<T1>.Default;
 			}
 
 			[NotNull]
 			public static ICompositeKeyEncoder<T1, T2> CompositeKey<T1, T2>()
 			{
-				return TupleCompositeEncoder<T1, T2>.Default;
+				return TupleEncoder.CompositeEncoder<T1, T2>.Default;
 			}
 
 			[NotNull]
 			public static ICompositeKeyEncoder<T1, T2, T3> CompositeKey<T1, T2, T3>()
 			{
-				return TupleCompositeEncoder<T1, T2, T3>.Default;
+				return TupleEncoder.CompositeEncoder<T1, T2, T3>.Default;
 			}
 
 			[NotNull]
 			public static ICompositeKeyEncoder<T1, T2, T3, T4> CompositeKey<T1, T2, T3, T4>()
 			{
-				return TupleCompositeEncoder<T1, T2, T3, T4>.Default;
+				return TupleEncoder.CompositeEncoder<T1, T2, T3, T4>.Default;
 			}
 
 			#endregion
@@ -280,7 +77,7 @@ namespace Doxense.Serialization.Encoders
 			[NotNull]
 			public static IValueEncoder<T> Value<T>()
 			{
-				return TupleEncoder<T>.Default;
+				return TupleEncoder.KeyEncoder<T>.Default;
 			}
 
 			#endregion

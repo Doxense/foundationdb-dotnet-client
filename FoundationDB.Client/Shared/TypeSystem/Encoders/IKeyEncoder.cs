@@ -49,30 +49,4 @@ namespace Doxense.Serialization.Encoders
 		void ReadKeyFrom(ref SliceReader reader, out T1 value);
 	}
 
-	public static partial class KeyEncoderExtensions
-	{
-
-		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, T1 value)
-		{
-			var writer = default(SliceWriter);
-			encoder.WriteKeyTo(ref writer, value);
-			return writer.ToSlice();
-		}
-
-		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
-		{
-			var writer = new SliceWriter(prefix.Count + 16); // ~16 bytes si T1 = Guid
-			writer.WriteBytes(prefix);
-			encoder.WriteKeyTo(ref writer, value);
-			return writer.ToSlice();
-		}
-
-		public static T1 DecodeKey<T1>([NotNull] this IKeyEncoder<T1> decoder, Slice encoded)
-		{
-			var reader = new SliceReader(encoded);
-			decoder.ReadKeyFrom(ref reader, out T1 item);
-			//TODO: should we fail if extra bytes?
-			return item;
-		}
-	}
 }
