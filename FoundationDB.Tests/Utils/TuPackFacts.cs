@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_VALUETUPLE
-
 // ReSharper disable AccessToModifiedClosure
 namespace Doxense.Collections.Tuples.Tests
 {
@@ -2157,8 +2155,6 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 		}
 
-#if ENABLE_VALUETUPLES
-
 		[Test]
 		public void Test_TuPack_ValueTuple_Pack()
 		{
@@ -2201,8 +2197,6 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 
 		}
-
-#endif
 
 	}
 
