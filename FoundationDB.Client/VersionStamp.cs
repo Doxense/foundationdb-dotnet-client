@@ -52,6 +52,7 @@ namespace FoundationDB.Client
 		private const ulong PLACEHOLDER_VERSION = ulong.MaxValue;
 		private const ushort PLACEHOLDER_ORDER = ushort.MaxValue;
 		private const ushort NO_USER_VERSION = 0;
+		private const ulong HSB_VERSION = 0x8000000000000000UL;
 
 		private const ushort FLAGS_NONE = 0x0;
 		private const ushort FLAGS_HAS_VERSION = 0x1; // unset: 80-bits, set: 96-bits
@@ -262,46 +263,22 @@ namespace FoundationDB.Client
 			{
 				fixed (byte* ptr = &data.DangerousGetPinnableReference())
 				{
-					ReadUnsafe(ptr, data.Count, FLAGS_NONE, out vs);
+					ReadUnsafe(ptr, data.Count, out vs);
 					return true;
 				}
 			}
 		}
 
-		/// <summary>Parse a VersionStamp from a sequence of 10 bytes</summary>
-		/// <exception cref="FormatException">If the buffer length is not exactly 12 bytes</exception>
-		[Pure]
-		public static VersionStamp ParseIncomplete(Slice data)
-		{
-			return TryParseIncomplete(data, out var vs) ? vs : throw new FormatException("A VersionStamp is either 10 or 12 bytes.");
-		}
-
-		/// <summary>Try parsing a VersionStamp from a sequence of bytes</summary>
-		public static bool TryParseIncomplete(Slice data, out VersionStamp vs)
-		{
-			if (data.Count != 10 && data.Count != 12)
-			{
-				vs = default;
-				return false;
-			}
-			unsafe
-			{
-				fixed (byte* ptr = &data.DangerousGetPinnableReference())
-				{
-					ReadUnsafe(ptr, data.Count, FLAGS_IS_INCOMPLETE, out vs);
-					return true;
-				}
-			}
-		}
-
-		internal static unsafe void ReadUnsafe(byte* ptr, int len, ushort flags, out VersionStamp vs)
+		internal static unsafe void ReadUnsafe(byte* ptr, int len, out VersionStamp vs)
 		{
 			Contract.Debug.Assert(len == 10 || len == 12);
 			// reads a complete 12 bytes Versionstamp
 			ulong ver = UnsafeHelpers.LoadUInt64BE(ptr);
 			ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
 			ushort idx = len == 10 ? NO_USER_VERSION : UnsafeHelpers.LoadUInt16BE(ptr + 10);
-			flags |= len == 12 ? FLAGS_HAS_VERSION : FLAGS_NONE;
+			ushort flags = FLAGS_NONE;
+			if (len == 12) flags |= FLAGS_HAS_VERSION;
+			if ((ver & HSB_VERSION) != 0) flags |= FLAGS_IS_INCOMPLETE;
 			vs = new VersionStamp(ver, order, idx, flags);
 		}
 

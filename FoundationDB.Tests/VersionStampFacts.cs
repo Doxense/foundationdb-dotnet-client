@@ -109,7 +109,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.UserVersion, Is.EqualTo(123));
-				Assert.That(vs.IsIncomplete, Is.False, "NOTE: reading stamps is only supposed to happen for stamps already in the database!");
+				Assert.That(vs.IsIncomplete, Is.True);
 			}
 
 			{

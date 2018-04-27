@@ -848,10 +848,8 @@ namespace FoundationDB.Client.Native
 				stamp = default;
 				return err;
 			}
-			//note: we assume that this is a complete stamp read from the database.
-			//BUGBUG: if the code serialize an incomplete stamp into a tuple, and unpacks it (logging?) it MAY be changed into a complete one!
-			// => we could check for the 'all FF' signature, but this only works for default incomplete tokens, not custom incomplete tokens !
-			VersionStamp.ReadUnsafe(ptr, 10, /*FLAGS_NONE*/0, out stamp);
+
+			VersionStamp.ReadUnsafe(ptr, 10, out stamp);
 			return err;
 		}
 
