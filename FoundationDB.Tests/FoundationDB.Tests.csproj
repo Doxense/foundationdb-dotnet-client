@@ -30,6 +30,7 @@
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -42,6 +43,7 @@
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -93,6 +95,7 @@
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
+    <Compile Include="Utils\TuPackFacts.cs" />
     <Compile Include="Utils\TypeConvertersFacts.cs" />
     <Compile Include="Utils\SliceComparerFacts.cs" />
     <Compile Include="Utils\SliceStreamFacts.cs" />
@@ -122,6 +125,7 @@
     <Compile Include="Utils\SliceWriterFacts.cs" />
     <Compile Include="Utils\ConversionFacts.cs" />
     <Compile Include="Linq\AsyncEnumerableFacts.cs" />
+    <Compile Include="VersionStampFacts.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

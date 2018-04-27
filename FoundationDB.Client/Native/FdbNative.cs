@@ -51,7 +51,6 @@ namespace FoundationDB.Client.Native
 		private const string FDB_C_DLL = "fdb_c.dll";
 #endif
 
-
 		/// <summary>Handle on the native FDB C API library</summary>
 		private static readonly UnmanagedLibrary FdbCLib;
 
@@ -168,6 +167,9 @@ namespace FoundationDB.Client.Native
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_get_committed_version(TransactionHandle transaction, out long version);
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_versionstamp(TransactionHandle transaction);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_watch(TransactionHandle transaction, byte* keyName, int keyNameLength);
@@ -531,6 +533,16 @@ namespace FoundationDB.Client.Native
 			return future;
 		}
 
+		public static FutureHandle TransactionGetVersionStamp(TransactionHandle transaction)
+		{
+			var future = NativeMethods.fdb_transaction_get_versionstamp(transaction);
+			Contract.Assert(future != null);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_transaction_get_versionstamp(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+#endif
+			return future;
+		}
+
 		public static FutureHandle TransactionWatch(TransactionHandle transaction, Slice key)
 		{
 			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
@@ -819,6 +831,25 @@ namespace FoundationDB.Client.Native
 				}
 			}
 
+			return err;
+		}
+
+		public static FdbError FutureGetVersionStamp(FutureHandle future, out VersionStamp stamp)
+		{
+			byte* ptr;
+			int keyLength;
+			var err = NativeMethods.fdb_future_get_key(future, out ptr, out keyLength);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
+#endif
+
+			if (keyLength != 10 || ptr == null)
+			{
+				stamp = default;
+				return err;
+			}
+
+			VersionStamp.ReadUnsafe(ptr, 10, out stamp);
 			return err;
 		}
 

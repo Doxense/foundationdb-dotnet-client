@@ -312,6 +312,14 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
+		public override Task<VersionStamp> GetVersionStampAsync()
+		{
+			return ExecuteAsync(
+				new FdbTransactionLog.GetVersionStampCommand(),
+				(tr, cmd) => tr.GetVersionStampAsync()
+			);
+		}
+
 		public override void Set(Slice key, Slice value)
 		{
 			Execute(

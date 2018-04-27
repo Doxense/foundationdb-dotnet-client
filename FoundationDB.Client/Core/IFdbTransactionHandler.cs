@@ -61,6 +61,9 @@ namespace FoundationDB.Client.Core
 		/// </remarks>
 		long GetCommittedVersion();
 
+		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
+		Task<VersionStamp> GetVersionStampAsync(CancellationToken ct);
+
 		/// <summary>Sets the snapshot read version used by a transaction. This is not needed in simple cases.</summary>
 		/// <param name="version">Read version to use in this transaction</param>
 		/// <remarks>
