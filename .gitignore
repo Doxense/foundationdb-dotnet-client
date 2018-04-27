@@ -38,3 +38,8 @@ fdb_c.dll
 /build/tools/
 /build/output/
 
+# JetBrains
+.idea
+
+# OSX
+.DS_Store
