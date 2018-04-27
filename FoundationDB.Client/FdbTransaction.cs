@@ -306,17 +306,18 @@ namespace FoundationDB.Client
 			// Since this is supposed to be a version number with a ~1M tickrate per seconds, we will play it safe, and force the 8 highest bits to 1,
 			// meaning that we only reduce the database potential lifetime but 1/256th, before getting into trouble.
 			//
-			// By doing some empirical testing, it also seems that the last 16 bits are a transction batch order which is usually a low number.
+			// By doing some empirical testing, it also seems that the last 16 bits are a transaction batch order which is usually a low number.
 			// Again, we will force the 4 highest bit to 1 to reduce the change of collision with a complete version stamp.
 			//
 			// So the final token will look like:  'FF xx xx xx xx xx xx xx Fy yy', were 'x' is the random token, and 'y' will lowest 12 bits of the transaction retry count
 
-			var rnd = new Random(); //TODO: singleton? (need locking!!)
 			ulong x;
 			unsafe
 			{
-				double r = rnd.NextDouble();
-				x = *(ulong*) &r;
+				// use a 128-bit guid as the source of entropy for our new token
+				Guid rnd = Guid.NewGuid();
+				ulong* p = (ulong*) &rnd;
+				x = p[0] ^ p[1];
 			}
 			x |= 0xFF00000000000000UL;
 

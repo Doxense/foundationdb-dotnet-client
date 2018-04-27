@@ -2000,7 +2000,7 @@ namespace FoundationDB.Client.Tests
 				{
 					// should return a 80-bit incomplete stamp, using a random token
 					var x = tr.CreateVersionStamp();
-					Log($"> x  : {x} with token '{x.ToSlice():X}'");
+					Log($"> x  : {x.ToSlice():X} => {x}");
 					Assert.That(x.IsIncomplete, Is.True, "Placeholder token should be incomplete");
 					Assert.That(x.HasUserVersion, Is.False);
 					Assert.That(x.UserVersion, Is.Zero);
