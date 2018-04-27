@@ -37,6 +37,7 @@ namespace Doxense.Collections.Tuples
 	using System.Text;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization;
 	using JetBrains.Annotations;
 
 	/// <summary>Factory class for Tuples</summary>

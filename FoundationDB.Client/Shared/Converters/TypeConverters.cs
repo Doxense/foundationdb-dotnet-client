@@ -36,6 +36,7 @@ namespace Doxense.Runtime.Converters
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class to convert object from one type to another</summary>

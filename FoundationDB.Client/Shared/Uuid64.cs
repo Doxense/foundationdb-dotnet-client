@@ -36,7 +36,6 @@ namespace System
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using Doxense;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
