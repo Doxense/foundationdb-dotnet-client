@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq;
@@ -76,8 +77,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			// look for well-known types that have their own (non-generic) TuplePackers.SerializeTo(...) method
-			var typeArgs = new[] { typeof(TupleWriter).MakeByRefType(), type };
-			var method = typeof(TuplePackers).GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: typeArgs, modifiers: null);
+			var method = typeof(TuplePackers).GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: new[] { typeof(TupleWriter).MakeByRefType(), type }, modifiers: null);
 			if (method != null)
 			{ // we have a direct serializer
 				return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
@@ -97,7 +97,17 @@ namespace Doxense.Collections.Tuples.Encoding
 			// maybe it is a tuple ?
 			if (typeof(ITuple).IsAssignableFrom(type))
 			{
-				// If so, try to use the corresponding TuplePackers.SerializeTupleTo(...) method
+				if (type == typeof(STuple) || (type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal) && type.Namespace == typeof(STuple).Namespace))
+				{ // well-known STuple<T...> struct
+					var typeArgs = type.GetGenericArguments();
+					method = FindSTupleSerializerMethod(typeArgs);
+					if (method != null)
+					{
+						return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					}
+				}
+
+				// will use the default ITuple implementation
 				method = typeof(TuplePackers).GetMethod(nameof(SerializeTupleTo), BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
@@ -116,9 +126,10 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-			if ((type.Name == nameof(System.ValueTuple) || type.Name.StartsWith(nameof(System.ValueTuple) + "`", StringComparison.Ordinal)) && type.Namespace == "System")
+			// ValueTuple<T..>
+			if (type == typeof(ValueTuple) || (type.Name.StartsWith(nameof(System.ValueTuple) + "`", StringComparison.Ordinal) && type.Namespace == "System"))
 			{
-				typeArgs = type.GetGenericArguments();
+				var typeArgs = type.GetGenericArguments();
 				method = FindValueTupleSerializerMethod(typeArgs);
 				if (method != null)
 				{
@@ -130,6 +141,15 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			// no luck..
 			return null;
+		}
+
+		private static MethodInfo FindSTupleSerializerMethod(Type[] args)
+		{
+			//note: we want to find the correct SerializeSTuple<...>(ref TupleWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
+			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
+			return typeof(TuplePackers)
+				   .GetMethods(BindingFlags.Static | BindingFlags.Public)
+				   .SingleOrDefault(m => m.Name == nameof(SerializeSTupleTo) && m.GetGenericArguments().Length == args.Length);
 		}
 
 		private static MethodInfo FindValueTupleSerializerMethod(Type[] args)
@@ -220,149 +240,65 @@ namespace Doxense.Collections.Tuples.Encoding
 				TupleParser.WriteNil(ref writer);
 				return;
 			}
+			GetBoxedEncoder(value.GetType())(ref writer, value);
+		}
 
-			switch (Type.GetTypeCode(value.GetType()))
+		private static Encoder<object> GetBoxedEncoder(Type type)
+		{
+			if (!BoxedEncoders.TryGetValue(type, out var encoder))
 			{
-				case TypeCode.Empty:
-				case TypeCode.Object:
-				{
-					if (value is byte[] bytes)
-					{
-						SerializeTo(ref writer, bytes);
-						return;
-					}
-
-					if (value is Slice slice)
-					{
-						SerializeTo(ref writer, slice);
-						return;
-					}
-
-					if (value is Guid g)
-					{
-						SerializeTo(ref writer, g);
-						return;
-					}
-
-					if (value is Uuid128 u128)
-					{
-						SerializeTo(ref writer, u128);
-						return;
-					}
-
-					if (value is Uuid64 u64)
-					{
-						SerializeTo(ref writer, u64);
-						return;
-					}
-
-					if (value is TimeSpan ts)
-					{
-						SerializeTo(ref writer, ts);
-						return;
-					}
-
-					break;
-				}
-				case TypeCode.DBNull:
-				{ // same as null
-					TupleParser.WriteNil(ref writer);
-					return;
-				}
-				case TypeCode.Boolean:
-				{
-					SerializeTo(ref writer, (bool)value);
-					return;
-				}
-				case TypeCode.Char:
-				{
-					// should be treated as a string with only one char
-					SerializeTo(ref writer, (char)value);
-					return;
-				}
-				case TypeCode.SByte:
-				{
-					SerializeTo(ref writer, (sbyte)value);
-					return;
-				}
-				case TypeCode.Byte:
-				{
-					SerializeTo(ref writer, (byte)value);
-					return;
-				}
-				case TypeCode.Int16:
-				{
-					SerializeTo(ref writer, (short)value);
-					return;
-				}
-				case TypeCode.UInt16:
-				{
-					SerializeTo(ref writer, (ushort)value);
-					return;
-				}
-				case TypeCode.Int32:
-				{
-					SerializeTo(ref writer, (int)value);
-					return;
-				}
-				case TypeCode.UInt32:
-				{
-					SerializeTo(ref writer, (uint)value);
-					return;
-				}
-				case TypeCode.Int64:
-				{
-					SerializeTo(ref writer, (long)value);
-					return;
-				}
-				case TypeCode.UInt64:
-				{
-					SerializeTo(ref writer, (ulong)value);
-					return;
-				}
-				case TypeCode.String:
-				{
-					SerializeTo(ref writer, value as string);
-					return;
-				}
-				case TypeCode.DateTime:
-				{
-					SerializeTo(ref writer, (DateTime)value);
-					return;
-				}
-				case TypeCode.Double:
-				{
-					SerializeTo(ref writer, (double)value);
-					return;
-				}
-				case TypeCode.Single:
-				{
-					SerializeTo(ref writer, (float)value);
-					return;
-				}
-				case TypeCode.Decimal:
-				{
-					SerializeTo(ref writer, (decimal)value);
-					return;
-				}
+				encoder = CreateBoxedEncoder(type);
+				BoxedEncoders.TryAdd(type, encoder);
 			}
+			return encoder;
+		}
 
-			if (value is ITuple tuple)
+		private static ConcurrentDictionary<Type, Encoder<object>> BoxedEncoders { get; } = GetDefaultBoxedEncoders();
+
+		private static ConcurrentDictionary<Type, Encoder<object>> GetDefaultBoxedEncoders()
+		{
+			var encoders = new ConcurrentDictionary<Type, Encoder<object>>
 			{
-				SerializeTupleTo(ref writer, tuple);
-				return;
-			}
+				[typeof(bool)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (bool) value),
+				[typeof(char)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (char) value),
+				[typeof(string)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (string) value),
+				[typeof(sbyte)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (sbyte) value),
+				[typeof(short)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (short) value),
+				[typeof(int)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (int) value),
+				[typeof(long)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (long) value),
+				[typeof(byte)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (byte) value),
+				[typeof(ushort)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (ushort) value),
+				[typeof(uint)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (uint) value),
+				[typeof(ulong)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (ulong) value),
+				[typeof(float)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (float) value),
+				[typeof(double)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (double) value),
+				[typeof(decimal)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (decimal) value),
+				[typeof(Slice)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Slice) value),
+				[typeof(byte[])] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (byte[]) value),
+				[typeof(Guid)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Guid) value),
+				[typeof(Uuid128)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid128) value),
+				[typeof(Uuid64)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid64) value),
+				[typeof(TimeSpan)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (TimeSpan) value),
+				[typeof(DateTime)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTime) value),
+				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTimeOffset) value),
+				[typeof(ITuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
+				[typeof(ITupleFormattable)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
+				[typeof(DBNull)] = (ref TupleWriter writer, object value) => TupleParser.WriteNil(ref writer)
+			};
 
-			if (value is ITupleFormattable fmt)
-			{
-				tuple = fmt.ToTuple();
-				if (tuple == null) throw new InvalidOperationException($"An instance of type '{value.GetType().Name}' returned a null Tuple while serialiazing");
-				SerializeTupleTo(ref writer, tuple);
-				return;
-			}
+			return encoders;
+		}
 
-			// Not Supported ?
-			throw new NotSupportedException($"Doesn't know how to serialize objects of type '{value.GetType().Name}' into Tuple Encoding format");
+		private static Encoder<object> CreateBoxedEncoder(Type type)
+		{
+			var m = typeof(TuplePacker<>).MakeGenericType(type).GetMethod(nameof(TuplePacker<int>.SerializeBoxedTo));
+			Contract.Assert(m != null);
+
+			var writer = Expression.Parameter(typeof(TupleWriter).MakeByRefType(), "writer");
+			var value = Expression.Parameter(typeof(object), "value");
+
+			var body = Expression.Call(m, writer, value);
+			return Expression.Lambda<Encoder<object>>(body, writer, value).Compile();
 		}
 
 		/// <summary>Writes a slice as a byte[] array</summary>
@@ -564,6 +500,74 @@ namespace Doxense.Collections.Tuples.Encoding
 			where TTuple : ITuple
 		{
 			Contract.Requires(tuple != null);
+
+			TupleParser.BeginTuple(ref writer);
+			TupleEncoder.WriteTo(ref writer, tuple);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeSTupleTo<T1>(ref TupleWriter writer, STuple<T1> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeSTupleTo<T1, T2>(ref TupleWriter writer, STuple<T1, T2> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeSTupleTo<T1, T2, T3>(ref TupleWriter writer, STuple<T1, T2, T3> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeSTupleTo<T1, T2, T3, T4>(ref TupleWriter writer, STuple<T1, T2, T3, T4> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			SerializeTo(ref writer, tuple.Item4);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeSTupleTo<T1, T2, T3, T4, T5>(ref TupleWriter writer, STuple<T1, T2, T3, T4, T5> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			SerializeTo(ref writer, tuple.Item4);
+			SerializeTo(ref writer, tuple.Item5);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeSTupleTo<T1, T2, T3, T4, T5, T6>(ref TupleWriter writer, STuple<T1, T2, T3, T4, T5, T6> tuple)
+		{
+			TupleParser.BeginTuple(ref writer);
+			SerializeTo(ref writer, tuple.Item1);
+			SerializeTo(ref writer, tuple.Item2);
+			SerializeTo(ref writer, tuple.Item3);
+			SerializeTo(ref writer, tuple.Item4);
+			SerializeTo(ref writer, tuple.Item5);
+			SerializeTo(ref writer, tuple.Item6);
+			TupleParser.EndTuple(ref writer);
+		}
+
+		public static void SerializeTupleFormattableTo<TFormattable>(ref TupleWriter writer, TFormattable formattable)
+			where TFormattable : ITupleFormattable
+		{
+			var tuple = formattable.ToTuple();
+			if (tuple == null) throw new InvalidOperationException($"An instance of type '{formattable.GetType().Name}' returned a null Tuple while serialiazing");
 
 			TupleParser.BeginTuple(ref writer);
 			TupleEncoder.WriteTo(ref writer, tuple);

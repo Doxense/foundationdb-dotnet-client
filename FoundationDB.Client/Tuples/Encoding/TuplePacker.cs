@@ -57,6 +57,11 @@ namespace Doxense.Collections.Tuples.Encoding
 			Encoder(ref writer, value);
 		}
 
+		public static void SerializeBoxedTo(ref TupleWriter writer, object value)
+		{
+			Encoder(ref writer, (T) value);
+		}
+
 		/// <summary>Serialize a <typeparamref name="T"/> into a binary buffer</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Value that will be serialized</param>
