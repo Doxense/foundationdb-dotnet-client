@@ -78,17 +78,29 @@ namespace FoundationDB.Client.Native
 			[DllImport(LIBDL)]
 			public static extern SafeLibraryHandle dlopen(string fileName, int flags);
 
+
+			[DllImport(LIBDL, SetLastError = true)]
+			[return: MarshalAs(UnmanagedType.Bool)]
+			public static extern int dlclose(IntPtr hModule);
+
 #if __MonoCS__
 
 			public static SafeLibraryHandle LoadPlatformLibrary(string fileName)
 			{
 				return dlopen(fileName, 1);
 			}
+			public static bool FreePlatformLibrary(IntPtr hModule) { return dlclose(hModule) == 0; }
+
 #else
 			const string KERNEL = "kernel32";
 
 			[DllImport(KERNEL, CharSet = CharSet.Auto, BestFitMapping = false, SetLastError = true)]
 			public static extern SafeLibraryHandle LoadLibrary(string fileName);
+
+			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+			[DllImport(KERNEL, SetLastError = true)]
+			[return: MarshalAs(UnmanagedType.Bool)]
+			public static extern bool FreeLibrary(IntPtr hModule);
 
 			public static SafeLibraryHandle LoadPlatformLibrary(string fileName) 
 			{
@@ -97,6 +109,15 @@ namespace FoundationDB.Client.Native
 					return LoadLibrary(fileName);
 				}
 				return dlopen(fileName, 1);
+			}
+
+			public static bool FreePlatformLibrary(IntPtr hModule)
+			{
+				if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				{
+					return FreeLibrary(hModule);
+				}
+				return return dlclose(hModule) == 0;
 			}
 #endif
 		}
