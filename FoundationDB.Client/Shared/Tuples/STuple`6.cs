@@ -47,7 +47,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T5">Type of the 5th item</typeparam>
 	/// <typeparam name="T6">Type of the 5th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2, T3, T4, T5, T6> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<(T1, T2, T3, T4, T5, T6)>
+	public readonly struct STuple<T1, T2, T3, T4, T5, T6> : ITuple, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<(T1, T2, T3, T4, T5, T6)>
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -136,17 +136,6 @@ namespace Doxense.Collections.Tuples
 			[Pure]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return new STuple<T2, T3, T4, T5, T6>(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6); }
-		}
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void PackTo(ref TupleWriter writer)
-		{
-			TupleSerializer<T1, T2, T3, T4, T5, T6>.Default.PackTo(ref writer, in this);
 		}
 
 		ITuple ITuple.Append<T7>(T7 value)

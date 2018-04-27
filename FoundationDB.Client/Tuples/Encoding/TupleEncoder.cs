@@ -462,7 +462,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			tuple.PackTo(ref writer);
+			TupleSerializer<T1>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
 
@@ -471,7 +471,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			tuple.PackTo(ref writer);
+			TupleSerializer<T1, T2>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
 
@@ -480,7 +480,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			tuple.PackTo(ref writer);
+			TupleSerializer<T1, T2, T3>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
 
@@ -489,7 +489,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			tuple.PackTo(ref writer);
+			TupleSerializer<T1, T2, T3, T4>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
 
@@ -498,7 +498,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			tuple.PackTo(ref writer);
+			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
 
@@ -507,7 +507,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			tuple.PackTo(ref writer);
+			TupleSerializer<T1, T2, T3, T4, T5, T6>.Default.PackTo(ref writer, tuple);
 			return writer.Output.ToSlice();
 		}
 

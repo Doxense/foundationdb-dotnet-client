@@ -42,7 +42,7 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public readonly struct STuple : ITuple, ITupleSerializable
+	public readonly struct STuple : ITuple
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -72,16 +72,6 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNull(tuple, nameof(tuple));
 			if (tuple.Count == 0) return this;
 			return tuple;
-		}
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		internal void PackTo(ref TupleWriter writer)
-		{
-			//NO-OP
 		}
 
 		public void CopyTo(object[] array, int offset)

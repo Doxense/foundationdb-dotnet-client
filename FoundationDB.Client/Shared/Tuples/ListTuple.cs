@@ -38,7 +38,7 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
-	public sealed class ListTuple : ITuple, ITupleSerializable
+	public sealed class ListTuple : ITuple
 	{
 		// We could use a ListTuple<T> for tuples where all items are of type T, and ListTuple could derive from ListTuple<object>.
 		// => this could speed up a bit the use case of STuple.FromArray<T> or STuple.FromSequence<T>
@@ -222,24 +222,6 @@ namespace Doxense.Collections.Tuples
 			while (count-- > 0)
 			{
 				yield return items[offset++];
-			}
-		}
-
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		internal void PackTo(ref TupleWriter writer)
-		{
-			//REVIEW: this is VERY slow!
-			int count = m_count;
-			var items = m_items;
-			int offset = m_offset;
-			for (int i = 0; i < count; i++)
-			{
-				TuplePackers.SerializeObjectTo(ref writer, items[i + offset]);
 			}
 		}
 

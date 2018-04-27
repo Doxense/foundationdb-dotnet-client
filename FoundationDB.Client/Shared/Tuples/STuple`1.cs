@@ -42,7 +42,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1> : ITuple, ITupleSerializable, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
+	public readonly struct STuple<T1> : ITuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -80,17 +80,6 @@ namespace Doxense.Collections.Tuples
 		{
 			if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
 			return TypeConverters.Convert<T1, TItem>(this.Item1);
-		}
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void PackTo(ref TupleWriter writer)
-		{
-			TupleSerializer<T1>.Default.PackTo(ref writer, in this);
 		}
 
 		ITuple ITuple.Append<T2>(T2 value)

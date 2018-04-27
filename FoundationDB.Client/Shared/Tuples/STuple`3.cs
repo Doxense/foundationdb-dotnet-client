@@ -44,7 +44,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1, T2, T3> : ITuple, ITupleSerializable, IEquatable<STuple<T1, T2, T3>>, IEquatable<(T1, T2, T3)>
+	public readonly struct STuple<T1, T2, T3> : ITuple, IEquatable<STuple<T1, T2, T3>>, IEquatable<(T1, T2, T3)>
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -115,17 +115,6 @@ namespace Doxense.Collections.Tuples
 			[Pure]
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return new STuple<T2, T3>(this.Item2, this.Item3); }
-		}
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void PackTo(ref TupleWriter writer)
-		{
-			TupleSerializer<T1, T2, T3>.Default.PackTo(ref writer, in this);
 		}
 
 		ITuple ITuple.Append<T4>(T4 value)

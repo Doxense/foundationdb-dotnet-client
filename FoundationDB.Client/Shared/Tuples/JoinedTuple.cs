@@ -39,7 +39,7 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public sealed class JoinedTuple : ITuple, ITupleSerializable
+	public sealed class JoinedTuple : ITuple
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
@@ -64,18 +64,6 @@ namespace Doxense.Collections.Tuples
 			this.Tail = tail;
 			m_split = head.Count;
 			m_count = m_split + tail.Count;
-		}
-
-
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		internal void PackTo(ref TupleWriter writer)
-		{
-			TupleEncoder.WriteTo(ref writer, this.Head);
-			TupleEncoder.WriteTo(ref writer, this.Tail);
 		}
 
 		public override string ToString()

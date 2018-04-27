@@ -38,7 +38,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public sealed class LinkedTuple<T> : ITuple, ITupleSerializable
+	public sealed class LinkedTuple<T> : ITuple
 	{
 		//TODO: consider changing this to a struct ?
 
@@ -62,19 +62,6 @@ namespace Doxense.Collections.Tuples
 			this.Head = head;
 			this.Tail = tail;
 			this.Depth = head.Count;
-		}
-
-		/// <summary>Pack this tuple into a buffer</summary>
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
-		{
-			PackTo(ref writer);
-		}
-
-		/// <summary>Pack this tuple into a buffer</summary>
-		internal void PackTo(ref TupleWriter writer)
-		{
-			TupleEncoder.WriteTo(ref writer, this.Head);
-			TuplePacker<T>.SerializeTo(ref writer, this.Tail);
 		}
 
 		/// <summary>Returns the number of elements in this tuple</summary>
