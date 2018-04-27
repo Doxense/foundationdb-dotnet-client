@@ -594,14 +594,6 @@ namespace System
 			return value.ToSlice();
 		}
 
-		/// <summary>Encoding used to produce ASCII slices</summary>
-		[NotNull]
-		internal static readonly ASCIIEncoding AsciiEncoding = new ASCIIEncoding();
-
-		/// <summary>Encoding used to produce ANSI slices</summary>
-		[NotNull]
-		internal static readonly Encoding DefaultEncoding = Encoding.Default;
-
 		/// <summary>Encoding used to produce UTF-8 slices</summary>
 		[NotNull]
 		internal static readonly UTF8Encoding Utf8NoBomEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -616,7 +608,7 @@ namespace System
 		{
 			return text == null ? Slice.Nil
 				 : text.Length == 0 ? Slice.Empty
-				 : new Slice(DefaultEncoding.GetBytes(text));
+				 : new Slice(Encoding.Default.GetBytes(text));
 		}
 
 		/// <summary>Create a slice from an ASCII string, where all the characters map directory into bytes (0..255). The string will be checked before being encoded.</summary>
@@ -1426,7 +1418,7 @@ namespace System
 		{
 			if (this.Count == 0) return this.Array != null ? String.Empty : default(string);
 			//note: Encoding.GetString() will do the bound checking for us
-			return Slice.DefaultEncoding.GetString(this.Array, this.Offset, this.Count);
+			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Stringify a slice containing 7-bit ASCII characters only</summary>

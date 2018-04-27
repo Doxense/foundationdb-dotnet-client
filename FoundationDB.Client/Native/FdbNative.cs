@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Native
 	using System.IO;
 	using System.Runtime.ExceptionServices;
 	using System.Runtime.InteropServices;
+	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 
 	internal static unsafe class FdbNative
@@ -303,11 +304,11 @@ namespace FoundationDB.Client.Native
 			if (nullTerminated)
 			{ // NULL terminated ANSI string
 				result = new byte[value.Length + 1];
-				Slice.DefaultEncoding.GetBytes(value, 0, value.Length, result, 0);
+				Encoding.Default.GetBytes(value, 0, value.Length, result, 0);
 			}
 			else
 			{
-				result = Slice.DefaultEncoding.GetBytes(value);
+				result = Encoding.Default.GetBytes(value);
 			}
 			return Slice.CreateUnsafe(result, 0, result.Length);
 		}
