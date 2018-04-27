@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
+	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
@@ -425,18 +426,63 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Min);
 		}
 
+		private static int GetVersionStampOffset(Slice buffer, Slice token, string argName)
+		{
+			// the buffer MUST contain one incomplete stamp, either the random token of the current transsaction or the default token (all-FF)
+
+			int p = token.HasValue ? buffer.IndexOf(token) : -1;
+			if (p >= 0)
+			{ // found a candidate spot, we have to make sure that it is only present once in the key!
+
+				if (buffer.IndexOf(token, p + token.Count) >= 0)
+				{
+					if (argName == "key")
+						throw new ArgumentException("The key should only contain one occurrence of a VersionStamp.", argName);
+					else
+						throw new ArgumentException("The value should only contain one occurrence of a VersionStamp.", argName);
+				}
+			}
+			else
+			{ // not found, maybe it is using the default incomplete stamp (all FF) ?
+				p = buffer.IndexOf(VersionStamp.IncompleteToken);
+				if (p < 0)
+				{
+					if (argName == "key")
+						throw new ArgumentException("The key should contain at least one VersionStamp.", argName);
+					else 
+						throw new ArgumentException("The value should contain at least one VersionStamp.", argName);
+				}
+			}
+			Contract.Assert(p >= 0 && p + token.Count <= buffer.Count);
+
+			return p;
+		}
+
 		//TODO: XML Comments!
 		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
-			trans.Atomic(key, value, FdbMutationType.VersionStampedKey);
+			//TODO: PERF: optimize this to not have to allocate!
+			var token = trans.CreateVersionStamp().ToSlice();
+			var offset = GetVersionStampOffset(key, token, nameof(key));
+
+			var writer = new SliceWriter(key.Count + 2);
+			writer.WriteBytes(key);
+			writer.WriteFixed16(checked((ushort) offset)); //note: currently stored as 16-bits in Little Endian
+
+			trans.Atomic(writer.ToSlice(), value, FdbMutationType.VersionStampedKey);
 		}
 
-		//TODO: XML Comments!
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value whose first 10 bytes will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
 		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
 			Contract.NotNull(trans, nameof(trans));
+
+			if (value.Count < 10) throw new ArgumentException("The value must be at least 10 bytes long.", nameof(value));
 
 			trans.Atomic(key, value, FdbMutationType.VersionStampedValue);
 		}

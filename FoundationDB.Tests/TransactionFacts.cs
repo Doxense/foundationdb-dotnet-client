@@ -36,8 +36,6 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using Doxense.Memory;
 
 	[TestFixture]
 	public class TransactionFacts : FdbTest
@@ -1992,6 +1990,77 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_VersionStamps_Share_The_Same_Token_Per_Transaction_Attempt()
+		{
+			// Veryify that we can set versionstamped keys inside a transaction
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					// should return a 80-bit incomplete stamp, using a random token
+					var x = tr.CreateVersionStamp();
+					Log($"> x  : {x} with token '{x.ToSlice():X}'");
+					Assert.That(x.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x.HasUserVersion, Is.False);
+					Assert.That(x.UserVersion, Is.Zero);
+					Assert.That(x.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
+					Assert.That(x.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
+
+					// should return a 96-bit incomplete stamp, using a the same random token and user version 0
+					var x0 = tr.CreateVersionStamp(0);
+					Log($"> x0 : {x0.ToSlice():X} => {x0}");
+					Assert.That(x0.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x0.TransactionVersion, Is.EqualTo(x.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x0.TransactionOrder, Is.EqualTo(x.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x0.HasUserVersion, Is.True);
+					Assert.That(x0.UserVersion, Is.EqualTo(0));
+
+					// should return a 96-bit incomplete stamp, using a the same random token and user version 1
+					var x1 = tr.CreateVersionStamp(1);
+					Log($"> x1 : {x1.ToSlice():X} => {x1}");
+					Assert.That(x1.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x1.TransactionVersion, Is.EqualTo(x.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x1.TransactionOrder, Is.EqualTo(x.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x1.HasUserVersion, Is.True);
+					Assert.That(x1.UserVersion, Is.EqualTo(1));
+
+					// should return a 96-bit incomplete stamp, using a the same random token and user version 42
+					var x42 = tr.CreateVersionStamp(42);
+					Log($"> x42: {x42.ToSlice():X} => {x42}");
+					Assert.That(x42.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x42.TransactionVersion, Is.EqualTo(x.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x42.TransactionOrder, Is.EqualTo(x.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x42.HasUserVersion, Is.True);
+					Assert.That(x42.UserVersion, Is.EqualTo(42));
+
+					// Reset the transaction
+					// => stamps should use a new value
+					Log("Reset!");
+					tr.Reset();
+
+					var y = tr.CreateVersionStamp();
+					Log($"> y  : {y.ToSlice():X} => {y}'");
+					Assert.That(y, Is.Not.EqualTo(x), "VersionStamps should change when a transaction is reset");
+
+					Assert.That(y.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(y.HasUserVersion, Is.False);
+					Assert.That(y.UserVersion, Is.Zero);
+					Assert.That(y.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
+					Assert.That(y.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
+
+					var y42 = tr.CreateVersionStamp(42);
+					Log($"> y42: {y42.ToSlice():X} => {y42}");
+					Assert.That(y42.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(y42.TransactionVersion, Is.EqualTo(y.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(y42.TransactionOrder, Is.EqualTo(y.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(y42.HasUserVersion, Is.True);
+					Assert.That(y42.UserVersion, Is.EqualTo(42));
+				}
+			}
+		}
+
+		[Test]
 		public async Task Test_VersionStamp_Operations()
 		{
 			// Veryify that we can set versionstamped keys inside a transaction
@@ -2007,60 +2076,23 @@ namespace FoundationDB.Client.Tests
 				Log("Inserting keys with version stamps:");
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					//TODO: HACKACK: until we add support to he transaction itself, we have to 'patch' the versionstamps by hand!
-					Slice HACKHACK_Stampify(Slice key)
-					{
-						// find the stamp byte sequence in the key
-						var x = tr.CreateVersionStamp().ToSlice();
-						int p = key.IndexOf(x);
-						Assert.That(p, Is.GreaterThan(0), "Stamp pattern was not found in the key!");
 
-						// append the offset at the end
-						var writer = new SliceWriter(key.Count + 2);
-						writer.WriteBytes(key);
-						writer.WriteFixed16((ushort) p); //note: the offset is Little Endian!
-						var y = writer.ToSlice();
-
-						//Log(y.ToHexaString(' ') + " | " + location.Keys.Dump(y));
-						return y;
-					}
-
+					// should return a 80-bit incomplete stamp, using a random token
 					var vs = tr.CreateVersionStamp();
 					Log($"> placeholder stamp: {vs} with token '{vs.ToSlice():X}'");
-					Assert.That(vs.IsIncomplete, Is.True, "Placeholder token should be incomplete");
-					Assert.That(vs.HasUserVersion, Is.False);
-					Assert.That(vs.UserVersion, Is.Zero);
-					Assert.That(vs.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
-					Assert.That(vs.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
-
-					var vs0 = tr.CreateVersionStamp(0);
-					Assert.That(vs0.IsIncomplete, Is.True, "Placeholder token should be incomplete");
-					Assert.That(vs0.TransactionVersion, Is.EqualTo(vs.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
-					Assert.That(vs0.TransactionOrder, Is.EqualTo(vs.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
-					Assert.That(vs0.HasUserVersion, Is.True);
-					Assert.That(vs0.UserVersion, Is.EqualTo(0));
-
-					var vs1 = tr.CreateVersionStamp(1);
-					Assert.That(vs1.IsIncomplete, Is.True, "Placeholder token should be incomplete");
-					Assert.That(vs1.TransactionVersion, Is.EqualTo(vs.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
-					Assert.That(vs1.TransactionOrder, Is.EqualTo(vs.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
-					Assert.That(vs1.HasUserVersion, Is.True);
-					Assert.That(vs1.UserVersion, Is.EqualTo(1));
-
-					var vs42 = tr.CreateVersionStamp(42);
-					Assert.That(vs42.IsIncomplete, Is.True, "Placeholder token should be incomplete");
-					Assert.That(vs42.TransactionVersion, Is.EqualTo(vs.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
-					Assert.That(vs42.TransactionOrder, Is.EqualTo(vs.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
-					Assert.That(vs42.HasUserVersion, Is.True);
-					Assert.That(vs42.UserVersion, Is.EqualTo(42));
 
 					// a single key using the 80-bit stamp
-					tr.SetVersionStampedKey(HACKHACK_Stampify(location.Keys.Encode("foo", vs, 123)), Slice.FromString("Hello, World!"));
+					tr.SetVersionStampedKey(location.Keys.Encode("foo", vs, 123), Slice.FromString("Hello, World!"));
 
 					// simulate a batch of 3 keys, using 96-bits stamps
-					tr.SetVersionStampedKey(HACKHACK_Stampify(location.Keys.Encode("bar", vs0)), Slice.FromString("Zero"));
-					tr.SetVersionStampedKey(HACKHACK_Stampify(location.Keys.Encode("bar", vs1)), Slice.FromString("One"));
-					tr.SetVersionStampedKey(HACKHACK_Stampify(location.Keys.Encode("bar", vs42)), Slice.FromString("FortyTwo"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(0)), Slice.FromString("Zero"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(1)), Slice.FromString("One"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(42)), Slice.FromString("FortyTwo"));
+
+					// value that contain the stamp
+					var val = Slice.FromString("$$$$$$$$$$Hello World!"); // '$' will be replaced by the stamp
+					Log($"> {val:X}");
+					tr.SetVersionStampedValue(location.Keys.Encode("baz"), val);
 
 					// need to be request BEFORE the commit
 					var vsTask = tr.GetVersionStampAsync();
@@ -2072,6 +2104,8 @@ namespace FoundationDB.Client.Tests
 					vsActual = await vsTask;
 					Log($"> actual stamp: {vsActual} with token '{vsActual.ToSlice():X}'");
 				}
+
+				await DumpSubspace(db, location);
 
 				Log("Checking database content:");
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
@@ -2128,9 +2162,17 @@ namespace FoundationDB.Client.Tests
 						Assert.That(vs42.TransactionVersion, Is.EqualTo(vsActual.TransactionVersion));
 						Assert.That(vs42.TransactionOrder, Is.EqualTo(vsActual.TransactionOrder));
 					}
+
+					{
+						var baz = await tr.GetAsync(location.Keys.Encode("baz"));
+						Log($"> {baz:X}");
+						// ensure that the first 10 bytes have been overwritten with the stamp
+						Assert.That(baz.Count, Is.GreaterThan(0), "Key should be present in the database");
+						Assert.That(baz.StartsWith(vsActual.ToSlice()), Is.True, "The first 10 bytes should match the resolved stamp");
+						Assert.That(baz.Substring(10), Is.EqualTo(Slice.FromString("Hello World!")), "The rest of the slice should be untouched");
+					}
 				}
 
-				await DumpSubspace(db, location);
 			}
 		}
 

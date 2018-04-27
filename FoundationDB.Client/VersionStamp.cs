@@ -57,6 +57,9 @@ namespace FoundationDB.Client
 		private const ushort FLAGS_HAS_VERSION = 0x1; // unset: 80-bits, set: 96-bits
 		private const ushort FLAGS_IS_INCOMPLETE = 0x2; // unset: complete, set: incomplete
 
+		/// <summary>Serialized bytes of the default incomplete stamp (composed of only 0xFF)</summary>
+		internal static readonly Slice IncompleteToken = Slice.Repeat(0xFF, 10);
+
 		/// <summary>Commit version of the transaction</summary>
 		/// <remarks>This value is determined by the database at commit time.</remarks>
 		
