@@ -48,7 +48,7 @@ namespace FoundationDB.Client.Native
 		private const string FDB_C_DLL = "libfdb_c.so";
 #else
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
-		private const string FDB_C_DLL = "fdb_c.dll";
+		private const string FDB_C_DLL = "fdb_c";
 #endif
 
 
