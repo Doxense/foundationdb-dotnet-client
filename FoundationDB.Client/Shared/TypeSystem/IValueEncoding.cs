@@ -29,58 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using Doxense.Collections.Tuples.Encoding;
 	using JetBrains.Annotations;
 
-	/// <summary>Helper class for all key/value encoders</summary>
-	public static partial class KeyValueEncoders
+	public interface IValueEncoding
 	{
+		/// <summary>Returns an encoder which can process values of a fixed type</summary>
+		/// <typeparam name="T1">Type of the element to encode</typeparam>
+		/// <returns>Value encoder</returns>
+		[NotNull]
+		IValueEncoder<T1> GetValueEncoder<T1>();
 
-		/// <summary>Encoders that use the Tuple Encoding, suitable for keys</summary>
-		[PublicAPI]
-		public static class Tuples
-		{
-
-			#region Keys
-
-			[NotNull]
-			public static IKeyEncoder<T1> Key<T1>()
-			{
-				return TupleEncoder.Encoder<T1>.Default;
-			}
-
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2> CompositeKey<T1, T2>()
-			{
-				return TupleEncoder.CompositeEncoder<T1, T2>.Default;
-			}
-
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2, T3> CompositeKey<T1, T2, T3>()
-			{
-				return TupleEncoder.CompositeEncoder<T1, T2, T3>.Default;
-			}
-
-			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2, T3, T4> CompositeKey<T1, T2, T3, T4>()
-			{
-				return TupleEncoder.CompositeEncoder<T1, T2, T3, T4>.Default;
-			}
-
-			#endregion
-
-			#region Values...
-
-			[NotNull]
-			public static IValueEncoder<T> Value<T>()
-			{
-				return TupleEncoder.Encoder<T>.Default;
-			}
-
-			#endregion
-
-		}
-
+		//TODO: DynamicValueValue!
 	}
-
 }

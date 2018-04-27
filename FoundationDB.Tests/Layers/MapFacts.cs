@@ -189,7 +189,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts").UsingEncoder(keyEncoder), KeyValueEncoders.Values.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>

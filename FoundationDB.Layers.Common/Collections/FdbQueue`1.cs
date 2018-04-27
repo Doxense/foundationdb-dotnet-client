@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Collections
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 #if DEBUG
@@ -49,32 +50,26 @@ namespace FoundationDB.Layers.Collections
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
 
-		/// <summary>Create a new High Contention Queue</summary>
+		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
+		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
+		/// <param name="encoder">Encoder for the values stored in this queue</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] KeySubspace subspace)
-			: this(subspace, highContention: true, encoder: KeyValueEncoders.Tuples.Value<T>())
+		public FdbQueue([NotNull] IKeySubspace subspace, bool highContention = true, IValueEncoder<T> encoder = null)
+			: this(subspace.AsDynamic(), highContention, encoder)
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] KeySubspace subspace, bool highContention)
-			: this(subspace, highContention: highContention, encoder: KeyValueEncoders.Tuples.Value<T>())
-		{ }
-
-		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
-		/// <param name="subspace">Subspace where the queue will be stored</param>
-		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		public FdbQueue([NotNull] IKeySubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
+		/// <param name="encoder">Encoder for the values stored in this queue</param>
+		public FdbQueue([NotNull] IDynamicKeySubspace subspace, bool highContention = false, IValueEncoder<T> encoder = null)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
-			this.Subspace = subspace.AsDynamic();
+			this.Subspace = subspace;
 			this.HighContention = highContention;
-			this.Encoder = encoder;
+			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
 
 			//TODO: rewrite this, using FdbEncoderSubpsace<..> !
 			this.ConflictedPop = this.Subspace.Partition.ByKey(Slice.FromStringAscii("pop"));
@@ -83,19 +78,19 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace { [NotNull] get; }
 
 		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
-		public bool HighContention { get; private set; }
+		public bool HighContention { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		public IValueEncoder<T> Encoder { [NotNull] get; private set; }
+		public IValueEncoder<T> Encoder { [NotNull] get; }
 
-		internal IDynamicKeySubspace ConflictedPop { get; private set; }
+		internal IDynamicKeySubspace ConflictedPop { get; }
 
-		internal IDynamicKeySubspace ConflictedItem { get; private set; }
+		internal IDynamicKeySubspace ConflictedItem { get; }
 
-		internal IDynamicKeySubspace QueueItem { get; private set; }
+		internal IDynamicKeySubspace QueueItem { get; }
 
 		/// <summary>Remove all items from the queue.</summary>
 		public void Clear([NotNull] IFdbTransaction trans)

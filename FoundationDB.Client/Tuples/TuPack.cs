@@ -45,7 +45,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Key Encoding that use the Tuple Binary Encoding</summary>
 		[NotNull]
-		public static IKeyEncoding Encoding => TupleKeyEncoding.Instance;
+		public static ITypeSystem Encoding => TupleKeyEncoding.Instance;
 
 		#region Packing...
 

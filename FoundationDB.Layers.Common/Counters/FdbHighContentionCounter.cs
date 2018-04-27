@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Counters
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents an integer value which can be incremented without conflict.
@@ -56,14 +57,14 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="db">Database used by this layer</param>
 		/// <param name="subspace">Subspace to be used for storing the counter</param>
 		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace)
-			: this(db, subspace, KeyValueEncoders.Tuples.Value<long>())
+			: this(db, subspace.AsDynamic(), TuPack.Encoding.GetValueEncoder<long>())
 		{ }
 
 		/// <summary>Create a new High Contention counter, using a specific value encoder.</summary>
 		/// <param name="db">Database used by this layer</param>
 		/// <param name="subspace">Subspace to be used for storing the counter</param>
 		/// <param name="encoder">Encoder for the counter values</param>
-		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace, [NotNull] IValueEncoder<long> encoder)
+		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IDynamicKeySubspace subspace, [NotNull] IValueEncoder<long> encoder)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));

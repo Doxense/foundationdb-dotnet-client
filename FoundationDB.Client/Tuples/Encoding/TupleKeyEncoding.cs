@@ -32,34 +32,56 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>
-	public sealed class TupleKeyEncoding : IKeyEncoding
+	public sealed class TupleKeyEncoding : ITypeSystem
 	{
 
 		public static readonly TupleKeyEncoding Instance = new TupleKeyEncoding();
+		
+		public string Name => "TuPack";
 
-		public IDynamicKeyEncoder GetDynamicEncoder()
+		#region Keys...
+
+		public IDynamicKeyEncoder GetDynamicKeyEncoder()
 		{
 			return TupleKeyEncoder.Instance;
 		}
 
-		public IKeyEncoder<T1> GetEncoder<T1>()
+		public IKeyEncoder<T1> GetKeyEncoder<T1>()
 		{
-			return KeyValueEncoders.Tuples.Key<T1>();
+			return TupleEncoder.Encoder<T1>.Default;
 		}
 
-		public ICompositeKeyEncoder<T1, T2> GetEncoder<T1, T2>()
+		public ICompositeKeyEncoder<T1, T2> GetKeyEncoder<T1, T2>()
 		{
-			return KeyValueEncoders.Tuples.CompositeKey<T1, T2>();
+			return TupleEncoder.CompositeEncoder<T1, T2>.Default;
 		}
 
-		public ICompositeKeyEncoder<T1, T2, T3> GetEncoder<T1, T2, T3>()
+		public ICompositeKeyEncoder<T1, T2, T3> GetKeyEncoder<T1, T2, T3>()
 		{
-			return KeyValueEncoders.Tuples.CompositeKey<T1, T2, T3>();
+			return TupleEncoder.CompositeEncoder<T1, T2, T3>.Default;
 		}
 
-		public ICompositeKeyEncoder<T1, T2, T3, T4> GetEncoder<T1, T2, T3, T4>()
+		public ICompositeKeyEncoder<T1, T2, T3, T4> GetKeyEncoder<T1, T2, T3, T4>()
 		{
-			return KeyValueEncoders.Tuples.CompositeKey<T1, T2, T3, T4>();
+			return TupleEncoder.CompositeEncoder<T1, T2, T3, T4>.Default;
 		}
+
+		public ICompositeKeyEncoder<T1, T2, T3, T4, T5> GetEncoder<T1, T2, T3, T4, T5>()
+		{
+			return TupleEncoder.CompositeEncoder<T1, T2, T3, T4, T5>.Default;
+		}
+
+		public ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> GetEncoder<T1, T2, T3, T4, T5, T6>()
+		{
+			return TupleEncoder.CompositeEncoder<T1, T2, T3, T4, T5, T6>.Default;
+		}
+
+		#endregion
+
+		public IValueEncoder<T1> GetValueEncoder<T1>()
+		{
+			return TupleEncoder.Encoder<T1>.Default;
+		}
+
 	}
 }

@@ -57,35 +57,29 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Location where the map will be stored in the database</param>
 		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
 		public FdbMultiMap(IKeySubspace subspace, bool allowNegativeValues)
-			: this(subspace, allowNegativeValues, KeyValueEncoders.Tuples.CompositeKey<TKey, TValue>())
+			: this(subspace.AsTyped<TKey, TValue>(), allowNegativeValues)
 		{ }
 
 		/// <summary>Create a new multimap, using a specific key and value encoder</summary>
 		/// <param name="subspace">Location where the map will be stored in the database</param>
 		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
 		/// <param name="encoder">Encoder for the key/value pairs</param>
-		public FdbMultiMap(IKeySubspace subspace, bool allowNegativeValues, ICompositeKeyEncoder<TKey, TValue> encoder)
+		public FdbMultiMap(ITypedKeySubspace<TKey, TValue> subspace, bool allowNegativeValues)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
-			this.Subspace = subspace;
 			this.AllowNegativeValues = allowNegativeValues;
-			this.Location = subspace.UsingEncoder(encoder);
+			this.Subspace = subspace;
 		}
 
 		#region Public Properties...
 
-		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		[NotNull] 
-		public IKeySubspace Subspace { get; }
+		/// <summary>Subspace used to encoded the keys for the items</summary>
+		[NotNull]
+		public ITypedKeySubspace<TKey, TValue> Subspace { get; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>
 		public bool AllowNegativeValues { get; }
-
-		/// <summary>Subspace used to encoded the keys for the items</summary>
-		[NotNull]
-		protected ITypedKeySubspace<TKey, TValue> Location { get; }
 
 		#endregion
 
@@ -102,7 +96,7 @@ namespace FoundationDB.Layers.Collections
 			//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.AtomicAdd(this.Location.Keys[key, value], PlusOne);
+			trans.AtomicAdd(this.Subspace.Keys[key, value], PlusOne);
 			return Task.CompletedTask;
 		}
 
@@ -115,7 +109,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			Slice k = this.Location.Keys[key, value];
+			Slice k = this.Subspace.Keys[key, value];
 			if (this.AllowNegativeValues)
 			{
 				trans.AtomicAdd(k, MinusOne);
@@ -143,7 +137,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 		
-			var v = await trans.GetAsync(this.Location.Keys[key, value]).ConfigureAwait(false);
+			var v = await trans.GetAsync(this.Subspace.Keys[key, value]).ConfigureAwait(false);
 			return this.AllowNegativeValues ? v.IsPresent : v.ToInt64() > 0;
 		}
 
@@ -157,7 +151,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			Slice v = await trans.GetAsync(this.Location.Keys[key, value]).ConfigureAwait(false);
+			Slice v = await trans.GetAsync(this.Subspace.Keys[key, value]).ConfigureAwait(false);
 			if (v.IsNullOrEmpty) return null;
 			long c = v.ToInt64();
 			return this.AllowNegativeValues || c > 0 ? c : default(long?);
@@ -172,19 +166,19 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			var range = KeyRange.StartsWith(this.Location.Keys.EncodePartial(key));
+			var range = KeyRange.StartsWith(this.Subspace.Keys.EncodePartial(key));
 			if (this.AllowNegativeValues)
 			{
 				return trans
 					.GetRange(range)
-					.Select(kvp => this.Location.Keys.Decode(kvp.Key).Item2);
+					.Select(kvp => this.Subspace.Keys.Decode(kvp.Key).Item2);
 			}
 			else
 			{
 				return trans
 					.GetRange(range)
 					.Where(kvp => kvp.Value.ToInt64() > 0) // we need to filter out zero or negative values (possible artefacts)
-					.Select(kvp => this.Location.Keys.Decode(kvp.Key).Item2);
+					.Select(kvp => this.Subspace.Keys.Decode(kvp.Key).Item2);
 			}
 		}
 
@@ -204,11 +198,11 @@ namespace FoundationDB.Layers.Collections
 		[NotNull]
 		public IAsyncEnumerable<(TValue Value, long Count)> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
-			var range = KeyRange.StartsWith(this.Location.Keys.EncodePartial(key));
+			var range = KeyRange.StartsWith(this.Subspace.Keys.EncodePartial(key));
 
 			var query = trans
 				.GetRange(range)
-				.Select(kvp => (Value: this.Location.Keys.Decode(kvp.Key).Item2, Count: kvp.Value.ToInt64()));
+				.Select(kvp => (Value: this.Subspace.Keys.Decode(kvp.Key).Item2, Count: kvp.Value.ToInt64()));
 
 			return this.AllowNegativeValues
 				? query
@@ -233,7 +227,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.ClearRange(KeyRange.StartsWith(this.Location.Keys.EncodePartial(key)));
+			trans.ClearRange(KeyRange.StartsWith(this.Subspace.Keys.EncodePartial(key)));
 		}
 
 		/// <summary>Remove a value for a specific key</summary>
@@ -245,7 +239,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.Clear(this.Location.Keys[key, value]);
+			trans.Clear(this.Subspace.Keys[key, value]);
 		}
 
 		#endregion

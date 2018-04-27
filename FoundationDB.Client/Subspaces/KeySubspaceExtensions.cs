@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T> AsTyped<T>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetEncoder<T>());
+			return new TypedKeySubspace<T>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetEncoder<T1, T2>());
+			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetEncoder<T1, T2, T3>());
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetEncoder<T1, T2, T3, T4>());
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>());
 		}
 
 

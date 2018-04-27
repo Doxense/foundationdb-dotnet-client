@@ -42,26 +42,24 @@ namespace FoundationDB.Layers.Documents
 
 		public const int DefaultChunkSize = 1 << 20; // 1 MB
 
-		public FdbDocumentCollection(KeySubspace subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
-			: this(subspace, selector, KeyValueEncoders.Tuples.CompositeKey<TId, int>(), valueEncoder)
+		public FdbDocumentCollection(IKeySubspace subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
+			: this(subspace.AsTyped<TId, int>(), selector, valueEncoder)
 		{ }
 
-		public FdbDocumentCollection(KeySubspace subspace, Func<TDocument, TId> selector, ICompositeKeyEncoder<TId, int> keyEncoder, IValueEncoder<TDocument> valueEncoder)
+		public FdbDocumentCollection(ITypedKeySubspace<TId, int> subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 			if (selector == null) throw new ArgumentNullException(nameof(selector));
-			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
 			this.Subspace = subspace;
 			this.IdSelector = selector;
 			this.ValueEncoder = valueEncoder;
-			this.Location = subspace.UsingEncoder(keyEncoder);
 		}
 
 		protected virtual Task<List<Slice>> LoadPartsAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
-			var key = this.Location.Keys.EncodePartial(id);
+			var key = this.Subspace.Keys.EncodePartial(id);
 
 			return trans
 				.GetRange(KeyRange.StartsWith(key)) //TODO: options ?
@@ -76,9 +74,7 @@ namespace FoundationDB.Layers.Documents
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public KeySubspace Subspace { get; }
-
-		protected ITypedKeySubspace<TId, int> Location { get; }
+		public ITypedKeySubspace<TId, int> Subspace { get; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; }
@@ -102,7 +98,7 @@ namespace FoundationDB.Layers.Documents
 			var packed = this.ValueEncoder.EncodeValue(document);
 
 			// Key Prefix = ...(id,)
-			var key = this.Location.Keys.EncodePartial(id);
+			var key = this.Subspace.Keys.EncodePartial(id);
 
 			// clear previous value
 			trans.ClearRange(KeyRange.StartsWith(key));
@@ -123,7 +119,7 @@ namespace FoundationDB.Layers.Documents
 				while (remaining > 0)
 				{
 					int sz = Math.Max(remaining, this.ChunkSize);
-					trans.Set(this.Location.Keys[id, index], packed.Substring(p, sz));
+					trans.Set(this.Subspace.Keys[id, index], packed.Substring(p, sz));
 					++index;
 					p += sz;
 					remaining -= sz;
@@ -167,7 +163,7 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var key = this.Location.Keys.EncodePartial(id);
+			var key = this.Subspace.Keys.EncodePartial(id);
 			trans.ClearRange(KeyRange.StartsWith(key));
 		}
 
@@ -182,7 +178,7 @@ namespace FoundationDB.Layers.Documents
 
 			foreach (var id in ids)
 			{
-				var key = this.Location.Keys.EncodePartial(id);
+				var key = this.Subspace.Keys.EncodePartial(id);
 				trans.ClearRange(KeyRange.StartsWith(key));
 			}
 		}

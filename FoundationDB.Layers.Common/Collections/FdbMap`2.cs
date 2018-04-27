@@ -45,19 +45,17 @@ namespace FoundationDB.Layers.Collections
 	{
 
 		public FdbMap([NotNull] string name, [NotNull] IKeySubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
-			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
+			: this(name, subspace.AsTyped<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap([NotNull] string name, [NotNull] IKeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] ITypedKeySubspace<TKey> subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException(nameof(name));
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.Location = subspace.UsingEncoder(keyEncoder);
 			this.ValueEncoder = valueEncoder;
 		}
 
@@ -65,16 +63,16 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Name of the map</summary>
 		// REVIEW: do we really need this property?
-		public string Name { [NotNull] get; private set; }
-
-		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public IKeySubspace Subspace { [NotNull] get; private set; }
+		[NotNull]
+		public string Name { get; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		protected ITypedKeySubspace<TKey> Location { [NotNull] get; private set; }
+		[NotNull]
+		public ITypedKeySubspace<TKey> Subspace { get; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IValueEncoder<TValue> ValueEncoder { [NotNull] get; private set; }
+		[NotNull]
+		public IValueEncoder<TValue> ValueEncoder { get; }
 
 		#endregion
 
@@ -91,7 +89,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var data = await trans.GetAsync(this.Location.Keys[id]).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Subspace.Keys[id]).ConfigureAwait(false);
 
 			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
 			return this.ValueEncoder.DecodeValue(data);
@@ -106,7 +104,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var data = await trans.GetAsync(this.Location.Keys[id]).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Subspace.Keys[id]).ConfigureAwait(false);
 
 			if (data.IsNull) return default(Optional<TValue>);
 			return this.ValueEncoder.DecodeValue(data);
@@ -122,7 +120,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			trans.Set(this.Location.Keys[id], this.ValueEncoder.EncodeValue(value));
+			trans.Set(this.Subspace.Keys[id], this.ValueEncoder.EncodeValue(value));
 		}
 
 		/// <summary>Remove a single entry from the map</summary>
@@ -134,7 +132,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			trans.Clear(this.Location.Keys[id]);
+			trans.Clear(this.Subspace.Keys[id]);
 		}
 
 		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
@@ -147,7 +145,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			return trans
-				.GetRange(this.Location.ToRange(), options)
+				.GetRange(this.Subspace.ToRange(), options)
 				.Select(this.DecodeItem);
 		}
 
@@ -160,7 +158,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
-			var results = await trans.GetValuesAsync(ids.Select(id => this.Location.Keys[id])).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(ids.Select(id => this.Subspace.Keys[id])).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}
@@ -172,7 +170,7 @@ namespace FoundationDB.Layers.Collections
 		private KeyValuePair<TKey, TValue> DecodeItem(KeyValuePair<Slice, Slice> item)
 		{
 			return new KeyValuePair<TKey, TValue>(
-				this.Location.Keys.Decode(item.Key),
+				this.Subspace.Keys.Decode(item.Key),
 				this.ValueEncoder.DecodeValue(item.Value)
 			);
 		}
@@ -182,7 +180,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			Contract.Requires(batch != null);
 
-			var keyEncoder = this.Location.Keys;
+			var keyEncoder = this.Subspace.Keys;
 			var valueEncoder = this.ValueEncoder;
 
 			var items = new KeyValuePair<TKey, TValue>[batch.Length];
@@ -203,7 +201,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.ClearRange(this.Location.ToRange());
+			trans.ClearRange(this.Subspace.ToRange());
 		}
 
 		#region Export...
@@ -221,7 +219,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Subspace.ToRange(),
 				(batch, _, __) =>
 				{
 					foreach (var item in batch)
@@ -247,7 +245,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Subspace.ToRange(),
 				async (batch, _, __) =>
 				{
 					foreach (var item in batch)
@@ -272,7 +270,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Subspace.ToRange(),
 				(batch, _, __) =>
 				{
 					if (batch.Length > 0)
@@ -298,7 +296,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Subspace.ToRange(),
 				(batch, _, tok) => handler(DecodeItems(batch), tok),
 				ct
 			);
@@ -324,7 +322,7 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Subspace.ToRange(),
 				(batch, _, __) =>
 				{
 					state = handler(state, DecodeItems(batch));
@@ -357,7 +355,7 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Subspace.ToRange(),
 				(batch, _, __) =>
 				{
 					state = handler(state, DecodeItems(batch));

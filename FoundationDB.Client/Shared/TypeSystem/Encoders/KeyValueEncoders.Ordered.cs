@@ -30,7 +30,6 @@ namespace Doxense.Serialization.Encoders
 {
 	using JetBrains.Annotations;
 	using System;
-	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 
@@ -85,19 +84,19 @@ namespace Doxense.Serialization.Encoders
 
 				#region IKeyEncoding...
 
-				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
-				IKeyEncoder<T1> IKeyEncoding.GetEncoder<T1>()
+				IKeyEncoder<T1> IKeyEncoding.GetKeyEncoder<T1>()
 				{
 					if (typeof(T1) != typeof(T)) throw new NotSupportedException();
 					return (IKeyEncoder<T1>) (object) this;
 				}
 
-				ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetEncoder<T1, T2>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetEncoder<T1, T2, T3>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
 
 				#endregion
 
@@ -134,19 +133,19 @@ namespace Doxense.Serialization.Encoders
 
 				#region IKeyEncoding...
 
-				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
-				IKeyEncoder<T1B> IKeyEncoding.GetEncoder<T1B>() => throw new NotSupportedException();
+				IKeyEncoder<T1B> IKeyEncoding.GetKeyEncoder<T1B>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetEncoder<T1B, T2B>()
+				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetKeyEncoder<T1B, T2B>()
 				{
 					if (typeof(T1B) != typeof(T1) && typeof(T2B) != typeof(T2)) throw new NotSupportedException();
 					return (ICompositeKeyEncoder<T1B, T2B>) (object) this;
 				}
 
-				ICompositeKeyEncoder<T1B, T2B, T3> IKeyEncoding.GetEncoder<T1B, T2B, T3>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1B, T2B, T3> IKeyEncoding.GetKeyEncoder<T1B, T2B, T3>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B, T3, T4> IKeyEncoding.GetEncoder<T1B, T2B, T3, T4>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1B, T2B, T3, T4> IKeyEncoding.GetKeyEncoder<T1B, T2B, T3, T4>() => throw new NotSupportedException();
 
 				#endregion
 
@@ -187,19 +186,19 @@ namespace Doxense.Serialization.Encoders
 
 				#region IKeyEncoding...
 
-				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
-				IKeyEncoder<T1B> IKeyEncoding.GetEncoder<T1B>() => throw new NotSupportedException();
+				IKeyEncoder<T1B> IKeyEncoding.GetKeyEncoder<T1B>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetEncoder<T1B, T2B>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetKeyEncoder<T1B, T2B>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B, T3B> IKeyEncoding.GetEncoder<T1B, T2B, T3B>()
+				ICompositeKeyEncoder<T1B, T2B, T3B> IKeyEncoding.GetKeyEncoder<T1B, T2B, T3B>()
 				{
 					if (typeof(T1B) != typeof(T1) && typeof(T2B) != typeof(T2) && typeof(T3B) != typeof(T3)) throw new NotSupportedException();
 					return (ICompositeKeyEncoder<T1B, T2B, T3B>) (object) this;
 				}
 
-				ICompositeKeyEncoder<T1B, T2B, T3B, T4> IKeyEncoding.GetEncoder<T1B, T2B, T3B, T4>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1B, T2B, T3B, T4> IKeyEncoding.GetKeyEncoder<T1B, T2B, T3B, T4>() => throw new NotSupportedException();
 
 				#endregion
 			}
@@ -242,15 +241,15 @@ namespace Doxense.Serialization.Encoders
 
 				#region IKeyEncoding...
 
-				IDynamicKeyEncoder IKeyEncoding.GetDynamicEncoder() => throw new NotSupportedException();
+				IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
-				IKeyEncoder<T1B> IKeyEncoding.GetEncoder<T1B>() => throw new NotSupportedException();
+				IKeyEncoder<T1B> IKeyEncoding.GetKeyEncoder<T1B>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetEncoder<T1B, T2B>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1B, T2B> IKeyEncoding.GetKeyEncoder<T1B, T2B>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B, T3B> IKeyEncoding.GetEncoder<T1B, T2B, T3B>() => throw new NotSupportedException();
+				ICompositeKeyEncoder<T1B, T2B, T3B> IKeyEncoding.GetKeyEncoder<T1B, T2B, T3B>() => throw new NotSupportedException();
 
-				ICompositeKeyEncoder<T1B, T2B, T3B, T4B> IKeyEncoding.GetEncoder<T1B, T2B, T3B, T4B>()
+				ICompositeKeyEncoder<T1B, T2B, T3B, T4B> IKeyEncoding.GetKeyEncoder<T1B, T2B, T3B, T4B>()
 				{
 					if (typeof(T1B) != typeof(T1) && typeof(T2B) != typeof(T2) && typeof(T3B) != typeof(T3) && typeof(T4B) != typeof(T4)) throw new NotSupportedException();
 					return (ICompositeKeyEncoder<T1B, T2B, T3B, T4B>) (object) this;

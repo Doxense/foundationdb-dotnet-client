@@ -989,11 +989,11 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Encoders...
 
-		internal class KeyEncoder<T> : IKeyEncoder<T>, IValueEncoder<T>
+		internal class Encoder<T> : IKeyEncoder<T>, IValueEncoder<T>
 		{
-			public static readonly KeyEncoder<T> Default = new KeyEncoder<T>();
+			public static readonly Encoder<T> Default = new Encoder<T>();
 
-			private KeyEncoder() { }
+			private Encoder() { }
 
 			public IKeyEncoding Encoding => TuPack.Encoding;
 
@@ -1022,7 +1022,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		}
 
-		internal class CompositeEncoder<T1, T2> : KeyValueEncoders.CompositeKeyEncoder<T1, T2>
+		internal class CompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
 		{
 
 			public static readonly CompositeEncoder<T1, T2> Default = new CompositeEncoder<T1, T2>();
@@ -1052,7 +1052,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		internal class CompositeEncoder<T1, T2, T3> : KeyValueEncoders.CompositeKeyEncoder<T1, T2, T3>
+		internal class CompositeEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
 		{
 
 			public static readonly CompositeEncoder<T1, T2, T3> Default = new CompositeEncoder<T1, T2, T3>();
@@ -1084,7 +1084,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		internal class CompositeEncoder<T1, T2, T3, T4> : KeyValueEncoders.CompositeKeyEncoder<T1, T2, T3, T4>
+		internal class CompositeEncoder<T1, T2, T3, T4> : CompositeKeyEncoder<T1, T2, T3, T4>
 		{
 
 			public static readonly CompositeEncoder<T1, T2, T3, T4> Default = new CompositeEncoder<T1, T2, T3, T4>();
@@ -1118,7 +1118,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		internal class CompositeEncoder<T1, T2, T3, T4, T5> : KeyValueEncoders.CompositeKeyEncoder<T1, T2, T3, T4, T5>
+		internal class CompositeEncoder<T1, T2, T3, T4, T5> : CompositeKeyEncoder<T1, T2, T3, T4, T5>
 		{
 
 			public static readonly CompositeEncoder<T1, T2, T3, T4, T5> Default = new CompositeEncoder<T1, T2, T3, T4, T5>();
@@ -1154,7 +1154,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		internal class CompositeEncoder<T1, T2, T3, T4, T5, T6> : KeyValueEncoders.CompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
+		internal class CompositeEncoder<T1, T2, T3, T4, T5, T6> : CompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
 		{
 
 			public static readonly CompositeEncoder<T1, T2, T3, T4, T5, T6> Default = new CompositeEncoder<T1, T2, T3, T4, T5, T6>();

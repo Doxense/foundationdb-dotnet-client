@@ -47,30 +47,29 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	public class FdbCompressedBitmapIndex<TValue>
 	{
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] KeySubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
-			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.Key<TValue>())
+		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] IKeySubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+			: this(name, subspace.AsTyped<TValue>(), valueComparer, indexNullValues)
 		{ }
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] KeySubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] IKeyEncoder<TValue> encoder)
+		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] ITypedKeySubspace<TValue> subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 		{
 			Contract.NotNull(name, nameof(name));
 			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
 
 			this.Name = name;
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.Location = subspace.UsingEncoder(encoder);
 		}
 
-		public string Name { [NotNull] get; }
+		[NotNull]
+		public string Name { get; }
 
-		public KeySubspace Subspace { [NotNull] get; }
+		[NotNull]
+		public ITypedKeySubspace<TValue> Subspace { get; }
 
-		protected ITypedKeySubspace<TValue> Location { [NotNull] get; }
-
-		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; }
+		[NotNull]
+		public IEqualityComparer<TValue> ValueComparer { get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
 		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
@@ -87,7 +86,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			if (this.IndexNullValues || value != null)
 			{
-				var key = this.Location.Keys[value];
+				var key = this.Subspace.Keys[value];
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
 				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 
@@ -117,7 +116,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					var key = this.Location.Keys[previousValue];
+					var key = this.Subspace.Keys[previousValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
@@ -130,7 +129,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					var key = this.Location.Keys[newValue];
+					var key = this.Subspace.Keys[newValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 					builder.Set((int)id); //BUGBUG: 64 bit id!
@@ -151,7 +150,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			var key = this.Location.Keys[value];
+			var key = this.Subspace.Keys[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
@@ -170,7 +169,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
 		public async Task<IEnumerable<long>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var key = this.Location.Keys[value];
+			var key = this.Subspace.Keys[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.IsNull) return null;
 			if (data.IsEmpty) return Enumerable.Empty<long>();

@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(encoding != null);
 			this.Encoding = encoding;
-			this.KeyEncoder = encoding.GetDynamicEncoder();
+			this.KeyEncoder = encoding.GetDynamicKeyEncoder();
 			this.Keys = new DynamicKeys(this, this.KeyEncoder);
 			this.Partition = new DynamicPartition(this);
 		}

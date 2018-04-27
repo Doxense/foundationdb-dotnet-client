@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
 	
 	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1, T2)>
@@ -75,4 +76,116 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 	}
+
+	/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
+	public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
+	{
+
+		public abstract IKeyEncoding Encoding { get; }
+
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2) items);
+
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2) items)
+		{
+			WriteKeyPartsTo(ref writer, 2, ref items);
+		}
+
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
+		{
+			ReadKeyPartsFrom(ref reader, 2, out items);
+		}
+
+	}
+
+	/// <summary>Wrapper for encoding and decoding a triplet with lambda functions</summary>
+	public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
+	{
+
+		public abstract IKeyEncoding Encoding { get; }
+
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3) items);
+
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3) items)
+		{
+			WriteKeyPartsTo(ref writer, 3, ref items);
+		}
+
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
+		{
+			ReadKeyPartsFrom(ref reader, 3, out items);
+		}
+
+	}
+
+	/// <summary>Wrapper for encoding and decoding a quad with lambda functions</summary>
+	public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
+	{
+
+		public abstract IKeyEncoding Encoding { get; }
+
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4) items);
+
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4) items)
+		{
+			WriteKeyPartsTo(ref writer, 4, ref items);
+		}
+
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
+		{
+			ReadKeyPartsFrom(ref reader, 4, out items);
+		}
+
+	}
+
+	/// <summary>Wrapper for encoding and decoding five items with lambda functions</summary>
+	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5> : ICompositeKeyEncoder<T1, T2, T3, T4, T5>
+	{
+
+		public abstract IKeyEncoding Encoding { get; }
+
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5) items);
+
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5) items)
+		{
+			WriteKeyPartsTo(ref writer, 5, ref items);
+		}
+
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
+		{
+			ReadKeyPartsFrom(ref reader, 5, out items);
+		}
+
+	}
+
+	/// <summary>Wrapper for encoding and decoding six items with lambda functions</summary>
+	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
+	{
+
+		public abstract IKeyEncoding Encoding { get; }
+
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5, T6) items);
+
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5, T6) items)
+		{
+			WriteKeyPartsTo(ref writer, 6, ref items);
+		}
+
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
+		{
+			ReadKeyPartsFrom(ref reader, 6, out items);
+		}
+
+	}
+
 }

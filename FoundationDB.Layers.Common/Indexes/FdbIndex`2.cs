@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Indexing
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -44,33 +43,31 @@ namespace FoundationDB.Layers.Indexing
 	{
 
 		public FdbIndex([NotNull] string name, [NotNull] IKeySubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
-			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.CompositeKey<TValue, TId>())
+			: this(name, subspace.AsTyped<TValue, TId>(), valueComparer, indexNullValues)
 		{ }
 
-		public FdbIndex([NotNull] string name, [NotNull] IKeySubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
+		public FdbIndex([NotNull] string name, [NotNull] ITypedKeySubspace<TValue, TId> subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues)
 		{
-			if (name == null) throw new ArgumentNullException("name");
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (name == null) throw new ArgumentNullException(nameof(name));
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Name = name;
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.Location = subspace.UsingEncoder(encoder);
 		}
 
-		public string Name { [NotNull] get; private set; }
+		public string Name { [NotNull] get; }
 
-		public IKeySubspace Subspace { [NotNull] get; private set; }
+		[NotNull]
+		public ITypedKeySubspace<TValue, TId> Subspace { get; }
 
-		protected ITypedKeySubspace<TValue, TId> Location { [NotNull] get; private set; }
-
-		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
+		[NotNull]
+		public IEqualityComparer<TValue> ValueComparer { get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
 		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
-		public bool IndexNullValues { get; private set; }
+		public bool IndexNullValues { get; }
 
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
@@ -81,7 +78,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(this.Location.Keys[value, id], Slice.Empty);
+				trans.Set(this.Subspace.Keys[value, id], Slice.Empty);
 				return true;
 			}
 			return false;
@@ -101,13 +98,13 @@ namespace FoundationDB.Layers.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					trans.Clear(this.Location.Keys[previousValue, id]);
+					trans.Clear(this.Subspace.Keys[previousValue, id]);
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					trans.Set(this.Location.Keys[newValue, id], Slice.Empty);
+					trans.Set(this.Subspace.Keys[newValue, id], Slice.Empty);
 				}
 
 				// cannot be both null, so we did at least something)
@@ -122,9 +119,9 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Previous value of the entity in the index</param>
 		public void Remove([NotNull] IFdbTransaction trans, TId id, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.Clear(this.Location.Keys[value, id]);
+			trans.Clear(this.Subspace.Keys[value, id]);
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>
@@ -147,43 +144,43 @@ namespace FoundationDB.Layers.Indexing
 		[NotNull]
 		public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var prefix = this.Location.Keys.EncodePartial(value);
+			var prefix = this.Subspace.Keys.EncodePartial(value);
 
 			return trans
 				.GetRange(KeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
+				.Select((kvp) => this.Subspace.Keys.Decode(kvp.Key).Item2);
 		}
 
 		[NotNull]
 		public FdbRangeQuery<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Location.Keys.EncodePartial(value);
+			var prefix = this.Subspace.Keys.EncodePartial(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new KeySelectorPair(
 				KeySelector.FirstGreaterThan(prefix),
-				KeySelector.FirstGreaterOrEqual(this.Location.ToRange().End)
+				KeySelector.FirstGreaterOrEqual(this.Subspace.ToRange().End)
 			);
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
+				.Select((kvp) => this.Subspace.Keys.Decode(kvp.Key).Item2);
 		}
 
 		[NotNull]
 		public FdbRangeQuery<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Location.Keys.EncodePartial(value);
+			var prefix = this.Subspace.Keys.EncodePartial(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new KeySelectorPair(
-				KeySelector.FirstGreaterOrEqual(this.Location.ToRange().Begin),
+				KeySelector.FirstGreaterOrEqual(this.Subspace.ToRange().Begin),
 				KeySelector.FirstGreaterThan(prefix)
 			);
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
+				.Select((kvp) => this.Subspace.Keys.Decode(kvp.Key).Item2);
 		}
 
 		public override string ToString()

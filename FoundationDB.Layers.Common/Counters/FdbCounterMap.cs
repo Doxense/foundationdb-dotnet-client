@@ -43,27 +43,24 @@ namespace FoundationDB.Layers.Counters
 
 		/// <summary>Create a new counter map.</summary>
 		public FdbCounterMap([NotNull] IKeySubspace subspace)
-			: this(subspace, KeyValueEncoders.Tuples.Key<TKey>())
+			: this(subspace.AsTyped<TKey>())
 		{ }
 
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
-		public FdbCounterMap([NotNull] IKeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder)
+		public FdbCounterMap([NotNull] ITypedKeySubspace<TKey> subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Subspace = subspace;
-			this.KeyEncoder = keyEncoder;
-			this.Location = subspace.UsingEncoder(keyEncoder);
+			this.Location = subspace;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
-		public IKeySubspace Subspace { [NotNull] get; private set; }
+		[NotNull]
+		public IKeySubspace Subspace { get; }
 
-		/// <summary>Encoder for the keys of the counter map</summary>
-		public IKeyEncoder<TKey> KeyEncoder { [NotNull] get; private set; }
-
-		internal ITypedKeySubspace<TKey> Location { [NotNull] get; private set; }
+		[NotNull]
+		internal ITypedKeySubspace<TKey> Location { get; }
 
 		/// <summary>Add a value to a counter in one atomic operation</summary>
 		/// <param name="transaction"></param>
@@ -72,8 +69,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Add([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
 			Slice param = value == 1 ? PlusOne : value == -1 ? MinusOne : Slice.FromFixed64(value);
@@ -114,8 +111,8 @@ namespace FoundationDB.Layers.Counters
 		/// <returns></returns>
 		public async Task<long?> ReadAsync([NotNull] IFdbReadOnlyTransaction transaction, [NotNull] TKey counterKey)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			var data = await transaction.GetAsync(this.Location.Keys[counterKey]).ConfigureAwait(false);
 			if (data.IsNullOrEmpty) return default(long?);
@@ -129,8 +126,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> AddThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			var key = this.Location.Keys.Encode(counterKey);
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
@@ -163,8 +160,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> ReadThenAddAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			var key = this.Location.Keys[counterKey];
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
