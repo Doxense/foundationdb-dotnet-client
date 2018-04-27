@@ -117,7 +117,7 @@ namespace FoundationDB.Client.Native
 				{
 					return FreeLibrary(hModule);
 				}
-				return return dlclose(hModule) == 0;
+				return dlclose(hModule) == 0;
 			}
 #endif
 		}
