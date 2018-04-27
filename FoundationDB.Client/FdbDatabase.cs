@@ -31,13 +31,11 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
@@ -47,7 +45,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
 	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
-	public class FdbDatabase : IFdbDatabase, IFdbRetryable
+	public class FdbDatabase : IFdbDatabase
 	{
 		#region Private Fields...
 
@@ -158,10 +156,10 @@ namespace FoundationDB.Client
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		//REVIEW: rename this to 'Cancellation'? ('Token' is a keyword that may have different meaning in some apps)
-		public CancellationToken Cancellation { get { return m_cts.Token; } }
+		public CancellationToken Cancellation => m_cts.Token;
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
-		public bool IsReadOnly { get { return m_readOnly; } }
+		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Root directory of this database instance</summary>
 		public FdbDatabasePartition Directory
@@ -219,7 +217,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context in which the transaction will run</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
-			Contract.Requires(context != null && context.Database != null);
+			Contract.Requires(context?.Database != null);
 			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only
@@ -246,10 +244,7 @@ namespace FoundationDB.Client
 			}
 			catch (Exception)
 			{
-				if (trans != null)
-				{
-					trans.Dispose();
-				}
+				trans?.Dispose();
 				throw;
 			}
 		}
@@ -322,15 +317,15 @@ namespace FoundationDB.Client
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct)
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, ct);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task<R> ReadAsync<R>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		public Task<TResult> ReadAsync<TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, ct);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
 		}
 
 		#endregion
@@ -389,15 +384,15 @@ namespace FoundationDB.Client
 		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<R> ReadWriteAsync<R>([InstantHandle] Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct)
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, ct);
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task<R> ReadWriteAsync<R>([InstantHandle] Func<IFdbTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, ct);
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
 		}
 
 		#endregion
@@ -604,7 +599,7 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		public int DefaultTimeout
 		{
-			get { return m_defaultTimeout; }
+			get => m_defaultTimeout;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Timeout value cannot be negative");
@@ -616,7 +611,7 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		public int DefaultRetryLimit
 		{
-			get { return m_defaultRetryLimit; }
+			get => m_defaultRetryLimit;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "RetryLimit value cannot be negative");
@@ -628,7 +623,7 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		public int DefaultMaxRetryDelay
 		{
-			get { return m_defaultMaxRetryDelay; }
+			get => m_defaultMaxRetryDelay;
 			set
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "MaxRetryDelay value cannot be negative");

@@ -31,9 +31,11 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Container class for options in a Range query</summary>
 	[DebuggerDisplay("Limit={Limit}, Reverse={Reverse}, TargetBytes={TargetBytes}, Mode={Mode}")]
+	[PublicAPI]
 	public sealed class FdbRangeOptions
 	{
 		#region Public Properties...

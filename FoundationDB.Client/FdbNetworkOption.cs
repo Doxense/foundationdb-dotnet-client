@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a set of options for the network thread</summary>
+	[PublicAPI]
 	public enum FdbNetworkOption
 	{
 		/// <summary>None</summary>

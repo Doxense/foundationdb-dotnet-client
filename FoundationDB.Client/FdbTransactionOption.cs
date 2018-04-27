@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a set of options for a transaction</summary>
+	[PublicAPI]
 	public enum FdbTransactionOption
 	{
 		/// <summary>None</summary>

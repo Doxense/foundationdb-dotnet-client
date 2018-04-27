@@ -41,6 +41,7 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB transaction implementations.</summary>
+	[PublicAPI]
 	public static class FdbTransactionExtensions
 	{
 

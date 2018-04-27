@@ -34,13 +34,15 @@ namespace FoundationDB.Client
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]
-	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IDynamicKeySubspace, IDisposable
+	public interface IFdbDatabase : IFdbRetryable, IDynamicKeySubspace, IDisposable
 	{
 		/// <summary>Name of the database</summary>
-		string Name { [NotNull] get; }
+		[NotNull]
+		string Name { get; }
 
 		/// <summary>Cluster of the database</summary>
-		IFdbCluster Cluster { [NotNull] get; }
+		[NotNull]
+		IFdbCluster Cluster { get; }
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -48,10 +50,12 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
-		IDynamicKeySubspace GlobalSpace { [NotNull] get; }
+		[NotNull]
+		IDynamicKeySubspace GlobalSpace { get; }
 
 		/// <summary>Directory partition of this database instance</summary>
-		FdbDatabasePartition Directory { [NotNull] get; }
+		[NotNull]
+		FdbDatabasePartition Directory { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }

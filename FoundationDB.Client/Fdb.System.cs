@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Status;
 	using FoundationDB.Client.Utils;
@@ -348,7 +347,7 @@ namespace FoundationDB.Client
 							{
 								results.Add(kvp.Key.Substring(KeyServers.Count));
 							}
-							begin = chunk.Last.Key.Substring(KeyServers.Count) + (byte)0;
+							begin = chunk.Last.Key.Substring(KeyServers.Count) + 0;
 						}
 						if (!chunk.HasMore)
 						{

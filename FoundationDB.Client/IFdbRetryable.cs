@@ -78,7 +78,7 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<R> ReadWriteAsync<R>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct);
+		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<TResult>> asyncHandler, CancellationToken ct);
 
 		//REVIEW: should we keep these ?
 
@@ -92,7 +92,7 @@ namespace FoundationDB.Client
 		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task<R> ReadWriteAsync<R>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
+		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<TResult>> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
 	}
 
 }

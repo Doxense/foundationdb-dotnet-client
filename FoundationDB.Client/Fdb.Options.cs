@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 			/// </remarks>
 			public static void SetNativeLibPath(string path)
 			{
-				if (path == null) throw new ArgumentNullException("path");
+				if (path == null) throw new ArgumentNullException(nameof(path));
 
 				//TODO: throw if native library has already been loaded
 				Fdb.Options.NativeLibPath = path;

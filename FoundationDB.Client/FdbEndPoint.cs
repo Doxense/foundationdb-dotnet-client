@@ -44,10 +44,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Gets or sets the TLS mode of the endpoint.</summary>
 		/// <remarks>True if the endpoint uses TLS</remarks>
-		public bool Tls
-		{
-			get { return m_tls; }
-		}
+		public bool Tls => m_tls;
 
 		public override SocketAddress Serialize()
 		{
@@ -90,8 +87,7 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object comparand)
 		{
-			var fep = comparand as FdbEndPoint;
-			return fep != null && fep.m_tls == m_tls && base.Equals(fep);
+			return comparand is FdbEndPoint fep && fep.m_tls == m_tls && base.Equals(fep);
 		}
 
 		public override int GetHashCode()

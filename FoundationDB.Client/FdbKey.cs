@@ -35,7 +35,6 @@ namespace FoundationDB.Client
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
@@ -112,7 +111,7 @@ namespace FoundationDB.Client
 				next.Add(writer.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -128,12 +127,10 @@ namespace FoundationDB.Client
 			//REVIEW: merge this code with Slice.ConcatRange!
 
 			// use optimized version for arrays
-			var array = keys as Slice[];
-			if (array != null) return Merge(prefix, array);
+			if (keys is Slice[] array) return Merge(prefix, array);
 
 			// pre-allocate with a count if we can get one...
-			var coll = keys as ICollection<Slice>;
-			var next = coll == null ? new List<int>() : new List<int>(coll.Count);
+			var next = !(keys is ICollection<Slice> coll) ? new List<int>() : new List<int>(coll.Count);
 			var writer = default(SliceWriter);
 
 			//TODO: use multiple buffers if item count is huge ?
@@ -145,7 +142,7 @@ namespace FoundationDB.Client
 				next.Add(writer.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>

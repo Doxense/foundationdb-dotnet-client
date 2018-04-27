@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
@@ -171,9 +170,9 @@ namespace FoundationDB.Client
 
 			#region LINQ
 
-			public override AsyncIterator<R> Select<R>(Func<T, R> selector)
+			public override AsyncIterator<TResult> Select<TResult>(Func<T, TResult> selector)
 			{
-				var query = new FdbRangeQuery<R>(
+				var query = new FdbRangeQuery<TResult>(
 					m_transaction,
 					m_query.Begin,
 					m_query.End,
@@ -182,7 +181,7 @@ namespace FoundationDB.Client
 					m_query.Options
 				);
 
-				return new FdbRangeQuery<R>.ResultIterator(query, m_transaction, query.Transform);
+				return new FdbRangeQuery<TResult>.ResultIterator(query, m_transaction, query.Transform);
 			}
 
 			public override AsyncIterator<T> Take(int limit)

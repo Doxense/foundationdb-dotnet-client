@@ -205,6 +205,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="subspace"></param>
 		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
 		[NotNull]

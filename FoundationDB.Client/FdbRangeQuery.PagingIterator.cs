@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
@@ -52,9 +51,9 @@ namespace FoundationDB.Client
 
 			#region Iterable Properties...
 
-			private FdbRangeQuery<T> Query { get; set; }
+			private FdbRangeQuery<T> Query { get; }
 
-			private IFdbReadOnlyTransaction Transaction { get; set; }
+			private IFdbReadOnlyTransaction Transaction { get; }
 
 			#endregion
 

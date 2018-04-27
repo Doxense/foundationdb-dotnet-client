@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines how the client would like the data in a range a returned</summary>
+	[PublicAPI]
 	public enum FdbStreamingMode
 	{
 

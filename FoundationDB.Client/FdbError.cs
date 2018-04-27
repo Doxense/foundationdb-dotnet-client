@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB API Error Code</summary>
+	[PublicAPI]
 	public enum FdbError
 	{
 		/// <summary>Success</summary>

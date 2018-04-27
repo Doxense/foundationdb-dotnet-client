@@ -38,7 +38,8 @@ namespace FoundationDB.Client
 	public interface IFdbCluster : IDisposable
 	{
 		/// <summary>Path to the cluster file used by this connection, or null if the default cluster file is being used</summary>
-		string Path { [CanBeNull] get; }
+		[CanBeNull]
+		string Path { get; }
 
 		/// <summary>Set an option on this cluster that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>

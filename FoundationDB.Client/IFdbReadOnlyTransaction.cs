@@ -44,7 +44,8 @@ namespace FoundationDB.Client
 		int Id { get; }
 
 		/// <summary>Context of this transaction.</summary>
-		FdbOperationContext Context { [NotNull] get; }
+		[NotNull]
+		FdbOperationContext Context { get; }
 
 		/// <summary>Isolation Level of this transaction.</summary>
 		FdbIsolationLevel IsolationLevel { get; }
@@ -53,7 +54,8 @@ namespace FoundationDB.Client
 		bool IsSnapshot { get; }
 
 		/// <summary>Return a Snapshotted version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
-		IFdbReadOnlyTransaction Snapshot { [NotNull] get; }
+		[NotNull]
+		IFdbReadOnlyTransaction Snapshot { get; }
 
 		/// <summary>Cancellation Token linked to the life time of the transaction</summary>
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>

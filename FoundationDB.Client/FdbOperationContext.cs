@@ -145,21 +145,21 @@ namespace FoundationDB.Client
 						try
 						{
 							// call the user provided lambda
-							if (handler is Func<IFdbTransaction, Task>)
+							if (handler is Func<IFdbTransaction, Task> funcWritable)
 							{
-								await ((Func<IFdbTransaction, Task>)handler)(trans).ConfigureAwait(false);
+								await funcWritable(trans).ConfigureAwait(false);
 							}
-							else if (handler is Action<IFdbTransaction>)
+							else if (handler is Action<IFdbTransaction> action)
 							{
-								((Action<IFdbTransaction>)handler)(trans);
+								action(trans);
 							}
-							else if (handler is Func<IFdbReadOnlyTransaction, Task>)
+							else if (handler is Func<IFdbReadOnlyTransaction, Task> funcReadOnly)
 							{
-								await ((Func<IFdbReadOnlyTransaction, Task>)handler)(trans).ConfigureAwait(false);
+								await funcReadOnly(trans).ConfigureAwait(false);
 							}
 							else
 							{
-								throw new NotSupportedException(String.Format("Cannot execute handlers of type {0}", handler.GetType().Name));
+								throw new NotSupportedException($"Cannot execute handlers of type {handler.GetType().Name}");
 							}
 
 							if (context.Abort)
@@ -177,25 +177,25 @@ namespace FoundationDB.Client
 
 							if (onDone != null)
 							{
-								if (onDone is Action<IFdbReadOnlyTransaction>)
+								if (onDone is Action<IFdbReadOnlyTransaction> action1)
 								{
-									((Action<IFdbReadOnlyTransaction>)onDone)(trans);
+									action1(trans);
 								}
-								else if (onDone is Action<IFdbTransaction>)
+								else if (onDone is Action<IFdbTransaction> action2)
 								{
-									((Action<IFdbTransaction>)onDone)(trans);
+									action2(trans);
 								}
-								else if (onDone is Func<IFdbReadOnlyTransaction, Task>)
+								else if (onDone is Func<IFdbReadOnlyTransaction, Task> func1)
 								{
-									await ((Func<IFdbReadOnlyTransaction, Task>)onDone)(trans).ConfigureAwait(false);
+									await func1(trans).ConfigureAwait(false);
 								}
-								else if (onDone is Func<IFdbTransaction, Task>)
+								else if (onDone is Func<IFdbTransaction, Task> func2)
 								{
-									await ((Func<IFdbTransaction, Task>)onDone)(trans).ConfigureAwait(false);
+									await func2(trans).ConfigureAwait(false);
 								}
 								else
 								{
-									throw new NotSupportedException(String.Format("Cannot execute completion handler of type {0}", handler.GetType().Name));
+									throw new NotSupportedException($"Cannot execute completion handler of type {handler.GetType().Name}");
 								}
 							}
 						}
@@ -258,13 +258,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunReadWithResultAsync<R>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
 			ct.ThrowIfCancellationRequested();
 
-			R result = default(R);
+			TResult result = default(TResult);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
 				result = await asyncHandler(tr).ConfigureAwait(false);
@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunWriteWithResultAsync<R>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
@@ -315,7 +315,7 @@ namespace FoundationDB.Client
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			await ExecuteInternal(db, context, handler, onDone).ConfigureAwait(false);
-			return (R)context.Result;
+			return (TResult)context.Result;
 		}
 
 		#endregion
