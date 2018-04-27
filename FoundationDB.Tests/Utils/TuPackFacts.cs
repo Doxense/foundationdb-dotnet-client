@@ -706,7 +706,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// incomplete, 80 bits
 			Assert.That(
 				TuPack.EncodeKey(VersionStamp.Incomplete()).ToHexaString(' '),
-				Is.EqualTo("33 FF FF FF FF FF FF FF FF FF FF")
+				Is.EqualTo("32 FF FF FF FF FF FF FF FF FF FF")
 			);
 
 			// incomplete, 96 bits
@@ -730,7 +730,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// complete, 80 bits
 			Assert.That(
 				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234)).ToHexaString(' '),
-				Is.EqualTo("33 01 23 45 67 89 AB CD EF 04 D2")
+				Is.EqualTo("32 01 23 45 67 89 AB CD EF 04 D2")
 			);
 
 			// complete, 96 bits
@@ -757,7 +757,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("32 FF FF FF FF FF FF FF FF FF FF")), Is.EqualTo(VersionStamp.Incomplete()), "Incomplete()");
 
-			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("33 FF FF FF FF FF FF FF FF FF FF 00 00")), Is.EqualTo(VersionStamp.Incomplete()), "Incomplete(0)");
+			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("33 FF FF FF FF FF FF FF FF FF FF 00 00")), Is.EqualTo(VersionStamp.Incomplete(0)), "Incomplete(0)");
 			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("33 FF FF FF FF FF FF FF FF FF FF 00 2A")), Is.EqualTo(VersionStamp.Incomplete(42)), "Incomplete(42)");
 			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("33 FF FF FF FF FF FF FF FF FF FF 01 C8")), Is.EqualTo(VersionStamp.Incomplete(456)), "Incomplete(456)");
 			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("33 FF FF FF FF FF FF FF FF FF FF FF FF")), Is.EqualTo(VersionStamp.Incomplete(65535)), "Incomplete(65535)");
