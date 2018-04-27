@@ -75,7 +75,7 @@ namespace FoundationDB.Layers.Collections
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 			this.DefaultValue = defaultValue;
 			this.Encoder = encoder;
 		}

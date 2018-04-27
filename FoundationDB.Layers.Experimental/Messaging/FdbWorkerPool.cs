@@ -34,7 +34,6 @@ namespace FoundationDB.Layers.Messaging
 	using System.Security.Cryptography;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Counters;
@@ -111,7 +110,7 @@ namespace FoundationDB.Layers.Messaging
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 
 			this.TaskStore = this.Subspace.Partition.ByKey(Slice.FromChar('T'));
 			this.IdleRing = this.Subspace.Partition.ByKey(Slice.FromChar('I'));

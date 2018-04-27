@@ -32,10 +32,9 @@ namespace FoundationDB.Layers.Blobs
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
-	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Encoders;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Subspace) + "}")]
@@ -57,11 +56,12 @@ namespace FoundationDB.Layers.Blobs
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IDynamicKeySubspace Subspace {[NotNull] get; private set; }
+		[NotNull]
+		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>Returns the key for data chunk at the specified offset</summary>
 		/// <param name="offset"></param>

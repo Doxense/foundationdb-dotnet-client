@@ -36,7 +36,6 @@ namespace FoundationDB.Layers.Interning
 	using System.Security.Cryptography;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
@@ -95,7 +94,7 @@ namespace FoundationDB.Layers.Interning
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 
 		}
 

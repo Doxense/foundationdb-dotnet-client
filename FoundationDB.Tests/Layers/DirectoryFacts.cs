@@ -571,7 +571,7 @@ namespace FoundationDB.Layers.Directories
 
 				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
-				var partitionKey = KeySubspace.Copy(partition).GetPrefix();
+				var partitionKey = partition.Copy().GetPrefix();
 				Log(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromStringAscii("partition")));
@@ -731,7 +731,7 @@ namespace FoundationDB.Layers.Directories
 
 					// should have kept the same prefix
 					//note: we need to cheat to get the key of the partition
-					Assert.That(KeySubspace.Copy(bar).GetPrefix(), Is.EqualTo(KeySubspace.Copy(foo).GetPrefix()));
+					Assert.That(bar.Copy().GetPrefix(), Is.EqualTo(foo.Copy().GetPrefix()));
 
 					// verify list again
 					folders = await directory.ListAsync(tr);
@@ -867,7 +867,7 @@ namespace FoundationDB.Layers.Directories
 				// === PASS ===
 				// these methods are allowed to succeed on directory partitions, because we need them for the rest to work
 
-				ShouldPass(() => KeySubspace.Copy(partition).GetPrefix()); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
+				ShouldPass(() => partition.Copy().GetPrefix()); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
 				ShouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
 				ShouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
 				ShouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()

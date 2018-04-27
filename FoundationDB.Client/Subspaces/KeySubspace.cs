@@ -141,95 +141,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Copy...
-
-		/// <summary>Create a new copy of a subspace's prefix</summary>
-		[Pure]
-		internal static Slice StealPrefix([NotNull] IKeySubspace subspace)
-		{
-			//note: we can workaround the 'security' in top directory partition by accessing their key prefix without triggering an exception!
-			return subspace is KeySubspace ks
-				? ks.Key.Memoize()
-				: subspace.GetPrefix().Memoize();
-		}
-
-		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
-		[Pure, NotNull]
-		public static KeySubspace Copy([NotNull] IKeySubspace subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-
-			var prefix = StealPrefix(subspace);
-
-			if (subspace is IDynamicKeySubspace dyn)
-			{ // reuse the encoding of the original
-				return new DynamicKeySubspace(prefix, dyn.Encoding);
-			}
-
-			// no encoding
-			return new KeySubspace(prefix);
-		}
-
-		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
-		[Pure, NotNull]
-		public static DynamicKeySubspace Copy([NotNull] IKeySubspace subspace, IKeyEncoding encoding)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
-			return new DynamicKeySubspace(StealPrefix(subspace), encoding);
-		}
-
-		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
-		[Pure, NotNull]
-		public static DynamicKeySubspace Copy([NotNull] IKeySubspace subspace, IDynamicKeyEncoder encoder)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
-			return new DynamicKeySubspace(StealPrefix(subspace), encoder);
-		}
-
-		/// <summary>Create a copy of a dynamic subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static DynamicKeySubspace Copy([NotNull] IDynamicKeySubspace subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new DynamicKeySubspace(StealPrefix(subspace), subspace.Encoding);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1> Copy<T1>([NotNull] ITypedKeySubspace<T1> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1, T2> Copy<T1, T2>([NotNull] ITypedKeySubspace<T1, T2> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1, T2, T3> Copy<T1, T2, T3>([NotNull] ITypedKeySubspace<T1, T2, T3> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1, T2, T3, T4> Copy<T1, T2, T3, T4>([NotNull] ITypedKeySubspace<T1, T2, T3, T4> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3, T4>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		#endregion
-
 		internal KeySubspace(Slice prefix)
 		{
 			this.Key = prefix;
@@ -260,7 +171,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the master instance of the prefix, without any safety checks</summary>
 		/// <remarks>This instance should NEVER be exposed to anyone else, and should ONLY be used for logging/troubleshooting</remarks>
-		protected Slice GetPrefixUnsafe()
+		internal Slice GetPrefixUnsafe()
 		{
 			return this.Key;
 		}

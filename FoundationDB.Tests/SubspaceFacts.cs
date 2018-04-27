@@ -45,18 +45,18 @@ namespace FoundationDB.Layers.Tuples.Tests
 			var subspace = KeySubspace.FromKey(Slice.Empty);
 			Assert.That(subspace, Is.Not.Null, "FdbSubspace.Empty should not return null");
 			Assert.That(subspace.GetPrefix(), Is.EqualTo(Slice.Empty), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
-			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
+			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
 		}
 
 		[Test]
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Binary_Prefix()
 		{
-			var subspace = KeySubspace.CreateDynamic(new byte[] { 42, 255, 0, 127 }.AsSlice(), TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(new byte[] { 42, 255, 0, 127 }.AsSlice());
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("*<FF><00><7F>"));
-			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
-			Assert.That(KeySubspace.Copy(subspace).GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
+			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
+			Assert.That(subspace.Copy().GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
 
 			// concat(Slice) should append the slice to the binary prefix directly
 			Assert.That(subspace[Slice.FromInt32(0x01020304)].ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
@@ -92,7 +92,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		public void Test_Subspace_Copy_Does_Not_Share_Key_Buffer()
 		{
 			var original = KeySubspace.FromKey(Slice.FromString("Hello"));
-			var copy = KeySubspace.Copy(original);
+			var copy = original.Copy();
 			Assert.That(copy, Is.Not.Null);
 			Assert.That(copy, Is.Not.SameAs(original), "Copy should be a new instance");
 			Assert.That(copy.GetPrefix(), Is.EqualTo(original.GetPrefix()), "Key should be equal");
@@ -117,11 +117,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
-			var subspace = KeySubspace.CreateDynamic(TuPack.EncodeKey("hello"), TypeSystem.Tuples);
+			var subspace = KeySubspace.CreateDynamic(TuPack.EncodeKey("hello"));
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("<02>hello<00>"));
-			Assert.That(KeySubspace.Copy(subspace), Is.Not.SameAs(subspace));
-			Assert.That(KeySubspace.Copy(subspace).GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
+			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
+			Assert.That(subspace.Copy().GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
 
 			// concat(Slice) should append the slice to the tuple prefix directly
 			Assert.That(subspace[Slice.FromInt32(0x01020304)].ToString(), Is.EqualTo("<02>hello<00><04><03><02><01>"));
@@ -149,7 +149,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		public void Test_Subspace_Partitioning_With_Binary_Suffix()
 		{
 			// start from a parent subspace
-			var parent = KeySubspace.CreateDynamic(Slice.Empty, TypeSystem.Tuples);
+			var parent = KeySubspace.CreateDynamic(Slice.Empty);
 			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<empty>"));
 
 			// create a child subspace using a tuple
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_DynamicKeySpace_API()
 		{
-			var location = KeySubspace.CreateDynamic(Slice.FromString("PREFIX"), TypeSystem.Tuples);
+			var location = KeySubspace.CreateDynamic(Slice.FromString("PREFIX"));
 
 			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
 
@@ -231,7 +231,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		{
 			var location = KeySubspace.CreateTyped<string>(Slice.FromString("PREFIX"));
 			Assert.That(location.KeyEncoder, Is.Not.Null, "Should have a Key Encoder");
-			Assert.That(location.KeyEncoder.Encoding, Is.SameAs(TypeSystem.Tuples), "Encoder should use Tuple type system");
+			Assert.That(location.KeyEncoder.Encoding, Is.SameAs(TuPack.Encoding), "Encoder should use Tuple type system");
 
 			// shortcuts
 			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
@@ -258,8 +258,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_TypedKeySpace_T2()
 		{
-			var location = new KeySubspace(Slice.FromString("PREFIX"))
-				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string, int>());
+			var location = KeySubspace.CreateTyped<string, int>(Slice.FromString("PREFIX"));
 
 			// shortcuts
 			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
@@ -287,8 +286,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_TypedKeySpace_T3()
 		{
-			var location = new KeySubspace(Slice.FromString("PREFIX"))
-				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string, int, string>());
+			var location = KeySubspace.CreateTyped<string, int, string>(Slice.FromString("PREFIX"));
 
 			// shortcuts
 			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));
@@ -317,8 +315,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_TypedKeySpace_T4()
 		{
-			var location = new KeySubspace(Slice.FromString("PREFIX"))
-				.UsingEncoder(TypeSystem.Tuples.GetEncoder<string, int, string, int>());
+			var location = KeySubspace.CreateTyped<string, int, string, int>(Slice.FromString("PREFIX"));
 
 			// shortcuts
 			Assert.That(location[Slice.FromString("SUFFIX")].ToString(), Is.EqualTo("PREFIXSUFFIX"));

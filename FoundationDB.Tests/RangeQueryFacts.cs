@@ -688,9 +688,9 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "ExceptComposite");
 
 				// Items contains a list of all ("user", id) that were created
-				var locItems = (await location.CreateOrOpenAsync(db, "Items", this.Cancellation)).UsingEncoder<string, int>();
+				var locItems = (await location.CreateOrOpenAsync(db, "Items", this.Cancellation)).AsTyped<string, int>();
 				// Processed contain the list of all ("user", id) that were processed
-				var locProcessed = (await location.CreateOrOpenAsync(db, "Processed", this.Cancellation)).UsingEncoder<string, int>();
+				var locProcessed = (await location.CreateOrOpenAsync(db, "Processed", this.Cancellation)).AsTyped<string, int>();
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 

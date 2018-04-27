@@ -33,7 +33,6 @@ namespace FoundationDB.Layers.Collections
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -56,7 +55,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 		}
 
 		public Task OpenAsync([NotNull] IFdbTransaction trans)

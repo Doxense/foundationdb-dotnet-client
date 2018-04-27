@@ -85,7 +85,7 @@ namespace FoundationDB.Client
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
-					rootSpace = KeySubspace.Copy(descriptor); //note: create a copy of the key
+					rootSpace = descriptor.Copy(); //note: create a copy of the key
 					//TODO: find a nicer way to do that!
 					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace, partitionPath), readOnly);
 

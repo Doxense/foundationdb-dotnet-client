@@ -72,7 +72,7 @@ namespace FoundationDB.Layers.Collections
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 			this.HighContention = highContention;
 			this.Encoder = encoder;
 

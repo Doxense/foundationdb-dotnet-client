@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Counters
 			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
 
 			this.Database = db;
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 			this.Encoder = encoder;
 		}
 

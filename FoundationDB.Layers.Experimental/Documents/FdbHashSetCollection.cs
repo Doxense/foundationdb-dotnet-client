@@ -33,7 +33,6 @@ namespace FoundationDB.Layers.Blobs
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -47,7 +46,7 @@ namespace FoundationDB.Layers.Blobs
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
