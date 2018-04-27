@@ -72,34 +72,32 @@ namespace FoundationDB.Client.Native
 		[SuppressUnmanagedCodeSecurity]
 		private static class NativeMethods
 		{
-#if __MonoCS__
-			const string KERNEL = "dl";
+			const string LIBDL = "dl";
 
-			[DllImport(KERNEL)]
+
+			[DllImport(LIBDL)]
 			public static extern SafeLibraryHandle dlopen(string fileName, int flags);
 
-			[DllImport(KERNEL, SetLastError = true)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			public static extern int dlclose(IntPtr hModule);
+#if __MonoCS__
 
-			public static SafeLibraryHandle LoadLibrary(string fileName)
+			public static SafeLibraryHandle LoadPlatformLibrary(string fileName)
 			{
-
 				return dlopen(fileName, 1);
-				
 			}
-			public static bool FreeLibrary(IntPtr hModule) { return dlclose(hModule) == 0; }
-
 #else
 			const string KERNEL = "kernel32";
 
 			[DllImport(KERNEL, CharSet = CharSet.Auto, BestFitMapping = false, SetLastError = true)]
 			public static extern SafeLibraryHandle LoadLibrary(string fileName);
 
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			[DllImport(KERNEL, SetLastError = true)]
-			[return: MarshalAs(UnmanagedType.Bool)]
-			public static extern bool FreeLibrary(IntPtr hModule);
+			public static SafeLibraryHandle LoadPlatformLibrary(string fileName) 
+			{
+				if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				{
+					return LoadLibrary(fileName);
+				}
+				return dlopen(fileName, 1);
+			}
 #endif
 		}
 
@@ -112,7 +110,7 @@ namespace FoundationDB.Client.Native
 		{
 			if (path == null) throw new ArgumentNullException("path");
 
-			var handle = NativeMethods.LoadLibrary(path);
+			var handle = NativeMethods.LoadPlatformLibrary(path);
 			if (handle == null || handle.IsInvalid)
 			{
 				var ex = Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
