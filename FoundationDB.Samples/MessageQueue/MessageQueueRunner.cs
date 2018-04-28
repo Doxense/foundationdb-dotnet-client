@@ -2,10 +2,6 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
-	using Doxense.Mathematics.Statistics;
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Messaging;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -13,6 +9,10 @@ namespace FoundationDB.Samples.Tutorials
 	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Mathematics.Statistics;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Messaging;
 
 	public class MessageQueueRunner : IAsyncTest
 	{
@@ -46,16 +46,19 @@ namespace FoundationDB.Samples.Tutorials
 			);
 		}
 
-		public string Id { get; private set; }
-		public AgentRole Role { get; private set; }
-		public TimeSpan DelayMin { get; private set; }
-		public TimeSpan DelayMax { get; private set; }
+		public string Id { get; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public AgentRole Role { get; }
+
+		public TimeSpan DelayMin { get; }
+
+		public TimeSpan DelayMax { get; }
+
+		public KeySubspace Subspace { get; private set; }
 
 		public FdbWorkerPool WorkerPool { get; private set; }
 
-		public RobustTimeLine TimeLine { get; private set; }
+		public RobustTimeLine TimeLine { get; }
 
 		/// <summary>
 		/// Setup the initial state of the database
@@ -63,7 +66,7 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Samples", "MessageQueueTest" }, cancellationToken: ct);
+			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Samples", "MessageQueueTest" }, ct: ct);
 
 			this.WorkerPool = new FdbWorkerPool(this.Subspace);
 
@@ -76,18 +79,13 @@ namespace FoundationDB.Samples.Tutorials
 		{
 			int cnt = 0;
 
-			var rnd = new Random(123456);
-
-			DateTime last = DateTime.Now;
-
-			rnd = new Random();
+			var rnd = new Random();
 			this.TimeLine.Start();
 			while (!ct.IsCancellationRequested)
 			{
 				int k = cnt++;
-				Slice taskId = FdbTuple.EncodeKey(this.Id.GetHashCode(), k);
+				Slice taskId = TuPack.EncodeKey(this.Id.GetHashCode(), k);
 
-				var ts = Stopwatch.GetTimestamp();
 				string msg = "Message #" + k + " from producer " + this.Id + " (" + DateTime.UtcNow.ToString("O") + ")";
 
 				var latency = Stopwatch.StartNew();
@@ -98,7 +96,7 @@ namespace FoundationDB.Samples.Tutorials
 				this.TimeLine.Add(latency.Elapsed.TotalMilliseconds);
 
 				TimeSpan delay = TimeSpan.FromTicks(rnd.Next((int)this.DelayMin.Ticks, (int)this.DelayMax.Ticks));
-				await Task.Delay(delay).ConfigureAwait(false);
+				await Task.Delay(delay, ct).ConfigureAwait(false);
 			}
 			this.TimeLine.Stop();
 
@@ -110,24 +108,20 @@ namespace FoundationDB.Samples.Tutorials
 		{
 			var rnd = new Random();
 
-			DateTime last = DateTime.Now;
 			int received = 0;
 
 			this.TimeLine.Start();
 			await this.WorkerPool.RunWorkerAsync(db, async (msg, _ct) =>
 			{
-				long ts = Stopwatch.GetTimestamp();
-
 				var latency = msg.Received - msg.Scheduled;
 				Interlocked.Increment(ref received);
 
-				Console.Write("[" + received.ToString("N0") + " msg, ~" + latency.TotalMilliseconds.ToString("N3") + " ms] " + msg.Id.ToAsciiOrHexaString() + "            \r");
+				Console.Write($"[{received:N0} msg, ~{latency.TotalMilliseconds:N3} ms] {msg.Id:P}            \r");
 
 				this.TimeLine.Add(latency.TotalMilliseconds);
 
-				//Console.Write(".");
 				TimeSpan delay = TimeSpan.FromTicks(rnd.Next((int)this.DelayMin.Ticks, (int)this.DelayMax.Ticks));
-				await Task.Delay(delay).ConfigureAwait(false);
+				await Task.Delay(delay, ct).ConfigureAwait(false);
 			}, ct);
 			this.TimeLine.Stop();
 
@@ -161,22 +155,22 @@ namespace FoundationDB.Samples.Tutorials
 				Console.WriteLine("> Idle");
 				await tr.Snapshot.GetRange(idleLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Idle." + idleLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Idle.{idleLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Busy");
 				await tr.Snapshot.GetRange(busyLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Busy." + busyLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Busy.{busyLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Unassigned");
 				await tr.Snapshot.GetRange(unassignedLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Unassigned." + unassignedLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Unassigned.{unassignedLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Tasks");
 				await tr.Snapshot.GetRange(tasksLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Tasks." + tasksLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine($"- Tasks.{tasksLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("<");
 			}
@@ -184,7 +178,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		#region IAsyncTest...
 
-		public string Name { get { return "MessageQueueTest"; } }
+		public string Name => "MessageQueueTest";
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{

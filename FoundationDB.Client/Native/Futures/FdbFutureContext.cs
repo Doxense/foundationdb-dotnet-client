@@ -29,11 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to capture the stacktrace of the ctor, when troubleshooting leaked transaction handles
 //#define CAPTURE_STACKTRACES
 
-using FoundationDB.Async;
-
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
@@ -41,6 +38,8 @@ namespace FoundationDB.Client.Native
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
 
 	internal class FdbFutureContext : IDisposable
 	{
@@ -337,7 +336,7 @@ namespace FoundationDB.Client.Native
 			string label
 		)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<TResult>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 
 			FdbFutureSingle<TResult> future = null;
 			IntPtr cookie = IntPtr.Zero;
@@ -431,7 +430,7 @@ namespace FoundationDB.Client.Native
 			string label
 		)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<TResult[]>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult[]>(ct);
 
 			FdbFutureArray<TResult> future = null;
 			IntPtr cookie = IntPtr.Zero;
@@ -546,7 +545,7 @@ namespace FoundationDB.Client.Native
 			[CallerMemberName] string label = null
 		)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<TResult>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 
 			bool mustDispose = true;
 			IntPtr h = IntPtr.Zero;
@@ -698,7 +697,7 @@ namespace FoundationDB.Client.Native
 			[CallerMemberName] string label = null
 			)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<TResult>(ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 
 			bool mustDispose = true;
 			IntPtr h = IntPtr.Zero;

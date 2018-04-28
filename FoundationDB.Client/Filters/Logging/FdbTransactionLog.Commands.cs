@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
 	using System.Threading.Tasks;
-	using Layers.Directories;
+	using Doxense;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
+	using JetBrains.Annotations;
 
 	public partial class FdbTransactionLog
 	{
 
 		/// <summary>Base class of all types of operations performed on a transaction</summary>
-		[DebuggerDisplay("{ToString()}")]
+		[DebuggerDisplay("{ToString(),nq}")]
 		public abstract class Command
 		{
 
@@ -171,6 +172,7 @@ namespace FoundationDB.Filters.Logging
 					{
 						case Operation.Commit: return "Co";
 						case Operation.Reset: return "Rz";
+						case Operation.Cancel: return "Cn";
 						case Operation.OnError: return "Er";
 						case Operation.GetReadVersion: return "rv";
 						case Operation.SetOption: return "op";
@@ -183,6 +185,7 @@ namespace FoundationDB.Filters.Logging
 						case Operation.Set: return "s ";
 						case Operation.Clear: return "c ";
 						case Operation.ClearRange: return "cr";
+						case Operation.AddConflictRange: return "rc";
 						case Operation.Atomic: return "a ";
 
 						case Operation.Log: return "//";
@@ -233,7 +236,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.Error != null) return base.GetResult(resolver);
 
-				if (this.Result.HasFailed) return "<error>";
+				if (this.Result.Failed) return "<error>";
 				if (!this.Result.HasValue) return "<n/a>";
 				if (this.Result.Value == null) return "<null>";
 
@@ -289,13 +292,14 @@ namespace FoundationDB.Filters.Logging
 					p++;
 				}
 
-				Array.Sort(prefixes, paths, SliceComparer.Default);
+				Array.Sort(prefixes, paths, Slice.Comparer.Default);
 				this.Prefixes = prefixes;
 				this.Paths = paths;
 			}
 
 			/// <summary>Create a key resolver using the content of a DirectoryLayer as the map</summary>
 			/// <returns>Resolver that replace each directory prefix by its name</returns>
+			[ItemNotNull]
 			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 			{
 				var location = directory.NodeSubspace.Keys;
@@ -304,7 +308,7 @@ namespace FoundationDB.Filters.Logging
 				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix
 				var keys = await tr.GetRange(location.ToRange()).ToListAsync();
 
-				var map = new Dictionary<Slice, string>(SliceComparer.Default);
+				var map = new Dictionary<Slice, string>(Slice.Comparer.Default);
 
 				foreach (var entry in keys)
 				{
@@ -328,7 +332,7 @@ namespace FoundationDB.Filters.Logging
 
 				if (key.IsNullOrEmpty) return false;
 
-				int p = Array.BinarySearch(this.Prefixes, key, SliceComparer.Default);
+				int p = Array.BinarySearch(this.Prefixes, key, Slice.Comparer.Default);
 				if (p >= 0)
 				{ // direct match!
 					prefix = this.Prefixes[p];
@@ -460,7 +464,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToAsciiOrHexaString());
+				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("K"));
 			}
 
 		}
@@ -542,11 +546,12 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToAsciiOrHexaString());
+				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToString("K"));
 			}
 
 			public override string ToString(KeyResolver resolver)
 			{
+				resolver = resolver ?? KeyResolver.Default;
 				var arg = this.GetArguments(resolver);
 				var sb = new StringBuilder();
 				if (this.Snapshot) sb.Append("Snapshot.");
@@ -624,7 +629,7 @@ namespace FoundationDB.Filters.Logging
 
 			protected override string Dump(Slice value)
 			{
-				return value.ToAsciiOrHexaString();
+				return value.ToString("P");
 			}
 
 		}
@@ -632,11 +637,11 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetKeyCommand : Command<Slice>
 		{
 			/// <summary>Selector to a key in the database</summary>
-			public FdbKeySelector Selector { get; private set; }
+			public KeySelector Selector { get; private set; }
 
 			public override Operation Op { get { return Operation.GetKey; } }
 
-			public GetKeyCommand(FdbKeySelector selector)
+			public GetKeyCommand(KeySelector selector)
 			{
 				this.Selector = selector;
 			}
@@ -706,8 +711,8 @@ namespace FoundationDB.Filters.Logging
 				if (!this.Result.HasValue) return base.GetResult(resolver);
 				var res = this.Result.Value;
 				string s = String.Concat("[", res.Length.ToString(), "] {");
-				if (res.Length > 0) s += res[0].ToAsciiOrHexaString();
-				if (res.Length > 1) s += " ... " + res[res.Length - 1].ToAsciiOrHexaString();
+				if (res.Length > 0) s += res[0].ToString("P");
+				if (res.Length > 1) s += " ... " + res[res.Length - 1].ToString("P");
 				return s + " }";
 
 			}
@@ -717,11 +722,11 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetKeysCommand : Command<Slice[]>
 		{
 			/// <summary>List of selectors looked up in the database</summary>
-			public FdbKeySelector[] Selectors { get; private set; }
+			public KeySelector[] Selectors { get; private set; }
 
 			public override Operation Op { get { return Operation.GetKeys; } }
 
-			public GetKeysCommand(FdbKeySelector[] selectors)
+			public GetKeysCommand(KeySelector[] selectors)
 			{
 				this.Selectors = selectors;
 			}
@@ -762,9 +767,9 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetRangeCommand : Command<FdbRangeChunk>
 		{
 			/// <summary>Selector to the start of the range</summary>
-			public FdbKeySelector Begin { get; private set; }
+			public KeySelector Begin { get; private set; }
 			/// <summary>Selector to the end of the range</summary>
-			public FdbKeySelector End { get; private set; }
+			public KeySelector End { get; private set; }
 			/// <summary>Options of the range read</summary>
 			public FdbRangeOptions Options { get; private set; }
 			/// <summary>Iteration number</summary>
@@ -772,7 +777,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op { get { return Operation.GetRange; } }
 
-			public GetRangeCommand(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration)
+			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;
@@ -824,6 +829,12 @@ namespace FoundationDB.Filters.Logging
 				}
 				return base.GetResult(resolver);
 			}
+
+		}
+
+		public sealed class GetVersionStampCommand : Command<VersionStamp>
+		{
+			public override Operation Op { get { return Operation.GetVersionStamp; } }
 
 		}
 

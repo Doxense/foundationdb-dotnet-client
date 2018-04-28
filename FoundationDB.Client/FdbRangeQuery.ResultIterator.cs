@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,26 +27,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 //enable this to enable verbose traces when doing paging
-#undef DEBUG_RANGE_ITERATOR
+//#define DEBUG_RANGE_ITERATOR
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using Doxense.Linq.Async.Iterators;
+	using Doxense.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInChunk={m_itemsRemainingInChunk}, OutOfChunks={m_outOfChunks}")]
-		private sealed class ResultIterator : FdbAsyncIterator<T>
+		private sealed class ResultIterator : AsyncIterator<T>
 		{
 
 			private readonly FdbRangeQuery<T> m_query;
@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
+			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;
@@ -82,22 +82,22 @@ namespace FoundationDB.Client
 				m_resultTransform = transform;
 			}
 
-			protected override FdbAsyncIterator<T> Clone()
+			protected override AsyncIterator<T> Clone()
 			{
 				return new ResultIterator(m_query, m_transaction, m_resultTransform);
 			}
 
-			protected override Task<bool> OnFirstAsync(CancellationToken cancellationToken)
+			protected override Task<bool> OnFirstAsync()
 			{
 				// on first call, setup the page iterator
 				if (m_chunkIterator == null)
 				{
-					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetEnumerator(m_mode);
+					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetEnumerator(m_ct, m_mode);
 				}
-				return TaskHelpers.TrueTask;
+				return TaskHelpers.True;
 			}
 
-			protected override Task<bool> OnNextAsync(CancellationToken cancellationToken)
+			protected override Task<bool> OnNextAsync()
 			{
 				if (m_itemsRemainingInChunk > 0)
 				{ // we need can get another one from the batch
@@ -110,23 +110,23 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_ITERATOR
 					Debug.WriteLine("No more items and it was the last batch");
 #endif
-					return TaskHelpers.FalseTask;
+					return TaskHelpers.False;
 				}
 
 				// slower path, we need to actually read the first batch...
 				m_chunk = null;
 				m_currentOffsetInChunk = -1;
-				return ReadAnotherBatchAsync(cancellationToken);
+				return ReadAnotherBatchAsync();
 			}
 
-			private async Task<bool> ReadAnotherBatchAsync(CancellationToken cancellationToken)
+			private async Task<bool> ReadAnotherBatchAsync()
 			{
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				var iterator = m_chunkIterator;
 
 				// start reading the next batch
-				if (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // we got a new chunk !
 
 					//note: Dispose() or Cleanup() maybe have been called concurrently!
@@ -170,9 +170,9 @@ namespace FoundationDB.Client
 
 			#region LINQ
 
-			public override FdbAsyncIterator<R> Select<R>(Func<T, R> selector)
+			public override AsyncIterator<TResult> Select<TResult>(Func<T, TResult> selector)
 			{
-				var query = new FdbRangeQuery<R>(
+				var query = new FdbRangeQuery<TResult>(
 					m_transaction,
 					m_query.Begin,
 					m_query.End,
@@ -181,10 +181,10 @@ namespace FoundationDB.Client
 					m_query.Options
 				);
 
-				return new FdbRangeQuery<R>.ResultIterator(query, m_transaction, query.Transform);
+				return new FdbRangeQuery<TResult>.ResultIterator(query, m_transaction, query.Transform);
 			}
 
-			public override FdbAsyncIterator<T> Take(int limit)
+			public override AsyncIterator<T> Take(int limit)
 			{
 				return new ResultIterator(m_query.Take(limit), m_transaction, m_resultTransform);
 			}
@@ -195,10 +195,7 @@ namespace FoundationDB.Client
 			{
 				try
 				{
-					if (m_chunkIterator != null)
-					{
-						m_chunkIterator.Dispose();
-					}
+					m_chunkIterator?.Dispose();
 				}
 				finally
 				{

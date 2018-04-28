@@ -2,14 +2,13 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.IO;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 
 	public class LeakTest : IAsyncTest
 	{
@@ -22,12 +21,15 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Delay = delay;
 		}
 
-		public int K { get; private set; }
-		public int M { get; private set; }
-		public int N { get; private set; }
-		public TimeSpan Delay { get; private set; }
+		public int K { get; }
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public int M { get; }
+
+		public int N { get; }
+
+		public TimeSpan Delay { get; }
+
+		public IDynamicKeySubspace Subspace { get; private set; }
 
 		/// <summary>
 		/// Setup the initial state of the database
@@ -35,7 +37,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Benchmarks", "LeakTest" }, cancellationToken: ct);
+			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Benchmarks", "LeakTest" }, ct: ct);
 
 			// clear all previous values
 			await db.ClearRangeAsync(this.Subspace, ct);
@@ -43,8 +45,8 @@ namespace FoundationDB.Samples.Benchmarks
 			// insert all the classes
 			await db.WriteAsync((tr) =>
 			{
-				tr.Set(this.Subspace.Key + FdbKey.MinValue, Slice.FromString("BEGIN"));
-				tr.Set(this.Subspace.Key + FdbKey.MaxValue, Slice.FromString("END"));
+				tr.Set(this.Subspace.GetPrefix() + FdbKey.MinValue, Slice.FromString("BEGIN"));
+				tr.Set(this.Subspace.GetPrefix() + FdbKey.MaxValue, Slice.FromString("END"));
 			}, ct);
 		}
 

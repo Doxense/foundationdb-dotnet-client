@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,18 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Converters.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq;
-	using System.Text;
+	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class EncoderFacts
+	public class EncoderFacts : FdbTest
 	{
 
 		[Test]
@@ -89,7 +86,7 @@ namespace FoundationDB.Client.Converters.Tests
 			Assert.That(encoder, Is.Not.Null);
 
 			Assert.That(encoder.EncodeKey(Slice.FromString("hello world")), Is.EqualTo(Slice.Unescape("<01>hello world<00>")));
-			Assert.That(encoder.EncodeKey(Slice.Create(new byte[] {  0, 0xFF, 0 })), Is.EqualTo(Slice.Unescape("<01><00><FF><FF><00><FF><00>")));
+			Assert.That(encoder.EncodeKey(new byte[] { 0, 0xFF, 0 }.AsSlice()), Is.EqualTo(Slice.Unescape("<01><00><FF><FF><00><FF><00>")));
 			Assert.That(encoder.EncodeKey(Slice.Empty), Is.EqualTo(Slice.Unescape("<01><00>")));
 			Assert.That(encoder.EncodeKey(Slice.Nil), Is.EqualTo(Slice.Unescape("<00>")));
 
@@ -115,7 +112,7 @@ namespace FoundationDB.Client.Converters.Tests
 
 			// note: EncodeKey(...) is just a shortcurt for packing all items in a tuple, and EncodeComposite(..., count = 3)
 			var data = encoder.EncodeKey(x, y, z);
-			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x, y, z)));
+			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x, y, z)));
 
 			var items = encoder.DecodeKey(data);
 			Assert.That(items.Item1, Is.EqualTo(x));
@@ -124,23 +121,23 @@ namespace FoundationDB.Client.Converters.Tests
 
 			// partial key encoding
 
-			data = encoder.EncodeComposite(items, 2);
-			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x, y)));
-			items = encoder.DecodeComposite(FdbTuple.EncodeKey(x, y), 2);
+			data = encoder.EncodeKeyParts(2, items);
+			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x, y)));
+			items = encoder.DecodeKeyParts(2, TuPack.EncodeKey(x, y));
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(y));
 			Assert.That(items.Item3, Is.EqualTo(default(Guid)));
 
-			data = encoder.EncodeComposite(items, 1);
-			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x)));
-			items = encoder.DecodeComposite(FdbTuple.EncodeKey(x), 1);
+			data = encoder.EncodeKeyParts(1, items);
+			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x)));
+			items = encoder.DecodeKeyParts(1, TuPack.EncodeKey(x));
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(default(long)));
 			Assert.That(items.Item3, Is.EqualTo(default(Guid)));
 
 			// should fail if number of items to encode is out of range
-			Assert.That(() => { encoder.EncodeComposite(items, 4); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => { encoder.EncodeComposite(items, 0); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => { encoder.EncodeKeyParts(4, items); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => { encoder.EncodeKeyParts(0, items); }, Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 	}

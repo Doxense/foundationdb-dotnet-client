@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client.Core;
+	using FoundationDB.Client.Native;
+	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB Cluster</summary>
 	public class FdbCluster : IFdbCluster
@@ -52,23 +51,17 @@ namespace FoundationDB.Client
 		/// <summary>Wraps a cluster handle</summary>
 		public FdbCluster(IFdbClusterHandler handler, string path)
 		{
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			m_handler = handler;
 			m_path = path;
 		}
 
 		/// <summary>Path to the cluster file used by this connection, or null if the default cluster file is being used</summary>
-		public string Path
-		{
-			get { return m_path; }
-		}
+		public string Path => m_path;
 
-		internal IFdbClusterHandler Handler
-		{
-			[NotNull]
-			get { return m_handler; }
-		}
+		[NotNull]
+		internal IFdbClusterHandler Handler => m_handler;
 
 		private void ThrowIfDisposed()
 		{
@@ -106,15 +99,16 @@ namespace FoundationDB.Client
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
-		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
+		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
-		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken)
+		[ItemNotNull]
+		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, ct: ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Opens a database on this cluster</summary>
@@ -122,24 +116,25 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="ownsCluster">If true, the database will dispose this cluster when it is disposed.</param>
-		/// <param name="cancellationToken">Cancellation Token</param>
+		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IFdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
+		[ItemNotNull]
+		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IKeySubspace subspace, bool readOnly, bool ownsCluster, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException(nameof(databaseName));
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' ...", databaseName));
+			if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", $"Connecting to database '{databaseName}' ...");
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var handler = await m_handler.OpenDatabaseAsync(databaseName, cancellationToken).ConfigureAwait(false);
+			var handler = await m_handler.OpenDatabaseAsync(databaseName, ct).ConfigureAwait(false);
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", $"Connected to database '{databaseName}'");
 
 			return FdbDatabase.Create(this, handler, databaseName, subspace, null, readOnly, ownsCluster);
 		}
@@ -152,7 +147,7 @@ namespace FoundationDB.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting cluster option {0}", option.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting cluster option {option.ToString()}");
 
 			m_handler.SetOption(option, Slice.Nil);
 		}
@@ -166,7 +161,7 @@ namespace FoundationDB.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting cluster option {0} to '{1}'", option.ToString(), value ?? "<null>"));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting cluster option {option.ToString()} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -181,7 +176,7 @@ namespace FoundationDB.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting cluster option {0} to {1}", option.ToString(), value));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting cluster option {option.ToString()} to {value}");
 
 			var data = Slice.FromFixed64(value);
 			m_handler.SetOption(option, data);

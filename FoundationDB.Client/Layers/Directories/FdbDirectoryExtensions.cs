@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,52 +45,52 @@ namespace FoundationDB.Layers.Directories
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, Slice.Nil), ct);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer), ct);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="name"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), ct);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="name"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new[] { name }, layer), ct);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="name"/>.
@@ -99,9 +99,9 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] string name, Slice layer = default(Slice))
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.CreateOrOpenAsync(trans, new[] { name }, layer);
 		}
@@ -118,9 +118,9 @@ namespace FoundationDB.Layers.Directories
 		/// <returns></returns>
 		public static Task<FdbDirectorySubspace> TryCreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] IEnumerable<string> path, bool readOnly, Slice layer = default(Slice))
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
 			if (readOnly)
 				return directory.TryOpenAsync(trans, path, layer);
@@ -140,7 +140,7 @@ namespace FoundationDB.Layers.Directories
 		/// <returns></returns>
 		public static Task<FdbDirectorySubspace> TryCreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] string name, bool readOnly, Slice layer = default(Slice))
 		{
-			if (name == null) throw new ArgumentNullException("name");
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return TryCreateOrOpenAsync(directory, trans, new[] { name }, readOnly, layer);
 		}
@@ -152,51 +152,51 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Creates a directory with the given <paramref name="path"/> (creating parent directories if necessary).
 		/// An error is raised if the given directory already exists.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, Slice.Nil), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, Slice.Nil), ct);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="path"/> (creating parent directories if necessary).
 		/// An error is raised if the given directory already exists.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, layer), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, layer), ct);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="name"/>.
 		/// An error is raised if the given directory already exists.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, new [] { name }, Slice.Nil), ct);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="name"/>.
 		/// An error is raised if the given directory already exists.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, new[] { name }, layer), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, new[] { name }, layer), ct);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="name"/>.
@@ -205,53 +205,53 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] string name, Slice layer = default(Slice))
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.CreateAsync(trans, new[] { name }, layer);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="path"/> (creating parent directories if necessary).</summary>
-		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, Slice.Nil), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, Slice.Nil), ct);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="path"/> (creating parent directories if necessary).
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, layer), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, layer), ct);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="name"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
-			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
+			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, new [] { name }, Slice.Nil), ct);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="name"/>.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
-			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, new[] { name }, layer), cancellationToken);
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
+			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, new[] { name }, layer), ct);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="name"/>.
@@ -259,9 +259,9 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] string name, Slice layer = default(Slice))
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.TryCreateAsync(trans, new[] { name }, layer);
 		}
@@ -273,49 +273,49 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
 		/// An error is raised if the directory does not exist.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, Slice.Nil), ct);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
 		/// An error is raised if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, layer), cancellationToken);
+			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, layer), ct);
 		}
 
 		/// <summary>Opens the sub-directory with the given <paramref name="name"/>.
 		/// An error is raised if the directory does not exist.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadAsync((tr) => directory.OpenAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
+			return db.ReadAsync((tr) => directory.OpenAsync(tr, new[] { name }, Slice.Nil), ct);
 		}
 
 		/// <summary>Opens the sub-directory with the given <paramref name="name"/>.
 		/// An error is raised if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadAsync((tr) => directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return db.ReadAsync((tr) => directory.OpenAsync(tr, new[] { name }, layer), ct);
 		}
 
 		/// <summary>Opens the sub-directory with the given <paramref name="name"/>.
@@ -323,59 +323,59 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans, [NotNull] string name, Slice layer = default(Slice))
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.OpenAsync(trans, new[] { name }, layer);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, Slice.Nil), ct);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, layer), cancellationToken);
+			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, layer), ct);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="name"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
+			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, new[] { name }, Slice.Nil), ct);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="name"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, Slice layer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, new[] { name }, layer), ct);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="name"/>.</summary>
 		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans, [NotNull] string name)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.TryOpenAsync(trans, new[] { name }, Slice.Nil);
 		}
@@ -383,9 +383,9 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Attempts to open the directory with the given <paramref name="name"/>.</summary>
 		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans, [NotNull] string name, Slice layer)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.TryOpenAsync(trans, new[] { name }, layer);
 		}
@@ -398,27 +398,27 @@ namespace FoundationDB.Layers.Directories
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if the old directory does not exist, a directory already exists at `new_path`, or the parent directory of `new_path` does not exist.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> MoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> MoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (oldPath == null) throw new ArgumentNullException("oldPath");
-			if (newPath == null) throw new ArgumentNullException("newPath");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (oldPath == null) throw new ArgumentNullException(nameof(oldPath));
+			if (newPath == null) throw new ArgumentNullException(nameof(newPath));
 
-			return db.ReadWriteAsync((tr) => directory.MoveAsync(tr, oldPath, newPath), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.MoveAsync(tr, oldPath, newPath), ct);
 		}
 
 		/// <summary>Attempts to move the directory found at <paramref name="oldPath"/> to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> TryMoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryMoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (oldPath == null) throw new ArgumentNullException("oldPath");
-			if (newPath == null) throw new ArgumentNullException("newPath");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (oldPath == null) throw new ArgumentNullException(nameof(oldPath));
+			if (newPath == null) throw new ArgumentNullException(nameof(newPath));
 
-			return db.ReadWriteAsync((tr) => directory.TryMoveAsync(tr, oldPath, newPath), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.TryMoveAsync(tr, oldPath, newPath), ct);
 		}
 
 		#endregion
@@ -429,25 +429,25 @@ namespace FoundationDB.Layers.Directories
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> MoveToAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> newPath, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> MoveToAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> newPath, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (db == null) throw new ArgumentNullException("db");
-			if (newPath == null) throw new ArgumentNullException("newPath");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (newPath == null) throw new ArgumentNullException(nameof(newPath));
 
-			return db.ReadWriteAsync((tr) => subspace.MoveToAsync(tr, newPath), cancellationToken);
+			return db.ReadWriteAsync((tr) => subspace.MoveToAsync(tr, newPath), ct);
 		}
 
 		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> TryMoveToAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> newPath, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryMoveToAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> newPath, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (db == null) throw new ArgumentNullException("db");
-			if (newPath == null) throw new ArgumentNullException("newPath");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (newPath == null) throw new ArgumentNullException(nameof(newPath));
 
-			return db.ReadWriteAsync((tr) => subspace.TryMoveToAsync(tr, newPath), cancellationToken);
+			return db.ReadWriteAsync((tr) => subspace.TryMoveToAsync(tr, newPath), ct);
 		}
 
 		#endregion
@@ -457,34 +457,34 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), ct);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
-			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr, new [] { name }), cancellationToken);
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
+			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr, new [] { name }), ct);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, CancellationToken cancellationToken)
+		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr), ct);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
@@ -492,9 +492,9 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] string name)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.RemoveAsync(trans, new[] { name });
 		}
@@ -502,24 +502,24 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, path), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, path), ct);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, new [] { name }), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, new [] { name }), ct);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
@@ -527,9 +527,9 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, [NotNull] string name)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.TryRemoveAsync(trans, new[] { name });
 		}
@@ -540,44 +540,44 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Checks if a directory already exists</summary>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public static Task<bool> ExistsAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<bool> ExistsAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadAsync((tr) => directory.ExistsAsync(tr, path), cancellationToken);
+			return db.ReadAsync((tr) => directory.ExistsAsync(tr, path), ct);
 		}
 
 		/// <summary>Checks if a directory already exists</summary>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public static Task<bool> ExistsAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<bool> ExistsAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadAsync((tr) => directory.ExistsAsync(tr, new[] { name }), cancellationToken);
+			return db.ReadAsync((tr) => directory.ExistsAsync(tr, new[] { name }), ct);
 		}
 
 		/// <summary>Checks if a directory already exists</summary>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		public static Task<bool> ExistsAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans, [NotNull] string name)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.ExistsAsync(trans, new[] { name });
 		}
 
 		/// <summary>Checks if this directory exists</summary>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public static Task<bool> ExistsAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken cancellationToken)
+		public static Task<bool> ExistsAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (db == null) throw new ArgumentNullException("db");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadAsync((tr) => subspace.ExistsAsync(tr), cancellationToken);
+			return db.ReadAsync((tr) => subspace.ExistsAsync(tr), ct);
 		}
 
 		#endregion
@@ -585,95 +585,95 @@ namespace FoundationDB.Layers.Directories
 		#region List / TryList...
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>.</summary>
-		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
-			return db.ReadAsync((tr) => directory.ListAsync(tr, path), cancellationToken);
+			return db.ReadAsync((tr) => directory.ListAsync(tr, path), ct);
 		}
 
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>.</summary>
-		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
-			return db.ReadAsync((tr) => directory.ListAsync(tr, new [] { name }), cancellationToken);
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
+			return db.ReadAsync((tr) => directory.ListAsync(tr, new [] { name }), ct);
 		}
 
 		/// <summary>Returns the list of subdirectories of the current directory.</summary>
-		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, CancellationToken cancellationToken)
+		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			return db.ReadAsync((tr) => directory.ListAsync(tr), cancellationToken);
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			return db.ReadAsync((tr) => directory.ListAsync(tr), ct);
 		}
 
 		/// <summary>Returns the list of subdirectories of the current directory.</summary>
 		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			return directory.ListAsync(trans);
 		}
 
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>.</summary>
 		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans, [NotNull] string name)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 			return directory.ListAsync(trans, new[] { name });
 		}
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>, if it exists</summary>
-		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, IEnumerable<string> path, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path"); //REVIEW: or not?
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path)); //REVIEW: or not?
 
-			return db.ReadAsync((tr) => directory.TryListAsync(tr, path), cancellationToken);
+			return db.ReadAsync((tr) => directory.TryListAsync(tr, path), ct);
 		}
 
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>, if it exists</summary>
-		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken cancellationToken)
+		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
-			return db.ReadAsync((tr) => directory.TryListAsync(tr, new [] { name }), cancellationToken);
+			return db.ReadAsync((tr) => directory.TryListAsync(tr, new [] { name }), ct);
 		}
 
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>, if it exists</summary>
 		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyTransaction trans, [NotNull] string name)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (name == null) throw new ArgumentNullException("name");
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (name == null) throw new ArgumentNullException(nameof(name));
 
 			return directory.TryListAsync(trans, new[] { name });
 		}
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
-		public static Task<List<string>> ListAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken cancellationToken)
+		public static Task<List<string>> ListAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (db == null) throw new ArgumentNullException("db");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadAsync((tr) => subspace.ListAsync(tr), cancellationToken);
+			return db.ReadAsync((tr) => subspace.ListAsync(tr), ct);
 		}
 
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
-		public static Task<List<string>> TryListAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken cancellationToken)
+		public static Task<List<string>> TryListAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (db == null) throw new ArgumentNullException("db");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadAsync((tr) => subspace.TryListAsync(tr), cancellationToken);
+			return db.ReadAsync((tr) => subspace.TryListAsync(tr), ct);
 		}
 
 		#endregion
@@ -681,22 +681,22 @@ namespace FoundationDB.Layers.Directories
 		#region Metadata
 
 		/// <summary>Change the layer id of the directory at <param name="path"/></summary>
-		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectoryLayer directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, Slice newLayer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectoryLayer directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, Slice newLayer, CancellationToken ct)
 		{
-			if (directory == null) throw new ArgumentNullException("directory");
-			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path"); //REVIEW: or not?
+			if (directory == null) throw new ArgumentNullException(nameof(directory));
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (path == null) throw new ArgumentNullException(nameof(path)); //REVIEW: or not?
 
-			return db.ReadWriteAsync((tr) => directory.ChangeLayerAsync(tr, path, newLayer), cancellationToken);
+			return db.ReadWriteAsync((tr) => directory.ChangeLayerAsync(tr, path, newLayer), ct);
 		}
 
 		/// <summary>Change the layer id of this directory</summary>
-		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, Slice newLayer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, Slice newLayer, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (db == null) throw new ArgumentNullException("db");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			return db.ReadWriteAsync((tr) => subspace.ChangeLayerAsync(tr, newLayer), cancellationToken);
+			return db.ReadWriteAsync((tr) => subspace.ChangeLayerAsync(tr, newLayer), ct);
 		}
 
 		#endregion

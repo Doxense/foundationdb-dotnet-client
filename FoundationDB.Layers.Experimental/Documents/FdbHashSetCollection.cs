@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,18 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Blobs
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
-	using System.IO;
-	using System.Linq;
-	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
 
@@ -47,20 +42,20 @@ namespace FoundationDB.Layers.Blobs
 	public class FdbHashSetCollection
 	{
 
-		public FdbHashSetCollection(IFdbSubspace subspace)
+		public FdbHashSetCollection(IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		protected virtual Slice GetKey(IFdbTuple id)
+		protected virtual Slice GetKey(ITuple id)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
 			return this.Subspace.Keys.Pack(id);
@@ -70,13 +65,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id"></param>
 		/// <param name="field"></param>
 		/// <returns></returns>
-		protected virtual Slice GetFieldKey(IFdbTuple id, string field)
+		protected virtual Slice GetFieldKey(ITuple id, string field)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
 			return this.Subspace.Keys.Pack(id.Append(field));
 		}
 
-		protected virtual string ParseFieldKey(IFdbTuple key)
+		protected virtual string ParseFieldKey(ITuple key)
 		{
 			return key.Last<string>();
 		}
@@ -88,11 +83,11 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or Slice.Nil if it the hashset does not exist, or doesn't have a field with this name</returns>
-		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id, string field)
+		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple id, string field)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
-			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException("field");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
+			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException(nameof(field));
 
 			return trans.GetAsync(GetFieldKey(id, field));
 		}
@@ -101,16 +96,16 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id)
+		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple id)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var prefix = GetKey(id);
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			await trans
-				.GetRange(FdbKeyRange.StartsWith(prefix))
+				.GetRange(KeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
 					string field = this.Subspace.Keys.DecodeLast<string>(kvp.Key);
@@ -126,13 +121,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or Slice.Empty if that particular field does not exist.</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id, [NotNull] params string[] fields)
+		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple id, [NotNull] params string[] fields)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
-			if (fields == null) throw new ArgumentNullException("fields");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
+			if (fields == null) throw new ArgumentNullException(nameof(fields));
 
-			var keys = FdbTuple.EncodePrefixedKeys(GetKey(id), fields);
+			var keys = TuPack.EncodePrefixedKeys(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
@@ -149,24 +144,24 @@ namespace FoundationDB.Layers.Blobs
 
 		#region Set
 
-		public void SetValue(IFdbTransaction trans, IFdbTuple id, string field, Slice value)
+		public void SetValue(IFdbTransaction trans, ITuple id, string field, Slice value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
-			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException("field");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
+			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException(nameof(field));
 
 			trans.Set(GetFieldKey(id, field), value);
 		}
 
-		public void Set(IFdbTransaction trans, IFdbTuple id, IEnumerable<KeyValuePair<string, Slice>> fields)
+		public void Set(IFdbTransaction trans, ITuple id, IEnumerable<KeyValuePair<string, Slice>> fields)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
-			if (fields == null) throw new ArgumentNullException("fields");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
+			if (fields == null) throw new ArgumentNullException(nameof(fields));
 
 			foreach (var field in fields)
 			{
-				if (string.IsNullOrEmpty(field.Key)) throw new ArgumentException("Field cannot have an empty name", "fields");
+				if (string.IsNullOrEmpty(field.Key)) throw new ArgumentException("Field cannot have an empty name", nameof(fields));
 				trans.Set(GetFieldKey(id, field.Key), field.Value);
 			}
 		}
@@ -179,39 +174,39 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans"></param>
 		/// <param name="id"></param>
 		/// <param name="field"></param>
-		public void DeleteValue(IFdbTransaction trans, IFdbTuple id, string field)
+		public void DeleteValue(IFdbTransaction trans, ITuple id, string field)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
-			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException("field");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
+			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException(nameof(field));
 
 			trans.Clear(GetFieldKey(id, field));
 		}
 
 		/// <summary>Remove all fields of an hashset</summary>
 		/// <param name="id"></param>
-		public void Delete(IFdbTransaction trans, IFdbTuple id)
+		public void Delete(IFdbTransaction trans, ITuple id)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			// remove all fields of the hash
-			trans.ClearRange(FdbKeyRange.StartsWith(GetKey(id)));
+			trans.ClearRange(KeyRange.StartsWith(GetKey(id)));
 		}
 
 		/// <summary>Remove one or more fields of an hashset</summary>
 		/// <param name="trans"></param>
 		/// <param name="id"></param>
 		/// <param name="fields"></param>
-		public void Delete(IFdbTransaction trans, IFdbTuple id, params string[] fields)
+		public void Delete(IFdbTransaction trans, ITuple id, params string[] fields)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
-			if (fields == null) throw new ArgumentNullException("fields");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
+			if (fields == null) throw new ArgumentNullException(nameof(fields));
 
 			foreach (var field in fields)
 			{
-				if (string.IsNullOrEmpty(field)) throw new ArgumentException("Field cannot have an empty name", "fields");
+				if (string.IsNullOrEmpty(field)) throw new ArgumentException("Field cannot have an empty name", nameof(fields));
 				trans.Clear(GetFieldKey(id, field));
 			}
 		}
@@ -224,21 +219,21 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
-		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IFdbTuple id, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, ITuple id)
 		{
 			//note: As of Beta2, FDB does not have a fdb_get_range that only return the keys. That means that we will have to also read the values from the db, in order to just get the names of the fields :(
 			//TODO: find a way to optimize this ?
 
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("id");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var prefix = GetKey(id);
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			return trans
-				.GetRange(FdbKeyRange.StartsWith(prefix))
-				.Select((kvp) => ParseFieldKey(FdbTuple.Unpack(kvp.Key)))
-				.ToListAsync(cancellationToken);
+				.GetRange(KeyRange.StartsWith(prefix))
+				.Select((kvp) => ParseFieldKey(TuPack.Unpack(kvp.Key)))
+				.ToListAsync();
 		}
 
 		#endregion

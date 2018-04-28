@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,17 +30,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Filters.Logging;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class QueuesFacts : FdbTest
@@ -56,12 +55,12 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var queue = new FdbQueue<int>(location, highContention: false);
 
-				Console.WriteLine("Clear Queue");
+				Log("Clear Queue");
 				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
 
-				Console.WriteLine("Empty? " + await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
+				Log("Empty? " + await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
 
-				Console.WriteLine("Push 10, 8, 6");
+				Log("Push 10, 8, 6");
 				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 10), this.Cancellation);
 				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 8), this.Cancellation);
 				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 6), this.Cancellation);
@@ -72,51 +71,55 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				// Empty?
 				bool empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
-				Console.WriteLine("Empty? " + empty);
+				Log("Empty? " + empty);
 				Assert.That(empty, Is.False);
 
-				Optional<int> item = await queue.PopAsync(db, this.Cancellation);
-				Console.WriteLine("Pop item: " + item);
-				Assert.That((int)item, Is.EqualTo(10));
+				var item = await queue.PopAsync(db, this.Cancellation);
+				Log($"Pop item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(10));
 				item = await db.ReadWriteAsync((tr) => queue.PeekAsync(tr), this.Cancellation);
-				Console.WriteLine("Next item: " + item);
-				Assert.That((int)item, Is.EqualTo(8));
+				Log($"Next item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(8));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				item = await queue.PopAsync(db, this.Cancellation);
-				Console.WriteLine("Pop item: " + item);
-				Assert.That((int)item, Is.EqualTo(8));
+				Log($"Pop item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(8));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				item = await queue.PopAsync(db, this.Cancellation);
-				Console.WriteLine("Pop item: " + item);
-				Assert.That((int)item, Is.EqualTo(6));
+				Log($"Pop item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(6));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
-				Console.WriteLine("Empty? " + empty);
+				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 
-				Console.WriteLine("Push 5");
+				Log("Push 5");
 				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 5), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Clear Queue");
+				Log("Clear Queue");
 				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
-				Console.WriteLine("Empty? " + empty);
+				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 			}
 		}
@@ -150,9 +153,9 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		}
 
-		private static async Task RunMultiClientTest(IFdbDatabase db, FdbSubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
+		private static async Task RunMultiClientTest(IFdbDatabase db, KeySubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
 		{
-			Console.WriteLine("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
+			Log("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
 
 			var queue = new FdbQueue<string>(location, highContention);
 			await db.WriteAsync((tr) => queue.Clear(tr), ct);
@@ -234,8 +237,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				}
 
 				sw.Stop();
-				Console.WriteLine("> Finished {0} test in {1} seconds", desc, sw.Elapsed.TotalSeconds);
-				Console.WriteLine("> Pushed {0}, Popped {1} and Stalled {2}", pushCount, popCount, stalls);
+				Log("> Finished {0} test in {1} seconds", desc, sw.Elapsed.TotalSeconds);
+				Log("> Pushed {0}, Popped {1} and Stalled {2}", pushCount, popCount, stalls);
 
 				var pushedItems = pushTreads.SelectMany(t => t.Result).ToList();
 				var poppedItems = popThreads.SelectMany(t => t.Result).ToList();
@@ -306,23 +309,23 @@ namespace FoundationDB.Layers.Collections.Tests
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 				list.Clear();
 #endif
 
-				Console.WriteLine("------------------------------------------------");
+				Log("------------------------------------------------");
 
 				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM, this.Cancellation);
 #if ENABLE_LOGGING
 				foreach (var log in list)
 				{
-					Console.WriteLine(log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				}
 				list.Clear();
 #endif
 
-				Console.WriteLine("------------------------------------------------");
+				Log("------------------------------------------------");
 
 			}
 

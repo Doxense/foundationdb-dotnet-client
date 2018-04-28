@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client", "FoundationDB.Client\FoundationDB.Client.csproj", "{773166B7-DE74-4FCC-845C-84080CC89533}"
 EndProject
@@ -22,10 +22,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Samples", "FoundationDB.Samples\FoundationDB.Samples.csproj", "{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Experimental", "FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj", "{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory", "FoundationDB.Storage.Memory\FoundationDB.Storage.Memory.csproj", "{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory.Test", "FoundationDB.Storage.Memory.Test\FoundationDB.Storage.Memory.Test.csproj", "{AF76A8D4-E682-4E72-B656-BE3D935712DB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbShell", "FdbShell\FdbShell.csproj", "{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}"
 EndProject
@@ -52,6 +48,13 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{1B6BEB71-8C92-4B06-9715-9DAF49907BA1}"
 	ProjectSection(SolutionItems) = preProject
 		Tuples.md = Tuples.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{49DAFCA7-401C-4274-A559-4685E832DAF3}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
 Global
@@ -88,14 +91,6 @@ Global
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -120,10 +115,11 @@ Global
 		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
 		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA} = {B40329A5-32B5-4056-8C8F-424E845D2688}
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8} = {19AF13DE-0DC9-4E4A-BBB0-0EF9386F9DC8}
-		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E} = {19AF13DE-0DC9-4E4A-BBB0-0EF9386F9DC8}
-		{AF76A8D4-E682-4E72-B656-BE3D935712DB} = {C443AC73-535E-492E-BDE3-FBF01446842C}
 		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC} = {1F010B54-2028-4B4D-A6FF-9892A00E83FC}
 		{A1731E5B-59B5-49E0-A9B2-E552B18FA1C6} = {1F010B54-2028-4B4D-A6FF-9892A00E83FC}
 		{60049BA1-A95F-4127-BAC5-74AF023D3082} = {1F010B54-2028-4B4D-A6FF-9892A00E83FC}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {07944E4B-042C-4338-8E28-99FB373F52AA}
 	EndGlobalSection
 EndGlobal

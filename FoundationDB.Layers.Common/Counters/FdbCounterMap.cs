@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Counters
 	using JetBrains.Annotations;
 	using System;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
@@ -41,28 +42,25 @@ namespace FoundationDB.Layers.Counters
 		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
 
 		/// <summary>Create a new counter map.</summary>
-		public FdbCounterMap([NotNull] IFdbSubspace subspace)
-			: this(subspace, KeyValueEncoders.Tuples.Key<TKey>())
+		public FdbCounterMap([NotNull] IKeySubspace subspace)
+			: this(subspace.AsTyped<TKey>())
 		{ }
 
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
-		public FdbCounterMap([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder)
+		public FdbCounterMap([NotNull] ITypedKeySubspace<TKey> subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Subspace = subspace;
-			this.KeyEncoder = keyEncoder;
-			this.Location = subspace.UsingEncoder(keyEncoder);
+			this.Location = subspace;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
-		public IFdbSubspace Subspace { [NotNull] get; private set; }
+		[NotNull]
+		public IKeySubspace Subspace { get; }
 
-		/// <summary>Encoder for the keys of the counter map</summary>
-		public IKeyEncoder<TKey> KeyEncoder { [NotNull] get; private set; }
-
-		internal IFdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
+		[NotNull]
+		internal ITypedKeySubspace<TKey> Location { get; }
 
 		/// <summary>Add a value to a counter in one atomic operation</summary>
 		/// <param name="transaction"></param>
@@ -71,12 +69,12 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Add([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
 			Slice param = value == 1 ? PlusOne : value == -1 ? MinusOne : Slice.FromFixed64(value);
-			transaction.AtomicAdd(this.Location.Keys.Encode(counterKey), param);
+			transaction.AtomicAdd(this.Location.Keys[counterKey], param);
 		}
 
 		/// <summary>Subtract a value from a counter in one atomic operation</summary>
@@ -113,10 +111,10 @@ namespace FoundationDB.Layers.Counters
 		/// <returns></returns>
 		public async Task<long?> ReadAsync([NotNull] IFdbReadOnlyTransaction transaction, [NotNull] TKey counterKey)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
-			var data = await transaction.GetAsync(this.Location.Keys.Encode(counterKey)).ConfigureAwait(false);
+			var data = await transaction.GetAsync(this.Location.Keys[counterKey]).ConfigureAwait(false);
 			if (data.IsNullOrEmpty) return default(long?);
 			return data.ToInt64();
 		}
@@ -128,8 +126,8 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> AddThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			var key = this.Location.Keys.Encode(counterKey);
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
@@ -162,10 +160,10 @@ namespace FoundationDB.Layers.Counters
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> ReadThenAddAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
-			if (counterKey == null) throw new ArgumentNullException("counterKey");
+			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
+			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
-			var key = this.Location.Keys.Encode(counterKey);
+			var key = this.Location.Keys[counterKey];
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			long previous = res.IsNullOrEmpty ? 0 : res.ToInt64();

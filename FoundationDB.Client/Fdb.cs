@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_THREADS
+//#define DEBUG_THREADS
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
@@ -40,8 +37,11 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using SystemIO = System.IO;
+	using FoundationDB.Client.Native;
+	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB binding</summary>
+	[PublicAPI]
 	public static partial class Fdb
 	{
 
@@ -64,7 +64,7 @@ namespace FoundationDB.Client
 		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
 
 		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
-		internal const int DefaultApiVersion = 200; // v2.0.x
+		internal const int DefaultApiVersion = 510; // v5.1.x
 		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
@@ -114,10 +114,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the currently selected API version.</summary>
 		/// <remarks>Unless explicitely selected by calling <see cref="UseApiVersion"/> before, the default API version level will be returned</remarks>
-		public static int ApiVersion
-		{
-			get { return s_apiVersion; }
-		}
+		public static int ApiVersion => s_apiVersion;
 
 		/// <summary>Sets the desired API version of the binding.
 		/// The selected version level may affect the availability and behavior or certain features.
@@ -137,14 +134,14 @@ namespace FoundationDB.Client
 				value = DefaultApiVersion;
 			}
 			if (s_apiVersion == value) return; //Alreay set to same version... skip it.
-			if (s_started) throw new InvalidOperationException(string.Format("You cannot set API version {0} because version {1} has already been selected", value, s_apiVersion));
+			if (s_started) throw new InvalidOperationException($"You cannot set API version {value} because version {Fdb.s_apiVersion} has already been selected");
 
 			//note: we don't actually select the version yet, only when Start() is called.
 
 			int min = GetMinApiVersion();
-			if (value < min) throw new ArgumentException(String.Format("The minimum API version supported by this binding is {0} and the default version is {1}.", min, DefaultApiVersion));
+			if (value < min) throw new ArgumentException($"The minimum API version supported by this binding is {min} and the default version is {Fdb.DefaultApiVersion}.");
 			int max = GetMaxApiVersion();
-			if (value > max) throw new ArgumentException(String.Format("The maximum API version supported by this binding is {0} and the default version is {1}.", max, DefaultApiVersion));
+			if (value > max) throw new ArgumentException($"The maximum API version supported by this binding is {max} and the default version is {Fdb.DefaultApiVersion}.");
 
 			s_apiVersion = value;
 		}
@@ -181,7 +178,7 @@ namespace FoundationDB.Client
 			if (code == FdbError.Success) return null;
 
 			string msg = GetErrorMessage(code);
-			if (msg == null) throw new FdbException(code, String.Format("Unexpected error code {0}", (int)code));
+			if (msg == null) throw new FdbException(code, $"Unexpected error code {(int) code}");
 
 			//TODO: create a custom FdbException to be able to store the error code and error message
 			switch(code)
@@ -251,7 +248,7 @@ namespace FoundationDB.Client
 				var err = FdbNative.StopNetwork();
 				if (err != FdbError.Success)
 				{
-					if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("Failed to stop event loop: {0}", err.ToString()));
+					if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", $"Failed to stop event loop: {err.ToString()}");
 				}
 				s_eventLoopStarted = false;
 
@@ -275,7 +272,7 @@ namespace FoundationDB.Client
 
 						if (thread.IsAlive)
 						{
-							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("The fdb network thread has not stopped after {0} seconds. Forcing shutdown...", duration.Elapsed.TotalSeconds.ToString("N0")));
+							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", $"The fdb network thread has not stopped after {duration.Elapsed.TotalSeconds:N0} seconds. Forcing shutdown...");
 
 							// Force a shutdown
 							thread.Abort();
@@ -286,7 +283,7 @@ namespace FoundationDB.Client
 
 							if (!stopped)
 							{
-								if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("The fdb network thread failed to stop after more than {0} seconds. Transaction integrity may not be guaranteed.", duration.Elapsed.TotalSeconds.ToString("N0")));
+								if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", $"The fdb network thread failed to stop after more than {duration.Elapsed.TotalSeconds:N0} seconds. Transaction integrity may not be guaranteed.");
 							}
 						}
 					}
@@ -300,7 +297,7 @@ namespace FoundationDB.Client
 						duration.Stop();
 						if (duration.Elapsed.TotalSeconds >= 20)
 						{
-							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("The fdb network thread took a long time to stop ({0} seconds).", duration.Elapsed.TotalSeconds.ToString("N0")));
+							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", $"The fdb network thread took a long time to stop ({duration.Elapsed.TotalSeconds:N0} seconds).");
 						}
 					}
 				}
@@ -320,18 +317,18 @@ namespace FoundationDB.Client
 
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
 
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", String.Format("FDB Event Loop running on thread #{0}...", s_eventLoopThreadId.Value));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", $"FDB Event Loop running on thread #{Fdb.s_eventLoopThreadId.Value}...");
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{
 					if (s_eventLoopStopRequested || Environment.HasShutdownStarted)
 					{ // this was requested, or can be explained by the computer shutting down...
-						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
+						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", $"The fdb network thread returned with error code {err}: {GetErrorMessage(err)}");
 					}
 					else
 					{ // this was NOT expected !
-						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
+						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", $"The fdb network thread returned with error code {err}: {GetErrorMessage(err)}");
 #if DEBUG
 						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS FAILED!");
 						Console.Error.WriteLine("=> " + err);
@@ -393,10 +390,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns true if the Network thread start is executing, otherwise falsse</summary>
-		public static bool IsNetworkRunning
-		{
-			get { return s_eventLoopRunning; }
-		}
+		public static bool IsNetworkRunning => s_eventLoopRunning;
 
 		/// <summary>Returns 'true' if we are currently running on the Event Loop thread</summary>
 		internal static bool IsNetworkThread
@@ -439,37 +433,40 @@ namespace FoundationDB.Client
 		#region Cluster...
 
 		/// <summary>Opens a connection to an existing FoundationDB cluster using the default cluster file</summary>
-		/// <param name="cancellationToken">Token used to abort the operation</param>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		public static Task<IFdbCluster> CreateClusterAsync(CancellationToken cancellationToken)
+		[ItemNotNull]
+		public static Task<IFdbCluster> CreateClusterAsync(CancellationToken ct)
 		{
-			return CreateClusterAsync(null, cancellationToken);
+			return CreateClusterAsync(null, ct);
 		}
 
 		/// <summary>Opens a connection to an existing FDB Cluster</summary>
 		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
-		/// <param name="cancellationToken">Token used to abort the operation</param>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		public static async Task<IFdbCluster> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken)
+		[ItemNotNull]
+		public static async Task<IFdbCluster> CreateClusterAsync(string clusterFile, CancellationToken ct)
 		{
-			return await CreateClusterInternalAsync(clusterFile, cancellationToken).ConfigureAwait(false);
+			return await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
 		}
 
-		internal static async Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
+		[ItemNotNull]
+		private static async Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken ct)
 		{
 			EnsureIsStarted();
 
 			// "" should also be considered to mean "default cluster file"
 			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "CreateClusterAsync", clusterFile == null ? "Connecting to default cluster..." : String.Format("Connecting to cluster using '{0}' ...", clusterFile));
+			if (Logging.On) Logging.Info(typeof(Fdb), "CreateClusterAsync", clusterFile == null ? "Connecting to default cluster..." : $"Connecting to cluster using '{clusterFile}' ...");
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: check the path ? (exists, readable, ...)
 
 			//TODO: have a way to configure the default IFdbClusterHander !
-			var handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, cancellationToken).ConfigureAwait(false);
+			var handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, ct).ConfigureAwait(false);
 			return new FdbCluster(handler, clusterFile);
 		}
 
@@ -478,38 +475,41 @@ namespace FoundationDB.Client
 		#region Database...
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file.</summary>
-		/// <param name="cancellationToken">Token used to abort the operation</param>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		public static Task<IFdbDatabase> OpenAsync(CancellationToken cancellationToken = default(CancellationToken))
+		[ItemNotNull]
+		public static Task<IFdbDatabase> OpenAsync(CancellationToken ct = default(CancellationToken))
 		{
-			return OpenAsync(clusterFile: null, dbName: null, globalSpace: FdbSubspace.Empty, cancellationToken: cancellationToken);
+			return OpenAsync(clusterFile: null, dbName: null, globalSpace: KeySubspace.Empty, ct: ct);
 		}
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file, and with the specified global subspace</summary>
 		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
-		/// <param name="cancellationToken">Token used to abort the operation</param>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		public static Task<IFdbDatabase> OpenAsync(IFdbSubspace globalSpace, CancellationToken cancellationToken = default(CancellationToken))
+		[ItemNotNull]
+		public static Task<IFdbDatabase> OpenAsync(IKeySubspace globalSpace, CancellationToken ct = default(CancellationToken))
 		{
-			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, cancellationToken: cancellationToken);
+			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, ct: ct);
 		}
 
 		/// <summary>Create a new connection with a database on the specified cluster</summary>
 		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
-		/// <param name="cancellationToken">Cancellation Token</param>
+		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of 1.0, the only supported database name is "DB"</remarks>
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		public static Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken cancellationToken = default(CancellationToken))
+		[ItemNotNull]
+		public static Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken ct = default(CancellationToken))
 		{
-			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, readOnly: false, cancellationToken: cancellationToken);
+			return OpenAsync(clusterFile, dbName, KeySubspace.Empty, readOnly: false, ct: ct);
 		}
 
 		/// <summary>Create a new connection with a database on the specified cluster</summary>
@@ -517,35 +517,37 @@ namespace FoundationDB.Client
 		/// <param name="dbName">Name of the database. Must be 'DB'</param>
 		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
 		/// <param name="readOnly">If true, the database instance will only allow read operations</param>
-		/// <param name="cancellationToken">Token used to abort the operation</param>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of 1.0, the only supported database name is 'DB'</remarks>
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		public static Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, IFdbSubspace globalSpace, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
+		[ItemNotNull]
+		public static Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, IKeySubspace globalSpace, bool readOnly = false, CancellationToken ct = default(CancellationToken))
 		{
-			return OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, cancellationToken);
+			return OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, ct);
 		}
 
 		/// <summary>Create a new database handler instance using the specificied cluster file, database name, global subspace and read only settings</summary>
-		internal static async Task<IFdbDatabase> OpenInternalAsync(string clusterFile, string dbName, IFdbSubspace globalSpace, bool readOnly, CancellationToken cancellationToken)
+		[ItemNotNull]
+		internal static async Task<IFdbDatabase> OpenInternalAsync(string clusterFile, string dbName, IKeySubspace globalSpace, bool readOnly, CancellationToken ct)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
 			dbName = dbName ?? "DB";
-			globalSpace = globalSpace ?? FdbSubspace.Empty;
+			globalSpace = globalSpace ?? KeySubspace.Empty;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", dbName, clusterFile, globalSpace));
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
 			bool success = false;
 			try
 			{
-				cluster = await CreateClusterInternalAsync(clusterFile, cancellationToken).ConfigureAwait(false);
+				cluster = await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: readOnly, ownsCluster: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
 				success = true;
 				return db;
 			}
@@ -554,8 +556,8 @@ namespace FoundationDB.Client
 				if (!success)
 				{
 					// cleanup the cluter if something went wrong
-					if (db != null) db.Dispose();
-					if (cluster != null) cluster.Dispose();
+					db?.Dispose();
+					cluster?.Dispose();
 				}
 			}
 		}
@@ -588,25 +590,25 @@ namespace FoundationDB.Client
 			int apiVersion = s_apiVersion;
 			if (apiVersion <= 0) apiVersion = DefaultApiVersion;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", apiVersion));
+			if (Logging.On) Logging.Info(typeof(Fdb), "Start", $"Selecting fdb API version {apiVersion}");
 
 			FdbError err = FdbNative.SelectApiVersion(apiVersion);
 			if (err != FdbError.Success)
 			{
-				if (Logging.On) Logging.Error(typeof(Fdb), "Start", String.Format("Failed to fdb API version {0}: {1}", apiVersion, err));
+				if (Logging.On) Logging.Error(typeof(Fdb), "Start", $"Failed to fdb API version {apiVersion}: {err}");
 
 				switch (err)
 				{
 					case FdbError.ApiVersionNotSupported:
 					{ // bad version was selected ?
 						// note: we already bound check the values before, so that means that fdb_c.dll is either an older version or an incompatible new version.
-						throw new FdbException(err, String.Format("The API version {0} is not supported by the FoundationDB client library (fdb_c.dll) installed on this system. The binding only supports versions {1} to {2}. You either need to upgrade the .NET binding or the FoundationDB client library to a newer version.", apiVersion, GetMinApiVersion(), GetMaxApiVersion()));
+						throw new FdbException(err, $"The API version {apiVersion} is not supported by the FoundationDB client library (fdb_c.dll) installed on this system. The binding only supports versions {GetMinApiVersion()} to {GetMaxApiVersion()}. You either need to upgrade the .NET binding or the FoundationDB client library to a newer version.");
 					}
 #if DEBUG
 					case FdbError.ApiVersionAlreadySet:
 					{ // Temporary hack to allow multiple debugging using the cached host process in VS
-						Console.WriteLine("REUSING EXISTING PROCESS! IF THINGS BREAK IN WEIRD WAYS, PLEASE RESTART THE PROCESS!");
-						err = FdbError.Success;
+						Console.Error.WriteLine("FATAL: CANNOT REUSE EXISTING PROCESS! FoundationDB client cannot be restarted once stopped. Current process will be terminated.");
+						Environment.FailFast("FATAL: CANNOT REUSE EXISTING PROCESS! FoundationDB client cannot be restarted once stopped. Current process will be terminated.");
 						break;
 					}
 #endif
@@ -617,7 +619,7 @@ namespace FoundationDB.Client
 
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will trace client activity in '{0}'", Fdb.Options.TracePath));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will trace client activity in '{Fdb.Options.TracePath}'");
 				// create trace directory if missing...
 				if (!SystemIO.Directory.Exists(Fdb.Options.TracePath)) SystemIO.Directory.CreateDirectory(Fdb.Options.TracePath);
 
@@ -626,40 +628,40 @@ namespace FoundationDB.Client
 
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSPlugin))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will use custom TLS plugin '{0}'", Fdb.Options.TLSPlugin));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will use custom TLS plugin '{Fdb.Options.TLSPlugin}'");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSPlugin, Fdb.Options.TLSPlugin));
 			}
 
 			if (Fdb.Options.TLSCertificateBytes.IsPresent)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certificate and private key from memory ({0} bytes)", Fdb.Options.TLSCertificateBytes.Count));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from memory ({Fdb.Options.TLSCertificateBytes.Count} bytes)");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertBytes, Fdb.Options.TLSCertificateBytes));
 			}
 			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSCertificatePath))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certificate and private key from '{0}'", Fdb.Options.TLSCertificatePath));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from '{Fdb.Options.TLSCertificatePath}'");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertPath, Fdb.Options.TLSCertificatePath));
 			}
 
 			if (Fdb.Options.TLSPrivateKeyBytes.IsPresent)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS private key from memory ({0} bytes)", Fdb.Options.TLSPrivateKeyBytes.Count));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from memory ({Fdb.Options.TLSPrivateKeyBytes.Count} bytes)");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyBytes, Fdb.Options.TLSPrivateKeyBytes));
 			}
 			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSPrivateKeyPath))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS private key from '{0}'", Fdb.Options.TLSPrivateKeyPath));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from '{Fdb.Options.TLSPrivateKeyPath}'");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyPath, Fdb.Options.TLSPrivateKeyPath));
 			}
 
 			if (Fdb.Options.TLSVerificationPattern.IsPresent)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will verify TLS peers with pattern '{0}'", Fdb.Options.TLSVerificationPattern));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will verify TLS peers with pattern '{Fdb.Options.TLSVerificationPattern}'");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSVerifyPeers, Fdb.Options.TLSVerificationPattern));
 			}
@@ -707,7 +709,7 @@ namespace FoundationDB.Client
 		/// <summary>Set the value of a network option on the database handler</summary>
 		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
 		{
-			SliceHelpers.EnsureSliceIsValid(ref value);
+			value.EnsureSliceIsValid();
 			unsafe
 			{
 				fixed (byte* ptr = value.Array)

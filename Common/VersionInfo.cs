@@ -1,5 +1,5 @@
 #region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,15 +27,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 [assembly: AssemblyCompany("Doxense")]
 [assembly: AssemblyProduct("FoundationDB.Client")]
-[assembly: AssemblyCopyright("Copyright © Doxense SAS 2013-2015")]
+[assembly: AssemblyCopyright("Copyright © Doxense SAS 2013-2018")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
-[assembly: AssemblyVersion("0.9.9.0")] //note: Only change this when doing breaking API changes!
-[assembly: AssemblyFileVersion("0.9.8.0")] //note: change this to "x.y.revision.build_step" in a build step of your favorite C.I. build server
-[assembly: AssemblyInformationalVersion("0.9.9-pre")]  //note: this is the version seen by NuGet, add "-alpha"/"-beta"/"-rc1" at the end to create pre-release packages
+[assembly: AssemblyVersion("5.1.0.0")] //note: Only change this when doing breaking API changes!
+[assembly: AssemblyFileVersion("5.1.0.0")] //note: change this to "x.y.revision.build_step" in a build step of your favorite C.I. build server
+[assembly: AssemblyInformationalVersion("0.5.1-alpha1")]  //note: this is the version seen by NuGet, add "-alpha"/"-beta"/"-rc1" at the end to create pre-release packages

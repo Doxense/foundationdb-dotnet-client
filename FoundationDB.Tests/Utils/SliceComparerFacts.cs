@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Client;
-	using NUnit.Framework;
 	using System;
 	using System.Text;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class SliceComparerFacts : FdbTest
@@ -42,9 +41,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_SliceComparer_Equals()
 		{
-			var cmp = SliceComparer.Default;
+			var cmp = Slice.Comparer.Default;
 			Assert.That(cmp, Is.Not.Null);
-			Assert.That(SliceComparer.Default, Is.SameAs(cmp));
+			Assert.That(Slice.Comparer.Default, Is.SameAs(cmp));
 
 			Assert.That(cmp.Equals(Slice.Nil, Slice.Nil), Is.True);
 			Assert.That(cmp.Equals(Slice.Empty, Slice.Empty), Is.True);
@@ -52,26 +51,26 @@ namespace FoundationDB.Client.Tests
 			Assert.That(cmp.Equals(Slice.Empty, Slice.Nil), Is.False);
 
 			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.FromByte(42)), Is.True);
-			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.Create(new byte[] { 42 })), Is.True);
+			Assert.That(cmp.Equals(Slice.FromByte(42), new byte[] { 42 }.AsSlice()), Is.True);
 			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.FromByte(77)), Is.False);
 
-			Assert.That(cmp.Equals(Slice.Create(new byte[] { 65, 66, 67 }), Slice.FromString("ABC")), Is.True);
-			Assert.That(cmp.Equals(Slice.Create(new byte[] { 65, 66, 67, 68 }), Slice.FromString("ABC")), Is.False);
+			Assert.That(cmp.Equals(new byte[] { 65, 66, 67 }.AsSlice(), Slice.FromString("ABC")), Is.True);
+			Assert.That(cmp.Equals(new byte[] { 65, 66, 67, 68 }.AsSlice(), Slice.FromString("ABC")), Is.False);
 
 			var buf1 = Encoding.ASCII.GetBytes("ABBAABA");
 			var buf2 = Encoding.ASCII.GetBytes("ABBAABA");
-			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf1, 0, 2)), Is.True);
-			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf1, 0, 3)), Is.False);
-			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf1, 4, 2)), Is.True);
-			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 3), Slice.Create(buf1, 4, 3)), Is.False);
-			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf2, 4, 2)), Is.True);
-			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 3), Slice.Create(buf2, 4, 3)), Is.False);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf1.AsSlice(0, 2)), Is.True);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf1.AsSlice(0, 3)), Is.False);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf1.AsSlice(4, 2)), Is.True);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 3), buf1.AsSlice(4, 3)), Is.False);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf2.AsSlice(4, 2)), Is.True);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 3), buf2.AsSlice(4, 3)), Is.False);
 		}
 
 		[Test]
 		public void Test_SliceComparer_GetHashCode_Should_Return_Same_As_Slice()
 		{
-			var cmp = SliceComparer.Default;
+			var cmp = Slice.Comparer.Default;
 			Assert.That(cmp, Is.Not.Null);
 
 			Assert.That(cmp.GetHashCode(Slice.Nil), Is.EqualTo(Slice.Nil.GetHashCode()));
@@ -89,16 +88,16 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_SliceComparer_Compare()
 		{
-			var cmp = SliceComparer.Default;
+			var cmp = Slice.Comparer.Default;
 			Assert.That(cmp, Is.Not.Null);
 
-			Assert.That(cmp.Compare(Slice.Nil, Slice.Nil), Is.EqualTo(0));
-			Assert.That(cmp.Compare(Slice.Empty, Slice.Empty), Is.EqualTo(0));
-			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(42)), Is.EqualTo(0));
+			Assert.That(cmp.Compare(Slice.Nil, Slice.Nil), Is.Zero);
+			Assert.That(cmp.Compare(Slice.Empty, Slice.Empty), Is.Zero);
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(42)), Is.Zero);
 
 			//REVIEW: Inconsistency: compare(nil, empty) == 0, but Equals(nil, empty) == false
-			Assert.That(cmp.Compare(Slice.Nil, Slice.Empty), Is.EqualTo(0), "Nil and Empty are considered similar regarding ordering");
-			Assert.That(cmp.Compare(Slice.Empty, Slice.Nil), Is.EqualTo(0), "Nil and Empty are considered similar regarding ordering");
+			Assert.That(cmp.Compare(Slice.Nil, Slice.Empty), Is.Zero, "Nil and Empty are considered similar regarding ordering");
+			Assert.That(cmp.Compare(Slice.Empty, Slice.Nil), Is.Zero, "Nil and Empty are considered similar regarding ordering");
 
 			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(77)), Is.LessThan(0));
 			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(21)), Is.GreaterThan(0));

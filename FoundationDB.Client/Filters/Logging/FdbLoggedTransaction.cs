@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,20 +28,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	[Flags]
 	public enum FdbLoggingOptions
 	{
 		/// <summary>Default logging options</summary>
 		Default = 0,
-		
+
 		/// <summary>Capture the stacktrace of the caller method that created the transaction</summary>
 		RecordCreationStackTrace = 0x100,
 
@@ -114,7 +114,7 @@ namespace FoundationDB.Filters.Logging
 				int start = m_offset;
 				slice.CopyTo(m_buffer, m_offset);
 				m_offset += slice.Count;
-				return new Slice(m_buffer, start, slice.Count);
+				return m_buffer.AsSlice(start, slice.Count);
 			}
 		}
 
@@ -144,16 +144,20 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private FdbKeySelector Grab(FdbKeySelector selector)
+		private KeySelector Grab(KeySelector selector)
 		{
-			return new FdbKeySelector(Grab(selector.Key), selector.OrEqual, selector.Offset);
+			return new KeySelector(
+				Grab(selector.Key),
+				selector.OrEqual,
+				selector.Offset
+			);
 		}
 
-		private FdbKeySelector[] Grab(FdbKeySelector[] selectors)
+		private KeySelector[] Grab(KeySelector[] selectors)
 		{
 			if (selectors == null || selectors.Length == 0) return null;
 
-			var res = new FdbKeySelector[selectors.Length];
+			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
 				res[i] = Grab(selectors[i]);
@@ -274,11 +278,11 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		public override FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			var cmd = new FdbTransactionLog.WatchCommand(Grab(key));
-            this.Log.AddOperation(cmd);
-			return m_transaction.Watch(cmd.Key, cancellationToken);
+			this.Log.AddOperation(cmd);
+			return m_transaction.Watch(cmd.Key, ct);
 		}
 
 		#endregion
@@ -305,6 +309,14 @@ namespace FoundationDB.Filters.Logging
 			return ExecuteAsync(
 				new FdbTransactionLog.OnErrorCommand(code),
 				(_tr, _cmd) => _tr.OnErrorAsync(_cmd.Code)
+			);
+		}
+
+		public override Task<VersionStamp> GetVersionStampAsync()
+		{
+			return ExecuteAsync(
+				new FdbTransactionLog.GetVersionStampCommand(),
+				(tr, cmd) => tr.GetVersionStampAsync()
 			);
 		}
 
@@ -369,7 +381,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public override Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeyCommand(Grab(selector)),
@@ -385,7 +397,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeysCommand(Grab(selectors)),
@@ -393,7 +405,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetRangeCommand(Grab(beginInclusive), Grab(endExclusive), options, iteration),
@@ -401,7 +413,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			ThrowIfDisposed();
 
@@ -478,7 +490,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override Task<Slice> GetKeyAsync(FdbKeySelector selector)
+			public override Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeyCommand(m_parent.Grab(selector)),
@@ -494,7 +506,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+			public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeysCommand(m_parent.Grab(selectors)),
@@ -502,7 +514,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+			public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(beginInclusive), m_parent.Grab(endExclusive), options, iteration),
@@ -510,7 +522,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+			public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 			{
 				m_parent.ThrowIfDisposed();
 				var query = m_transaction.GetRange(beginInclusive, endExclusive, options);

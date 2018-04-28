@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,21 +27,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to help debug Transactions
-#undef DEBUG_TRANSACTIONS
+//#define DEBUG_TRANSACTIONS
 // enable this to capture the stacktrace of the ctor, when troubleshooting leaked transaction handles
-#undef CAPTURE_STACKTRACES
+//#define CAPTURE_STACKTRACES
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Core;
+	using JetBrains.Annotations;
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Size={m_payloadBytes}, Closed={m_handle.IsClosed}")]
@@ -107,7 +106,7 @@ namespace FoundationDB.Client.Native
 
 		#region Reading...
 
-		public Task<long> GetReadVersionAsync(CancellationToken cancellationToken)
+		public Task<long> GetReadVersionAsync(CancellationToken ct)
 		{
 			return RunAsync(
 				(handle, state) => FdbNative.TransactionGetReadVersion(handle),
@@ -123,7 +122,7 @@ namespace FoundationDB.Client.Native
 					return version;
 				},
 				default(object),
-				cancellationToken
+				ct
 			);
 		}
 
@@ -149,22 +148,22 @@ namespace FoundationDB.Client.Native
 			return !TryGetValueResult(h, out result) ? Slice.Nil : result;
 		}
 
-		public Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken ct)
 		{
 			return RunAsync(
 				(handle, state) => FdbNative.TransactionGet(handle, state.Item1, state.Item2),
-				FdbTuple.Create(key, snapshot),
+				(key, snapshot),
 				(future, state) => GetValueResultBytes(future),
 				null,
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(keys != null);
 
-			if (keys.Length == 0) return Task.FromResult(Slice.EmptySliceArray);
+			if (keys.Length == 0) return Task.FromResult(Array.Empty<Slice>());
 
 			return RunAsync(
 				keys.Length,
@@ -176,13 +175,13 @@ namespace FoundationDB.Client.Native
 					{
 						var h = FdbNative.TransactionGet(handle, _keys[i], _snapshot);
 						if (h == IntPtr.Zero) throw new FdbException(FdbError.OperationFailed);
-                        futures[i] = h;
+						futures[i] = h;
 					}
 				},
-				FdbTuple.Create(keys, snapshot),
+				(keys, snapshot),
 				(future, state) => GetValueResultBytes(future),
 				default(object), //TODO: buffer for the slices
-				cancellationToken
+				ct
 			);
 		}
 
@@ -203,7 +202,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(options != null);
 
@@ -216,20 +215,18 @@ namespace FoundationDB.Client.Native
 				{
 					// TODO: quietly return if disposed
 
-					bool hasMore;
-					var chunk = GetKeyValueArrayResult(future, out hasMore);
+					var chunk = GetKeyValueArrayResult(future, out bool hasMore);
 
 					return new FdbRangeChunk(hasMore, chunk, iteration, reversed);
 				},
 				default(object), //TODO: pass options & co?
-				cancellationToken
+				ct
 			);
 		}
 
 		private static Slice GetKeyResult(IntPtr h)
 		{
-			Slice result;
-			var err = FdbNative.FutureGetKey(h, out result);
+			var err = FdbNative.FutureGetKey(h, out Slice result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
 #endif
@@ -237,29 +234,29 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
-		public Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken ct)
 		{
 			return RunAsync(
-				(handle, state) => FdbNative.TransactionGetKey(handle, state.Item1, state.Item2),
-				FdbTuple.Create(selector, snapshot),
+				(handle, state) => FdbNative.TransactionGetKey(handle, state.Selector, state.Snapshot),
+				(Selector: selector, Snapshot: snapshot),
 				(future, state) => GetKeyResult(future),
 				default(object),
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(selectors != null);
 
-			if (selectors.Length == 0) return Task.FromResult(Slice.EmptySliceArray);
+			if (selectors.Length == 0) return Task.FromResult(Array.Empty<Slice>()); //REVIEW: PERF: maybe we could cache the emtpy array task?
 
 			return RunAsync(
 				selectors.Length,
 				(handle, state, futures) =>
 				{
-					var _selectors = state.Item1;
-					var _snapshot = state.Item2;
+					var _selectors = state.Selectors;
+					var _snapshot = state.Snapshot;
 					for (int i = 0; i < _selectors.Length; i++)
 					{
 						var h = FdbNative.TransactionGetKey(handle, _selectors[i], _snapshot);
@@ -267,10 +264,10 @@ namespace FoundationDB.Client.Native
 						futures[i] = h;
 					}
 				},
-				FdbTuple.Create(selectors, snapshot),
+				(Selectors: selectors, Snapshot: snapshot),
 				(future, state) => GetKeyResult(future),
 				default(object), //TODO: buffer for the slices
-				cancellationToken
+				ct
 			);
 		}
 
@@ -329,14 +326,14 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
-		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken cancellationToken)
+		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken ct)
 		{
 			return RunAsync(
 				(handle, state) => FdbNative.TransactionGetAddressesForKey(handle, state),
 				key,
 				(future, state) => GetStringArrayResult(future),
 				default(object),
-				cancellationToken
+				ct
 			);
 		}
 
@@ -344,7 +341,7 @@ namespace FoundationDB.Client.Native
 
 		#region Watches...
 
-		public FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			// a Watch will outlive the transaction, so we can attach it to the current FutureContext (which will be disposed once the transaction goes away)
 			// => we will store at them to the GlobalContext
@@ -360,14 +357,37 @@ namespace FoundationDB.Client.Native
 
 		public long GetCommittedVersion()
 		{
-			long version;
-			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
+			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out long version);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
 #endif
 			Fdb.DieOnError(err);
 			return version;
 		}
+
+		public Task<VersionStamp> GetVersionStampAsync(CancellationToken ct)
+		{
+			return RunAsync(
+				(handle, state) => FdbNative.TransactionGetVersionStamp(handle),
+				default(object),
+				(future, state) => GetVersionStampResult(future),
+				default(object),
+				ct
+			);
+		}
+
+		private static VersionStamp GetVersionStampResult(IntPtr h)
+		{
+			Contract.Requires(h != null);
+			var err = FdbNative.FutureGetVersionStamp(h, out VersionStamp stamp);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[" + m_id + "].FutureGetVersionStamp() => err=" + err + ", vs=" + stamp + ")");
+#endif
+			Fdb.DieOnError(err);
+
+			return stamp;
+		}
+
 
 		/// <summary>
 		/// Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 
@@ -376,18 +396,18 @@ namespace FoundationDB.Client.Native
 		/// </summary>
 		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
-		public Task CommitAsync(CancellationToken cancellationToken)
+		public Task CommitAsync(CancellationToken ct)
 		{
 			return RunAsync(
 				(handle, state) => FdbNative.TransactionCommit(handle),
 				default(object),
 				(future, state) => state,
 				default(object), //TODO:?
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task OnErrorAsync(FdbError code, CancellationToken cancellationToken)
+		public Task OnErrorAsync(FdbError code, CancellationToken ct)
 		{
 			return RunAsync(
 				(handle, state) => FdbNative.TransactionOnError(handle, state),
@@ -398,7 +418,7 @@ namespace FoundationDB.Client.Native
 					return default(object);
 				},
 				this,
-				cancellationToken
+				ct
 			);
 		}
 

@@ -2,6 +2,7 @@
 #r "tools/FAKE/tools/FakeLib.dll"
 
 open Fake
+open Fake.Testing
 
 let projectRoot () =
     if FileUtils.pwd().EndsWith("build") then
@@ -10,7 +11,7 @@ let projectRoot () =
         FileUtils.pwd()
 
 // Properties
-let version = "0.9.9-pre" //TODO: find a way to extract this from somewhere convenient
+let version = "5.1.0-alpha1" //TODO: find a way to extract this from somewhere convenient
 let buildDir = projectRoot() @@ "build" @@ "output"
 let nugetPath = projectRoot() @@ ".nuget" @@ "NuGet.exe"
 let nugetOutDir = buildDir @@ "_packages"
@@ -63,14 +64,14 @@ Target "Test" (fun _ ->
     CreateDir testDir
     ActivateFinalTarget "CloseTestRunner"
     !! (buildDir @@ "**" @@ "*Test*.dll")
-    |> NUnit(
-        fun p -> { p with DisableShadowCopy = true
-                          OutputFile = "TestResults.xml"
+    |> NUnit3(
+        fun p -> { p with ShadowCopy = false
+                          //ResultSpecs = "TestResults.xml"
                           StopOnError = false
                           ErrorLevel = DontFailBuild
                           WorkingDir = testDir
                           TimeOut = System.TimeSpan.FromMinutes 10.0
-                          ExcludeCategory = "LongRunning,LocalCluster" }))
+                          Where = "cat != LongRunning && cat != LocalCluster" }))
 
 FinalTarget "CloseTestRunner" (fun _ ->
     ProcessHelper.killProcess "nunit-agent.exe"
@@ -98,7 +99,7 @@ Target "BuildNuget" (fun _ ->
             let binariesDir = buildDir @@ name
 
             // Copy XML doc to binaries dir, works by default on windows but not on Mono.
-            let xmlDocFile = projectRoot() @@ name @@ "bin" @@ "Release" @@ (sprintf "%s.XML") name
+            let xmlDocFile = projectRoot() @@ name @@ "bin" @@ "Release" @@ "netstandard2.0" @@ (sprintf "%s.XML") name
             FileUtils.cp xmlDocFile binariesDir
 
             NuGetPack (

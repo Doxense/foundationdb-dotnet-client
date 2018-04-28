@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,25 +27,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to help debug Transactions
-#undef DEBUG_TRANSACTIONS
+//#define DEBUG_TRANSACTIONS
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
+	using FoundationDB.Client.Core;
+	using FoundationDB.Client.Native;
+	using JetBrains.Annotations;
 
 	/// <summary>FounrationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
-	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction
+	public sealed partial class FdbTransaction : IFdbTransaction
 	{
 
 		#region Private Members...
@@ -88,7 +88,10 @@ namespace FoundationDB.Client
 		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
-		private CancellationToken m_cancellation; //PERF: readonly struct
+		private CancellationToken m_cancellation;
+
+		/// <summary>Random token (but constant per transaction retry) used to generate incomplete VersionStamps</summary>
+		private ulong m_versionStampToken;
 
 		/// <summary>Used to cancel the transaction if the parent CTS fires</summary>
 		private CancellationTokenRegistration m_ctr;
@@ -128,10 +131,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Internal local identifier of the transaction</summary>
 		/// <remarks>Should only used for logging/debugging purpose.</remarks>
-		public int Id { get { return m_id; } }
+		public int Id => m_id;
 
 		/// <summary>Always returns false. Use the <see cref="FdbTransaction.Snapshot"/> property to get a different view of this transaction that will perform snapshot reads.</summary>
-		public bool IsSnapshot { get { return false; } }
+		public bool IsSnapshot => false;
 
 		/// <summary>Returns the context of this transaction</summary>
 		public FdbOperationContext Context
@@ -155,22 +158,19 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
-		internal bool StillAlive { get { return this.State == STATE_READY; } }
+		internal bool StillAlive => this.State == STATE_READY;
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
-		public int Size { get { return m_handler.Size; } }
+		public int Size => m_handler.Size;
 
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
-		public CancellationToken Cancellation { get { return m_cancellation; } }
+		public CancellationToken Cancellation => m_cancellation;
 
 		/// <summary>Returns true if this transaction only supports read operations, or false if it supports both read and write operations</summary>
-		public bool IsReadOnly { get { return m_readOnly; } }
+		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Returns the isolation level of this transaction.</summary>
-		public FdbIsolationLevel IsolationLevel
-		{
-			get { return m_handler.IsolationLevel; }
-		}
+		public FdbIsolationLevel IsolationLevel => m_handler.IsolationLevel;
 
 		#endregion
 
@@ -185,10 +185,10 @@ namespace FoundationDB.Client
 		/// The transaction can be used again after it is reset.</summary>
 		public int Timeout
 		{
-			get { return m_timeout; }
+			get => m_timeout;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Timeout value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Timeout value cannot be negative");
 				SetOption(FdbTransactionOption.Timeout, value);
 				m_timeout = value;
 			}
@@ -200,10 +200,10 @@ namespace FoundationDB.Client
 		/// </summary>
 		public int RetryLimit
 		{
-			get { return m_retryLimit; }
+			get => m_retryLimit;
 			set
 			{
-				if (value < -1) throw new ArgumentOutOfRangeException("value", value, "Retry count cannot be negative");
+				if (value < -1) throw new ArgumentOutOfRangeException(nameof(value), value, "Retry count cannot be negative");
 				SetOption(FdbTransactionOption.RetryLimit, value);
 				m_retryLimit = value;
 			}
@@ -215,10 +215,10 @@ namespace FoundationDB.Client
 		/// </summary>
 		public int MaxRetryDelay
 		{
-			get { return m_maxRetryDelay; }
+			get => m_maxRetryDelay;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Max retry delay cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Max retry delay cannot be negative");
 				SetOption(FdbTransactionOption.MaxRetryDelay, value);
 				m_maxRetryDelay = value;
 			}
@@ -232,7 +232,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0}", option.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()}");
 
 			m_handler.SetOption(option, Slice.Nil);
 		}
@@ -244,7 +244,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0} to '{1}'", option.ToString(), value ?? "<null>"));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -257,7 +257,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0} to {1}", option.ToString(), value));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			var data = Slice.FromFixed64(value);
@@ -299,6 +299,82 @@ namespace FoundationDB.Client
 			m_handler.SetReadVersion(version);
 		}
 
+		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
+		/// <remarks>
+		/// The Task will be ready only after the successful completion of a call to <see cref="CommitAsync"/> on this transaction.
+		/// Read-only transactions do not modify the database when committed and will result in the Task completing with an error.
+		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
+		/// </remarks>
+		public Task<VersionStamp> GetVersionStampAsync()
+		{
+			EnsureNotFailedOrDisposed();
+
+			return m_handler.GetVersionStampAsync(m_cancellation);
+		}
+
+		private ulong GenerateNewVersionStampToken()
+		{
+			// We need to generate a 80-bits stamp, and also need to mark it as 'incomplete' by forcing the highest bit to 1.
+			// Since this is supposed to be a version number with a ~1M tickrate per seconds, we will play it safe, and force the 8 highest bits to 1,
+			// meaning that we only reduce the database potential lifetime but 1/256th, before getting into trouble.
+			//
+			// By doing some empirical testing, it also seems that the last 16 bits are a transaction batch order which is usually a low number.
+			// Again, we will force the 4 highest bit to 1 to reduce the change of collision with a complete version stamp.
+			//
+			// So the final token will look like:  'FF xx xx xx xx xx xx xx Fy yy', were 'x' is the random token, and 'y' will lowest 12 bits of the transaction retry count
+
+			ulong x;
+			unsafe
+			{
+				// use a 128-bit guid as the source of entropy for our new token
+				Guid rnd = Guid.NewGuid();
+				ulong* p = (ulong*) &rnd;
+				x = p[0] ^ p[1];
+			}
+			x |= 0xFF00000000000000UL;
+
+			lock (this)
+			{
+				ulong token = m_versionStampToken;
+				if (token == 0)
+				{
+					token = x;
+					m_versionStampToken = x;
+				}
+				return token;
+			}
+		}
+
+		/// <summary>Return a place-holder 80-bit VersionStamp, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
+		/// <remarks>
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
+		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
+		/// </remarks>
+		[Pure]
+		public VersionStamp CreateVersionStamp()
+		{
+			var token = m_versionStampToken;
+			if (token == 0) token = GenerateNewVersionStampToken();
+			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), incomplete: true);
+		}
+
+		/// <summary>Return a place-holder 96-bit VersionStamp with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
+		/// <remarks>
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
+		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
+		/// </remarks>
+		public VersionStamp CreateVersionStamp(int userVersion)
+		{
+			var token = m_versionStampToken;
+			if (token == 0) token = GenerateNewVersionStampToken();
+
+			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), userVersion, incomplete: true);
+		}
+
 		#endregion
 
 		#region Get...
@@ -319,10 +395,10 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-			return m_handler.GetAsync(key, snapshot: false, cancellationToken: CancellationToken.None);
+			return m_handler.GetAsync(key, snapshot: false, ct: CancellationToken.None);
 		}
 
 		#endregion
@@ -334,7 +410,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 			//TODO: should we make a copy of the key array ?
 
 			EnsureCanRead();
@@ -342,10 +418,10 @@ namespace FoundationDB.Client
 			m_database.EnsureKeysAreValid(keys);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
-			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: CancellationToken.None);
+			return m_handler.GetValuesAsync(keys, snapshot: false, ct: CancellationToken.None);
 		}
 
 		#endregion
@@ -362,7 +438,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, StreamingMode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			EnsureCanRead();
 
@@ -375,14 +451,14 @@ namespace FoundationDB.Client
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: CancellationToken.None);
+			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, ct: CancellationToken.None);
 		}
 
 		#endregion
 
 		#region GetRange...
 
-		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
+		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions options, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(begin.Key);
 			this.Database.EnsureKeyIsValid(end.Key, endExclusive: true);
@@ -391,10 +467,10 @@ namespace FoundationDB.Client
 			options.EnsureLegalValues();
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
 #endif
 
-			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity, snapshot, options);
+			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kv) => kv, snapshot, options);
 		}
 
 		/// <summary>
@@ -404,7 +480,7 @@ namespace FoundationDB.Client
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			EnsureCanRead();
 
@@ -418,17 +494,17 @@ namespace FoundationDB.Client
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public async Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			EnsureCanRead();
 
 			m_database.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+			var key = await m_handler.GetKeyAsync(selector, snapshot: false, ct: CancellationToken.None).ConfigureAwait(false);
 
 			// don't forget to truncate keys that would fall outside of the database's globalspace !
 			return m_database.BoundCheck(key);
@@ -443,7 +519,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			EnsureCanRead();
 
@@ -453,10 +529,10 @@ namespace FoundationDB.Client
 			}
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", String.Format("Getting batch of {0} keys ...", selectors.Length));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", $"Getting batch of {selectors.Length} keys ...");
 #endif
 
-			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: CancellationToken.None);
+			return m_handler.GetKeysAsync(selectors, snapshot: false, ct: CancellationToken.None);
 		}
 
 		#endregion
@@ -477,7 +553,7 @@ namespace FoundationDB.Client
 			m_database.EnsureValueIsValid(ref value);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", String.Format("Setting '{0}' = {1}", FdbKey.Dump(key), Slice.Dump(value)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
 #endif
 
 			m_handler.Set(key, value);
@@ -528,6 +604,23 @@ namespace FoundationDB.Client
 				return;
 			}
 
+			if (mutation == FdbMutationType.VersionStampedKey || mutation == FdbMutationType.VersionStampedValue)
+			{
+				if (selectedApiVersion < 400)
+				{
+					if (Fdb.GetMaxApiVersion() >= 400)
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations for VersionStamps are only supported starting from API level 400. You need to select API level 400 or more at the start of your process.");
+					}
+					else
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 4.x. You need to update the version of the client, and select API level 400 or more at the start of your process..");
+					}
+				}
+				// ok!
+				return;
+			}
+
 			// this could be a new mutation type, or an invalid value.
 			throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
 		}
@@ -552,7 +645,7 @@ namespace FoundationDB.Client
 			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", mutation.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", $"Atomic {mutation.ToString()} on '{FdbKey.Dump(key)}' = {Slice.Dump(param)}");
 #endif
 
 			m_handler.Atomic(key, param, mutation);
@@ -573,7 +666,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", String.Format("Clearing '{0}'", FdbKey.Dump(key)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
 #endif
 
 			m_handler.Clear(key);
@@ -597,7 +690,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref endKeyExclusive, endExclusive: true);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
 #endif
 
 			m_handler.ClearRange(beginKeyInclusive, endKeyExclusive);
@@ -643,7 +736,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
 #endif
 
 			return m_handler.GetAddressesForKeyAsync(key, CancellationToken.None);
@@ -694,12 +787,12 @@ namespace FoundationDB.Client
 		/// Watch a key for any change in the database.
 		/// </summary>
 		/// <param name="key">Key to watch</param>
-		/// <param name="cancellationToken">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
+		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
-		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property</remarks>
-		public FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		/// <remarks>You can directly await an FdbWatch, or obtain a <see cref="Task{T}">Task&lt;Slice&gt;</see> by reading the <see cref="FdbWatch.Task"/> property</remarks>
+		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 			EnsureCanRead();
 
 			m_database.EnsureKeyIsValid(ref key);
@@ -710,14 +803,14 @@ namespace FoundationDB.Client
 			key = key.Memoize();
 
 #if DEBUG
-			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
+			if (Logging.On) Logging.Verbose(this, "WatchAsync", $"Watching key '{key.ToString()}'");
 #endif
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return m_handler.Watch(key, cancellationToken);
+			return m_handler.Watch(key, ct);
 		}
 
 		#endregion
@@ -770,6 +863,11 @@ namespace FoundationDB.Client
 			{
 				this.Timeout = m_database.DefaultTimeout;
 			}
+
+			// if we have used a random token for versionstamps, we need to clear it (and generate a new one)
+			// => this ensure that if the error was due to a collision between the token and another part of the key,
+			//    a transaction retry will hopefully use a different token that does not collide.
+			m_versionStampToken = 0;
 		}
 
 		/// <summary>Reset the transaction to its initial state.</summary>
@@ -856,7 +954,7 @@ namespace FoundationDB.Client
 		/// <summary>Get/Sets the internal state of the exception</summary>
 		internal int State
 		{
-			get { return Volatile.Read(ref m_state); }
+			get => Volatile.Read(ref m_state);
 			set
 			{
 				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, "Invalid state value");
@@ -945,7 +1043,7 @@ namespace FoundationDB.Client
 				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
 				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
 				case STATE_CANCELED: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
-				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
+				default: throw new InvalidOperationException($"The transaction is unknown state {trans.State}");
 			}
 		}
 
@@ -970,7 +1068,7 @@ namespace FoundationDB.Client
 					this.Database.UnregisterTransaction(this);
 					m_cts.SafeCancelAndDispose();
 
-					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));
+					if (Logging.On) Logging.Verbose(this, "Dispose", $"Transaction #{m_id} has been disposed");
 				}
 				finally
 				{
@@ -980,7 +1078,7 @@ namespace FoundationDB.Client
 						try { m_handler.Dispose(); }
 						catch(Exception e)
 						{
-							if (Logging.On) Logging.Error(this, "Dispose", String.Format("Transaction #{0} failed to dispose the transaction handler: {1}", m_id, e.Message));
+							if (Logging.On) Logging.Error(this, "Dispose", $"Transaction #{m_id} failed to dispose the transaction handler: [{e.GetType().Name}] {e.Message}");
 						}
 					}
 					if (!m_context.Shared) m_context.Dispose();

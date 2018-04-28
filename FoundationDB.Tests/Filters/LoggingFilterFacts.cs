@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging.Tests
 {
+	using System;
+	using System.Linq;
+	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
-	using System;
-	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class LoggingFilterFacts : FdbTest
@@ -57,7 +56,7 @@ namespace FoundationDB.Filters.Logging.Tests
 					tr.Set(location.Encode("Warmup", 0), Slice.FromInt32(1));
 					tr.Clear(location.Encode("Warmup", 1));
 					await tr.GetAsync(location.Encode("Warmup", 2));
-					await tr.GetRange(FdbKeyRange.StartsWith(location.Encode("Warmup", 3))).ToListAsync();
+					await tr.GetRange(KeyRange.StartsWith(location.Encode("Warmup", 3))).ToListAsync();
 					tr.ClearRange(location.Encode("Warmup", 4), location.Encode("Warmup", 5));
 				}, this.Cancellation);
 
@@ -87,11 +86,11 @@ namespace FoundationDB.Filters.Logging.Tests
 				{
 					if (first)
 					{
-						Console.WriteLine(tr.Log.GetCommandsReport());
+						Log(tr.Log.GetCommandsReport());
 						first = false;
 					}
 
-					Console.WriteLine(tr.Log.GetTimingsReport(true));
+					Log(tr.Log.GetTimingsReport(true));
 				};
 
 				// create a logged version of the database
@@ -99,8 +98,8 @@ namespace FoundationDB.Filters.Logging.Tests
 
 				for (int k = 0; k < N; k++)
 				{
-					Console.WriteLine("==== " + k + " ==== ");
-					Console.WriteLine();
+					Log("==== " + k + " ==== ");
+					Log();
 
 					await logged.ReadWriteAsync(async (tr) =>
 					{
@@ -123,10 +122,10 @@ namespace FoundationDB.Filters.Logging.Tests
 
 						tr.Annotate("This is a comment");
 
-						//await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
+						//await tr.GetRangeAsync(KeySelector.LastLessOrEqual(location.Pack("A")), KeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
 
 						await Task.WhenAll(
-							tr.GetRange(FdbKeyRange.StartsWith(location.Encode("Range", 0))).ToListAsync(),
+							tr.GetRange(KeyRange.StartsWith(location.Encode("Range", 0))).ToListAsync(),
 							tr.GetRange(location.Encode("Range", 1, 0), location.Encode("Range", 1, 200)).ToListAsync(),
 							tr.GetRange(location.Encode("Range", 2, 400), location.Encode("Range", 2, 600)).ToListAsync(),
 							tr.GetRange(location.Encode("Range", 3, 800), location.Encode("Range", 3, 1000)).ToListAsync()

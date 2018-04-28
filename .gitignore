@@ -27,7 +27,7 @@ _ReSharper*/
 *.vssscc
 $tf*/
 
-nuget/
+.nuget/
 packages/
 *.ide/
 .vs/
@@ -37,4 +37,10 @@ fdb_c.dll
 # Build tools and artifacts
 /build/tools/
 /build/output/
+/build/.fake
 
+# JetBrains
+.idea
+
+# OSX
+.DS_Store

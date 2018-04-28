@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
@@ -53,8 +52,8 @@ namespace FoundationDB.Client.Native
 		internal FdbFutureSingle(IntPtr handle, [NotNull] Func<IntPtr, object, T> selector, object state, IntPtr cookie, string label)
 			: base(cookie, label, state)
 		{
-			if (handle == IntPtr.Zero) throw new ArgumentException("Invalid future handle", "handle");
-			if (selector == null) throw new ArgumentNullException("selector");
+			if (handle == IntPtr.Zero) throw new ArgumentException("Invalid future handle", nameof(handle));
+			if (selector == null) throw new ArgumentNullException(nameof(selector));
 
 			m_handle = handle;
 			m_resultSelector = selector;

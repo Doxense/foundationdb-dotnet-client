@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\NUnit.3.10.1\build\NUnit.props" Condition="Exists('..\packages\NUnit.3.10.1\build\NUnit.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -9,9 +10,13 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>FoundationDB.Tests</RootNamespace>
     <AssemblyName>FoundationDB.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,6 +30,7 @@
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -37,6 +43,7 @@
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -45,24 +52,24 @@
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MathNet.Numerics, Version=3.2.3.0, Culture=neutral, PublicKeyToken=cd8b63ad3d691a37, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\MathNet.Numerics.Signed.3.2.3\lib\net40\MathNet.Numerics.dll</HintPath>
+    <Reference Include="MathNet.Numerics, Version=3.20.2.0, Culture=neutral, PublicKeyToken=cd8b63ad3d691a37, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathNet.Numerics.Signed.3.20.2\lib\net40\MathNet.Numerics.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.6.0.6\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    <Reference Include="nunit.framework, Version=3.10.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.10.1\lib\net45\nunit.framework.dll</HintPath>
     </Reference>
-    <Reference Include="protobuf-net">
-      <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
+    <Reference Include="protobuf-net, Version=2.3.7.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\packages\protobuf-net.2.3.7\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -73,6 +80,7 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="ExoticTestCases.cs" />
     <Compile Include="Experimental\Indexing\SuperSlowUncompressedBitmap.cs" />
     <Compile Include="Experimental\Indexing\CompressedBitmapsFacts.cs" />
     <Compile Include="FdbTest.cs" />
@@ -87,12 +95,12 @@
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
-    <Compile Include="Utils\FdbConvertersFacts.cs" />
+    <Compile Include="Utils\TuPackFacts.cs" />
+    <Compile Include="Utils\TypeConvertersFacts.cs" />
     <Compile Include="Utils\SliceComparerFacts.cs" />
     <Compile Include="Utils\SliceStreamFacts.cs" />
-    <Compile Include="Utils\SliceHelperFacts.cs" />
-    <Compile Include="Uuid64Facts.cs" />
-    <Compile Include="Uuid128Facts.cs" />
+    <Compile Include="Utils\Uuid64Facts.cs" />
+    <Compile Include="Utils\Uuid128Facts.cs" />
     <Compile Include="Utils\SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />
     <Compile Include="SubspaceFacts.cs" />
@@ -100,7 +108,7 @@
     <Compile Include="Layers\DocumentCollectionFacts.cs" />
     <Compile Include="Layers\IndexingFacts.cs" />
     <Compile Include="Async\AsyncBufferFacts.cs" />
-    <Compile Include="Linq\FdbAsyncQueryableFacts.cs" />
+    <Compile Include="Linq\AsyncQueryableFacts.cs" />
     <Compile Include="Linq\FdbQueryExpressionFacts.cs" />
     <Compile Include="RangeQueryFacts.cs" />
     <Compile Include="ErrorFacts.cs" />
@@ -109,14 +117,15 @@
     <Compile Include="Layers\CounterFacts.cs" />
     <Compile Include="TestHelpers.cs" />
     <Compile Include="Layers\MapFacts.cs" />
-    <Compile Include="Layers\TupleFacts.cs" />
+    <Compile Include="Utils\TupleFacts.cs" />
     <Compile Include="Layers\StringInternFacts.cs" />
     <Compile Include="TransactionFacts.cs" />
     <Compile Include="DatabaseFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\SliceWriterFacts.cs" />
     <Compile Include="Utils\ConversionFacts.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerableFacts.cs" />
+    <Compile Include="Linq\AsyncEnumerableFacts.cs" />
+    <Compile Include="VersionStampFacts.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -143,6 +152,12 @@
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\NUnit.3.10.1\build\NUnit.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NUnit.3.10.1\build\NUnit.props'))" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

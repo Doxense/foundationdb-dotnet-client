@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDBCluster* handle</summary>
 	internal sealed class FdbNativeCluster : FdbFutureContext<ClusterHandle>, IFdbClusterHandler
@@ -47,9 +46,9 @@ namespace FoundationDB.Client.Native
 		{
 		}
 
-		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken)
+		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken ct)
 		{
-			return FdbNative.GlobalContext.CreateClusterAsync(clusterFile, cancellationToken);
+			return FdbNative.GlobalContext.CreateClusterAsync(clusterFile, ct);
 		}
 
 		public bool IsInvalid { get { return m_handle.IsInvalid; } }
@@ -76,9 +75,9 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken)
+		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken ct)
 		{
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<IFdbDatabaseHandler>(cancellationToken);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<IFdbDatabaseHandler>(ct);
 
 			return RunAsync(
 				(handle, state) => FdbNative.ClusterCreateDatabase(handle, state),
@@ -93,10 +92,10 @@ namespace FoundationDB.Client.Native
 						throw Fdb.MapToException(err);
 					}
 					var handler = new FdbNativeDatabase(database, (string)state);
-                    return (IFdbDatabaseHandler) handler;
+					return (IFdbDatabaseHandler) handler;
 				},
 				databaseName,
-				cancellationToken
+				ct
 			);
 		}
 

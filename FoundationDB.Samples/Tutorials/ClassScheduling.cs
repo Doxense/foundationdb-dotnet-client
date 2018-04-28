@@ -2,19 +2,15 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.IO;
 	using System.Linq;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Linq;
+	using FoundationDB.Client;
 
 	public class ClassScheduling : IAsyncTest
 	{
@@ -32,9 +28,9 @@ namespace FoundationDB.Samples.Tutorials
 				.ToArray();
 		}
 
-		public string[] ClassNames { get; private set; }
+		public string[] ClassNames { get; }
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; private set; }
 
 		protected Slice ClassKey(string c)
 		{
@@ -46,9 +42,9 @@ namespace FoundationDB.Samples.Tutorials
 			return this.Subspace.Keys.Encode("attends", s, c);
 		}
 
-		protected FdbKeyRange AttendsKeys(string s)
+		protected KeyRange AttendsKeys(string s)
 		{
-			return this.Subspace.Keys.ToRange(FdbTuple.Create("attends", s));
+			return this.Subspace.Keys.ToRange(STuple.Create("attends", s));
 		}
 
 		/// <summary>
@@ -57,7 +53,7 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Tutorials", "ClassScheduling" }, cancellationToken: ct);
+			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Tutorials", "ClassScheduling" }, ct: ct);
 
 			// clear all previous values
 			await db.ClearRangeAsync(this.Subspace, ct);
@@ -66,7 +62,7 @@ namespace FoundationDB.Samples.Tutorials
 			{
 				foreach (var c in this.ClassNames)
 				{
-					tr.Set(ClassKey(c), Slice.FromAscii("100"));
+					tr.Set(ClassKey(c), Slice.FromStringAscii("100"));
 				}
 			}, ct);
 
@@ -78,8 +74,8 @@ namespace FoundationDB.Samples.Tutorials
 		/// </summary>
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
-			return tr.GetRange(this.Subspace.Keys.ToRange(FdbTuple.Create("class")))
-				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToAscii(), out _); }) // (step 3)
+			return tr.GetRange(this.Subspace.Keys.ToRange(STuple.Create("class")))
+				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToStringAscii(), out _); }) // (step 3)
 				.Select(kvp => this.Subspace.Keys.Decode<string>(kvp.Key))
 				.ToListAsync();
 		}
@@ -95,7 +91,7 @@ namespace FoundationDB.Samples.Tutorials
 			{ // already signed up
 				return;
 			}
-			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToAscii());
+			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
 			if (seatsLeft <= 0)
 			{
 				throw new InvalidOperationException("No remaining seats");
@@ -104,7 +100,7 @@ namespace FoundationDB.Samples.Tutorials
 			var classes = await tr.GetRange(AttendsKeys(s)).ToListAsync();
 			if (classes.Count >= 5) throw new InvalidOperationException("Too many classes");
 
-			tr.Set(ClassKey(c), Slice.FromAscii((seatsLeft - 1).ToString()));
+			tr.Set(ClassKey(c), Slice.FromStringAscii((seatsLeft - 1).ToString()));
 			tr.Set(rec, Slice.Empty);
 		}
 
@@ -119,8 +115,8 @@ namespace FoundationDB.Samples.Tutorials
 				return;
 			}
 
-			var students = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToAscii());
-			tr.Set(ClassKey(c), Slice.FromAscii((students + 1).ToString()));
+			var students = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
+			tr.Set(ClassKey(c), Slice.FromStringAscii((students + 1).ToString()));
 			tr.Clear(rec);
 		}
 
@@ -204,7 +200,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		#region IAsyncTest...
 
-		public string Name { get { return "ClassScheduling"; } }
+		public string Name => "ClassScheduling";
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{

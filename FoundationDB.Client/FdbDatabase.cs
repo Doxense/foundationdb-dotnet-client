@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Filters.Logging;
-
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Encoders;
+	using Doxense.Threading.Tasks;
+	using FoundationDB.Client.Core;
+	using FoundationDB.Client.Native;
+	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
 	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
-	public class FdbDatabase : IFdbDatabase, IFdbRetryable
+	public class FdbDatabase : IFdbDatabase
 	{
 		#region Private Fields...
 
@@ -79,9 +78,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private IFdbDynamicSubspace m_globalSpace;
+		private IDynamicKeySubspace m_globalSpace;
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private IFdbDynamicSubspace m_globalSpaceCopy;
+		private IDynamicKeySubspace m_globalSpaceCopy;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -107,7 +106,7 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
 			Contract.Requires(cluster != null && handler != null && name != null && contentSubspace != null);
 
@@ -127,11 +126,11 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
-			if (cluster == null) throw new ArgumentNullException("cluster");
-			if (handler == null) throw new ArgumentNullException("handler");
-			if (contentSubspace == null) throw new ArgumentNullException("contentSubspace");
+			if (cluster == null) throw new ArgumentNullException(nameof(cluster));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			if (contentSubspace == null) throw new ArgumentNullException(nameof(contentSubspace));
 
 			return new FdbDatabase(cluster, handler, name, contentSubspace, directory, readOnly, ownsCluster);
 		}
@@ -157,10 +156,10 @@ namespace FoundationDB.Client
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		//REVIEW: rename this to 'Cancellation'? ('Token' is a keyword that may have different meaning in some apps)
-		public CancellationToken Cancellation { get { return m_cts.Token; } }
+		public CancellationToken Cancellation => m_cts.Token;
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
-		public bool IsReadOnly { get { return m_readOnly; } }
+		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Root directory of this database instance</summary>
 		public FdbDatabasePartition Directory
@@ -196,7 +195,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Start a new transaction on this database</summary>
 		/// <param name="mode">Mode of the new transaction (read-only, read-write, ...)</param>
-		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <param name="context">If not null, attach the new transaction to an existing context.</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
@@ -207,10 +206,10 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null)
+		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
-			if (context == null) context = new FdbOperationContext(this, mode, cancellationToken);
+			ct.ThrowIfCancellationRequested();
+			if (context == null) context = new FdbOperationContext(this, mode, ct);
 			return CreateNewTransaction(context);
 		}
 
@@ -218,7 +217,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context in which the transaction will run</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
-			Contract.Requires(context != null && context.Database != null);
+			Contract.Requires(context?.Database != null);
 			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only
@@ -245,10 +244,7 @@ namespace FoundationDB.Client
 			}
 			catch (Exception)
 			{
-				if (trans != null)
-				{
-					trans.Dispose();
-				}
+				trans?.Dispose();
 				throw;
 			}
 		}
@@ -306,30 +302,30 @@ namespace FoundationDB.Client
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-only transaction on each retry.</param>
-		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, ct);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task<R> ReadAsync<R>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public Task<TResult> ReadAsync<TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
 		}
 
 		#endregion
@@ -338,65 +334,65 @@ namespace FoundationDB.Client
 
 		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
 		/// <param name="handler">Lambda function that is passed a new read-write transaction on each retry. It should only call non-async methods, such as Set, Clear or any atomic operation.</param>
-		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, handler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, handler, onDone, ct);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
 		{
 			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
 
 			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
 			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
 			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
 			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, ct);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, ct);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
 		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<R> ReadWriteAsync<R>([InstantHandle] Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, null, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task<R> ReadWriteAsync<R>([InstantHandle] Func<IFdbTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
 		}
 
 		#endregion
@@ -411,7 +407,7 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting database option {0}", option.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option}");
 
 			m_handler.SetOption(option, Slice.Nil);
 		}
@@ -423,7 +419,7 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting database option {0} to '{1}'", option.ToString(), value ?? "<null>"));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -436,7 +432,7 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting database option {0} to {1}", option.ToString(), value));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			var data = Slice.FromFixed64(value);
@@ -447,28 +443,23 @@ namespace FoundationDB.Client
 
 		#region Key Space Management...
 
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return m_globalSpaceCopy.Key;
-		}
-
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(IFdbSubspace subspace, IFdbDirectory directory, bool readOnly)
+		internal void ChangeRoot(IKeySubspace subspace, IFdbDirectory directory, bool readOnly)
 		{
 			//REVIEW: rename to "ChangeRootSubspace" ?
-			subspace = subspace ?? FdbSubspace.Empty;
+			subspace = subspace ?? KeySubspace.Empty;
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = FdbSubspace.CopyDynamic(subspace, TypeSystem.Tuples);
-				m_globalSpaceCopy = FdbSubspace.CopyDynamic(subspace, TypeSystem.Tuples); // keep another copy
+				m_globalSpace = subspace.Copy(TuPack.Encoding);
+				m_globalSpaceCopy = subspace.Copy(TuPack.Encoding); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public IFdbDynamicSubspace GlobalSpace
+		public IDynamicKeySubspace GlobalSpace
 		{
 			//REVIEW: rename to just "Subspace" ?
 			[NotNull]
@@ -517,7 +508,7 @@ namespace FoundationDB.Client
 				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
 				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
 				if (!endExclusive
-				 || !key.Equals(FdbKey.Increment(database.GlobalSpace.Key))) //TODO: cache this?
+				 || !key.Equals(FdbKey.Increment(database.GlobalSpace.GetPrefix()))) //TODO: cache this?
 				{
 					if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(database, key);
 					return false;
@@ -540,94 +531,30 @@ namespace FoundationDB.Client
 			return m_globalSpace.BoundCheck(key, allowSystemKeys);
 		}
 
-		Slice IFdbSubspace.ConcatKey(Slice key)
-		{
-			return m_globalSpace.ConcatKey(key);
-		}
-
-		Slice IFdbSubspace.ConcatKey<TKey>(TKey key)
-		{
-			return m_globalSpace.ConcatKey<TKey>(key);
-		}
-
-		Slice[] IFdbSubspace.ConcatKeys(IEnumerable<Slice> keys)
-		{
-			return m_globalSpace.ConcatKeys(keys);
-		}
-
-		Slice[] IFdbSubspace.ConcatKeys<TKey>(IEnumerable<TKey> keys)
-		{
-			return m_globalSpace.ConcatKeys<TKey>(keys);
-		}
+		Slice IKeySubspace.this[Slice relativeKey] => m_globalSpace[relativeKey];
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice IFdbSubspace.ExtractKey(Slice key, bool boundCheck)
+		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck)
 		{
 			return m_globalSpace.ExtractKey(key, boundCheck);
 		}
 
-		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice[] IFdbSubspace.ExtractKeys(IEnumerable<Slice> keys, bool boundCheck)
+		Slice IKeySubspace.GetPrefix()
 		{
-			return m_globalSpace.ExtractKeys(keys, boundCheck);
+			return m_globalSpace.GetPrefix();
 		}
 
-		SliceWriter IFdbSubspace.GetWriter(int capacity)
-		{
-			return m_globalSpace.GetWriter(capacity);
-		}
-
-		Slice IFdbSubspace.Key
-		{
-			get { return m_globalSpace.Key; }
-		}
-
-		IFdbSubspace IFdbSubspace.this[Slice suffix]
-		{
-			get
-			{
-				return m_globalSpace[suffix];
-			}
-		}
-
-		IFdbSubspace IFdbSubspace.this[IFdbKey key]
-		{
-			get
-			{
-				return m_globalSpace[key];
-			}
-		}
-
-		FdbKeyRange IFdbSubspace.ToRange()
+		KeyRange IKeySubspace.ToRange()
 		{
 			return m_globalSpace.ToRange();
 		}
 
-		FdbKeyRange IFdbSubspace.ToRange(Slice suffix)
-		{
-			return m_globalSpace.ToRange(suffix);
-		}
+		public DynamicPartition Partition => m_globalSpace.Partition;
+		//REVIEW: should we hide this on the main db?
 
-		FdbKeyRange IFdbSubspace.ToRange<TKey>(TKey key)
-		{
-			return m_globalSpace.ToRange(key);
-		}
+		IKeyEncoding IDynamicKeySubspace.Encoding => m_globalSpace.Encoding;
 
-		public FdbDynamicSubspacePartition Partition
-		{
-			//REVIEW: should we hide this on the main db?
-			get { return m_globalSpace.Partition; }
-		}
-
-		IDynamicKeyEncoder IFdbDynamicSubspace.Encoder
-		{
-			get { return m_globalSpace.Encoder; }
-		}
-
-		public FdbDynamicSubspaceKeys Keys
-		{
-			get { return m_globalSpace.Keys; }
-		}
+		public DynamicKeys Keys => m_globalSpace.Keys;
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(ref Slice key)
@@ -672,10 +599,10 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		public int DefaultTimeout
 		{
-			get { return m_defaultTimeout; }
+			get => m_defaultTimeout;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Timeout value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Timeout value cannot be negative");
 				m_defaultTimeout = value;
 			}
 		}
@@ -684,10 +611,10 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		public int DefaultRetryLimit
 		{
-			get { return m_defaultRetryLimit; }
+			get => m_defaultRetryLimit;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "RetryLimit value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "RetryLimit value cannot be negative");
 				m_defaultRetryLimit = value;
 			}
 		}
@@ -696,10 +623,10 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		public int DefaultMaxRetryDelay
 		{
-			get { return m_defaultMaxRetryDelay; }
+			get => m_defaultMaxRetryDelay;
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "MaxRetryDelay value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "MaxRetryDelay value cannot be negative");
 				m_defaultMaxRetryDelay = value;
 			}
 		}
@@ -732,7 +659,7 @@ namespace FoundationDB.Client
 					{
 						// mark this db has dead, but keep the handle alive until after all the callbacks have fired
 
-						//TODO: kill all pending transactions on this db? 
+						//TODO: kill all pending transactions on this db?
 						foreach (var trans in m_transactions.Values)
 						{
 							if (trans != null && trans.StillAlive)
@@ -749,7 +676,7 @@ namespace FoundationDB.Client
 					{
 						if (m_handler != null)
 						{
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", String.Format("Disposing database {0} handler", m_name));
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", $"Disposing database {m_name} handler");
 							try { m_handler.Dispose(); }
 							catch (Exception e)
 							{

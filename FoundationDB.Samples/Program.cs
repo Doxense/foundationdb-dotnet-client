@@ -1,22 +1,18 @@
-﻿using FoundationDB.Async;
-using FoundationDB.Client;
-using FoundationDB.Filters.Logging;
-using FoundationDB.Layers.Directories;
-using FoundationDB.Layers.Tuples;
-using FoundationDB.Samples.Benchmarks;
-using FoundationDB.Samples.Tutorials;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿//TODO: License for samples/tutorials ???
 
 namespace FoundationDB.Samples
 {
+	using System;
+	using System.Diagnostics;
+	using System.IO;
+	using System.Linq;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Doxense.Async;
+	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
+	using FoundationDB.Samples.Benchmarks;
+	using FoundationDB.Samples.Tutorials;
 
 	public interface IAsyncTest
 	{
@@ -28,7 +24,7 @@ namespace FoundationDB.Samples
 	{
 		private static IFdbDatabase Db;
 
-		private static bool LogEnabled = false;
+		private static bool LogEnabled;
 		private static string CurrentDirectoryPath = "/";
 
 		static StreamWriter GetLogFile(string name)

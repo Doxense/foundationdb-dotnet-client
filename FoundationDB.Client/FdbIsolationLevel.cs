@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Specifies the isolation level of FoundationDB transactions</summary>
+	[PublicAPI]
 	public enum FdbIsolationLevel
 	{
 		//note: we use the same values as System.Data.IsolationLevel so we can cast to and from, without requiring a reference to System.Data.dll

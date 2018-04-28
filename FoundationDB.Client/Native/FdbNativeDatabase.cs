@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to capture the stacktrace of the ctor, when troubleshooting leaked database handles
-#undef CAPTURE_STACKTRACES
+//#define CAPTURE_STACKTRACES
 
 namespace FoundationDB.Client.Native
 {

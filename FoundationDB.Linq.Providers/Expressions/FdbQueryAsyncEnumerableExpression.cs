@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,19 +28,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Expression that uses an async sequence as the source of elements</summary>
 	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
-		internal FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
+		internal FdbQueryAsyncEnumerableExpression(IAsyncEnumerable<T> source)
 		{
 			Contract.Requires(source != null);
 			this.Source = source;
@@ -53,7 +54,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Source sequence of this expression</summary>
-		public IFdbAsyncEnumerable<T> Source
+		public IAsyncEnumerable<T> Source
 		{
 			[NotNull] get;
 			private set;
@@ -72,18 +73,18 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IAsyncEnumerable<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>>(
 				Expression.Constant(this.Source), 
 				prmTrans
 			);

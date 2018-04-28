@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Layers.Directories;
-	using NUnit.Framework;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Layers.Directories;
+	using NUnit.Framework;
 
 	/// <summary>Base class for all FoundationDB tests</summary>
 	public abstract class FdbTest
@@ -130,13 +130,13 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpSubspace(IFdbDatabase db, IFdbSubspace subspace)
+		protected Task DumpSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
 			return TestHelpers.DumpSubspace(db, subspace, this.Cancellation);
 		}
 
 		[DebuggerStepThrough]
-		protected async Task DeleteSubspace(IFdbDatabase db, IFdbSubspace subspace)
+		protected async Task DeleteSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
@@ -150,19 +150,19 @@ namespace FoundationDB.Client.Tests
 		// These methods are just there to help with the problem of culture-aware string formatting
 
 		[DebuggerStepThrough]
-		protected static void Log(string text)
+		public static void Log(string text)
 		{
-			Console.WriteLine(text);
+			TestContext.Progress.WriteLine(text);
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log()
+		public static void Log()
 		{
 			Log(String.Empty);
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(object item)
+		public static void Log(object item)
 		{
 			if (item == null)
 			{
@@ -175,19 +175,19 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(string format, object arg0)
+		public static void Log(string format, object arg0)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(string format, object arg0, object arg1)
+		public static void Log(string format, object arg0, object arg1)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
 		[DebuggerStepThrough]
-		protected static void Log(string format, params object[] args)
+		public static void Log(string format, params object[] args)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, args));
 		}

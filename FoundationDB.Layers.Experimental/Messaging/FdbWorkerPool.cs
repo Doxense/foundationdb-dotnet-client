@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Layers.Tuples;
-using FoundationDB.Filters.Logging;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
-using FoundationDB.Layers.Counters;
-
 namespace FoundationDB.Layers.Messaging
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Security.Cryptography;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
+	using FoundationDB.Layers.Counters;
 
 	public class FdbWorkerMessage
 	{
@@ -64,17 +62,17 @@ namespace FoundationDB.Layers.Messaging
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; }
 
-		internal IFdbDynamicSubspace TaskStore { get; private set; }
+		internal IDynamicKeySubspace TaskStore { get; }
 
-		internal IFdbDynamicSubspace IdleRing { get; private set; }
+		internal IDynamicKeySubspace IdleRing { get; }
 
-		internal IFdbDynamicSubspace BusyRing { get; private set; }
+		internal IDynamicKeySubspace BusyRing { get; }
 
-		internal IFdbDynamicSubspace UnassignedTaskRing { get; private set; }
+		internal IDynamicKeySubspace UnassignedTaskRing { get; }
 
-		internal FdbCounterMap<int> Counters { get; private set; }
+		internal FdbCounterMap<int> Counters { get; }
 
 		#region Profiling...
 
@@ -108,11 +106,11 @@ namespace FoundationDB.Layers.Messaging
 
 		#endregion
 
-		public FdbWorkerPool(IFdbSubspace subspace)
+		public FdbWorkerPool(IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 
 			this.TaskStore = this.Subspace.Partition.ByKey(Slice.FromChar('T'));
 			this.IdleRing = this.Subspace.Partition.ByKey(Slice.FromChar('I'));
@@ -122,7 +120,7 @@ namespace FoundationDB.Layers.Messaging
 			this.Counters = new FdbCounterMap<int>(this.Subspace.Partition.ByKey(Slice.FromChar('C')));
 		}
 
-		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IFdbDynamicSubspace ring)
+		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IDynamicKeySubspace ring)
 		{
 			var range = ring.Keys.ToRange();
 
@@ -154,7 +152,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task PushQueueAsync(IFdbTransaction tr, IFdbDynamicSubspace queue, Slice taskId)
+		private async Task PushQueueAsync(IFdbTransaction tr, IDynamicKeySubspace queue, Slice taskId)
 		{
 			//TODO: use a high contention algo ?
 			// - must support Push and Pop
@@ -162,7 +160,7 @@ namespace FoundationDB.Layers.Messaging
 
 			// get the current size of the queue
 			var range = queue.Keys.ToRange();
-			var lastKey = await tr.Snapshot.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
+			var lastKey = await tr.Snapshot.GetKeyAsync(KeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 			int count = lastKey < range.Begin ? 0 : queue.Keys.DecodeFirst<int>(lastKey) + 1;
 
 			// set the value
@@ -171,12 +169,12 @@ namespace FoundationDB.Layers.Messaging
 
 		private void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
 		{
-			tr.Annotate("Writing task {0}", taskId.ToAsciiOrHexaString());
+			tr.Annotate("Writing task {0:P}", taskId);
 
 			var prefix = this.TaskStore.Partition.ByKey(taskId);
 
 			// store task body and timestamp
-			tr.Set(prefix.Key, taskBody);
+			tr.Set(prefix.GetPrefix(), taskBody);
 			tr.Set(prefix.Keys.Encode(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
 			// increment total and pending number of tasks
 			this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
@@ -185,10 +183,10 @@ namespace FoundationDB.Layers.Messaging
 
 		private void ClearTask(IFdbTransaction tr, Slice taskId)
 		{
-			tr.Annotate("Deleting task {0}", taskId.ToAsciiOrHexaString());
+			tr.Annotate("Deleting task {0:P}", taskId);
 
 			// clear all metadata about the task
-			tr.ClearRange(FdbKeyRange.StartsWith(this.TaskStore.Keys.Encode(taskId)));
+			tr.ClearRange(KeyRange.StartsWith(this.TaskStore.Keys.Encode(taskId)));
 			// decrement pending number of tasks
 			this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
 		}
@@ -201,16 +199,16 @@ namespace FoundationDB.Layers.Messaging
 		/// <returns></returns>
 		public async Task ScheduleTaskAsync(IFdbRetryable db, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 			var now = DateTime.UtcNow;
 
 			await db.ReadWriteAsync(async (tr) =>
 			{
 				Interlocked.Increment(ref m_schedulingAttempts);
 #if DEBUG
-				if (tr.Context.Retries > 0) Console.WriteLine("# retry n°" + tr.Context.Retries + " for task " + taskId.ToAsciiOrHexaString());
+				if (tr.Context.Retries > 0) Console.WriteLine($"# retry n°{tr.Context.Retries} for task {taskId:P}");
 #endif
-				tr.Annotate("I want to schedule {0}", taskId.ToAsciiOrHexaString());
+				tr.Annotate("I want to schedule {0:P}", taskId);
 
 				// find a random worker from the idle ring
 				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
@@ -219,7 +217,7 @@ namespace FoundationDB.Layers.Messaging
 				{
 					Slice workerId = this.IdleRing.Keys.Decode<Slice>(randomWorkerKey.Key);
 
-					tr.Annotate("Assigning {0} to {1}", taskId.ToAsciiOrHexaString(), workerId.ToAsciiOrHexaString());
+					tr.Annotate("Assigning {0:P} to {1:P}", taskId, workerId);
 
 					// remove worker from the idle ring
 					tr.Clear(this.IdleRing.Keys.Encode(workerId));
@@ -231,7 +229,7 @@ namespace FoundationDB.Layers.Messaging
 				}
 				else
 				{
-					tr.Annotate("Queueing {0}", taskId.ToAsciiOrHexaString());
+					tr.Annotate("Queueing {0:P}", taskId);
 
 					await PushQueueAsync(tr, this.UnassignedTaskRing, taskId).ConfigureAwait(false);
 				}
@@ -243,7 +241,7 @@ namespace FoundationDB.Layers.Messaging
 			{
 				Interlocked.Increment(ref m_schedulingMessages);
 			},
-			cancellationToken: ct).ConfigureAwait(false);
+			ct: ct).ConfigureAwait(false);
 		}
 
 		static int counter = 0;
@@ -270,7 +268,7 @@ namespace FoundationDB.Layers.Messaging
 					await db.ReadWriteAsync(
 						async (tr) =>
 						{
-							tr.Annotate("I'm worker #{0} with id {1}", num, workerId.ToAsciiOrHexaString());
+							tr.Annotate("I'm worker #{0} with id {1:P}", num, workerId);
 
 							myId = workerId;
 							watch = default(FdbWatch);
@@ -304,13 +302,13 @@ namespace FoundationDB.Layers.Messaging
 								{ // mark this worker as busy
 									// note: we need a random id so generate one if it is the first time...
 									if (!myId.IsPresent) myId = GetRandomId();
-									tr.Annotate("Found {0}, switch to busy with id {1}", msg.Id.ToAsciiOrHexaString(), myId.ToAsciiOrHexaString());
+									tr.Annotate("Found {0:P}, switch to busy with id {1:P}", msg.Id, myId);
 									tr.Set(this.BusyRing.Keys.Encode(myId), msg.Id);
 									this.Counters.Increment(tr, COUNTER_BUSY);
 								}
 								else if (myId.IsPresent)
 								{ // remove ourselves from the busy ring
-									tr.Annotate("Found nothing, switch to idle with id {0}", myId.ToAsciiOrHexaString());
+									tr.Annotate("Found nothing, switch to idle with id {0:P}", myId);
 									//tr.Clear(this.BusyRing.Pack(myId));
 								}
 							}
@@ -318,11 +316,11 @@ namespace FoundationDB.Layers.Messaging
 							if (msg.Id.IsPresent)
 							{ // get the task body
 
-								tr.Annotate("Fetching body for task {0}", msg.Id.ToAsciiOrHexaString());
+								tr.Annotate("Fetching body for task {0:P}", msg.Id);
 								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(new [] {
-									prefix.ToFoundationDbKey(),
+									prefix.GetPrefix(),
 									prefix.Keys.Encode(TASK_META_SCHEDULED)
 								}).ConfigureAwait(false);
 
@@ -345,7 +343,7 @@ namespace FoundationDB.Layers.Messaging
 
 								// the idle key will also be used as the watch key to wake us up
 								var watchKey = this.IdleRing.Keys.Encode(myId);
-								tr.Annotate("Will start watching on key {0} with id {1}", watchKey.ToAsciiOrHexaString(), myId.ToAsciiOrHexaString());
+								tr.Annotate("Will start watching on key {0:P} with id {1:P}", watchKey, myId);
 								tr.Set(watchKey, Slice.Empty);
 								this.Counters.Increment(tr, COUNTER_IDLE);
 
@@ -358,7 +356,7 @@ namespace FoundationDB.Layers.Messaging
 							previousTaskId = Slice.Nil;
 							workerId = myId;
 						},
-						cancellationToken: ct
+						ct: ct
 					).ConfigureAwait(false);
 
 					if (msg.Id.IsNullOrEmpty)
@@ -383,7 +381,7 @@ namespace FoundationDB.Layers.Messaging
 						{  // the task has been dropped?
 						  // TODO: loggin?
 #if DEBUG
-							Console.WriteLine("[####] Task[" + msg.Id.ToAsciiOrHexaString() + "] has vanished?");
+							Console.WriteLine($"[####] Task[{msg.Id:P}] has vanished?");
 #endif
 						}
 						else
@@ -396,7 +394,7 @@ namespace FoundationDB.Layers.Messaging
 							{
 								//TODO: logging?
 #if DEBUG
-								Console.Error.WriteLine("Task[" + msg.Id.ToAsciiOrHexaString() + "] failed: " + e.ToString());
+								Console.Error.WriteLine($"Task[{msg.Id:P}] failed: {e}");
 #endif
 							}
 						}

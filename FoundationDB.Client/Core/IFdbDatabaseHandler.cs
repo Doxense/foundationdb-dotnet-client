@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace FoundationDB.Client.Core
 	using System;
 
 	/// <summary>Basic API for FoundationDB databases</summary>
+	[PublicAPI]
 	public interface IFdbDatabaseHandler : IDisposable
 	{
 		bool IsInvalid { get; }

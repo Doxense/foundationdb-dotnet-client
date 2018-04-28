@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Create an allocator operating under a specific location</summary>
 		/// <param name="subspace"></param>
-		public FdbHighContentionAllocator(IFdbDynamicSubspace subspace)
+		public FdbHighContentionAllocator(IDynamicKeySubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentException("subspace");
 
@@ -56,13 +56,13 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to store the allocation count for the current window</summary>
-		private IFdbDynamicSubspace Counters { [NotNull] get; set; }
+		private IDynamicKeySubspace Counters { [NotNull] get; set; }
 
 		/// <summary>Subspace used to store the prefixes allocated in the current window</summary>
-		private IFdbDynamicSubspace Recent { [NotNull] get; set; }
+		private IDynamicKeySubspace Recent { [NotNull] get; set; }
 
 		/// <summary>Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
@@ -91,19 +91,19 @@ namespace FoundationDB.Layers.Directories
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
 				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Advance allocator window size to {0} starting at {1}", window, start + window);
-				trans.ClearRange(this.Counters.Key, this.Counters.Keys.Encode(start) + FdbKey.MinValue);
+				trans.ClearRange(this.Counters.GetPrefix(), this.Counters.Keys.Encode(start) + FdbKey.MinValue);
 				start += window;
 				count = 0;
-				trans.ClearRange(this.Recent.Key, this.Recent.Keys.Encode(start));
+				trans.ClearRange(this.Recent.GetPrefix(), this.Recent.Keys.Encode(start));
 			}
 
 			// Increment the allocation count for the current window
 			trans.AtomicAdd(this.Counters.Keys.Encode(start), Slice.FromFixed64(1));
 
 			// As of the snapshot being read from, the window is less than half
-            // full, so this should be expected to take 2 tries.  Under high
-            // contention (and when the window advances), there is an additional
-            // subsequent risk of conflict for this transaction.
+			// full, so this should be expected to take 2 tries.  Under high
+			// contention (and when the window advances), there is an additional
+			// subsequent risk of conflict for this transaction.
 			while (true)
 			{
 				// Find a random free slot in the current window...

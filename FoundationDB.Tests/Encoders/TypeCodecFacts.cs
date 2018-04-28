@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,48 +28,45 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Converters.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq;
-	using System.Text;
+	using Doxense.Collections.Tuples;
+	using Doxense.Collections.Tuples.Encoding;
+	using Doxense.Memory;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class TypeCodecFacts
+	public class TypeCodecFacts : FdbTest
 	{
 
 		[Test]
 		public void Test_Simple_Integer_Codec()
 		{
-			var codec = FdbTupleCodec<int>.Default;
+			var codec = TupleCodec<int>.Default;
 			Assert.That(codec, Is.Not.Null);
 
-			Assert.That(codec.EncodeOrdered(0), Is.EqualTo(FdbTuple.EncodeKey(0)));
-			Assert.That(codec.EncodeOrdered(123), Is.EqualTo(FdbTuple.EncodeKey(123)));
-			Assert.That(codec.EncodeOrdered(123456), Is.EqualTo(FdbTuple.EncodeKey(123456)));
+			Assert.That(codec.EncodeOrdered(0), Is.EqualTo(TuPack.EncodeKey(0)));
+			Assert.That(codec.EncodeOrdered(123), Is.EqualTo(TuPack.EncodeKey(123)));
+			Assert.That(codec.EncodeOrdered(123456), Is.EqualTo(TuPack.EncodeKey(123456)));
 
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(0)), Is.EqualTo(0));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(123)), Is.EqualTo(123));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(123456)), Is.EqualTo(123456));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(0)), Is.EqualTo(0));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(123)), Is.EqualTo(123));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(123456)), Is.EqualTo(123456));
 		}
 
 		[Test]
 		public void Test_Simple_String_Codec()
 		{
-			var codec = FdbTupleCodec<string>.Default;
+			var codec = TupleCodec<string>.Default;
 			Assert.That(codec, Is.Not.Null);
 
-			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(FdbTuple.EncodeKey("héllø Wörld")));
-			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(FdbTuple.EncodeKey("")));
-			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(FdbTuple.EncodeKey(default(string))));
+			Assert.That(codec.EncodeOrdered("héllø Wörld"), Is.EqualTo(TuPack.EncodeKey("héllø Wörld")));
+			Assert.That(codec.EncodeOrdered(String.Empty), Is.EqualTo(TuPack.EncodeKey("")));
+			Assert.That(codec.EncodeOrdered(null), Is.EqualTo(TuPack.EncodeKey(default(string))));
 
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(String.Empty)), Is.EqualTo(""));
-			Assert.That(codec.DecodeOrdered(FdbTuple.EncodeKey(default(string))), Is.Null);
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey("héllø Wörld")), Is.EqualTo("héllø Wörld"));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(String.Empty)), Is.EqualTo(""));
+			Assert.That(codec.DecodeOrdered(TuPack.EncodeKey(default(string))), Is.Null);
 		}
 
 		[Test]
@@ -81,16 +78,16 @@ namespace FoundationDB.Client.Converters.Tests
 			long y = 123;
 			Guid z = Guid.NewGuid();
 
-			var first = FdbTupleCodec<string>.Default;
-			var second = FdbTupleCodec<long>.Default;
-			var third = FdbTupleCodec<Guid>.Default;
+			var first = TupleCodec<string>.Default;
+			var second = TupleCodec<long>.Default;
+			var third = TupleCodec<Guid>.Default;
 
-			var writer = SliceWriter.Empty;
+			var writer = default(SliceWriter);
 			first.EncodeOrderedSelfTerm(ref writer, x);
 			second.EncodeOrderedSelfTerm(ref writer, y);
 			third.EncodeOrderedSelfTerm(ref writer, z);
 			var data = writer.ToSlice();
-			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x, y, z)));
+			Assert.That(data, Is.EqualTo(TuPack.EncodeKey(x, y, z)));
 
 			var reader = new SliceReader(data);
 			Assert.That(first.DecodeOrderedSelfTerm(ref reader), Is.EqualTo(x));

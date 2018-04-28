@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,28 +26,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Threading;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
 	{
 
-		internal FdbQueryRangeExpression(FdbKeySelectorPair range, FdbRangeOptions options)
+		internal FdbQueryRangeExpression(KeySelectorPair range, FdbRangeOptions options)
 		{
 			this.Range = range;
 			this.Options = options;
 		}
 
 		/// <summary>Returns the pair of key selectors for this range query</summary>
-		public FdbKeySelectorPair Range { get; private set; }
+		public KeySelectorPair Range { get; private set; }
 
 		/// <summary>Returns the options for this range query</summary>
 		public FdbRangeOptions Options { get; private set; }
@@ -69,18 +70,18 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadOnlyTransaction, FdbKeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadOnlyTransaction, KeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
 				(trans, range, options) => trans.GetRange(range, options),
 				prmTrans,
-				Expression.Constant(this.Range, typeof(FdbKeySelectorPair)),
+				Expression.Constant(this.Range, typeof(KeySelectorPair)),
 				Expression.Constant(this.Options, typeof(FdbRangeOptions))
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
 				body,
 				prmTrans
 			);

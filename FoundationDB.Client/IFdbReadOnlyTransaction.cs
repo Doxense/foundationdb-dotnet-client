@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Transaction that allows read operations</summary>
+	[PublicAPI]
 	public interface IFdbReadOnlyTransaction : IDisposable
 	{
 
@@ -43,7 +44,8 @@ namespace FoundationDB.Client
 		int Id { get; }
 
 		/// <summary>Context of this transaction.</summary>
-		FdbOperationContext Context { [NotNull] get; }
+		[NotNull]
+		FdbOperationContext Context { get; }
 
 		/// <summary>Isolation Level of this transaction.</summary>
 		FdbIsolationLevel IsolationLevel { get; }
@@ -52,7 +54,8 @@ namespace FoundationDB.Client
 		bool IsSnapshot { get; }
 
 		/// <summary>Return a Snapshotted version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
-		IFdbReadOnlyTransaction Snapshot { [NotNull] get; }
+		[NotNull]
+		IFdbReadOnlyTransaction Snapshot { get; }
 
 		/// <summary>Cancellation Token linked to the life time of the transaction</summary>
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>
@@ -76,17 +79,19 @@ namespace FoundationDB.Client
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
+		[ItemNotNull]
 		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		Task<Slice> GetKeyAsync(FdbKeySelector selector);
+		Task<Slice> GetKeyAsync(KeySelector selector);
 
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors);
+		[ItemNotNull]
+		Task<Slice[]> GetKeysAsync([NotNull] KeySelector[] selectors);
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
@@ -98,7 +103,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0);
+		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0);
 
 		/// <summary>
 		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
@@ -107,11 +112,12 @@ namespace FoundationDB.Client
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
-		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null);
+		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null);
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
+		[ItemNotNull]
 		Task<string[]> GetAddressesForKeyAsync(Slice key);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>

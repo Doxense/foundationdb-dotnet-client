@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>
 	/// Provides a high-contention Queue class
@@ -51,28 +51,28 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Initializes a new ranked set at a given location</summary>
 		/// <param name="subspace">Subspace where the set will be stored</param>
-		public FdbRankedSet([NotNull] IFdbSubspace subspace)
+		public FdbRankedSet([NotNull] IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 		}
 
 		public Task OpenAsync([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			return SetupLevelsAsync(trans);
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
+		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Returns the number of items in the set.</summary>
 		/// <param name="trans"></param>
 		/// <returns></returns>
 		public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			return trans
 				.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).Keys.ToRange())
@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task InsertAsync([NotNull] IFdbTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (await ContainsAsync(trans, key).ConfigureAwait(false))
 			{
@@ -98,7 +98,7 @@ namespace FoundationDB.Layers.Collections
 				if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
 				{
 					//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
-					trans.AtomicAdd(this.Subspace.Partition.ByKey(level, prevKey), EncodeCount(1));
+					trans.AtomicAdd(this.Subspace.Keys.Encode(level, prevKey), EncodeCount(1));
 				}
 				else
 				{
@@ -120,15 +120,15 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", "key");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
 
 			return (await trans.GetAsync(this.Subspace.Keys.Encode(0, key)).ConfigureAwait(false)).HasValue;
 		}
 
 		public async Task EraseAsync([NotNull] IFdbTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
 			{
@@ -138,7 +138,7 @@ namespace FoundationDB.Layers.Collections
 			for (int level = 0; level < MAX_LEVELS; level++)
 			{
 				// This could be optimized with hash
-				var k = this.Subspace.Partition.ByKey(level, key);
+				var k = this.Subspace.Keys.Encode(level, key);
 				var c = await trans.GetAsync(k).ConfigureAwait(false);
 				if (c.HasValue) trans.Clear(k);
 				if (level == 0) continue;
@@ -154,8 +154,8 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task<long?> Rank([NotNull] IFdbReadOnlyTransaction trans, Slice key)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", "key");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
 
 			if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
 			{
@@ -169,8 +169,8 @@ namespace FoundationDB.Layers.Collections
 				var lss = this.Subspace.Partition.ByKey(level);
 				long lastCount = 0;
 				var kcs = await trans.GetRange(
-					FdbKeySelector.FirstGreaterOrEqual(lss.Keys.Encode(rankKey)),
-					FdbKeySelector.FirstGreaterThan(lss.Keys.Encode(key))
+					KeySelector.FirstGreaterOrEqual(lss.Keys.Encode(rankKey)),
+					KeySelector.FirstGreaterThan(lss.Keys.Encode(key))
 				).ToListAsync().ConfigureAwait(false);
 				foreach (var kc in kcs)
 				{
@@ -278,12 +278,12 @@ namespace FoundationDB.Layers.Collections
 			var k = this.Subspace.Keys.Encode(level, key);
 			//Console.WriteLine(k);
 			//Console.WriteLine("GetPreviousNode(" + level + ", " + key + ")");
-			//Console.WriteLine(FdbKeySelector.LastLessThan(k) + " <= x < " + FdbKeySelector.FirstGreaterOrEqual(k));
+			//Console.WriteLine(KeySelector.LastLessThan(k) + " <= x < " + KeySelector.FirstGreaterOrEqual(k));
 			var kv = await trans
 				.Snapshot
 				.GetRange(
-					FdbKeySelector.LastLessThan(k),
-					FdbKeySelector.FirstGreaterOrEqual(k)
+					KeySelector.LastLessThan(k),
+					KeySelector.FirstGreaterOrEqual(k)
 				)
 				.FirstAsync()
 				.ConfigureAwait(false);

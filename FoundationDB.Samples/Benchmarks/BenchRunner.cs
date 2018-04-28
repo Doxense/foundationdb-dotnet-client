@@ -2,22 +2,16 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using Doxense.Mathematics.Statistics;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Messaging;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.IO;
 	using System.Linq;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Mathematics.Statistics;
+	using FoundationDB.Client;
 
 	public class BenchRunner : IAsyncTest
 	{
@@ -40,15 +34,15 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Histo = new RobustHistogram();
 		}
 
-		public string Name { get { return "Bench" + this.Mode.ToString(); } }
+		public string Name => "Bench" + this.Mode.ToString();
 
-		public int Value { get; private set; }
+		public int Value { get; set; }
 
-		public BenchMode Mode { get; private set; }
+		public BenchMode Mode { get; }
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; private set; }
 
-		public RobustHistogram Histo { get; private set; }
+		public RobustHistogram Histo { get; }
 
 
 		/// <summary>
@@ -57,7 +51,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync("Benchmarks", cancellationToken: ct);
+			this.Subspace = await db.Directory.CreateOrOpenAsync("Benchmarks", ct: ct);
 
 		}
 
@@ -117,7 +111,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									var foos = FdbTuple.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
+									var foos = TuPack.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
 									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
 								}
 								break;
@@ -132,10 +126,8 @@ namespace FoundationDB.Samples.Benchmarks
 								var w = await db.GetAndWatch(foo, ct);
 								var v = w.Value;
 
-								if (v == bar)
-									v = barf;
-								else
-									v = bar;
+								// swap
+								v = v == bar ? barf : bar;
 
 								await db.WriteAsync((tr) => tr.Set(foo, v), ct);
 

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Native;
 
 	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
 	[DebuggerDisplay("Status={m_future.Task.Status}, Key={m_key}")]
@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		//REVIEW: sould we change this to a class?
 
 		private readonly FdbFuture<Slice> m_future; //REVIEW: this is specific to the native handler, we should find a better abstraction for the generic case! (we need a Task-like object that can be cancelled/disposed)
-		private Slice m_key; //PERF: readonly slice
+		private readonly Slice m_key;
 		private Slice m_value;
 
 		internal FdbWatch(FdbFuture<Slice> future, Slice key, Slice value)
@@ -54,32 +54,24 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Key that is being watched</summary>
-		public Slice Key { get { return m_key; } }
+		public Slice Key => m_key;
 
 		/// <summary>Original value of the key, at the time the watch was created (optional)</summary>
 		/// <remarks>This property will return Slice.Nil if the original value was not known at the creation of this Watch instance.</remarks>
-		public Slice Value { get { return m_value; } internal set { m_value = value; } }
+		public Slice Value
+		{
+			get => m_value;
+			internal set => m_value = value;
+		}
 
 		/// <summary>Returns true if the watch is still active, or false if it fired or was cancelled</summary>
-		public bool IsAlive
-		{
-			get { return m_future != null && !m_future.Task.IsCompleted; }
-		}
+		public bool IsAlive => m_future != null && !m_future.Task.IsCompleted;
 
 		/// <summary>Returns true if the watch has fired signaling that the key may have changed in the database</summary>
-		public bool HasChanged
-		{
-			get { return m_future != null && m_future.Task.Status == TaskStatus.RanToCompletion; }
-		}
+		public bool HasChanged => m_future != null && m_future.Task.Status == TaskStatus.RanToCompletion;
 
 		/// <summary>Task that will complete when the watch fires, or is cancelled. It will return the watched key, or an exception.</summary>
-		public Task<Slice> Task
-		{
-			get
-			{
-				return m_future != null ? m_future.Task : null;
-			}
-		}
+		public Task<Slice> Task => m_future?.Task;
 
 		/// <summary>Returns an awaiter for the Watch</summary>
 		public TaskAwaiter<Slice> GetAwaiter()
@@ -103,10 +95,7 @@ namespace FoundationDB.Client
 		/// <summary>Cancel the watch. It will immediately stop monitoring the key. Has no effect if the watch has already fired</summary>
 		public void Cancel()
 		{
-			if (m_future != null)
-			{
-				m_future.Cancel();
-			}
+			m_future?.Cancel();
 		}
 
 		/// <summary>Dispose the resources allocated by the watch.</summary>

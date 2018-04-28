@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
@@ -43,6 +42,7 @@ namespace FoundationDB.Client.Tests
 	{
 
 		[Test]
+
 		public async Task Test_Can_Create_And_Dispose_Transactions()
 		{
 			using (var db = await OpenTestDatabaseAsync())
@@ -56,7 +56,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
 					Assert.That(tr.Handler.IsClosed, Is.False, "Transaction handle should not be closed");
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
-					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");
+					Assert.That(tr.Size, Is.Zero, "Estimated size should be zero");
 					Assert.That(tr.IsReadOnly, Is.False, "Transaction is not read-only");
 					Assert.That(tr.IsSnapshot, Is.False, "Transaction is not in snapshot mode by default");
 
@@ -153,8 +153,8 @@ namespace FoundationDB.Client.Tests
 				}
 				finally
 				{
-					if (tr1 != null) tr1.Dispose();
-					if (tr2 != null) tr2.Dispose();
+					tr1?.Dispose();
+					tr2?.Dispose();
 
 				}
 			}
@@ -259,7 +259,7 @@ namespace FoundationDB.Client.Tests
 					// Writes about 5 MB of stuff in 100k chunks
 					for (int i = 0; i < 50; i++)
 					{
-						tr.Set(location.Keys.Encode(i), Slice.Random(rnd, 100 * 1000));
+						tr.Set(location.Keys.Encode(i), Slice.Random(rnd, 100_000));
 					}
 
 					// start commiting
@@ -270,7 +270,7 @@ namespace FoundationDB.Client.Tests
 					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					tr.Cancel();
 
-					Assert.Throws<TaskCanceledException>(async () => await t, "Cancelling a transaction that is writing to the server should fail the commit task");
+					Assert.That(async () => await t, Throws.InstanceOf<TaskCanceledException>(), "Cancelling a transaction that is writing to the server should fail the commit task");
 				}
 			}
 		}
@@ -308,7 +308,7 @@ namespace FoundationDB.Client.Tests
 					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					cts.Cancel();
 
-					Assert.Throws<TaskCanceledException>(async () => await t, "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
+					Assert.That(async () => await t, Throws.InstanceOf<TaskCanceledException>(), "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
 				}
 			}
 		}
@@ -348,7 +348,7 @@ namespace FoundationDB.Client.Tests
 				{
 					tr.Set(location.Keys.Encode("hello"), Slice.FromString("World!"));
 					tr.Set(location.Keys.Encode("timestamp"), Slice.FromInt64(ticks));
-					tr.Set(location.Keys.Encode("blob"), Slice.Create(new byte[] { 42, 123, 7 }));
+					tr.Set(location.Keys.Encode("blob"), new byte[] { 42, 123, 7 }.AsSlice());
 
 					await tr.CommitAsync();
 
@@ -389,8 +389,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Partition.ByKey("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var minKey = location.Key + FdbKey.MinValue;
-				var maxKey = location.Key + FdbKey.MaxValue;
+				var minKey = location.GetPrefix() + FdbKey.MinValue;
+				var maxKey = location.GetPrefix() + FdbKey.MaxValue;
 
 				#region Insert a bunch of keys ...
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -411,44 +411,44 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					FdbKeySelector sel;
+					KeySelector sel;
 
 					// >= 0
-					sel = FdbKeySelector.FirstGreaterOrEqual(location.Keys.Encode(0));
+					sel = KeySelector.FirstGreaterOrEqual(location.Keys.Encode(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(0)), "fGE(0) should return 0");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(minKey), "fGE(0)-1 should return minKey");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(1)), "fGE(0)+1 should return 1");
 
 					// > 0
-					sel = FdbKeySelector.FirstGreaterThan(location.Keys.Encode(0));
+					sel = KeySelector.FirstGreaterThan(location.Keys.Encode(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(1)), "fGT(0) should return 1");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(0)), "fGT(0)-1 should return 0");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(2)), "fGT(0)+1 should return 2");
 
 					// <= 10
-					sel = FdbKeySelector.LastLessOrEqual(location.Keys.Encode(10));
+					sel = KeySelector.LastLessOrEqual(location.Keys.Encode(10));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(10)), "lLE(10) should return 10");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(9)), "lLE(10)-1 should return 9");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(11)), "lLE(10)+1 should return 11");
 
 					// < 10
-					sel = FdbKeySelector.LastLessThan(location.Keys.Encode(10));
+					sel = KeySelector.LastLessThan(location.Keys.Encode(10));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(9)), "lLT(10) should return 9");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(8)), "lLT(10)-1 should return 8");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(10)), "lLT(10)+1 should return 10");
 
 					// < 0
-					sel = FdbKeySelector.LastLessThan(location.Keys.Encode(0));
+					sel = KeySelector.LastLessThan(location.Keys.Encode(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(minKey), "lLT(0) should return minKey");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(0)), "lLT(0)+1 should return 0");
 
 					// >= 20
-					sel = FdbKeySelector.FirstGreaterOrEqual(location.Keys.Encode(20));
+					sel = KeySelector.FirstGreaterOrEqual(location.Keys.Encode(20));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGE(20) should return maxKey");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(19)), "fGE(20)-1 should return 19");
 
 					// > 19
-					sel = FdbKeySelector.FirstGreaterThan(location.Keys.Encode(19));
+					sel = KeySelector.FirstGreaterThan(location.Keys.Encode(19));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGT(19) should return maxKey");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(19)), "fGT(19)-1 should return 19");
 				}
@@ -478,50 +478,50 @@ namespace FoundationDB.Client.Tests
 			Slice key;
 
 			// note: we can't have any prefix on the keys, so open the test database in read-only mode
-			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, FdbSubspace.Empty, readOnly: true, cancellationToken: this.Cancellation))
+			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, KeySubspace.Empty, readOnly: true, ct: this.Cancellation))
 			{
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					// before <00>
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MinValue));
+					key = await tr.GetKeyAsync(KeySelector.LastLessThan(FdbKey.MinValue));
 					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(<00>) => ''");
 
 					// before the first key in the db
-					var minKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.MinValue));
+					var minKey = await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(FdbKey.MinValue));
 					Assert.That(minKey, Is.Not.Null);
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(minKey));
+					key = await tr.GetKeyAsync(KeySelector.LastLessThan(minKey));
 					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(min_key) => ''");
 
 					// after the last key in the db
 
-					var maxKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MaxValue));
+					var maxKey = await tr.GetKeyAsync(KeySelector.LastLessThan(FdbKey.MaxValue));
 					Assert.That(maxKey, Is.Not.Null);
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(maxKey));
 					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(maxKey) => <FF>");
 
 					// after <FF>
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(<FF>) => <FF>");
-					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
-					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(KeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
 					tr.WithReadAccessToSystemKeys();
 
-					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					var firstSystemKey = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
 					Assert.That(firstSystemKey, Is.Not.Null);
 					Assert.That(firstSystemKey, Is.GreaterThan(FdbKey.MaxValue), "key should be between <FF> and <FF><FF>");
 					Assert.That(firstSystemKey, Is.LessThan(Fdb.System.MaxValue), "key should be between <FF> and <FF><FF>");
 
 					// with access to system keys, the maximum possible key becomes <FF><FF>
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Fdb.System.MaxValue));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(Fdb.System.MaxValue));
 					Assert.That(key, Is.EqualTo(Fdb.System.MaxValue), "fGE(<FF><FF>) => <FF><FF> (with access to system keys)");
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Fdb.System.MaxValue));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(Fdb.System.MaxValue));
 					Assert.That(key, Is.EqualTo(Fdb.System.MaxValue), "fGT(<FF><FF>) => <FF><FF> (with access to system keys)");
 
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue));
+					key = await tr.GetKeyAsync(KeySelector.LastLessThan(Fdb.System.MinValue));
 					Assert.That(key, Is.EqualTo(maxKey), "lLT(<FF><00>) => max_key (with access to system keys)");
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(maxKey));
 					Assert.That(key, Is.EqualTo(firstSystemKey), "fGT(max_key) => first_system_key (with access to system keys)");
 
 				}
@@ -581,8 +581,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Partition.ByKey("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var minKey = location.Key + FdbKey.MinValue;
-				var maxKey = location.Key + FdbKey.MaxValue;
+				var minKey = location.GetPrefix() + FdbKey.MinValue;
+				var maxKey = location.GetPrefix() + FdbKey.MaxValue;
 
 				#region Insert a bunch of keys ...
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -603,7 +603,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var selectors = Enumerable.Range(0, N).Select((i) => FdbKeySelector.FirstGreaterOrEqual(location.Keys.Encode(i))).ToArray();
+					var selectors = Enumerable.Range(0, N).Select((i) => KeySelector.FirstGreaterOrEqual(location.Keys.Encode(i))).ToArray();
 
 					// GetKeysAsync([])
 					var results = await tr.GetKeysAsync(selectors);
@@ -615,7 +615,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// GetKeysAsync(cast to enumerable)
-					var results2 = await tr.GetKeysAsync((IEnumerable<FdbKeySelector>)selectors);
+					var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>)selectors);
 					Assert.That(results2, Is.EqualTo(results));
 
 					// GetKeysAsync(real enumerable)
@@ -954,7 +954,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
 				}, this.Cancellation);
 
 				// we will read the first key from [0, 100), expected 50
@@ -972,7 +972,7 @@ namespace FoundationDB.Client.Tests
 					// 42 < 50 > conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 42), Slice.FromAscii("forty-two"));
+						tr2.Set(loc.Keys.Encode("foo", 42), Slice.FromString("forty-two"));
 						await tr2.CommitAsync();
 					}
 
@@ -989,7 +989,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1003,7 +1003,7 @@ namespace FoundationDB.Client.Tests
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromAscii("docm"));
+						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromString("docm"));
 						await tr2.CommitAsync();
 					}
 
@@ -1028,7 +1028,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
 				}, this.Cancellation);
 
 				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
@@ -1036,13 +1036,13 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 50)));
 
 					// 42 < 50 => conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 42), Slice.FromAscii("forty-two"));
+						tr2.Set(loc.Keys.Encode("foo", 42), Slice.FromString("forty-two"));
 						await tr2.CommitAsync();
 					}
 
@@ -1057,19 +1057,19 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 50)));
 
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromAscii("docm"));
+						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromString("docm"));
 						await tr2.CommitAsync();
 					}
 
@@ -1085,20 +1085,20 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
-					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromAscii("one hundred"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromString("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{50} + 1 => 100
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 50)) + 1);
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 50)) + 1);
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 100)));
 
 					// 77 between 50 and 100 => conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromAscii("docm"));
+						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromString("docm"));
 						await tr2.CommitAsync();
 					}
 
@@ -1114,20 +1114,20 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
-					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromAscii("one hundred"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromString("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGT{50} => 100
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterThan(loc.Keys.Encode("foo", 50)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterThan(loc.Keys.Encode("foo", 50)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 100)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 100), Slice.FromAscii("cent"));
+						tr2.Set(loc.Keys.Encode("foo", 100), Slice.FromString("cent"));
 						await tr2.CommitAsync();
 					}
 
@@ -1143,14 +1143,14 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromAscii("fifty"));
-					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromAscii("one hundred"));
+					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromString("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// lLT{100} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.LastLessThan(loc.Keys.Encode("foo", 100)));
+					var key = await tr1.GetKeyAsync(KeySelector.LastLessThan(loc.Keys.Encode("foo", 100)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 50)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
@@ -1248,17 +1248,17 @@ namespace FoundationDB.Client.Tests
 		{
 			// By default:
 			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
-			// - Snapshot reads never see the writes made since the transaction read version, including the writes made by the transaction itself
+			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 
 			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition.ByKey("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var a = location.Keys.Encode("A");
-				var b = location.Keys.Encode("B");
-				var c = location.Keys.Encode("C");
-				var d = location.Keys.Encode("D");
+				var A = location.Keys.Encode("A");
+				var B = location.Keys.Encode("B");
+				var C = location.Keys.Encode("C");
+				var D = location.Keys.Encode("D");
 
 				// Reads (before and after):
 				// - A and B will use regular reads
@@ -1269,39 +1269,105 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(a, Slice.FromString("a"));
-					tr.Set(b, Slice.FromString("b"));
-					tr.Set(c, Slice.FromString("c"));
-					tr.Set(d, Slice.FromString("d"));
+					tr.Set(A, Slice.FromString("a"));
+					tr.Set(B, Slice.FromString("b"));
+					tr.Set(C, Slice.FromString("c"));
+					tr.Set(D, Slice.FromString("d"));
 				}, this.Cancellation);
+
+				Log("Initial db state:");
+				await DumpSubspace(db, location);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var aval = await tr.GetAsync(a);
-					var bval = await tr.GetAsync(b);
-					var cval = await tr.Snapshot.GetAsync(c);
-					var dval = await tr.Snapshot.GetAsync(d);
-					Assert.That(aval.ToUnicode(), Is.EqualTo("a"));
-					Assert.That(bval.ToUnicode(), Is.EqualTo("b"));
-					Assert.That(cval.ToUnicode(), Is.EqualTo("c"));
-					Assert.That(dval.ToUnicode(), Is.EqualTo("d"));
 
-					tr.Set(a, Slice.FromString("aa"));
-					tr.Set(c, Slice.FromString("cc"));
+					// check initial state
+					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("a"));
+					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"));
+					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("c"));
+					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
+
+					// mutate (not yet comitted)
+					tr.Set(A, Slice.FromString("aa"));
+					tr.Set(C, Slice.FromString("cc"));
 					await db.WriteAsync((tr2) =>
-					{
-						tr2.Set(b, Slice.FromString("bb"));
-						tr2.Set(d, Slice.FromString("dd"));
+					{ // have another transaction change B and D under our nose
+						tr2.Set(B, Slice.FromString("bb"));
+						tr2.Set(D, Slice.FromString("dd"));
 					}, this.Cancellation);
 
-					aval = await tr.GetAsync(a);
-					bval = await tr.GetAsync(b);
-					cval = await tr.Snapshot.GetAsync(c);
-					dval = await tr.Snapshot.GetAsync(d);
-					Assert.That(aval.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
-					Assert.That(bval.ToUnicode(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
-					Assert.That(cval.ToUnicode(), Is.EqualTo("c"), "The transaction own writes should not change the value of snapshot reads");
-					Assert.That(dval.ToUnicode(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
+					// check what the transaction sees
+					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
+					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
+					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("cc"), "The transaction own writes should be visible in snapshot reads");
+					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
+
+					//note: committing here would conflict
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Read_Isolation_From_Writes_Pre_300()
+		{
+			// By in API v200 and below:
+			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
+			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
+			// In API 300, this can be emulated by setting the SnapshotReadYourWriteDisable options
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test");
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				var A = location.Keys.Encode("A");
+				var B = location.Keys.Encode("B");
+				var C = location.Keys.Encode("C");
+				var D = location.Keys.Encode("D");
+
+				// Reads (before and after):
+				// - A and B will use regular reads
+				// - C and D will use snapshot reads
+				// Writes:
+				// - A and C will be modified by the transaction itself
+				// - B and D will be modified by a different transaction
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(A, Slice.FromString("a"));
+					tr.Set(B, Slice.FromString("b"));
+					tr.Set(C, Slice.FromString("c"));
+					tr.Set(D, Slice.FromString("d"));
+				}, this.Cancellation);
+
+				Log("Initial db state:");
+				await DumpSubspace(db, location);
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
+
+					// check initial state
+					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("a"));
+					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"));
+					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("c"));
+					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
+
+					// mutate (not yet comitted)
+					tr.Set(A, Slice.FromString("aa"));
+					tr.Set(C, Slice.FromString("cc"));
+					await db.WriteAsync((tr2) =>
+					{ // have another transaction change B and D under our nose
+						tr2.Set(B, Slice.FromString("bb"));
+						tr2.Set(D, Slice.FromString("dd"));
+					}, this.Cancellation);
+
+					// check what the transaction sees
+					Assert.That((await tr.GetAsync(A)).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
+					Assert.That((await tr.GetAsync(B)).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
+					//FAIL: test fails here because we read "CC" ??
+					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("c"), "The transaction own writes should not change the value of snapshot reads");
+					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
 
 					//note: committing here would conflict
 				}
@@ -1438,15 +1504,15 @@ namespace FoundationDB.Client.Tests
 					// should fail if access to system keys has not been requested
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(
-						() => tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync(),
-						FdbError.KeyOutsideLegalRange, 
+						() => tr.GetRange(Slice.FromByteString("\xFF"), Slice.FromByteString("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync(),
+						FdbError.KeyOutsideLegalRange,
 						"Should not have access to system keys by default"
 					);
 
 					// should succeed once system access has been requested
 					tr.WithReadAccessToSystemKeys();
 
-					var keys = await tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
+					var keys = await tr.GetRange(Slice.FromByteString("\xFF"), Slice.FromByteString("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
 				}
 
@@ -1460,9 +1526,9 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "RetryLimit (default)");
-					Assert.That(tr.MaxRetryDelay, Is.EqualTo(0), "MaxRetryDelay (default)");
+					Assert.That(tr.Timeout, Is.Zero, "Timeout (default)");
+					Assert.That(tr.RetryLimit, Is.Zero, "RetryLimit (default)");
+					Assert.That(tr.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
 
 					tr.Timeout = 1000; // 1 sec max
 					tr.RetryLimit = 5; // 5 retries max
@@ -1480,9 +1546,9 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
-				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(0), "db.DefaultMaxRetryDelay (default)");
+				Assert.That(db.DefaultTimeout, Is.Zero, "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
+				Assert.That(db.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
 
 				db.DefaultTimeout = 500;
 				db.DefaultRetryLimit = 3;
@@ -1529,8 +1595,8 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
+				Assert.That(db.DefaultTimeout, Is.Zero, "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 
 				// By default, a transaction that gets reset or retried, clears the RetryLimit and Timeout settings, which needs to be reset everytime.
 				// But if the DefaultRetryLimit and DefaultTimeout are set on the database instance, they should automatically be re-applied inside transaction loops!
@@ -1579,19 +1645,19 @@ namespace FoundationDB.Client.Tests
 					// simulate a first error
 					tr.RetryLimit = 10;
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// simulate some more errors
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we still haven't failed 10 times..
 					tr.RetryLimit = 10;
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we already have failed 6 times, so this one should abort
 					tr.RetryLimit = 2; // value is too low
@@ -1821,7 +1887,7 @@ namespace FoundationDB.Client.Tests
 						// the datacenter id seems to be at offset 40
 						var dataCenterId = key.Value.Substring(40, 16).ToHexaString();
 
-						Log("- {0} : ({1}) {2}", key.Key.ToHexaString(), key.Value.Count, key.Value.ToAsciiOrHexaString());
+						Log("- {0:X} : ({1}) {2:P}", key.Key, key.Value.Count, key.Value);
 						Log("  > node       = {0}", nodeId);
 						Log("  > machine    = {0}", machineId);
 						Log("  > datacenter = {0}", dataCenterId);
@@ -1839,7 +1905,7 @@ namespace FoundationDB.Client.Tests
 					string[] ids = null;
 					foreach (var key in shards)
 					{
-						// - the first 12 bytes are some sort of header: 
+						// - the first 12 bytes are some sort of header:
 						//		- bytes 0-5 usually are 01 00 01 10 A2 00
 						//		- bytes 6-7 contains 0x0FDB which is the product's signature
 						//		- bytes 8-9 contains the version (02 00 for "2.0"?)
@@ -1855,10 +1921,10 @@ namespace FoundationDB.Client.Tests
 							distinctNodes.Add(ids[i]);
 						}
 						replicationFactor = Math.Max(replicationFactor, ids.Length);
-					
+
 						// the node id seems to be at offset 12
 
-						//Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
+						//Log("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
 					Log();
 					Log("Distinct nodes: {0}", distinctNodes.Count);
@@ -1883,10 +1949,10 @@ namespace FoundationDB.Client.Tests
 				{
 					await tr.GetReadVersionAsync();
 
-					var a = location.ConcatKey(Slice.FromString("A"));
-					var b = location.ConcatKey(Slice.FromString("B"));
-					var c = location.ConcatKey(Slice.FromString("C"));
-					var z = location.ConcatKey(Slice.FromString("Z"));
+					var a = location[Slice.FromString("A")];
+					var b = location[Slice.FromString("B")];
+					var c = location[Slice.FromString("C")];
+					var z = location[Slice.FromString("Z")];
 
 					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
 
@@ -1902,15 +1968,15 @@ namespace FoundationDB.Client.Tests
 					//tr.Set(location.Concat(Slice.FromString("C")), Slice.Empty);
 
 					//var slice = await tr.GetRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))).FirstOrDefaultAsync();
-					//Console.WriteLine(slice);
+					//Log(slice);
 
 					//tr.AddReadConflictKey(location.Concat(Slice.FromString("READ_CONFLICT")));
 					//tr.AddWriteConflictKey(location.Concat(Slice.FromString("WRITE_CONFLICT")));
 
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("D")), location.Concat(Slice.FromString("E"))));
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("C")), location.Concat(Slice.FromString("G"))));
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("B")), location.Concat(Slice.FromString("F"))));
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("D")), location.Concat(Slice.FromString("E"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("C")), location.Concat(Slice.FromString("G"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("B")), location.Concat(Slice.FromString("F"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))));
 
 
 					await tr.CommitAsync();
@@ -1919,10 +1985,201 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_VersionStamps_Share_The_Same_Token_Per_Transaction_Attempt()
+		{
+			// Veryify that we can set versionstamped keys inside a transaction
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					// should return a 80-bit incomplete stamp, using a random token
+					var x = tr.CreateVersionStamp();
+					Log($"> x  : {x.ToSlice():X} => {x}");
+					Assert.That(x.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x.HasUserVersion, Is.False);
+					Assert.That(x.UserVersion, Is.Zero);
+					Assert.That(x.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
+					Assert.That(x.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
+
+					// should return a 96-bit incomplete stamp, using a the same random token and user version 0
+					var x0 = tr.CreateVersionStamp(0);
+					Log($"> x0 : {x0.ToSlice():X} => {x0}");
+					Assert.That(x0.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x0.TransactionVersion, Is.EqualTo(x.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x0.TransactionOrder, Is.EqualTo(x.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x0.HasUserVersion, Is.True);
+					Assert.That(x0.UserVersion, Is.EqualTo(0));
+
+					// should return a 96-bit incomplete stamp, using a the same random token and user version 1
+					var x1 = tr.CreateVersionStamp(1);
+					Log($"> x1 : {x1.ToSlice():X} => {x1}");
+					Assert.That(x1.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x1.TransactionVersion, Is.EqualTo(x.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x1.TransactionOrder, Is.EqualTo(x.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x1.HasUserVersion, Is.True);
+					Assert.That(x1.UserVersion, Is.EqualTo(1));
+
+					// should return a 96-bit incomplete stamp, using a the same random token and user version 42
+					var x42 = tr.CreateVersionStamp(42);
+					Log($"> x42: {x42.ToSlice():X} => {x42}");
+					Assert.That(x42.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(x42.TransactionVersion, Is.EqualTo(x.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x42.TransactionOrder, Is.EqualTo(x.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(x42.HasUserVersion, Is.True);
+					Assert.That(x42.UserVersion, Is.EqualTo(42));
+
+					// Reset the transaction
+					// => stamps should use a new value
+					Log("Reset!");
+					tr.Reset();
+
+					var y = tr.CreateVersionStamp();
+					Log($"> y  : {y.ToSlice():X} => {y}'");
+					Assert.That(y, Is.Not.EqualTo(x), "VersionStamps should change when a transaction is reset");
+
+					Assert.That(y.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(y.HasUserVersion, Is.False);
+					Assert.That(y.UserVersion, Is.Zero);
+					Assert.That(y.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
+					Assert.That(y.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
+
+					var y42 = tr.CreateVersionStamp(42);
+					Log($"> y42: {y42.ToSlice():X} => {y42}");
+					Assert.That(y42.IsIncomplete, Is.True, "Placeholder token should be incomplete");
+					Assert.That(y42.TransactionVersion, Is.EqualTo(y.TransactionVersion), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(y42.TransactionOrder, Is.EqualTo(y.TransactionOrder), "All generated stamps by one transaction should share the random token value ");
+					Assert.That(y42.HasUserVersion, Is.True);
+					Assert.That(y42.UserVersion, Is.EqualTo(42));
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_VersionStamp_Operations()
+		{
+			// Veryify that we can set versionstamped keys inside a transaction
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition.ByKey("versionstamps");
+
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				VersionStamp vsActual; // will contain the actual version stamp used by the database
+
+				Log("Inserting keys with version stamps:");
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+
+					// should return a 80-bit incomplete stamp, using a random token
+					var vs = tr.CreateVersionStamp();
+					Log($"> placeholder stamp: {vs} with token '{vs.ToSlice():X}'");
+
+					// a single key using the 80-bit stamp
+					tr.SetVersionStampedKey(location.Keys.Encode("foo", vs, 123), Slice.FromString("Hello, World!"));
+
+					// simulate a batch of 3 keys, using 96-bits stamps
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(0)), Slice.FromString("Zero"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(1)), Slice.FromString("One"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(42)), Slice.FromString("FortyTwo"));
+
+					// value that contain the stamp
+					var val = Slice.FromString("$$$$$$$$$$Hello World!"); // '$' will be replaced by the stamp
+					Log($"> {val:X}");
+					tr.SetVersionStampedValue(location.Keys.Encode("baz"), val);
+
+					// need to be request BEFORE the commit
+					var vsTask = tr.GetVersionStampAsync();
+
+					await tr.CommitAsync();
+					Log(tr.GetCommittedVersion());
+
+					// need to be resolved AFTER the commit
+					vsActual = await vsTask;
+					Log($"> actual stamp: {vsActual} with token '{vsActual.ToSlice():X}'");
+				}
+
+				await DumpSubspace(db, location);
+
+				Log("Checking database content:");
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					{
+						var foo = await tr.GetRange(location.Keys.ToKeyRange("foo")).SingleAsync();
+						Log("> Found 1 result under (foo,)");
+						Log($"- {location.ExtractKey(foo.Key):K} = {foo.Value:V}");
+						Assert.That(foo.Value.ToString(), Is.EqualTo("Hello, World!"));
+
+						var t = location.Keys.Unpack(foo.Key);
+						Assert.That(t.Get<string>(0), Is.EqualTo("foo"));
+						Assert.That(t.Get<int>(2), Is.EqualTo(123));
+
+						var vs = t.Get<VersionStamp>(1);
+						Assert.That(vs.IsIncomplete, Is.False);
+						Assert.That(vs.HasUserVersion, Is.False);
+						Assert.That(vs.UserVersion, Is.Zero);
+						Assert.That(vs.TransactionVersion, Is.EqualTo(vsActual.TransactionVersion));
+						Assert.That(vs.TransactionOrder, Is.EqualTo(vsActual.TransactionOrder));
+					}
+
+					{
+						var items = await tr.GetRange(location.Keys.ToKeyRange("bar")).ToListAsync();
+						Log($"> Found {items.Count} results under (bar,)");
+						foreach (var item in items)
+						{
+							Log($"- {location.ExtractKey(item.Key):K} = {item.Value:V}");
+						}
+
+						Assert.That(items.Count, Is.EqualTo(3), "Should have found 3 keys under 'foo'");
+
+						Assert.That(items[0].Value.ToString(), Is.EqualTo("Zero"));
+						var vs0 = location.Keys.DecodeLast<VersionStamp>(items[0].Key);
+						Assert.That(vs0.IsIncomplete, Is.False);
+						Assert.That(vs0.HasUserVersion, Is.True);
+						Assert.That(vs0.UserVersion, Is.EqualTo(0));
+						Assert.That(vs0.TransactionVersion, Is.EqualTo(vsActual.TransactionVersion));
+						Assert.That(vs0.TransactionOrder, Is.EqualTo(vsActual.TransactionOrder));
+
+						Assert.That(items[1].Value.ToString(), Is.EqualTo("One"));
+						var vs1 = location.Keys.DecodeLast<VersionStamp>(items[1].Key);
+						Assert.That(vs1.IsIncomplete, Is.False);
+						Assert.That(vs1.HasUserVersion, Is.True);
+						Assert.That(vs1.UserVersion, Is.EqualTo(1));
+						Assert.That(vs1.TransactionVersion, Is.EqualTo(vsActual.TransactionVersion));
+						Assert.That(vs1.TransactionOrder, Is.EqualTo(vsActual.TransactionOrder));
+
+						Assert.That(items[2].Value.ToString(), Is.EqualTo("FortyTwo"));
+						var vs42 = location.Keys.DecodeLast<VersionStamp>(items[2].Key);
+						Assert.That(vs42.IsIncomplete, Is.False);
+						Assert.That(vs42.HasUserVersion, Is.True);
+						Assert.That(vs42.UserVersion, Is.EqualTo(42));
+						Assert.That(vs42.TransactionVersion, Is.EqualTo(vsActual.TransactionVersion));
+						Assert.That(vs42.TransactionOrder, Is.EqualTo(vsActual.TransactionOrder));
+					}
+
+					{
+						var baz = await tr.GetAsync(location.Keys.Encode("baz"));
+						Log($"> {baz:X}");
+						// ensure that the first 10 bytes have been overwritten with the stamp
+						Assert.That(baz.Count, Is.GreaterThan(0), "Key should be present in the database");
+						Assert.That(baz.StartsWith(vsActual.ToSlice()), Is.True, "The first 10 bytes should match the resolved stamp");
+						Assert.That(baz.Substring(10), Is.EqualTo(Slice.FromString("Hello World!")), "The rest of the slice should be untouched");
+					}
+				}
+
+			}
+		}
+
 		[Test, Category("LongRunning")]
 		public async Task Test_BadPractice_Future_Fuzzer()
 		{
-			const int DURATION_SEC = 10;
+#if DEBUG
+			const int DURATION_SEC = 5;
+#else
+			const int DURATION_SEC = 20;
+#endif
 			const int R = 100;
 
 			try
@@ -1986,7 +2243,7 @@ namespace FoundationDB.Client.Tests
 							line.Append('R');
 							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
 							alive.Add(tr);
-							await tr.GetReadVersionAsync();
+							_ = await tr.GetReadVersionAsync();
 						}
 						else
 						{
@@ -2050,5 +2307,4 @@ namespace FoundationDB.Client.Tests
 
 		}
 	}
-
 }

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,32 +28,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>
 	/// Represents the context of a retryable transactional function which accepts a read-only or read-write transaction.
 	/// </summary>
-	[DebuggerDisplay("Retries={Retries}, Committed={Committed}, Elapsed={Duration.Elapsed}")]
+	[DebuggerDisplay("Retries={Retries}, Committed={Committed}, Elapsed={Elapsed}")]
 	public sealed class FdbOperationContext : IDisposable
 	{
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
 
 		/// <summary>The database used by the operation</summary>
-		public IFdbDatabase Database { [NotNull] get; private set; /*readonly*/ }
+		[NotNull]
+		public IFdbDatabase Database { get; }
 
 		/// <summary>Result of the operation (or null)</summary>
 		public object Result { get; set; }
 		//REVIEW: should we force using a "SetResult()/TrySetResult()" method for this ?
 
 		/// <summary>Cancellation token associated with the operation</summary>
-		public CancellationToken Cancellation { get; private set; /*readonly*/ }
+		public CancellationToken Cancellation { get; }
 
 		/// <summary>If set to true, will abort and not commit the transaction. If false, will try to commit the transaction (and retry on failure)</summary>
 		public bool Abort { get; set; }
@@ -65,38 +66,40 @@ namespace FoundationDB.Client
 		public DateTime StartedUtc { get; private set; }
 
 		/// <summary>Stopwatch that is started at the creation of the transaction, and stopped when it commits or gets disposed</summary>
-		internal Stopwatch Clock { [NotNull] get; private set; /*readonly*/ }
+		[NotNull]
+		internal Stopwatch Clock { get; }
 
 		/// <summary>Duration of all the previous attemps before the current one (starts at 0, and gets updated at each reset/retry)</summary>
 		internal TimeSpan BaseDuration { get; private set; }
 
 		/// <summary>Time elapsed since the start of the first attempt</summary>
-		public TimeSpan ElapsedTotal { get { return this.Clock.Elapsed; } }
+		public TimeSpan ElapsedTotal => this.Clock.Elapsed;
 
 		/// <summary>Time elapsed since the start of the current attempt</summary>
 		/// <remarks>This value is reset to zero every time the transation fails and is retried.
 		/// Note that this may not represent the actual lifetime of the transaction with the database itself, which starts at the first read operation.</remarks>
-		public TimeSpan Elapsed { get { return this.Clock.Elapsed.Subtract(this.BaseDuration); } }
+		public TimeSpan Elapsed => this.Clock.Elapsed.Subtract(this.BaseDuration);
 
 		/// <summary>If true, the transaction has been committed successfully</summary>
 		public bool Committed { get; private set; }
 
 		/// <summary>If true, the lifetime of the context is handled by an external retry loop. If false, the context is linked to the lifetime of the transaction instance.</summary>
-		internal bool Shared { get { return (this.Mode & FdbTransactionMode.InsideRetryLoop) != 0; } }
+		internal bool Shared => (this.Mode & FdbTransactionMode.InsideRetryLoop) != 0;
 
 		/// <summary>Mode of the transaction</summary>
-		public FdbTransactionMode Mode { get; private set; /*readonly*/ }
+		public FdbTransactionMode Mode { get; }
 
 		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
-		internal CancellationTokenSource TokenSource { [CanBeNull] get; private set; /*readonly*/ }
+		[CanBeNull]
+		internal CancellationTokenSource TokenSource { get; }
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
 		/// <param name="mode">Operation mode of the retry loop</param>
-		/// <param name="cancellationToken">Optional cancellation token that will abort the retry loop if triggered.</param>
-		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
+		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
+		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
 			this.Database = db;
 			this.Mode = mode;
@@ -106,9 +109,9 @@ namespace FoundationDB.Client
 			// by default, we hook ourselves to the db's CancellationToken, but we may need to also
 			// hook with a different, caller-provided, token and respond to cancellation from both sites.
 			var token = db.Cancellation;
-			if (cancellationToken.CanBeCanceled && !cancellationToken.Equals(token))
+			if (ct.CanBeCanceled && !ct.Equals(token))
 			{
-				this.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken);
+				this.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, ct);
 				token = this.TokenSource.Token;
 			}
 			this.Cancellation = token;
@@ -142,21 +145,21 @@ namespace FoundationDB.Client
 						try
 						{
 							// call the user provided lambda
-							if (handler is Func<IFdbTransaction, Task>)
+							if (handler is Func<IFdbTransaction, Task> funcWritable)
 							{
-								await ((Func<IFdbTransaction, Task>)handler)(trans).ConfigureAwait(false);
+								await funcWritable(trans).ConfigureAwait(false);
 							}
-							else if (handler is Action<IFdbTransaction>)
+							else if (handler is Action<IFdbTransaction> action)
 							{
-								((Action<IFdbTransaction>)handler)(trans);
+								action(trans);
 							}
-							else if (handler is Func<IFdbReadOnlyTransaction, Task>)
+							else if (handler is Func<IFdbReadOnlyTransaction, Task> funcReadOnly)
 							{
-								await ((Func<IFdbReadOnlyTransaction, Task>)handler)(trans).ConfigureAwait(false);
+								await funcReadOnly(trans).ConfigureAwait(false);
 							}
 							else
 							{
-								throw new NotSupportedException(String.Format("Cannot execute handlers of type {0}", handler.GetType().Name));
+								throw new NotSupportedException($"Cannot execute handlers of type {handler.GetType().Name}");
 							}
 
 							if (context.Abort)
@@ -174,25 +177,25 @@ namespace FoundationDB.Client
 
 							if (onDone != null)
 							{
-								if (onDone is Action<IFdbReadOnlyTransaction>)
+								if (onDone is Action<IFdbReadOnlyTransaction> action1)
 								{
-									((Action<IFdbReadOnlyTransaction>)onDone)(trans);
+									action1(trans);
 								}
-								else if (onDone is Action<IFdbTransaction>)
+								else if (onDone is Action<IFdbTransaction> action2)
 								{
-									((Action<IFdbTransaction>)onDone)(trans);
+									action2(trans);
 								}
-								else if (onDone is Func<IFdbReadOnlyTransaction, Task>)
+								else if (onDone is Func<IFdbReadOnlyTransaction, Task> func1)
 								{
-									await ((Func<IFdbReadOnlyTransaction, Task>)onDone)(trans).ConfigureAwait(false);
+									await func1(trans).ConfigureAwait(false);
 								}
-								else if (onDone is Func<IFdbTransaction, Task>)
+								else if (onDone is Func<IFdbTransaction, Task> func2)
 								{
-									await ((Func<IFdbTransaction, Task>)onDone)(trans).ConfigureAwait(false);
+									await func2(trans).ConfigureAwait(false);
 								}
 								else
 								{
-									throw new NotSupportedException(String.Format("Cannot execute completion handler of type {0}", handler.GetType().Name));
+									throw new NotSupportedException($"Cannot execute completion handler of type {handler.GetType().Name}");
 								}
 							}
 						}
@@ -238,39 +241,36 @@ namespace FoundationDB.Client
 		public void Dispose()
 		{
 			this.Abort = true;
-			if (this.TokenSource != null)
-			{
-				this.TokenSource.SafeCancelAndDispose();
-			}
+			this.TokenSource?.SafeCancelAndDispose();
 		}
 
 		#region Read-Only operations...
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunReadAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunReadAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
-			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, cancellationToken);
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
 			return ExecuteInternal(db, context, asyncHandler, onDone);
 		}
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunReadWithResultAsync<R>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			cancellationToken.ThrowIfCancellationRequested();
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
+			ct.ThrowIfCancellationRequested();
 
-			R result = default(R);
+			TResult result = default(TResult);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
 				result = await asyncHandler(tr).ConfigureAwait(false);
 			};
 
-			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, cancellationToken);
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
 			await ExecuteInternal(db, context, handler, onDone).ConfigureAwait(false);
 			return result;
 		}
@@ -280,42 +280,42 @@ namespace FoundationDB.Client
 		#region Read/Write operations...
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
-			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			return ExecuteInternal(db, context, asyncHandler, onDone);
 		}
 
 		/// <summary>Run a write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
-			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			return ExecuteInternal(db, context, handler, onDone);
 		}
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunWriteWithResultAsync<R>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			cancellationToken.ThrowIfCancellationRequested();
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
+			ct.ThrowIfCancellationRequested();
 
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
 				tr.Context.Result = await asyncHandler(tr).ConfigureAwait(false);
 			};
 
-			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			await ExecuteInternal(db, context, handler, onDone).ConfigureAwait(false);
-			return (R)context.Result;
+			return (TResult)context.Result;
 		}
 
 		#endregion

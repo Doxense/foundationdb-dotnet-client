@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -69,10 +69,10 @@ namespace FoundationDB.Client
 #endif
 
 		/// <summary>Gets the code for this error.</summary>
-		public FdbError Code { get; private set; }
+		public FdbError Code { get; }
 
 		/// <summary>Determine if this FDBError represents a success code from the native layer.</summary>
-		public bool Success { get { return this.Code == FdbError.Success; } }
+		public bool Success => this.Code == FdbError.Success;
 
 		//REVIEW: do we need to add more properties? TransactionId ? DBName? 
 

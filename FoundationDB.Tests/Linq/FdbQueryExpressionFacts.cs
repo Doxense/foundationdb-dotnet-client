@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,183 +26,187 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Expressions.Tests
+ namespace FoundationDB.Linq.Expressions.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
+	using Doxense.Collections.Tuples;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using FoundationDB.Layers.Indexing;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class FdbQueryExpressionFacts
+	public class FdbQueryExpressionFacts : FdbTest
+
 	{
 
-		private FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", FdbSubspace.Create(FdbTuple.Create("Foos", 1)));
-		private FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", FdbSubspace.Create(FdbTuple.Create("Foos", 2)));
+	private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.FromKey(TuPack.EncodeKey("Foos", 1)));
 
-		[Test]
-		public void Test_FdbQueryIndexLookupExpression()
-		{
-			var expr = FdbQueryIndexLookupExpression<int, string>.Lookup(
-				FooBarIndex,
-				ExpressionType.Equal,
-				Expression.Constant("world")
-			);
-			Console.WriteLine(expr);
+	private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.FromKey(TuPack.EncodeKey("Foos", 2)));
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Index, Is.SameAs(FooBarIndex)); //TODO: .Index.Index does not look very nice
-			Assert.That(expr.Operator, Is.EqualTo(ExpressionType.Equal));
-			Assert.That(expr.Value, Is.Not.Null);
-			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
+	[Test]
+	public void Test_FdbQueryIndexLookupExpression()
+	{
+		var expr = FdbQueryIndexLookupExpression<int, string>.Lookup(
+			FooBarIndex,
+			ExpressionType.Equal,
+			Expression.Constant("world")
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Index, Is.SameAs(FooBarIndex)); //TODO: .Index.Index does not look very nice
+		Assert.That(expr.Operator, Is.EqualTo(ExpressionType.Equal));
+		Assert.That(expr.Value, Is.Not.Null);
+		Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
-		}
+		Log(FdbQueryExpressions.ExplainSequence(expr));
 
-		[Test]
-		public void Test_FdbQueryIndexLookupExpression_From_Lambda()
-		{
-			var expr = FdbQueryIndexLookupExpression<int, string>.Lookup(
-				FooBarIndex,
-				(bar) => bar == "world"
-			);
-			Console.WriteLine(expr);
+	}
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Index, Is.SameAs(FooBarIndex)); //TODO: .Index.Index does not look very nice
-			Assert.That(expr.Operator, Is.EqualTo(ExpressionType.Equal));
-			Assert.That(expr.Value, Is.Not.Null);
-			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
+	[Test]
+	public void Test_FdbQueryIndexLookupExpression_From_Lambda()
+	{
+		var expr = FdbQueryIndexLookupExpression<int, string>.Lookup(
+			FooBarIndex,
+			(bar) => bar == "world"
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Index, Is.SameAs(FooBarIndex)); //TODO: .Index.Index does not look very nice
+		Assert.That(expr.Operator, Is.EqualTo(ExpressionType.Equal));
+		Assert.That(expr.Value, Is.Not.Null);
+		Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
-		}
+		Log(FdbQueryExpressions.ExplainSequence(expr));
 
-		[Test]
-		public void Test_FdbQueryRangeExpression()
-		{
-			var expr = FdbQueryExpressions.Range(
-				FdbTuple.Create("Foo").ToSelectorPair()
-			);
-			Console.WriteLine(expr);
+	}
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00>"));
-			Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<01>"));
+	[Test]
+	public void Test_FdbQueryRangeExpression()
+	{
+		var expr = FdbQueryExpressions.Range(
+			KeySelectorPair.Create(TuPack.ToKeyRange("Foo"))
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
+		Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
-		}
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
-		[Test]
-		public void Test_FdbQueryIntersectExpression()
-		{
-			var expr1 = FdbQueryIndexLookupExpression<int, string>.Lookup(
-				FooBarIndex,
-				(x) => x == "world"
-			);
-			var expr2 = FdbQueryIndexLookupExpression<int, long>.Lookup(
-				FooBazIndex,
-				(x) => x == 1234L
-			);
+		Log(FdbQueryExpressions.ExplainSequence(expr));
+	}
 
-			var expr = FdbQueryExpressions.Intersect(
-				expr1,
-				expr2
-			);
-			Console.WriteLine(expr);
+	[Test]
+	public void Test_FdbQueryIntersectExpression()
+	{
+		var expr1 = FdbQueryIndexLookupExpression<int, string>.Lookup(
+			FooBarIndex,
+			(x) => x == "world"
+		);
+		var expr2 = FdbQueryIndexLookupExpression<int, long>.Lookup(
+			FooBazIndex,
+			(x) => x == 1234L
+		);
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Terms, Is.Not.Null);
-			Assert.That(expr.Terms.Count, Is.EqualTo(2));
-			Assert.That(expr.Terms[0], Is.SameAs(expr1));
-			Assert.That(expr.Terms[1], Is.SameAs(expr2));
+		var expr = FdbQueryExpressions.Intersect(
+			expr1,
+			expr2
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Terms, Is.Not.Null);
+		Assert.That(expr.Terms.Count, Is.EqualTo(2));
+		Assert.That(expr.Terms[0], Is.SameAs(expr1));
+		Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
-		}
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
-		[Test]
-		public void Test_FdbQueryUnionExpression()
-		{
-			var expr1 = FdbQueryIndexLookupExpression<int, string>.Lookup(
-				FooBarIndex,
-				(x) => x == "world"
-			);
-			var expr2 = FdbQueryIndexLookupExpression<int, long>.Lookup(
-				FooBazIndex,
-				(x) => x == 1234L
-			);
+		Log(FdbQueryExpressions.ExplainSequence(expr));
+	}
 
-			var expr = FdbQueryExpressions.Union(
-				expr1,
-				expr2
-			);
-			Console.WriteLine(expr);
+	[Test]
+	public void Test_FdbQueryUnionExpression()
+	{
+		var expr1 = FdbQueryIndexLookupExpression<int, string>.Lookup(
+			FooBarIndex,
+			(x) => x == "world"
+		);
+		var expr2 = FdbQueryIndexLookupExpression<int, long>.Lookup(
+			FooBazIndex,
+			(x) => x == 1234L
+		);
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Terms, Is.Not.Null);
-			Assert.That(expr.Terms.Count, Is.EqualTo(2));
-			Assert.That(expr.Terms[0], Is.SameAs(expr1));
-			Assert.That(expr.Terms[1], Is.SameAs(expr2));
+		var expr = FdbQueryExpressions.Union(
+			expr1,
+			expr2
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Terms, Is.Not.Null);
+		Assert.That(expr.Terms.Count, Is.EqualTo(2));
+		Assert.That(expr.Terms[0], Is.SameAs(expr1));
+		Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
-		}
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<int>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
-		[Test]
-		public void Test_FdbQueryTransformExpression()
-		{
-			var expr = FdbQueryExpressions.Transform(
-				FdbQueryExpressions.RangeStartsWith(FdbTuple.Create("Hello", "World")),
-				(kvp) => kvp.Value.ToUnicode()
-			);
-			Console.WriteLine(expr);
+		Log(FdbQueryExpressions.ExplainSequence(expr));
+	}
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
-			Assert.That(expr.Transform, Is.Not.Null);
+	[Test]
+	public void Test_FdbQueryTransformExpression()
+	{
+		var expr = FdbQueryExpressions.Transform(
+			FdbQueryExpressions.RangeStartsWith(TuPack.EncodeKey("Hello", "World")),
+			(kvp) => kvp.Value.ToUnicode()
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<string>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
+		Assert.That(expr.Transform, Is.Not.Null);
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
-		}
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<string>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));
 
-		[Test]
-		public void Test_FdbQueryFilterExpression()
-		{
-			var expr = FdbQueryExpressions.Filter(
-				FdbQueryExpressions.RangeStartsWith(FdbTuple.Create("Hello", "World")),
-				(kvp) => kvp.Value.ToInt32() % 2 == 0
-			);
-			Console.WriteLine(expr);
+		Log(FdbQueryExpressions.ExplainSequence(expr));
+	}
 
-			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
-			Assert.That(expr.Filter, Is.Not.Null);
+	[Test]
+	public void Test_FdbQueryFilterExpression()
+	{
+		var expr = FdbQueryExpressions.Filter(
+			FdbQueryExpressions.RangeStartsWith(TuPack.EncodeKey("Hello", "World")),
+			(kvp) => kvp.Value.ToInt32() % 2 == 0
+		);
+		Log(expr);
 
-			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
+		Assert.That(expr, Is.Not.Null);
+		Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
+		Assert.That(expr.Filter, Is.Not.Null);
 
-			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
-		}
+		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+		Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
+
+		Log(FdbQueryExpressions.ExplainSequence(expr));
+	}
 
 	}
 

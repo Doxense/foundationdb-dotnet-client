@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,23 +28,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using JetBrains.Annotations;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
-	public sealed partial class FdbRangeQuery<T> : IFdbAsyncEnumerable<T>
+	public sealed partial class FdbRangeQuery<T> : IAsyncEnumerable<T>
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery([NotNull] IFdbReadOnlyTransaction transaction, FdbKeySelector begin, FdbKeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
+		internal FdbRangeQuery([NotNull] IFdbReadOnlyTransaction transaction, KeySelector begin, KeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, [CanBeNull] FdbRangeOptions options)
 		{
 			Contract.Requires(transaction != null && transform != null);
 
@@ -54,7 +54,7 @@ namespace FoundationDB.Client
 			this.Transform = transform;
 			this.Snapshot = snapshot;
 			this.Options = options ?? new FdbRangeOptions();
-			this.OriginalRange = FdbKeySelectorPair.Create(begin, end);
+			this.OriginalRange = KeySelectorPair.Create(begin, end);
 		}
 
 		/// <summary>Copy constructor</summary>
@@ -74,42 +74,44 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Key selector describing the beginning of the range that will be queried</summary>
-		public FdbKeySelector Begin { get; private set; }
+		public KeySelector Begin { get; private set; }
 
 		/// <summary>Key selector describing the end of the range that will be queried</summary>
-		public FdbKeySelector End { get; private set; }
+		public KeySelector End { get; private set; }
 
 		/// <summary>Key selector pair describing the beginning and end of the range that will be queried</summary>
-		public FdbKeySelectorPair Range { get { return new FdbKeySelectorPair(this.Begin, this.End); } }
+		public KeySelectorPair Range => new KeySelectorPair(this.Begin, this.End);
 
 		/// <summary>Stores all the settings for this range query</summary>
-		internal FdbRangeOptions Options { get; private set; }
+		internal FdbRangeOptions Options { get; }
 
 		/// <summary>Original key selector pair describing the bounds of the parent range. All the results returned by the query will be bounded by this original range.</summary>
 		/// <remarks>May differ from <see cref="Range"/> when combining certain operators.</remarks>
-		internal FdbKeySelectorPair OriginalRange { get; private set; }
+		internal KeySelectorPair OriginalRange { get; }
 
 		/// <summary>Limit in number of rows to return</summary>
-		public int? Limit { get { return this.Options.Limit; } }
+		public int? Limit => this.Options.Limit;
 
 		/// <summary>Limit in number of bytes to return</summary>
-		public int? TargetBytes { get { return this.Options.TargetBytes; } }
+		public int? TargetBytes => this.Options.TargetBytes;
 
 		/// <summary>Streaming mode</summary>
 		//REVIEW: nullable?
-		public FdbStreamingMode Mode { get { return this.Options.Mode ?? FdbStreamingMode.Iterator; } }
+		public FdbStreamingMode Mode => this.Options.Mode ?? FdbStreamingMode.Iterator;
 
 		/// <summary>Should we perform the range using snapshot mode ?</summary>
-		public bool Snapshot { get; private set; }
+		public bool Snapshot { get; }
 
 		/// <summary>Should the results be returned in reverse order (from last key to first key)</summary>
-		public bool Reversed { get { return this.Options.Reverse ?? false; } }
+		public bool Reversed => this.Options.Reverse ?? false;
 
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
-		internal IFdbReadOnlyTransaction Transaction { [NotNull] get; private set; }
+		[NotNull]
+		internal IFdbReadOnlyTransaction Transaction { get; }
 
 		/// <summary>Transformation applied to the result</summary>
-		internal Func<KeyValuePair<Slice, Slice>, T> Transform { [NotNull] get; private set; }
+		[NotNull]
+		internal Func<KeyValuePair<Slice, Slice>, T> Transform { get; }
 
 		#endregion
 
@@ -118,10 +120,10 @@ namespace FoundationDB.Client
 		/// <summary>Only return up to a specific number of results</summary>
 		/// <param name="count">Maximum number of results to return</param>
 		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
-		[NotNull]
-		public FdbRangeQuery<T> Take(int count)
+		[Pure, NotNull]
+		public FdbRangeQuery<T> Take([Positive] int count)
 		{
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
+			Contract.Positive(count, nameof(count));
 
 			if (this.Options.Limit == count)
 			{
@@ -137,10 +139,10 @@ namespace FoundationDB.Client
 		/// <summary>Bypasses a specified number of elements in a sequence and then returns the remaining elements.</summary>
 		/// <param name="count"></param>
 		/// <returns>A new query object that will skip the first <paramref name="count"/> results when executed</returns>
-		[NotNull]
-		public FdbRangeQuery<T> Skip(int count)
+		[Pure, NotNull]
+		public FdbRangeQuery<T> Skip([Positive] int count)
 		{
-			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
+			Contract.Positive(count, nameof(count));
 
 			var limit = this.Options.Limit;
 			var begin = this.Begin;
@@ -184,7 +186,7 @@ namespace FoundationDB.Client
 		/// <returns>A new query object that will return the results in reverse order when executed</returns>
 		/// <remarks>Calling Reverse() on an already reversed query will cancel the effect, and the results will be returned in their natural order.
 		/// Note: Combining the effects of Take()/Skip() and Reverse() may have an impact on performance, especially if the ReadYourWriteDisabled transaction is options set.</remarks>
-		[NotNull]
+		[Pure, NotNull]
 		public FdbRangeQuery<T> Reverse()
 		{
 			var begin = this.Begin;
@@ -201,12 +203,11 @@ namespace FoundationDB.Client
 				{
 					begin = this.End - limit.Value;
 				}
-				limit = null;
 			}
 
 			return new FdbRangeQuery<T>(
 				this,
-				new FdbRangeOptions(this.Options) { Reverse = !this.Reversed, Limit = limit }
+				new FdbRangeOptions(this.Options) { Reverse = !this.Reversed }
 			)
 			{
 				Begin = begin,
@@ -217,10 +218,10 @@ namespace FoundationDB.Client
 		/// <summary>Use a specific target bytes size</summary>
 		/// <param name="bytes"></param>
 		/// <returns>A new query object that will use the specified target bytes size when executed</returns>
-		[NotNull]
-		public FdbRangeQuery<T> WithTargetBytes(int bytes)
+		[Pure, NotNull]
+		public FdbRangeQuery<T> WithTargetBytes([Positive] int bytes)
 		{
-			if (bytes < 0) throw new ArgumentOutOfRangeException("bytes", "Value cannot be less than zero");
+			Contract.Positive(bytes, nameof(bytes));
 
 			return new FdbRangeQuery<T>(
 				this,
@@ -231,12 +232,12 @@ namespace FoundationDB.Client
 		/// <summary>Use a different Streaming Mode</summary>
 		/// <param name="mode">Streaming mode to use when reading the results from the database</param>
 		/// <returns>A new query object that will use the specified streaming mode when executed</returns>
-		[NotNull]
+		[Pure, NotNull]
 		public FdbRangeQuery<T> WithMode(FdbStreamingMode mode)
 		{
 			if (!Enum.IsDefined(typeof(FdbStreamingMode), mode))
 			{
-				throw new ArgumentOutOfRangeException("mode", "Unsupported streaming mode");
+				throw new ArgumentOutOfRangeException(nameof(mode), "Unsupported streaming mode");
 			}
 
 			return new FdbRangeQuery<T>(
@@ -248,10 +249,10 @@ namespace FoundationDB.Client
 		/// <summary>Force the query to use a specific transaction</summary>
 		/// <param name="transaction">Transaction to use when executing this query</param>
 		/// <returns>A new query object that will use the specified transaction when executed</returns>
-		[NotNull]
+		[Pure, NotNull]
 		public FdbRangeQuery<T> UseTransaction([NotNull] IFdbReadOnlyTransaction transaction)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
+			Contract.NotNull(transaction, nameof(transaction));
 
 			return new FdbRangeQuery<T>(
 				transaction,
@@ -269,38 +270,43 @@ namespace FoundationDB.Client
 
 		public IAsyncEnumerator<T> GetEnumerator()
 		{
-			return this.GetEnumerator(FdbAsyncMode.Default);
+			return this.GetEnumerator(this.Transaction.Cancellation, AsyncIterationHint.Default);
 		}
 
-		public IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncMode mode)
+		public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint hint)
 		{
-			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(mode);
+			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(ct, hint);
 		}
 
 		/// <summary>Return a list of all the elements of the range results</summary>
+		[ItemNotNull]
 		public Task<List<T>> ToListAsync()
 		{
-			return FdbAsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
+			// ReSharper disable once InvokeAsExtensionMethod
+			return AsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return an array with all the elements of the range results</summary>
+		[ItemNotNull]
 		public Task<T[]> ToArrayAsync()
 		{
-			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
+			// ReSharper disable once InvokeAsExtensionMethod
+			return AsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return the number of elements in the range, by reading them</summary>
 		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync"/> when reading potentially large ranges.</remarks>
 		public Task<int> CountAsync()
 		{
-			return FdbAsyncEnumerable.CountAsync(this, this.Transaction.Cancellation);
+			// ReSharper disable once InvokeAsExtensionMethod
+			return AsyncEnumerable.CountAsync(this, this.Transaction.Cancellation);
 		}
 
-		[NotNull]
-		internal FdbRangeQuery<R> Map<R>([NotNull] Func<KeyValuePair<Slice, Slice>, R> transform)
+		[Pure, NotNull]
+		internal FdbRangeQuery<TResult> Map<TResult>([NotNull] Func<KeyValuePair<Slice, Slice>, TResult> transform)
 		{
 			Contract.Requires(transform != null);
-			return new FdbRangeQuery<R>(
+			return new FdbRangeQuery<TResult>(
 				this.Transaction,
 				this.Begin,
 				this.End,
@@ -311,24 +317,25 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Projects each element of the range results into a new form.</summary>
-		[NotNull]
-		public FdbRangeQuery<R> Select<R>([NotNull] Func<T, R> lambda)
+		[Pure, NotNull]
+		public FdbRangeQuery<TResult> Select<TResult>([NotNull] Func<T, TResult> lambda)
 		{
 			Contract.Requires(lambda != null);
 			// note: avoid storing the query in the scope by storing the transform locally so that only 'f' and 'lambda' are kept alive
 			var f = this.Transform;
 			Contract.Assert(f != null);
-			return Map<R>((x) => lambda(f(x)));
+			return Map<TResult>((x) => lambda(f(x)));
 		}
 
 		/// <summary>Filters the range results based on a predicate.</summary>
 		/// <remarks>Caution: filtering occurs on the client side !</remarks>
-		[NotNull]
-		public IFdbAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
+		[Pure, NotNull]
+		public IAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
 		{
-			return FdbAsyncEnumerable.Where(this, predicate);
+			return AsyncEnumerable.Where(this, predicate);
 		}
 
+		[ItemCanBeNull]
 		public Task<T> FirstOrDefaultAsync()
 		{
 			// we can optimize this by passing Limit=1
@@ -341,6 +348,7 @@ namespace FoundationDB.Client
 			return HeadAsync(single: false, orDefault: false);
 		}
 
+		[ItemCanBeNull]
 		public Task<T> LastOrDefaultAsync()
 		{
 			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
@@ -357,6 +365,7 @@ namespace FoundationDB.Client
 			return this.Reverse().HeadAsync(single: false, orDefault:false);
 		}
 
+		[ItemCanBeNull]
 		public Task<T> SingleOrDefaultAsync()
 		{
 			// we can optimize this by passing Limit=2
@@ -387,7 +396,8 @@ namespace FoundationDB.Client
 		/// <summary>Execute an action on each key/value pair of the range results</summary>
 		public Task ForEachAsync([NotNull] Action<T> action)
 		{
-			return FdbAsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
+			// ReSharper disable once InvokeAsExtensionMethod
+			return AsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
 		}
 
 		internal async Task<T> HeadAsync(bool single, bool orDefault)
@@ -397,12 +407,12 @@ namespace FoundationDB.Client
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
 			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
-				return await FdbAsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
+				return await AsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
 
 			var options = new FdbRangeOptions()
 			{
-				Limit = single ? 2 : 1,
+				Limit = Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue),
 				TargetBytes = 0,
 				Mode = FdbStreamingMode.Exact,
 				Reverse = this.Reversed
@@ -435,10 +445,12 @@ namespace FoundationDB.Client
 			// we can use the EXACT streaming mode with Limit = 1, and it will work if TargetBytes is 0
 			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
+				// ReSharper disable InvokeAsExtensionMethod
 				if (any)
-					return await FdbAsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);
+					return await AsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);
 				else
-					return await FdbAsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation);
+					return await AsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation);
+				// ReSharper restore InvokeAsExtensionMethod
 			}
 
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
@@ -462,7 +474,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the range query</summary>
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Range({0}, {1}, {2})", this.Range, this.Limit, this.Reversed ? "reverse" : "forward");
+			return $"Range({this.Range}, {this.Limit}, {(this.Reversed ? "reverse" : "forward")})";
 		}
 
 	}
@@ -471,54 +483,54 @@ namespace FoundationDB.Client
 	public static class FdbRangeQueryExtensions
 	{
 
-		[NotNull]
-		public static FdbRangeQuery<K> Keys<K, V>(this FdbRangeQuery<KeyValuePair<K, V>> query)
+		[Pure, NotNull]
+		public static FdbRangeQuery<TKey> Keys<TKey, TValue>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query)
 		{
-			if (query == null) throw new ArgumentNullException("query");
+			Contract.NotNull(query, nameof(query));
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
 			Contract.Assert(f != null);
 
-			return query.Map<K>((x) => f(x).Key);
+			return query.Map<TKey>((x) => f(x).Key);
 		}
 
-		[NotNull]
-		public static FdbRangeQuery<R> Keys<K, V, R>(this FdbRangeQuery<KeyValuePair<K, V>> query, [NotNull] Func<K, R> transform)
+		[Pure, NotNull]
+		public static FdbRangeQuery<TResult> Keys<TKey, TValue, TResult>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query, [NotNull] Func<TKey, TResult> transform)
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (transform == null) throw new ArgumentNullException("transform");
+			Contract.NotNull(query, nameof(query));
+			Contract.NotNull(transform, nameof(transform));
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
 			Contract.Assert(f != null);
 
-			return query.Map<R>((x) => transform(f(x).Key));
+			return query.Map<TResult>((x) => transform(f(x).Key));
 		}
 
-		[NotNull]
-		public static FdbRangeQuery<V> Values<K, V>(this FdbRangeQuery<KeyValuePair<K, V>> query)
+		[Pure, NotNull]
+		public static FdbRangeQuery<TValue> Values<TKey, TValue>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query)
 		{
-			if (query == null) throw new ArgumentNullException("query");
+			Contract.NotNull(query, nameof(query));
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
 			Contract.Assert(f != null);
 
-			return query.Map<V>((x) => f(x).Value);
+			return query.Map<TValue>((x) => f(x).Value);
 		}
 
-		[NotNull]
-		public static FdbRangeQuery<R> Values<K, V, R>(this FdbRangeQuery<KeyValuePair<K, V>> query, [NotNull] Func<V, R> transform)
+		[Pure, NotNull]
+		public static FdbRangeQuery<TResult> Values<TKey, TValue, TResult>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query, [NotNull] Func<TValue, TResult> transform)
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (transform == null) throw new ArgumentNullException("transform");
+			Contract.NotNull(query, nameof(query));
+			Contract.NotNull(transform, nameof(transform));
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
 			Contract.Assert(f != null);
 
-			return query.Map<R>((x) => transform(f(x).Value));
+			return query.Map<TResult>((x) => transform(f(x).Value));
 		}
 
 	}

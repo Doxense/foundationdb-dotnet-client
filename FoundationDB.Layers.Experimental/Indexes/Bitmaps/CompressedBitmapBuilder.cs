@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>
 	public sealed class CompressedBitmapBuilder
 	{
-		private static readonly CompressedWord[] s_emptyArray = new CompressedWord[0];
 
 		/// <summary>Returns a new instance of an empty bitmap builder</summary>
-		public static CompressedBitmapBuilder Empty
-		{
-			get { return new CompressedBitmapBuilder(s_emptyArray, 0, BitRange.Empty); }
-		}
+		public static CompressedBitmapBuilder Empty => new CompressedBitmapBuilder(Array.Empty<CompressedWord>(), 0, BitRange.Empty);
 
 		/// <summary>Buffer of compressed words</summary>
 		private CompressedWord[] m_words;
+
 		/// <summary>Number of words used in the buffer</summary>
 		private int m_size;
+
 		/// <summary>Index of the lowest bit that is set (or int.MaxValue)</summary>
 		private int m_lowest;
+
 		/// <summary>Index of the highest bit that is set (or -1)</summary>
 		private int m_highest;
 
 		public CompressedBitmapBuilder(CompressedBitmap bitmap)
 		{
-			if (bitmap == null) throw new ArgumentNullException("bitmap");
-			if ((bitmap.Data.Count & 3) != 0) throw new ArgumentException("Bitmap's underlying buffer size should be a multiple of 4 bytes", "bitmap");
+			if (bitmap == null) throw new ArgumentNullException(nameof(bitmap));
+			if ((bitmap.Data.Count & 3) != 0) throw new ArgumentException("Bitmap's underlying buffer size should be a multiple of 4 bytes", nameof(bitmap));
 
 			if (bitmap.Count == 0)
 			{
-				m_words = s_emptyArray;
+				m_words = Array.Empty<CompressedWord>();
 				var range = BitRange.Empty;
 				m_lowest = range.Lowest;
 				m_highest = range.Highest;
@@ -95,7 +95,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			Contract.Requires(size >= 0 && data.Count >= 4 && (data.Count & 3) == 0);
 
-			int capacity = SliceHelpers.NextPowerOfTwo(size);
+			int capacity = BitHelpers.NextPowerOfTwo(size);
 			if (capacity < 0) capacity = size;
 			var words = new CompressedWord[capacity];
 
@@ -110,10 +110,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Returns the number of compressed words in the builder</summary>
-		public int Count
-		{
-			get { return m_size; }
-		}
+		public int Count => m_size;
 
 		/// <summary>Compute the word index, and mask of a bit offset</summary>
 		/// <param name="offset">Bit offset (0-based)</param>
@@ -158,16 +155,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (minSize > m_size)
 			{
-				int newSize = SliceHelpers.NextPowerOfTwo(minSize);
+				int newSize = BitHelpers.NextPowerOfTwo(minSize);
 				if (newSize < 0) newSize = minSize;
 				if (newSize < 8) newSize = 8;
-				//Console.WriteLine("> resize buffer to {0} words", newSize);
 				Array.Resize(ref m_words, newSize);
 			}
-			//else
-			//{
-			//	Console.WriteLine("> buffer has enough capacity {0} for min size {1}", m_words.Length, minSize);
-			//}
 		}
 
 		/// <summary>Gets or sets the value of a bit in the bitmap.</summary>
@@ -203,7 +195,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>True if the bit was changed from 0 to 1; or false if it was already set.</returns>
 		public bool Set(int index)
 		{
-			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", "index");
+			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", nameof(index));
 
 			//Console.WriteLine("Set({0}) on {1}-words bitmap", index, m_size);
 
@@ -288,7 +280,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>True if the bit was changed from 1 to 0; or false if it was already unset.</returns>
 		public bool Clear(int index)
 		{
-			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", "index");
+			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", nameof(index));
 
 			uint mask;
 			int wordIndex = GetWordIndex(index, out mask);
