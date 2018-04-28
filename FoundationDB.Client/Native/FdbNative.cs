@@ -235,34 +235,15 @@ namespace FoundationDB.Client.Native
 
 		static FdbNative()
 		{
-			// Impact of NativeLibPath:
-			// - If null, don't preload the library, and let the CLR find the file using the default P/Invoke behavior
-			// - If String.Empty, call win32 LoadLibrary(FDB_C_DLL) and let the os find the file (using the standard OS behavior)
-			// - If path is folder, append the FDB_C_DLL
-			// Afterwards - call LoadLibrary with the resulting (relative or absolute) path
-
-			var libraryPath = Fdb.Options.NativeLibPath;
+			var libraryPath = GetPreloadPath();
 
 			if (libraryPath == null)
-			{
+			{ // PInvoke will load
 				return;
 			}
-			
+
 			try
 			{
-				if (libraryPath.Length == 0)
-				{ // CLR will handle the search
-					libraryPath = FDB_C_DLL;
-				} 
-				else 
-				{
-					var fileName = Path.GetFileName(libraryPath);
-					if (String.IsNullOrEmpty(fileName))
-					{
-						libraryPath = Path.Combine(libraryPath, FDB_C_DLL);
-					}
-				}				
-
 				FdbCLib = UnmanagedLibrary.Load(libraryPath);
 			}
 			catch (Exception e)
@@ -275,11 +256,51 @@ namespace FoundationDB.Client.Native
 				}
 				else
 				{
-					e = new InvalidOperationException("An error occurred while loading the native FoundationDB library", e);
+					e = new InvalidOperationException($"An error occurred while loading the native FoundationDB library: '{libraryPath}'.", e);
 				}
 				LibraryLoadError = ExceptionDispatchInfo.Capture(e);
 			}
 			
+		}
+
+		private static string GetPreloadPath()
+		{
+			// we need to provide sensible defaults for loading the native library
+			// if this method returns null we'll let PInvoke deal
+			// otherwise - use explicit platform-specific dll loading
+			var libraryPath = Fdb.Options.NativeLibPath;
+
+			// on non-windows, library loading by convention just works.
+			// unless override is provided, just let PInvoke do the work
+			if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+			{
+				if (string.IsNullOrEmpty(libraryPath))
+				{
+					return null;
+				}
+				// otherwise just use the provided path
+				return libraryPath;
+			}
+
+			// Impact of NativeLibPath on windows:
+			// - If null, don't preload the library, and let the CLR find the file using the default P/Invoke behavior
+			// - If String.Empty, call win32 LoadLibrary(FDB_C_DLL + ".dll") and let the os find the file (using the standard OS behavior)
+			// - If path is folder, append the FDB_C_DLL
+			var winDllWithExtension = FDB_C_DLL + ".dll";
+			if (libraryPath == null)
+			{
+				return null;
+			}
+			if (libraryPath.Length == 0)
+			{
+				return winDllWithExtension;
+			}
+			var fileName = Path.GetFileName(libraryPath);
+			if (String.IsNullOrEmpty(fileName))
+			{
+				libraryPath = Path.Combine(libraryPath, winDllWithExtension);
+			}
+			return libraryPath;
 		}
 
 		private static void EnsureLibraryIsLoaded()
