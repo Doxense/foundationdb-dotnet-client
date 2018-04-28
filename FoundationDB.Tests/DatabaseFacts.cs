@@ -233,7 +233,7 @@ namespace FoundationDB.Client.Tests
 				string mode = await Fdb.System.GetStorageEngineModeAsync(db, this.Cancellation);
 				Log("Storage engine: {0}", mode);
 				Assert.That(mode, Is.Not.Null);
-				Assert.That(mode, Is.EqualTo("ssd").Or.EqualTo("memory"));
+				Assert.That(mode, Is.EqualTo("ssd").Or.EqualTo("memory").Or.EqualTo("ssd-2"));
 
 				// in order to verify the value, we need to check ourselves by reading from the cluster config
 				Slice actual;
@@ -245,6 +245,10 @@ namespace FoundationDB.Client.Tests
 				if (mode == "ssd")
 				{ // ssd = '0'
 					Assert.That(actual, Is.EqualTo(Slice.FromStringAscii("0")));
+				}
+				else if (mode == "ssd-2")
+				{ // ssd-2 = '2'
+					Assert.That(actual, Is.EqualTo(Slice.FromStringAscii("2")));
 				}
 				else
 				{ // memory = '1'

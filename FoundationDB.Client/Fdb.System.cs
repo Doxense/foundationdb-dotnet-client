@@ -207,7 +207,7 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<string> GetStorageEngineModeAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				// The '\xFF/conf/storage_engine' keys has value "0" (ASCII) for ssd engine, and "1" (ASCII) for memory engine
+				// The '\xFF/conf/storage_engine' keys has value "0" for ssd-1 engine, "1" for memory engine and "2" for ssd-2 engine
 
 				var value = await GetConfigParameterAsync(db, "storage_engine", ct).ConfigureAwait(false);
 
@@ -215,8 +215,9 @@ namespace FoundationDB.Client
 
 				switch(value.ToUnicode())
 				{
-					case "0": return "ssd";
+					case "0": return "ssd"; // "ssd-1"
 					case "1": return "memory";
+					case "2": return "ssd-2";
 					default:
 					{
 						// welcome to the future!
