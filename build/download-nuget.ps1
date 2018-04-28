@@ -1,4 +1,4 @@
-$source = "http://nuget.org/nuget.exe"
+$source = "https://dist.nuget.org/win-x86-commandline/latest/nuget.exe"
 $destination = ".\.nuget\nuget.exe"
 
 $wc = New-Object System.Net.WebClient
