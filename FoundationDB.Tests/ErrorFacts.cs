@@ -39,25 +39,33 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Fdb_GetErrorMessage()
 		{
-			Assert.That(Fdb.GetErrorMessage(FdbError.Success), Is.EqualTo("success"));
-
-			Assert.That(Fdb.GetErrorMessage(FdbError.OperationFailed), Is.EqualTo("operation_failed"));
-
-			Assert.That(Fdb.GetErrorMessage(FdbError.TimedOut), Is.EqualTo("timed_out"));
-
-			Assert.That(Fdb.GetErrorMessage(FdbError.PastVersion), Is.EqualTo("past_version"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.Success), Is.EqualTo("Success"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.OperationFailed), Is.EqualTo("Operation failed"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.PastVersion), Is.EqualTo("Transaction is too old to perform reads or be committed"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.FutureVersion), Is.EqualTo("Request for future version"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.TimedOut), Is.EqualTo("Operation timed out"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.NotCommitted), Is.EqualTo("Transaction not committed due to conflict with another transaction"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.CommitUnknownResult), Is.EqualTo("Transaction may or may not have committed"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.TransactionCancelled), Is.EqualTo("Operation aborted because the transaction was cancelled"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.TransactionTimedOut), Is.EqualTo("Operation aborted because the transaction timed out"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.ClientInvalidOperation), Is.EqualTo("Invalid API call"));
+			Assert.That(Fdb.GetErrorMessage(FdbError.LargeAllocFailed), Is.EqualTo("Large block allocation failed"));
 		}
 
 		[Test]
 		public void Test_Fdb_MapToException()
 		{
-			Assert.That(Fdb.MapToException(FdbError.Success), Is.Null);
-
-			Assert.That(Fdb.MapToException(FdbError.OperationFailed), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.OperationFailed));
-
-			Assert.That(Fdb.MapToException(FdbError.TimedOut), Is.InstanceOf<TimeoutException>());
-
-			Assert.That(Fdb.MapToException(FdbError.LargeAllocFailed), Is.InstanceOf<OutOfMemoryException>());
+			Assert.That(Fdb.MapToException(FdbError.Success), Is.Null, "Success");
+			Assert.That(Fdb.MapToException(FdbError.OperationFailed), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.OperationFailed), "OperationFailed");
+			Assert.That(Fdb.MapToException(FdbError.PastVersion), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.PastVersion), "PastVersion");
+			Assert.That(Fdb.MapToException(FdbError.FutureVersion), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.FutureVersion), "FutureVersion");
+			Assert.That(Fdb.MapToException(FdbError.TimedOut), Is.InstanceOf<TimeoutException>(), "TimedOut");
+			Assert.That(Fdb.MapToException(FdbError.NotCommitted), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.NotCommitted), "NotCommitted");
+			Assert.That(Fdb.MapToException(FdbError.CommitUnknownResult), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.CommitUnknownResult), "CommitUnknownResult");
+			Assert.That(Fdb.MapToException(FdbError.TransactionCancelled), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.TransactionCancelled), "TrasactionCancelled"); //REVIEW => OperationCancelledException?
+			Assert.That(Fdb.MapToException(FdbError.TransactionTimedOut), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.TransactionTimedOut), "TransactionTimedOut"); //REVIEW => TimeoutException ?
+			Assert.That(Fdb.MapToException(FdbError.ClientInvalidOperation), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.ClientInvalidOperation), "ClientInvalidOperation"); //REVIEW => InvalidOperationException?
+			Assert.That(Fdb.MapToException(FdbError.LargeAllocFailed), Is.InstanceOf<OutOfMemoryException>(), "LargeAllocFailed");
 		}
 
 	}
