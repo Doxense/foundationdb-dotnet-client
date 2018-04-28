@@ -461,26 +461,27 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Batch_Aggregate()
 		{
-			const int N = 50 * 1000;
+			//note: this test is expected to last more than 5 seconds to trigger a past_version!
+
+			const int N = 100_000;
 
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				Log("Bulk inserting {0:N0} items...", N);
-				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
-
 				Log("Preparing...");
+				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
 
 				var rnd = new Random(2403);
 				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
 
+				Log("Bulk inserting {0:N0} items...", N);
 				await Fdb.Bulk.WriteAsync(
 					db,
 					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
-				Log("Reading...");
+				Log("Aggregating...");
 
 				int chunks = 0;
 				var sw = Stopwatch.StartNew();
@@ -491,7 +492,67 @@ namespace FoundationDB.Client.Tests
 					async (xs, ctx, sum) =>
 					{
 						Interlocked.Increment(ref chunks);
-						Log("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
+						Log($"> Called with batch of {xs.Length:N0} at offset {ctx.Position:N0} of gen {ctx.Generation} with step {ctx.Step} and cooldown {ctx.Cooldown} (genElapsed={ctx.ElapsedGeneration.TotalSeconds:N3} sec, totalElapsed={ctx.ElapsedTotal.TotalSeconds:N3} sec)");
+
+						var results = await ctx.Transaction.GetValuesAsync(xs);
+
+						for (int i = 0; i < results.Length; i++)
+						{
+							sum += results[i].ToInt32();
+						}
+						return sum;
+					},
+					this.Cancellation
+				);
+				sw.Stop();
+
+				Log($"Done in {sw.Elapsed.TotalSeconds:N3} sec and {chunks} chunks ({N / sw.Elapsed.TotalSeconds:N0} records/sec)");
+
+				long actual = source.Sum(x => (long)x.Value);
+				Log("> Computed sum of the {0:N0} random values is {1:N0}", N, total);
+				Log("> Actual sum of the {0:N0} random values is {1:N0}", N, actual);
+				Assert.That(total, Is.EqualTo(actual));
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Batch_Aggregate_Slow_Reader()
+		{
+			//note: this test is expected to last more than 5 seconds to trigger a past_version!
+
+			const int N = 50 * 1000;
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+
+				Log("Preparing...");
+				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
+
+				var rnd = new Random(2403);
+				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
+
+				Log("Bulk inserting {0:N0} items...", N);
+				await Fdb.Bulk.WriteAsync(
+					db,
+					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
+					this.Cancellation
+				);
+
+				Log("Simulating slow reader...");
+
+				int chunks = 0;
+				var sw = Stopwatch.StartNew();
+				long total = await Fdb.Bulk.AggregateAsync(
+					db,
+					source.Select(x => location.Keys.Encode(x.Key)),
+					() => 0L,
+					async (xs, ctx, sum) =>
+					{
+						Interlocked.Increment(ref chunks);
+						Log($"> Called with batch of {xs.Length:N0} at offset {ctx.Position:N0} of gen {ctx.Generation} with step {ctx.Step} and cooldown {ctx.Cooldown} (genElapsed={ctx.ElapsedGeneration.TotalSeconds:N1}, totalElapsed={ctx.ElapsedTotal.TotalSeconds:N1}s)");
 
 						var throttle = Task.Delay(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
 						var results = await ctx.Transaction.GetValuesAsync(xs);
@@ -516,11 +577,75 @@ namespace FoundationDB.Client.Tests
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);
+
+				Assume.That(sw.Elapsed.TotalSeconds, Is.GreaterThan(5), "This test has to run more than 5 seconds to trigger past_version internally!");
 			}
 		}
 
 		[Test]
 		public async Task Test_Can_Batch_Aggregate_With_Transformed_Result()
+		{
+			const int N = 100_000;
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+
+				Log("Preparing...");
+				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
+
+				var rnd = new Random(2403);
+				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
+
+				Log("Bulk inserting {0:N0} items...", N);
+				await Fdb.Bulk.WriteAsync(
+					db,
+					source.Select((x) => (location.Keys.Encode(x.Key), Slice.FromInt32(x.Value))),
+					this.Cancellation
+				);
+
+				Log("Aggregating...");
+
+				int chunks = 0;
+				var sw = Stopwatch.StartNew();
+				double average = await Fdb.Bulk.AggregateAsync(
+					db,
+					source.Select(x => location.Keys.Encode(x.Key)),
+					() => (Total: 0L, Count: 0L),
+					async (xs, ctx, state) =>
+					{
+						Interlocked.Increment(ref chunks);
+						Log($"> Called with batch of {xs.Length:N0} at offset {ctx.Position:N0} of gen {ctx.Generation} with step {ctx.Step} and cooldown {ctx.Cooldown} (genElapsed={ctx.ElapsedGeneration.TotalSeconds:N3} sec, totalElapsed={ctx.ElapsedTotal.TotalSeconds:N3} sec)");
+
+						var results = await ctx.Transaction.GetValuesAsync(xs);
+
+						long sum = 0L;
+						foreach (Slice x in results)
+						{
+							sum += x.ToInt32();
+						}
+						state.Total += sum;
+						state.Count += results.Length;
+						return state;
+					},
+					(state) => (double) state.Total / state.Count,
+					this.Cancellation
+				);
+				sw.Stop();
+
+				Log($"Done in {sw.Elapsed.TotalSeconds:N3} sec and {chunks} chunks ({N / sw.Elapsed.TotalSeconds:N0} records/sec)");
+
+				double actual = (double)source.Sum(x => (long)x.Value) / source.Count;
+				Log("> Computed average of the {0:N0} random values is {1:N3}", N, average);
+				Log("> Actual average of the {0:N0} random values is {1:N3}", N, actual);
+				Assert.That(average, Is.EqualTo(actual).Within(double.Epsilon));
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Batch_Aggregate_With_Transformed_Result_Slow_Reader()
 		{
 			const int N = 50 * 1000;
 
@@ -541,7 +666,7 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 
-				Log("Reading...");
+				Log("Simulating slow reader...");
 
 				int chunks = 0;
 				var sw = Stopwatch.StartNew();
@@ -581,6 +706,8 @@ namespace FoundationDB.Client.Tests
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);
+
+				Assume.That(sw.Elapsed.TotalSeconds, Is.GreaterThan(5), "This test has to run more than 5 seconds to trigger past_version internally!");
 			}
 		}
 
