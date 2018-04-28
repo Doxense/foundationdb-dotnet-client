@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,18 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Tests.Sandbox
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
-	using System.Net;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Linq;
+	using FoundationDB.Client;
 
 	class Program
 	{
@@ -180,7 +179,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, FdbSubspace.Create(FdbTuple.Create(SUBSPACE)), false, ct))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.FromKey(TuPack.EncodeKey(SUBSPACE)), false, ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -266,8 +265,8 @@ namespace FoundationDB.Tests.Sandbox
 				// Writes some data in to the database
 				using (var tr = db.BeginTransaction(ct))
 				{
-					tr.Set(FdbTuple.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
-					tr.Set(FdbTuple.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
+					tr.Set(TuPack.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
+					tr.Set(TuPack.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
 				}
 
 			}
@@ -301,7 +300,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
 				var data = new byte[512];
 				new Random(1234).NextBytes(data);
-				trans.Set(location.Keys.Encode("TopSecret"), Slice.Create(data));
+				trans.Set(location.Keys.Encode("TopSecret"), data.AsSlice());
 
 				Console.WriteLine("Committing transaction...");
 				await trans.CommitAsync();
@@ -335,7 +334,7 @@ namespace FoundationDB.Tests.Sandbox
 						tmp[1] = (byte)(i >> 8);
 						// (Batch, 1) = [......]
 						// (Batch, 2) = [......]
-						trans.Set(subspace.Keys.Encode(k * N + i), Slice.Create(tmp));
+						trans.Set(subspace.Keys.Encode(k * N + i), tmp.AsSlice());
 					}
 					await trans.CommitAsync();
 				}
@@ -395,7 +394,7 @@ namespace FoundationDB.Tests.Sandbox
 							tmp[1] = (byte)(i >> 8);
 
 							// ("Batch", batch_index, i) = [..random..]
-							trans.Set(subspace.Keys.Encode(i), Slice.Create(tmp));
+							trans.Set(subspace.Keys.Encode(i), tmp.AsSlice());
 						}
 						x.Stop();
 						Console.WriteLine("> [" + offset + "] packaged " + n + " keys (" + trans.Size.ToString("N0", CultureInfo.InvariantCulture) + " bytes) in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
@@ -517,7 +516,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// clear a lot of small keys, in a single transaction
 
-			var location = db.Partition.ByKey(Slice.FromAscii("hello"));
+			var location = db.Partition.ByKey(Slice.FromStringAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
@@ -547,7 +546,7 @@ namespace FoundationDB.Tests.Sandbox
 				list[i] = (byte)i;
 				using (var trans = db.BeginTransaction(ct))
 				{
-					trans.Set(key, Slice.Create(list));
+					trans.Set(key, list.AsSlice());
 					await trans.CommitAsync();
 				}
 				if (i % 100 == 0) Console.Write("\r> " + i + " / " + N);
@@ -576,7 +575,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					for (int k = i; k < i + 1000 && k < N; k++)
 					{
-						trans.Set(keys[k], Slice.Create(segment));
+						trans.Set(keys[k], segment.AsSlice());
 					}
 					await trans.CommitAsync();
 					Console.Write("\r" + i + " / " + N);
@@ -597,7 +596,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					var list = data[i].Value.GetBytes();
 					list[(list.Length >> 1) + 1] = (byte) rnd.Next(256);
-					trans.Set(data[i].Key, Slice.Create(list));
+					trans.Set(data[i].Key, list.AsSlice());
 				}
 
 				Console.WriteLine("COMMIT");
@@ -646,7 +645,7 @@ namespace FoundationDB.Tests.Sandbox
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
 							{
-								tr.Set(subspace.Keys.Encode(i), Slice.Create(new byte[256]));
+								tr.Set(subspace.Keys.Encode(i), Slice.Create(256));
 								z++;
 							}
 
@@ -702,7 +701,7 @@ namespace FoundationDB.Tests.Sandbox
 		private static async Task BenchMergeSortAsync(IFdbDatabase db, int N, int K, int B, CancellationToken ct)
 		{
 			// create multiple lists
-			var location = db.Partition.ByKey("MergeSort");
+			var location = db.GlobalSpace.Partition.ByKey("MergeSort");
 			await db.ClearRangeAsync(location, ct);
 
 			var sources = Enumerable.Range(0, K).Select(i => 'A' + i).ToArray();
@@ -730,7 +729,7 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				var mergesort = tr
 					.MergeSort(
-						sources.Select(source => FdbKeySelectorPair.StartsWith(location.Keys.Encode(source))),
+						sources.Select(source => KeySelectorPair.StartsWith(location.Keys.Encode(source))),
 						(kvp) => location.Keys.DecodeLast<int>(kvp.Key)
 					)
 					.Take(B)

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,17 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
+	using System;
+	using System.Diagnostics;
+	using System.Text;
+	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	[Obsolete]
@@ -59,16 +56,16 @@ namespace FoundationDB.Layers.Collections.Tests
 					await PrintRankedSet(vector, tr);
 				}, this.Cancellation);
 
-				Console.WriteLine();
+				Log();
 				var rnd = new Random();
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < 100; i++)
 				{
 					Console.Write("\rInserting " + i);
-					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, FdbTuple.EncodeKey(rnd.Next())), this.Cancellation);
+					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, TuPack.EncodeKey(rnd.Next())), this.Cancellation);
 				}
 				sw.Stop();
-				Console.WriteLine("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
+				Log("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
 
 				await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation);
 			}
@@ -85,7 +82,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Keys.Unpack(kvp.Key), kvp.Value.ToInt64());
 				});
 			}
-			Console.WriteLine(sb.ToString());
+			Log(sb.ToString());
 		}
 
 	}

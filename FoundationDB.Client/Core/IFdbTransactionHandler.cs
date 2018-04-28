@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client.Core
 	using System.Threading.Tasks;
 
 	/// <summary>Basic API for FoundationDB transactions</summary>
+	[PublicAPI]
 	public interface IFdbTransactionHandler : IDisposable
 	{
 		/// <summary>Returns the estimated payload size of the transaction (including keys and values)</summary>
@@ -51,7 +52,8 @@ namespace FoundationDB.Client.Core
 		void SetOption(FdbTransactionOption option, Slice data);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
-		Task<long> GetReadVersionAsync(CancellationToken cancellationToken);
+		/// <param name="ct">Token used to cancel the operation from the outside, if different than the cancellation token of the transaction itself</param>
+		Task<long> GetReadVersionAsync(CancellationToken ct);
 
 		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
 		/// <remarks>CommitAsync() must have been called on this transaction and the resulting task must have completed successfully before this function is callged, or the behavior is undefined.
@@ -59,6 +61,9 @@ namespace FoundationDB.Client.Core
 		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
 		/// </remarks>
 		long GetCommittedVersion();
+
+		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
+		Task<VersionStamp> GetVersionStampAsync(CancellationToken ct);
 
 		/// <summary>Sets the snapshot read version used by a transaction. This is not needed in simple cases.</summary>
 		/// <param name="version">Read version to use in this transaction</param>
@@ -71,30 +76,32 @@ namespace FoundationDB.Client.Core
 		/// <summary>Reads a get from the database</summary>
 		/// <param name="key">Key to read</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="cancellationToken"></param>
+		/// <param name="ct"></param>
 		/// <returns></returns>
-		Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken);
+		Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
-		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys, bool snapshot, CancellationToken cancellationToken);
+		[ItemNotNull]
+		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys, bool snapshot, CancellationToken ct);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken);
+		Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken ct);
 
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken);
+		[ItemNotNull]
+		Task<Slice[]> GetKeysAsync([NotNull] KeySelector[] selectors, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the begin key selector and lexicographically less than the key resolved by the end key selector.</summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
@@ -102,15 +109,16 @@ namespace FoundationDB.Client.Core
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, [NotNull] FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken);
+		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, [NotNull] FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct);
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
-		Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken cancellationToken);
+		[ItemNotNull]
+		Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken ct);
 
 		/// <summary>Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
 		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
@@ -144,28 +152,28 @@ namespace FoundationDB.Client.Core
 
 		/// <summary>Watch a key for any change in the database.</summary>
 		/// <param name="key">Key to watch</param>
-		/// <param name="cancellationToken">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
+		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
 		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property.</remarks>
-		FdbWatch Watch(Slice key, CancellationToken cancellationToken);
+		FdbWatch Watch(Slice key, CancellationToken ct);
 
 		/// <summary>Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 
 		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
 		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
 		/// </summary>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
-		Task CommitAsync(CancellationToken cancellationToken);
+		Task CommitAsync(CancellationToken ct);
 
 		/// <summary>Implements the recommended retry and backoff behavior for a transaction.
 		/// This function knows which of the error codes generated by other query functions represent temporary error conditions and which represent application errors that should be handled by the application. 
 		/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
 		/// </summary>
 		/// <param name="code">FdbError code thrown by the previous command</param>
-		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
-		Task OnErrorAsync(FdbError code, CancellationToken cancellationToken);
+		Task OnErrorAsync(FdbError code, CancellationToken ct);
 
 		/// <summary>Reset transaction to its initial state.</summary>
 		/// <remarks>This is similar to disposing the transaction and recreating a new one.  The only state that persists through a transaction reset is that which is related to the backoff logic used by OnErrorAsync()</remarks>

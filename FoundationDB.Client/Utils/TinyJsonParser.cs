@@ -1,12 +1,12 @@
-﻿using JetBrains.Annotations;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-
+﻿
 namespace FoundationDB.Client.Utils
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Globalization;
+	using System.Text;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Tiny JSON parser</summary>
 	internal sealed class TinyJsonParser
@@ -240,6 +240,7 @@ namespace FoundationDB.Client.Utils
 							case 't': sb.Append('\t'); break;
 							case 'f': sb.Append('\f'); break;
 							case 'b': sb.Append('\b'); break;
+							case '"': sb.Append('"'); break;
 							case 'u':
 							{
 								if (cursor + 4 >= end) throw SyntaxError("Truncated unicode escape sequence in string literal");
@@ -343,7 +344,7 @@ namespace FoundationDB.Client.Utils
 			if (token == Token.Eof) return null;
 
 			// ensure we got an object
-			if (token != Token.MapBegin) throw new InvalidOperationException(String.Format("JSON object expected, but got a {0}", token));
+			if (token != Token.MapBegin) throw new InvalidOperationException($"JSON object expected, but got a {token}");
 			var map = (Dictionary<string, object>)parser.m_current;
 
 			// ensure that there is nothing after the object
@@ -370,8 +371,7 @@ namespace FoundationDB.Client.Utils
 		[NotNull]
 		internal static Dictionary<string, object> GetMapField(Dictionary<string,object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (Dictionary<string, object>)item : s_missingMap;
+			return map != null && map.TryGetValue(field, out object item) ? (Dictionary<string, object>)item : s_missingMap;
 		}
 
 		[NotNull]
@@ -399,10 +399,10 @@ namespace FoundationDB.Client.Utils
 			return map != null && map.TryGetValue(field, out item) ? (bool)item : default(bool?);
 		}
 
-		internal static KeyValuePair<string, string> GetStringPair(Dictionary<string, object> map, string key, string value)
+		internal static (string Key, string Value) GetStringPair(Dictionary<string, object> map, string key, string value)
 		{
 			object item;
-			return new KeyValuePair<string, string>(
+			return (
 				map != null && map.TryGetValue(key, out item) ? (string)item : null,
 				map != null && map.TryGetValue(value, out item) ? (string)item : null
 			);

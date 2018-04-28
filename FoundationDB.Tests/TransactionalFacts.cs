@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -82,13 +82,13 @@ namespace FoundationDB.Client.Tests
 				// ReadAsync should return a failed Task, and not bubble up the exception.
 				var task = db.ReadAsync((tr) =>
 				{
-					Assert.That(called, Is.EqualTo(0), "ReadAsync should not retry on regular exceptions");
+					Assert.That(called, Is.Zero, "ReadAsync should not retry on regular exceptions");
 					++called;
 					throw new InvalidOperationException("Boom");
 				}, this.Cancellation);
 				Assert.That(task, Is.Not.Null);
 				// the exception should be unwrapped (ie: we should not see an AggregateException, but the actual exception)
-				Assert.Throws<InvalidOperationException>(async () => await task, "ReadAsync should rethrow any regular exceptions");
+				Assert.That(async () => await task, Throws.InstanceOf<InvalidOperationException>(), "ReadAsync should rethrow any regular exceptions");
 			}
 
 		}
@@ -141,6 +141,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test][Category("LongRunning")]
+		[Ignore("This tests a bug in an old version (v2.0.7) and takes a long time to run!")]
 		public async Task Test_Transactionals_Retries_Do_Not_Leak_When_Reading_Too_Much()
 		{
 			// we have a transaction that tries to read too much data, and will always take more than 5 seconds to execute
@@ -159,19 +160,19 @@ namespace FoundationDB.Client.Tests
 				// insert a good amount of test data
 
 				var sw = Stopwatch.StartNew();
-				Console.WriteLine("Inserting test data (this may take a few minutes)...");
+				Log("Inserting test data (this may take a few minutes)...");
 				var rnd = new Random();
-				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Keys.Encode(i), Slice.Random(rnd, 4096))), this.Cancellation);
+				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => (location.Keys.Encode(i), Slice.Random(rnd, 4096))), this.Cancellation);
 				sw.Stop();
-				Console.WriteLine("> done in " + sw.Elapsed);
+				Log("> done in " + sw.Elapsed);
 
-				using (var timer = new System.Threading.Timer((_) => { Console.WriteLine("WorkingSet: {0:N0}, Managed: {1:N0}", Environment.WorkingSet, GC.GetTotalMemory(false)); }, null, 1000, 1000))
+				using (var timer = new System.Threading.Timer((_) => { Log("WorkingSet: {0:N0}, Managed: {1:N0}", Environment.WorkingSet, GC.GetTotalMemory(false)); }, null, 1000, 1000))
 				{
 					try
 					{
 						var result = await db.ReadAsync((tr) =>
 						{
-							Console.WriteLine("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
+							Log("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
 							return tr.GetRange(location.Keys.ToRange()).ToListAsync();
 						}, this.Cancellation);
 
@@ -187,18 +188,18 @@ namespace FoundationDB.Client.Tests
 					}
 				}
 				// to help see the effect in a profiler, dispose the transaction first, wait 5 sec then do a full GC, and then wait a bit before exiting the process
-				Console.WriteLine("Transaction destroyed!");
+				Log("Transaction destroyed!");
 				Thread.Sleep(5000);
 
-				Console.WriteLine("Cleaning managed memory");
+				Log("Cleaning managed memory");
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
 
-				Console.WriteLine("Waiting...");
+				Log("Waiting...");
 				Thread.Sleep(5000);
 
-				Console.WriteLine("byte");
+				Log("byte");
 			}
 		}
 
@@ -217,7 +218,7 @@ namespace FoundationDB.Client.Tests
 					var t = db.ReadAsync((tr) =>
 					{
 						called = true;
-						Console.WriteLine("FAILED");
+						Log("FAILED");
 						throw new InvalidOperationException("Failed");
 					}, go.Token);
 
@@ -252,7 +253,7 @@ namespace FoundationDB.Client.Tests
 					return Task.FromResult(123);
 				}, this.Cancellation);
 
-				Assert.Throws<InvalidOperationException>(async () => await t, "Forcing writes on a read-only transaction should fail");
+				Assert.That(async () => await t, Throws.InstanceOf<InvalidOperationException>(), "Forcing writes on a read-only transaction should fail");
 			}
 
 		}

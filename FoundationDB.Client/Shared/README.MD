@@ -1,0 +1,1 @@
+This folder contains all the shared framework libraries and tools.

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
-	using System.Reflection;
-	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Expression that represent a projection from one type into another</summary>
 	/// <typeparam name="T">Type of elements in the inner sequence</typeparam>
@@ -81,7 +80,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<R>>> CompileSequence()
 		{
 			var lambda = this.Transform.Compile();
 
@@ -91,13 +90,13 @@ namespace FoundationDB.Linq.Expressions
 
 			// (tr) => sourceEnumerable(tr).Select(lambda);
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>, Func<T, R>, IFdbAsyncEnumerable<R>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IAsyncEnumerable<T>, Func<T, R>, IAsyncEnumerable<R>>>(
 				(sequence, selector) => sequence.Select(selector),
 				FdbExpressionHelpers.RewriteCall(enumerable, prmTrans),
 				Expression.Constant(lambda)
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<R>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<R>>>(body, prmTrans);
 		}
 
 	}

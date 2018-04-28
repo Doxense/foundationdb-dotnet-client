@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	public static class WordAlignHybridEncoder
 	{
@@ -111,7 +108,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		#endregion
 
 		/// <summary>Helper class to read 31-bit words from an uncompressed source</summary>
-		private unsafe sealed class UncompressedWordReader
+		private sealed unsafe class UncompressedWordReader
 		{
 			/// <summary>Value returned by <see cref="Read"/> or <see cref="Peek"/> when the input have less than 31 bits remaining</summary>
 			public const uint NotEnough = 0xFFFFFFFF;
@@ -245,10 +242,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 
 			/// <summary>Returns the number of bits left in the register (0 if emtpy)</summary>
-			public int Bits { get { return m_bits; } }
+			public int Bits => m_bits;
 
 			/// <summary>Returns the last word, padded with 0s</summary>
-			/// <exception cref="InvalidOperation">If there is at least one full word remaning</exception>
+			/// <exception cref="InvalidOperationException">If there is at least one full word remaning</exception>
 			public uint ReadLast()
 			{
 				if (m_bits >= 31) throw new InvalidOperationException("There are still words left to read in the source");
@@ -383,7 +380,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap Not([NotNull] this CompressedBitmap bitmap, int size)
 		{
-			if (bitmap == null) throw new ArgumentNullException("bitmap");
+			if (bitmap == null) throw new ArgumentNullException(nameof(bitmap));
 
 			// there is a high change that the final bitmap will have the same size, with an optional extra filler word at the end
 			var writer = new CompressedBitmapWriter(bitmap.Count + 1);
@@ -421,8 +418,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap And([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
 			if (left.Count == 0 || right.Count == 0) return CompressedBitmap.Empty;
 			return CompressedBinaryExpression(left, right, LogicalOperation.And);
@@ -435,8 +432,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap Or([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
 			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
 			if (right.Count == 0) return left;
@@ -450,8 +447,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap Xor([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
 			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
 			if (right.Count == 0) return left;
@@ -465,8 +462,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap AndNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
 			if (left.Count == 0 || right.Count == 0) return CompressedBitmap.Empty;
 			return CompressedBinaryExpression(left, right, LogicalOperation.AndNot);
@@ -479,8 +476,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap OrNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
 			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
 			if (right.Count == 0) return left;
@@ -494,8 +491,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		public static CompressedBitmap XorNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("right");
+			if (left == null) throw new ArgumentNullException(nameof(left));
+			if (right == null) throw new ArgumentNullException(nameof(right));
 
 			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
 			if (right.Count == 0) return left;

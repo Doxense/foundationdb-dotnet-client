@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq;
 	using System.Net;
+	using JetBrains.Annotations;
 
 	/// <summary>Class that exposes the content of a FoundationDB .cluster file</summary>
 	public sealed class FdbClusterFile
 	{
 		/// <summary>The raw value of the file</summary>
-		internal string RawValue { [NotNull] get; private set; }
+		[NotNull]
+		internal string RawValue { get; private set; }
 
 		/// <summary>Cluster Identifier</summary>
-		public string Id { [NotNull] get; private set; }
+		[NotNull]
+		public string Id { get; private set; }
 
 		/// <summary>Logical description of the database</summary>
-		public string Description { [NotNull] get; private set; }
+		[NotNull]
+		public string Description { get; private set; }
 
 		/// <summary>List of coordination servers</summary>
 		public FdbEndPoint[] Coordinators { get; private set; }
@@ -59,9 +62,9 @@ namespace FoundationDB.Client
 		/// <param name="coordinators"></param>
 		public FdbClusterFile(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
 		{
-			if (description == null) throw new ArgumentNullException("description");
-			if (identifier == null) throw new ArgumentNullException("identifier");
-			if (coordinators == null) throw new ArgumentNullException("coordinators");
+			if (description == null) throw new ArgumentNullException(nameof(description));
+			if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+			if (coordinators == null) throw new ArgumentNullException(nameof(coordinators));
 
 			this.Description = description;
 			this.Id = identifier;
@@ -72,7 +75,7 @@ namespace FoundationDB.Client
 				"{0}:{1}@{2}",
 				this.Description,
 				this.Id,
-				String.Join(",", this.Coordinators.Select(kvp => String.Format(CultureInfo.InvariantCulture, "{0}:{1}", kvp.Address, kvp.Port)))
+				string.Join(",", this.Coordinators.Select(kvp => string.Format(CultureInfo.InvariantCulture, "{0}:{1}", kvp.Address, kvp.Port)))
 			);
 		}
 
@@ -142,8 +145,7 @@ namespace FoundationDB.Client
 		/// <summary>Check if this cluster file is equal to another object</summary>
 		public override bool Equals(object obj)
 		{
-			var cf = obj as FdbClusterFile;
-			return cf != null && string.Equals(this.RawValue, cf.RawValue, StringComparison.Ordinal);
+			return obj is FdbClusterFile cf && string.Equals(this.RawValue, cf.RawValue, StringComparison.Ordinal);
 		}
 
 	}

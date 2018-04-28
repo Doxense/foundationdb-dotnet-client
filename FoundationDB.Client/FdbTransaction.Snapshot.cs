@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public partial class FdbTransaction
@@ -53,46 +53,28 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Wrapper on a transaction, that will use Snmapshot mode on all read operations</summary>
-		private sealed class Snapshotted : IFdbReadOnlyTransaction, IDisposable
+		private sealed class Snapshotted : IFdbReadOnlyTransaction
 		{
 			private readonly FdbTransaction m_parent;
 
-			public Snapshotted(FdbTransaction parent)
+			public Snapshotted([NotNull] FdbTransaction parent)
 			{
-				if (parent == null) throw new ArgumentNullException("parent");
+				if (parent == null) throw new ArgumentNullException(nameof(parent));
 				m_parent = parent;
 			}
 
-			public int Id
-			{
-				get { return m_parent.Id; }
-			}
+			public int Id => m_parent.Id;
 
-			public FdbOperationContext Context
-			{
-				get { return m_parent.Context; }
-			}
+			public FdbOperationContext Context => m_parent.Context;
 
-			public CancellationToken Cancellation
-			{
-				get { return m_parent.Cancellation; }
-			}
+			public CancellationToken Cancellation => m_parent.Cancellation;
 
-			public bool IsSnapshot
-			{
-				get { return true; }
-			}
+			public bool IsSnapshot => true;
 
-			public IFdbReadOnlyTransaction Snapshot
-			{
-				get { return this; }
-			}
+			public IFdbReadOnlyTransaction Snapshot => this;
 
-			public FdbIsolationLevel IsolationLevel
-			{
-				//TODO: not all transaction handlers may support Snapshot isolation level??
-				get { return FdbIsolationLevel.Snapshot; }
-			}
+			public FdbIsolationLevel IsolationLevel => FdbIsolationLevel.Snapshot;
+			//TODO: not all transaction handlers may support Snapshot isolation level??
 
 			public void EnsureCanRead()
 			{
@@ -116,45 +98,45 @@ namespace FoundationDB.Client
 				m_parent.m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
-				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-				return m_parent.m_handler.GetAsync(key, snapshot: true, cancellationToken: m_parent.m_cancellation);
+				return m_parent.m_handler.GetAsync(key, snapshot: true, ct: CancellationToken.None);
 			}
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
-				if (keys == null) throw new ArgumentNullException("keys");
+				if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 				EnsureCanRead();
 
 				m_parent.m_database.EnsureKeysAreValid(keys);
 
 #if DEBUG
-				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length));
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
-				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, cancellationToken: m_parent.m_cancellation);
+				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, ct: CancellationToken.None);
 			}
 
-			public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+			public async Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				EnsureCanRead();
 
 				m_parent.m_database.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
-				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, cancellationToken: m_parent.m_cancellation).ConfigureAwait(false);
+				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: CancellationToken.None).ConfigureAwait(false);
 
 				// don't forget to truncate keys that would fall outside of the database's globalspace !
 				return m_parent.m_database.BoundCheck(key);
 
 			}
 
-			public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+			public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
 				EnsureCanRead();
 
@@ -164,13 +146,13 @@ namespace FoundationDB.Client
 				}
 
 #if DEBUG
-				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", String.Format("Getting batch of {0} keys ...", selectors.Length));
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", $"Getting batch of {selectors.Length} keys ...");
 #endif
 
-				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, cancellationToken: m_parent.m_cancellation);
+				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, ct: CancellationToken.None);
 			}
 
-			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration)
+			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration)
 			{
 				EnsureCanRead();
 
@@ -183,10 +165,10 @@ namespace FoundationDB.Client
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
 				if (iteration == 0) iteration = 1;
 
-				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, cancellationToken: m_parent.m_cancellation);
+				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, ct: CancellationToken.None);
 			}
 
-			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
+			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options)
 			{
 				EnsureCanRead();
 
@@ -196,7 +178,7 @@ namespace FoundationDB.Client
 			public Task<string[]> GetAddressesForKeyAsync(Slice key)
 			{
 				EnsureCanRead();
-				return m_parent.m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_parent.m_cancellation);
+				return m_parent.m_handler.GetAddressesForKeyAsync(key, CancellationToken.None);
 			}
 
 			void IFdbReadOnlyTransaction.Cancel()
@@ -231,20 +213,20 @@ namespace FoundationDB.Client
 
 			public int Timeout
 			{
-				get { return m_parent.Timeout; }
-				set { throw new NotSupportedException("The timeout value cannot be changed via the Snapshot view of a transaction."); }
+				get => m_parent.Timeout;
+				set => throw new NotSupportedException("The timeout value cannot be changed via the Snapshot view of a transaction.");
 			}
 
 			public int RetryLimit
 			{
-				get { return m_parent.RetryLimit; }
-				set { throw new NotSupportedException("The retry limit value cannot be changed via the Snapshot view of a transaction."); }
+				get => m_parent.RetryLimit;
+				set => throw new NotSupportedException("The retry limit value cannot be changed via the Snapshot view of a transaction.");
 			}
 
 			public int MaxRetryDelay
 			{
-				get { return m_parent.MaxRetryDelay; }
-				set { throw new NotSupportedException("The max retry delay value cannot be changed via the Snapshot view of a transaction."); }
+				get => m_parent.MaxRetryDelay;
+				set => throw new NotSupportedException("The max retry delay value cannot be changed via the Snapshot view of a transaction.");
 			}
 
 			void IDisposable.Dispose()

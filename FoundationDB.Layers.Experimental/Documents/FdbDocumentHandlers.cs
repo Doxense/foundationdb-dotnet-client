@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Documents
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 
 	/// <summary>Interface that defines a class that knows of to chop instances of <typeparamref name="TDocument"/> into slices</summary>
 	/// <typeparam name="TDocument">Type of documents</typeparam>
 	public interface IDocumentSplitter<in TDocument>
 	{
-		KeyValuePair<IFdbTuple, Slice>[] Split(TDocument document);
+		KeyValuePair<ITuple, Slice>[] Split(TDocument document);
 	}
 
 	/// <summary>Interface that defines a class that knows of to reconstruct instances of <typeparamref name="TDocument"/> from slices</summary>
@@ -50,7 +45,7 @@ namespace FoundationDB.Layers.Documents
 	public interface IDocumentBuilder<out TDocument>
 	{
 
-		TDocument Build(KeyValuePair<IFdbTuple, Slice>[] parts);
+		TDocument Build(KeyValuePair<ITuple, Slice>[] parts);
 	}
 
 	/// <summary>Interface that defines a class that knows of to store and retrieve serialized versions of <typeparamref name="TDocument"/> instances into a document collection</summary>
@@ -83,7 +78,7 @@ namespace FoundationDB.Layers.Documents
 		/// <summary>Docuemnt handler that handle dictionarys of string to objects</summary>
 		/// <typeparam name="TDictionary"></typeparam>
 		/// <typeparam name="TId"></typeparam>
-		public sealed class DictionaryHandler<TDictionary, TId> : IDocumentHandler<TDictionary, TId, List<KeyValuePair<string, IFdbTuple>>>
+		public sealed class DictionaryHandler<TDictionary, TId> : IDocumentHandler<TDictionary, TId, List<KeyValuePair<string, ITuple>>>
 			where TDictionary : IDictionary<string, object>, new()
 		{
 
@@ -95,33 +90,33 @@ namespace FoundationDB.Layers.Documents
 
 			private readonly IEqualityComparer<string> m_keyComparer;
 
-			public string IdName { get; private set; }
+			public string IdName { get; }
 
-			public KeyValuePair<IFdbTuple, Slice>[] Split(List<KeyValuePair<string, IFdbTuple>> document)
+			public KeyValuePair<ITuple, Slice>[] Split(List<KeyValuePair<string, ITuple>> document)
 			{
-				if (document == null) throw new ArgumentNullException("document");
+				if (document == null) throw new ArgumentNullException(nameof(document));
 
 				return document
 					// don't include the id
 					.Where(kvp => !m_keyComparer.Equals(kvp.Key, this.IdName))
 					// convert into tuples
-					.Select(kvp => new KeyValuePair<IFdbTuple, Slice>(
-						FdbTuple.Create(kvp.Key),
-						FdbTuple.Create(kvp.Value).ToSlice()
+					.Select(kvp => new KeyValuePair<ITuple, Slice>(
+						STuple.Create(kvp.Key),
+						TuPack.Pack(kvp.Value)
 					))
 					.ToArray();
 			}
 
-			public List<KeyValuePair<string, IFdbTuple>> Build(KeyValuePair<IFdbTuple, Slice>[] parts)
+			public List<KeyValuePair<string, ITuple>> Build(KeyValuePair<ITuple, Slice>[] parts)
 			{
-				if (parts == null) throw new ArgumentNullException("parts");
+				if (parts == null) throw new ArgumentNullException(nameof(parts));
 
-				var list = new List<KeyValuePair<string, IFdbTuple>>(parts.Length);
+				var list = new List<KeyValuePair<string, ITuple>>(parts.Length);
 				foreach(var part in parts)
 				{
-					list.Add(new KeyValuePair<string, IFdbTuple>(
+					list.Add(new KeyValuePair<string, ITuple>(
 						part.Key.Last<string>(),
-						FdbTuple.Unpack(part.Value)
+						TuPack.Unpack(part.Value)
 					));
 				}
 				return list;
@@ -132,28 +127,28 @@ namespace FoundationDB.Layers.Documents
 				return (TId)document[this.IdName];
 			}
 
-			public void SetId(Dictionary<string, IFdbTuple> document, TId id)
+			public void SetId(Dictionary<string, ITuple> document, TId id)
 			{
-				document[this.IdName] = FdbTuple.Create(id);
+				document[this.IdName] = STuple.Create(id);
 			}
 
-			public List<KeyValuePair<string, IFdbTuple>> Pack(TDictionary document)
+			public List<KeyValuePair<string, ITuple>> Pack(TDictionary document)
 			{
-				var dic = new List<KeyValuePair<string, IFdbTuple>>(document.Count);
+				var dic = new List<KeyValuePair<string, ITuple>>(document.Count);
 
 				// convert everything, except the Id
 				foreach(var kvp in document)
 				{
 					if (!m_keyComparer.Equals(kvp.Key, this.IdName))
 					{
-						dic.Add(new KeyValuePair<string, IFdbTuple>(kvp.Key, FdbTuple.Create(kvp.Key)));
+						dic.Add(new KeyValuePair<string, ITuple>(kvp.Key, STuple.Create(kvp.Key)));
 					}
 				}
 
 				return dic;
 			}
 
-			public TDictionary Unpack(List<KeyValuePair<string, IFdbTuple>> packed, TId id)
+			public TDictionary Unpack(List<KeyValuePair<string, ITuple>> packed, TId id)
 			{
 				var dic = new TDictionary();
 				dic.Add(this.IdName, id);

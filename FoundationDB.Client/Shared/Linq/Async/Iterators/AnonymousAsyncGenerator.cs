@@ -1,0 +1,110 @@
+﻿#region BSD Licence
+/* Copyright (c) 2013-2018, Doxense SAS
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of Doxense nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
+
+namespace Doxense.Linq.Async.Iterators
+{
+	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Threading.Tasks;
+
+	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>
+	/// <typeparam name="TOutput">Type of the items produced by this generator</typeparam>
+	public class AnonymousAsyncGenerator<TOutput> : AsyncIterator<TOutput>
+	{
+		// use a custom lambda that returns Maybe<TOutput> results, asynchronously
+		// => as long as the result has a value, continue iterating
+		// => if the result does not have a value, stop iterating
+		// => if the lambda fails, or the result represents an error, throw the error down the chain and stop iterating
+
+		// ITERABLE
+
+		private readonly Delegate m_generator;
+		// can be either one of:
+		// - Func<long, CancellationToken, Task<Maybe<TOutput>>>
+		// - Func<long, CancellationToken, ValueTask<Maybe<TOutput>>>
+
+		// ITERATOR
+
+		private long m_index;
+
+		public AnonymousAsyncGenerator(Func<long, CancellationToken, Task<Maybe<TOutput>>> generator)
+			: this((Delegate) generator)
+		{ }
+
+		private AnonymousAsyncGenerator(Delegate generator)
+		{
+			Contract.Requires(generator != null);
+			m_generator = generator;
+			m_index = -1;
+		}
+
+		protected override AsyncIterator<TOutput> Clone()
+		{
+			return new AnonymousAsyncGenerator<TOutput>(m_generator);
+		}
+
+		protected override Task<bool> OnFirstAsync()
+		{
+			m_index = 0;
+			return TaskHelpers.True;
+		}
+
+		protected override async Task<bool> OnNextAsync()
+		{
+			m_ct.ThrowIfCancellationRequested();
+			if (m_index < 0) return false;
+
+			long index = m_index;
+			Maybe<TOutput> res;
+			if (m_generator is Func<long, CancellationToken, Task<Maybe<TOutput>>> genT)
+			{
+				res = await genT(index, m_ct);
+			}
+			else if (m_generator is Func<long, CancellationToken, Task<Maybe<TOutput>>> genV)
+			{
+				res = await genV(index, m_ct);
+			}
+			else
+			{
+				throw new InvalidOperationException();
+			}
+
+			if (res.Failed) res.ThrowForNonSuccess();
+			if (res.IsEmpty) return Completed();
+			m_index = checked(index + 1);
+			return Publish(res.Value);
+		}
+
+		protected override void Cleanup()
+		{
+			m_index = -1;
+		}
+	}
+}

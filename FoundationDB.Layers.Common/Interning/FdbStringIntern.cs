@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_STRING_INTERNING
+//#define DEBUG_STRING_INTERNING
 
 namespace FoundationDB.Layers.Interning
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Security.Cryptography;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
-	[DebuggerDisplay("Subspace={Subspace}")]
+	[DebuggerDisplay("Subspace={" + nameof(FdbStringIntern.Subspace) + "}")]
 	[Obsolete("FIXME! This version of the layer has a MAJOR bug!")]
 	public class FdbStringIntern : IDisposable
 	{
@@ -91,15 +90,15 @@ namespace FoundationDB.Layers.Interning
 		private readonly RandomNumberGenerator m_prng = RandomNumberGenerator.Create();
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 
-		public FdbStringIntern(IFdbSubspace subspace)
+		public FdbStringIntern(IKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace.AsDynamic();
 
 		}
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IDynamicKeySubspace Subspace { get; }
 
 		#region Private Helpers...
 
@@ -135,8 +134,7 @@ namespace FoundationDB.Layers.Interning
 				m_uidsInCache.RemoveAt(m_uidsInCache.Count - 1);
 
 				// remove from caches, account for bytes
-				string value;
-				if (!m_uidStringCache.TryGetValue(uidKey, out value) || value == null)
+				if (!m_uidStringCache.TryGetValue(uidKey, out string value) || value == null)
 				{
 					throw new InvalidOperationException("Error in cache evication: string not found");
 				}
@@ -221,7 +219,7 @@ namespace FoundationDB.Layers.Interning
 			}
 
 			//TODO: another way ?
-			throw new InvalidOperationException("Failed to find a free uid for interned string after " + MAX_TRIES + " attempts");
+			throw new InvalidOperationException($"Failed to find a free uid for interned string after {MAX_TRIES} attempts");
 		}
 
 		#endregion
@@ -235,8 +233,8 @@ namespace FoundationDB.Layers.Interning
 		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
 		public Task<Slice> InternAsync(IFdbTransaction trans, string value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (value == null) throw new ArgumentNullException("value");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (value == null) throw new ArgumentNullException(nameof(value));
 
 			if (value.Length == 0) return Task.FromResult(Slice.Empty);
 
@@ -244,9 +242,7 @@ namespace FoundationDB.Layers.Interning
 			Debug.WriteLine("Want to intern: " + value);
 #endif
 
-			Uid uidKey;
-
-			if (m_stringUidCache.TryGetValue(value, out uidKey))
+			if (m_stringUidCache.TryGetValue(value, out Uid uidKey))
 			{
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> found in cache! " + uidKey);
@@ -300,13 +296,12 @@ namespace FoundationDB.Layers.Interning
 		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
 		public Task<string> LookupAsync(IFdbReadOnlyTransaction trans, Slice uid)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", "uid");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", nameof(uid));
 
 			if (uid.IsEmpty) return Task.FromResult(String.Empty);
 
-			string value;
-			if (m_uidStringCache.TryGetValue(new Uid(uid), out value))
+			if (m_uidStringCache.TryGetValue(new Uid(uid), out string value))
 			{
 				return Task.FromResult(value);
 			}

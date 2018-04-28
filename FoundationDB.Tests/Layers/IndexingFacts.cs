@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,16 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tables.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Linq;
-	using NUnit.Framework;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using System;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using FoundationDB.Layers.Indexing;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class IndexingFacts : FdbTest
@@ -112,10 +111,10 @@ namespace FoundationDB.Layers.Tables.Tests
 					Assert.That(greens, Is.EqualTo(new int[] { 2, 4 }));
 
 					var blues = await index.LookupAsync(tr, "blue");
-					Assert.That(blues.Count, Is.EqualTo(0));
+					Assert.That(blues.Count, Is.Zero);
 
 					var yellows = await index.LookupAsync(tr, "yellow");
-					Assert.That(yellows.Count, Is.EqualTo(0));
+					Assert.That(yellows.Count, Is.Zero);
 
 					var indigos = await index.LookupAsync(tr, "indigo");
 					Assert.That(indigos, Is.EqualTo(new int[] { 3 }));
@@ -171,7 +170,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var superHeroes = await indexSuperHero.LookupAsync(tr, value: true);
-					Console.WriteLine("SuperHeroes: " + string.Join(", ", superHeroes));
+					Log("SuperHeroes: " + string.Join(", ", superHeroes));
 					Assert.That(superHeroes, Is.EqualTo(characters.Where(c => c.HasSuperPowers).Select(c => c.Id).ToList()));
 				}
 
@@ -179,11 +178,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var dc = await indexBrand.LookupAsync(tr, value: "DC");
-					Console.WriteLine("DC: " + string.Join(", ", dc));
+					Log("DC: " + string.Join(", ", dc));
 					Assert.That(dc, Is.EqualTo(characters.Where(c => c.Brand == "DC").Select(c => c.Id).ToList()));
 
 					var marvel = await indexBrand.LookupAsync(tr, value: "Marvel");
-					Console.WriteLine("Marvel: " + string.Join(", ", dc));
+					Log("Marvel: " + string.Join(", ", dc));
 					Assert.That(marvel, Is.EqualTo(characters.Where(c => c.Brand == "Marvel").Select(c => c.Id).ToList()));
 				}
 

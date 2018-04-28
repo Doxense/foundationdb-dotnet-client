@@ -1,30 +1,68 @@
-﻿using FoundationDB.Client;
-using FoundationDB.Client.Status;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿#region BSD Licence
+/* Copyright (c) 2013-2018, Doxense SAS
+All rights reserved.
 
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of Doxense nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
+
+// ReSharper disable CompareOfFloatsByEqualityOperator
 namespace FdbTop
 {
+	using System;
+	using System.Diagnostics;
+	using System.Globalization;
+	using System.Linq;
+	using System.Text;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Status;
+
 	public static class Program
 	{
-
-		static string ClusterPath = null;
+		private static string ClusterPath;
 
 		public static void Main(string[] args)
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
 
-			if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+			try
 			{
-				Console.WindowWidth = 160;
-				Console.WindowHeight = 60;
+				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+				{
+					Console.WindowWidth = 160;
+					Console.WindowHeight = 60;
+				}
 			}
+			catch
+			{
+				Console.Error.WriteLine("This tool requires cannot run in a console smaller than 160 characters.");
+				Console.Error.WriteLine("Either increase the screen resolution, or reduce the font size of your console.");
+				Environment.ExitCode = -1;
+				return;
+			}
+
 			string title = Console.Title;
 			try
 			{
@@ -249,7 +287,7 @@ namespace FdbTop
 							updated = false;
 						}
 
-						await Task.Delay(100);
+						await Task.Delay(100, cancel);
 					}
 
 				}
@@ -265,7 +303,12 @@ namespace FdbTop
 		private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
 		private const int HistoryCapacity = 50;
-		private static RingBuffer<HistoryMetric> History = new RingBuffer<HistoryMetric>(HistoryCapacity);
+		private static readonly RingBuffer<HistoryMetric> History = new RingBuffer<HistoryMetric>(HistoryCapacity);
+
+		static Program()
+		{
+			Program.ClusterPath = null;
+		}
 
 		private const int MAX_RW_WIDTH = 40;
 		private const int MAX_WS_WIDTH = 20;
@@ -679,13 +722,13 @@ namespace FdbTop
 
 		private struct RoleMap
 		{
-			public bool Master;
-			public bool ClusterController;
-			public bool Proxy;
-			public bool Log;
-			public bool Storage;
-			public bool Resolver;
-			public bool Other;
+			private bool Master;
+			private bool ClusterController;
+			private bool Proxy;
+			private bool Log;
+			private bool Storage;
+			private bool Resolver;
+			private bool Other;
 
 			public void Add(string role)
 			{
@@ -740,7 +783,7 @@ namespace FdbTop
 				WriteAt(COL6, 5, "HDD (%busy)");
 				WriteAt(COL7, 5, "Roles");
 
-#if DEBUG
+#if DEBUG_LAYOUT
 				Console.ForegroundColor = ConsoleColor.DarkGray;
 				WriteAt(COL0, 6, "0 - - - - - -");
 				WriteAt(COL1, 6, "1 - - - - - -");
@@ -776,7 +819,7 @@ namespace FdbTop
 				{
 					foreach(var role in proc.Roles)
 					{
-						map.Add(role.Value);
+						map.Add(role.Role);
 					}
 				}
 
@@ -817,7 +860,7 @@ namespace FdbTop
 					map = new RoleMap();
 					foreach (var role in proc.Roles)
 					{
-						map.Add(role.Value);
+						map.Add(role.Role);
 					}
 					Console.ForegroundColor = ConsoleColor.DarkGray;
 					WriteAt(1, y,

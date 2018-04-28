@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,18 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
-	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Base class of all query expression extensions</summary>
-    public abstract class FdbQueryExpression : Expression
-    {
+	public abstract class FdbQueryExpression : Expression
+	{
 		private readonly Type m_type;
 
 		/// <summary>Base ctor</summary>
@@ -51,17 +50,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Type of the results of the query</summary>
-		public override Type Type
-		{
-			[NotNull]
-			get { return m_type; }
-		}
+		public override Type Type => m_type;
 
 		/// <summary>Always return <see cref="ExpressionType.Extension"/></summary>
-		public override ExpressionType NodeType
-		{
-			get { return ExpressionType.Extension; }
-		}
+		public override ExpressionType NodeType => ExpressionType.Extension;
 
 		/// <summary>Shape of the query</summary>
 		public abstract FdbQueryShape Shape { get; }

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to capture the stacktrace of the ctor, when troubleshooting leaked database handles
-#undef CAPTURE_STACKTRACES
+//#define CAPTURE_STACKTRACES
 
 namespace FoundationDB.Client.Native
 {
@@ -37,42 +37,19 @@ namespace FoundationDB.Client.Native
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
-	internal sealed class FdbNativeDatabase : IFdbDatabaseHandler
+	internal sealed class FdbNativeDatabase : FdbFutureContext<DatabaseHandle>, IFdbDatabaseHandler
 	{
-		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
-		private readonly DatabaseHandle m_handle;
-
-#if CAPTURE_STACKTRACES
-		private readonly StackTrace m_stackTrace;
-#endif
-
-		public FdbNativeDatabase(DatabaseHandle handle)
+		public FdbNativeDatabase(DatabaseHandle handle, string name)
+			: base(handle)
 		{
-			if (handle == null) throw new ArgumentNullException("handle");
-
-			m_handle = handle;
-#if CAPTURE_STACKTRACES
-			m_stackTrace = new StackTrace();
-#endif
+			this.Name = name;
 		}
-
-		//REVIEW: do we really need a destructor ? The handle is a SafeHandle, and will take care of itself...
-		~FdbNativeDatabase()
-		{
-#if CAPTURE_STACKTRACES
-			Trace.WriteLine("A database handle (" + m_handle + ") was leaked by " + m_stackTrace);
-#endif
-#if DEBUG
-			// If you break here, that means that a native database handler was leaked by a FdbDatabase instance (or that the database instance was leaked)
-			if (Debugger.IsAttached) Debugger.Break();
-#endif
-			Dispose(false);
-		}
-
 
 		public bool IsInvalid { get { return m_handle.IsInvalid; } }
 
 		public bool IsClosed { get { return m_handle.IsClosed; } }
+
+		public string Name { get; private set; }
 
 		public void SetOption(FdbDatabaseOption option, Slice data)
 		{
@@ -113,19 +90,6 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		private void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-				if (m_handle != null) m_handle.Dispose();
-			}
-		}
 	}
 
 }

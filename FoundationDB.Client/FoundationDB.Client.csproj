@@ -1,283 +1,39 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{773166B7-DE74-4FCC-845C-84080CC89533}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>FoundationDB.Client</RootNamespace>
     <AssemblyName>FoundationDB.Client</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Prefer32Bit>false</Prefer32Bit>
-    <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>bin\Release\FoundationDB.Client.XML</DocumentationFile>
-    <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
+    <SignAssembly Condition="'$(OS)' == 'Windows_NT'">true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+    <Version>5.1.0-alpha1</Version>
+    <Authors>Doxense</Authors>
+    <PackageLicenseUrl>http://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>
+    <PackageProjectUrl>http://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
+    <PackageIconUrl>http://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
+    <RepositoryUrl>http://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
+    <PackageTags>foundationdb fdb nosql</PackageTags>
+    <PackageReleaseNotes>This is a pre-release of the .NET Binding, the public API is still subject to changes.</PackageReleaseNotes>
+    <Description>.NET Binding for FoundationDB</Description>
+    <Copyright>Copyright 2013-2018 Doxense SAS</Copyright>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
+    <DocumentationFile>bin\Release\netstandard2.0\FoundationDB.Client.xml</DocumentationFile>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
+    <PackageReference Include="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="..\Common\VersionInfo.cs">
-      <Link>Properties\VersionInfo.cs</Link>
-    </Compile>
-    <Compile Include="Async\AsyncTransform.cs" />
-    <Compile Include="Async\AsyncProducerConsumerQueue.cs" />
-    <Compile Include="Async\AsyncBuffer.cs" />
-    <Compile Include="Async\AsyncTaskBuffer.cs" />
-    <Compile Include="Async\AsyncOrderingMode.cs" />
-    <Compile Include="Async\IAsyncPump.cs" />
-    <Compile Include="Async\AsyncPump.cs" />
-    <Compile Include="Converters\ConversionHelper.cs" />
-    <Compile Include="Converters\SimilarValueComparer.cs" />
-    <Compile Include="Core\IFdbClusterHandler.cs" />
-    <Compile Include="Core\IFdbDatabaseHandler.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`4.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`3.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`2.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspacePartition`4.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspacePartition`3.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspacePartition`2.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspace`4.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspace`3.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspace`2.cs" />
-    <Compile Include="TypeSystem\ICompositeKeyEncoder.cs" />
-    <Compile Include="TypeSystem\IKeyValueEncoder.cs" />
-    <Compile Include="Linq\Iterators\FdbAnonymousAsyncGenerator.cs" />
-    <Compile Include="Linq\Iterators\FdbBatchingAsyncIterator.cs" />
-    <Compile Include="Linq\Iterators\FdbPrefetchingAsyncIterator.cs" />
-    <Compile Include="Linq\Iterators\FdbWindowingAsyncIterator.cs" />
-    <Compile Include="Status\FdbSystemStatus.cs" />
-    <Compile Include="FdbEndPoint.cs" />
-    <Compile Include="FdbIsolationLevel.cs" />
-    <Compile Include="Layers\Directories\FdbDirectoryPartition.cs" />
-    <Compile Include="Layers\Directories\IFdbDirectory.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`5.cs" />
-    <Compile Include="Layers\Tuples\TupleReader.cs" />
-    <Compile Include="Layers\Tuples\TupleWriter.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.OrderedSequence.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.Sorters.cs" />
-    <Compile Include="Linq\IFdbAsyncOrderedEnumerable.cs" />
-    <Compile Include="Linq\Expressions\AsyncObserverExpression.cs" />
-    <Compile Include="Linq\Expressions\AsyncTransformExpression.cs" />
-    <Compile Include="Linq\Iterators\FdbDistinctAsyncIterator.cs" />
-    <Compile Include="Linq\Expressions\AsyncFilterExpression.cs" />
-    <Compile Include="Linq\Iterators\FdbObserverIterator.cs" />
-    <Compile Include="Native\FdbNativeCluster.cs" />
-    <Compile Include="IFdbCluster.cs" />
-    <Compile Include="FdbClusterFile.cs" />
-    <Compile Include="Native\FdbNativeDatabase.cs" />
-    <Compile Include="FdbDatabaseExtensions.cs" />
-    <Compile Include="FdbKeyRangeComparer.cs" />
-    <Compile Include="Core\IFdbTransactionHandler.cs" />
-    <Compile Include="Native\FdbNativeTransaction.cs" />
-    <Compile Include="IFdbKey.cs" />
-    <Compile Include="FdbTransactionMode.cs" />
-    <Compile Include="Filters\FdbFilterExtensions.cs" />
-    <Compile Include="Filters\FdbTransactionFilter.cs" />
-    <Compile Include="Filters\FdbDatabaseFilter.cs" />
-    <Compile Include="Filters\Logging\FdbLoggedDatabase.cs" />
-    <Compile Include="Filters\Logging\FdbLoggingExtensions.cs" />
-    <Compile Include="Filters\Logging\FdbTransactionLog.Commands.cs" />
-    <Compile Include="Filters\Logging\FdbTransactionLog.cs" />
-    <Compile Include="Filters\Logging\FdbLoggedTransaction.cs" />
-    <Compile Include="Filters\ReadOnlyTransactionFilter.cs" />
-    <Compile Include="Filters\PrefixRewriterTransaction.cs" />
-    <Compile Include="IFdbReadOnlyRetryable.cs" />
-    <Compile Include="IFdbDatabase.cs" />
-    <Compile Include="IFdbRetryable.cs" />
-    <Compile Include="Native\FdbFuture.cs" />
-    <Compile Include="Native\FdbFutureArray.cs" />
-    <Compile Include="FdbWatch.cs" />
-    <Compile Include="Fdb.System.cs" />
-    <Compile Include="FdbConflictRangeType.cs" />
-    <Compile Include="FdbMutationType.cs" />
-    <Compile Include="Fdb.Bulk.cs" />
-    <Compile Include="FdbTransaction.Snapshot.cs" />
-    <Compile Include="IFdbTransaction.cs" />
-    <Compile Include="IFdbReadOnlyTransaction.cs" />
-    <Compile Include="FdbRangeChunk.cs" />
-    <Compile Include="FdbTransactionExtensions.cs" />
-    <Compile Include="FdbRangeOptions.cs" />
-    <Compile Include="FdbOperationContext.cs" />
-    <Compile Include="FdbMergeQueryExtensions.cs" />
-    <Compile Include="FdbExceptIterator.cs" />
-    <Compile Include="FdbQueryMergeIterator.cs" />
-    <Compile Include="FdbIntersectIterator.cs" />
-    <Compile Include="FdbKeySelectorPair.cs" />
-    <Compile Include="FdbMergeSortIterator.cs" />
-    <Compile Include="Fdb.Errors.cs" />
-    <Compile Include="Fdb.Options.cs" />
-    <Compile Include="FdbRangeQuery.ResultIterator.cs" />
-    <Compile Include="FdbRangeQuery.PagingIterator.cs" />
-    <Compile Include="FdbException.cs" />
-    <Compile Include="FdbRangeQuery.cs" />
-    <Compile Include="FdbKeyRange.cs" />
-    <Compile Include="FdbKey.cs" />
-    <Compile Include="FdbTransactionOption.cs" />
-    <Compile Include="FdbDatabaseOption.cs" />
-    <Compile Include="FdbStreamingMode.cs" />
-    <Compile Include="FdbClusterOption.cs" />
-    <Compile Include="FdbNetworkOption.cs" />
-    <Compile Include="FdbError.cs" />
-    <Compile Include="Layers\Directories\FdbDirectoryExtensions.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleCodec`1.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`4.cs" />
-    <Compile Include="Subspaces\Fdb.Directory.cs" />
-    <Compile Include="Subspaces\FdbDatabasePartition.cs" />
-    <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
-    <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />
-    <Compile Include="Layers\Directories\FdbDirectoryLayer.cs" />
-    <Compile Include="Layers\Tuples\FdbPrefixedTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleAlias.cs" />
-    <Compile Include="Layers\Tuples\Formatters\FdbAnonymousTupleFormatter.cs" />
-    <Compile Include="Layers\Tuples\Formatters\FdbGenericTupleFormatter.cs" />
-    <Compile Include="Layers\Tuples\Formatters\FdbFormattableTupleFormatter.cs" />
-    <Compile Include="Layers\Tuples\Formatters\ITupleFormattable.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleComparisons.cs" />
-    <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
-    <Compile Include="Subspaces\FdbDynamicSubspace.cs" />
-    <Compile Include="Subspaces\FdbDynamicSubspacePartition.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`1.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspacePartition`1.cs" />
-    <Compile Include="Subspaces\FdbEncoderSubspace`1.cs" />
-    <Compile Include="Subspaces\IFdbEncoderSubspace.cs" />
-    <Compile Include="Subspaces\IFdbSubspace.cs" />
-    <Compile Include="Subspaces\FdbSubspaceExtensions.cs" />
-    <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
-    <Compile Include="Layers\Tuples\IFdbTuple.cs" />
-    <Compile Include="Subspaces\FdbSubspace.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple.cs" />
-    <Compile Include="FdbKeySelector.cs" />
-    <Compile Include="FdbTransaction.cs" />
-    <Compile Include="FdbDatabase.cs" />
-    <Compile Include="FdbCluster.cs" />
-    <Compile Include="Native\FdbFutureSingle.cs" />
-    <Compile Include="Fdb.cs" />
-    <Compile Include="Async\IAsyncEnumerator.cs" />
-    <Compile Include="Async\IAsyncEnumerable.cs" />
-    <Compile Include="Linq\FdbAsyncMode.cs" />
-    <Compile Include="Linq\Iterators\FdbTakeWhileAsyncIterator.cs" />
-    <Compile Include="Linq\FdbParallelQueryOptions.cs" />
-    <Compile Include="Linq\Iterators\FdbAsyncIteratorPump.cs" />
-    <Compile Include="Async\AsyncCancellableMutex.cs" />
-    <Compile Include="Async\AsyncHelpers.cs" />
-    <Compile Include="Async\IAsyncSource.cs" />
-    <Compile Include="Async\IAsyncTarget.cs" />
-    <Compile Include="Async\AsyncTransformQueue.cs" />
-    <Compile Include="Async\IAsyncBuffer.cs" />
-    <Compile Include="Async\Maybe.cs" />
-    <Compile Include="Linq\Iterators\FdbParallelSelectAsyncIterator.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.EnumerableIterator.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.EnumerableSequence.cs" />
-    <Compile Include="Linq\Iterators\FdbSelectManyAsyncIterator.cs" />
-    <Compile Include="Linq\Iterators\FdbWhereAsyncIterator.cs" />
-    <Compile Include="Linq\Iterators\FdbWhereSelectAsyncIterator.cs" />
-    <Compile Include="Linq\Iterators\FdbAsyncFilterIterator.cs" />
-    <Compile Include="Linq\Iterators\FdbAsyncIterator.cs" />
-    <Compile Include="Linq\FdbAsyncSequence.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.EmptySequence.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.Iterators.cs" />
-    <Compile Include="Linq\FdbAsyncEnumerable.cs" />
-    <Compile Include="Linq\IFdbAsyncEnumerator.cs" />
-    <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
-    <Compile Include="Subspaces\FdbDynamicSubspaceKeys.cs" />
-    <Compile Include="Subspaces\IFdbDynamicSubspace.cs" />
-    <Compile Include="TypeSystem\IDynamicKeyEncoder.cs" />
-    <Compile Include="TypeSystem\IValueEncoder.cs" />
-    <Compile Include="TypeSystem\IFdbKeyEncoding.cs" />
-    <Compile Include="TypeSystem\IUnorderedTypeCodec.cs" />
-    <Compile Include="TypeSystem\IOrderedTypeCodec.cs" />
-    <Compile Include="TypeSystem\Encoders\DynamicKeyEncoderBase.cs" />
-    <Compile Include="Layers\Tuples\TypeSystem\TupleKeyEncoding.cs" />
-    <Compile Include="Layers\Tuples\TypeSystem\TupleKeyEncoder.cs" />
-    <Compile Include="TypeSystem\TypeSystem.cs" />
-    <Compile Include="Utils\CodeAnnotations.cs" />
-    <Compile Include="Utils\DebugCounters.cs" />
-    <Compile Include="TypeSystem\Encoders\KeyValueEncoders.cs" />
-    <Compile Include="TypeSystem\FdbTypeCodec`1.cs" />
-    <Compile Include="Utils\TinyJsonParser.cs" />
-    <Compile Include="Utils\SlicePairComparer.cs" />
-    <Compile Include="Utils\SliceHelpers.cs" />
-    <Compile Include="Utils\SliceComparer.cs" />
-    <Compile Include="Utils\SliceBuffer.cs" />
-    <Compile Include="Utils\Uuid64.cs" />
-    <Compile Include="Utils\Uuid128.cs" />
-    <Compile Include="Utils\SliceListStream.cs" />
-    <Compile Include="Utils\SliceStream.cs" />
-    <Compile Include="Utils\Logging.cs" />
-    <Compile Include="Utils\Slice.cs" />
-    <Compile Include="Utils\SliceReader.cs" />
-    <Compile Include="Utils\SliceWriter.cs" />
-    <Compile Include="Utils\Contract.cs" />
-    <Compile Include="Native\FdbKeyValue.cs" />
-    <Compile Include="Native\Handles\TransactionHandle.cs" />
-    <Compile Include="Native\FdbNative.cs" />
-    <Compile Include="Native\Handles\ClusterHandle.cs" />
-    <Compile Include="Native\Handles\DatabaseHandle.cs" />
-    <Compile Include="Native\Handles\FutureHandle.cs" />
-    <Compile Include="Native\Handles\FdbSafeHandle.cs" />
-    <Compile Include="Native\UnmanagedLibrary.cs" />
-    <Compile Include="Converters\FdbConverters.cs" />
-    <Compile Include="Converters\IFdbConverter.cs" />
-    <Compile Include="Layers\Tuples\Formatters\FdbTupleFormatter.cs" />
-    <Compile Include="Layers\Tuples\Formatters\ITupleFormatter.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
-    <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
-    <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`1.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`2.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`3.cs" />
-    <Compile Include="Layers\Tuples\FdbMemoizedTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbListTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
-    <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
-    <Compile Include="Async\TaskHelpers.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Encoders\" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

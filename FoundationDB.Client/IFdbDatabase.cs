@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,13 +33,16 @@ namespace FoundationDB.Client
 	using System.Threading;
 
 	/// <summary>Database connection context.</summary>
-	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IFdbDynamicSubspace, IFdbKey, IDisposable
+	[PublicAPI]
+	public interface IFdbDatabase : IFdbRetryable, IDynamicKeySubspace, IDisposable
 	{
 		/// <summary>Name of the database</summary>
-		string Name { [NotNull] get; }
+		[NotNull]
+		string Name { get; }
 
 		/// <summary>Cluster of the database</summary>
-		IFdbCluster Cluster { [NotNull] get; }
+		[NotNull]
+		IFdbCluster Cluster { get; }
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -47,10 +50,12 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
-		IFdbDynamicSubspace GlobalSpace { [NotNull] get; }
+		[NotNull]
+		IDynamicKeySubspace GlobalSpace { get; }
 
 		/// <summary>Directory partition of this database instance</summary>
-		FdbDatabasePartition Directory { [NotNull] get; }
+		[NotNull]
+		FdbDatabasePartition Directory { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
@@ -81,7 +86,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Start a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
-		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
@@ -93,7 +98,7 @@ namespace FoundationDB.Client
 		///		await tr.CommitAsync();
 		/// }</example>
 		[NotNull]
-		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null);
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null);
 
 	}
 

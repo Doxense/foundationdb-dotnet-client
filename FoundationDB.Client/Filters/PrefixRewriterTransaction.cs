@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Filters
 {
 	using FoundationDB.Client;
 	using System;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -38,49 +39,45 @@ namespace FoundationDB.Filters
 	{
 		// We will add a prefix to all keys sent to the db, and remove it on the way back
 
-		private readonly IFdbSubspace m_prefix;
-
-		public PrefixRewriterTransaction(IFdbSubspace prefix, IFdbTransaction trans, bool ownsTransaction)
+		public PrefixRewriterTransaction(IKeySubspace prefix, IFdbTransaction trans, bool ownsTransaction)
 			: base(trans, false, ownsTransaction)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			m_prefix = prefix;
+			this.Prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
 		}
 
-		public IFdbSubspace Prefix { get { return m_prefix; } }
+		public IKeySubspace Prefix { get; }
 
 		private Slice Encode(Slice key)
 		{
-			return m_prefix.ConcatKey(key);
+			return this.Prefix[key];
 		}
 
 		private Slice[] Encode(Slice[] keys)
 		{
-			return m_prefix.ConcatKeys(keys);
+			return keys.Select(k => this.Prefix[k]).ToArray();
 		}
 
-		private FdbKeySelector Encode(FdbKeySelector selector)
+		private KeySelector Encode(KeySelector selector)
 		{
-			return new FdbKeySelector(
-				m_prefix.ConcatKey(selector.Key),
+			return new KeySelector(
+				this.Prefix[selector.Key],
 				selector.OrEqual,
 				selector.Offset
 			);
 		}
 
-		private FdbKeySelector[] Encode(FdbKeySelector[] selectors)
+		private KeySelector[] Encode(KeySelector[] selectors)
 		{
 			var keys = new Slice[selectors.Length];
 			for (int i = 0; i < selectors.Length;i++)
 			{
-				keys[i] = selectors[i].Key;
+				keys[i] = this.Prefix[selectors[i].Key];
 			}
-			keys = m_prefix.ConcatKeys(keys);
 
-			var res = new FdbKeySelector[selectors.Length];
+			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				res[i] = new FdbKeySelector(
+				res[i] = new KeySelector(
 					keys[i],
 					selectors[i].OrEqual,
 					selectors[i].Offset
@@ -91,7 +88,7 @@ namespace FoundationDB.Filters
 
 		private Slice Decode(Slice key)
 		{
-			return m_prefix.ExtractKey(key);
+			return this.Prefix.ExtractKey(key);
 		}
 
 		private Slice[] Decode(Slice[] keys)
@@ -99,7 +96,7 @@ namespace FoundationDB.Filters
 			var res = new Slice[keys.Length];
 			for (int i = 0; i < keys.Length;i++)
 			{
-				res[i] = m_prefix.ExtractKey(keys[i]);
+				res[i] = this.Prefix.ExtractKey(keys[i]);
 			}
 			return res;
 		}
@@ -114,12 +111,12 @@ namespace FoundationDB.Filters
 			return base.GetValuesAsync(Encode(keys));
 		}
 
-		public override async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public override async Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return Decode(await base.GetKeyAsync(Encode(selector)).ConfigureAwait(false));
 		}
 
-		public override async Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public override async Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			return Decode(await base.GetKeysAsync(Encode(selectors)).ConfigureAwait(false));
 		}
@@ -129,12 +126,12 @@ namespace FoundationDB.Filters
 			return base.GetAddressesForKeyAsync(Encode(key));
 		}
 
-		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			throw new NotImplementedException();
 		}
 
-		public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			throw new NotImplementedException();
 		}
@@ -165,10 +162,10 @@ namespace FoundationDB.Filters
 			base.AddConflictRange(Encode(beginKeyInclusive), Encode(endKeyExclusive), type);
 		}
 
-		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)
+		public override FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			//BUGBUG: the watch returns the key, that would need to be decoded!
-			return base.Watch(Encode(key), cancellationToken);
+			return base.Watch(Encode(key), ct);
 		}
 
 	}

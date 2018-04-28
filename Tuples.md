@@ -68,13 +68,13 @@ And quite frankly, if you have used other languages where tuples are first-class
     
 That's why we need a better API, in order to help us be more productive.
 
-## IFdbTuple
+## ITuple
 
-The `IFdbTuple` interface, defined in `FoundationDB.Layers.Tuples` (TODO: update this if we rename it!), is the base of all the different tuples implementation, all targetting a specific use case.
+The `ITuple` interface, defined in `FoundationDB.Layers.Tuples` (TODO: update this if we rename it!), is the base of all the different tuples implementation, all targetting a specific use case.
     
 This interface has the bare minimum API, thats must be implemented by each variant, and is in turn used by a set of extension methods that add more generic behavior that does NOT need to be replicated in all the variants.
 
-There is also a static class, called `FdbTuple`, which holds a bunch of methods to create and handle all the different variants of tuples.
+There is also a static class, called `STuple`, which holds a bunch of methods to create and handle all the different variants of tuples.
 
 _note: the interface is not called `ITuple` because 1) there is already an `ITuple` interface in the BCL (even though it is internal), and 2) we wouldn't be able to call our static helper class `Tuple` since it would collide with the BCL._
 
@@ -82,55 +82,55 @@ _note: the interface is not called `ITuple` because 1) there is already an `ITup
 
 Tuples need to adapt to different use case: some tuples should have a fixed size and types (like the BCL Tuples), some should have a variable length (like a vector or list). Some tuples should probably be structs (to reduce the number of allocation in tight loops), while others need to be reference types. And finally, some tuples could be thin wrappers around encoded binary blobs, and defer the decoding of items until they are accessed.
 
-That's why there is multiple variants of tuples, all implementing the `IFdbTuple` interface:
+That's why there is multiple variants of tuples, all implementing the `ITuple` interface:
 
-- `FdbTuple<T1>`, `FdbTuple<T1, T2>` (up to T5 right now) are the equivalent of the BCL's `Tuple<T1, ...>` except that they are implemented as a struct. They are efficient when used as a temporary step to create bigger tuples, or when you have control of the actual type (in LINQ queries, inside your own private methods, ...). They are also ideal if you want type safety and nice intellisense support, since the types are known at compile time.
-- `FdbListTuple` wraps an array of object[] and exposes a subset of this array. Getting a substring of this cheap since it does not have to copy the items.
-- `FdbJoinedTuple` is a wrapper that glues together two tuples (of any type).
-- `FdbLinkedTuple` is a special case of an FdbJoinedTupel, where we are only adding one value to an existing tuple.
-- `FdbSlicedTuple` is a wrapper around a half-parsed binary representation of a tuple, and which will only decode items if they are accessed. In cases where you are only interested in part of a key, you won't waste CPU cycles decoding the other items.
-- `FdbMemoizedTuple` will cache its binary representation, which is usefull when you have a common tuple prefix which is used everytime to construct other tuples.
-- `FdbPrefixedTuple` is some sort of hybrid tuples whose binary representation always have a constant binary prefix, which may or may not be a valid binary tuple representation itself (need to use tuples with prefixes generated from a different encoding).
+- `STuple<T1>`, `STuple<T1, T2>` (up to T5 right now) are the equivalent of the BCL's `Tuple<T1, ...>` except that they are implemented as a struct. They are efficient when used as a temporary step to create bigger tuples, or when you have control of the actual type (in LINQ queries, inside your own private methods, ...). They are also ideal if you want type safety and nice intellisense support, since the types are known at compile time.
+- `ListTuple` wraps an array of object[] and exposes a subset of this array. Getting a substring of this cheap since it does not have to copy the items.
+- `JoinedTuple` is a wrapper that glues together two tuples (of any type).
+- `LinkedTuple` is a special case of an FdbJoinedTupel, where we are only adding one value to an existing tuple.
+- `SlicedTuple` is a wrapper around a half-parsed binary representation of a tuple, and which will only decode items if they are accessed. In cases where you are only interested in part of a key, you won't waste CPU cycles decoding the other items.
+- `MemoizedTuple` will cache its binary representation, which is usefull when you have a common tuple prefix which is used everytime to construct other tuples.
+- `PrefixedTuple` is some sort of hybrid tuples whose binary representation always have a constant binary prefix, which may or may not be a valid binary tuple representation itself (need to use tuples with prefixes generated from a different encoding).
 
 ### Creating a tuple
 
 The most simple way to create a tuple, is from its elements:
 
 ```CSharp
-var t = FdbTuple.Create("Hello", 123, Guid.NewGuid());
+var t = STuple.Create("Hello", 123, Guid.NewGuid());
 ```
 
-The actual type of the tuple will be `FdbTuple<string, int, Guid>` which is a struct. Since we are using the `var` keyword, then as long as `t` stays inside the method, it will not be boxed.
+The actual type of the tuple will be `STuple<string, int, Guid>` which is a struct. Since we are using the `var` keyword, then as long as `t` stays inside the method, it will not be boxed.
 
 We can also create a tuple by adding something to an existing tuples, even starting with the Empty tuple:
 
 ```CSharp
-var t = FdbTuple.Empty.Append("Hello").Append(123).Append(Guid.NewGuid());
+var t = STuple.Empty.Append("Hello").Append(123).Append(Guid.NewGuid());
 ```
 
-The good news here is that _t_ is still a struct of type `FdbTuple<string, int, Guid>` and we did not produce any allocations: the Empty tuple is a singleton, and all the intermediate Append() returned structs of type `FdbTuple<string>` and `FdbTuple<string, int>`. There is of course a limit to the number of elements that can be added, before we have to switch to an array-based tuple variant.
+The good news here is that _t_ is still a struct of type `STuple<string, int, Guid>` and we did not produce any allocations: the Empty tuple is a singleton, and all the intermediate Append() returned structs of type `STuple<string>` and `STuple<string, int>`. There is of course a limit to the number of elements that can be added, before we have to switch to an array-based tuple variant.
 
 If we have a variable-size list of items, we can also create a tuple from it:
 
 ```CSharp
 IEnumerable<MyFoo> xs = ....;
 // xs is a sequence of MyFoo objects, with an Id property (of type Guid)
-var t = FdbTuple.FromSequence(xs.Select(x => x.Id));
+var t = STuple.FromSequence(xs.Select(x => x.Id));
 ```
 
 When all the elements or a tuple are of the same type, you can use specialized versions:
 ```CSharp
 var xs = new [] { "Bonjour", "le", "Monde!" };
-var t = FdbTuple.FromArray<string>(xs);
+var t = STuple.FromArray<string>(xs);
 ```
 
 If you were already using the BCL's Tuple, you can easily convert from one to the other, via a set of implicit and explicit cast operators:
 
 ```CSharp
 var bcl = Tuple.Create("Hello", 123, Guid.NewGuid());
-FdbTuple<string, int, Guid> t = bcl; // implicit cast
+STuple<string, int, Guid> t = bcl; // implicit cast
 
-var t = FdbTuple.Create("Hello", 123, Guid.NewGuid());
+var t = STuple.Create("Hello", 123, Guid.NewGuid());
 Tuple<string, int, Guid> bcl = (Tuple<string, int, Guid>) t; // explicit cast
 ```
 
@@ -138,8 +138,8 @@ And for the more adventurous, you can of course create a tuple by copying the el
 
 ```CSharp
 var xs = new object[] { "Hello", 123, Guid.NewGuid() };
-var t1 = FdbTuple.FromObjects(xs); // => ("hello", 123, guid)
-var t2 = FdbTuple.FromObjects(xs, 1, 2); // => (123, guid)
+var t1 = STuple.FromObjects(xs); // => ("hello", 123, guid)
+var t2 = STuple.FromObjects(xs, 1, 2); // => (123, guid)
 xs[1] = 456; // won't change the content of the tuples
 // t[1] => 123
 ```
@@ -148,8 +148,8 @@ If you really want to push it, you can skip copying the items by wrapping an exi
 
 ```CSharp
 var xs = new object[] { "Hello", 123, Guid.NewGuid() };
-var t1 = FdbTuple.Wrap(xs); // no copy!
-var t2 = FdbTuple.Wrap(xs, 1, 2); // no copy!
+var t1 = STuple.Wrap(xs); // no copy!
+var t2 = STuple.Wrap(xs, 1, 2); // no copy!
 xs[1] = 456; // will change the content of the tuples!!
 // t[1] => 456
 ```
@@ -166,12 +166,12 @@ To help you verify that a tuple has the correct size before accessing its elemen
 - `t.OfSize(3)` checks that `t` is not null, and that `t.Count` is equal to 3, and then returns the tuple itself, so you can write: `t.OfSize(3).DoSomethingWichExceptsThreeElements()`
 - `t.OfSizeAtLeast(3)` (and `t.OfSizeAtMost(3)`) work the same, except they check that `t.Count >= 3` (or `t.Count <= 3`)
 
-Of course, if you have one of the `FdbTuple<T1, ...>` struct, you can skip this step, since the size if known at compile time.
+Of course, if you have one of the `STuple<T1, ...>` struct, you can skip this step, since the size if known at compile time.
 
 To read the content of a tuple, you can simply call `t.Get<T>(index)`, where `index` is the offset _in the tuple_ of the element, and `T` is the type into which the value will be converted.
 
 ```CSharp
-var t = FdbTuple.Create("hello", 123, Guid.NewGuid());
+var t = STuple.Create("hello", 123, Guid.NewGuid());
 var x = t.Get<string>(0); // => "hello"
 var y = t.Get<int>(1); // => 123
 var z = t.Get<Guid>(2); // => guid
@@ -180,7 +180,7 @@ var z = t.Get<Guid>(2); // => guid
 If `index` is negative, then it is relative to the end of the tuple, where -1 is the last element, -2 is the next-to-last element, and -N is the first element.
 
 ```CSharp
-var t = FdbTuple.Create("hello", 123, Guid.NewGuid());
+var t = STuple.Create("hello", 123, Guid.NewGuid());
 var x = t.Get<string>(-3); // => "hello"
 var y = t.Get<int>(-2); // => 123
 var z = t.Get<Guid>(-1); // => guid
@@ -193,13 +193,13 @@ Code that manipulate tuples can get complex pretty fast, so you need a way to di
 For that, every tuple overrides `ToString()` to return a nicely formatted string with a standardized format.
 
 ```CSharp
-var t1 = FdbTuple.Create("hello", 123, Guid.NewGuid());
+var t1 = STuple.Create("hello", 123, Guid.NewGuid());
 Console.WriteLine("t1 = {0}", t1);
 // => t1 = ("hello", 123, {773166b7-de74-4fcc-845c-84080cc89533})
-var t2 = FdbTuple.Create("hello");
+var t2 = STuple.Create("hello");
 Console.WriteLine("t1 = {0}", t2);
 // => t2 = ("hello",)
-var t3 = FdbTuple.Empty;
+var t3 = STuple.Empty;
 Console.WriteLine("t3 = {0}", t3);
 // => t3 = ()
 ```
@@ -213,11 +213,11 @@ Since a tuple is just a vector of elements, you can of course put a tuple inside
 This works:
 
 ```CSharp
-var t1 = FdbTuple.Create("hello", FdbTuple(123, 456), Guid.NewGuid());
+var t1 = STuple.Create("hello", STuple(123, 456), Guid.NewGuid());
 // t1 = ("hello", (123, 456), {773166b7-de74-4fcc-845c-84080cc89533})
-var t2 = FdbTuple.Create(FdbTuple.Create("a", "b"));
+var t2 = STuple.Create(STuple.Create("a", "b"));
 // t2 = ((a, b),)
-var t3 = FdbTuple.Create("hello", FdbTuple.Empty, "world");
+var t3 = STuple.Create("hello", STuple.Empty, "world");
 // t3 = ("hello", (), "world");
 ```
 
@@ -230,7 +230,7 @@ var productId = "B00CS8QSSK";
 var locationId = new [] { "Europe", "France", "Lille" };
 var orderId = Guid.NewGuid();
 
-var t = FdbTuple.Create(productId, FdbTuple.FromArray(locationId), orderId);
+var t = STuple.Create(productId, STuple.FromArray(locationId), orderId);
 // t.Count => 3
 // t[0] => "B00CS8QSSK"
 // t[1] => ("Europe", "France", "Lille")
@@ -248,7 +248,7 @@ You can, though, modify tuples by returning a new tuple, with or without copying
 The most common case is to simply add a value to a tuple via the `t.Append<T>(T value)` method. For example you have a base tuple (cached value), and you want to add a document ID.
 
 ```CSharp
-var location = FdbTuple.Create("MyAwesomeApp", "Documents");
+var location = STuple.Create("MyAwesomeApp", "Documents");
 
 var documentId = Guid.NewGuid();
 var t = location.Append(document);
@@ -260,11 +260,11 @@ Don't forget that if you Append a tuple, it will be added as a nested tuple!
 If you actually want to merge the elements of two tuples, when you can use the `t1.Concat(t2)` method, which return a new tuple with the elements of both t1 and t2.
 
 ```CSharp
-var location = FdbTuple.Create("MyAwesomeApp", "OrdersByProduct");
+var location = STuple.Create("MyAwesomeApp", "OrdersByProduct");
 
 var productId = "B00CS8QSSK";
 var orderId = Guid.NewGuid();
-var t1 = FdbTuple.Create(productId, orderId)
+var t1 = STuple.Create(productId, orderId)
 // t1 => ("B00CS8QSSK", {773166b7-de74-4fcc-845c-84080cc89533})
 
 var t2 = location.Concat(t1);
@@ -280,7 +280,7 @@ First, you can return a subset of a tuple via on of the `t.Substring(...)` metho
 The `Substring()` method works exactly the same way as for regulard strings.
 
 ```CSharp
-var t = FdbTuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+var t = STuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 var u = t.Substring(0, 3); // => (1, 2, 3)
 var v = t.Substring(5, 2); // => (6, 7)
 var w = t.Substring(7); // => (8, 9, 10)
@@ -292,7 +292,7 @@ var w = v.Substring(-3); // => (8, 9, 10)
 The `t[from, to]` indexer gets some getting used to. If actual returns all the elements in the tuple with position `from <= p < to`, which means that the `to` is excluded.
 
 ```CSharp
-var t = FdbTuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+var t = STuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 var u = t[0, 3]; // => (1, 2, 3)
 var v = t[5, 7]; // => (6, 7)
 // rember that 'to' is excluded!
@@ -307,7 +307,7 @@ var w = v[-3, null]; // => (8, 9, 10)
 If you are tired of writing `t.Substring(0, 3)` all the time, you can also use `t.Truncate(3)` which does the same thing.
 
 ```CSharp
-var t = FdbTuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+var t = STuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 var u = t.Truncate(3);
 // u => (1, 2, 3);
 var v = t.Truncate(-3);
@@ -319,7 +319,7 @@ var v = t.Truncate(-3);
 When decoding keys using tuple, you wil often find yourself extracting a fixed number of arguments into local variables, and then constructing an instance of a Model class from your application.
 
 ```CSharp
-public MyFooBar DecodeFoobar(IFdbTuple tuple)
+public MyFooBar DecodeFoobar(ITuple tuple)
 {
     var x = tuple.Get<string>(0);
     var y = tuple.Get<int>(1);
@@ -335,10 +335,10 @@ The keen eye will see the problems with this method:
 - what if tuple.Count is only 2 ?
 - you probably copy/pasted `var x = tuple.Get<...>(0)` two more times, and forgot to change the index to 1 and 2! _(even Notch does it!)_
 
-One solution is to use the set of `t.As<T1, ..., TN>()` helper methods to convert a tuple of type `IFdbTuple` into a more friendly `FdbTuple<T1, ..., TN>` introducing tape safety and intellisence.
+One solution is to use the set of `t.As<T1, ..., TN>()` helper methods to convert a tuple of type `ITuple` into a more friendly `STuple<T1, ..., TN>` introducing tape safety and intellisence.
 
 ```CSharp
-public MyFooBar DecodeFoobar(IFdbTuple tuple)
+public MyFooBar DecodeFoobar(ITuple tuple)
 {
     var t = tuple.As<string, int, Guid>();
     // this throws if tuple is null, or not of size 3
@@ -351,7 +351,7 @@ That's better, but you can still swap two arguments by mistake, if they have the
 To combat this, you can use on of the `t.With<T1, ..., TN>(Action<T1, ..., TN>)` or `t.With<T1, ..., TN, TResult>(Func<T1, ..., TN, TResult>)` which can give names to the elements.
 
 ```CSharp
-public MyFooBar DecodeFoobar(IFdbTuple tuple)
+public MyFooBar DecodeFoobar(ITuple tuple)
 {
     return tuple.With((Guid productId, Guid categoryId, Guid orderId) => new MyFooBar(productId, categoriyId, orderId));
     // all three elements are GUID, but adding name help you catch argument inversion errors

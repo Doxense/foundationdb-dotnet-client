@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,46 +27,49 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 //enable this to enable verbose traces when doing paging
-#undef DEBUG_RANGE_PAGING
+//#define DEBUG_RANGE_PAGING
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using Doxense.Linq.Async.Iterators;
+	using Doxense.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
-		private sealed class PagingIterator : FdbAsyncIterator<KeyValuePair<Slice, Slice>[]>
+		private sealed class PagingIterator : AsyncIterator<KeyValuePair<Slice, Slice>[]>
 		{
 
 			#region Iterable Properties...
 
-			private FdbRangeQuery<T> Query { get; set; }
+			private FdbRangeQuery<T> Query { get; }
 
-			private IFdbReadOnlyTransaction Transaction { get; set; }
+			private IFdbReadOnlyTransaction Transaction { get; }
 
 			#endregion
 
 			#region Iterator Properties...
 
 			/// <summary>Key selector describing the beginning of the current range (when paging)</summary>
-			private FdbKeySelector Begin { get; set; }
+			private KeySelector Begin { get; set; }
 
 			/// <summary>Key selector describing the end of the current range (when paging)</summary>
-			private FdbKeySelector End { get; set; }
+			private KeySelector End { get; set; }
 
 			/// <summary>If non null, contains the remaining allowed number of rows</summary>
-			private int? Remaining { get; set; }
+			private int? RemainingCount { get; set; }
+
+			/// <summary>If non null, contains the remaining allowed number of bytes</summary>
+			private int? RemainingSize { get; set; }
 
 			/// <summary>Iteration number of current page (in iterator mode)</summary>
 			private int Iteration { get; set; }
@@ -96,20 +99,21 @@ namespace FoundationDB.Client
 				this.Transaction = transaction ?? query.Transaction;
 			}
 
-			protected override FdbAsyncIterator<KeyValuePair<Slice, Slice>[]> Clone()
+			protected override AsyncIterator<KeyValuePair<Slice, Slice>[]> Clone()
 			{
 				return new PagingIterator(this.Query, this.Transaction);
 			}
 
 			#region IFdbAsyncEnumerator<T>...
 
-			protected override async Task<bool> OnFirstAsync(CancellationToken cancellationToken)
+			protected override async Task<bool> OnFirstAsync()
 			{
-				this.Remaining = this.Query.Limit;
+				this.RemainingCount = this.Query.Limit;
+				this.RemainingSize = this.Query.TargetBytes;
 				this.Begin = this.Query.Begin;
 				this.End = this.Query.End;
 
-				if (this.Remaining == 0)
+				if (this.RemainingCount == 0)
 				{
 					// we can safely optimize this case by not doing any query, because it should not have any impact on conflict resolutions.
 					// => The result of 'query.Take(0)' will not change even if someone adds/remove to the range
@@ -130,13 +134,13 @@ namespace FoundationDB.Client
 					if (min >= max) return false;	// range is empty
 
 					// rewrite the initial selectors with the bounded keys
-					this.Begin = FdbKeySelector.FirstGreaterOrEqual(min);
-					this.End = FdbKeySelector.FirstGreaterOrEqual(max);
+					this.Begin = KeySelector.FirstGreaterOrEqual(min);
+					this.End = KeySelector.FirstGreaterOrEqual(max);
 				}
 				return true;
 			}
 
-			protected override Task<bool> OnNextAsync(CancellationToken cancellationToken)
+			protected override Task<bool> OnNextAsync()
 			{
 				// Make sure that we are not called while the previous fetch is still running
 				if (this.PendingReadTask != null && !this.PendingReadTask.IsCompleted)
@@ -150,18 +154,17 @@ namespace FoundationDB.Client
 				}
 
 				// slower path, we need to actually read the first batch...
-				return FetchNextPageAsync(cancellationToken);
+				return FetchNextPageAsync();
 			}
 
 			/// <summary>Asynchronously fetch a new page of results</summary>
-			/// <param name="cancellationToken"></param>
 			/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-			private Task<bool> FetchNextPageAsync(CancellationToken cancellationToken)
+			private Task<bool> FetchNextPageAsync()
 			{
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				cancellationToken.ThrowIfCancellationRequested();
+				m_ct.ThrowIfCancellationRequested();
 				this.Transaction.EnsureCanRead();
 
 				this.Iteration++;
@@ -172,8 +175,8 @@ namespace FoundationDB.Client
 
 				var options = new FdbRangeOptions
 				{
-					Limit = this.Remaining,
-					TargetBytes = this.Query.TargetBytes,
+					Limit = this.RemainingCount,
+					TargetBytes = this.RemainingSize,
 					Mode = this.Query.Mode,
 					Reverse = this.Query.Reversed
 				};
@@ -181,19 +184,19 @@ namespace FoundationDB.Client
 				// select the appropriate streaming mode if purpose is not default
 				switch(m_mode)
 				{
-					case FdbAsyncMode.Iterator:
+					case AsyncIterationHint.Iterator:
 					{
 						// the caller is responsible for calling MoveNext(..) and deciding if it wants to continue or not..
 						options.Mode = FdbStreamingMode.Iterator;
 						break;
 					}
-					case FdbAsyncMode.All:
-					{ 
+					case AsyncIterationHint.All:
+					{
 						// we are in a ToList or ForEach, we want to read everything in as few chunks as possible
 						options.Mode = FdbStreamingMode.WantAll;
 						break;
 					}
-					case FdbAsyncMode.Head:
+					case AsyncIterationHint.Head:
 					{
 						// the caller only expect one (or zero) values
 						options.Mode = FdbStreamingMode.Iterator;
@@ -216,20 +219,22 @@ namespace FoundationDB.Client
 						this.RowCount += result.Count;
 						this.HasMore = result.HasMore;
 						// subtract number of row from the remaining allowed
-						if (this.Remaining.HasValue) this.Remaining = this.Remaining.Value - result.Count;
+						if (this.RemainingCount.HasValue) this.RemainingCount = this.RemainingCount.Value - result.Count;
+						// subtract size of rows from the remaining allowed
+						if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.GetSize();
 
-						this.AtEnd = !result.HasMore || (this.Remaining.HasValue && this.Remaining.Value <= 0);
+						this.AtEnd = !result.HasMore || (this.RemainingCount.HasValue && this.RemainingCount.Value <= 0) || (this.RemainingSize.HasValue && this.RemainingSize.Value <= 0);
 
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
 							var lastKey = result.Last.Key;
 							if (this.Query.Reversed)
 							{
-								this.End = FdbKeySelector.FirstGreaterOrEqual(lastKey);
+								this.End = KeySelector.FirstGreaterOrEqual(lastKey);
 							}
 							else
 							{
-								this.Begin = FdbKeySelector.FirstGreaterThan(lastKey);
+								this.Begin = KeySelector.FirstGreaterThan(lastKey);
 							}
 						}
 #if DEBUG_RANGE_PAGING
@@ -255,7 +260,8 @@ namespace FoundationDB.Client
 				this.Chunk = null;
 				this.AtEnd = true;
 				this.HasMore = false;
-				this.Remaining = null;
+				this.RemainingCount = null;
+				this.RemainingSize = null;
 				this.Iteration = -1;
 				this.PendingReadTask = null;
 			}

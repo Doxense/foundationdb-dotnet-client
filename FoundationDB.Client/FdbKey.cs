@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey
@@ -63,7 +64,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public static Slice Increment(Slice slice)
 		{
-			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", "slice");
+			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(slice));
 
 			int lastNonFFByte;
 			var tmp = slice.GetBytes();
@@ -81,7 +82,7 @@ namespace FoundationDB.Client
 				throw Fdb.Errors.CannotIncrementKey();
 			}
 
-			return new Slice(tmp, 0, lastNonFFByte + 1);
+			return tmp.AsSlice(0, lastNonFFByte + 1);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -91,8 +92,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -110,7 +111,7 @@ namespace FoundationDB.Client
 				next.Add(writer.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -120,19 +121,17 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
+			if (keys == null) throw new ArgumentNullException(nameof(keys));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
 			// use optimized version for arrays
-			var array = keys as Slice[];
-			if (array != null) return Merge(prefix, array);
+			if (keys is Slice[] array) return Merge(prefix, array);
 
 			// pre-allocate with a count if we can get one...
-			var coll = keys as ICollection<Slice>;
-			var next = coll == null ? new List<int>() : new List<int>(coll.Count);
-			var writer = SliceWriter.Empty;
+			var next = !(keys is ICollection<Slice> coll) ? new List<int>() : new List<int>(coll.Count);
+			var writer = default(SliceWriter);
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -143,7 +142,7 @@ namespace FoundationDB.Client
 				next.Add(writer.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
@@ -160,7 +159,7 @@ namespace FoundationDB.Client
 			int p = start;
 			foreach (var end in endOffsets)
 			{
-				result[i++] = new Slice(buffer, p, end - p);
+				result[i++] = buffer.AsSlice(p, end - p);
 				p = end;
 			}
 
@@ -284,7 +283,7 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						IFdbTuple tuple = null;
+						ITuple tuple = null;
 						string suffix = null;
 						bool skip = false;
 
@@ -300,20 +299,20 @@ namespace FoundationDB.Client
 									switch (key[-1])
 									{
 										case 0xFF:
-											{
-												//***README*** if you break under here, see README in the last catch() block
-												tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
-												suffix = ".<FF>";
-												break;
-											}
+										{
+											//***README*** if you break under here, see README in the last catch() block
+											tuple = TuPack.Unpack(key[0, -1]);
+											suffix = ".<FF>";
+											break;
+										}
 										case 0x01:
-											{
-												var tmp = key[0, -1] + (byte)0;
-												//***README*** if you break under here, see README in the last catch() block
-												tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
-												suffix = " + 1";
-												break;
-											}
+										{
+											var tmp = key[0, -1] + (byte)0;
+											//***README*** if you break under here, see README in the last catch() block
+											tuple = TuPack.Unpack(tmp);
+											suffix = " + 1";
+											break;
+										}
 									}
 									break;
 								}
@@ -327,7 +326,7 @@ namespace FoundationDB.Client
 									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+										tuple = TuPack.Unpack(key[0, -1]);
 										suffix = ".<00>";
 									}
 									break;
@@ -343,7 +342,7 @@ namespace FoundationDB.Client
 						if (tuple == null && !skip)
 						{ // attempt a regular decoding
 							//***README*** if you break under here, see README in the last catch() block
-							tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
+							tuple = TuPack.Unpack(key);
 						}
 
 						if (tuple != null) return tuple.ToString() + suffix;

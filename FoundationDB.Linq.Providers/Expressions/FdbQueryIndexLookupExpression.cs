@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Indexing;
-	using JetBrains.Annotations;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using JetBrains.Annotations;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
 	/// <typeparam name="K">Type of the Id of the enties being indexed</typeparam>
@@ -119,7 +119,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<K>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<K>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			Expression body;
@@ -128,7 +128,7 @@ namespace FoundationDB.Linq.Expressions
 			{
 				case ExpressionType.Equal:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.Lookup(trans, value, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
@@ -141,7 +141,7 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.GreaterThan:
 				case ExpressionType.GreaterThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.LookupGreaterThan(trans, value, this.Operator == ExpressionType.GreaterThanOrEqual, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
@@ -154,7 +154,7 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.LessThan:
 				case ExpressionType.LessThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.LookupLessThan(trans, value, this.Operator == ExpressionType.LessThanOrEqual, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
@@ -170,7 +170,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<K>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<K>>>(body, prmTrans);
 		}
 
 		/// <summary>Returns a textual representation of expression</summary>

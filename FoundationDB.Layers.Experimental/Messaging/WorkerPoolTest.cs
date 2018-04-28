@@ -1,16 +1,15 @@
-﻿using FoundationDB.Async;
-using FoundationDB.Client;
-using FoundationDB.Filters.Logging;
-using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
+﻿
 namespace FoundationDB.Layers.Messaging
 {
-
+	using System;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Text;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Doxense.Async;
+	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
 
 	public class WorkerPoolTest
 	{
@@ -58,9 +57,9 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task RunAsync(IFdbDatabase db, IFdbDynamicSubspace location, CancellationToken ct, Action done, int N, int K, int W)
+		private async Task RunAsync(IFdbDatabase db, IDynamicKeySubspace location, CancellationToken ct, Action done, int N, int K, int W)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
 			StringBuilder sb = new StringBuilder();
 
@@ -73,7 +72,7 @@ namespace FoundationDB.Layers.Messaging
 			{
 
 				var workerPool = new FdbWorkerPool(location);
-				Console.WriteLine("workerPool at " + location.Key.ToAsciiOrHexaString());
+				Console.WriteLine($"workerPool at {location.GetPrefix():P}");
 
 				var workerSignal = new AsyncCancelableMutex(ct);
 				var clientSignal = new AsyncCancelableMutex(ct);
@@ -134,14 +133,14 @@ namespace FoundationDB.Layers.Messaging
 
 				Func<string, Task> dump = async (label) =>
 				{
-					Console.WriteLine("<dump label='" + label + "' key='" + location.Key.ToAsciiOrHexaString() + "'>");
+					Console.WriteLine($"<dump label=\'{label}\' key=\'{location.GetPrefix():P}\'>");
 					using (var tr = db.BeginTransaction(ct))
 					{
 						await tr.Snapshot
-							.GetRange(FdbKeyRange.StartsWith(location.Key))
+							.GetRange(KeyRange.StartsWith(location.GetPrefix()))
 							.ForEachAsync((kvp) =>
 							{
-								Console.WriteLine(" - " + location.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+								Console.WriteLine($" - {location.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
 							}).ConfigureAwait(false);
 					}
 					Console.WriteLine("</dump>");

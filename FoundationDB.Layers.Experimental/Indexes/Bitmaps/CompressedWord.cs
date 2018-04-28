@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Represent a 32-bit word in a Compressed Bitmap</summary>
 	[DebuggerDisplay("Literal={IsLiteral}, {WordCount} x {WordValue}")]
-	public struct CompressedWord
+	public readonly struct CompressedWord
 	{
 		internal const uint ALL_ZEROES = 0x0;
 		internal const uint ALL_ONES = 0x7FFFFFFF;
@@ -52,10 +52,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Checks if this word is a literal</summary>
 		/// <remarks>Literal words have their MSB unset (0)</remarks>
-		public bool IsLiteral
-		{
-			get { return (this.RawValue & WordAlignHybridEncoder.TYPE_MASK) == WordAlignHybridEncoder.BIT_TYPE_LITERAL; }
-		}
+		public bool IsLiteral => (this.RawValue & WordAlignHybridEncoder.TYPE_MASK) == WordAlignHybridEncoder.BIT_TYPE_LITERAL;
 
 		/// <summary>Value of the 31-bit uncompressed word</summary>
 		/// <remarks>This word is repeated <see cref="WordCount"/> times in the in the uncompressed bitmap.</remarks>
@@ -88,31 +85,19 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Number of times the value <see cref="WordValue"/> is repeated in the uncompressed bitmap</summary>
 		/// <remarks>This value is 1 for literal words, and <see cref="FillCount"/> for filler words</remarks>
-		public int WordCount
-		{
-			get { return this.IsLiteral ? 1 : this.FillCount; }
-		}
+		public int WordCount => this.IsLiteral ? 1 : this.FillCount;
 
 		/// <summary>Value of a literal word</summary>
 		/// <remarks>Only valid if <see cref="IsLiteral"/> is true</remarks>
-		public int Literal
-		{
-			get { return (int)(this.RawValue & WordAlignHybridEncoder.LITERAL_MASK); }
-		}
+		public int Literal => (int)(this.RawValue & WordAlignHybridEncoder.LITERAL_MASK);
 
 		/// <summary>Value of the fill bit (either 0 or 1)</summary>
 		/// <remarks>Only valid if <see cref="IsLiteral"/> is false</remarks>
-		public int FillBit
-		{
-			get { return (int)((this.RawValue & WordAlignHybridEncoder.FILL_MASK) >> WordAlignHybridEncoder.FILL_SHIFT); }
-		}
+		public int FillBit => (int)((this.RawValue & WordAlignHybridEncoder.FILL_MASK) >> WordAlignHybridEncoder.FILL_SHIFT);
 
-		/// <summary>Number of 31-bit words that are filled by <paramref name="FillBit"/></summary>
+		/// <summary>Number of 31-bit words that are filled by <see cref="FillBit"/></summary>
 		/// <remarks>Only valid if <see cref="IsLiteral"/> is false</remarks>
-		public int FillCount
-		{
-			get { return 1 + (int)(this.RawValue & WordAlignHybridEncoder.LENGTH_MASK); }
-		}
+		public int FillCount => 1 + (int)(this.RawValue & WordAlignHybridEncoder.LENGTH_MASK);
 
 		/// <summary>Return the position of the lowest set bit, or -1</summary>
 		/// <returns>Index from 0 to 30 of the lowest set bit, or -1 if the word is empty</returns>

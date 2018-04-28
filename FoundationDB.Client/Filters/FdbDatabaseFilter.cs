@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,13 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Base class for simple database filters</summary>
 	[DebuggerDisplay("Database={m_database.Name}")]
@@ -63,7 +66,7 @@ namespace FoundationDB.Filters
 
 		protected FdbDatabaseFilter([NotNull] IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
-			if (database == null) throw new ArgumentNullException("database");
+			Contract.NotNull(database, nameof(database));
 
 			m_database = database;
 			m_readOnly = forceReadOnly || database.IsReadOnly;
@@ -75,11 +78,8 @@ namespace FoundationDB.Filters
 		#region Public Properties...
 
 		/// <summary>Database instance configured to read and write data from this partition</summary>
-		protected IFdbDatabase Database
-		{
-			[NotNull]
-			get { return m_database; }
-		}
+		[NotNull]
+		protected IFdbDatabase Database => m_database;
 
 		[NotNull]
 		internal IFdbDatabase GetInnerDatabase()
@@ -88,31 +88,19 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Name of the database</summary>
-		public string Name
-		{
-			get { return m_database.Name; }
-		}
+		public string Name => m_database.Name;
 
 		/// <summary>Cluster of the database</summary>
-		public virtual IFdbCluster Cluster
-		{
-			//REVIEW: do we need a Cluster Filter ?
-			[NotNull]
-			get { return m_database.Cluster; }
-		}
+		[NotNull]
+		public virtual IFdbCluster Cluster => m_database.Cluster;
+		//REVIEW: do we need a Cluster Filter ?
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
-		public CancellationToken Cancellation
-		{
-			get { return m_database.Cancellation; }
-		}
+		public CancellationToken Cancellation => m_database.Cancellation;
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public virtual IFdbDynamicSubspace GlobalSpace
-		{
-			[NotNull]
-			get { return m_database.GlobalSpace; }
-		}
+		[NotNull]
+		public virtual IDynamicKeySubspace GlobalSpace => m_database.GlobalSpace;
 
 		/// <summary>Directory partition of this database instance</summary>
 		public virtual FdbDatabasePartition Directory
@@ -128,50 +116,21 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
-		public virtual bool IsReadOnly
+		public virtual bool IsReadOnly => m_readOnly;
+
+		Slice IKeySubspace.GetPrefix()
 		{
-			get { return m_readOnly; }
+			return this.GlobalSpace.GetPrefix();
 		}
 
-		Slice IFdbSubspace.Key
-		{
-			get { return this.GlobalSpace.Key; }
-		}
-
-		FdbKeyRange IFdbSubspace.ToRange()
+		KeyRange IKeySubspace.ToRange()
 		{
 			return this.GlobalSpace.ToRange();
 		}
 
-		FdbKeyRange IFdbSubspace.ToRange(Slice suffix)
-		{
-			return this.GlobalSpace.ToRange(suffix);
-		}
+		public virtual DynamicPartition Partition => m_database.Partition;
 
-		FdbKeyRange IFdbSubspace.ToRange<TKey>(TKey key)
-		{
-			return this.GlobalSpace.ToRange(key);
-		}
-
-		IFdbSubspace IFdbSubspace.this[Slice suffix]
-		{
-			get { return this.GlobalSpace[suffix]; }
-		}
-
-		IFdbSubspace IFdbSubspace.this[IFdbKey key]
-		{
-			get { return this.GlobalSpace[key]; }
-		}
-
-		public virtual FdbDynamicSubspacePartition Partition
-		{
-			get { return m_database.Partition; }
-		}
-
-		public virtual FdbDynamicSubspaceKeys Keys
-		{
-			get { return m_database.Keys; }
-		}
+		public virtual DynamicKeys Keys => m_database.Keys;
 
 		public virtual bool Contains(Slice key)
 		{
@@ -183,53 +142,20 @@ namespace FoundationDB.Filters
 			return m_database.BoundCheck(key, allowSystemKeys);
 		}
 
-		public virtual Slice ConcatKey(Slice key)
-		{
-			return m_database.ConcatKey(key);
-		}
+		public virtual Slice this[Slice key] => m_database[key];
 
-		public virtual Slice ConcatKey<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			return m_database.ConcatKey<TKey>(key);
-		}
-
-		public virtual Slice[] ConcatKeys(IEnumerable<Slice> keys)
-		{
-			return m_database.ConcatKeys(keys);
-		}
-
-		public virtual Slice[] ConcatKeys<TKey>(IEnumerable<TKey> keys)
-			where TKey : IFdbKey
-		{
-			return m_database.ConcatKeys<TKey>(keys);
-		}
-
-        public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
+		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
 		{
 			return m_database.ExtractKey(key, boundCheck);
 		}
 
-		public virtual Slice[] ExtractKeys(IEnumerable<Slice> keys, bool boundCheck = false)
-		{
-			return m_database.ExtractKeys(keys, boundCheck);
-		}
-
-		public virtual SliceWriter GetWriter(int capacity = 0)
-		{
-			return m_database.GetWriter(capacity);
-		}
-
-		public virtual IDynamicKeyEncoder Encoder
-		{
-			get { return m_database.Encoder; }
-		}
+		public virtual IKeyEncoding Encoding => m_database.Encoding;
 
 		#endregion
 
 		#region Transactionals...
 
-		public virtual IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken), FdbOperationContext context = null)
+		public virtual IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default(CancellationToken), FdbOperationContext context = null)
 		{
 			ThrowIfDisposed();
 
@@ -238,82 +164,82 @@ namespace FoundationDB.Filters
 
 			if (context == null)
 			{
-				context = new FdbOperationContext(this, mode, cancellationToken);
+				context = new FdbOperationContext(this, mode, ct);
 			}
 
-			return m_database.BeginTransaction(mode, cancellationToken, context);
+			return m_database.BeginTransaction(mode, ct, context);
 		}
 
-		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken)
+		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, ct);
 		}
 
-		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, ct);
 		}
 
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
+		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, ct);
 		}
 
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, ct);
 		}
 
-		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken cancellationToken)
+		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, handler, null, ct);
 		}
 
-		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, handler, onDone, ct);
 		}
 
-		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken)
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, handler, null, ct);
 		}
 
-		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, handler, onDone, ct);
 		}
 
-		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
+		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, ct);
 		}
 
-		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, ct);
 		}
 
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
+		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
+			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, ct);
 		}
 
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
+			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, ct);
 		}
 
 		#endregion
@@ -400,15 +326,6 @@ namespace FoundationDB.Filters
 					m_database.Dispose();
 				}
 			}
-		}
-
-		#endregion
-
-		#region IFdbSubspace Members...
-
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return m_database.ToFoundationDbKey();
 		}
 
 		#endregion

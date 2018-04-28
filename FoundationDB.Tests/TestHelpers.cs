@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 
 	internal static class TestHelpers
 	{
@@ -43,7 +44,7 @@ namespace FoundationDB.Client.Tests
 
 		public static readonly string TestClusterFile = null;
 		public static readonly string TestDbName = "DB";
-		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
+		public static readonly Slice TestGlobalPrefix = Slice.FromStringAscii("T");
 		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
 		public static readonly int DefaultTimeout = 15 * 1000;
 
@@ -52,7 +53,7 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
-			var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
+			var subspace = new KeySubspace(TestGlobalPrefix.Memoize());
 			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
 		}
 
@@ -78,14 +79,14 @@ namespace FoundationDB.Client.Tests
 			// create new
 			var subspace = await db.Directory.CreateAsync(path, ct);
 			Assert.That(subspace, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
+			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True);
 			return subspace;
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace, CancellationToken ct)
+		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.ToFoundationDbKey()), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			// do not log
 			db = db.WithoutLogging();
@@ -96,14 +97,14 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IFdbSubspace subspace)
+		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IKeySubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 
-			Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
+			FdbTest.Log("Dumping content of subspace " + subspace.ToString() + " :");
 			int count = 0;
 			await tr
-				.GetRange(FdbKeyRange.StartsWith(subspace.ToFoundationDbKey()))
+				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))
 				.ForEachAsync((kvp) =>
 				{
 					var key = subspace.ExtractKey(kvp.Key, boundCheck: true);
@@ -112,7 +113,7 @@ namespace FoundationDB.Client.Tests
 					try
 					{
 						// attemps decoding it as a tuple
-						keyDump = key.ToTuple().ToString();
+						keyDump = TuPack.Unpack(key).ToString();
 					}
 					catch (Exception)
 					{
@@ -120,13 +121,13 @@ namespace FoundationDB.Client.Tests
 						keyDump = "'" + key.ToString() + "'";
 					}
 						
-					Console.WriteLine("- " + keyDump + " = " + kvp.Value.ToString());
+					FdbTest.Log("- " + keyDump + " = " + kvp.Value.ToString());
 				});
 
 			if (count == 0)
-				Console.WriteLine("> empty !");
+				FdbTest.Log("> empty !");
 			else
-				Console.WriteLine("> Found " + count + " values");
+				FdbTest.Log("> Found " + count + " values");
 		}
 
 		public static async Task AssertThrowsFdbErrorAsync([NotNull] Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)

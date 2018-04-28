@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,68 +26,70 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef TRACE_COUNTING
+//#define TRACE_COUNTING
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Status;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Status;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{
 
 		/// <summary>Helper class for reading from the reserved System subspace</summary>
+		[PublicAPI]
 		public static class System
 		{
 			//REVIEW: what happens if someone mutates (by mitake or not) the underlying buffer of the defaults keys ?
 			// => eg. Fdb.System.MaxValue.Array[0] = 42;
 
 			/// <summary>"\xFF\xFF"</summary>
-			public static readonly Slice MaxValue = Slice.FromAscii("\xFF\xFF");
+			public static readonly Slice MaxValue = Slice.FromByteString("\xFF\xFF");
 
 			/// <summary>"\xFF\x00"</summary>
-			public static readonly Slice MinValue = Slice.FromAscii("\xFF\x00");
+			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
 			/// <summary>"\xFF/backupDataFormat"</summary>
-			public static readonly Slice BackupDataFormat = Slice.FromAscii("\xFF/backupDataFormat");
+			public static readonly Slice BackupDataFormat = Slice.FromByteString("\xFF/backupDataFormat");
 
 			/// <summary>"\xFF/conf/"</summary>
-			public static readonly Slice ConfigPrefix = Slice.FromAscii("\xFF/conf/");
+			public static readonly Slice ConfigPrefix = Slice.FromByteString("\xFF/conf/");
 
 			/// <summary>"\xFF/coordinators"</summary>
-			public static readonly Slice Coordinators = Slice.FromAscii("\xFF/coordinators");
+			public static readonly Slice Coordinators = Slice.FromByteString("\xFF/coordinators");
 
 			/// <summary>"\xFF/globals/"</summary>
-			public static readonly Slice GlobalsPrefix = Slice.FromAscii("\xFF/globals/");
+			public static readonly Slice GlobalsPrefix = Slice.FromByteString("\xFF/globals/");
 
 			/// <summary>"\xFF/init_id"</summary>
-			public static readonly Slice InitId = Slice.FromAscii("\xFF/init_id");
+			public static readonly Slice InitId = Slice.FromByteString("\xFF/init_id");
 
 			/// <summary>"\xFF/keyServer/(key_boundary)" => (..., node_id, ...)</summary>
-			public static readonly Slice KeyServers = Slice.FromAscii("\xFF/keyServers/");
+			public static readonly Slice KeyServers = Slice.FromByteString("\xFF/keyServers/");
 
 			/// <summary>"\xFF/serverKeys/(node_id)/(key_boundary)" => ('' | '1')</summary>
-			public static readonly Slice ServerKeys = Slice.FromAscii("\xFF/serverKeys/");
+			public static readonly Slice ServerKeys = Slice.FromByteString("\xFF/serverKeys/");
 
 			/// <summary>"\xFF/serverList/(node_id)" => (..., node_id, machine_id, datacenter_id, ...)</summary>
-			public static readonly Slice ServerList = Slice.FromAscii("\xFF/serverList/");
+			public static readonly Slice ServerList = Slice.FromByteString("\xFF/serverList/");
 
 			/// <summary>"\xFF/workers/(ip:port)/..." => datacenter + machine + mclass</summary>
-			public static readonly Slice WorkersPrefix = Slice.FromAscii("\xFF/workers/");
+			public static readonly Slice WorkersPrefix = Slice.FromByteString("\xFF/workers/");
 
 			#region JSON Status
 
-			private static readonly Slice StatusJsonKey = Slice.FromAscii("\xFF\xFF/status/json");
+			private static readonly Slice StatusJsonKey = Slice.FromByteString("\xFF\xFF/status/json");
 
+			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
 			{
-				if (trans == null) throw new ArgumentNullException("trans");
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 				Slice data = await trans.GetAsync(StatusJsonKey).ConfigureAwait(false);
 
@@ -107,9 +109,10 @@ namespace FoundationDB.Client
 				return new FdbSystemStatus(doc, rv, jsonText);
 			}
 
+			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException("db");
+				if (db == null) throw new ArgumentNullException(nameof(db));
 
 				// we should not retry the read to the status key!
 				using (var trans = db.BeginReadOnlyTransaction(ct))
@@ -126,11 +129,12 @@ namespace FoundationDB.Client
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
-			public static async Task<FdbClusterFile> GetCoordinatorsAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
+			[ItemNotNull]
+			public static async Task<FdbClusterFile> GetCoordinatorsAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException("db");
+				if (db == null) throw new ArgumentNullException(nameof(db));
 
 				var coordinators = await db.ReadAsync((tr) =>
 				{
@@ -139,22 +143,22 @@ namespace FoundationDB.Client
 					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.Coordinators);
-				}, cancellationToken).ConfigureAwait(false);
+				}, ct).ConfigureAwait(false);
 
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
 
-				return FdbClusterFile.Parse(coordinators.ToAscii());
+				return FdbClusterFile.Parse(coordinators.ToStringAscii());
 			}
 
 			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
-			public static Task<Slice> GetConfigParameterAsync([NotNull] IFdbDatabase db, [NotNull] string name, CancellationToken cancellationToken)
+			public static Task<Slice> GetConfigParameterAsync([NotNull] IFdbDatabase db, [NotNull] string name, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException("db");
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", "name");
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", nameof(name));
 
 				return db.ReadAsync<Slice>((tr) =>
 				{
@@ -163,7 +167,7 @@ namespace FoundationDB.Client
 					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.ConfigKey(name));
-				}, cancellationToken);
+				}, ct);
 			}
 
 			/// <summary>Return the corresponding key for a config attribute</summary>
@@ -171,8 +175,8 @@ namespace FoundationDB.Client
 			/// <returns>"\xFF/conf/foo"</returns>
 			public static Slice ConfigKey([NotNull] string name)
 			{
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", "name");
-				return ConfigPrefix + Slice.FromAscii(name);
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
+				return ConfigPrefix + Slice.FromByteString(name);
 			}
 
 			/// <summary>Return the corresponding key for a global attribute</summary>
@@ -180,8 +184,8 @@ namespace FoundationDB.Client
 			/// <returns>"\xFF/globals/foo"</returns>
 			public static Slice GlobalsKey([NotNull] string name)
 			{
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", "name");
-				return GlobalsPrefix + Slice.FromAscii(name);
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
+				return GlobalsPrefix + Slice.FromByteString(name);
 			}
 
 			/// <summary>Return the corresponding key for a global attribute</summary>
@@ -190,32 +194,34 @@ namespace FoundationDB.Client
 			/// <returns>"\xFF/workers/ABC123/foo"</returns>
 			public static Slice WorkersKey([NotNull] string id, [NotNull] string name)
 			{
-				if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty", "id");
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", "name");
-				return WorkersPrefix + Slice.FromAscii(id) + Slice.FromChar('/') + Slice.FromAscii(name);
+				if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty", nameof(id));
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
+				return WorkersPrefix + Slice.FromByteString(id) + Slice.FromChar('/') + Slice.FromByteString(name);
 			}
 
 			/// <summary>Returns the current storage engine mode of the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Returns either "memory" or "ssd"</returns>
 			/// <remarks>Will return a string starting with "unknown" if the storage engine mode is not recognized</remarks>
-			public static async Task<string> GetStorageEngineModeAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
+			[ItemNotNull]
+			public static async Task<string> GetStorageEngineModeAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				// The '\xFF/conf/storage_engine' keys has value "0" (ASCII) for ssd engine, and "1" (ASCII) for memory engine
+				// The '\xFF/conf/storage_engine' keys has value "0" for ssd-1 engine, "1" for memory engine and "2" for ssd-2 engine
 
-				var value = await GetConfigParameterAsync(db, "storage_engine", cancellationToken).ConfigureAwait(false);
+				var value = await GetConfigParameterAsync(db, "storage_engine", ct).ConfigureAwait(false);
 
 				if (value.IsNull) throw new InvalidOperationException("Failed to read the storage engine mode from the cluster's system keyspace");
 
 				switch(value.ToUnicode())
 				{
-					case "0": return "ssd";
+					case "0": return "ssd"; // "ssd-1"
 					case "1": return "memory";
+					case "2": return "ssd-2";
 					default:
-					{ 
+					{
 						// welcome to the future!
-						return "unknown(" + value.ToAsciiOrHexaString() + ")";
+						return "unknown(" + value.PrettyPrint() + ")";
 					}
 				}
 			}
@@ -226,10 +232,11 @@ namespace FoundationDB.Client
 			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Transaction object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			[ItemNotNull]
 			public static async Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
-				if (trans == null) throw new ArgumentNullException("trans");
-				Contract.Assert(trans.Context != null && trans.Context.Database != null);
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.Assert(trans.Context?.Database != null);
 
 				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
 				{
@@ -247,14 +254,15 @@ namespace FoundationDB.Client
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
 			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
+			[ItemNotNull]
+			public static Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException("db");
+				if (db == null) throw new ArgumentNullException(nameof(db));
 
-				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), cancellationToken);
+				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), ct);
 			}
 
 			//REVIEW: should we call this chunks? shard? fragments? contigous ranges?
@@ -262,60 +270,63 @@ namespace FoundationDB.Client
 			/// <summary>Split a range of keys into smaller chunks where each chunk represents a contiguous range stored on a single server</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="range">Range of keys to split up into smaller chunks</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static Task<List<FdbKeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
+			[ItemNotNull]
+			public static Task<List<KeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, KeyRange range, CancellationToken ct)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
-				return GetChunksAsync(db, range.Begin, range.End, cancellationToken);
+				return GetChunksAsync(db, range.Begin, range.End, ct);
 			}
 
 			/// <summary>Split a range of keys into chunks representing a contiguous range stored on a single server</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
 			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static async Task<List<FdbKeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
+			[ItemNotNull]
+			public static async Task<List<KeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
-				if (db == null) throw new ArgumentNullException("db");
-				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", "endExclusive");
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
-				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, cancellationToken).ConfigureAwait(false);
+				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, ct).ConfigureAwait(false);
 
 				int count = boundaries.Count;
-				var chunks = new List<FdbKeyRange>(count + 2);
+				var chunks = new List<KeyRange>(count + 2);
 
 				if (count == 0)
 				{ // the range does not cross any boundary, and is contained in just one chunk
-					chunks.Add(new FdbKeyRange(beginInclusive, endExclusive));
+					chunks.Add(new KeyRange(beginInclusive, endExclusive));
 					return chunks;
 				}
 
 				var k = boundaries[0];
-				if (k != beginInclusive) chunks.Add(new FdbKeyRange(beginInclusive, k));
+				if (k != beginInclusive) chunks.Add(new KeyRange(beginInclusive, k));
 
 				for (int i = 1; i < boundaries.Count; i++)
 				{
-					chunks.Add(new FdbKeyRange(k, boundaries[i]));
+					chunks.Add(new KeyRange(k, boundaries[i]));
 					k = boundaries[i];
 				}
 
-				if (k != endExclusive) chunks.Add(new FdbKeyRange(k, endExclusive));
+				if (k != endExclusive) chunks.Add(new KeyRange(k, endExclusive));
 
 				return chunks;
 			}
 
+			[ItemNotNull]
 			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync([NotNull] IFdbReadOnlyTransaction trans, Slice begin, Slice end)
 			{
 				Contract.Requires(trans != null && end >= begin);
 
 #if TRACE_COUNTING
-				trans.Annotate("Get boundary keys in range {0}", FdbKeyRange.Create(begin, end));
+				trans.Annotate("Get boundary keys in range {0}", KeyRange.Create(begin, end));
 #endif
 
 				trans.WithReadAccessToSystemKeys();
@@ -337,7 +348,7 @@ namespace FoundationDB.Client
 							{
 								results.Add(kvp.Key.Substring(KeyServers.Count));
 							}
-							begin = chunk.Last.Key.Substring(KeyServers.Count) + (byte)0;
+							begin = chunk.Last.Key.Substring(KeyServers.Count) + 0;
 						}
 						if (!chunk.HasMore)
 						{
@@ -367,7 +378,7 @@ namespace FoundationDB.Client
 #if TRACE_COUNTING
 				if (results.Count == 0)
 				{
-					trans.Annotate("There is no chunk boundary in range {0}", FdbKeyRange.Create(begin, end));
+					trans.Annotate("There is no chunk boundary in range {0}", KeyRange.Create(begin, end));
 				}
 				else
 				{
@@ -381,24 +392,26 @@ namespace FoundationDB.Client
 			/// <summary>Estimate the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="range">Range defining the keys to count</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, CancellationToken ct)
 			{
-				return EstimateCountAsync(db, range.Begin, range.End, null, cancellationToken);
+				return EstimateCountAsync(db, range.Begin, range.End, null, ct);
+				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimate the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="range">Range defining the keys to count</param>
 			/// <param name="onProgress">Optional callback called everytime the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
-				return EstimateCountAsync(db, range.Begin, range.End, onProgress, cancellationToken);
+				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
+				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimate the number of keys in the specified range.</summary>
@@ -406,19 +419,19 @@ namespace FoundationDB.Client
 			/// <param name="beginInclusive">Key defining the beginning of the range</param>
 			/// <param name="endExclusive">Key defining the end of the range</param>
 			/// <param name="onProgress">Optional callback called everytime the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
-			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
+			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
 				const int INIT_WINDOW_SIZE = 1 << 8; // start at 256 //1024
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
 				const int MIN_WINDOW_SIZE = 64; // use range reads when the windows size is smaller than 64
 
-				if (db == null) throw new ArgumentNullException("db");
-				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", "endExclusive");
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
-				cancellationToken.ThrowIfCancellationRequested();
+				ct.ThrowIfCancellationRequested();
 
 				// To count the number of items in the range, we will scan it using a key selector with an offset equal to our window size
 				// > if the returned key is still inside the range, we add the window size to the counter, and start again from the current key
@@ -438,16 +451,16 @@ namespace FoundationDB.Client
 				var cursor = beginInclusive.Memoize();
 				var end = endExclusive.Memoize();
 
-				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
+				using (var tr = db.BeginReadOnlyTransaction(ct))
 				{
 #if TRACE_COUNTING
-					tr.Annotate("Estimating number of keys in range {0}", FdbKeyRange.Create(beginInclusive, endExclusive));
+					tr.Annotate("Estimating number of keys in range {0}", KeyRange.Create(beginInclusive, endExclusive));
 #endif
 
 					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 
 					// start looking for the first key in the range
-					cursor = await tr.Snapshot.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
+					cursor = await tr.Snapshot.GetKeyAsync(KeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
 					if (cursor >= end)
 					{ // the range is empty !
 						return 0;
@@ -466,7 +479,7 @@ namespace FoundationDB.Client
 					{
 						Contract.Assert(windowSize > 0);
 
-						var selector = FdbKeySelector.FirstGreaterOrEqual(cursor) + windowSize;
+						var selector = KeySelector.FirstGreaterOrEqual(cursor) + windowSize;
 						Slice next = Slice.Nil;
 						FdbException error = null;
 						try
@@ -517,15 +530,15 @@ namespace FoundationDB.Client
 								// Count the keys by reading them. Also, we know that there can not be more than windowSize - 1 remaining
 								int n = await tr.Snapshot
 									.GetRange(
-										FdbKeySelector.FirstGreaterThan(cursor), // cursor has already been counted once
-										FdbKeySelector.FirstGreaterOrEqual(end),
+										KeySelector.FirstGreaterThan(cursor), // cursor has already been counted once
+										KeySelector.FirstGreaterOrEqual(end),
 										new FdbRangeOptions() { Limit = windowSize - 1 }
 									)
 									.CountAsync()
 									.ConfigureAwait(false);
 
 								counter += n;
-								if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, end));
+								onProgress?.Report((counter, end));
 #if TRACE_COUNTING
 								++iter;
 #endif
@@ -539,7 +552,7 @@ namespace FoundationDB.Client
 						// the range is not finished, advance the cursor
 						counter += windowSize;
 						cursor = next;
-						if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, cursor));
+						onProgress?.Report((counter, cursor));
 
 						if (!last)
 						{ // double the size of the window if we are not in the last segment

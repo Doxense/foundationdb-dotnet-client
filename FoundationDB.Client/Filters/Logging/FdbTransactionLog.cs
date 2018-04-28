@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
@@ -38,6 +35,9 @@ namespace FoundationDB.Filters.Logging
 	using System.Reflection;
 	using System.Text;
 	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Container that logs all operations performed by a transaction</summary>
 	public sealed partial class FdbTransactionLog
@@ -552,6 +552,7 @@ namespace FoundationDB.Filters.Logging
 			Reset,
 			OnError,
 			SetOption,
+			GetVersionStamp,
 
 			Log,
 		}

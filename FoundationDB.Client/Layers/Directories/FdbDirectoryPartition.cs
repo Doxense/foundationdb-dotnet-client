@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,28 +28,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Directories
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
+
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
-		public static Slice LayerId { get { return Slice.FromString("partition"); } }
+		public static Slice LayerId => Slice.FromString("partition");
 
-		private readonly FdbDirectoryLayer m_parentDirectoryLayer;
-
-		internal FdbDirectoryPartition(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FdbSubspace.CreateDynamic(prefix + FdbKey.Directory, TypeSystem.Tuples), FdbSubspace.CreateDynamic(prefix, TypeSystem.Tuples), location), LayerId, TypeSystem.Tuples.GetDynamicEncoder())
+		internal FdbDirectoryPartition([NotNull] ITuple location, [NotNull] ITuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
+			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).AsDynamic(keyEncoding), FromKey(prefix).AsDynamic(keyEncoding), location), LayerId, keyEncoding)
 		{
-			m_parentDirectoryLayer = directoryLayer;
+			this.ParentDirectoryLayer = directoryLayer;
 		}
 
-		internal FdbDirectoryLayer ParentDirectoryLayer { get { return m_parentDirectoryLayer; } }
+		internal FdbDirectoryLayer ParentDirectoryLayer { get; }
 
 		protected override Slice GetKeyPrefix()
 		{
 			throw new InvalidOperationException("Cannot create keys in the root of a directory partition.");
+		}
+
+		protected override KeyRange GetKeyRange()
+		{
+			throw new InvalidOperationException("Cannot create a key range in the root of a directory partition.");
 		}
 
 		public override bool Contains(Slice key)
@@ -57,12 +63,12 @@ namespace FoundationDB.Layers.Directories
 			throw new InvalidOperationException("Cannot check whether a key belongs to the root of a directory partition.");
 		}
 
-		protected override IFdbTuple ToRelativePath(IFdbTuple location)
+		protected override ITuple ToRelativePath(ITuple location)
 		{
-			return location ?? FdbTuple.Empty;
+			return location ?? STuple.Empty;
 		}
 
-		protected override FdbDirectoryLayer GetLayerForPath(IFdbTuple relativeLocation)
+		protected override FdbDirectoryLayer GetLayerForPath(ITuple relativeLocation)
 		{
 			if (relativeLocation.Count == 0)
 			{ // Forward all actions on the Partition itself (empty path) to its parent's DL
@@ -76,7 +82,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.FullName, this.InternalKey.ToAsciiOrHexaString());
+			return $"DirectoryPartition(path={this.FullName}, prefix={GetPrefixUnsafe():K})";
 		}
 
 	}

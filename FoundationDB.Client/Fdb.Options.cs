@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 
 	public static partial class Fdb
@@ -36,6 +37,7 @@ namespace FoundationDB.Client
 		//REVIEW: consider changing this to an instance class so that we could do a Fluent API ? ex: Fdb.Options.WithFoo(...).WithBar(...).WithBaz(...)
 
 		/// <summary>Global settings for the FoundationDB binding</summary>
+		[PublicAPI]
 		public static class Options
 		{
 
@@ -70,7 +72,7 @@ namespace FoundationDB.Client
 			/// </remarks>
 			public static void SetNativeLibPath(string path)
 			{
-				if (path == null) throw new ArgumentNullException("path");
+				if (path == null) throw new ArgumentNullException(nameof(path));
 
 				//TODO: throw if native library has already been loaded
 				Fdb.Options.NativeLibPath = path;

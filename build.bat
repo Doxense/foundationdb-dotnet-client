@@ -9,12 +9,12 @@ if not exist .nuget\nuget.exe (
 
 REM we need FAKE to process our build scripts
 if not exist build\tools\FAKE\tools\Fake.exe (
-    ECHO FAKE not found.. Installing..
-    ".nuget\nuget.exe" "install" "FAKE" "-OutputDirectory" "build\tools" "-ExcludeVersion" "-Prerelease"
+    ECHO FAKE not found... Installing...
+    ".nuget\nuget.exe" "install" "FAKE" "-Version" "4.64.12" "-OutputDirectory" "build\tools" "-ExcludeVersion"
 )
 
 REM we need nunit-console to run our tests
-if not exist build\tools\NUnit.Runners\tools\nunit-console.exe (
+if not exist build\tools\NUnit.ConsoleRunner\tools\nunit3-console.exe (
     ECHO Nunit not found.. Installing
     ".nuget\nuget.exe" "install" "NUnit.Runners" "-OutputDirectory" "build\tools" "-ExcludeVersion" "-Prerelease"
 )

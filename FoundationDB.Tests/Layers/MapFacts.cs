@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Net;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class MapFacts : FdbTest
@@ -60,7 +61,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					var value = await map.TryGetAsync(tr, "hello");
 					Assert.That(value.HasValue, Is.False);
-					Assert.That(value.GetValueOrDefault(), Is.Null);
+					Assert.That(value.Value, Is.Null);
 				}
 
 				// write value
@@ -168,11 +169,11 @@ namespace FoundationDB.Layers.Collections.Tests
 			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
 			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
 			var keyEncoder = KeyValueEncoders.Bind<IPEndPoint>(
-				(ipe) => ipe == null ? Slice.Empty : FdbTuple.EncodeKey(ipe.Address, ipe.Port),
+				(ipe) => ipe == null ? Slice.Empty : TuPack.EncodeKey(ipe.Address, ipe.Port),
 				(packed) =>
 				{
 					if (packed.IsNullOrEmpty) return default(IPEndPoint);
-					var t = FdbTuple.Unpack(packed);
+					var t = TuPack.Unpack(packed);
 					return new IPEndPoint(t.Get<IPAddress>(0), t.Get<int>(1));
 				}
 			);
@@ -188,7 +189,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts").UsingEncoder(keyEncoder), KeyValueEncoders.Values.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>

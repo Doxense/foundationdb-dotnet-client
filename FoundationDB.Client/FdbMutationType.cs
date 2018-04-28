@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,13 @@ namespace FoundationDB.Client
 		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// The smaller of the two values is then stored in the database.
 		/// </summary>
-		Min = 13
+		Min = 13,
+
+		//TODO: XML Comments!
+		VersionStampedKey = 14,
+
+		//TODO: XML Comments!
+		VersionStampedValue = 15,
 
 	}
 

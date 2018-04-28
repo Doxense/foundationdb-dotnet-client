@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 
 	/// <summary>Iterator that reads 32-bit compressed words from a compressed bitmap</summary>
 	public struct CompressedBitmapWordIterator : IEnumerator<CompressedWord>
@@ -65,15 +65,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return true;
 		}
 
-		public CompressedWord Current
-		{
-			get { return new CompressedWord(m_current); }
-		}
+		public CompressedWord Current => new CompressedWord(m_current);
 
-		object System.Collections.IEnumerator.Current
-		{
-			get { return this.Current; }
-		}
+		object System.Collections.IEnumerator.Current => this.Current;
 
 		public void Reset()
 		{

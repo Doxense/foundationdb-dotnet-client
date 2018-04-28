@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,16 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Expressions;
-	using FoundationDB.Linq.Providers;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Async;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Linq.Expressions;
+	using FoundationDB.Linq.Providers;
 
 	/// <summary>Extensions methods that help create a query expression tree</summary>
 	public static class FdbAsyncQueryable
@@ -60,7 +61,7 @@ namespace FoundationDB.Linq
 		/// <returns>Query that will use this database as a source</returns>
 		public static IFdbDatabaseQueryable Query(this IFdbDatabase db)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
 			return new FdbDatabaseQuery(db);
 		}
@@ -69,9 +70,9 @@ namespace FoundationDB.Linq
 		/// <param name="query">Source database query</param>
 		/// <param name="range">Pair of key selectors</param>
 		/// <returns>Query that will return the keys from the specified <paramref name="range"/></returns>
-		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbDatabaseQueryable query, FdbKeySelectorPair range)
+		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbDatabaseQueryable query, KeySelectorPair range)
 		{
-			if (query == null) throw new ArgumentNullException("query");
+			if (query == null) throw new ArgumentNullException(nameof(query));
 
 			var expr = FdbQueryExpressions.Range(range);
 
@@ -84,7 +85,7 @@ namespace FoundationDB.Linq
 		/// <returns>Query that will return the keys that share the specified <paramref name="prefix"/></returns>
 		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> RangeStartsWith(this IFdbDatabaseQueryable query, Slice prefix)
 		{
-			if (query == null) throw new ArgumentNullException("query");
+			if (query == null) throw new ArgumentNullException(nameof(query));
 
 			var expr = FdbQueryExpressions.RangeStartsWith(prefix);
 
@@ -98,8 +99,8 @@ namespace FoundationDB.Linq
 		/// <summary>Creates a new query on this index</summary>
 		public static IFdbIndexQueryable<TId, TValue> Query<TId, TValue>(this FdbIndex<TId, TValue> index, IFdbDatabase db)
 		{
-			if (index == null) throw new ArgumentNullException("index");
-			if (db == null) throw new ArgumentNullException("db");
+			if (index == null) throw new ArgumentNullException(nameof(index));
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
 			return new FdbIndexQuery<TId, TValue>(db, index);
 		}
@@ -117,8 +118,8 @@ namespace FoundationDB.Linq
 		/// <summary>Projects each element of a sequence query into a new form.</summary>
 		public static IFdbAsyncSequenceQueryable<R> Select<T, R>(this IFdbAsyncSequenceQueryable<T> query, Expression<Func<T, R>> selector)
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (selector == null) throw new ArgumentNullException("selector");
+			if (query == null) throw new ArgumentNullException(nameof(query));
+			if (selector == null) throw new ArgumentNullException(nameof(selector));
 
 			var sourceExpr = query.Expression as FdbQuerySequenceExpression<T>;
 			if (sourceExpr == null) throw new ArgumentException("query");
@@ -131,8 +132,8 @@ namespace FoundationDB.Linq
 		/// <summary>Filters a sequence query of values based on a predicate.</summary>
 		public static IFdbAsyncSequenceQueryable<T> Where<T>(this IFdbAsyncSequenceQueryable<T> query, Expression<Func<T, bool>> predicate)
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (predicate == null) throw new ArgumentNullException("predicate");
+			if (query == null) throw new ArgumentNullException(nameof(query));
+			if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
 			var sourceExpr = query.Expression as FdbQuerySequenceExpression<T>;
 			if (sourceExpr == null) throw new ArgumentException("query");
@@ -143,12 +144,12 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns an async sequence that would return the results of this query as they arrive.</summary>
-		public static IFdbAsyncEnumerable<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
+		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
 		{
-			if (query == null) throw new ArgumentNullException("query");
+			if (query == null) throw new ArgumentNullException(nameof(query));
 
 			var sequenceQuery = query as FdbAsyncSequenceQuery<T>;
-			if (sequenceQuery == null) throw new ArgumentException("Source query type not supported", "query");
+			if (sequenceQuery == null) throw new ArgumentException("Source query type not supported", nameof(query));
 
 			return sequenceQuery.ToEnumerable();
 		}
@@ -156,7 +157,7 @@ namespace FoundationDB.Linq
 		/// <summary>Returns the first element of a sequence query</summary>
 		public static Task<int> CountAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
-			if (query == null) throw new ArgumentNullException("query");
+			if (query == null) throw new ArgumentNullException(nameof(query));
 
 			var expr = FdbQueryExpressions.Single<T, int>(
 				(FdbQuerySequenceExpression<T>)query.Expression,
@@ -170,8 +171,8 @@ namespace FoundationDB.Linq
 		/// <summary>Returns the first element of a sequence query</summary>
 		public static Task<T> FirstAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T>(ct);
+			if (query == null) throw new ArgumentNullException(nameof(query));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<T>(ct);
 
 			var expr = FdbQueryExpressions.Single<T, T>(
 				(FdbQuerySequenceExpression<T>)query.Expression,
@@ -185,8 +186,8 @@ namespace FoundationDB.Linq
 		/// <summary>Returns the first element of a sequence query</summary>
 		public static Task<T> FirstOrDefaultAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T>(ct);
+			if (query == null) throw new ArgumentNullException(nameof(query));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<T>(ct);
 
 			var expr = FdbQueryExpressions.Single<T, T>(
 				(FdbQuerySequenceExpression<T>)query.Expression,
@@ -200,8 +201,8 @@ namespace FoundationDB.Linq
 		/// <summary>Immediately executes a sequence query and return a list of all the results once it has completed.</summary>
 		public static Task<List<T>> ToListAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<List<T>>(ct);
+			if (query == null) throw new ArgumentNullException(nameof(query));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<List<T>>(ct);
 
 			return query.Provider.ExecuteAsync<List<T>>(query.Expression, ct);
 
@@ -210,8 +211,8 @@ namespace FoundationDB.Linq
 		/// <summary>Immediately executes a sequence query and return an array of all the results once it has completed.</summary>
 		public static Task<T[]> ToArrayAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
-			if (query == null) throw new ArgumentNullException("query");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T[]>(ct);
+			if (query == null) throw new ArgumentNullException(nameof(query));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<T[]>(ct);
 
 			return query.Provider.ExecuteAsync<T[]>(query.Expression, ct);
 		}

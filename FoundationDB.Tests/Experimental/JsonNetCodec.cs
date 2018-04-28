@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,12 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Types.Json
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using Newtonsoft.Json;
 	using System;
 	using System.IO;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Client;
+	using Newtonsoft.Json;
 
 	/// <summary>Sample codec that uses JSON.Net to serialize values into Slices</summary>
 	/// <typeparam name="TDocument"></typeparam>
@@ -70,7 +72,7 @@ namespace FoundationDB.Types.Json
 				int size = checked((int)ms.Length);
 				Contract.Assert(tmp != null && size >= 0 && size <= tmp.Length);
 
-				return Slice.Create(tmp, 0, size);
+				return tmp.AsSlice(0, size);
 			}
 		}
 
@@ -97,13 +99,13 @@ namespace FoundationDB.Types.Json
 		{
 			var packed = EncodeInternal(value);
 			Contract.Assert(packed.Count >= 0);
-			output.WriteVarint32((uint)packed.Count);
+			output.WriteVarInt32((uint)packed.Count);
 			output.WriteBytes(packed);
 		}
 
 		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
-			uint size = input.ReadVarint32();
+			uint size = input.ReadVarInt32();
 			if (size > int.MaxValue) throw new FormatException("Malformed data size");
 
 			var packed = input.ReadBytes((int)size);

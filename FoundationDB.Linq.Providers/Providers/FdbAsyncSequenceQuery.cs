@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Expressions;
 	using System;
+	using Doxense.Linq;
 
 	/// <summary>Async LINQ query that returns an async sequence of items</summary>
 	/// <typeparam name="T">Type of the items in the sequence</typeparam>
@@ -51,9 +53,9 @@ namespace FoundationDB.Linq.Providers
 		public Type ElementType { get { return typeof(T); } }
 
 		/// <summary>Return an async sequence that will return the results of this query</summary>
-		public IFdbAsyncEnumerable<T> ToEnumerable(FdbAsyncMode mode = FdbAsyncMode.Default)
+		public IAsyncEnumerable<T> ToEnumerable(AsyncIterationHint mode = AsyncIterationHint.Default)
 		{
-			return FdbAsyncEnumerable.Create((_) => GetEnumerator(this, mode));
+			return AsyncEnumerable.Create((_, __) => GetEnumerator(this, mode));
 		}
 
 	}

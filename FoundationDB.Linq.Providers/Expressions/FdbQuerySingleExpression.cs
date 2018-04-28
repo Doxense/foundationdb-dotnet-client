@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,9 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
@@ -38,6 +35,9 @@ namespace FoundationDB.Linq.Expressions
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Base class of all queries that return a single element</summary>
 	/// <typeparam name="T">Type of the elements of the source sequence</typeparam>
@@ -45,40 +45,26 @@ namespace FoundationDB.Linq.Expressions
 	public class FdbQuerySingleExpression<T, R> : FdbQueryExpression<R>
 	{
 		/// <summary>Create a new expression that returns a single result from a source sequence</summary>
-		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, string name, Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
+		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, string name, Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
 			Contract.Requires(sequence != null && lambda != null);
 			this.Sequence = sequence;
 			this.Name = name;
-			this.Lambda = lambda;
+			this.Handler = lambda;
 		}
 
 		/// <summary>Always returns <see cref="FdbQueryShape.Single"/></summary>
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Single; }
-		}
+		public override FdbQueryShape Shape => FdbQueryShape.Single;
 
 		/// <summary>Source sequence</summary>
-		public FdbQuerySequenceExpression<T> Sequence
-		{
-			[NotNull] get;
-			private set;
-		}
+		[NotNull]
+		public FdbQuerySequenceExpression<T> Sequence { get; }
 
 		/// <summary>Name of this query</summary>
-		public string Name
-		{
-			get;
-			private set;
-		}
+		public string Name { get; }
 
-		/// <summary>Opeartion that is applied to <see cref="Sequence"/> and that returns a single result</summary>
-		public new Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda
-		{
-			[NotNull] get;
-			private set;
-		}
+		[NotNull]
+		public Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> Handler { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -110,7 +96,7 @@ namespace FoundationDB.Linq.Expressions
 			var body = Expression.Call(
 				method,
 				sourceExpr,
-				this.Lambda,
+				this.Handler,
 				prmTrans,
 				prmCancel);
 

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,14 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
+	using System;
+	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
-	using System;
-	using System.Collections.Generic;
-	using System.Net;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class MultiMapFacts : FdbTest
@@ -89,7 +87,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await tr.GetAsync(map.Subspace[FdbTuple.Create("hello", "world")]);
+					var loc = map.Subspace.AsDynamic();
+					var value = await tr.GetAsync(loc.Keys.Encode("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
 				}
@@ -112,7 +111,8 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(count, Is.Null);
 
 					// also check directly
-					var data = await tr.GetAsync(map.Subspace[FdbTuple.Create("hello", "world")]);
+					var loc = map.Subspace.AsDynamic();
+					var data = await tr.GetAsync(loc.Keys.Encode("hello", "world"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}
 

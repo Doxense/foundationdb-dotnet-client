@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -25,20 +25,20 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
-
+ 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Filters.Logging;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Linq;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
-	using System.Text;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Linq;
+	using Doxense.Linq.Async.Iterators;
+	using Doxense.Serialization.Encoders;
+	using FoundationDB.Layers.Directories;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class RangeQueryFacts : FdbTest
@@ -170,10 +170,10 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
 
 					// should fail because there is more than one
-					Assert.Throws<InvalidOperationException>(async () => await query.SingleOrDefaultAsync(), "SingleOrDefaultAsync should throw if the range returns more than 1 result");
+					Assert.That(async () => await query.SingleOrDefaultAsync(), Throws.InstanceOf<InvalidOperationException>(), "SingleOrDefaultAsync should throw if the range returns more than 1 result");
 
 					// should fail because there is more than one
-					Assert.Throws<InvalidOperationException>(async () => await query.SingleAsync(), "SingleAsync should throw if the range returns more than 1 result");
+					Assert.That(async () => await query.SingleAsync(), Throws.InstanceOf<InvalidOperationException>(), "SingleAsync should throw if the range returns more than 1 result");
 				}
 
 				// B: exactly one item
@@ -223,7 +223,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
 					// should return the first one
-					Assert.Throws<InvalidOperationException>(async () => await query.FirstAsync(), "FirstAsync should throw if the range returns nothing");
+					Assert.That(async () => await query.FirstAsync(), Throws.InstanceOf<InvalidOperationException>(), "FirstAsync should throw if the range returns nothing");
 
 					// should return the last one
 					res = await query.LastOrDefaultAsync();
@@ -231,7 +231,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
 					// should return the last one
-					Assert.Throws<InvalidOperationException>(async () => await query.LastAsync(), "LastAsync should throw if the range returns nothing");
+					Assert.That(async () => await query.LastAsync(), Throws.InstanceOf<InvalidOperationException>(), "LastAsync should throw if the range returns nothing");
 
 					// should fail because there is more than one
 					res = await query.SingleOrDefaultAsync();
@@ -239,7 +239,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
 					// should fail because there is none
-					Assert.Throws<InvalidOperationException>(async () => await query.SingleAsync(), "SingleAsync should throw if the range returns nothing");
+					Assert.That(async () => await query.SingleAsync(), Throws.InstanceOf<InvalidOperationException>(), "SingleAsync should throw if the range returns nothing");
 				}
 
 				// A: with a size limit
@@ -296,8 +296,8 @@ namespace FoundationDB.Client.Tests
 						tr.Set(a.Keys.Encode(i), Slice.FromInt32(i));
 					}
 					// add guard keys
-					tr.Set(location.Key, Slice.FromInt32(-1));
-					tr.Set(location.Key + (byte)255, Slice.FromInt32(-1));
+					tr.Set(location.GetPrefix(), Slice.FromInt32(-1));
+					tr.Set(location.GetPrefix() + (byte)255, Slice.FromInt32(-1));
 				}, this.Cancellation);
 
 				// Take(5) should return the first 5 items
@@ -342,11 +342,11 @@ namespace FoundationDB.Client.Tests
 				{
 					var query = tr.GetRange(a.Keys.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
-					Assert.That(query.Limit, Is.EqualTo(0));
+					Assert.That(query.Limit, Is.Zero);
 
 					var elements = await query.ToListAsync();
 					Assert.That(elements, Is.Not.Null);
-					Assert.That(elements.Count, Is.EqualTo(0));
+					Assert.That(elements.Count, Is.Zero);
 				}
 
 			}
@@ -384,11 +384,11 @@ namespace FoundationDB.Client.Tests
 
 					// |xxxxxxxxxxxxxxxxxxxxxxxxxxxxx|(100->)
 					res = await query.Skip(100).ToListAsync();
-					Assert.That(res.Count, Is.EqualTo(0), "100 --> 99");
+					Assert.That(res.Count, Is.Zero, "100 --> 99");
 
 					// |xxxxxxxxxxxxxxxxxxxxxxxxxxxxx|_____________(150->)
 					res = await query.Skip(150).ToListAsync();
-					Assert.That(res.Count, Is.EqualTo(0), "150 --> 100");
+					Assert.That(res.Count, Is.Zero, "150 --> 100");
 				}
 
 				// from the end
@@ -411,11 +411,11 @@ namespace FoundationDB.Client.Tests
 
 					// (<- -1)|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
 					res = await query.Reverse().Skip(100).ToListAsync();
-					Assert.That(res.Count, Is.EqualTo(0), "0 <-- -1");
+					Assert.That(res.Count, Is.Zero, "0 <-- -1");
 
 					// (<- -51)<<<<<<<<<<<<<|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
 					res = await query.Reverse().Skip(100).ToListAsync();
-					Assert.That(res.Count, Is.EqualTo(0), "0 <-- -51");
+					Assert.That(res.Count, Is.Zero, "0 <-- -51");
 				}
 
 				// from both sides
@@ -443,7 +443,7 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "Range");
 
 				// import test data
-				var data = Enumerable.Range(0, 30).Select(x => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromFixed32(x)));
+				var data = Enumerable.Range(0, 30).Select(x => (location.Keys.Encode(x), Slice.FromFixed32(x)));
 				await Fdb.Bulk.WriteAsync(db, data, this.Cancellation);
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
@@ -502,7 +502,7 @@ namespace FoundationDB.Client.Tests
 					{
 						for (int i = 0; i < N; i++)
 						{
-							tr.Set(lists[k].Keys.Encode((i * K) + k), FdbTuple.EncodeKey(k, i));
+							tr.Set(lists[k].Keys.Encode((i * K) + k), TuPack.EncodeKey(k, i));
 						}
 						await tr.CommitAsync();
 					}
@@ -514,12 +514,12 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.MergeSort(
-						lists.Select(list => FdbKeySelectorPair.Create(list.Keys.ToRange())),
+						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
 						kvp => location.Keys.DecodeLast<int>(kvp.Key)
 						);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbMergeSortIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -527,8 +527,8 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < K * N; i++)
 					{
-						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(FdbTuple.EncodeKey(i % K, i)));
-						Assert.That(results[i].Value, Is.EqualTo(FdbTuple.EncodeKey(i % K, i / K)));
+						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(TuPack.EncodeKey(i % K, i)));
+						Assert.That(results[i].Value, Is.EqualTo(TuPack.EncodeKey(i % K, i / K)));
 					}
 				}
 			}
@@ -556,19 +556,19 @@ namespace FoundationDB.Client.Tests
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
 				//foreach(var serie in series)
 				//{
-				//	Console.WriteLine(String.Join(", ", serie));
+				//	Log(String.Join(", ", serie));
 				//}
 
 				for (int k = 0; k < K; k++)
 				{
-					//Console.WriteLine("> k = " + k);
+					//Log("> k = " + k);
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
-							var value = FdbTuple.EncodeKey(k, i);
-							//Console.WriteLine("> " + key + " = " + value);
+							var value = TuPack.EncodeKey(k, i);
+							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
 						await tr.CommitAsync();
@@ -584,12 +584,12 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Intersect(
-						lists.Select(list => FdbKeySelectorPair.Create(list.Keys.ToRange())),
+						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
 						kvp => location.Keys.DecodeLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbIntersectIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<IntersectAsyncIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -628,19 +628,19 @@ namespace FoundationDB.Client.Tests
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
 				//foreach(var serie in series)
 				//{
-				//	Console.WriteLine(String.Join(", ", serie));
+				//	Log(String.Join(", ", serie));
 				//}
 
 				for (int k = 0; k < K; k++)
 				{
-					//Console.WriteLine("> k = " + k);
+					//Log("> k = " + k);
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Keys.Encode(series[k][i]);
-							var value = FdbTuple.EncodeKey(k, i);
-							//Console.WriteLine("> " + key + " = " + value);
+							var value = TuPack.EncodeKey(k, i);
+							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
 						await tr.CommitAsync();
@@ -656,12 +656,12 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Except(
-						lists.Select(list => FdbKeySelectorPair.Create(list.Keys.ToRange())),
+						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
 						kvp => location.Keys.DecodeLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbExceptIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<ExceptAsyncIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -688,20 +688,20 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "ExceptComposite");
 
 				// Items contains a list of all ("user", id) that were created
-				var locItems = await location.CreateOrOpenAsync(db, "Items", this.Cancellation);
+				var locItems = (await location.CreateOrOpenAsync(db, "Items", this.Cancellation)).AsTyped<string, int>();
 				// Processed contain the list of all ("user", id) that were processed
-				var locProcessed = await location.CreateOrOpenAsync(db, "Processed", this.Cancellation);
+				var locProcessed = (await location.CreateOrOpenAsync(db, "Processed", this.Cancellation)).AsTyped<string, int>();
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 
 				await db.WriteAsync((tr) =>
 				{
 					// Items
-					tr.Set(locItems.Keys.Encode("userA", 10093), Slice.Empty);
-					tr.Set(locItems.Keys.Encode("userA", 19238), Slice.Empty);
-					tr.Set(locItems.Keys.Encode("userB", 20003), Slice.Empty);
+					tr.Set(locItems.Keys["userA", 10093], Slice.Empty);
+					tr.Set(locItems.Keys["userA", 19238], Slice.Empty);
+					tr.Set(locItems.Keys["userB", 20003], Slice.Empty);
 					// Processed
-					tr.Set(locProcessed.Keys.Encode("userA", 19238), Slice.Empty);
+					tr.Set(locProcessed.Keys["userA", 19238], Slice.Empty);
 				}, this.Cancellation);
 
 				// the query (Items ∩ Processed) should return (userA, 10093) and (userB, 20003)
@@ -712,13 +712,13 @@ namespace FoundationDB.Client.Tests
 				{
 					var query = tr.Except(
 						new[] { locItems.Keys.ToRange(), locProcessed.Keys.ToRange() },
-						(kv) => FdbTuple.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
-						FdbTupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
+						(kv) => TuPack.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
+						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
 
 					// problem: Except() still returns the original (Slice,Slice) pairs from the first range,
 					// meaning that we still need to unpack agin the key (this time knowing the location)
-					return query.Select(kv => locItems.Keys.Unpack(kv.Key));
+					return query.Select(kv => locItems.Keys.Decode(kv.Key));
 				}, this.Cancellation);
 
 				foreach(var r in results)
@@ -726,8 +726,8 @@ namespace FoundationDB.Client.Tests
 					Trace.WriteLine(r);
 				}
 				Assert.That(results.Count, Is.EqualTo(2));
-				Assert.That(results[0], Is.EqualTo(FdbTuple.Create("userA", 10093)));
-				Assert.That(results[1], Is.EqualTo(FdbTuple.Create("userB", 20003)));
+				Assert.That(results[0], Is.EqualTo(("userA", 10093)));
+				Assert.That(results[1], Is.EqualTo(("userB", 20003)));
 
 				// Second Method: pre-parse the queries, and merge on the results directly
 				Trace.WriteLine("Method 2:");
@@ -735,14 +735,14 @@ namespace FoundationDB.Client.Tests
 				{
 					var items = tr
 						.GetRange(locItems.Keys.ToRange())
-						.Select(kv => locItems.Keys.Unpack(kv.Key));
+						.Select(kv => locItems.Keys.Decode(kv.Key));
 
 					var processed = tr
 						.GetRange(locProcessed.Keys.ToRange())
-						.Select(kv => locProcessed.Keys.Unpack(kv.Key));
+						.Select(kv => locProcessed.Keys.Decode(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly
-					var query = items.Except(processed, FdbTupleComparisons.Composite<string, int>());
+					var query = items.Except(processed, TupleComparisons.Composite<string, int>());
 
 					// query is already a list of tuples, nothing more to do
 					return query;
@@ -753,8 +753,8 @@ namespace FoundationDB.Client.Tests
 					Trace.WriteLine(r);
 				}
 				Assert.That(results.Count, Is.EqualTo(2));
-				Assert.That(results[0], Is.EqualTo(FdbTuple.Create("userA", 10093)));
-				Assert.That(results[1], Is.EqualTo(FdbTuple.Create("userB", 20003)));
+				Assert.That(results[0], Is.EqualTo(("userA", 10093)));
+				Assert.That(results[1], Is.EqualTo(("userB", 20003)));
 
 			}
 

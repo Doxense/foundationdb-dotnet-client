@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2015, Doxense SAS
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,79 +28,74 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
+	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 #if DEBUG
 	using FoundationDB.Filters.Logging;
 #endif
 	using JetBrains.Annotations;
-	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Async;
 
-	/// <summary>
-	/// Provides a high-contention Queue class
-	/// </summary>
+	/// <summary>Provides a high-contention Queue class</summary>
 	public class FdbQueue<T>
 	{
-		// from https://github.com/FoundationDB/python-layers/blob/master/lib/queue.py
+		// from https://apple.github.io/foundationdb/queues.html
 
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
 
-		/// <summary>Create a new High Contention Queue</summary>
+		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
+		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
+		/// <param name="encoder">Encoder for the values stored in this queue</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] FdbSubspace subspace)
-			: this(subspace, highContention: true, encoder: KeyValueEncoders.Tuples.Value<T>())
+		public FdbQueue([NotNull] IKeySubspace subspace, bool highContention = true, IValueEncoder<T> encoder = null)
+			: this(subspace.AsDynamic(), highContention, encoder)
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] FdbSubspace subspace, bool highContention)
-			: this(subspace, highContention: highContention, encoder: KeyValueEncoders.Tuples.Value<T>())
-		{ }
-
-		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
-		/// <param name="subspace">Subspace where the queue will be stored</param>
-		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		public FdbQueue([NotNull] IFdbSubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
+		/// <param name="encoder">Encoder for the values stored in this queue</param>
+		public FdbQueue([NotNull] IDynamicKeySubspace subspace, bool highContention = false, IValueEncoder<T> encoder = null)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
-			this.Subspace = subspace.Using(TypeSystem.Tuples);
+			this.Subspace = subspace;
 			this.HighContention = highContention;
-			this.Encoder = encoder;
+			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
 
 			//TODO: rewrite this, using FdbEncoderSubpsace<..> !
-			this.ConflictedPop = this.Subspace.Partition.ByKey(Slice.FromAscii("pop"));
-			this.ConflictedItem = this.Subspace.Partition.ByKey(Slice.FromAscii("conflict"));
-			this.QueueItem = this.Subspace.Partition.ByKey(Slice.FromAscii("item"));
+			this.ConflictedPop = this.Subspace.Partition.ByKey(Slice.FromStringAscii("pop"));
+			this.ConflictedItem = this.Subspace.Partition.ByKey(Slice.FromStringAscii("conflict"));
+			this.QueueItem = this.Subspace.Partition.ByKey(Slice.FromStringAscii("item"));
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
+		[NotNull]
+		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
-		public bool HighContention { get; private set; }
+		public bool HighContention { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		public IValueEncoder<T> Encoder { [NotNull] get; private set; }
+		[NotNull]
+		public IValueEncoder<T> Encoder { get; }
 
-		internal IFdbDynamicSubspace ConflictedPop { get; private set; }
+		internal IDynamicKeySubspace ConflictedPop { get; }
 
-		internal IFdbDynamicSubspace ConflictedItem { get; private set; }
+		internal IDynamicKeySubspace ConflictedItem { get; }
 
-		internal IFdbDynamicSubspace QueueItem { get; private set; }
+		internal IDynamicKeySubspace QueueItem { get; }
 
 		/// <summary>Remove all items from the queue.</summary>
 		public void Clear([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			trans.ClearRange(this.Subspace);
 		}
@@ -108,7 +103,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the queue.</summary>
 		public async Task PushAsync([NotNull] IFdbTransaction trans, T value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 #if DEBUG
 			trans.Annotate("Push({0})", value);
@@ -124,22 +119,22 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Optional<T>> PopAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
+		public Task<(T Value, bool HasValue)> PopAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
-			if (cancellationToken.IsCancellationRequested)
+			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<Optional<T>>(cancellationToken);
+				return Task.FromCanceled<(T, bool)>(ct);
 			}
 
 			if (this.HighContention)
 			{
-				return PopHighContentionAsync(db, cancellationToken);
+				return PopHighContentionAsync(db, ct);
 			}
 			else
 			{
-				return db.ReadWriteAsync((tr) => this.PopSimpleAsync(tr), cancellationToken);
+				return db.ReadWriteAsync((tr) => PopSimpleAsync(tr), ct);
 			}
 		}
 
@@ -150,101 +145,99 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<Optional<T>> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
+		public async Task<(T Value, bool HasValue)> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull)
 			{
-				return default(Optional<T>);
+				return default;
 			}
-			else
-			{
-				return this.Encoder.DecodeValue(firstItem.Value);
-			}
+
+			return (this.Encoder.DecodeValue(firstItem.Value), true);
 		}
 
 		#region Bulk Operations
 
-		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				(kvs, offset, ct) =>
+				(kvs, offset, _) =>
 				{
 					foreach(var kv in kvs)
 					{
-						if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 						handler(this.Encoder.DecodeValue(kv.Value), offset);
 						++offset;
 					}
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				async (kvs, offset, ct) =>
+				async (kvs, offset, _) =>
 				{
 					foreach (var kv in kvs)
 					{
-						if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 						await handler(this.Encoder.DecodeValue(kv.Value), offset);
 						++offset;
 					}
 				},
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				(kvs, offset, ct) =>
+				(kvs, offset, _) =>
 				{
 					handler(this.Encoder.DecodeValues(kvs), offset);
-					return TaskHelpers.CompletedTask;
+					return Task.CompletedTask;
 				},
-				cancellationToken
+				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken cancellationToken)
+		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			//REVIEW: is this approach correct ?
 
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Keys.ToRange(),
-				(kvs, offset, ct) => handler(this.Encoder.DecodeValues(kvs), offset),
-				cancellationToken
+				(kvs, offset, _) => handler(this.Encoder.DecodeValues(kvs), offset),
+				ct
 			);
 		}
 
@@ -277,11 +270,11 @@ namespace FoundationDB.Layers.Collections
 			tr.Set(key, this.Encoder.EncodeValue(value));
 		}
 
-		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, IFdbDynamicSubspace subspace)
+		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, IDynamicKeySubspace subspace)
 		{
 			var range = subspace.Keys.ToRange();
 
-			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
+			var lastKey = await tr.GetKeyAsync(KeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 
 			if (lastKey < range.Begin)
 			{
@@ -297,17 +290,17 @@ namespace FoundationDB.Layers.Collections
 			return tr.GetRange(range).FirstOrDefaultAsync();
 		}
 
-		private async Task<Optional<T>> PopSimpleAsync([NotNull] IFdbTransaction tr)
+		private async Task<(T Value, bool HasValue)> PopSimpleAsync([NotNull] IFdbTransaction tr)
 		{
 #if DEBUG
 			tr.Annotate("PopSimple()");
 #endif
 
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
-			if (firstItem.Key.IsNull) return default(Optional<T>);
+			if (firstItem.Key.IsNull) return default;
 
 			tr.Clear(firstItem.Key);
-			return this.Encoder.DecodeValue(firstItem.Value);
+			return (this.Encoder.DecodeValue(firstItem.Value), true);
 		}
 
 		private Task<Slice> AddConflictedPopAsync([NotNull] IFdbDatabase db, bool forced, CancellationToken ct)
@@ -344,7 +337,7 @@ namespace FoundationDB.Layers.Collections
 
 		private async Task<bool> FulfillConflictedPops([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
-			const int numPops = 100;
+			const int NUM_POPS = 100;
 
 			using (var tr = db.BeginTransaction(ct))
 			{
@@ -353,8 +346,8 @@ namespace FoundationDB.Layers.Collections
 #endif
 
 				var ts = await Task.WhenAll(
-					GetWaitingPopsAsync(tr.Snapshot, numPops),
-					GetItemsAsync(tr.Snapshot, numPops)
+					GetWaitingPopsAsync(tr.Snapshot, NUM_POPS),
+					GetItemsAsync(tr.Snapshot, NUM_POPS)
 				).ConfigureAwait(false);
 
 				var pops = ts[0];
@@ -402,11 +395,11 @@ namespace FoundationDB.Layers.Collections
 				// commit
 				await tr.CommitAsync().ConfigureAwait(false);
 
-				return pops.Count < numPops;
+				return pops.Count < NUM_POPS;
 			}
 		}
 
-		private async Task<Optional<T>> PopHighContentionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+		private async Task<(T Value, bool HasValue)> PopHighContentionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
 			int backOff = 10;
 			Slice waitKey = Slice.Empty;
@@ -419,7 +412,6 @@ namespace FoundationDB.Layers.Collections
 				tr.Annotate("PopHighContention()");
 #endif
 
-				FdbException error = null;
 				try
 				{
 					// Check if there are other people waiting to be popped. If so, we cannot pop before them.
@@ -435,13 +427,7 @@ namespace FoundationDB.Layers.Collections
 						await tr.CommitAsync().ConfigureAwait(false);
 					}
 				}
-				catch (FdbException e)
-				{
-					// note: cannot await inside a catch(..) block, so flag the error and process it below
-					error = e;
-				}
-
-				if (error != null)
+				catch (FdbException)
 				{ // If we didn't succeed, then register our pop request
 					waitKey = await AddConflictedPopAsync(db, forced: true, ct: ct).ConfigureAwait(false);
 				}
@@ -456,7 +442,6 @@ namespace FoundationDB.Layers.Collections
 
 				while (!ct.IsCancellationRequested)
 				{
-					error = null;
 					try
 					{
 						while (!(await FulfillConflictedPops(db, ct).ConfigureAwait(false)))
@@ -464,24 +449,18 @@ namespace FoundationDB.Layers.Collections
 							//NOP ?
 						}
 					}
-					catch (FdbException e)
-					{
-						// cannot await in catch(..) block so process it below
-						error = e;
-					}
-
-					if (error != null && error.Code != FdbError.NotCommitted)
+					catch (FdbException e) when (e.Code != FdbError.NotCommitted)
 					{
 						// If the error is 1020 (not_committed), then there is a good chance 
 						// that somebody else has managed to fulfill some outstanding pops. In
 						// that case, we proceed to check whether our request has been fulfilled.
 						// Otherwise, we handle the error in the usual fashion.
 
-						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+						await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 						continue;
 					}
 
-					error = null;
+
 					try
 					{
 						tr.Reset();
@@ -509,22 +488,17 @@ namespace FoundationDB.Layers.Collections
 
 						if (result.IsNullOrEmpty)
 						{
-							return default(Optional<T>);
+							return default;
 						}
 
 						tr.Clear(resultKey);
 						await tr.CommitAsync().ConfigureAwait(false);
-						return this.Encoder.DecodeValue(result);
+						return (this.Encoder.DecodeValue(result), true);
 
 					}
 					catch (FdbException e)
 					{
-						error = e;
-					}
-
-					if (error != null)
-					{
-						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+						await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 					}
 				}
 

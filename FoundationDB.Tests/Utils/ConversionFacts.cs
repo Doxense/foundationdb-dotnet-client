@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,17 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Converters.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Linq;
-	using System.Text;
+	using Doxense.Runtime.Converters;
+	using FoundationDB.Client.Tests;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class ConversionFacts
+	public class ConversionFacts : FdbTest
 	{
 
 		[Test]

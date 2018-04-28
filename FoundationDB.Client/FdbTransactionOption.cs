@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2018, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a set of options for a transaction</summary>
+	[PublicAPI]
 	public enum FdbTransactionOption
 	{
 		/// <summary>None</summary>

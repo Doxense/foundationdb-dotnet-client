@@ -2,19 +2,15 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Layers.Directories;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.IO;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Mathematics.Statistics;
-	using System.Diagnostics;
+	using FoundationDB.Client;
 
 	public class SamplerTest : IAsyncTest
 	{
@@ -24,7 +20,7 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Ratio = ratio;
 		}
 
-		public double Ratio { get; private set; }
+		public double Ratio { get; }
 
 		#region IAsyncTest...
 
@@ -47,7 +43,7 @@ namespace FoundationDB.Samples.Benchmarks
 			Console.WriteLine("# Detecting cluster topology...");
 			var servers = await db.QueryAsync(tr => tr
 				.WithReadAccessToSystemKeys()
-				.GetRange(FdbKeyRange.StartsWith(Fdb.System.ServerList))
+				.GetRange(KeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{
 					Node = kvp.Value.Substring(8, 16).ToHexaString(),
@@ -73,7 +69,7 @@ namespace FoundationDB.Samples.Benchmarks
 			if (sz > 500) sz = 500; //SAFETY
 			if (sz < 50) sz = Math.Max(sz, Math.Min(50, ranges.Count));
 
-			var samples = new List<FdbKeyRange>();
+			var samples = new List<KeyRange>();
 			for (int i = 0; i < sz; i++)
 			{
 				int p = rnd.Next(ranges.Count);
@@ -112,8 +108,8 @@ namespace FoundationDB.Samples.Benchmarks
 							long count = 0;
 
 							int iter = 0;
-							var beginSelector = FdbKeySelector.FirstGreaterOrEqual(range.Begin);
-							var endSelector = FdbKeySelector.FirstGreaterOrEqual(range.End);
+							var beginSelector = KeySelector.FirstGreaterOrEqual(range.Begin);
+							var endSelector = KeySelector.FirstGreaterOrEqual(range.End);
 							while (true)
 							{
 								FdbRangeChunk data = default(FdbRangeChunk);
@@ -151,7 +147,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 								if (!data.HasMore) break;
 
-								beginSelector = FdbKeySelector.FirstGreaterThan(data.Last.Key);
+								beginSelector = KeySelector.FirstGreaterThan(data.Last.Key);
 								++iter;
 							}
 
