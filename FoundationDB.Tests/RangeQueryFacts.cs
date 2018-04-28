@@ -361,7 +361,7 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "Range");
 
 				// import test data
-				var data = Enumerable.Range(0, 100).Select(x => (location.Keys.Encode(x), Slice.FromFixed32(x)));
+				var data = Enumerable.Range(0, 100).Select(x => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromFixed32(x)));
 				await Fdb.Bulk.WriteAsync(db, data, this.Cancellation);
 
 				// from the start

@@ -101,8 +101,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		Log(expr);
 
 		Assert.That(expr, Is.Not.Null);
-		Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00>"));
-		Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<01>"));
+		Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
+		Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
 
 		Assert.That(expr.Type, Is.EqualTo(typeof(IAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
 		Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));

@@ -97,12 +97,8 @@ namespace FoundationDB.Client.Tests
 				// read everything back...
 
 				Log("Reading everything back...");
-
-				var stored = await db.ReadAsync((tr) =>
-				{
-					return tr.GetRangeStartsWith(location).ToArrayAsync();
-				}, this.Cancellation);
-
+				var stored = await db.ReadAsync((tr) => tr.GetRangeStartsWith(location).Select(x => (x.Key, x.Value)).ToArrayAsync(), this.Cancellation);
+				Log($"> found {stored.Length:N0} results");
 				Assert.That(stored.Length, Is.EqualTo(N));
 				Assert.That(stored, Is.EqualTo(data));
 			}
