@@ -39,9 +39,10 @@ namespace FoundationDB.Layers.Collections
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
+	[PublicAPI]
 	public class FdbVector<T>
 	{
-		// from https://github.com/FoundationDB/python-layers/blob/master/lib/vector.py
+		// from https://apple.github.io/foundationdb/vector.html
 
 		// Vector stores each of its values using its index as the key.
 		// The size of a vector is equal to the index of its last key + 1.
@@ -127,7 +128,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
-		public async Task<Optional<T>> PopAsync([NotNull] IFdbTransaction tr)
+		public async Task<(T Value, bool HasValue)> PopAsync([NotNull] IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -142,7 +143,7 @@ namespace FoundationDB.Layers.Collections
 				.ConfigureAwait(false);
 
 			// Vector was empty
-			if (lastTwo.Count == 0) return default(Optional<T>);
+			if (lastTwo.Count == 0) return default;
 
 			//note: keys are reversed so indices[0] = last, indices[1] = second to last
 			var indices = lastTwo.Select(kvp => this.Subspace.Keys.DecodeFirst<long>(kvp.Key)).ToList();
@@ -158,7 +159,7 @@ namespace FoundationDB.Layers.Collections
 
 			tr.Clear(lastTwo[0].Key);
 
-			return this.Encoder.DecodeValue(lastTwo[0].Value);
+			return (this.Encoder.DecodeValue(lastTwo[0].Value), true);
 		}
 
 		/// <summary>Swap the items at positions i1 and i2.</summary>
@@ -166,14 +167,14 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
-			if (index1 < 0 || index2 < 0) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) must be positive", index1, index2));
+			if (index1 < 0 || index2 < 0) throw new IndexOutOfRangeException($"Indices ({index1}, {index2}) must be positive");
 
 			var k1 = GetKeyAt(index1);
 			var k2 = GetKeyAt(index2);
 
 			long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
-			if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) are out of range", index1, index2));
+			if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException($"Indices ({index1}, {index2}) are out of range");
 
 			var vs = await tr.GetValuesAsync(new[] { k1, k2 }).ConfigureAwait(false);
 			var v1 = vs[0];
@@ -202,7 +203,7 @@ namespace FoundationDB.Layers.Collections
 		public async Task<T> GetAsync([NotNull] IFdbReadOnlyTransaction tr, long index)
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
-			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
+			if (index < 0) throw new IndexOutOfRangeException($"Index {index} must be positive");
 
 			var start = GetKeyAt(index);
 			var end = this.Subspace.Keys.ToRange().End;
@@ -224,7 +225,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			// We requested a value past the end of the vector
-			throw new IndexOutOfRangeException(String.Format("Index {0} out of range", index));
+			throw new IndexOutOfRangeException($"Index {index} out of range");
 		}
 
 		/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>

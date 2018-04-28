@@ -74,26 +74,30 @@ namespace FoundationDB.Layers.Collections.Tests
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.False);
 
-				Optional<int> item = await queue.PopAsync(db, this.Cancellation);
-				Log("Pop item: " + item);
-				Assert.That((int)item, Is.EqualTo(10));
+				var item = await queue.PopAsync(db, this.Cancellation);
+				Log($"Pop item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(10));
 				item = await db.ReadWriteAsync((tr) => queue.PeekAsync(tr), this.Cancellation);
-				Log("Next item: " + item);
-				Assert.That((int)item, Is.EqualTo(8));
+				Log($"Next item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(8));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				item = await queue.PopAsync(db, this.Cancellation);
-				Log("Pop item: " + item);
-				Assert.That((int)item, Is.EqualTo(8));
+				Log($"Pop item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(8));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				item = await queue.PopAsync(db, this.Cancellation);
-				Log("Pop item: " + item);
-				Assert.That((int)item, Is.EqualTo(6));
+				Log($"Pop item: {item}");
+				Assert.That(item.HasValue, Is.True);
+				Assert.That(item.Value, Is.EqualTo(6));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif

@@ -40,12 +40,10 @@ namespace FoundationDB.Layers.Collections
 #endif
 	using JetBrains.Annotations;
 
-	/// <summary>
-	/// Provides a high-contention Queue class
-	/// </summary>
+	/// <summary>Provides a high-contention Queue class</summary>
 	public class FdbQueue<T>
 	{
-		// from https://github.com/FoundationDB/python-layers/blob/master/lib/queue.py
+		// from https://apple.github.io/foundationdb/queues.html
 
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
@@ -78,13 +76,15 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IDynamicKeySubspace Subspace { [NotNull] get; }
+		[NotNull]
+		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
 		public bool HighContention { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		public IValueEncoder<T> Encoder { [NotNull] get; }
+		[NotNull]
+		public IValueEncoder<T> Encoder { get; }
 
 		internal IDynamicKeySubspace ConflictedPop { get; }
 
@@ -119,13 +119,13 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Optional<T>> PopAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+		public Task<(T Value, bool HasValue)> PopAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 
 			if (ct.IsCancellationRequested)
 			{
-				return Task.FromCanceled<Optional<T>>(ct);
+				return Task.FromCanceled<(T, bool)>(ct);
 			}
 
 			if (this.HighContention)
@@ -145,17 +145,15 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<Optional<T>> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
+		public async Task<(T Value, bool HasValue)> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull)
 			{
-				return default(Optional<T>);
+				return default;
 			}
-			else
-			{
-				return this.Encoder.DecodeValue(firstItem.Value);
-			}
+
+			return (this.Encoder.DecodeValue(firstItem.Value), true);
 		}
 
 		#region Bulk Operations
@@ -292,17 +290,17 @@ namespace FoundationDB.Layers.Collections
 			return tr.GetRange(range).FirstOrDefaultAsync();
 		}
 
-		private async Task<Optional<T>> PopSimpleAsync([NotNull] IFdbTransaction tr)
+		private async Task<(T Value, bool HasValue)> PopSimpleAsync([NotNull] IFdbTransaction tr)
 		{
 #if DEBUG
 			tr.Annotate("PopSimple()");
 #endif
 
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
-			if (firstItem.Key.IsNull) return default(Optional<T>);
+			if (firstItem.Key.IsNull) return default;
 
 			tr.Clear(firstItem.Key);
-			return this.Encoder.DecodeValue(firstItem.Value);
+			return (this.Encoder.DecodeValue(firstItem.Value), true);
 		}
 
 		private Task<Slice> AddConflictedPopAsync([NotNull] IFdbDatabase db, bool forced, CancellationToken ct)
@@ -339,7 +337,7 @@ namespace FoundationDB.Layers.Collections
 
 		private async Task<bool> FulfillConflictedPops([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
-			const int numPops = 100;
+			const int NUM_POPS = 100;
 
 			using (var tr = db.BeginTransaction(ct))
 			{
@@ -348,8 +346,8 @@ namespace FoundationDB.Layers.Collections
 #endif
 
 				var ts = await Task.WhenAll(
-					GetWaitingPopsAsync(tr.Snapshot, numPops),
-					GetItemsAsync(tr.Snapshot, numPops)
+					GetWaitingPopsAsync(tr.Snapshot, NUM_POPS),
+					GetItemsAsync(tr.Snapshot, NUM_POPS)
 				).ConfigureAwait(false);
 
 				var pops = ts[0];
@@ -397,11 +395,11 @@ namespace FoundationDB.Layers.Collections
 				// commit
 				await tr.CommitAsync().ConfigureAwait(false);
 
-				return pops.Count < numPops;
+				return pops.Count < NUM_POPS;
 			}
 		}
 
-		private async Task<Optional<T>> PopHighContentionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+		private async Task<(T Value, bool HasValue)> PopHighContentionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
 			int backOff = 10;
 			Slice waitKey = Slice.Empty;
@@ -414,7 +412,6 @@ namespace FoundationDB.Layers.Collections
 				tr.Annotate("PopHighContention()");
 #endif
 
-				FdbException error = null;
 				try
 				{
 					// Check if there are other people waiting to be popped. If so, we cannot pop before them.
@@ -430,13 +427,7 @@ namespace FoundationDB.Layers.Collections
 						await tr.CommitAsync().ConfigureAwait(false);
 					}
 				}
-				catch (FdbException e)
-				{
-					// note: cannot await inside a catch(..) block, so flag the error and process it below
-					error = e;
-				}
-
-				if (error != null)
+				catch (FdbException)
 				{ // If we didn't succeed, then register our pop request
 					waitKey = await AddConflictedPopAsync(db, forced: true, ct: ct).ConfigureAwait(false);
 				}
@@ -451,7 +442,6 @@ namespace FoundationDB.Layers.Collections
 
 				while (!ct.IsCancellationRequested)
 				{
-					error = null;
 					try
 					{
 						while (!(await FulfillConflictedPops(db, ct).ConfigureAwait(false)))
@@ -459,24 +449,18 @@ namespace FoundationDB.Layers.Collections
 							//NOP ?
 						}
 					}
-					catch (FdbException e)
-					{
-						// cannot await in catch(..) block so process it below
-						error = e;
-					}
-
-					if (error != null && error.Code != FdbError.NotCommitted)
+					catch (FdbException e) when (e.Code != FdbError.NotCommitted)
 					{
 						// If the error is 1020 (not_committed), then there is a good chance 
 						// that somebody else has managed to fulfill some outstanding pops. In
 						// that case, we proceed to check whether our request has been fulfilled.
 						// Otherwise, we handle the error in the usual fashion.
 
-						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+						await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 						continue;
 					}
 
-					error = null;
+
 					try
 					{
 						tr.Reset();
@@ -504,22 +488,17 @@ namespace FoundationDB.Layers.Collections
 
 						if (result.IsNullOrEmpty)
 						{
-							return default(Optional<T>);
+							return default;
 						}
 
 						tr.Clear(resultKey);
 						await tr.CommitAsync().ConfigureAwait(false);
-						return this.Encoder.DecodeValue(result);
+						return (this.Encoder.DecodeValue(result), true);
 
 					}
 					catch (FdbException e)
 					{
-						error = e;
-					}
-
-					if (error != null)
-					{
-						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+						await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 					}
 				}
 

@@ -26,7 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Layers.Collections
 {
 	using System;
@@ -34,7 +33,6 @@ namespace FoundationDB.Layers.Collections
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 	using Doxense.Linq;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -44,7 +42,7 @@ namespace FoundationDB.Layers.Collections
 	[DebuggerDisplay("Subspace={" + nameof(FdbMultiMap<TKey, TValue>.Subspace) + "}")]
 	public class FdbMultiMap<TKey, TValue>
 	{
-		// Inspired by https://foundationdb.com/recipes/developer/multimaps
+		// Inspired by https://apple.github.io/foundationdb/multimaps.html
 		// It is the logical equivalent of a Map<KeyValuePair<TKey, TValue>, long> where the value would be incremented each time a specific pair of (key, value) is added (and subtracted when removed)
 
 		// The layer stores each key/value using the following format:

@@ -99,15 +99,15 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="id">Key of the entry to read from the map</param>
 		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
-		public async Task<Optional<TValue>> TryGetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
+		public async Task<(TValue Value, bool HasValue)> TryGetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var data = await trans.GetAsync(this.Subspace.Keys[id]).ConfigureAwait(false);
 
-			if (data.IsNull) return default(Optional<TValue>);
-			return this.ValueEncoder.DecodeValue(data);
+			if (data.IsNull) return (default(TValue), false);
+			return (this.ValueEncoder.DecodeValue(data), true);
 		}
 
 		/// <summary>Add or update an entry in the map</summary>
@@ -153,14 +153,22 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="ids">List of the keys to read</param>
 		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
-		public async Task<Optional<TValue>[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> ids)
+		public async Task<TValue[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
-			var results = await trans.GetValuesAsync(ids.Select(id => this.Subspace.Keys[id])).ConfigureAwait(false);
+			var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace.Keys[id])).ConfigureAwait(false);
+			if (kv.Length == 0) return Array.Empty<TValue>();
 
-			return Optional.DecodeRange(this.ValueEncoder, results);
+			var result = new TValue[kv.Length];
+			var decoder = this.ValueEncoder;
+			for (int i = 0; i < kv.Length; i++)
+			{
+				result[i] = decoder.DecodeValue(kv[i]);
+			}
+
+			return result;
 		}
 
 		#endregion

@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					var value = await map.TryGetAsync(tr, "hello");
 					Assert.That(value.HasValue, Is.False);
-					Assert.That(value.GetValueOrDefault(), Is.Null);
+					Assert.That(value.Value, Is.Null);
 				}
 
 				// write value
