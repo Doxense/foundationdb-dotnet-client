@@ -1,1 +1,0 @@
-nuget restore FoundationDB.Client.sln
