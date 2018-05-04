@@ -4,6 +4,7 @@ FoundationDB.Net Client
 This code is licensed under the 3-clause BSD Licence.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
+[![foundationdb-dotnet-client MyGet Build Status](https://www.myget.org/BuildSource/Badge/foundationdb-dotnet-client?identifier=faedfb95-0e53-4c43-9bb3-dae95d59e2b8)](https://www.myget.org/)
 
 How to use
 ----------
@@ -190,6 +191,16 @@ Please note that the above sample is ok for a simple HelloWorld.exe app, but for
 
 - Don't give in, and resist the tenmptation of passing `CancellationToken.None` everywhere! Try to obtain a valid `CancellationToken` from your execution context (HTTP host, Task Worker environment, ...). This will allow the environment to safely shutdown and abort all pending transactions, without any risks of data corruption. If you don't have any easy source (like in a unit test framework), then at list provide you own using a global `CancellationTokenSource` that you can `Cancel()` in your shutdown code path. From inside your transactional code, you can get back the token anytime via the `tr.Cancellation` property which will trigger if the transaction completes or is aborted.
 
+How to use
+------------
+
+The library is available as a NuGet package `FoundationDB.Client` available on the official NuGet Gallery:
+- https://www.nuget.org/packages/FoundationDB.Client/
+
+There is also a MyGet feed for nightly builds:
+- NuGet v3: https://www.myget.org/F/foundationdb-dotnet-client/api/v3/index.json
+- NuGet v2: https://www.myget.org/F/foundationdb-dotnet-client/api/v2
+
 How to build
 ------------
 
@@ -219,20 +230,6 @@ In a new Command Prompt, go the root folder of the solution and run one of the f
 - `build Clean`: clean the solution
  
 If you get `System.UnauthorizedAccessException: Access to the path './build/output/FoundationDB.Tests\FoundationDB.Client.dll' is denied.` errors from time to time, you need to kill any `nunit-agent.exe` process that may have stuck around.
-
-### Mono
-
-When building for Mono/Linux this version will look for `libfdb_c.so` instead of `fdb_c.dll`.
-
-More details on running FoundationDB on Linux can be found here: https://apple.github.io/foundationdb/getting-started-linux.html
-
-How to build the NuGet packages
--------------------------------
-
-They are easily build from the command line using FAKE, by running the `build Release` command from the root of the solution.
-
-Once this is done, you can either push these package to your internal NuGet feed, or simplify create a local package folder on your disk. See http://docs.nuget.org/docs/creating-packages/hosting-your-own-nuget-feeds
-
 
 How to test
 -----------
