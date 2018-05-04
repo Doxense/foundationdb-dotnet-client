@@ -1,1 +1,1 @@
-nuget restore
+nuget restore FoundationDB.Client.sln
