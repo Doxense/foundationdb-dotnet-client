@@ -236,7 +236,7 @@ If you get `System.UnauthorizedAccessException: Access to the path './build/outp
 How to test
 -----------
 
-The test project is using NUnit 2.6.3, and requires support for async test methods.
+The test project is using NUnit 3.10.
 
 If you are using a custom runner or VS plugin (like TestDriven.net), make sure that it has the correct nunit version, and that it is configured to run the test using 64-bit process. The code will NOT work on 32 bit.
 
@@ -283,13 +283,16 @@ The following files will be required by your application
 Known Limitations
 -----------------
 
-* While the .NET API supports UUIDs in the Tuple layer, none of the other bindings currently do. As a result, packed Tuples with UUIDs will not be able to be unpacked in other bindings.
-* The LINQ API is still a work in progress, and may change a lot. Simple LINQ queries, like Select() or Where() on the result of range queries (to convert Slice key/values into oter types) should work.
+* Since the native FoundationDB client is 64-bit only, this .NET library is also for 64-bit only applications! Even though it targets AnyCPU, it would fail at runtime. _Don't forget to disable the `Prefer 32-bit` option in your project Build properties, that is enabled by default!_ 
 * You cannot unload the fdb C native client from the process once the netork thread has started. You can stop the network thread once, but it does not support being restarted. This can cause problems when running under ASP.NET.
-* FoundationDB does not support long running batch or range queries if they take too much time. Such queries will fail with a 'past_version' error.
+* FoundationDB does not support long running batch or range queries if they take too much time. Such queries will fail with a 'past_version' error. The current maximum duration for read transactions is 5 seconds.
+* FoundationDB as a maximum allowed size of 100,000 bytes for values, and 10,000 bytes for keys. Larger values must be split into multiple keys
+* FoundationDB as a maximum allowed size of 10,000,000 bytes for writes per transactions (some of all key+values that are mutated). You need multiple transaction if you need to store more data. There is a Bulk API (`Fdb.Bulk.*`) to help for the most common cases (import, export, backup/restore, ...)
 * See https://apple.github.io/foundationdb/known-limitations.html for other known limitations of the FoundationDB database.
 
 Contributing
 ------------
 
-* It is important to point out that this solution uses tabs instead of spaces for various reasons. In order to ease the transition for people who want to start contributing and avoid having to switch their Visual Studio configuration manually an .editorconfig file has been added to the root folder of the solution. The easiest way to use this is to install the [Extension for Visual Studio](http://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328). This will switch visual studio's settings for white space in csharp files to use tabs.
+* Yes, we use tabs! Get over it.
+* Style rules are encoded in `.editorconfig` which is supported by most IDEs (or via extensions).
+* You can visit the FoundationDB forums for generic questions (not .NET): https://forums.foundationdb.org/
