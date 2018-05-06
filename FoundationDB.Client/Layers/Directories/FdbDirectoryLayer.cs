@@ -49,6 +49,7 @@ namespace FoundationDB.Layers.Directories
 	/// The <see cref="FdbDirectorySubspace"/> class represents subspaces that store the contents of a directory. An instance of <see cref="FdbDirectorySubspace"/> can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.
 	/// </summary>
 	[DebuggerDisplay("FullName={FullName}, Contents={ContentSubspace}, Nodes={NodeSubspace}")]
+	[PublicAPI]
 	public class FdbDirectoryLayer : IFdbDirectory
 	{
 		private const int SUBDIRS = 0;

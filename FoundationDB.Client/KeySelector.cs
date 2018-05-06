@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct KeySelector : IEquatable<KeySelector>
 	{
 

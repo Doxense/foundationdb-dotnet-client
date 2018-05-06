@@ -32,6 +32,7 @@ namespace FoundationDB.Filters
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class FdbFilterExtensions
 	{
 		/// <summary>Return a read-only view of this transaction, that will only allow read operations.</summary>

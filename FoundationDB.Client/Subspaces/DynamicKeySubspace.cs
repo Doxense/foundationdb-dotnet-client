@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public class DynamicKeySubspace : KeySubspace, IDynamicKeySubspace
 	{
 
@@ -89,6 +90,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Key helper for a dynamic TypeSystem</summary>
 	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[PublicAPI]
 	public sealed class DynamicKeys
 	{
 
@@ -428,12 +430,14 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Partition helper for a dynamic TypeSystem</summary>
+	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[PublicAPI]
 	public sealed class DynamicPartition
 	{
 
 		[NotNull]
 		public IDynamicKeySubspace Subspace { get; }
-
 
 		internal DynamicPartition([NotNull] DynamicKeySubspace subspace)
 		{

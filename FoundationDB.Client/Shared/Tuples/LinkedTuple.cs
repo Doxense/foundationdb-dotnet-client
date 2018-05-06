@@ -37,6 +37,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class LinkedTuple<T> : ITuple
 	{
 		//TODO: consider changing this to a struct ?

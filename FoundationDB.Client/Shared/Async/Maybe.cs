@@ -37,6 +37,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
 		/// <summary>Réprésente un résultat vide (no computation)</summary>
@@ -387,6 +388,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 	}
 
 	/// <summary>Helper class to deal with Maybe&lt;T&gt; monads</summary>
+	[PublicAPI]
 	public static class Maybe
 	{
 

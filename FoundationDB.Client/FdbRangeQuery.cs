@@ -39,6 +39,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
+	[PublicAPI]
 	public sealed partial class FdbRangeQuery<T> : IAsyncEnumerable<T>
 	{
 

@@ -38,6 +38,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	/// <summary>Tuple that has a fixed abitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class PrefixedTuple : ITuple, ITupleSerializable
 	{
 		// Used in scenario where we will append keys to a common base tuple

@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>View of a database that is bound to a specific Partition</summary>
 	[DebuggerDisplay("Database={Database.Name}, Partition={Directory.FullName}, Prefix={Database.GlobalSpace}")]
+	[PublicAPI]
 	public sealed class FdbDatabasePartition : IFdbDirectory
 	{
 

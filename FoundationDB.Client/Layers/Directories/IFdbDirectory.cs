@@ -38,6 +38,7 @@ namespace FoundationDB.Layers.Directories
 	/// Represents a directory in the <code>DirectoryLayer</code>. A <code>Directory</code> stores the path at which it is located and the layer that was used to create it.
 	/// The IFdbDirectory interface contains methods to operate on itself and its subdirectories.
 	/// </summary>
+	[PublicAPI]
 	public interface IFdbDirectory
 	{
 		/// <summary>Name of this <code>Directory</code>.</summary>

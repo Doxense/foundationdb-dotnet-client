@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 
 	/// <summary>Extensions methods and helpers to work with Key Subspaces</summary>
+	[PublicAPI]
 	public static class KeySubspaceExtensions
 	{
 

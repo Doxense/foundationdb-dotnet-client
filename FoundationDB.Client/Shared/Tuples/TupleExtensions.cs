@@ -36,6 +36,7 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
+	[PublicAPI]
 	public static class TupleExtensions
 	{
 

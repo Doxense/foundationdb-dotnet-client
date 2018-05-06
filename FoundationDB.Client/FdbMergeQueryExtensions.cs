@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using Doxense.Linq.Async.Iterators;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class FdbMergeQueryExtensions
 	{
 

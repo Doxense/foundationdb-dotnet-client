@@ -51,6 +51,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Subspace that knows how to encode and decode its key</summary>
 	/// <typeparam name="T1">Type of the key handled by this subspace</typeparam>
+	[PublicAPI]
 	public sealed class TypedKeySubspace<T1> : KeySubspace, ITypedKeySubspace<T1>
 	{
 		public IKeyEncoder<T1> KeyEncoder { get; }
@@ -70,6 +71,7 @@ namespace FoundationDB.Client
 	/// <summary>Encodes and Decodes keys composed of a single element</summary>
 	/// <typeparam name="T1">Type of the key handled by this subspace</typeparam>
 	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[PublicAPI]
 	public sealed class TypedKeys<T1>
 	{
 

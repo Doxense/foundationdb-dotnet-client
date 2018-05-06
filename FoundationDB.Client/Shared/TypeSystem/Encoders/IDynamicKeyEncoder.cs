@@ -34,6 +34,7 @@ namespace Doxense.Serialization.Encoders
 	using JetBrains.Annotations;
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
+	[PublicAPI]
 	public interface IDynamicKeyEncoder
 	{
 

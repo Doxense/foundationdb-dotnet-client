@@ -45,6 +45,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T4">Type of the 4th item</typeparam>
 	/// <typeparam name="T5">Type of the 5th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct STuple<T1, T2, T3, T4, T5> : ITuple, IEquatable<STuple<T1, T2, T3, T4, T5>>, IEquatable<(T1, T2, T3, T4, T5)>
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.

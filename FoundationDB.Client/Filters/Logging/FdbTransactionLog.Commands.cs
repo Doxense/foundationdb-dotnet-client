@@ -39,6 +39,7 @@ namespace FoundationDB.Filters.Logging
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public partial class FdbTransactionLog
 	{
 

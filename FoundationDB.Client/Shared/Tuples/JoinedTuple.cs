@@ -38,6 +38,7 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class JoinedTuple : ITuple
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )

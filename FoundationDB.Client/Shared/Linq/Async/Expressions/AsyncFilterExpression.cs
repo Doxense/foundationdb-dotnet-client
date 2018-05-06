@@ -38,6 +38,7 @@ namespace Doxense.Linq.Async.Expressions
 
 	/// <summary>Expression that evalute a condition on each item</summary>
 	/// <typeparam name="TSource">Type of the filtered elements</typeparam>
+	[PublicAPI]
 	public sealed class AsyncFilterExpression<TSource>
 	{
 		private readonly Func<TSource, bool> m_filter;

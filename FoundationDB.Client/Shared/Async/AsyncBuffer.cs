@@ -39,6 +39,7 @@ namespace Doxense.Async
 	using JetBrains.Annotations;
 
 	/// <summary>Buffer that holds a fixed number of items and can rate-limit the producer</summary>
+	[PublicAPI]
 	public class AsyncBuffer<TInput, TOutput> : AsyncProducerConsumerQueue<TInput>, IAsyncSource<TOutput>
 	{
 		#region Private Members...

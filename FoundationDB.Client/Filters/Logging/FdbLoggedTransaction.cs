@@ -37,6 +37,7 @@ namespace FoundationDB.Filters.Logging
 	using JetBrains.Annotations;
 
 	[Flags]
+	[PublicAPI]
 	public enum FdbLoggingOptions
 	{
 		/// <summary>Default logging options</summary>
@@ -54,6 +55,7 @@ namespace FoundationDB.Filters.Logging
 	}
 
 	/// <summary>Transaction filter that logs and measure all operations performed on the underlying transaction</summary>
+	[PublicAPI]
 	public sealed class FdbLoggedTransaction : FdbTransactionFilter
 	{
 		private Snapshotted m_snapshotted;

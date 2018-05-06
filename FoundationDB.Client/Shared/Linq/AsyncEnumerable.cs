@@ -39,6 +39,7 @@ namespace Doxense.Linq
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>
+	[PublicAPI]
 	public static partial class AsyncEnumerable
 	{
 		// Welcome to the wonderful world of the Monads!

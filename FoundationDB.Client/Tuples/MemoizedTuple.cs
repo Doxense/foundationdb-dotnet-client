@@ -39,6 +39,7 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Represents an immutable tuple where the packed bytes are cached</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class MemoizedTuple : ITuple
 	{
 		/// <summary>Items of the tuple</summary>

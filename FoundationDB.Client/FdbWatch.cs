@@ -34,9 +34,11 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Native;
+	using JetBrains.Annotations;
 
 	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
 	[DebuggerDisplay("Status={m_future.Task.Status}, Key={m_key}")]
+	[PublicAPI]
 	public struct FdbWatch : IDisposable
 	{
 		//REVIEW: sould we change this to a class?

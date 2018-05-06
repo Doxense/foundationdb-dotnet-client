@@ -37,6 +37,7 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
+	[PublicAPI]
 	public sealed class ListTuple : ITuple
 	{
 		// We could use a ListTuple<T> for tuples where all items are of type T, and ListTuple could derive from ListTuple<object>.

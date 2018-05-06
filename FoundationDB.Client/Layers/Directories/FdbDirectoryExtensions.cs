@@ -36,6 +36,7 @@ namespace FoundationDB.Layers.Directories
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods related to the Directory Layer</summary>
+	[PublicAPI]
 	public static class FdbDirectoryExtensions
 	{
 

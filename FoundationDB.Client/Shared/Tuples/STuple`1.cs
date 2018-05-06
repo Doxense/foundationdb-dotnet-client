@@ -41,6 +41,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct STuple<T1> : ITuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
