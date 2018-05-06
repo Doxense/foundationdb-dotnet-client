@@ -602,7 +602,7 @@ namespace FoundationDB.Layers.Directories
 				if (existingNode.IsInPartition(false))
 				{
 					var subpath = existingNode.PartitionSubPath;
-					var dl = GetPartitionForNode(existingNode).DirectoryLayer;
+					var dl = GetPartitionForNode(in existingNode).DirectoryLayer;
 					return await dl.CreateOrOpenInternalAsync(readTrans, trans, subpath, layer, prefix, allowCreate, allowOpen, throwOnError).ConfigureAwait(false);
 				}
 
@@ -720,7 +720,7 @@ namespace FoundationDB.Layers.Directories
 					throw new InvalidOperationException("Cannot move between partitions.");
 				}
 				// both nodes are in the same sub-partition, delegate to it
-				return await GetPartitionForNode(newNode).DirectoryLayer.MoveInternalAsync(trans, oldNode.PartitionSubPath, newNode.PartitionSubPath, throwOnError).ConfigureAwait(false);
+				return await GetPartitionForNode(in newNode).DirectoryLayer.MoveInternalAsync(trans, oldNode.PartitionSubPath, newNode.PartitionSubPath, throwOnError).ConfigureAwait(false);
 			}
 
 			if (newNode.Exists)
@@ -761,7 +761,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (n.IsInPartition(includeEmptySubPath: false))
 			{
-				return await GetPartitionForNode(n).DirectoryLayer.RemoveInternalAsync(trans, n.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
+				return await GetPartitionForNode(in n).DirectoryLayer.RemoveInternalAsync(trans, n.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
 			}
 
 			//TODO: partitions ?
@@ -790,7 +790,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (node.IsInPartition(includeEmptySubPath: true))
 			{
-				return await GetPartitionForNode(node).DirectoryLayer.ListInternalAsync(trans, node.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
+				return await GetPartitionForNode(in node).DirectoryLayer.ListInternalAsync(trans, node.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
 			}
 
 			return await SubdirNamesAndNodes(trans, node.Subspace)
@@ -811,7 +811,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (node.IsInPartition(includeEmptySubPath: false))
 			{
-				return await GetPartitionForNode(node).DirectoryLayer.ExistsInternalAsync(trans, node.PartitionSubPath).ConfigureAwait(false);
+				return await GetPartitionForNode(in node).DirectoryLayer.ExistsInternalAsync(trans, node.PartitionSubPath).ConfigureAwait(false);
 			}
 
 			return true;
@@ -832,7 +832,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (node.IsInPartition(includeEmptySubPath: false))
 			{
-				await GetPartitionForNode(node).DirectoryLayer.ChangeLayerInternalAsync(trans, node.PartitionSubPath, newLayer).ConfigureAwait(false);
+				await GetPartitionForNode(in node).DirectoryLayer.ChangeLayerInternalAsync(trans, node.PartitionSubPath, newLayer).ConfigureAwait(false);
 				return;
 			}
 
@@ -948,7 +948,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[NotNull]
-		private FdbDirectoryPartition GetPartitionForNode(Node node)
+		private FdbDirectoryPartition GetPartitionForNode(in Node node)
 		{
 			Contract.Requires(node.Subspace != null && node.Path != null && FdbDirectoryPartition.LayerId.Equals(node.Layer));
 			return (FdbDirectoryPartition) ContentsOfNode(node.Subspace, node.Path, node.Layer);
