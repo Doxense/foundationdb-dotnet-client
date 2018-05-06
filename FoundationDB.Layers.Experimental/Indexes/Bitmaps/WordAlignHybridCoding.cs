@@ -241,7 +241,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				return true;
 			}
 
-			/// <summary>Returns the number of bits left in the register (0 if emtpy)</summary>
+			/// <summary>Returns the number of bits left in the register (0 if empty)</summary>
 			public int Bits => m_bits;
 
 			/// <summary>Returns the last word, padded with 0s</summary>

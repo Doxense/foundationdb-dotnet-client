@@ -627,7 +627,7 @@ namespace System
 		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
 		/// <param name="ptr">Pointer where to copy this slice</param>
 		/// <param name="count">Capacity of the output buffer</param>
-		/// <remarks>Copy will fail if there is not enough space in the output buffer (ie: if it would writer at or after <paramref name="end"/>)</remarks>
+		/// <remarks>Copy will fail if there is not enough space in the output buffer</remarks>
 		public IntPtr CopyTo(IntPtr ptr, long count)
 		{
 			unsafe
@@ -659,7 +659,7 @@ namespace System
 		/// {"ABCDE"}.Substring(-2} => {"DE"}
 		/// {"ABCDE"}.Substring(5} => Slice.Empty
 		/// Slice.Empty.Substring(0) => Slice.Empty
-		/// Slice.Nil.Substring(0) => Slice.Emtpy
+		/// Slice.Nil.Substring(0) => Slice.Empty
 		/// </example>
 		/// <exception cref="System.ArgumentOutOfRangeException"><paramref name="offset"/> indicates a position not within this instance, or <paramref name="offset"/> is less than zero</exception>
 		[Pure]
@@ -687,7 +687,7 @@ namespace System
 		/// {"ABCDE"}.Substring(1, 3} => {"BCD"}
 		/// {"ABCDE"}.Substring(-2, 2} => {"DE"}
 		/// Slice.Empty.Substring(0, 0) => Slice.Empty
-		/// Slice.Nil.Substring(0, 0) => Slice.Emtpy
+		/// Slice.Nil.Substring(0, 0) => Slice.Empty
 		/// </example>
 		/// <exception cref="System.ArgumentOutOfRangeException"><paramref name="offset"/> plus <paramref name="count"/> indicates a position not within this instance, or <paramref name="offset"/> or <paramref name="count"/> is less than zero</exception>
 		[Pure]
@@ -1188,7 +1188,7 @@ namespace System
 		/// <param name="values">An array that contains the elements to concatenate.</param>
 		/// <param name="startIndex">The first element in <paramref name="values"/> to use.</param>
 		/// <param name="count">The number of elements of <paramref name="values"/> to use.</param>
-		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an emtpy array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
+		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
 		[NotNull]
@@ -2496,7 +2496,7 @@ namespace System
 		public static SliceStream AsStream(this Slice slice) //REVIEW: => ToStream() ?
 		{
 			if (slice.IsNull) throw ThrowHelper.InvalidOperationException("Slice cannot be null");
-			//TODO: have a singleton for the emtpy slice ?
+			//TODO: have a singleton for the empty slice ?
 			return new SliceStream(slice);
 		}
 
