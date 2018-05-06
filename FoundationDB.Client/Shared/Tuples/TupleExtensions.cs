@@ -640,7 +640,7 @@ namespace Doxense.Collections.Tuples
 		#region ValueTuple
 
 		[Pure]
-		public static STuple ToSTuple<T1>(this ValueTuple tuple)
+		public static STuple ToSTuple(this ValueTuple tuple)
 		{
 			return default(STuple);
 		}
