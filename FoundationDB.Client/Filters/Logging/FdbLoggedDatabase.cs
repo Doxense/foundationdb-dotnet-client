@@ -55,7 +55,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Create a new logged transaction</summary>
-		public override IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default(CancellationToken), FdbOperationContext context = null)
+		public override IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
 		{
 			return new FdbLoggedTransaction(
 				base.BeginTransaction(mode, ct, context),

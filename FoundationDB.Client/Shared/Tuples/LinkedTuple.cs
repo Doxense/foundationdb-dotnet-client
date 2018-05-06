@@ -31,7 +31,6 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 
@@ -77,10 +76,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
-		{
-			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
-		}
+		public ITuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		public TItem Get<TItem>(int index)
 		{
@@ -92,7 +88,7 @@ namespace Doxense.Collections.Tuples
 		public T Last
 		{
 			[Pure]
-			get { return this.Tail; }
+			get => this.Tail;
 		}
 
 		ITuple ITuple.Append<TItem>(TItem value)

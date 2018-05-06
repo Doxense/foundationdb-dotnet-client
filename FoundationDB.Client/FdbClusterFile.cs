@@ -30,37 +30,48 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
 	using System.Net;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Class that exposes the content of a FoundationDB .cluster file</summary>
+	[DebuggerDisplay("{RawValue,nq}")]
+	[PublicAPI]
 	public sealed class FdbClusterFile
 	{
 		/// <summary>The raw value of the file</summary>
 		[NotNull]
-		internal string RawValue { get; private set; }
+		internal string RawValue { get; }
 
 		/// <summary>Cluster Identifier</summary>
 		[NotNull]
-		public string Id { get; private set; }
+		public string Id { get; }
 
 		/// <summary>Logical description of the database</summary>
 		[NotNull]
-		public string Description { get; private set; }
+		public string Description { get; }
 
 		/// <summary>List of coordination servers</summary>
-		public FdbEndPoint[] Coordinators { get; private set; }
+		[NotNull, ItemNotNull]
+		public FdbEndPoint[] Coordinators { get; }
 
-		private FdbClusterFile()
-		{ }
+		private FdbClusterFile(string rawValue, string description, string identifier, FdbEndPoint[] coordinators)
+		{
+			Contract.Requires(rawValue != null && description != null && identifier != null && coordinators != null);
+			this.RawValue = rawValue;
+			this.Description = description;
+			this.Id = identifier;
+			this.Coordinators = coordinators;
+		}
 
 		/// <summary>Cluster file with already parsed components</summary>
 		/// <param name="description"></param>
 		/// <param name="identifier"></param>
 		/// <param name="coordinators"></param>
-		public FdbClusterFile(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
+		public FdbClusterFile([NotNull] string description, [NotNull] string identifier, [NotNull, ItemNotNull] IEnumerable<FdbEndPoint> coordinators)
 		{
 			if (description == null) throw new ArgumentNullException(nameof(description));
 			if (identifier == null) throw new ArgumentNullException(nameof(identifier));
@@ -85,17 +96,17 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static FdbClusterFile Parse(string rawValue)
 		{
-			if (string.IsNullOrEmpty(rawValue)) throw new FormatException("Cluster file descriptor cannot be empty");
+			if (string.IsNullOrEmpty(rawValue)) throw new FormatException("Cluster file descriptor cannot be empty.");
 
 			int p = rawValue.IndexOf(':');
-			if (p < 0) throw new FormatException("Missing ':' after description field");
+			if (p < 0) throw new FormatException("Missing ':' after description field.");
 			string description = rawValue.Substring(0, p).Trim();
-			if (description.Length == 0) throw new FormatException("Empty description field");
+			if (description.Length == 0) throw new FormatException("Empty description field.");
 
 			int q  = rawValue.IndexOf('@', p + 1);
-			if (q < 0) throw new FormatException("Missing '@' after identifier field");
+			if (q < 0) throw new FormatException("Missing '@' after identifier field.");
 			string identifier = rawValue.Substring(p + 1, q - p - 1).Trim();
-			if (identifier.Length == 0) throw new FormatException("Empty description field");
+			if (identifier.Length == 0) throw new FormatException("Empty description field.");
 
 			string[] pairs = rawValue.Substring(q + 1).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 			var coordinators = pairs.Select(pair =>
@@ -107,7 +118,7 @@ namespace FoundationDB.Client
 					tls = true;
 				}
 				int r = pair.LastIndexOf(':');
-				if (r < 0) throw new FormatException("Missing ':' in coordinator address");
+				if (r < 0) throw new FormatException("Missing ':' in coordinator address.");
 				// the format is "{IP}:{PORT}" or "{IP}:{PORT}:tls"
 
 				return new FdbEndPoint(
@@ -116,20 +127,12 @@ namespace FoundationDB.Client
 					tls
 				);
 			}).ToArray();
-			if (coordinators.Length == 0) throw new FormatException("Empty coordination server list");
+			if (coordinators.Length == 0) throw new FormatException("Empty coordination server list.");
 
-			return new FdbClusterFile
-			{
-				RawValue = rawValue,
-				Description = description,
-				Id = identifier,
-				Coordinators = coordinators
-			};
-
+			return new FdbClusterFile(rawValue, description, identifier, coordinators);
 		}
 
 		/// <summary>Returns the raw text of the cluster file</summary>
-		/// <returns></returns>
 		public override string ToString()
 		{
 			return this.RawValue;
@@ -138,8 +141,7 @@ namespace FoundationDB.Client
 		/// <summary>Computes the hashcode of the cluster file</summary>
 		public override int GetHashCode()
 		{
-			if (this.RawValue == null) return -1;
-			return this.RawValue.GetHashCode();
+			return this.RawValue?.GetHashCode() ?? -1;
 		}
 
 		/// <summary>Check if this cluster file is equal to another object</summary>

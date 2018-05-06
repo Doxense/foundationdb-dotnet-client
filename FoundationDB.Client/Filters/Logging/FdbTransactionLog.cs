@@ -33,6 +33,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Reflection;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
@@ -86,22 +87,26 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Checks if we need to record the stacktrace of the creation of the transaction</summary>
 		internal bool ShoudCaptureTransactionStackTrace
 		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return (this.Options & FdbLoggingOptions.RecordCreationStackTrace) != 0; }
 		}
 
 		internal bool ShouldCaptureOperationStackTrace
 		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return (this.Options & FdbLoggingOptions.RecordOperationStackTrace) != 0; }
 		}
 
 		/// <summary>Number of operations performed by the transaction</summary>
-		public int Operations { get { return m_operations; } }
+		public int Operations => m_operations;
 
 		/// <summary>List of all commands processed by the transaction</summary>
-		public ConcurrentQueue<Command> Commands { [NotNull] get; private set; }
+		[NotNull]
+		public ConcurrentQueue<Command> Commands { get; private set; }
 
 		/// <summary>Timestamp of the start of transaction</summary>
 		public long StartTimestamp { get; private set; }
+
 		/// <summary>Timestamp of the end of transaction</summary>
 		public long StopTimestamp { get; private set; }
 
@@ -119,15 +124,15 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Internal step counter of the transaction</summary>
 		/// <remarks>This counter is used to detect sequential vs parallel commands</remarks>
-		public int Step { get { return m_step; } }
+		public int Step => m_step;
 
 		/// <summary>Read size of the last commit attempt</summary>
 		/// <remarks>This value only account for read commands in the last attempt</remarks>
-		public int ReadSize { get { return m_readSize; } }
+		public int ReadSize => m_readSize;
 
 		/// <summary>Write size of the last commit attempt</summary>
 		/// <remarks>This value only account for write commands in the last attempt</remarks>
-		public int WriteSize { get { return m_writeSize; } }
+		public int WriteSize => m_writeSize;
 
 		/// <summary>Commit size of the last commit attempt</summary>
 		/// <remarks>This value only account for write commands in the last attempt</remarks>
@@ -338,7 +343,6 @@ namespace FoundationDB.Filters.Logging
 
 				// look for the timestamps of the first and last commands
 				var first = TimeSpan.Zero;
-				var last = duration;
 				for (int i = 0; i < cmds.Length;i++)
 				{
 					if (cmds[i].Op == Operation.Log) continue;

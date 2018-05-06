@@ -32,7 +32,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 
 	/// <summary>Encoder for variable-length elements, that uses the Tuple Binary Encoding format</summary>
 	public sealed class TupleKeyEncoder : IDynamicKeyEncoder

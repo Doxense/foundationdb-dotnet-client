@@ -144,7 +144,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private KeySelector Grab(KeySelector selector)
+		private KeySelector Grab(in KeySelector selector)
 		{
 			return new KeySelector(
 				Grab(selector.Key),
@@ -160,7 +160,7 @@ namespace FoundationDB.Filters.Logging
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				res[i] = Grab(selectors[i]);
+				res[i] = Grab(in selectors[i]);
 			}
 			return res;
 		}
@@ -384,7 +384,7 @@ namespace FoundationDB.Filters.Logging
 		public override Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return ExecuteAsync(
-				new FdbTransactionLog.GetKeyCommand(Grab(selector)),
+				new FdbTransactionLog.GetKeyCommand(Grab(in selector)),
 				(tr, cmd) => tr.GetKeyAsync(selector)
 			);
 		}
@@ -408,7 +408,7 @@ namespace FoundationDB.Filters.Logging
 		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			return ExecuteAsync(
-				new FdbTransactionLog.GetRangeCommand(Grab(beginInclusive), Grab(endExclusive), options, iteration),
+				new FdbTransactionLog.GetRangeCommand(Grab(in beginInclusive), Grab(in endExclusive), options, iteration),
 				(tr, cmd) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration)
 			);
 		}
@@ -427,13 +427,7 @@ namespace FoundationDB.Filters.Logging
 
 		#region Snapshot...
 
-		public override IFdbReadOnlyTransaction Snapshot
-		{
-			get
-			{
-				return m_snapshotted ?? (m_snapshotted = new Snapshotted(this, m_transaction.Snapshot));
-			}
-		}
+		public override IFdbReadOnlyTransaction Snapshot => m_snapshotted ?? (m_snapshotted = new Snapshotted(this, m_transaction.Snapshot));
 
 		private sealed class Snapshotted : FdbReadOnlyTransactionFilter
 		{
@@ -445,8 +439,8 @@ namespace FoundationDB.Filters.Logging
 				m_parent = parent;
 			}
 
-			private async Task<R> ExecuteAsync<TCommand, R>([NotNull] TCommand cmd, [NotNull] Func<IFdbReadOnlyTransaction, TCommand, Task<R>> lambda)
-				where TCommand : FdbTransactionLog.Command<R>
+			private async Task<TResult> ExecuteAsync<TCommand, TResult>([NotNull] TCommand cmd, [NotNull] Func<IFdbReadOnlyTransaction, TCommand, Task<TResult>> lambda)
+				where TCommand : FdbTransactionLog.Command<TResult>
 			{
 				m_parent.ThrowIfDisposed();
 				Exception error = null;
@@ -454,8 +448,8 @@ namespace FoundationDB.Filters.Logging
 				m_parent.Log.BeginOperation(cmd);
 				try
 				{
-					R result = await lambda(m_transaction, cmd).ConfigureAwait(false);
-					cmd.Result = Maybe.Return<R>(result);
+					TResult result = await lambda(m_transaction, cmd).ConfigureAwait(false);
+					cmd.Result = Maybe.Return<TResult>(result);
 					return result;
 				}
 				catch (Exception e)
@@ -464,7 +458,7 @@ namespace FoundationDB.Filters.Logging
 #if NET_4_0
 					cmd.Result = Maybe.Error<R>(e);
 #else
-					cmd.Result = Maybe.Error<R>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
+					cmd.Result = Maybe.Error<TResult>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
 #endif
 					throw;
 				}
@@ -493,7 +487,7 @@ namespace FoundationDB.Filters.Logging
 			public override Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				return ExecuteAsync(
-					new FdbTransactionLog.GetKeyCommand(m_parent.Grab(selector)),
+					new FdbTransactionLog.GetKeyCommand(m_parent.Grab(in selector)),
 					(tr, cmd) => tr.GetKeyAsync(cmd.Selector)
 				);
 			}
@@ -517,7 +511,7 @@ namespace FoundationDB.Filters.Logging
 			public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 			{
 				return ExecuteAsync(
-					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(beginInclusive), m_parent.Grab(endExclusive), options, iteration),
+					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(in beginInclusive), m_parent.Grab(in endExclusive), options, iteration),
 					(tr, cmd) => tr.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options, cmd.Iteration)
 				);
 			}

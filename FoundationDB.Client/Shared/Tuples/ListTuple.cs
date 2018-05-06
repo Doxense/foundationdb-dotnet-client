@@ -32,7 +32,6 @@ namespace Doxense.Collections.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -138,7 +137,7 @@ namespace Doxense.Collections.Tuples
 
 		public TItem Last<TItem>()
 		{
-			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
+			if (m_count == 0) throw new InvalidOperationException("Tuple is empty.");
 			return TypeConverters.ConvertBoxed<TItem>(m_items[m_offset + m_count - 1]);
 		}
 

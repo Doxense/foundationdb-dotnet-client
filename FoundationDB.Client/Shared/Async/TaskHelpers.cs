@@ -393,9 +393,9 @@ namespace Doxense.Threading.Tasks
 			{
 				tcs.TrySetCanceled();
 			}
-			else if (e is AggregateException)
+			else if (e is AggregateException aggEx)
 			{
-				tcs.TrySetException(((AggregateException) e).Flatten().InnerExceptions);
+				tcs.TrySetException(aggEx.Flatten().InnerExceptions);
 			}
 			else
 			{

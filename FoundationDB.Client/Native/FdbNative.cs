@@ -80,7 +80,7 @@ namespace FoundationDB.Client.Native
 			// Network
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int value_length);
+			public static extern FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int valueLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_setup_network();

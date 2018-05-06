@@ -32,7 +32,6 @@ namespace Doxense.Linq
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 
 	public static partial class AsyncEnumerable
@@ -75,7 +74,7 @@ namespace Doxense.Linq
 					return true;
 				}
 
-				m_current = default(TResult);
+				m_current = default;
 				m_disposed = true;
 				return false;
 			}
@@ -95,8 +94,8 @@ namespace Doxense.Linq
 				m_iterator = null;
 				m_transform = null;
 				m_disposed = true;
-				m_current = default(TResult);
-				m_ct = default(CancellationToken);
+				m_current = default;
+				m_ct = default;
 			}
 
 		}

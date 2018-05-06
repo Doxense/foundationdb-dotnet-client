@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace Doxense
+namespace Doxense //REVIEW: what would be the best namespace for this? (mostly used by layers)
 {
 	using System;
 	using System.Collections.Generic;
@@ -43,7 +43,7 @@ namespace Doxense
 		public static readonly Maybe<T> Nothing = new Maybe<T>();
 
 		/// <summary>Représente un résultat correspondant à la valeur par défaut du type (0, false, null)</summary>
-		public static readonly Maybe<T> Default = new Maybe<T>(default(T));
+		public static readonly Maybe<T> Default = new Maybe<T>(default);
 
 		/// <summary>Cached completed Task that always return an empty value</summary>
 		public static readonly Task<Maybe<T>> EmptyTask = Task.FromResult(default(Maybe<T>));
@@ -178,13 +178,13 @@ namespace Doxense
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Failure(Exception error)
 		{
-			return new Maybe<T>(false, default(T), error);
+			return new Maybe<T>(false, default, error);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Failure(ExceptionDispatchInfo error)
 		{
-			return new Maybe<T>(false, default(T), error);
+			return new Maybe<T>(false, default, error);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -347,7 +347,7 @@ namespace Doxense
 		{
 			return (x) =>
 			{
-				if (x.m_errorContainer != null) return new Maybe<TResult>(false, default(TResult), x.m_errorContainer);
+				if (x.m_errorContainer != null) return new Maybe<TResult>(false, default, x.m_errorContainer);
 				if (!x.m_hasValue) return Maybe<TResult>.Nothing;
 
 				try
@@ -443,7 +443,7 @@ namespace Doxense
 		public static Maybe<T> Nothing<T>()
 		{
 			// ENTER THE MONAD !
-			return default(Maybe<T>);
+			return default;
 		}
 
 		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing en utilisant le compilateur pour inférer le type de la valeur</summary>
@@ -454,7 +454,7 @@ namespace Doxense
 		public static Maybe<T> Nothing<T>(T _)
 		{
 			// ENTER THE MONAD !
-			return default(Maybe<T>);
+			return default;
 		}
 
 		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
@@ -547,12 +547,12 @@ namespace Doxense
 		public static Maybe<T> FromNullable<T>(T? value)
 			where T : struct
 		{
-			return value.HasValue ? new Maybe<T>(value.Value) : default(Maybe<T>);
+			return value.HasValue ? new Maybe<T>(value.Value) : default;
 		}
 
 		/// <summary>Retourne le résultat d'un Maybe, ou une valeur par défaut s'il est vide.</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T OrDefault<T>(this Maybe<T> m, T @default = default(T))
+		public static T OrDefault<T>(this Maybe<T> m, T @default = default)
 		{
 			// EXIT THE MONAD
 			return m.HasValue ? m.Value : @default;
@@ -598,7 +598,7 @@ namespace Doxense
 				if (value.Failed)
 				{
 					// keep the original error untouched
-					return new Maybe<TResult>(false, default(TResult), value.ErrorContainer);
+					return new Maybe<TResult>(false, default, value.ErrorContainer);
 				}
 				return Nothing<TResult>();
 			}
@@ -622,7 +622,7 @@ namespace Doxense
 				if (value.Failed)
 				{
 					// keep the original error untouched
-					return new Maybe<TResult>(false, default(TResult), value.ErrorContainer);
+					return new Maybe<TResult>(false, default, value.ErrorContainer);
 				}
 				return Nothing<TResult>();
 			}

@@ -31,7 +31,6 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -410,7 +409,7 @@ namespace FoundationDB.Client
 				return await AsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
 
-			var options = new FdbRangeOptions()
+			var options = new FdbRangeOptions
 			{
 				Limit = Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue),
 				TargetBytes = 0,
@@ -426,7 +425,7 @@ namespace FoundationDB.Client
 			if (results.IsEmpty)
 			{ // no result
 				if (!orDefault) throw new InvalidOperationException("The range was empty");
-				return default(T);
+				return default;
 			}
 
 			if (single && results.Count > 1)
@@ -455,7 +454,7 @@ namespace FoundationDB.Client
 
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
 
-			var options = new FdbRangeOptions()
+			var options = new FdbRangeOptions
 			{
 				Limit = 1,
 				TargetBytes = 0,

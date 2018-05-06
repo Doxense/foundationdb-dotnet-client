@@ -56,7 +56,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Empty key selector</summary>
-		public static readonly KeySelector None = default(KeySelector);
+		public static readonly KeySelector None;
 
 		public bool Equals(KeySelector other)
 		{

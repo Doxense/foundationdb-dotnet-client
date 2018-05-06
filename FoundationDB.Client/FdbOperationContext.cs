@@ -264,7 +264,7 @@ namespace FoundationDB.Client
 			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
 			ct.ThrowIfCancellationRequested();
 
-			TResult result = default(TResult);
+			TResult result = default;
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
 				result = await asyncHandler(tr).ConfigureAwait(false);

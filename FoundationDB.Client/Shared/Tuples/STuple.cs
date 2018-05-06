@@ -35,7 +35,6 @@ namespace Doxense.Collections.Tuples
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Text;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
@@ -649,7 +648,7 @@ namespace Doxense.Collections.Tuples
 			}
 
 			/// <summary>Parse a tuple expression at the start of a string</summary>
-			/// <param name="expression">String who starts with a valid Tuple expression, with optional extra characters</param>
+			/// <param name="expression">String that starts with a valid Tuple expression, with optional extra characters</param>
 			/// <returns>First item is the parsed tuple, and the second item is the rest of the string (or null if we consumed the whole expression)</returns>
 			public static void ParseNext(string expression, out ITuple tuple, out string tail)
 			{
@@ -678,7 +677,7 @@ namespace Doxense.Collections.Tuples
 					this.Cursor = 0;
 				}
 
-				public readonly string Expression;
+				private readonly string Expression;
 				private int Cursor;
 
 				public bool HasMore => this.Cursor < this.Expression.Length;

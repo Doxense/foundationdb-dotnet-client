@@ -39,10 +39,11 @@ namespace FoundationDB.Client
 	{
 		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
 		public readonly bool HasMore;
-		//TODO: consider renaming Chunk to Results or Items ?
-		// => I saw a lot of "var chunk = tr.GetRangeAsync(...); if (chunk.Chunk.Length > 0 { ... }" which is a bit ugly..
+
 		/// <summary>Contains the items that where </summary>
 		public readonly KeyValuePair<Slice, Slice>[] Chunk;
+		//REVIEW: consider renaming Chunk to Results or Items ?
+		// => I saw a lot of "var chunk = tr.GetRangeAsync(...); if (chunk.Chunk.Length > 0 { ... }" which is a bit ugly..
 
 		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
 		public readonly int Iteration;
@@ -71,8 +72,7 @@ namespace FoundationDB.Client
 			get
 			{
 				var chunk = this.Chunk;
-				if (chunk != null && chunk.Length > 0) return chunk[0];
-				return default(KeyValuePair<Slice, Slice>);
+				return chunk?.Length > 0 ? chunk[0] : default;
 			}
 		}
 
@@ -83,8 +83,7 @@ namespace FoundationDB.Client
 			get
 			{
 				var chunk = this.Chunk;
-				if (chunk != null && chunk.Length > 0) return chunk[chunk.Length - 1];
-				return default(KeyValuePair<Slice, Slice>);
+				return chunk?.Length > 0 ? chunk[chunk.Length - 1] : default;
 			}
 		}
 

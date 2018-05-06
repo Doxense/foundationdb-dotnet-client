@@ -35,7 +35,6 @@ namespace Doxense.Collections.Tuples
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple Binary Encoding</summary>

@@ -424,13 +424,12 @@ namespace FoundationDB.Client.Native
 		{
 			// unsubscribe from the parent cancellation token if there was one
 			m_ctr.Dispose();
-			m_ctr = default(CancellationTokenRegistration);
+			m_ctr = default;
 		}
 
 		private static void CancellationHandler(object state)
 		{
-			var future = state as FdbFuture<T>;
-			if (future != null)
+			if (state is FdbFuture<T> future)
 			{
 #if DEBUG_FUTURES
 				Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
@@ -442,10 +441,7 @@ namespace FoundationDB.Client.Native
 		#endregion
 
 		/// <summary>Return true if the future has completed (successfully or not)</summary>
-		public bool IsReady
-		{
-			get { return this.Task.IsCompleted; }
-		}
+		public bool IsReady => this.Task.IsCompleted;
 
 		/// <summary>Make the Future awaitable</summary>
 		public TaskAwaiter<T> GetAwaiter()

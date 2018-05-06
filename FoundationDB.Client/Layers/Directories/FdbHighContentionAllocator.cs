@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Directories
 	using System.Threading.Tasks;
 
 	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
-	[DebuggerDisplay("Subspace={Subspace}")]
+	[DebuggerDisplay("Subspace={" + nameof(FdbHighContentionAllocator.Subspace) + "}")]
 	public sealed class FdbHighContentionAllocator
 	{
 		private const int COUNTERS = 0;
@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="subspace"></param>
 		public FdbHighContentionAllocator(IDynamicKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Subspace = subspace;
 			this.Counters = subspace.Partition.ByKey(COUNTERS);
@@ -56,13 +56,16 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
+		[NotNull]
+		public IDynamicKeySubspace Subspace { get; }
 
 		/// <summary>Subspace used to store the allocation count for the current window</summary>
-		private IDynamicKeySubspace Counters { [NotNull] get; set; }
+		[NotNull]
+		private IDynamicKeySubspace Counters { get; }
 
 		/// <summary>Subspace used to store the prefixes allocated in the current window</summary>
-		private IDynamicKeySubspace Recent { [NotNull] get; set; }
+		[NotNull]
+		private IDynamicKeySubspace Recent { get; }
 
 		/// <summary>Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
@@ -71,7 +74,7 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public async Task<long> AllocateAsync([NotNull] IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			// find the current window size, by reading the last entry in the 'counters' subspace
 			long start = 0, count = 0;
@@ -132,7 +135,7 @@ namespace FoundationDB.Layers.Directories
 
 		private static int GetWindowSize(long start)
 		{
-			if (start < 0) throw new ArgumentOutOfRangeException("start", start, "Start offset must be a positive integer");
+			if (start < 0) throw new ArgumentOutOfRangeException(nameof(start), start, "Start offset must be a positive integer");
 
 			if (start < 255) return 64;
 			if (start < 65535) return 1024;

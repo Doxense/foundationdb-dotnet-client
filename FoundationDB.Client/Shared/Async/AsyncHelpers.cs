@@ -40,8 +40,6 @@ namespace Doxense.Async
 	/// <summary>Helper methods for creating and manipulating async sequences.</summary>
 	public static class AsyncHelpers
 	{
-		internal static readonly Action NoOpCompletion = () => { };
-		internal static readonly Action<ExceptionDispatchInfo> NoOpError = (e) => { };
 		internal static readonly Action<ExceptionDispatchInfo> RethrowError = (e) => { e.Throw(); };
 
 		#region Targets...
