@@ -474,7 +474,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Uuid128 value)
 		{
-			TupleParser.WriteUuid128(ref writer, value);
+			TupleParser.WriteUuid128(ref writer, in value);
 		}
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
@@ -486,7 +486,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public static void SerializeTo(ref TupleWriter writer, VersionStamp value)
 		{
-			TupleParser.WriteVersionStamp(ref writer, value);
+			TupleParser.WriteVersionStamp(ref writer, in value);
 		}
 
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
@@ -837,7 +837,8 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Nil: return null;
 					case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
 					case TupleTypes.Utf8: return TupleParser.ParseUnicode(slice);
-					case TupleTypes.TupleStart: return TupleParser.ParseTuple(slice);
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple: return TupleParser.ParseTuple(slice);
 				}
 			}
 			else
@@ -917,7 +918,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				if (type >= TupleTypes.IntBase) return Slice.FromInt64(DeserializeInt64(slice));
+				if (type >= TupleTypes.IntZero) return Slice.FromInt64(DeserializeInt64(slice));
 				return Slice.FromUInt64(DeserializeUInt64(slice));
 			}
 
@@ -948,7 +949,8 @@ namespace Doxense.Collections.Tuples.Encoding
 				{
 					return TupleEncoder.Unpack(TupleParser.ParseBytes(slice));
 				}
-				case TupleTypes.TupleStart:
+				case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+				case TupleTypes.EmbeddedTuple:
 				{
 					return TupleParser.ParseTuple(slice);
 				}
@@ -977,7 +979,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1010,7 +1013,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1043,7 +1047,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1077,7 +1082,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1111,7 +1117,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1144,7 +1151,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);

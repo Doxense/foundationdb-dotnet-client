@@ -876,47 +876,47 @@ namespace Doxense.Collections.Tuples.Tests
 
 			verify(
 				STuple.Create(42, value, docId),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			verify(
 				STuple.Create(new object[] {42, value, docId}),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			verify(
 				STuple.Create(42).Append(value).Append(docId),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			verify(
 				STuple.Create(42).Append(value, docId),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 
 			// multiple depth
 			verify(
 				STuple.Create(1, STuple.Create(2, 3), STuple.Create(STuple.Create(4, 5, 6)), 7),
-				"15 01 03 15 02 15 03 00 03 03 15 04 15 05 15 06 00 00 15 07"
+				"15 01 05 15 02 15 03 00 05 05 15 04 15 05 15 06 00 00 15 07"
 			);
 
 			// corner cases
 			verify(
 				STuple.Create(STuple.Empty),
-				"03 00" // empty tumple should have header and footer
+				"05 00" // empty tumple should have header and footer
 			);
 			verify(
 				STuple.Create(STuple.Empty, default(string)),
-				"03 00 00" // outer null should not be escaped
+				"05 00 00" // outer null should not be escaped
 			);
 			verify(
 				STuple.Create(STuple.Create(default(string)), default(string)),
-				"03 00 FF 00 00" // inner null should be escaped, but not outer
+				"05 00 FF 00 00" // inner null should be escaped, but not outer
 			);
 			verify(
 				STuple.Create(STuple.Create(0x100, 0x10000, 0x1000000)),
-				"03 16 01 00 17 01 00 00 18 01 00 00 00 00"
+				"05 16 01 00 17 01 00 00 18 01 00 00 00 00"
 			);
 			verify(
 				STuple.Create(default(string), STuple.Empty, default(string), STuple.Create(default(string)), default(string)),
-				"00 03 00 00 03 00 FF 00 00"
+				"00 05 00 00 05 00 FF 00 00" // inner null should be escaped, but not outer
 			);
 
 		}
@@ -927,7 +927,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// ((42, (2014, 11, 6), "Hello", true), )
 			var packed = TuPack.EncodeKey(STuple.Create(42, STuple.Create(2014, 11, 6), "Hello", true));
 			Log($"t = {TuPack.Unpack(packed)}");
-			Assert.That(packed[0], Is.EqualTo(TupleTypes.TupleStart), "Missing Embedded Tuple marker");
+			Assert.That(packed[0], Is.EqualTo(TupleTypes.EmbeddedTuple), "Missing Embedded Tuple marker");
 			{
 				var t = TuPack.DecodeKey<ITuple>(packed);
 				Assert.That(t, Is.Not.Null);
@@ -1833,10 +1833,10 @@ namespace Doxense.Collections.Tuples.Tests
 			Slice packed;
 
 			packed = TuplePacker<Thing>.Serialize(new Thing {Foo = 123, Bar = "hello"});
-			Assert.That(packed.ToString(), Is.EqualTo("<03><15>{<02>hello<00><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<05><15>{<02>hello<00><00>"));
 
 			packed = TuplePacker<Thing>.Serialize(new Thing());
-			Assert.That(packed.ToString(), Is.EqualTo("<03><14><00><FF><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<05><14><00><FF><00>"));
 
 			packed = TuplePacker<Thing>.Serialize(default(Thing));
 			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
@@ -1849,13 +1849,13 @@ namespace Doxense.Collections.Tuples.Tests
 			Slice slice;
 			Thing thing;
 
-			slice = Slice.Unescape("<03><16><01><C8><02>world<00><00>");
+			slice = Slice.Unescape("<05><16><01><C8><02>world<00><00>");
 			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(456));
 			Assert.That(thing.Bar, Is.EqualTo("world"));
 
-			slice = Slice.Unescape("<03><14><00><FF><00>");
+			slice = Slice.Unescape("<05><14><00><FF><00>");
 			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(0));
@@ -2187,7 +2187,7 @@ namespace Doxense.Collections.Tuples.Tests
 				var packed = TuPack.Pack(ValueTuple.Create("hello", ValueTuple.Create(123, false), "world"));
 				Assert.That(
 					packed.ToString(),
-					Is.EqualTo("<02>hello<00><03><15>{<14><00><02>world<00>")
+					Is.EqualTo("<02>hello<00><05><15>{<14><00><02>world<00>")
 				);
 				var t = TuPack.DecodeKey<string, ValueTuple<int, bool>, string>(packed);
 				Assert.That(t.Item1, Is.EqualTo("hello"));
