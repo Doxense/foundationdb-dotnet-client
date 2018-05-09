@@ -42,10 +42,10 @@ namespace FoundationDB.Filters
 		public PrefixRewriterTransaction(IKeySubspace prefix, IFdbTransaction trans, bool ownsTransaction)
 			: base(trans, false, ownsTransaction)
 		{
-			this.Prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
+			this.Prefix = (prefix ?? throw new ArgumentNullException(nameof(prefix))).AsBinary();
 		}
 
-		public IKeySubspace Prefix { get; }
+		public IBinaryKeySubspace Prefix { get; }
 
 		private Slice Encode(Slice key)
 		{
@@ -57,7 +57,7 @@ namespace FoundationDB.Filters
 			return keys.Select(k => this.Prefix[k]).ToArray();
 		}
 
-		private KeySelector Encode(KeySelector selector)
+		private KeySelector Encode(in KeySelector selector)
 		{
 			return new KeySelector(
 				this.Prefix[selector.Key],
@@ -113,7 +113,7 @@ namespace FoundationDB.Filters
 
 		public override async Task<Slice> GetKeyAsync(KeySelector selector)
 		{
-			return Decode(await base.GetKeyAsync(Encode(selector)).ConfigureAwait(false));
+			return Decode(await base.GetKeyAsync(Encode(in selector)).ConfigureAwait(false));
 		}
 
 		public override async Task<Slice[]> GetKeysAsync(KeySelector[] selectors)

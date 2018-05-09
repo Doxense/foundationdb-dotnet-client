@@ -50,18 +50,20 @@ namespace FoundationDB.Client
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation
 
+		IKeyContext GetContext();
+
 		/// <summary>Returns the prefix of this subspace</summary>
-		Slice GetPrefix();
+		Slice GetPrefix(); //REVIEW: remove?
 
 		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
-		KeyRange ToRange();
+		KeyRange ToRange(); //REVIEW: remove?
 
-		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
-		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>Full binary key</returns>
-		Slice this[Slice relativeKey] { [Pure] get; }
+		///// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		///// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		///// <returns>Full binary key</returns>
+		//Slice this[Slice relativeKey] { [Pure] get; }
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="absoluteKey">Key to test</param>
@@ -84,6 +86,86 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]
 		Slice ExtractKey(Slice absoluteKey, bool boundCheck = false);
+
+	}
+
+	public interface IBinaryKeySubspace : IKeySubspace
+	{
+
+		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
+		Slice this[Slice relativeKey] { [Pure] get; }
+
+		/// <summary>View of the keys of this subspace</summary>
+		[NotNull]
+		BinaryKeys Keys { get; }
+
+		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
+		[NotNull]
+		BinaryPartition Partition { get; }
+
+	}
+
+	public sealed class BinaryKeySubspace : KeySubspace, IBinaryKeySubspace
+	{
+		internal BinaryKeySubspace(IKeyContext context)
+			: base(context)
+		{
+			this.Keys = new BinaryKeys(this);
+			this.Partition = new BinaryPartition(this);
+		}
+
+		public new Slice ExtractKey(Slice absoluteKey, bool boundCheck = false)
+		{
+			return base.ExtractKey(absoluteKey, boundCheck);
+		}
+
+		/// <summary>Append a key to the subspace key</summary>
+		/// <remarks>This is the equivalent of calling 'subspace.Key + suffix'</remarks>
+		public Slice this[Slice relativeKey]
+		{
+			get
+			{
+				//note: we don't want to leak our key!
+				var key = GetKeyPrefix();
+				if (relativeKey.IsNullOrEmpty) return key.Memoize(); //TODO: better solution!
+				return key.Concat(relativeKey);
+			}
+		}
+
+		public BinaryKeys Keys { get; }
+
+		public BinaryPartition Partition { get; }
+
+	}
+
+	public sealed class BinaryKeys
+	{
+		private readonly BinaryKeySubspace Parent;
+
+		internal BinaryKeys(BinaryKeySubspace parent)
+		{
+			this.Parent = parent;
+		}
+
+		public Slice this[Slice suffix] => this.Parent[suffix];
+
+		public Slice Decode(Slice packed) => this.Parent.ExtractKey(packed);
+
+	}
+
+	public sealed class BinaryPartition
+	{
+
+		private readonly BinaryKeySubspace Parent;
+
+		internal BinaryPartition(BinaryKeySubspace parent)
+		{
+			this.Parent = parent;
+		}
+
+		public BinaryKeySubspace this[Slice suffix] => new BinaryKeySubspace(this.Parent.GetContext().CreateChild(suffix));
 
 	}
 

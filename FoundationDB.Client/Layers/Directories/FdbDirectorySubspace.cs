@@ -45,10 +45,10 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace([NotNull] ITuple location, [NotNull] ITuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, Slice layer, [NotNull] IKeyEncoding encoding)
-			: base(prefix, encoding)
+		internal FdbDirectorySubspace([NotNull] ITuple location, [NotNull] ITuple relativeLocation, IKeyContext context, [NotNull] FdbDirectoryLayer directoryLayer, Slice layer, [NotNull] IKeyEncoding encoding)
+			: base(context, encoding)
 		{
-			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
+			Contract.Requires(location != null && relativeLocation != null && context != null && directoryLayer != null);
 			if (layer.IsNull) layer = Slice.Empty;
 
 			this.DirectoryLayer = directoryLayer;
@@ -148,7 +148,8 @@ namespace FoundationDB.Layers.Directories
 			// set the layer to the new value
 			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.RelativeLocation, newLayer).ConfigureAwait(false);
 			// and return the new version of the subspace
-			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, GetKeyPrefix(), this.DirectoryLayer, newLayer, this.Encoding);
+			var keyContext = new BinaryPrefixContext(GetKeyPrefix()); //TODO: BUGBUG: use a different type of context that keeps a reference on this directory subspace!
+			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, keyContext, this.DirectoryLayer, newLayer, this.Encoding);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.

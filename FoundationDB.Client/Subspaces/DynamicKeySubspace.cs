@@ -49,10 +49,10 @@ namespace FoundationDB.Client
 		internal IDynamicKeyEncoder KeyEncoder { get; }
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
-		/// <param name="prefix">Prefix of the new subspace</param>
+		/// <param name="context">Prefix of the new subspace</param>
 		/// <param name="encoding">Type System used to encode keys in this subspace</param>
-		internal DynamicKeySubspace(Slice prefix, [NotNull] IKeyEncoding encoding)
-			: base(prefix)
+		internal DynamicKeySubspace(IKeyContext context, [NotNull] IKeyEncoding encoding)
+			: base(context)
 		{
 			Contract.Requires(encoding != null);
 			this.Encoding = encoding;
@@ -62,10 +62,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
-		/// <param name="prefix">Prefix of the new subspace</param>
+		/// <param name="context">Prefix of the new subspace</param>
 		/// <param name="encoder">Encoder that will be used by this subspace</param>
-		internal DynamicKeySubspace(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
-			: base(prefix)
+		internal DynamicKeySubspace(IKeyContext context, [NotNull] IDynamicKeyEncoder encoder)
+			: base(context)
 		{
 			Contract.Requires(encoder != null);
 			this.Encoding = encoder.Encoding;
@@ -437,7 +437,7 @@ namespace FoundationDB.Client
 	{
 
 		[NotNull]
-		public IDynamicKeySubspace Subspace { get; }
+		public DynamicKeySubspace Subspace { get; }
 
 		internal DynamicPartition([NotNull] DynamicKeySubspace subspace)
 		{
@@ -448,13 +448,18 @@ namespace FoundationDB.Client
 		public IDynamicKeySubspace this[Slice binarySuffix]
 		{
 			[Pure, NotNull]
-			get => new DynamicKeySubspace(this.Subspace[binarySuffix], this.Subspace.Encoding);
+			get => new DynamicKeySubspace(this.Subspace.GetContext().CreateChild(binarySuffix), this.Subspace.Encoding);
 		}
 
 		public IDynamicKeySubspace this[ITuple suffix]
 		{
 			[Pure, NotNull]
-			get => new DynamicKeySubspace(this.Subspace.Keys.Pack(suffix), this.Subspace.Encoding);
+			get
+			{
+				var writer = new SliceWriter();
+				this.Subspace.KeyEncoder.PackKey(ref writer, suffix);
+				return this[writer.ToSlice()];
+			}
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -468,7 +473,9 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T>(T value)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T>(value), this.Subspace.Encoding);
+			var writer = new SliceWriter();
+			this.Subspace.KeyEncoder.EncodeKey(ref writer, value);
+			return this[writer.ToSlice()];
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -484,7 +491,9 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), this.Subspace.Encoding);
+			var writer = new SliceWriter();
+			this.Subspace.KeyEncoder.EncodeKey(ref writer, value1, value2);
+			return this[writer.ToSlice()];
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -501,7 +510,9 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.Encoding);
+			var writer = new SliceWriter();
+			this.Subspace.KeyEncoder.EncodeKey(ref writer, value1, value2, value3);
+			return this[writer.ToSlice()];
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -520,7 +531,9 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.Encoding);
+			var writer = new SliceWriter();
+			this.Subspace.KeyEncoder.EncodeKey(ref writer, value1, value2, value3, value4);
+			return this[writer.ToSlice()];
 		}
 
 	}

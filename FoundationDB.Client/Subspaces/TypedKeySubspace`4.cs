@@ -54,8 +54,8 @@ namespace FoundationDB.Client
 	{
 		public ICompositeKeyEncoder<T1, T2, T3, T4> KeyEncoder { get; }
 
-		internal TypedKeySubspace(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
-			: base(prefix)
+		internal TypedKeySubspace(IKeyContext context, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+			: base(context)
 		{
 			this.KeyEncoder = encoder;
 			this.Keys = new TypedKeys<T1, T2, T3, T4>(this, this.KeyEncoder);
@@ -71,13 +71,13 @@ namespace FoundationDB.Client
 	{
 
 		[NotNull]
-		private readonly TypedKeySubspace<T1, T2, T3, T4> Parent;
+		private readonly ITypedKeySubspace<T1, T2, T3, T4> Parent;
 
 		[NotNull]
 		public ICompositeKeyEncoder<T1, T2, T3, T4> Encoder { get; }
 
 		internal TypedKeys(
-			[NotNull] TypedKeySubspace<T1, T2, T3, T4> parent,
+			[NotNull] ITypedKeySubspace<T1, T2, T3, T4> parent,
 			[NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
 			Contract.Requires(parent != null && encoder != null);
@@ -207,7 +207,7 @@ namespace FoundationDB.Client
 		public Slice Encode(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var bytes = this.Encoder.EncodeKey(item1, item2, item3, item4);
-			var sw = this.Parent.OpenWriter(bytes.Count);
+			var sw = this.Parent.GetContext().OpenWriter(bytes.Count);
 			sw.WriteBytes(bytes);
 			return sw.ToSlice();
 		}
@@ -219,7 +219,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice EncodePartial(T1 item1, T2 item2, T3 item3)
 		{
-			var sw = this.Parent.OpenWriter(24);
+			var sw = this.Parent.GetContext().OpenWriter(24);
 			var tuple = (item1, item2, item3, default(T4));
 			this.Encoder.WriteKeyPartsTo(ref sw, 3, ref tuple);
 			return sw.ToSlice();
@@ -228,7 +228,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice EncodePartial(T1 item1, T2 item2)
 		{
-			var sw = this.Parent.OpenWriter(16);
+			var sw = this.Parent.GetContext().OpenWriter(16);
 			var tuple = (item1, item2, default(T3), default(T4));
 			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
 			return sw.ToSlice();
@@ -237,7 +237,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice EncodePartial(T1 item1)
 		{
-			var sw = this.Parent.OpenWriter(16);
+			var sw = this.Parent.GetContext().OpenWriter(16);
 			var tuple = (item1, default(T2), default(T3), default(T4));
 			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
 			return sw.ToSlice();

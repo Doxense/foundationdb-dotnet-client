@@ -79,8 +79,6 @@ namespace FoundationDB.Client
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
 		private IDynamicKeySubspace m_globalSpace;
-		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private IDynamicKeySubspace m_globalSpaceCopy;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -185,8 +183,7 @@ namespace FoundationDB.Client
 		/// <summary>When overriden in a derived class, gets a database partition that wraps the root directory of this database instance</summary>
 		protected virtual FdbDatabasePartition GetRootDirectory()
 		{
-			var dl = FdbDirectoryLayer.Create(m_globalSpaceCopy);
-			return new FdbDatabasePartition(this, dl);
+			return new FdbDatabasePartition(this, FdbDirectoryLayer.Create(m_globalSpace));
 		}
 
 		#endregion
@@ -452,8 +449,7 @@ namespace FoundationDB.Client
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = subspace.Copy(TuPack.Encoding);
-				m_globalSpaceCopy = subspace.Copy(TuPack.Encoding); // keep another copy
+				m_globalSpace = subspace.AsDynamic(TuPack.Encoding);
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
@@ -466,7 +462,7 @@ namespace FoundationDB.Client
 			get
 			{
 				// return a copy of the subspace, to be sure that nobody can change the real globalspace and read elsewhere.
-				return m_globalSpaceCopy;
+				return m_globalSpace;
 			}
 		}
 
@@ -531,23 +527,14 @@ namespace FoundationDB.Client
 			return m_globalSpace.BoundCheck(key, allowSystemKeys);
 		}
 
-		Slice IKeySubspace.this[Slice relativeKey] => m_globalSpace[relativeKey];
-
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck)
-		{
-			return m_globalSpace.ExtractKey(key, boundCheck);
-		}
+		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck) => m_globalSpace.ExtractKey(key, boundCheck);
 
-		Slice IKeySubspace.GetPrefix()
-		{
-			return m_globalSpace.GetPrefix();
-		}
+		IKeyContext IKeySubspace.GetContext() => m_globalSpace.GetContext();
 
-		KeyRange IKeySubspace.ToRange()
-		{
-			return m_globalSpace.ToRange();
-		}
+		Slice IKeySubspace.GetPrefix() => m_globalSpace.GetPrefix();
+
+		KeyRange IKeySubspace.ToRange() => m_globalSpace.ToRange();
 
 		public DynamicPartition Partition => m_globalSpace.Partition;
 		//REVIEW: should we hide this on the main db?

@@ -115,15 +115,11 @@ namespace FoundationDB.Filters
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		public virtual bool IsReadOnly => m_readOnly;
 
-		Slice IKeySubspace.GetPrefix()
-		{
-			return this.GlobalSpace.GetPrefix();
-		}
+		IKeyContext IKeySubspace.GetContext() => this.GlobalSpace.GetContext();
 
-		KeyRange IKeySubspace.ToRange()
-		{
-			return this.GlobalSpace.ToRange();
-		}
+		Slice IKeySubspace.GetPrefix() => this.GlobalSpace.GetPrefix();
+
+		KeyRange IKeySubspace.ToRange() => this.GlobalSpace.ToRange();
 
 		public virtual DynamicPartition Partition => m_database.Partition;
 
@@ -138,8 +134,6 @@ namespace FoundationDB.Filters
 		{
 			return m_database.BoundCheck(key, allowSystemKeys);
 		}
-
-		public virtual Slice this[Slice key] => m_database[key];
 
 		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
 		{

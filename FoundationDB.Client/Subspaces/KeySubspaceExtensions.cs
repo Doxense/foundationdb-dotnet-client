@@ -44,6 +44,18 @@ namespace FoundationDB.Client
 
 		#region Encodings...
 
+		/// <summary>Return a version of this subspace, which works directly on binary keys, without any built-in encoding.</summary>
+		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but with only support for binary keys</returns>
+		/// <remarks>This can be used by Layers that encode and decode keys by themselves.</remarks>
+		[Pure, NotNull]
+		public static IBinaryKeySubspace AsBinary([NotNull] this IKeySubspace subspace)
+		{
+			Contract.NotNull(subspace, nameof(subspace));
+			if (subspace is IBinaryKeySubspace binary) return binary;
+			return new BinaryKeySubspace(subspace.GetContext());
+		}
+
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">If non-null, uses this specific instance of the TypeSystem. If null, uses the default instance for this particular TypeSystem</param>
@@ -52,7 +64,9 @@ namespace FoundationDB.Client
 		public static IDynamicKeySubspace AsDynamic([NotNull] this IKeySubspace subspace, IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new DynamicKeySubspace(subspace.GetPrefix(), encoding ?? TuPack.Encoding);
+			encoding = encoding ?? TuPack.Encoding;
+			if (subspace is IDynamicKeySubspace dynamic && dynamic.Encoding == encoding) return dynamic;
+			return new DynamicKeySubspace(subspace.GetContext(), encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -63,7 +77,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T> AsTyped<T>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T>());
+			return new TypedKeySubspace<T>(subspace.GetContext(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -74,7 +88,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>());
+			return new TypedKeySubspace<T1, T2>(subspace.GetContext(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -85,7 +99,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>());
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetContext(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>());
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -96,7 +110,7 @@ namespace FoundationDB.Client
 		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>([NotNull] this IKeySubspace subspace, [CanBeNull] IKeyEncoding encoding = null)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>());
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetContext(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>());
 		}
 
 
@@ -113,7 +127,8 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return new DynamicKeySubspace(subspace.GetPrefix(), encoder.Encoding);
+			if (subspace is DynamicKeySubspace dynamic && dynamic.KeyEncoder == encoder) return dynamic;
+			return new DynamicKeySubspace(subspace.GetContext(), encoder.Encoding);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -125,7 +140,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T>(subspace.GetPrefix(), encoder);
+			return new TypedKeySubspace<T>(subspace.GetContext(), encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -137,7 +152,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), encoder);
+			return new TypedKeySubspace<T1, T2>(subspace.GetContext(), encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -149,7 +164,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), encoder);
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetContext(), encoder);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -161,96 +176,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), encoder);
-		}
-
-		#endregion
-
-		#region Copy...
-
-		/// <summary>Create a new copy of a subspace's prefix</summary>
-		[Pure]
-		internal static Slice StealPrefix([NotNull] IKeySubspace subspace)
-		{
-			//note: we can workaround the 'security' in top directory partition by accessing their key prefix without triggering an exception!
-			return subspace is KeySubspace ks
-				? ks.GetPrefixUnsafe().Memoize()
-				: subspace.GetPrefix().Memoize();
-		}
-
-		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
-		[Pure, NotNull]
-		public static KeySubspace Copy([NotNull] this IKeySubspace subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-
-			var prefix = StealPrefix(subspace);
-
-			if (subspace is IDynamicKeySubspace dyn)
-			{ // reuse the encoding of the original
-				return new DynamicKeySubspace(prefix, dyn.Encoding);
-			}
-
-			// no encoding
-			return new KeySubspace(prefix);
-		}
-
-		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
-		[Pure, NotNull]
-		public static DynamicKeySubspace Copy([NotNull] this IKeySubspace subspace, IKeyEncoding encoding)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
-			return new DynamicKeySubspace(StealPrefix(subspace), encoding);
-		}
-
-		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
-		[Pure, NotNull]
-		public static DynamicKeySubspace Copy([NotNull] this IKeySubspace subspace, IDynamicKeyEncoder encoder)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
-			return new DynamicKeySubspace(StealPrefix(subspace), encoder);
-		}
-
-		/// <summary>Create a copy of a dynamic subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static DynamicKeySubspace Copy([NotNull] this IDynamicKeySubspace subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new DynamicKeySubspace(StealPrefix(subspace), subspace.Encoding);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1> Copy<T1>([NotNull] this ITypedKeySubspace<T1> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1, T2> Copy<T1, T2>([NotNull] this ITypedKeySubspace<T1, T2> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1, T2, T3> Copy<T1, T2, T3>([NotNull] this ITypedKeySubspace<T1, T2, T3> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3>(StealPrefix(subspace), subspace.KeyEncoder);
-		}
-
-		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
-		[Pure, NotNull]
-		public static TypedKeySubspace<T1, T2, T3, T4> Copy<T1, T2, T3, T4>([NotNull] this ITypedKeySubspace<T1, T2, T3, T4> subspace)
-		{
-			Contract.NotNull(subspace, nameof(subspace));
-			return new TypedKeySubspace<T1, T2, T3, T4>(StealPrefix(subspace), subspace.KeyEncoder);
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetContext(), encoder);
 		}
 
 		#endregion

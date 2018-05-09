@@ -45,7 +45,7 @@ namespace FoundationDB.Client.Tests
 		public static readonly string TestClusterFile = null;
 		public static readonly string TestDbName = "DB";
 		public static readonly Slice TestGlobalPrefix = Slice.FromStringAscii("T");
-		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
+		public static readonly string[] TestPartition = { "Tests", Environment.MachineName };
 		public static readonly int DefaultTimeout = 15 * 1000;
 
 		//TODO: move these methods to FdbTest ?
@@ -53,7 +53,7 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
-			var subspace = new KeySubspace(TestGlobalPrefix.Memoize());
+			var subspace = KeySubspace.FromKey(TestGlobalPrefix.Memoize());
 			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
 		}
 

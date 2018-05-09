@@ -30,128 +30,193 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
-	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
-	[PublicAPI]
-	[DebuggerDisplay("{ToString(),nq}")]
-	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
+	public interface IKeyContext
+	{
+		Slice GetPrefix();
+
+		KeyRange GetRange();
+
+		bool Contains(Slice absoluteKey);
+
+		SliceWriter OpenWriter(int extra = 32);
+
+		IKeyContext CreateChild(Slice suffix);
+
+	}
+
+	/// <summary>Subspace that is created from a constant binary prefix</summary>
+	/// <remarks>The prefix will never change during the lifetime of this object</remarks>
+	public sealed class BinaryPrefixContext : IKeyContext
 	{
 
-		/// <summary>Prefix common to all keys in this subspace</summary>
+		public BinaryPrefixContext(Slice key)
+		{
+			this.Key = key;
+			this.Range = KeyRange.StartsWith(key);
+		}
+
+		public BinaryPrefixContext(Slice key, KeyRange range)
+		{
+			this.Key = key;
+			this.Range = range;
+		}
+
 		private readonly Slice Key;
 
 		/// <summary>Precomputed range that encompass all the keys in this subspace</summary>
 		private readonly KeyRange Range;
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice GetPrefix()
+		{
+			return this.Key;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange GetRange()
+		{
+			return this.Range;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(Slice absoluteKey)
+		{
+			return absoluteKey.StartsWith(this.Key);
+		}
+
+		public SliceWriter OpenWriter(int extra = 32)
+		{
+			var key = this.Key;
+			var sw = new SliceWriter(key.Count + extra); //TODO: BufferPool ?
+			sw.WriteBytes(key);
+			return sw;
+		}
+
+		public IKeyContext CreateChild(Slice suffix)
+		{
+			if (suffix.Count == 0) return this;
+			return new BinaryPrefixContext(this.Key.Concat(suffix));
+		}
+	}
+
+	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
+	[PublicAPI]
+	[DebuggerDisplay("{ToString(),nq}")]
+	public abstract class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
+	{
+		/// <summary>Prefix common to all keys in this subspace</summary>
+		private readonly IKeyContext Context;
+
 		#region Constructors...
+		
+		internal KeySubspace(IKeyContext context)
+		{
+			this.Context = context;
+		}
+
+		#endregion
+
+		#region Factory Methods...
 
 		[NotNull]
-		public static KeySubspace Empty => new KeySubspace(Slice.Empty);
+		public static IKeySubspace Empty => new DynamicKeySubspace(new BinaryPrefixContext(Slice.Empty), TuPack.Encoding);
 
 		#region FromKey...
 
 		/// <summary>Initializes a new generic subspace with the given prefix.</summary>
 		[Pure, NotNull]
-		public static KeySubspace FromKey(Slice prefix)
+		public static IKeySubspace FromKey(Slice prefix)
 		{
-			return new KeySubspace(prefix.Memoize());
+			return new DynamicKeySubspace(new BinaryPrefixContext(prefix.Memoize()), TuPack.Encoding);
 		}
 
 		/// <summary>Initializes a new dynamic subspace with the given binary <paramref name="prefix"/> and key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle keys of any types and size.</returns>
 		[Pure, NotNull]
-		public static DynamicKeySubspace CreateDynamic(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
+		public static IDynamicKeySubspace CreateDynamic(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			return new DynamicKeySubspace(prefix, encoder);
+			return new DynamicKeySubspace(new BinaryPrefixContext(prefix), encoder);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a dynamic key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle keys of any types and size.</returns>
 		[Pure, NotNull]
-		public static DynamicKeySubspace CreateDynamic(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		public static IDynamicKeySubspace CreateDynamic(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
 		{
-			return new DynamicKeySubspace(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+			return new DynamicKeySubspace(new BinaryPrefixContext(prefix), (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
-		public static TypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
 		{
-			return new TypedKeySubspace<T1>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1>());
+			return new TypedKeySubspace<T1>(new BinaryPrefixContext(prefix), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1>());
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
-		public static TypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [NotNull] IKeyEncoder<T1> encoder)
+		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [NotNull] IKeyEncoder<T1> encoder)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1>(prefix, encoder);
+			return new TypedKeySubspace<T1>(new BinaryPrefixContext(prefix), encoder);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
-		public static TypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
 		{
-			return new TypedKeySubspace<T1, T2>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>());
+			return new TypedKeySubspace<T1, T2>(new BinaryPrefixContext(prefix), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>());
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
-		public static TypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1, T2>(prefix, encoder);
+			return new TypedKeySubspace<T1, T2>(new BinaryPrefixContext(prefix), encoder);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
-		public static TypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
 		{
-			return new TypedKeySubspace<T1, T2, T3>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>());
+			return new TypedKeySubspace<T1, T2, T3>(new BinaryPrefixContext(prefix), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>());
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
-		public static TypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1, T2, T3>(prefix, encoder);
+			return new TypedKeySubspace<T1, T2, T3>(new BinaryPrefixContext(prefix), encoder);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
-		public static TypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
+		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [CanBeNull] IKeyEncoding encoding = null)
 		{
-			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>());
+			return new TypedKeySubspace<T1, T2, T3, T4>(new BinaryPrefixContext(prefix), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>());
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
-		public static TypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, encoder);
+			return new TypedKeySubspace<T1, T2, T3, T4>(new BinaryPrefixContext(prefix), encoder);
 		}
 
 		#endregion
 
-		internal KeySubspace(Slice prefix)
-		{
-			this.Key = prefix;
-			this.Range = KeyRange.StartsWith(prefix);
-		}
-
-		internal KeySubspace(Slice prefix, KeyRange range)
-		{
-			this.Key = prefix;
-			this.Range = range;
-		}
+		public IKeyContext GetContext() => this.Context;
 
 		/// <summary>Returns the raw prefix of this subspace</summary>
 		/// <remarks>Will throw if the prefix is not publicly visible, as is the case for Directory Partitions</remarks>
@@ -166,14 +231,14 @@ namespace FoundationDB.Client
 		[DebuggerStepThrough]
 		protected virtual Slice GetKeyPrefix()
 		{
-			return this.Key;
+			return this.Context.GetPrefix();
 		}
 
 		/// <summary>Returns the master instance of the prefix, without any safety checks</summary>
 		/// <remarks>This instance should NEVER be exposed to anyone else, and should ONLY be used for logging/troubleshooting</remarks>
 		internal Slice GetPrefixUnsafe()
 		{
-			return this.Key;
+			return this.Context.GetPrefix();
 		}
 
 		public KeyRange ToRange()
@@ -183,34 +248,34 @@ namespace FoundationDB.Client
 
 		protected virtual KeyRange GetKeyRange()
 		{
-			return this.Range;
+			return this.Context.GetRange();
 		}
 
-		public virtual KeyRange ToRange(Slice suffix)
-		{
-			return KeyRange.StartsWith(this[suffix]);
-		}
+		//public virtual KeyRange ToRange(Slice suffix)
+		//{
+		//	return KeyRange.StartsWith(this[suffix]);
+		//}
 
 		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
 		/// <param name="absoluteKey">The key to be tested</param>
 		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
 		public virtual bool Contains(Slice absoluteKey)
 		{
-			return absoluteKey.StartsWith(this.Key);
+			return this.Context.Contains(absoluteKey);
 		}
 
-		/// <summary>Append a key to the subspace key</summary>
-		/// <remarks>This is the equivalent of calling 'subspace.Key + suffix'</remarks>
-		public Slice this[Slice relativeKey]
-		{
-			get
-			{
-				//note: we don't want to leak our key!
-				var key = GetKeyPrefix();
-				if (relativeKey.IsNullOrEmpty) return key.Memoize(); //TODO: better solution!
-				return key.Concat(relativeKey);
-			}
-		}
+		///// <summary>Append a key to the subspace key</summary>
+		///// <remarks>This is the equivalent of calling 'subspace.Key + suffix'</remarks>
+		//public Slice this[Slice relativeKey]
+		//{
+		//	get
+		//	{
+		//		//note: we don't want to leak our key!
+		//		var key = GetKeyPrefix();
+		//		if (relativeKey.IsNullOrEmpty) return key.Memoize(); //TODO: better solution!
+		//		return key.Concat(relativeKey);
+		//	}
+		//}
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
@@ -248,10 +313,7 @@ namespace FoundationDB.Client
 		{
 			if (other == null) return +1;
 			if (object.ReferenceEquals(this, other)) return 0;
-			if (other is KeySubspace sub)
-				return this.Key.CompareTo(sub.Key);
-			else
-				return this.Key.CompareTo(other.GetPrefix());
+			return this.Context.GetPrefix().CompareTo(other.GetContext().GetPrefix());
 		}
 
 		/// <summary>Test if both subspaces have the same prefix</summary>
@@ -259,10 +321,7 @@ namespace FoundationDB.Client
 		{
 			if (other == null) return false;
 			if (object.ReferenceEquals(this, other)) return true;
-			if (other is KeySubspace sub)
-				return this.Key.Equals(sub.Key);
-			else
-				return this.Key.Equals(other.GetPrefix());
+			return this.Context.GetPrefix().Equals(other.GetContext().GetPrefix());
 		}
 
 		/// <summary>Test if an object is a subspace with the same prefix</summary>
@@ -275,7 +334,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public override int GetHashCode()
 		{
-			return this.Key.GetHashCode();
+			return this.Context.GetHashCode().GetHashCode();
 		}
 
 		#endregion
@@ -289,7 +348,7 @@ namespace FoundationDB.Client
 		public Slice BoundCheck(Slice key, bool allowSystemKeys)
 		{
 			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
-			var prefix = this.Key;
+			var prefix = this.Context.GetPrefix();
 
 			// don't touch to nil and keys inside the globalspace
 			if (key.IsNull || key.StartsWith(prefix)) return key;
@@ -327,7 +386,7 @@ namespace FoundationDB.Client
 		public virtual string DumpKey(Slice key)
 		{
 			// note: we can't use ExtractAndCheck(...) because it may throw in derived classes
-			var prefix = this.Key;
+			var prefix = this.Context.GetPrefix();
 			if (!key.StartsWith(prefix)) FailKeyOutOfBound(key);
 
 			return FdbKey.Dump(key.Substring(prefix.Count));
@@ -336,7 +395,7 @@ namespace FoundationDB.Client
 		/// <summary>Printable representation of this subspace</summary>
 		public override string ToString()
 		{
-			return "Subspace(" + this.Key.ToString() + ")";
+			return "Subspace(" + this.Context.GetPrefix().ToString() + ")";
 		}
 
 		#endregion

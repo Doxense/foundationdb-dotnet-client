@@ -55,8 +55,8 @@ namespace FoundationDB.Client
 		public ICompositeKeyEncoder<T1, T2> KeyEncoder { get; }
 
 
-		internal TypedKeySubspace(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
-			: base(prefix)
+		internal TypedKeySubspace(IKeyContext context, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+			: base(context)
 		{
 			Contract.Requires(encoder != null);
 			this.KeyEncoder = encoder;
@@ -73,13 +73,13 @@ namespace FoundationDB.Client
 	{
 
 		[NotNull]
-		private readonly TypedKeySubspace<T1, T2> Parent;
+		private readonly ITypedKeySubspace<T1, T2> Parent;
 
 		[NotNull]
 		public ICompositeKeyEncoder<T1, T2> Encoder { get; }
 
 		internal TypedKeys(
-			[NotNull] TypedKeySubspace<T1, T2> parent,
+			[NotNull] ITypedKeySubspace<T1, T2> parent,
 			[NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			Contract.Requires(parent != null && encoder != null);
@@ -162,7 +162,7 @@ namespace FoundationDB.Client
 		public Slice Pack((T1, T2) tuple)
 		{
 			//REVIEW: how could we better guess the capacity, depending on the values of T1/T2?
-			var sw = this.Parent.OpenWriter(24);
+			var sw = this.Parent.GetContext().OpenWriter(24);
 			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
 		}
@@ -202,7 +202,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice Encode(T1 item1, T2 item2)
 		{
-			var sw = this.Parent.OpenWriter(24);
+			var sw = this.Parent.GetContext().OpenWriter(24);
 			var tuple = (item1, item2);
 			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
@@ -215,7 +215,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice EncodePartial(T1 item1)
 		{
-			var sw = this.Parent.OpenWriter(16);
+			var sw = this.Parent.GetContext().OpenWriter(16);
 			var tuple = (item1, default(T2));
 			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
 			return sw.ToSlice();

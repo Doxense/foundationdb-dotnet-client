@@ -56,8 +56,8 @@ namespace FoundationDB.Client
 	{
 		public IKeyEncoder<T1> KeyEncoder { get; }
 
-		internal TypedKeySubspace(Slice prefix, [NotNull] IKeyEncoder<T1> encoder)
-			: base(prefix)
+		internal TypedKeySubspace(IKeyContext context, [NotNull] IKeyEncoder<T1> encoder)
+			: base(context)
 		{
 			Contract.Requires(encoder != null);
 			this.KeyEncoder = encoder;
