@@ -40,11 +40,8 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static volatile TupleCodec<T> s_defaultSerializer;
 
-		public static TupleCodec<T> Default
-		{
-			[NotNull]
-			get { return s_defaultSerializer ?? (s_defaultSerializer = new TupleCodec<T>(default(T))); }
-		}
+		[NotNull]
+		public static TupleCodec<T> Default => s_defaultSerializer ?? (s_defaultSerializer = new TupleCodec<T>(default));
 
 		private readonly T m_missingValue;
 

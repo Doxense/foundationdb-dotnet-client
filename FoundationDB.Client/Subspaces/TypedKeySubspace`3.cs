@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public interface ITypedKeySubspace<T1, T2, T3> : IKeySubspace
 	{
 		/// <summary>Helper to encode/decode keys using this subspace's default encoding</summary>
@@ -48,6 +49,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[PublicAPI]
 	public sealed class TypedKeySubspace<T1, T2, T3> : KeySubspace, ITypedKeySubspace<T1, T2, T3>
 	{
 		public ICompositeKeyEncoder<T1, T2, T3> KeyEncoder { get; }
@@ -65,6 +67,7 @@ namespace FoundationDB.Client
 	}
 
 	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[PublicAPI]
 	public sealed class TypedKeys<T1, T2, T3>
 	{
 

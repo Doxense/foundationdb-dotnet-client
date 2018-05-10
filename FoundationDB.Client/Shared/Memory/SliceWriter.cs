@@ -1968,7 +1968,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchInt16(int index, short value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -1982,7 +1982,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchUInt16(int index, ushort value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -1996,7 +1996,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchInt16BE(int index, short value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2010,7 +2010,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchUInt16BE(int index, ushort value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2028,7 +2028,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchInt32(int index, int value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2042,7 +2042,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchUInt32(int index, uint value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2056,7 +2056,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchInt32BE(int index, int value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2070,7 +2070,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchUInt32BE(int index, uint value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2088,7 +2088,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchInt64(int index, long value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2102,7 +2102,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchUInt64(int index, ulong value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2116,7 +2116,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchInt64BE(int index, long value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2130,7 +2130,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchUInt64BE(int index, ulong value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])

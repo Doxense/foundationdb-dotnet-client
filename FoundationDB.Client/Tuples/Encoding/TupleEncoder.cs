@@ -976,7 +976,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			if (!input.Input.HasMore)
 			{
-				value = default(T);
+				value = default;
 				return false;
 			}
 

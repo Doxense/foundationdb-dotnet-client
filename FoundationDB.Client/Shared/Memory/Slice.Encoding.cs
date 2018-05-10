@@ -65,7 +65,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] //used as a shortcut by a lot of other methods
 		public static Slice FromByte(int value)
 		{
-			if ((uint) value > 255) ThrowHelper.ThrowArgumentOutOfRangeException(nameof(value));
+			if ((uint) value > 255) throw ThrowHelper.ArgumentOutOfRangeException(nameof(value));
 			return new Slice(ByteSprite, value, 1);
 		}
 
@@ -615,7 +615,7 @@ namespace System
 		/// <remarks>
 		/// This method will check each character and fail if at least one is greater than 255.
 		/// Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.
-		/// The only difference between this method and <see cref="FromByteString"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
+		/// The only difference between this method and <see cref="FromByteString(string)"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
@@ -804,20 +804,17 @@ namespace System
 		private static unsafe bool TryConvertBytesStringChecked(Slice buffer, char* value, int n)
 		{
 			if ((uint) buffer.Count < (uint) n) return false;
-			unsafe
+			fixed (byte* pBytes = &buffer.DangerousGetPinnableReference())
 			{
-				fixed (byte* pBytes = &buffer.DangerousGetPinnableReference())
-				{
-					char* inp = value;
-					byte* outp = pBytes;
+				char* inp = value;
+				byte* outp = pBytes;
 
-					while (n > 0)
-					{
-						char c = *inp;
-						if (c > 0xFF) return false;
-						*outp++ = (byte)(*inp++);
-						--n;
-					}
+				while (n > 0)
+				{
+					char c = *inp;
+					if (c > 0xFF) return false;
+					*outp++ = (byte)(*inp++);
+					--n;
 				}
 			}
 			return true;
@@ -904,7 +901,7 @@ namespace System
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
-			if (value == null) return default(Slice);
+			if (value == null) return default;
 			byte[] _ = null;
 			unsafe
 			{
@@ -915,11 +912,11 @@ namespace System
 			}
 		}
 
-		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>.</summary>
+		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="chars"/>.</summary>
 		/// <remarks>
 		/// This method is optimized for strings that usually contain only ASCII characters.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure]
 		public static unsafe Slice FromString(char* chars, int numChars, ref byte[] buffer)
@@ -1081,14 +1078,14 @@ namespace System
 			}
 		}
 
-		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
+		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="chars"/>.</summary>
 		/// <remarks>
 		/// The slice will NOT include the UTF-8 BOM.
 		/// This method will not try to identify ASCII-only strings:
-		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(ReadOnlySpan{char})"/>.
-		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
+		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
+		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(string)"/>.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		public static unsafe Slice FromStringUtf8(char* chars, int numChars, ref byte[] buffer, out bool asciiOnly)
 		{
@@ -1237,7 +1234,7 @@ namespace System
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
-			if (value == null) return default(Slice);
+			if (value == null) return default;
 			byte[] _ = null;
 			unsafe
 			{
@@ -1248,12 +1245,12 @@ namespace System
 			}
 		}
 
-		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>, prefixed by the UTF-8 BOM.</summary>
+		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="chars"/>, prefixed by the UTF-8 BOM.</summary>
 		/// <remarks>
 		/// If the string is null, an empty slice is returned.
 		/// If the string is empty, the UTF-8 BOM is returned.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure]
 		public static unsafe Slice FromStringUtf8WithBom(char* chars, int numChars, ref byte[] buffer)
@@ -1282,12 +1279,12 @@ namespace System
 			}
 		}
 
-		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>, prefixed by the UTF-8 BOM.</summary>
+		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="chars"/>, prefixed by the UTF-8 BOM.</summary>
 		/// <remarks>
 		/// If the string is null, an empty slice is returned.
 		/// If the string is empty, the UTF-8 BOM is returned.
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure]
 		private static unsafe Slice ConvertByteStringNoCheck(char* chars, int numChars, ref byte[] buffer)
@@ -1296,17 +1293,14 @@ namespace System
 			if (numChars == 1) return FromByte((byte) chars[0]);
 
 			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, numChars);
-			unsafe
+			fixed (byte* pBytes = &tmp[0])
 			{
-				fixed (byte* pBytes = &tmp[0])
+				byte* outp = pBytes;
+				byte* stop = pBytes + numChars;
+				char* inp = chars;
+				while (outp < stop)
 				{
-					byte* outp = pBytes;
-					byte* stop = pBytes + numChars;
-					char* inp = chars;
-					while (outp < stop)
-					{
-						*outp++ = (byte) *inp++;
-					}
+					*outp++ = (byte) *inp++;
 				}
 			}
 			return new Slice(tmp, 0, numChars);
@@ -1416,7 +1410,7 @@ namespace System
 		[Pure, CanBeNull]
 		public string ToStringAnsi()
 		{
-			if (this.Count == 0) return this.Array != null ? String.Empty : default(string);
+			if (this.Count == 0) return this.Array != null ? string.Empty : null;
 			//note: Encoding.GetString() will do the bound checking for us
 			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
 		}
@@ -1435,7 +1429,7 @@ namespace System
 		{
 			if (this.Count == 0)
 			{
-				return this.Array != null ? String.Empty : default(string);
+				return this.Array != null ? string.Empty : null;
 			}
 			if (UnsafeHelpers.IsAsciiBytes(this.Array, this.Offset, this.Count))
 			{
@@ -1450,7 +1444,7 @@ namespace System
 		public string ToByteString() //REVIEW: rename to ToStringSOMETHING(): ToStringByte()? ToStringRaw()?
 		{
 			return this.Count == 0
-				? (this.Array != null ? String.Empty : default(string))
+				? (this.Array != null ? string.Empty : null)
 				: UnsafeHelpers.ConvertToByteString(this.Array, this.Offset, this.Count);
 		}
 
@@ -1469,7 +1463,7 @@ namespace System
 			var array = this.Array;
 			int count = this.Count;
 			int offset = this.Offset;
-			return count == 0 ? (array != null ? String.Empty : default(string))
+			return count == 0 ? (array != null ? string.Empty : null)
 				: UnsafeHelpers.IsAsciiBytes(array, offset, count) ? UnsafeHelpers.ConvertToByteString(array, offset, count)
 				: Utf8NoBomEncoding.GetString(array, offset, count);
 		}
@@ -1496,7 +1490,7 @@ namespace System
 		{
 			int count = this.Count;
 			var array = this.Array;
-			if (count == 0) return array != null ? String.Empty : default(string);
+			if (count == 0) return array != null ? string.Empty : null;
 
 			// detect BOM
 			int offset = this.Offset;
@@ -1504,7 +1498,7 @@ namespace System
 			{ // skip it!
 				offset += 3;
 				count -= 3;
-				if (count == 0) return String.Empty;
+				if (count == 0) return string.Empty;
 			}
 			return Slice.Utf8NoBomEncoding.GetString(array, offset, count);
 		}
@@ -1513,7 +1507,7 @@ namespace System
 		[Pure, CanBeNull]
 		public string ToBase64()
 		{
-			if (this.Count == 0) return this.Array != null ? String.Empty : default(string);
+			if (this.Count == 0) return this.Array != null ? string.Empty : null;
 			//note: Convert.ToBase64String() will do the bound checking for us
 			return Convert.ToBase64String(this.Array, this.Offset, this.Count);
 		}
@@ -1596,7 +1590,7 @@ namespace System
 		[Pure, NotNull]
 		public string PrettyPrint()
 		{
-			if (this.Count == 0) return this.Array != null ? "''" : String.Empty;
+			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
 			return PrettyPrint(this.Array, this.Offset, this.Count, 1024); //REVIEW: constant for max size!
 		}
 
@@ -1606,7 +1600,7 @@ namespace System
 		[Pure, NotNull]
 		public string PrettyPrint(int maxLen)
 		{
-			if (this.Count == 0) return this.Array != null ? "''" : String.Empty;
+			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
 			return PrettyPrint(this.Array, this.Offset, this.Count, maxLen);
 		}
 
@@ -2179,7 +2173,7 @@ namespace System
 
 			return value;
 		fail:
-			throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes");
+			throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Converts a slice into a big-endian encoded, signed 64-bit integer.</summary>
@@ -2209,7 +2203,7 @@ namespace System
 			}
 			return value;
 		fail:
-			throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes");
+			throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
@@ -2233,7 +2227,7 @@ namespace System
 			}
 			return value;
 		fail:
-			throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes");
+			throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
@@ -2257,7 +2251,7 @@ namespace System
 			}
 			return value;
 		fail:
-			throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes");
+			throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
 		}
 
 		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
@@ -2312,7 +2306,7 @@ namespace System
 		[Pure]
 		public Uuid64 ToUuid64()
 		{
-			if (this.Count == 0) return default(Uuid64);
+			if (this.Count == 0) return default;
 			EnsureSliceIsValid();
 
 			switch (this.Count)
@@ -2327,11 +2321,11 @@ namespace System
 				case 19: // {hex8-hex8}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid64.Parse(this.ToByteString());
+					return Uuid64.Parse(ToByteString());
 				}
 			}
 
-			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size");
+			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size.");
 		}
 
 		#endregion
@@ -2455,7 +2449,7 @@ namespace System
 		[Pure]
 		public Guid ToGuid()
 		{
-			if (this.Count == 0) return default(Guid);
+			if (this.Count == 0) return default;
 			EnsureSliceIsValid();
 
 			if (this.Count == 16)
@@ -2470,10 +2464,10 @@ namespace System
 			if (this.Count == 36)
 			{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
 			  // ReSharper disable once AssignNullToNotNullAttribute
-				return Guid.Parse(this.ToByteString());
+				return Guid.Parse(ToByteString());
 			}
 
-			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size");
+			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size.");
 		}
 
 		/// <summary>Converts a slice into a 128-bit UUID.</summary>
@@ -2482,7 +2476,7 @@ namespace System
 		[Pure]
 		public Uuid128 ToUuid128()
 		{
-			if (this.Count == 0) return default(Uuid128);
+			if (this.Count == 0) return default;
 			EnsureSliceIsValid();
 
 			if (this.Count == 16)
@@ -2496,7 +2490,7 @@ namespace System
 				return Uuid128.Parse(ToByteString());
 			}
 
-			throw new FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size");
+			throw new FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size.");
 		}
 
 		#endregion

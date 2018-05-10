@@ -32,12 +32,12 @@ namespace Doxense.Collections.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
+	[PublicAPI]
 	public sealed class ListTuple : ITuple
 	{
 		// We could use a ListTuple<T> for tuples where all items are of type T, and ListTuple could derive from ListTuple<object>.
@@ -138,7 +138,7 @@ namespace Doxense.Collections.Tuples
 
 		public TItem Last<TItem>()
 		{
-			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
+			if (m_count == 0) throw new InvalidOperationException("Tuple is empty.");
 			return TypeConverters.ConvertBoxed<TItem>(m_items[m_offset + m_count - 1]);
 		}
 

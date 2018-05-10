@@ -211,9 +211,8 @@ namespace Doxense.Runtime.Converters
 				{
 					return (x, y) =>
 					{
-						double d1, d2;
 						// ReSharper disable once CompareOfFloatsByEqualityOperator
-						return x == null ? y == null : y != null && TryAdaptToDecimal(x, t1, out d1) && TryAdaptToDecimal(y, t2, out d2) && d1 == d2;
+						return x == null ? y == null : y != null && TryAdaptToDecimal(x, t1, out double d1) && TryAdaptToDecimal(y, t2, out double d2) && d1 == d2;
 					};
 				}
 				else
@@ -221,8 +220,7 @@ namespace Doxense.Runtime.Converters
 					//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when casted down to Int64
 					return (x, y) =>
 					{
-						long l1, l2;
-						return x == null ? y == null : y != null && TryAdaptToInteger(x, t1, out l1) && TryAdaptToInteger(y, t2, out l2) && l1 == l2;
+						return x == null ? y == null : y != null && TryAdaptToInteger(x, t1, out long l1) && TryAdaptToInteger(y, t2, out long l2) && l1 == l2;
 					};
 				}
 			}
@@ -239,9 +237,7 @@ namespace Doxense.Runtime.Converters
 		public static Func<object, object, bool> GetTypeComparator(Type t1, Type t2)
 		{
 			var pair = new TypePair(t1, t2);
-			Func<object, object, bool> comparator;
-
-			if (!EqualityComparers.TryGetValue(pair, out comparator))
+			if (!EqualityComparers.TryGetValue(pair, out var comparator))
 			{
 				comparator = CreateTypeComparator(t1, t2);
 				EqualityComparers.TryAdd(pair, comparator);

@@ -36,6 +36,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Represents a Tuple of N elements of any type</summary>
 	[ImmutableObject(true)]
 	[CannotApplyEqualityOperator]
+	[PublicAPI]
 	public interface ITuple : IEquatable<ITuple>, IReadOnlyList<object>, System.Collections.IStructuralEquatable
 	{
 		// Tuples should, by default, behave as closely to Python's tuples as possible. See http://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences

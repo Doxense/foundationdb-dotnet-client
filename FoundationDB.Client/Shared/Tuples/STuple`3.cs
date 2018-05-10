@@ -43,6 +43,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct STuple<T1, T2, T3> : ITuple, IEquatable<STuple<T1, T2, T3>>, IEquatable<(T1, T2, T3)>
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.

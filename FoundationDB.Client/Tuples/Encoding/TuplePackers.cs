@@ -868,7 +868,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			if (TuplePackers.IsNilSegment(slice))
 			{
-				return default(T);
+				return default;
 			}
 
 			var tuple = TupleParser.ParseTuple(slice);

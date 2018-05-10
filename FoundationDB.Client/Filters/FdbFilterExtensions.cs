@@ -26,13 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Filters
 {
+	using System;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
-	using System;
 
+	[PublicAPI]
 	public static class FdbFilterExtensions
 	{
 		/// <summary>Return a read-only view of this transaction, that will only allow read operations.</summary>
@@ -41,7 +41,7 @@ namespace FoundationDB.Filters
 		[NotNull]
 		public static IFdbReadOnlyTransaction AsReadOnly(this IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (trans.IsReadOnly)
 			{ // this is already read-only

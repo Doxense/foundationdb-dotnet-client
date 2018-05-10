@@ -28,17 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Doxense.Collections.Tuples
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Runtime.Converters;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class JoinedTuple : ITuple
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
@@ -132,7 +132,7 @@ namespace Doxense.Collections.Tuples
 			int n2 = this.Count;
 
 			if (n1 + n2 >= 10)
-			{ // it's getting bug, merge to a new List tuple
+			{ // it's getting big, merge to a new List tuple
 				return new ListTuple(this.Head, this.Tail, tuple);
 			}
 			// REVIEW: should we always concat with the tail?

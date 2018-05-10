@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Native
 {
 	using System;
-	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -52,8 +51,7 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
-					ClusterHandle cluster;
-					var err = FdbNative.FutureGetCluster(h, out cluster);
+					var err = FdbNative.FutureGetCluster(h, out ClusterHandle cluster);
 					if (err != FdbError.Success)
 					{
 						cluster.Dispose();
@@ -66,11 +64,11 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
-		internal ClusterHandle Handle { get { return m_handle; } }
+		internal ClusterHandle Handle => m_handle;
 
-		public bool IsInvalid { get { return m_handle.IsInvalid; } }
+		public bool IsInvalid => m_handle.IsInvalid;
 
-		public bool IsClosed { get { return m_handle.IsClosed; } }
+		public bool IsClosed => m_handle.IsClosed;
 
 		public void SetOption(FdbClusterOption option, Slice data)
 		{
@@ -101,8 +99,7 @@ namespace FoundationDB.Client.Native
 				future,
 				(h) =>
 				{
-					DatabaseHandle database;
-					var err = FdbNative.FutureGetDatabase(h, out database);
+					var err = FdbNative.FutureGetDatabase(h, out DatabaseHandle database);
 					if (err != FdbError.Success)
 					{
 						database.Dispose();
@@ -117,7 +114,7 @@ namespace FoundationDB.Client.Native
 
 		public void Dispose()
 		{
-			if (m_handle != null) m_handle.Dispose();
+			m_handle?.Dispose();
 		}
 
 	}

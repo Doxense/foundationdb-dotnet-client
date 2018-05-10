@@ -28,18 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using JetBrains.Annotations;
-	using Microsoft.Win32.SafeHandles;
 	using System;
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 	using System.Security;
+	using JetBrains.Annotations;
+	using Microsoft.Win32.SafeHandles;
 
 	/// <summary>Native Library Loader</summary>
 	internal sealed class UnmanagedLibrary : IDisposable
 	{
-
-
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
 
 #if __MonoCS__
@@ -129,7 +127,7 @@ namespace FoundationDB.Client.Native
 		[NotNull]
 		public static UnmanagedLibrary Load(string path)
 		{
-			if (path == null) throw new ArgumentNullException("path");
+			if (path == null) throw new ArgumentNullException(nameof(path));
 
 			var handle = NativeMethods.LoadPlatformLibrary(path);
 			if (handle == null || handle.IsInvalid)
@@ -137,7 +135,7 @@ namespace FoundationDB.Client.Native
 				var ex = Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
 				if (ex is System.IO.FileNotFoundException)
 				{
-					throw new System.IO.FileNotFoundException(String.Format("Failed to load native {0} library: {1}", IntPtr.Size == 8 ? "x64" : "x86", path), path, ex);
+					throw new System.IO.FileNotFoundException($"Failed to load native {(IntPtr.Size == 8 ? "x64" : "x86")} library: {path}", path, ex);
 				}
 				throw ex;
 			}
@@ -154,10 +152,12 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Path of the native library, as passed to LoadLibrary</summary>
-		public string Path { [NotNull] get; private set; }
+		[NotNull]
+		public string Path { get; }
 
 		/// <summary>Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.</summary>
-		public SafeLibraryHandle Handle { [NotNull] get; private set; }
+		[NotNull]
+		public SafeLibraryHandle Handle { get; }
 
 		/// <summary>Call FreeLibrary on the unmanaged dll. All function pointers handed out from this class become invalid after this.</summary>
 		/// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implemention in the dll)./// </remarks>

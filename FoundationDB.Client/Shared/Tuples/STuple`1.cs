@@ -34,7 +34,6 @@ namespace Doxense.Collections.Tuples
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -42,6 +41,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct STuple<T1> : ITuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
@@ -67,10 +67,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
-		{
-			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
-		}
+		public ITuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>

@@ -31,13 +31,13 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public sealed class LinkedTuple<T> : ITuple
 	{
 		//TODO: consider changing this to a struct ?
@@ -77,10 +77,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
-		{
-			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
-		}
+		public ITuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		public TItem Get<TItem>(int index)
 		{
@@ -92,7 +89,7 @@ namespace Doxense.Collections.Tuples
 		public T Last
 		{
 			[Pure]
-			get { return this.Tail; }
+			get => this.Tail;
 		}
 
 		ITuple ITuple.Append<TItem>(TItem value)

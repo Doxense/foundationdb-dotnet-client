@@ -36,6 +36,7 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
+	[PublicAPI]
 	public static class TupleExtensions
 	{
 
@@ -639,7 +640,7 @@ namespace Doxense.Collections.Tuples
 		#region ValueTuple
 
 		[Pure]
-		public static STuple ToSTuple<T1>(this ValueTuple tuple)
+		public static STuple ToSTuple(this ValueTuple tuple)
 		{
 			return default(STuple);
 		}

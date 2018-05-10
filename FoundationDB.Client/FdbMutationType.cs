@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a type of mutation applied to a key</summary>
+	[PublicAPI]
 	public enum FdbMutationType
 	{
 		/// <summary>Invalid</summary>

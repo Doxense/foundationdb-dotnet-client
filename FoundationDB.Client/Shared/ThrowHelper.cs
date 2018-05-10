@@ -53,24 +53,6 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentNullException(paramName, message);
 		}
 
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentNullException([InvokerParameterName] string paramName)
-		{
-			throw ArgumentNullException(paramName);
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, [NotNull] string message)
-		{
-			throw ArgumentNullException(paramName, message);
-		}
-
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, string message = null)
-		{
-			throw message != null ? new ArgumentNullException(paramName, message) : new ArgumentNullException(paramName);
-		}
-
 		#endregion
 
 		#region ArgumentException...
@@ -103,20 +85,6 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentException(string.Format(message, args), paramName);
 		}
 
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentException([InvokerParameterName] string paramName, string message = null)
-		{
-			// oui, c'est inversé :)
-			throw ArgumentException(paramName, message);
-		}
-
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, string message = null)
-		{
-			// oui, c'est inversé :)
-			throw ArgumentException(paramName, message);
-		}
-
 		#endregion
 
 		#region ArgumentOutOfRangeException...
@@ -131,31 +99,6 @@ namespace Doxense.Diagnostics.Contracts
 		public static Exception ArgumentOutOfRangeException([InvokerParameterName, NotNull] string paramName)
 		{
 			return new ArgumentOutOfRangeException(paramName);
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentOutOfRangeException()
-		{
-			// ReSharper disable once NotResolvedInText
-			throw ArgumentOutOfRangeException("index", "Index was out of range. Must be non-negative and less than the size of the collection.");
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName)
-		{
-			throw ArgumentOutOfRangeException(paramName);
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, string message)
-		{
-			throw ArgumentOutOfRangeException(paramName, message);
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object actualValue, string message)
-		{
-			throw ArgumentOutOfRangeException(paramName, actualValue, message);
 		}
 
 		#endregion
@@ -208,46 +151,6 @@ namespace Doxense.Diagnostics.Contracts
 		public static ObjectDisposedException ObjectDisposedException(string message, Exception innnerException)
 		{
 			return new ObjectDisposedException(message, innnerException);
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowObjectDisposedException(Type type)
-		{
-			throw ObjectDisposedException(type);
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowObjectDisposedException(string message, Exception innnerException)
-		{
-			throw ObjectDisposedException(message, innnerException);
-		}
-
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType());
-		}
-
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType(), message);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message, object arg0)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType(), string.Format(CultureInfo.InvariantCulture, message, arg0));
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)] //fix .NET < 4.5.2
-		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message, params object[] args)
-			where TDisposed : IDisposable
-		{
-			throw ObjectDisposedException(disposed.GetType(), string.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
 		#endregion
@@ -342,36 +245,6 @@ namespace Doxense.Diagnostics.Contracts
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
-		[ContractAnnotation("=> halt")]
-		public static void ThrowFormatException(string message)
-		{
-			throw FormatException(message);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-		public static void ThrowFormatException(string message, object arg0)
-		{
-			throw FormatException(message, arg0);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-		public static void ThrowFormatException(string message, object arg0, object arg1)
-		{
-			throw FormatException(message, arg0, arg1);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-		public static void ThrowFormatException(string message, object arg0, object arg1, object arg2)
-		{
-			throw FormatException(message, arg0, arg1, arg2);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-		public static void ThrowFormatException(string message, params object[] args)
-		{
-			throw FormatException(message, args);
-		}
-
 		#endregion
 
 		#region OperationCanceledException...
@@ -392,24 +265,6 @@ namespace Doxense.Diagnostics.Contracts
 		public static OperationCanceledException OperationCanceledException(string message, params object[] args)
 		{
 			return new OperationCanceledException(String.Format(CultureInfo.InvariantCulture, message, args));
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowOperationCanceledException(string message)
-		{
-			throw OperationCanceledException(message);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-		public static void ThrowOperationCanceledException(string message, object arg0)
-		{
-			throw OperationCanceledException(message, arg0);
-		}
-
-		[ContractAnnotation("=> halt"), StringFormatMethod("message")]
-		public static void ThrowOperationCanceledException(string message, params object[] args)
-		{
-			throw OperationCanceledException(message, args);
 		}
 
 		#endregion
@@ -525,31 +380,12 @@ namespace Doxense.Diagnostics.Contracts
 			throw IndexOutOfRangeException();
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static T ThrowIndexOutOfRangeException<T>()
-		{
-			throw IndexOutOfRangeException();
-		}
-
 		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeIndex(int index)
 		{
 			// ArgumentOutOfRange_NeedNonNegNum
 			// ReSharper disable once UseNameofExpression
 			return new ArgumentOutOfRangeException("index", index, "Index was out of range. Must be non-negative and less than the size of the collection.");
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowArgumentOutOfRangeIndex(int index)
-		{
-			// ArgumentOutOfRange_NeedNonNegNum
-			throw ArgumentOutOfRangeIndex(index);
-		}
-
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
-		public static T ThrowArgumentOutOfRangeIndex<T>(int index)
-		{
-			throw IndexOutOfRangeException();
 		}
 
 		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
@@ -571,13 +407,6 @@ namespace Doxense.Diagnostics.Contracts
 		{
 			// NotSupported_ReadOnlyCollection
 			return new NotSupportedException("Collection is read-only.");
-		}
-
-		[ContractAnnotation("=> halt")]
-		public static void ThrowNotSupportedReadOnlyCollection()
-		{
-			// NotSupported_ReadOnlyCollection
-			throw NotSupportedReadOnlyCollection();
 		}
 
 		#endregion

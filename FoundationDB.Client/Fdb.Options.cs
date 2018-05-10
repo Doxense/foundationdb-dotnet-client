@@ -164,7 +164,7 @@ namespace FoundationDB.Client
 			/// <param name="privateKeyBytes">Content of the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
 			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
-			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default(Slice), string plugin = null)
+			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default, string plugin = null)
 			{
 				Fdb.Options.TLSPlugin = plugin;
 				Fdb.Options.TLSCertificateBytes = certificateBytes;
@@ -179,7 +179,7 @@ namespace FoundationDB.Client
 			/// <param name="privateKeyPath">Path to the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
 			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
-			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default(Slice), string plugin = null)
+			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default, string plugin = null)
 			{
 				Fdb.Options.TLSPlugin = plugin;
 				Fdb.Options.TLSCertificatePath = certificatePath;
