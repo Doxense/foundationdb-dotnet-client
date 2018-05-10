@@ -57,31 +57,25 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public static void WriteBool(ref TupleWriter writer, bool value)
 		{
-			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
-			if (value)
-			{ // true => 15 01
-				writer.Output.WriteBytes(TupleTypes.IntPos1, 1);
-			}
-			else
-			{ // false => 14
-				writer.Output.WriteByte(TupleTypes.IntZero);
-			}
+			// null  => 00
+			// false => 26
+			// true  => 27
+			//note: old versions used to encode bool as integer 0 or 1
+			writer.Output.WriteByte(value ? TupleTypes.True : TupleTypes.False);
 		}
 
 		public static void WriteBool(ref TupleWriter writer, bool? value)
 		{
-			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
-			if (value == null)
-			{ // null => 00
-				writer.Output.WriteByte(TupleTypes.Nil);
-			}
-			else if (value.Value)
-			{ // true => 15 01
-				writer.Output.WriteBytes(TupleTypes.IntPos1, 1);
+			// null  => 00
+			// false => 26
+			// true  => 27
+			if (value != null)
+			{
+				writer.Output.WriteByte(value.Value ? TupleTypes.True : TupleTypes.False);
 			}
 			else
-			{ // false => 14
-				writer.Output.WriteByte(TupleTypes.IntZero);
+			{
+				WriteNil(ref writer);
 			}
 		}
 

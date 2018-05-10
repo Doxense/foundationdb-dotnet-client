@@ -918,6 +918,8 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Double: return TupleParser.ParseDouble(slice);
 					//TODO: Triple
 					case TupleTypes.Decimal: return TupleParser.ParseDecimal(slice);
+					case TupleTypes.False: return false;
+					case TupleTypes.True: return true;
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
 					case TupleTypes.VersionStamp80: return TupleParser.ParseVersionStamp(slice);
@@ -1315,6 +1317,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{
 					return 0m != TupleParser.ParseDecimal(slice);
+				}
+				case TupleTypes.False:
+				{
+					return false;
+				}
+				case TupleTypes.True:
+				{
+					return true;
 				}
 			}
 
