@@ -180,11 +180,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(byte)) { TupleParser.WriteUInt32(ref writer, (byte) (object) value); return; }
 			if (typeof(T) == typeof(float)) { TupleParser.WriteSingle(ref writer, (float) (object) value); return; }
 			if (typeof(T) == typeof(double)) { TupleParser.WriteDouble(ref writer, (double) (object) value); return; }
+			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
 			if (typeof(T) == typeof(char)) { TupleParser.WriteChar(ref writer, (char) (object) value); return; }
 			if (typeof(T) == typeof(Guid)) { TupleParser.WriteGuid(ref writer, (Guid) (object) value); return; }
 			if (typeof(T) == typeof(Uuid128)) { TupleParser.WriteUuid128(ref writer, (Uuid128) (object) value); return; }
 			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value); return; }
-			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
+			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value); return; }
 			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value); return; }
 
 			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value); return; }
@@ -198,11 +199,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(byte?)) { TupleParser.WriteUInt32(ref writer, (byte?) (object) value); return; }
 			if (typeof(T) == typeof(float?)) { TupleParser.WriteSingle(ref writer, (float?) (object) value); return; }
 			if (typeof(T) == typeof(double?)) { TupleParser.WriteDouble(ref writer, (double?) (object) value); return; }
+			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
 			if (typeof(T) == typeof(char?)) { TupleParser.WriteChar(ref writer, (char?) (object) value); return; }
 			if (typeof(T) == typeof(Guid?)) { TupleParser.WriteGuid(ref writer, (Guid?) (object) value); return; }
 			if (typeof(T) == typeof(Uuid128?)) { TupleParser.WriteUuid128(ref writer, (Uuid128?) (object) value); return; }
+			if (typeof(T) == typeof(VersionStamp?)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) (object) value); return; }
 			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value); return; }
-			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
 #endif
 			//</JIT_HACK>
 
@@ -278,6 +280,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(Guid)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Guid) value),
 				[typeof(Uuid128)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid128) value),
 				[typeof(Uuid64)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid64) value),
+				[typeof(VersionStamp)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (VersionStamp) value),
 				[typeof(TimeSpan)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (TimeSpan) value),
 				[typeof(DateTime)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTime) value),
 				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTimeOffset) value),
@@ -380,8 +383,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteInt32(ref writer, value);
 		}
 
+		/// <summary>Writes a signed int as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, int? value)
+		{
+			TupleParser.WriteInt32(ref writer, value);
+		}
+
 		/// <summary>Writes an unsigned int as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, uint value)
+		{
+			TupleParser.WriteUInt32(ref writer, value);
+		}
+
+		/// <summary>Writes an unsigned int as an integer</summary>
+		public static void SerializeTo(ref TupleWriter writer, uint? value)
 		{
 			TupleParser.WriteUInt32(ref writer, value);
 		}
@@ -393,9 +409,23 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteInt64(ref writer, value);
 		}
 
+		/// <summary>Writes a signed long as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, long? value)
+		{
+			TupleParser.WriteInt64(ref writer, value);
+		}
+
 		/// <summary>Writes an unsigned long as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, ulong value)
+		{
+			TupleParser.WriteUInt64(ref writer, value);
+		}
+
+		/// <summary>Writes an unsigned long as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, ulong? value)
 		{
 			TupleParser.WriteUInt64(ref writer, value);
 		}
@@ -407,6 +437,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteSingle(ref writer, value);
 		}
 
+		/// <summary>Writes a 32-bit IEEE floating point number</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, float? value)
+		{
+			TupleParser.WriteSingle(ref writer, value);
+		}
+
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, double value)
@@ -414,8 +451,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteDouble(ref writer, value);
 		}
 
+		/// <summary>Writes a 64-bit IEEE floating point number</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, double? value)
+		{
+			TupleParser.WriteDouble(ref writer, value);
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, decimal value)
+		{
+			TupleParser.WriteDecimal(ref writer, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, decimal? value)
 		{
 			TupleParser.WriteDecimal(ref writer, value);
 		}
@@ -477,6 +527,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteUuid128(ref writer, in value);
 		}
 
+		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid128? value)
+		{
+			TupleParser.WriteUuid128(ref writer, value);
+		}
+
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Uuid64 value)
@@ -484,9 +541,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteUuid64(ref writer, value);
 		}
 
+		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid64? value)
+		{
+			TupleParser.WriteUuid64(ref writer, value);
+		}
+
 		public static void SerializeTo(ref TupleWriter writer, VersionStamp value)
 		{
 			TupleParser.WriteVersionStamp(ref writer, in value);
+		}
+
+		public static void SerializeTo(ref TupleWriter writer, VersionStamp? value)
+		{
+			TupleParser.WriteVersionStamp(ref writer, value);
 		}
 
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
