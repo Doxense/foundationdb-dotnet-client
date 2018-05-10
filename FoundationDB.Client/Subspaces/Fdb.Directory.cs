@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 				var rootSpace = KeySubspace.Empty;
 				try
 				{
-					db = await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, ct: ct).ConfigureAwait(false);
+					db = (FdbDatabase) await OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, ct: ct).ConfigureAwait(false);
 					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer of database {db.Name} using cluster file '{db.Cluster.Path}'");
 
