@@ -526,7 +526,7 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static async Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, IKeySubspace globalSpace, bool readOnly = false, CancellationToken ct = default(CancellationToken))
 		{
-			return await OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, ct);
+			return await OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Create a new database handler instance using the specificied cluster file, database name, global subspace and read only settings</summary>
