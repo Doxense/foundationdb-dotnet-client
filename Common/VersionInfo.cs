@@ -36,4 +36,4 @@ using System.Reflection;
 
 [assembly: AssemblyVersion("5.1.0.0")] //note: Only change this when doing breaking API changes!
 [assembly: AssemblyFileVersion("5.1.0.0")] //note: change this to "x.y.revision.build_step" in a build step of your favorite C.I. build server
-[assembly: AssemblyInformationalVersion("0.5.1-alpha1")]  //note: this is the version seen by NuGet, add "-alpha"/"-beta"/"-rc1" at the end to create pre-release packages
+[assembly: AssemblyInformationalVersion("0.5.1-alpha2")]  //note: this is the version seen by NuGet, add "-alpha"/"-beta"/"-rc1" at the end to create pre-release packages

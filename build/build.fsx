@@ -11,7 +11,7 @@ let projectRoot () =
         FileUtils.pwd()
 
 // Properties
-let version = "5.1.0-alpha1" //TODO: find a way to extract this from somewhere convenient
+let version = "5.1.0-alpha2" //TODO: find a way to extract this from somewhere convenient
 let buildDir = projectRoot() @@ "build" @@ "output"
 let nugetPath = projectRoot() @@ ".nuget" @@ "NuGet.exe"
 let nugetOutDir = buildDir @@ "_packages"
