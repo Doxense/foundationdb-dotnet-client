@@ -646,29 +646,20 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Serialize_Booleans()
 		{
-			// Booleans are stored as interger 0 (<14>) for false, and integer 1 (<15><01>) for true
-
-			Slice packed;
+			// Booleans are stored as <26> for false, and <27> for true
 
 			// bool
-			packed = TuPack.EncodeKey(false);
-			Assert.That(packed.ToString(), Is.EqualTo("<14>"));
-			packed = TuPack.EncodeKey(true);
-			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
+			Assert.That(TuPack.EncodeKey(false).ToHexaString(' '), Is.EqualTo("26"));
+			Assert.That(TuPack.EncodeKey(true).ToHexaString(' '), Is.EqualTo("27"));
 
 			// bool?
-			packed = TuPack.EncodeKey(default(bool?));
-			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
-			packed = TuPack.EncodeKey((bool?) false);
-			Assert.That(packed.ToString(), Is.EqualTo("<14>"));
-			packed = TuPack.EncodeKey((bool?) true);
-			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
+			Assert.That(TuPack.EncodeKey(default(bool?)).ToHexaString(' '), Is.EqualTo("00"));
+			Assert.That(TuPack.EncodeKey((bool?) false).ToHexaString(' '), Is.EqualTo("26"));
+			Assert.That(TuPack.EncodeKey((bool?) true).ToHexaString(' '), Is.EqualTo("27"));
 
 			// tuple containing bools
-			packed = TuPack.EncodeKey(true);
-			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
-			packed = TuPack.EncodeKey(true, default(string), false);
-			Assert.That(packed.ToString(), Is.EqualTo("<15><01><00><14>"));
+			Assert.That(TuPack.EncodeKey(true).ToHexaString(' '), Is.EqualTo("27"));
+			Assert.That(TuPack.EncodeKey(true, default(string), false).ToHexaString(' '), Is.EqualTo("27 00 26"));
 		}
 
 		[Test]
@@ -677,12 +668,14 @@ namespace Doxense.Collections.Tuples.Tests
 			// Null, 0, and empty byte[]/strings are equivalent to False. All others are equivalent to True
 
 			// Falsy...
+			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<26>")), Is.False, "False => False");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<00>")), Is.False, "Null => False");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<14>")), Is.False, "0 => False");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<01><00>")), Is.False, "byte[0] => False");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<02><00>")), Is.False, "String.Empty => False");
 
 			// Truthy
+			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<27>")), Is.True, "True => True");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<15><01>")), Is.True, "1 => True");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<13><FE>")), Is.True, "-1 => True");
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<01>Hello<00>")), Is.True, "'Hello' => True");
@@ -693,9 +686,9 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(TuPack.DecodeKey<bool>(Slice.Unescape("<02>False<00>")), Is.True, "\"False\" => True ***");
 			// note: even though it would be tempting to convert the string "false" to False, it is not a standard behavior accross all bindings
 
-			// When decoded to object, though, they should return 0 and 1
-			Assert.That(TuplePackers.DeserializeBoxed(TuPack.EncodeKey(false)), Is.EqualTo(0));
-			Assert.That(TuplePackers.DeserializeBoxed(TuPack.EncodeKey(true)), Is.EqualTo(1));
+			// When decoded to object, they should return false and true
+			Assert.That(TuplePackers.DeserializeBoxed(TuPack.EncodeKey(false)), Is.False);
+			Assert.That(TuplePackers.DeserializeBoxed(TuPack.EncodeKey(true)), Is.True);
 		}
 
 		[Test]
@@ -824,8 +817,8 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(TuPack.EncodeKey<long?>(123L), Is.EqualTo(Slice.Unescape("<15>{")));
 			Assert.That(TuPack.EncodeKey<long?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
-			Assert.That(TuPack.EncodeKey<bool?>(true), Is.EqualTo(Slice.Unescape("<15><01>")));
-			Assert.That(TuPack.EncodeKey<bool?>(false), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(TuPack.EncodeKey<bool?>(true), Is.EqualTo(Slice.Unescape("<27>")));
+			Assert.That(TuPack.EncodeKey<bool?>(false), Is.EqualTo(Slice.Unescape("<26>")));
 			Assert.That(TuPack.EncodeKey<bool?>(null), Is.EqualTo(Slice.Unescape("<00>")), "Maybe it was File Not Found?");
 
 			Assert.That(TuPack.EncodeKey<Guid?>(Guid.Empty), Is.EqualTo(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")));
@@ -876,47 +869,47 @@ namespace Doxense.Collections.Tuples.Tests
 
 			verify(
 				STuple.Create(42, value, docId),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			verify(
 				STuple.Create(new object[] {42, value, docId}),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			verify(
 				STuple.Create(42).Append(value).Append(docId),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			verify(
 				STuple.Create(42).Append(value, docId),
-				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 
 			// multiple depth
 			verify(
 				STuple.Create(1, STuple.Create(2, 3), STuple.Create(STuple.Create(4, 5, 6)), 7),
-				"15 01 03 15 02 15 03 00 03 03 15 04 15 05 15 06 00 00 15 07"
+				"15 01 05 15 02 15 03 00 05 05 15 04 15 05 15 06 00 00 15 07"
 			);
 
 			// corner cases
 			verify(
 				STuple.Create(STuple.Empty),
-				"03 00" // empty tumple should have header and footer
+				"05 00" // empty tumple should have header and footer
 			);
 			verify(
 				STuple.Create(STuple.Empty, default(string)),
-				"03 00 00" // outer null should not be escaped
+				"05 00 00" // outer null should not be escaped
 			);
 			verify(
 				STuple.Create(STuple.Create(default(string)), default(string)),
-				"03 00 FF 00 00" // inner null should be escaped, but not outer
+				"05 00 FF 00 00" // inner null should be escaped, but not outer
 			);
 			verify(
 				STuple.Create(STuple.Create(0x100, 0x10000, 0x1000000)),
-				"03 16 01 00 17 01 00 00 18 01 00 00 00 00"
+				"05 16 01 00 17 01 00 00 18 01 00 00 00 00"
 			);
 			verify(
 				STuple.Create(default(string), STuple.Empty, default(string), STuple.Create(default(string)), default(string)),
-				"00 03 00 00 03 00 FF 00 00"
+				"00 05 00 00 05 00 FF 00 00" // inner null should be escaped, but not outer
 			);
 
 		}
@@ -927,7 +920,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// ((42, (2014, 11, 6), "Hello", true), )
 			var packed = TuPack.EncodeKey(STuple.Create(42, STuple.Create(2014, 11, 6), "Hello", true));
 			Log($"t = {TuPack.Unpack(packed)}");
-			Assert.That(packed[0], Is.EqualTo(TupleTypes.TupleStart), "Missing Embedded Tuple marker");
+			Assert.That(packed[0], Is.EqualTo(TupleTypes.EmbeddedTuple), "Missing Embedded Tuple marker");
 			{
 				var t = TuPack.DecodeKey<ITuple>(packed);
 				Assert.That(t, Is.Not.Null);
@@ -1088,39 +1081,39 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create("hello world", 123, false)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14>")
+				Is.EqualTo("<02>hello world<00><15>{&")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] {123, 1, 66, 0, 42})).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界")).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.Create(new object[] {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}})).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.FromArray(new object[] {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}}, 1, 2)).ToString(),
-				Is.EqualTo("<15>{<14>")
+				Is.EqualTo("<15>{&")
 			);
 			Assert.That(
 				TuPack.Pack(STuple.FromEnumerable(new List<object> {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}})).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 
 		}
@@ -1153,39 +1146,39 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create("hello world", 123, false)).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 })).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI)).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L)).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界")).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true)).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } })).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.FromArray(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2)).ToString(),
-				Is.EqualTo("ABC<15>{<14>")
+				Is.EqualTo("ABC<15>{&")
 			);
 			Assert.That(
 				TuPack.Pack(prefix, STuple.FromEnumerable(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } })).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 
 			// Nil or Empty slice should be equivalent to no prefix
@@ -1241,7 +1234,7 @@ namespace Doxense.Collections.Tuples.Tests
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("<02>Hello<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<15>{<15><01>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<15>{'"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("!<C0><09>!<FB>TD-<18><12><FB>-"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
@@ -1268,9 +1261,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create(789, false)
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{<15><01>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8><14>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<16><03><15><14>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{'"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>&"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<16><03><15>&"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1282,9 +1275,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create("baz", 789, false)
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{<15><01>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8><14>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15><14>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1296,9 +1289,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create("baz", 789, false, "no")
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{<15><01><02>yes<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8><14><02>yes<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15><14><02>no<00>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'<02>yes<00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&<02>yes<00>"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&<02>no<00>"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1310,9 +1303,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create("baz", 789, false, "no", 9)
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{<15><01><02>yes<00><15><07>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8><14><02>yes<00><15>*"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15><14><02>no<00><15><09>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'<02>yes<00><15><07>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&<02>yes<00><15>*"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&<02>no<00><15><09>"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1324,9 +1317,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create("baz", 789, false, "no", 9, 0.66d)
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{<15><01><02>yes<00><15><07>!<BF><F8><00><00><00><00><00><00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8><14><02>yes<00><15>*!<BF><E6>ffffff"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15><14><02>no<00><15><09>!<BF><E5><1E><B8>Q<EB><85><1F>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00><15>{'<02>yes<00><15><07>!<BF><F8><00><00><00><00><00><00>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00><16><01><C8>&<02>yes<00><15>*!<BF><E6>ffffff"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00><16><03><15>&<02>no<00><15><09>!<BF><E5><1E><B8>Q<EB><85><1F>"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1372,7 +1365,7 @@ namespace Doxense.Collections.Tuples.Tests
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
 				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>Hello<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15>{<15><01>"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15>{'"));
 				Assert.That(packed[2].ToString(), Is.EqualTo("ABC!<C0><09>!<FB>TD-<18><12><FB>-"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
@@ -1401,9 +1394,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create(789, false)
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{<15><01>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8><14>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<16><03><15><14>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{'"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>&"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<16><03><15>&"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1416,9 +1409,9 @@ namespace Doxense.Collections.Tuples.Tests
 					STuple.Create("baz", 789, false)
 				);
 				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00><15>{<15><01>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00><16><01><C8><14>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00><16><03><15><14>"));
+				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00><15>{'"));
+				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00><16><01><C8>&"));
+				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00><16><03><15>&"));
 				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same bufer");
 			}
@@ -1446,27 +1439,27 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.EncodeKey("hello world", 123, false).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14>")
+				Is.EqualTo("<02>hello world<00><15>{&")
 			);
 			Assert.That(
 				TuPack.EncodeKey("hello world", 123, false, new byte[] {123, 1, 66, 0, 42}).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
 			);
 			Assert.That(
 				TuPack.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
 			);
 			Assert.That(
 				TuPack.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界").ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
 			);
 			Assert.That(
 				TuPack.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 
 		}
@@ -1494,27 +1487,27 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&")
 			);
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
 			);
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
 			);
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界").ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
 			);
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true).ToString(),
-				Is.EqualTo("ABC<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")
+				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 
 		}
@@ -1540,7 +1533,10 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
 
 			slice = TuPack.EncodeKey<object>(false);
-			Assert.That(slice.ToString(), Is.EqualTo("<14>"));
+			Assert.That(slice.ToString(), Is.EqualTo("&"));
+
+			slice = TuPack.EncodeKey<object>(true);
+			Assert.That(slice.ToString(), Is.EqualTo("'"));
 
 			slice = TuPack.EncodeKey<object>(new byte[] {4, 5, 6});
 			Assert.That(slice.ToString(), Is.EqualTo("<01><04><05><06><00>"));
@@ -1692,7 +1688,7 @@ namespace Doxense.Collections.Tuples.Tests
 				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><14><15>{"));
+				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{"));
 			}
 
 			{
@@ -1701,7 +1697,7 @@ namespace Doxense.Collections.Tuples.Tests
 				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><14><15>{<13><FE>"));
+				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE>"));
 			}
 
 			{
@@ -1710,7 +1706,7 @@ namespace Doxense.Collections.Tuples.Tests
 				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><14><15>{<13><FE><02>narf<00>"));
+				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>"));
 			}
 
 			{
@@ -1719,7 +1715,7 @@ namespace Doxense.Collections.Tuples.Tests
 				var tw = new TupleWriter();
 				tw.Output.WriteBytes(prefix);
 				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><14><15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
+				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
 			}
 
 		}
@@ -1799,28 +1795,28 @@ namespace Doxense.Collections.Tuples.Tests
 				Is.EqualTo(STuple.Create("hello world", 1234, -1234L))
 			);
 			Assert.That(
-				TuPack.DecodeKey<string, int, bool>(Slice.Unescape("<02>hello world<00><15>{<14>")),
+				TuPack.DecodeKey<string, int, bool>(Slice.Unescape("<02>hello world<00><15>{&")),
 				Is.EqualTo(STuple.Create("hello world", 123, false))
 			);
 			Assert.That(
-				TuPack.DecodeKey<string, int, bool, Slice>(Slice.Unescape("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")),
+				TuPack.DecodeKey<string, int, bool, Slice>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")),
 				Is.EqualTo(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }.AsSlice()))
 			);
 			Assert.That(
-				TuPack.DecodeKey<string, int, bool, Slice, double>(Slice.Unescape("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")),
+				TuPack.DecodeKey<string, int, bool, Slice, double>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")),
 				Is.EqualTo(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }.AsSlice(), Math.PI))
 			);
 			Assert.That(
-				TuPack.DecodeKey<string, int, bool, Slice, double, long>(Slice.Unescape("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")),
+				TuPack.DecodeKey<string, int, bool, Slice, double, long>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")),
 				Is.EqualTo(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }.AsSlice(), Math.PI, -1234L))
 			);
 			//TODO: if/when we have tuples with 7 or 8 items...
 			//Assert.That(
-			//	TuPack.DecodeKey<string, int, bool, Slice, double, long, string>(Slice.Unescape("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")),
+			//	TuPack.DecodeKey<string, int, bool, Slice, double, long, string>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")),
 			//	Is.EqualTo(STuple.Create("hello world", 123, false, Slice.Create(new byte[] { 123, 1, 66, 0, 42 }), Math.PI, -1234L, "こんにちは世界"))
 			//);
 			//Assert.That(
-			//	TuPack.DecodeKey<string, int, bool, Slice, double, long, string, bool>(Slice.Unescape("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")),
+			//	TuPack.DecodeKey<string, int, bool, Slice, double, long, string, bool>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")),
 			//	Is.EqualTo(STuple.Create("hello world", 123, false, Slice.Create(new byte[] { 123, 1, 66, 0, 42 }), Math.PI, -1234L, "こんにちは世界", true))
 			//);
 		}
@@ -1833,10 +1829,10 @@ namespace Doxense.Collections.Tuples.Tests
 			Slice packed;
 
 			packed = TuplePacker<Thing>.Serialize(new Thing {Foo = 123, Bar = "hello"});
-			Assert.That(packed.ToString(), Is.EqualTo("<03><15>{<02>hello<00><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<05><15>{<02>hello<00><00>"));
 
 			packed = TuplePacker<Thing>.Serialize(new Thing());
-			Assert.That(packed.ToString(), Is.EqualTo("<03><14><00><FF><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<05><14><00><FF><00>"));
 
 			packed = TuplePacker<Thing>.Serialize(default(Thing));
 			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
@@ -1849,13 +1845,13 @@ namespace Doxense.Collections.Tuples.Tests
 			Slice slice;
 			Thing thing;
 
-			slice = Slice.Unescape("<03><16><01><C8><02>world<00><00>");
+			slice = Slice.Unescape("<05><16><01><C8><02>world<00><00>");
 			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(456));
 			Assert.That(thing.Bar, Is.EqualTo("world"));
 
-			slice = Slice.Unescape("<03><14><00><FF><00>");
+			slice = Slice.Unescape("<05><14><00><FF><00>");
 			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(0));
@@ -2064,28 +2060,28 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<FF>"));
 
 			range = TuPack.ToRange(STuple.Create("Hello", 123, true));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<FF>"));
 
 			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<FF>"));
 
 			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><FF>"));
 
 			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><FF>"));
 
 			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<FF>"));
 
 			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false, "TheEnd"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><02>TheEnd<00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><02>TheEnd<00><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><FF>"));
 		}
 
 		[Test]
@@ -2103,28 +2099,28 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<FF>"));
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<FF>"));
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<FF>"));
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><FF>"));
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><FF>"));
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<FF>"));
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false, "TheEnd"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><02>TheEnd<00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<15><01><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><14><02>TheEnd<00><FF>"));
+			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><00>"));
+			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><FF>"));
 
 			// Nil or Empty prefix should not add anything
 
@@ -2168,26 +2164,26 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.Pack(ValueTuple.Create("hello world", 123, false)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14>")
+				Is.EqualTo("<02>hello world<00><15>{&")
 			);
 			Assert.That(
 				TuPack.Pack(ValueTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 })).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
 				TuPack.Pack(ValueTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
 			);
 			Assert.That(
 				TuPack.Pack(ValueTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L)).ToString(),
-				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
 			);
 
 			{ // Embedded Tuples
 				var packed = TuPack.Pack(ValueTuple.Create("hello", ValueTuple.Create(123, false), "world"));
 				Assert.That(
 					packed.ToString(),
-					Is.EqualTo("<02>hello<00><03><15>{<14><00><02>world<00>")
+					Is.EqualTo("<02>hello<00><05><15>{&<00><02>world<00>")
 				);
 				var t = TuPack.DecodeKey<string, ValueTuple<int, bool>, string>(packed);
 				Assert.That(t.Item1, Is.EqualTo("hello"));
