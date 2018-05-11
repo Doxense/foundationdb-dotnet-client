@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>FoundationDB.Layers.Common</id>
-    <version>5.1.0-alpha2</version>
+    <version>5.2.0-preview1</version>
     <title>FoundationDB Common Layers</title>
     <authors>Doxense</authors>
     <owners>Doxense</owners>
@@ -16,7 +16,7 @@
 	<language>en-US</language>
     <tags>foundationdb nosql layers</tags>
 	<dependencies>
-		<dependency id="FoundationDB.Client" version="5.1.0-alpha2" />
+		<dependency id="FoundationDB.Client" version="5.2.0-preview1" />
     </dependencies>
   </metadata>
   <files>

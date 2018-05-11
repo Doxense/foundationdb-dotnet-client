@@ -6,7 +6,7 @@
     <AssemblyName>FoundationDB.Layers.Experimental</AssemblyName>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-    <Version>5.1.0-alpha2</Version>
+    <Version>5.2.0-preview1</Version>
     <Authors>Doxense</Authors>
     <PackageLicenseUrl>http://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>
     <PackageProjectUrl>http://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
