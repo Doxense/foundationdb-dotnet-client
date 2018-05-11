@@ -55,6 +55,10 @@ namespace FoundationDB.Client.Tests
 			{
 				int version = OverrideApiVersion;
 				if (version == 0) version = Fdb.GetDefaultApiVersion();
+				if (version > Fdb.GetMaxApiVersion())
+				{
+					Assume.That(version, Is.LessThanOrEqualTo(Fdb.GetMaxApiVersion()), "Unit tests require that the native fdb client version be at least equal to the current binding version!");
+				}
 				Fdb.Start(version);
 			}
 			else if (OverrideApiVersion != Fdb.ApiVersion)
