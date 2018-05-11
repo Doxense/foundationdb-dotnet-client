@@ -316,8 +316,6 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			Assert.That(Fdb.ApiVersion, Is.EqualTo(200));
-
 			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = await GetCleanDirectory(db, "queue");
