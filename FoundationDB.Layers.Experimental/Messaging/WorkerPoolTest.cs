@@ -19,7 +19,7 @@ namespace FoundationDB.Layers.Messaging
 
 			ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
 
-			Fdb.Start();
+			Fdb.Start(Fdb.GetMaxSafeApiVersion());
 			var cts = new CancellationTokenSource();
 			try
 			{

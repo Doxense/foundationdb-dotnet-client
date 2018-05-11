@@ -74,9 +74,7 @@ namespace FdbTop
 
 				Console.Title = "fdbtop";
 
-				//note: always use the latest version available
-				Fdb.UseApiVersion(Fdb.GetMaxSafeApiVersion());
-				Fdb.Start();
+				Fdb.Start(Fdb.GetMaxSafeApiVersion(200, Fdb.GetDefaultApiVersion()));
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();

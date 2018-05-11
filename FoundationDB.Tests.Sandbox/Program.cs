@@ -170,7 +170,7 @@ namespace FoundationDB.Tests.Sandbox
 			try
 			{
 				Console.WriteLine("Starting network thread...");
-				Fdb.Start();
+				Fdb.Start(Fdb.GetDefaultApiVersion());
 				Console.WriteLine("> Up and running");
 
 				Console.WriteLine("Connecting to local cluster...");

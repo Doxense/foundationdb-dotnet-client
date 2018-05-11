@@ -172,7 +172,7 @@ namespace FoundationDB.Samples
 			var go = new CancellationTokenSource();
 
 			// Initialize FDB
-			Fdb.Start();
+			Fdb.Start(Fdb.GetDefaultApiVersion());
 			try
 			{
 				if (partition == null || partition.Length == 0)

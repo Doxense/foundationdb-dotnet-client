@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 		private static bool s_started; //REVIEW: replace with state flags (Starting, Started, Failed, ...)
 
 		/// <summary>Currently selected API version</summary>
-		private static int s_apiVersion = DefaultApiVersion;
+		private static int s_apiVersion;
 
 		/// <summary>Event handler called when the AppDomain gets unloaded</summary>
 		private static EventHandler s_appDomainUnloadHandler;
@@ -103,7 +103,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns the maximum API version that is supported by both this binding and the installed client.</summary>
-		/// <returns>Value that can be safely passed to <see cref="UseApiVersion"/> or <see cref="Start(int)"/>, if you want to be on the bleeding edge.</returns>
+		/// <returns>Value that can be safely passed to <see cref="Start(int)"/>, if you want to be on the bleeding edge.</returns>
 		/// <remarks>This value can be lower than the value returned by <see cref="GetMaxApiVersion"/> if the FoundationDB client installed on this machine is more recent that the version of this assembly.
 		/// Using this version may break your application if new features change the behavior of the client (ex: default mode for snapshot transactions between v2.x and v3.x).
 		/// </remarks>
@@ -112,38 +112,88 @@ namespace FoundationDB.Client
 			return Math.Min(MaxSafeApiVersion, GetMaxApiVersion());
 		}
 
+		/// <summary>Returns the maximum API version that is supported by both this binding and the installed client.</summary>
+		/// <returns>Value that can be safely passed to <see cref="Start(int)"/>, if you want to be on the bleeding edge.</returns>
+		/// <remarks>This value can be lower than the value returned by <see cref="GetMaxApiVersion"/> if the FoundationDB client installed on this machine is more recent that the version of this assembly.
+		/// Using this version may break your application if new features change the behavior of the client (ex: default mode for snapshot transactions between v2.x and v3.x).
+		/// </remarks>
+		/// <exception cref="NotSupportedException">If the max safe version is lower than <paramref name="minVersion"/> or higher than <paramref name="maxVersion"/></exception>
+		public static int GetMaxSafeApiVersion(int minVersion, int? maxVersion = null)
+		{
+			//TODO: add overload that takes a Range? (C# 8.0)
+			int version = Math.Min(MaxSafeApiVersion, GetMaxApiVersion());
+			EnsureApiVersion(version, minVersion, maxVersion);
+			return version;
+		}
+
+		/// <summary>Returns the default API version that is supported by the version of this binding</summary>
+		/// <remarks>
+		/// The version may be different than the version supported by the installed client, and the database cluster itself!
+		/// This version should only be used by tools that are versionned and deployed alongside the binding package.
+		/// Application and Layers should define their own API version and not rely on this value.
+		/// </remarks>
+		public static int GetDefaultApiVersion()
+		{
+			return Fdb.DefaultApiVersion;
+		}
+
 		/// <summary>Returns the currently selected API version.</summary>
-		/// <remarks>Unless explicitely selected by calling <see cref="UseApiVersion"/> before, the default API version level will be returned</remarks>
+		/// <remarks>The value will be 0 if <see cref="Fdb.Start(int)"/> has not been called yet.</remarks>
 		public static int ApiVersion => s_apiVersion;
 
 		/// <summary>Sets the desired API version of the binding.
 		/// The selected version level may affect the availability and behavior or certain features.
 		/// </summary>
 		/// <remarks>
-		/// The version can only be set before calling <see cref="Fdb.Start()"/> or any method that indirectly calls it.
-		/// If you want to be on the bleeding edge, you can use <see cref="GetMaxSafeApiVersion"/> to get the maximum version supported by both this bindign and the FoundationDB client.
+		/// The version can only be set before calling <see cref="Fdb.Start(int)"/> or any method that indirectly calls it.
+		/// If the value is 0, then the the maximum version supported by both this bindign and the FoundationDB client (see <see cref="GetMaxSafeApiVersion"/>).
 		/// If you want to be conservative, you should target a specific version level, and only change to newer versions after making sure that all tests are passing!
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">When attempting to change the API version after the binding has been started.</exception>
 		/// <exception cref="ArgumentException">When attempting to set a negative version, or a version that is either less or greater than the minimum and maximum supported versions.</exception>
+		[Obsolete("Use Fdb.Start(int) to specify the API version")]
 		public static void UseApiVersion(int value)
+		{
+			value = CheckApiVersion(value);
+			if (s_apiVersion == value) return; //Alreay set to same version... skip it.
+			if (s_started) throw new InvalidOperationException($"You cannot set API version {value} because version {s_apiVersion} has already been selected");
+			s_apiVersion = value;
+		}
+
+		private static int CheckApiVersion(int value)
 		{
 			if (value < 0) throw new ArgumentException("API version must be a positive integer.");
 			if (value == 0)
 			{ // 0 means "use the default version"
-				value = DefaultApiVersion;
+				value = GetMaxSafeApiVersion();
 			}
-			if (s_apiVersion == value) return; //Alreay set to same version... skip it.
-			if (s_started) throw new InvalidOperationException($"You cannot set API version {value} because version {Fdb.s_apiVersion} has already been selected");
 
 			//note: we don't actually select the version yet, only when Start() is called.
 
 			int min = GetMinApiVersion();
-			if (value < min) throw new ArgumentException($"The minimum API version supported by this binding is {min} and the default version is {Fdb.DefaultApiVersion}.");
+			if (value < min) throw new ArgumentException($"The minimum API version supported by the native fdb client is {min}, which is higher than version {value} requested by the application. You must upgrade the aplication and/or .NET binding!");
 			int max = GetMaxApiVersion();
-			if (value > max) throw new ArgumentException($"The maximum API version supported by this binding is {max} and the default version is {Fdb.DefaultApiVersion}.");
+			if (value > max) throw new ArgumentException($"The maximum API version supported by the native fdb client is {max}, which is lower than version {value} required by the application. You must upgrade the native fdb client to a higher version!");
 
-			s_apiVersion = value;
+			return value;
+		}
+
+		/// <summary>Ensure that the currently selected <see cref="ApiVersion"/> is between the specified bounds</summary>
+		/// <param name="min">Minimum version that is supported by the caller. If the current version is lower, an exception will be thrown</param>
+		/// <param name="max">If not null, maximum version that is supported by the caller. If the current version is higher, an exception will be thrown</param>
+		/// <exception cref="NotSupportedException">If the current version does not match the specified range</exception>
+		public static void EnsureApiVersion(int min, int? max = null)
+		{
+			//TODO: add overload that takes a Range? (C# 8.0)
+			if (ApiVersion <= 0) throw new InvalidOperationException("The fdb API version must be set before calling this method.");
+			EnsureApiVersion(ApiVersion, min, max);
+		}
+
+		private static void EnsureApiVersion(int version, int min, int? max = null)
+		{
+			//TODO: add overload that takes a Range? (C# 8.0)
+			if (min > 0 && min > version) throw new NotSupportedException($"The current fdb API version is {version}, which is lower than the minimum version {min} required by the caller.");
+			if (max != null && max.Value < version) throw new NotSupportedException($"The current fdb API version is {version}, which is higher than the maximum version {max.Value} required by the caller.");
 		}
 
 		/// <summary>Returns true if the error code represents a success</summary>
@@ -567,19 +617,24 @@ namespace FoundationDB.Client
 		/// <summary>Ensure that we have loaded the C API library, and that the Network Thread has been started</summary>
 		private static void EnsureIsStarted()
 		{
-			if (!s_eventLoopStarted) Start();
+			if (!s_eventLoopStarted)
+			{
+				throw new InvalidOperationException("The fdb API version has not been selected. You must call Fdb.Start(...) in your Main() or Startup class before calling this method.");
+			}
 		}
 
-		/// <summary>Select the API version level to use in this process, and start the Network Thread</summary>
-		public static void Start(int apiVersion)
-		{
-			UseApiVersion(apiVersion);
-			Start();
-		}
-
-		/// <summary>Start the Network Thread, using the currently selected API version level</summary>
-		/// <remarks>If you need a specific API version level, it must be defined by either calling <see cref="UseApiVersion"/> before calling this method, or by using the <see cref="Start(int)"/> override. Otherwise, the default API version will be selected.</remarks>
+		/// <summary>Start the Network Thread, using the pre-selected API version.</summary>
+		/// <remarks>If you need a specific API version level, you should call <see cref="Start(int)"/>. Otherwise, the max safe default API version will be selected.</remarks>
+		[Obsolete("Use should always specify the desired API version, to prevent any breaking change when updating the FoundationDB .NET Client to a newer version! Change this call to Fdb.Start(int) ensure maximum forward compatibility.")]
 		public static void Start()
+		{
+			Start(s_apiVersion);
+		}
+
+		/// <summary>Start the Network Thread, using the specified API version level</summary>
+		/// <param name="apiVersion">API version that will be used by this application. A value of 0 mean "max safe default version".</param>
+		/// <remarks>This method can only be called once per process, and the API version cannot be changed until the process restarts.</remarks>
+		public static void Start(int apiVersion)
 		{
 			if (s_started) return;
 
@@ -587,9 +642,7 @@ namespace FoundationDB.Client
 
 			s_started = true;
 
-			int apiVersion = s_apiVersion;
-			if (apiVersion <= 0) apiVersion = DefaultApiVersion;
-
+			apiVersion = CheckApiVersion(apiVersion);
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", $"Selecting fdb API version {apiVersion}");
 
 			FdbError err = FdbNative.SelectApiVersion(apiVersion);

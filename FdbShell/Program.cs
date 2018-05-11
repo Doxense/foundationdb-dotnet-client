@@ -127,11 +127,9 @@ namespace FdbShell
 
 			// Initialize FDB
 
-			//note: always use the latest version available
-			Fdb.UseApiVersion(Fdb.GetMaxSafeApiVersion());
 			try
 			{
-				Fdb.Start();
+				Fdb.Start(Fdb.GetMaxSafeApiVersion(200, Fdb.GetDefaultApiVersion()));
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();
