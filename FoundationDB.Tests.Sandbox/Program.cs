@@ -170,7 +170,7 @@ namespace FoundationDB.Tests.Sandbox
 			try
 			{
 				Console.WriteLine("Starting network thread...");
-				Fdb.Start(); // this will select API version 21			
+				Fdb.Start();
 				Console.WriteLine("> Up and running");
 
 				Console.WriteLine("Connecting to local cluster...");
@@ -179,7 +179,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.FromKey(TuPack.EncodeKey(SUBSPACE)), false, ct))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.FromKey(Slice.FromByte(253)), false, ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -196,23 +196,21 @@ namespace FoundationDB.Tests.Sandbox
 							Console.WriteLine("> Database cleared");
 						}
 
-						Console.WriteLine("----------");
+						Console.WriteLine();
 
 						await TestSimpleTransactionAsync(db, ct);
-
-						Console.WriteLine("----------");
 
 						await BenchInsertSmallKeysAsync(db, N, 16, ct); // some guid
 						await BenchInsertSmallKeysAsync(db, N, 60 * 4, ct); // one Int32 per minutes, over an hour
 						await BenchInsertSmallKeysAsync(db, N, 512, ct); // small JSON payload
-						////await BenchInsertSmallKeysAsync(db, N, 4096, ct); // typical small cunk size
-						////await BenchInsertSmallKeysAsync(db, N / 10, 65536, ct); // typical medium chunk size
-						//await BenchInsertSmallKeysAsync(db, 1, 100000, ct); // Maximum value size (as of beta 1)
+						await BenchInsertSmallKeysAsync(db, N / 5, 4096, ct); // typical small cunk size
+						await BenchInsertSmallKeysAsync(db, N / 100, 65536, ct); // typical medium chunk size
+						await BenchInsertSmallKeysAsync(db, 20, 100_000, ct); // Maximum value size (as of beta 1)
 
-						////// insert keys in parrallel
-						await BenchConcurrentInsert(db, 1, 100, 512, ct);
-						await BenchConcurrentInsert(db, 1, 1000, 512, ct);
-						await BenchConcurrentInsert(db, 1, 10000, 512, ct);
+						// insert keys in parrallel
+						await BenchConcurrentInsert(db, 1,    100, 512, ct);
+						await BenchConcurrentInsert(db, 1,  1_000, 512, ct);
+						await BenchConcurrentInsert(db, 1, 10_000, 512, ct);
 
 						await BenchConcurrentInsert(db, 1, N, 16, ct);
 						await BenchConcurrentInsert(db, 2, N, 16, ct);
@@ -220,24 +218,24 @@ namespace FoundationDB.Tests.Sandbox
 						await BenchConcurrentInsert(db, 8, N, 16, ct);
 						await BenchConcurrentInsert(db, 16, N, 16, ct);
 
-						//await BenchSerialWriteAsync(db, N, ct);
-						//await BenchSerialReadAsync(db, N, ct);
-						//await BenchConcurrentReadAsync(db, N, ct);
+						await BenchSerialWriteAsync(db, N, ct);
+						await BenchSerialReadAsync(db, N, ct);
+						await BenchConcurrentReadAsync(db, N, ct);
 
-						//await BenchClearAsync(db, N, ct);
+						await BenchClearAsync(db, N, ct);
 
 						await BenchUpdateSameKeyLotsOfTimesAsync(db, 1000, ct);
 
 						await BenchUpdateLotsOfKeysAsync(db, 1000, ct);
 
-						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128, ct);
-						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50, ct);
-						////await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128, ct);
+						await BenchBulkInsertThenBulkReadAsync(db,   100_000,  50, 128, ct);
+						await BenchBulkInsertThenBulkReadAsync(db,   100_000, 128,  50, ct);
+						await BenchBulkInsertThenBulkReadAsync(db, 1_000_000,  50, 128, ct);
 
-						await BenchMergeSortAsync(db, 100, 3, 20, ct);
-						await BenchMergeSortAsync(db, 1000, 10, 100, ct);
-						await BenchMergeSortAsync(db, 100, 100, 100, ct);
-						await BenchMergeSortAsync(db, 100, 1000, 100, ct);
+						await BenchMergeSortAsync(db,   100,     3,  20, ct);
+						await BenchMergeSortAsync(db, 1_000,    10, 100, ct);
+						await BenchMergeSortAsync(db,   100,   100, 100, ct);
+						await BenchMergeSortAsync(db,   100, 1_000, 100, ct);
 
 						Console.WriteLine("time to say goodbye...");
 					}
@@ -275,10 +273,11 @@ namespace FoundationDB.Tests.Sandbox
 
 		private static async Task TestSimpleTransactionAsync(IFdbDatabase db, CancellationToken ct)
 		{
-			Console.WriteLine("Starting new transaction...");
+			Console.WriteLine("=== TestSimpleTransaction() ===");
 
 			var location = db.GlobalSpace;
 
+			Console.WriteLine("Starting new transaction...");
 			using (var trans = db.BeginTransaction(ct))
 			{
 				Console.WriteLine("> Transaction ready");
@@ -292,7 +291,7 @@ namespace FoundationDB.Tests.Sandbox
 				if (result.IsNull)
 					Console.WriteLine("> hello NOT FOUND");
 				else
-					Console.WriteLine("> hello = " + result.ToString());
+					Console.WriteLine($"> hello = {result:V}");
 
 				Console.WriteLine("Setting 'Foo' = 'Bar'");
 				trans.Set(location.Keys.Encode("Foo"), Slice.FromString("Bar"));
@@ -316,6 +315,9 @@ namespace FoundationDB.Tests.Sandbox
 		private static async Task BenchInsertSmallKeysAsync(IFdbDatabase db, int N, int size, CancellationToken ct)
 		{
 			// insert a lot of small key size, in a single transaction
+
+			Console.WriteLine($"=== BenchInsertSmallKeys(N={N:N0}, size={size:N0}) ===");
+
 			var rnd = new Random();
 			var tmp = new byte[size];
 
@@ -342,7 +344,9 @@ namespace FoundationDB.Tests.Sandbox
 				times.Add(sw.Elapsed);
 			}
 			var min = times.Min();
-			Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] Took " + min.TotalSeconds.ToString("N3", CultureInfo.InvariantCulture) + " sec to insert " + N + " " + size + "-bytes items (" + FormatTimeMicro(min.TotalMilliseconds / N) + "/write)");
+			var avg = times.Sum(x => x.TotalMilliseconds)/times.Count;
+			Console.WriteLine($"[{Thread.CurrentThread.ManagedThreadId}] Took {min.TotalSeconds.ToString("N3", CultureInfo.InvariantCulture)} sec to insert {N} {size}-bytes items (min={FormatTimeMicro(min.TotalMilliseconds / N)}/write, avg={FormatTimeMicro(avg)}/write)");
+			Console.WriteLine();
 		}
 
 		private static async Task BenchConcurrentInsert(IFdbDatabase db, int k, int N, int size, CancellationToken ct)
@@ -357,10 +361,11 @@ namespace FoundationDB.Tests.Sandbox
 			// make sure that N is multiple of k
 			N = n * k;
 
-			Console.WriteLine("Inserting " + N + " keys in " + k + " batches of " + n + " with " + size + "-bytes values...");
+			Console.WriteLine($"=== BenchConcurrentInsert(k={k:N0}, N={N:N0}, size={size:N0}) ===");
+			Console.WriteLine($"Inserting {N:N0} keys in {k:N0} batches of {n:N0} with {size:N0}-bytes values...");
 
 			// store every key under ("Batch", i)
-			var subspace = db.Partition.ByKey("Batch");
+			var subspace = db.GlobalSpace;// .Partition.ByKey("Batch");
 			// total estimated size of all transactions
 			long totalPayloadSize = 0;
 
@@ -383,7 +388,7 @@ namespace FoundationDB.Tests.Sandbox
 					using (var trans = db.BeginTransaction(ct))
 					{
 						x.Stop();
-						Console.WriteLine("> [" + offset + "] got transaction in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
+						//Console.WriteLine($"> [{offset}] got transaction in {FormatTimeMilli(x.Elapsed.TotalMilliseconds)}");
 
 						// package the keys...
 						x.Restart();
@@ -394,16 +399,16 @@ namespace FoundationDB.Tests.Sandbox
 							tmp[1] = (byte)(i >> 8);
 
 							// ("Batch", batch_index, i) = [..random..]
-							trans.Set(subspace.Keys.Encode(i), tmp.AsSlice());
+							trans.Set(subspace[Slice.FromFixed64BE(i)], tmp.AsSlice());
 						}
 						x.Stop();
-						Console.WriteLine("> [" + offset + "] packaged " + n + " keys (" + trans.Size.ToString("N0", CultureInfo.InvariantCulture) + " bytes) in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
+						//Console.WriteLine($"> [{offset}] packaged {n:N0} keys ({trans.Size:N0} bytes) in {FormatTimeMilli(x.Elapsed.TotalMilliseconds)}");
 
 						// commit the transaction
 						x.Restart();
 						await trans.CommitAsync();
 						x.Stop();
-						Console.WriteLine("> [" + offset + "] committed " + n + " keys (" + trans.Size.ToString("N0", CultureInfo.InvariantCulture) + " bytes) in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
+						//Console.WriteLine($"> [{offset}] committed {n} keys ({trans.Size:N0} bytes) in {FormatTimeMilli(x.Elapsed.TotalMilliseconds)}");
 
 						Interlocked.Add(ref totalPayloadSize, trans.Size);
 					}
@@ -420,7 +425,7 @@ namespace FoundationDB.Tests.Sandbox
 			// wait for total completion
 			await Task.WhenAll(tasks);
 			sw.Stop();
-			Console.WriteLine("* Total: " + FormatTimeMilli(sw.Elapsed.TotalMilliseconds) + ", " + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + " / write, " + FormatThroughput(totalPayloadSize, sw.Elapsed.TotalSeconds));
+			Console.WriteLine($"* Total: {FormatTimeMilli(sw.Elapsed.TotalMilliseconds)}, {FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)} / write, {FormatThroughput(totalPayloadSize, sw.Elapsed.TotalSeconds)}, {N / sw.Elapsed.TotalSeconds:N0} write/sec");
 			Console.WriteLine();
 		}
 
@@ -428,8 +433,9 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// read a lot of small keys, one by one
 
-			var location = db.Partition.ByKey("hello");
+			Console.WriteLine($"=== BenchSerialWrite(N={N:N0}) ===");
 
+			var location = db.Partition.ByKey("hello");
 			var sw = Stopwatch.StartNew();
 			IFdbTransaction trans = null;
 			try
@@ -449,19 +455,19 @@ namespace FoundationDB.Tests.Sandbox
 			}
 			finally
 			{
-				if (trans != null) trans.Dispose();
+				trans?.Dispose();
 			}
 			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/read)");
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N/sw.Elapsed.TotalSeconds:N0} read/sec)");
+			Console.WriteLine();
 		}
-
 
 		private static async Task BenchSerialReadAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
-
-			Console.WriteLine("Reading " + N + " keys (serial, slow!)");
-
 			// read a lot of small keys, one by one
+
+			Console.WriteLine($"=== BenchSerialRead(N={N:N0}) ===");
+			Console.WriteLine($"Reading {N:N0} keys (serial, slow!)");
 
 			var location = db.Partition.ByKey("hello");
 
@@ -472,21 +478,23 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					for (int i = k; i < N && i < k + 1000; i++)
 					{
-						var result = await trans.GetAsync(location.Keys.Encode(i));
+						_ = await trans.GetAsync(location.Keys.Encode(i));
 					}
 				}
 				Console.Write(".");
 			}
 			Console.WriteLine();
 			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/read)");
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
+			Console.WriteLine();
 		}
 
 		private static async Task BenchConcurrentReadAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// read a lot of small keys, concurrently
 
-			Console.WriteLine("Reading " + N + " keys (concurrent)");
+			Console.WriteLine($"=== BenchConcurrentRead(N={N:N0}) ===");
+			Console.WriteLine($"Reading {N:N0} keys (concurrent)");
 
 			var location = db.Partition.ByKey("hello");
 
@@ -495,26 +503,30 @@ namespace FoundationDB.Tests.Sandbox
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
 			{
-				var results = await Task.WhenAll(Enumerable
+				_ = await Task.WhenAll(Enumerable
 					.Range(0, keys.Length)
 					.Select((i) => trans.GetAsync(keys[i]))
 				);
 			}
 			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length) + "/read)");
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
+			Console.WriteLine();
 
 			sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
 			{
-				var results = await trans.GetBatchAsync(keys);
+				_ = await trans.GetBatchAsync(keys);
 			}
 			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to read " + keys.Length + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length) + "/read)");
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {keys.Length:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
+			Console.WriteLine();
 		}
 
 		private static async Task BenchClearAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// clear a lot of small keys, in a single transaction
+
+			Console.WriteLine($"=== BenchClear(N={N:N0}) ===");
 
 			var location = db.Partition.ByKey(Slice.FromStringAscii("hello"));
 
@@ -529,14 +541,16 @@ namespace FoundationDB.Tests.Sandbox
 				await trans.CommitAsync();
 			}
 			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to clear " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/write)");
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to clear {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/write, {N / sw.Elapsed.TotalSeconds:N0} clear/sec)");
+			Console.WriteLine();
 		}
 
 		private static async Task BenchUpdateSameKeyLotsOfTimesAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// continuously update same key by adding a little bit more
 
-			Console.WriteLine("Updating the same list " + N + " times...");
+			Console.WriteLine($"=== BenchUpdateSameKeyLotsOfTimes(N={N:N0}) ===");
+			Console.WriteLine($"Updating the same list {N:N0} times...");
 
 			var list = new byte[N];
 			var update = Stopwatch.StartNew();
@@ -549,23 +563,26 @@ namespace FoundationDB.Tests.Sandbox
 					trans.Set(key, list.AsSlice());
 					await trans.CommitAsync();
 				}
-				if (i % 100 == 0) Console.Write("\r> " + i + " / " + N);
+				if (i % 100 == 0) Console.Write($"\r> {i:N0} / {N:N0}");
 			}
 			update.Stop();
 
-			Console.WriteLine("\rTook " + update.Elapsed + " to fill a byte[" + N + "] one by one (" + FormatTimeMicro(update.Elapsed.TotalMilliseconds / N) + "/update)");
+			Console.WriteLine($"\rTook {update.Elapsed.TotalSeconds:N3} sec to fill a byte[{N:N0}] one by one ({FormatTimeMicro(update.Elapsed.TotalMilliseconds / N)}/update, {N / update.Elapsed.TotalSeconds:N0} update/sec)");
+			Console.WriteLine();
 		}
 
 		private static async Task BenchUpdateLotsOfKeysAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// change one byte in a large number of keys
 
+			Console.WriteLine($"=== BenchUpdateLotsOfKeys(N={N:N0}) ===");
+
 			var location = db.Partition.ByKey("lists");
 
 			var rnd = new Random();
 			var keys = Enumerable.Range(0, N).Select(x => location.Keys.Encode(x)).ToArray();
 
-			Console.WriteLine("> creating " + N + " half filled keys");
+			Console.WriteLine($"> creating {N:N0} half filled keys");
 			var segment = new byte[60];
 
 			for (int i = 0; i < (segment.Length >> 1); i++) segment[i] = (byte) rnd.Next(256);
@@ -582,7 +599,7 @@ namespace FoundationDB.Tests.Sandbox
 				}
 			}
 
-			Console.WriteLine("\rChanging one byte in each of the " + N + " keys...");
+			Console.WriteLine($"\rChanging one byte in each of the {N:N0} keys...");
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
 			{
@@ -604,13 +621,15 @@ namespace FoundationDB.Tests.Sandbox
 			}
 			sw.Stop();
 
-			Console.WriteLine("Took " + sw.Elapsed + " to patch one byte in " + N + " lists (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + " /update)");
-
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to patch one byte in {N:N0} lists ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)} /update, {N / sw.Elapsed.TotalSeconds:N0} update/sec)");
+			Console.WriteLine();
 		}
 
 		private static async Task BenchBulkInsertThenBulkReadAsync(IFdbDatabase db, int N, int K, int B, CancellationToken ct, bool instrumented = false)
 		{
 			// test that we can bulk write / bulk read
+
+			Console.WriteLine($"=== BenchBulkInsertThenBulkRead(N={N:N0}, K={K:N0}, B={B:N0}) ===");
 
 			var timings = instrumented ? new List<KeyValuePair<double, double>>() : null;
 
@@ -625,7 +644,7 @@ namespace FoundationDB.Tests.Sandbox
 			}
 
 			// insert all values (batched)
-			Console.WriteLine("Inserting " + N.ToString("N0", CultureInfo.InvariantCulture) + " keys: ");
+			Console.WriteLine($"Inserting {N:N0} keys: ");
 			var insert = Stopwatch.StartNew();
 			int batches = 0;
 			long bytes = 0;
@@ -669,8 +688,8 @@ namespace FoundationDB.Tests.Sandbox
 			await Task.WhenAll(tasks);
 
 			insert.Stop();
-			Console.WriteLine("Committed " + batches + " batches in " + FormatTimeMilli(insert.Elapsed.TotalMilliseconds) + " (" + FormatTimeMilli(insert.Elapsed.TotalMilliseconds / batches) + " / batch, " + FormatTimeMicro(insert.Elapsed.TotalMilliseconds / N) + " / item");
-			Console.WriteLine("Throughput " + FormatThroughput(bytes, insert.Elapsed.TotalSeconds));
+			Console.WriteLine($"Committed {batches:N0} batches in {FormatTimeMilli(insert.Elapsed.TotalMilliseconds)} ({FormatTimeMilli(insert.Elapsed.TotalMilliseconds / batches)} / batch, {FormatTimeMicro(insert.Elapsed.TotalMilliseconds / N)} / item)");
+			Console.WriteLine($"Throughput {FormatThroughput(bytes, insert.Elapsed.TotalSeconds)}, {N / insert.Elapsed.TotalSeconds:N0} write/sec");
 
 			if (instrumented)
 			{
@@ -682,7 +701,7 @@ namespace FoundationDB.Tests.Sandbox
 #if DEBUG
 				System.IO.File.WriteAllText(@"c:\temp\fdb\timings_" + N + "_" + K + "_" + B + ".csv", sb.ToString());
 #else
-                Console.WriteLine(sb.ToString());
+				Console.WriteLine(sb.ToString());
 #endif
 			}
 
@@ -694,12 +713,16 @@ namespace FoundationDB.Tests.Sandbox
 				var sw = Stopwatch.StartNew();
 				var items = await tr.GetRangeStartsWith(subspace).ToListAsync();
 				sw.Stop();
-				Console.WriteLine("Took " + FormatTimeMilli(sw.Elapsed.TotalMilliseconds) + " to get " + items.Count.ToString("N0", CultureInfo.InvariantCulture) + " results");
+				Console.WriteLine($"Took {FormatTimeMilli(sw.Elapsed.TotalMilliseconds)} to get {items.Count.ToString("N0", CultureInfo.InvariantCulture)} results ({items.Count / sw.Elapsed.TotalSeconds:N0} keys/sec)");
 			}
+
+			Console.WriteLine();
 		}
 
 		private static async Task BenchMergeSortAsync(IFdbDatabase db, int N, int K, int B, CancellationToken ct)
 		{
+			Console.WriteLine($"=== BenchMergeSort(N={N:N0}, K={K:N0}, B={B:N0}) ===");
+
 			// create multiple lists
 			var location = db.GlobalSpace.Partition.ByKey("MergeSort");
 			await db.ClearRangeAsync(location, ct);
@@ -708,7 +731,7 @@ namespace FoundationDB.Tests.Sandbox
 			var rnd = new Random();
 
 			// insert a number of random number lists
-			Console.Write("> Inserting " + (K * N).ToString("N0", CultureInfo.InvariantCulture) + " items... ");
+			Console.Write($"> Inserting {(K * N):N0} items... ");
 			foreach (var source in sources)
 			{
 				using (var tr = db.BeginTransaction(ct))
@@ -735,19 +758,20 @@ namespace FoundationDB.Tests.Sandbox
 					.Take(B)
 					.Select(kvp => location.Keys.Unpack(kvp.Key));
 
-				Console.Write("> MergeSort with limit " + B + "... ");
+				Console.Write($"> MergeSort with limit {B:N0}... ");
 				var sw = Stopwatch.StartNew();
 				var results = await mergesort.ToListAsync();
 				sw.Stop();
 				Console.WriteLine("Done");
 
-				Console.WriteLine("Took " + FormatTimeMilli(sw.Elapsed.TotalMilliseconds) + " to merge sort " + results.Count + " results from " + K + " lists of " + N + " items each");
+				Console.WriteLine($"Took {FormatTimeMilli(sw.Elapsed.TotalMilliseconds)} to merge sort {results.Count:N0} results from {K} lists of {N} items each");
 
 				//foreach (var result in results)
 				//{
 				//	Console.WriteLine(result.Get<int>(-1));
 				//}
 			}
+			Console.WriteLine();
 		}
 
 		#endregion
