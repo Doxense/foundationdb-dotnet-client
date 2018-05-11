@@ -316,7 +316,6 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			Fdb.Start(200);
 			Assert.That(Fdb.ApiVersion, Is.EqualTo(200));
 
 			using (var db = await OpenTestPartitionAsync())
