@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
@@ -48,6 +49,7 @@ namespace FoundationDB.Client
 			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="ct">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
+			[Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
 			[ItemNotNull]
 			public static Task<IFdbDatabase> OpenNamedPartitionAsync([NotNull] IEnumerable<string> path, CancellationToken ct)
 			{
@@ -61,43 +63,44 @@ namespace FoundationDB.Client
 			/// <param name="readOnly">If true, the database instance will only allow read operations</param>
 			/// <param name="ct">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
+			[Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
 			[ItemNotNull]
 			public static async Task<IFdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, [NotNull] IEnumerable<string> path, bool readOnly, CancellationToken ct)
 			{
-				if (path == null) throw new ArgumentNullException(nameof(path));
-				var partitionPath = path.ToList();
-				if (partitionPath.Count == 0) throw new ArgumentException("The path to the named partition cannot be empty", nameof(path));
+				Contract.NotNull(path, nameof(path));
+				var partitionPath = (path as string[]) ?? path.ToArray();
+				if (partitionPath.Length == 0) throw new ArgumentException("The path to the named partition cannot be empty", nameof(path));
 
-				// looks at the global partition table for the specified named partition
-
-				// By convention, all named databases will be under the "/Databases" folder
-				FdbDatabase db = null;
-				var rootSpace = KeySubspace.Empty;
-				try
+				var options = new FdbConnectionOptions
 				{
-					db = (FdbDatabase) await OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, ct: ct).ConfigureAwait(false);
-					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer of database {db.Name} using cluster file '{db.Cluster.Path}'");
+					ClusterFile = clusterFile,
+					DbName = dbName,
+					PartitionPath = partitionPath,
+				};
+				var db = await Fdb.OpenInternalAsync(options, ct).ConfigureAwait(false);
+				return db;
+			}
 
-					// look up in the root layer for the named partition
-					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.LayerId, ct: ct).ConfigureAwait(false);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
+			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
+			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull, ItemNotNull] string[] path, bool readOnly, CancellationToken ct)
+			{
+				Contract.Requires(db != null && path != null);
+				ct.ThrowIfCancellationRequested();
 
-					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
-					rootSpace = descriptor.Copy(); //note: create a copy of the key
-					//TODO: find a nicer way to do that!
-					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace, partitionPath), readOnly);
+				if (path.Length == 0) throw new ArgumentException("The path to the named partition cannot be empty", nameof(path));
 
-					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.FullName} at {db.GlobalSpace}, using directory layer at {db.Directory.DirectoryLayer.NodeSubspace}");
+				if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer of database {db.Name} using cluster file '{db.Cluster.Path}'");
 
-					return db;
-				}
-				catch(Exception e)
-				{
-					db?.Dispose();
-					if (Logging.On) Logging.Exception(typeof(Fdb.Directory), "OpenNamedPartitionAsync", e);
-					throw;
-				}
+				// look up in the root layer for the named partition
+				var descriptor = await db.Directory.CreateOrOpenAsync(path, layer: FdbDirectoryPartition.LayerId, ct: ct).ConfigureAwait(false);
+				if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
+
+				// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
+				var rootSpace = descriptor.Copy(); //note: create a copy of the key
+				//TODO: find a nicer way to do that!
+				db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace, path), readOnly);
+
+				if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.FullName} at {db.GlobalSpace}, using directory layer at {db.Directory.DirectoryLayer.NodeSubspace}");
 			}
 
 			/// <summary>List and open the sub-directories of the given directory</summary>
@@ -120,7 +123,7 @@ namespace FoundationDB.Client
 					var folders = await names
 						.ToAsyncEnumerable()
 						.SelectAsync((name, _) => parent.OpenAsync(tr, name))
-						.ToListAsync();
+						.ToListAsync(ct);
 
 					// map the result
 					return folders.ToDictionary(ds => ds.Name);

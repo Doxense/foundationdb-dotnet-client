@@ -175,14 +175,14 @@ namespace FoundationDB.Samples
 			Fdb.Start(Fdb.GetDefaultApiVersion());
 			try
 			{
-				if (partition == null || partition.Length == 0)
+				var options = new FdbConnectionOptions
 				{
-					Db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult();
-				}
-				else
-				{
-					Db = Fdb.Directory.OpenNamedPartitionAsync(clusterFile, dbName, partition, false, go.Token).GetAwaiter().GetResult();
-				}
+					ClusterFile = clusterFile,
+					DbName = dbName,
+					PartitionPath = partition,
+				};
+				Db = Fdb.OpenAsync(options, go.Token).GetAwaiter().GetResult();
+
 				using (Db)
 				{
 					Db.DefaultTimeout = 30 * 1000;

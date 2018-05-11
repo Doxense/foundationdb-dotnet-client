@@ -88,17 +88,16 @@ namespace FoundationDB.Client.Tests
 		{
 			// As of 1.0, the only accepted database name is "DB".
 			// Any other name should fail with "InvalidDatabaseName"
-
 			// note: Don't forget to update this test if in the future if the API allows for other names !
 
+			// manually
 			using (var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
 			{
 				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", KeySubspace.Empty, false, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 			}
 
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName"), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");			
-
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName", KeySubspace.Empty), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");			
+			// using Fdb.OpenAsync
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { DbName = "SomeOtherName" }, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 		}
 
 		[Test]
@@ -282,7 +281,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", KeySubspace.FromKey(TuPack.EncodeKey("test")), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { GlobalSpace = KeySubspace.FromKey(TuPack.EncodeKey("test")) }, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -299,7 +298,7 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// using a random binary prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", new KeySubspace(new byte[] { 42, 255, 0, 90 }.AsSlice()), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { GlobalSpace = KeySubspace.FromKey(new byte[] { 42, 255, 0, 90 }.AsSlice()) }, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);

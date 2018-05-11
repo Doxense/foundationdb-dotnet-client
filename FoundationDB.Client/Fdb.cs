@@ -32,10 +32,12 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using JetBrains.Annotations;
@@ -532,7 +534,7 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync(CancellationToken ct = default)
 		{
-			return OpenAsync(clusterFile: null, dbName: null, globalSpace: KeySubspace.Empty, ct: ct);
+			return OpenInternalAsync(new FdbConnectionOptions(), ct);
 		}
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file, and with the specified global subspace</summary>
@@ -544,7 +546,11 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] IKeySubspace globalSpace, CancellationToken ct = default)
 		{
-			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, ct: ct);
+			var options = new FdbConnectionOptions
+			{
+				GlobalSpace = globalSpace,
+			};
+			return OpenInternalAsync(options, ct);
 		}
 
 		/// <summary>Create a new connection with a database on the specified cluster</summary>
@@ -559,7 +565,12 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, CancellationToken ct = default)
 		{
-			return OpenAsync(clusterFile, dbName, KeySubspace.Empty, readOnly: false, ct: ct);
+			var options = new FdbConnectionOptions
+			{
+				ClusterFile = clusterFile,
+				DbName = dbName,
+			};
+			return OpenInternalAsync(options, ct);
 		}
 
 		/// <summary>Create a new connection with a database on the specified cluster</summary>
@@ -569,26 +580,50 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database instance will only allow read operations</param>
 		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of 1.0, the only supported database name is 'DB'</remarks>
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, [CanBeNull] IKeySubspace globalSpace, bool readOnly = false, CancellationToken ct = default)
 		{
-			return OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, ct);
+			var options = new FdbConnectionOptions
+			{
+				ClusterFile = clusterFile,
+				DbName = dbName,
+				GlobalSpace = globalSpace,
+				ReadOnly = readOnly
+			};
+			return OpenInternalAsync(options, ct);
+		}
+
+		/// <summary>Create a new connection with a database using the specified options</summary>
+		/// <param name="options">Connection options used to specify the cluster file, partition path, default timeouts, etc...</param>
+		/// <param name="ct">Token used to abort the operation</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <exception cref="InvalidOperationException">If <see name="FdbConnectionOptions.DbName"/> is anything other than 'DB'</exception>
+		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		[ItemNotNull]
+		public static Task<IFdbDatabase> OpenAsync([NotNull] FdbConnectionOptions options, CancellationToken ct)
+		{
+			Contract.NotNull(options, nameof(options));
+			return OpenInternalAsync(options, ct);
 		}
 
 		/// <summary>Create a new database handler instance using the specificied cluster file, database name, global subspace and read only settings</summary>
 		[ItemNotNull]
-		internal static async Task<IFdbDatabase> OpenInternalAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, [CanBeNull] IKeySubspace globalSpace, bool readOnly, CancellationToken ct)
+		internal static async Task<IFdbDatabase> OpenInternalAsync(FdbConnectionOptions options, CancellationToken ct)
 		{
+			Contract.Requires(options != null);
 			ct.ThrowIfCancellationRequested();
 
-			dbName = dbName ?? "DB";
-			globalSpace = globalSpace ?? KeySubspace.Empty;
+			string clusterFile = options.ClusterFile;
+			string dbName = options.DbName ?? FdbConnectionOptions.DefaultDbName; // new FdbConnectionOptions { GlobalSpace = 
+			bool readOnly = options.ReadOnly;
+			IKeySubspace globalSpace = options.GlobalSpace ?? KeySubspace.Empty;
+			string[] partitionPath = options.PartitionPath?.ToArray();
+			bool hasPartition = partitionPath != null && partitionPath.Length > 0;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
+			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
@@ -597,7 +632,18 @@ namespace FoundationDB.Client
 			{
 				cluster = await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: !hasPartition && readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
+
+				// set the default options
+				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
+				if (options.DefaultRetryLimit != 0) db.DefaultRetryLimit = options.DefaultRetryLimit;
+				if (options.DefaultMaxRetryDelay != 0) db.DefaultMaxRetryDelay = options.DefaultMaxRetryDelay;
+
+				if (hasPartition)
+				{ // open the partition, and switch the root of the db
+					await Fdb.Directory.SwitchToNamedPartitionAsync(db, partitionPath, readOnly, ct);
+				}
+
 				success = true;
 				return db;
 			}
@@ -789,6 +835,39 @@ namespace FoundationDB.Client
 			}
 		}
 
+	}
+
+	public sealed class FdbConnectionOptions
+	{
+
+		public const string DefaultDbName = "DB";
+
+		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
+		public string ClusterFile { get; set; }
+
+		/// <summary>Default database name</summary>
+		/// <remarks>Only "DB" is supported for now</remarks>
+		public string DbName { get; set; } = DefaultDbName;
+
+		/// <summary>If true, opens a read-only view of the database</summary>
+		/// <remarks>If set to true, only read-only transactions will be allowed on the database instance</remarks>
+		public bool ReadOnly { get; set; }
+
+		/// <summary>Default timeout for all transactions, in milliseconds precision (or infinite if 0)</summary>
+		public TimeSpan DefaultTimeout { get; set; } // sec
+
+		/// <summary>Default maximum number of retries for all transactions (or infinite if 0)</summary>
+		public int DefaultRetryLimit { get; set; }
+
+		public int DefaultMaxRetryDelay { get; set; }
+
+		/// <summary>Global subspace in use by the database (empty prefix by default)</summary>
+		/// <remarks>If <see cref="PartitionPath"/> is also set, this subspace will be used to locate the top-level Directory Layer, and the actual GlobalSpace of the database will be the partition</remarks>
+		public IKeySubspace GlobalSpace { get; set; }
+
+		/// <summary>If specified, open the named partition at the specified path</summary>
+		/// <remarks>If <see cref="GlobalSpace"/> is also set, it will be used to locate the top-level Directory Layer.</remarks>
+		public string[] PartitionPath { get; set; }
 	}
 
 }
