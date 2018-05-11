@@ -819,6 +819,100 @@ namespace Doxense.Memory
 			}
 		}
 
+
+		/// <summary>Write a byte array to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteBytesReversed([CanBeNull] byte[] data)
+		{
+			if (data != null && data.Length > 0)
+			{
+				unsafe
+				{
+					fixed (byte* pIn = &data[0])
+					{
+						WriteBytesReversed(pIn, (uint) data.Length);
+					}
+				}
+			}
+		}
+
+		/// <summary>Write a chunk of a byte array to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public void WriteBytesReversed(byte[] data, int offset, int count)
+		{
+			if (count > 0)
+			{
+				UnsafeHelpers.EnsureBufferIsValidNotNull(data, offset, count);
+				unsafe
+				{
+					fixed (byte* pIn = &data[offset])
+					{
+						WriteBytesReversed(pIn, (uint) count);
+					}
+				}
+			}
+		}
+
+		/// <summary>Write a chunk of a byte array to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public void WriteBytesReversed(Slice data)
+		{
+			if (data.Count > 0)
+			{
+				data.EnsureSliceIsValid();
+				unsafe
+				{
+					fixed (byte* pIn = &data.DangerousGetPinnableReference())
+					{
+						WriteBytesReversed(pIn, (uint) data.Count);
+					}
+				}
+			}
+		}
+
+#if ENABLE_SPAN
+		/// <summary>Write a segment of bytes to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public void WriteBytesReversed(ReadOnlySpan<byte> data)
+		{
+			if (data.Length > 0)
+			{
+				unsafe
+				{
+					fixed (byte* pIn = &MemoryMarshal.GetReference(data))
+					{
+						WriteBytesReversed(pIn, (uint) data.Count);
+					}
+				}
+			}
+		}
+#endif
+
+		/// <summary>Write a segment of bytes to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public unsafe void WriteBytesReversed(byte* data, uint count)
+		{
+			if (count == 0) return;
+			if (data == null) throw ThrowHelper.ArgumentNullException(nameof(data));
+
+			var buffer = EnsureBytes(count);
+			int p = this.Position;
+			Contract.Assert(buffer != null && p >= 0 && p + count <= buffer.Length);
+			//note: we compute the end offset BEFORE, to protect against arithmetic overflow
+			int q = checked((int)(p + count));
+			fixed (byte* pOut = &buffer[p])
+			{
+				byte* src = data + count - 1;
+				byte* dst = pOut;
+				for (int i = 0; i < count; i++)
+				{
+					*dst++ = *src--;
+				}
+			}
+			this.Position = q;
+		}
+
 		// Appending is used when the caller want to get a Slice that points to the location where the bytes where written in the internal buffer
 
 		/// <summary>Append a byte array to the end of the buffer</summary>
