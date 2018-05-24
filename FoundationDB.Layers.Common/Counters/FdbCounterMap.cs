@@ -38,8 +38,6 @@ namespace FoundationDB.Layers.Counters
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
 	public sealed class FdbCounterMap<TKey>
 	{
-		private static readonly Slice PlusOne = Slice.FromFixed64(1);
-		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
 
 		/// <summary>Create a new counter map.</summary>
 		public FdbCounterMap([NotNull] IKeySubspace subspace)
@@ -73,8 +71,7 @@ namespace FoundationDB.Layers.Counters
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
-			Slice param = value == 1 ? PlusOne : value == -1 ? MinusOne : Slice.FromFixed64(value);
-			transaction.AtomicAdd(this.Location.Keys[counterKey], param);
+			transaction.AtomicAdd64(this.Location.Keys[counterKey], value);
 		}
 
 		/// <summary>Subtract a value from a counter in one atomic operation</summary>

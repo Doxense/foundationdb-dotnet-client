@@ -98,7 +98,7 @@ namespace FoundationDB.Layers.Collections
 				if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
 				{
 					//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
-					trans.AtomicAdd(this.Subspace.Keys.Encode(level, prevKey), EncodeCount(1));
+					trans.AtomicIncrement64(this.Subspace.Keys.Encode(level, prevKey));
 				}
 				else
 				{
@@ -148,7 +148,7 @@ namespace FoundationDB.Layers.Collections
 				long countChange = -1;
 				if (c.HasValue) countChange += DecodeCount(c);
 
-				trans.AtomicAdd(this.Subspace.Keys.Encode(level, prevKey), EncodeCount(countChange));
+				trans.AtomicAdd64(this.Subspace.Keys.Encode(level, prevKey), countChange);
 			}
 		}
 

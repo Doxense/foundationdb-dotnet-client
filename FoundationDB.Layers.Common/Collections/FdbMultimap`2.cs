@@ -48,9 +48,6 @@ namespace FoundationDB.Layers.Collections
 		// The layer stores each key/value using the following format:
 		// (..., key, value) = 64-bit counter
 
-		private static readonly Slice PlusOne = Slice.FromFixed64(1);
-		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
-
 		/// <summary>Create a new multimap</summary>
 		/// <param name="subspace">Location where the map will be stored in the database</param>
 		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
@@ -61,7 +58,6 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new multimap, using a specific key and value encoder</summary>
 		/// <param name="subspace">Location where the map will be stored in the database</param>
 		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
-		/// <param name="encoder">Encoder for the key/value pairs</param>
 		public FdbMultiMap(ITypedKeySubspace<TKey, TValue> subspace, bool allowNegativeValues)
 		{
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
@@ -94,7 +90,7 @@ namespace FoundationDB.Layers.Collections
 			//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.AtomicAdd(this.Subspace.Keys[key, value], PlusOne);
+			trans.AtomicIncrement64(this.Subspace.Keys[key, value]);
 			return Task.CompletedTask;
 		}
 
@@ -110,7 +106,7 @@ namespace FoundationDB.Layers.Collections
 			Slice k = this.Subspace.Keys[key, value];
 			if (this.AllowNegativeValues)
 			{
-				trans.AtomicAdd(k, MinusOne);
+				trans.AtomicDecrement64(k);
 				// note: it's faster, but we will end up with counts less than or equal to 0
 				// If 'k' does not already exist, its count will be set to -1
 			}
@@ -119,7 +115,7 @@ namespace FoundationDB.Layers.Collections
 				Slice v = await trans.GetAsync(k).ConfigureAwait(false);
 				if (this.AllowNegativeValues || v.ToInt64() > 1) //note: Slice.Nil.ToInt64() will return 0
 				{
-					trans.AtomicAdd(k, MinusOne);
+					trans.AtomicDecrement64(k);
 					//note: since we already read 'k', the AtomicAdd will be optimized into the equivalent of Set(k, v - 1) by the client, unless RYW has been disabled on the transaction
 					//TODO: if AtomicMax ever gets implemented, we could use it to truncate the values to 0
 				}
