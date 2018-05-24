@@ -710,7 +710,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a segment of bytes to the end of the buffer</summary>
-		public void WriteBytes(ref Slice data)
+		public void WriteBytes(in Slice data)
 		{
 			data.EnsureSliceIsValid();
 
@@ -882,7 +882,7 @@ namespace Doxense.Memory
 				{
 					fixed (byte* pIn = &MemoryMarshal.GetReference(data))
 					{
-						WriteBytesReversed(pIn, (uint) data.Count);
+						WriteBytesReversed(pIn, (uint) data.Length);
 					}
 				}
 			}
@@ -960,7 +960,7 @@ namespace Doxense.Memory
 		/// <returns>Slice that maps the interned data using the writer's buffer.</returns>
 		/// <remarks>If you do not need the resulting Slice, you should call <see cref="WriteBytes(Slice)"/> instead!</remarks>
 		[Pure]
-		public Slice AppendBytes(ref Slice data)
+		public Slice AppendBytes(in Slice data)
 		{
 			data.EnsureSliceIsValid();
 
@@ -1461,9 +1461,7 @@ namespace Doxense.Memory
 			}
 			this.Position = checked(p + n + 1);
 		}
-#endif
 
-#if ENABLE_SPAN
 		private void WriteVarBytesSlow(ReadOnlySpan<byte> value)
 		{
 			int n = value.Length;

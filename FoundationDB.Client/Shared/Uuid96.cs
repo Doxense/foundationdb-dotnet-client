@@ -612,14 +612,14 @@ namespace System
 		#region Unsafe I/O...
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe void ReadUnsafe([NotNull] byte* src, out Uuid96 result)
+		public static unsafe void ReadUnsafe([NotNull] byte* src, out Uuid96 result)
 		{
 			//Paranoid.Requires(src != null);
 			result = new Uuid96(UnsafeHelpers.LoadUInt32BE(src), UnsafeHelpers.LoadUInt64BE(src + 4));
 		}
- 
+
 #if ENABLE_SPAN
-		internal static unsafe void ReadUnsafe(ReadOnlySpan<byte> src, out Uuid96 result)
+		public static unsafe void ReadUnsafe(ReadOnlySpan<byte> src, out Uuid96 result)
 		{
 			//Paranoid.Requires(src.Length >= 0);
 			fixed (byte* ptr = &MemoryMarshal.GetReference(src))
