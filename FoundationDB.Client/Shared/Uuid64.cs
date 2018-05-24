@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System.Security.Cryptography;
-
 namespace System
 {
 	using System;
@@ -36,6 +34,8 @@ namespace System
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
+	using System.Security.Cryptography;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
@@ -73,7 +73,6 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid64(uint a, uint b)
 		{
-			//Contract.Requires((ulong) b < (1UL << 48));
 			m_value = ((ulong) a << 32) | b;
 		}
 
@@ -99,17 +98,18 @@ namespace System
 			return ThrowHelper.FormatException("Invalid " + nameof(Uuid64) + " format");
 		}
 
-		/// <summary>Generate a new random 64-bit UUID, using a global source of randomness.</summary>
-		/// <returns>Instance of a new Uuid64 that is random.</returns>
-		/// <remarks>
-		/// <p>If you need sequential uuids, you should use a different generator (ex: FlakeID, ...)</p>
-		/// <p>This method uses a cryptographic RNG under a lock to generate 8 bytes of randomness, which can be slow. If you must generate a large number of unique ids, you should use a different source.</p>
-		/// </remarks>
+		/// <summary>Generate a new random 64-bit UUID.</summary>
+		/// <remarks>If you need sequential or cryptographic uuids, you should use a different generator.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 NewUuid()
 		{
-			//Note: we chould use Guid.NewGuid() as a source of randomness, but even though a guid is "guaranteed" to be unique, a substring of a guid is not.. or is it?
-			return Uuid64RandomGenerator.Default.NewUuid();
+			unsafe
+			{
+				// we use Guid.NewGuid() as a source of ~128 bits of entropy, and we fold both 64-bits parts into a single value
+				var x = Guid.NewGuid();
+				ulong* p = (ulong*) &x;
+				return new Uuid64(p[0] ^ p[1]);
+			}
 		}
 
 		#endregion
@@ -117,23 +117,29 @@ namespace System
 		#region Decomposition...
 
 		/// <summary>Split into two 32-bit halves</summary>
-		/// <param name="a">Most significant 32 bits</param>
-		/// <param name="b">Least significant 32 bits</param>
+		/// <param name="a">xxxxxxxx-........</param>
+		/// <param name="b">........-xxxxxxxx</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Split(out uint a, out uint b)
+		public void Deconstruct(out uint a, out uint b)
 		{
-			a = (uint) (m_value >> 32);
-			b = (uint) m_value;
+			ulong value = m_value;
+			a = (uint) (value >> 32);
+			b = (uint) value;
 		}
 
 		/// <summary>Split into two halves</summary>
-		/// <param name="a">Most significant 16 bits</param>
-		/// <param name="b">Least significant 48 bits</param>
+		/// <param name="a">xxxx....-........</param>
+		/// <param name="b">....xxxx-........</param>
+		/// <param name="c">........-xxxx....</param>
+		/// <param name="d">........-....xxxx</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Split(out ushort a, out long b)
+		public void Deconstruct(out ushort a, out ushort b, out ushort c, out ushort d)
 		{
-			a = (ushort) (m_value >> 48);
-			b = (long) (m_value & ~((1UL << 48) - 1));
+			ulong value = m_value;
+			a = (ushort) (value >> 48);
+			b = (ushort) (value >> 32);
+			c = (ushort) (value >> 16);
+			d = (ushort) value;
 		}
 
 		#endregion
@@ -146,7 +152,7 @@ namespace System
 		public static Uuid64 Read(byte[] value)
 		{
 			Contract.NotNull(value, nameof(value));
-			if (value.Length == 0) return default(Uuid64);
+			if (value.Length == 0) return default;
 			if (value.Length == 8) return new Uuid64(ReadUnsafe(value, 0));
 			throw FailInvalidBufferSize(nameof(value));
 		}
@@ -157,7 +163,7 @@ namespace System
 		public static Uuid64 Read(byte[] value, int offset, int count)
 		{
 			Contract.DoesNotOverflow(value, offset, count, nameof(value));
-			if (count == 0) return default(Uuid64);
+			if (count == 0) return default;
 			if (count == 8) return new Uuid64(ReadUnsafe(value, 0));
 			throw FailInvalidBufferSize(nameof(count));
 		}
@@ -168,7 +174,7 @@ namespace System
 		public static Uuid64 Read(Slice value)
 		{
 			Contract.NotNull(value.Array, nameof(value));
-			if (value.Count == 0) return default(Uuid64);
+			if (value.Count == 0) return default;
 			if (value.Count == 8) return new Uuid64(ReadUnsafe(value.Array, value.Offset));
 			throw FailInvalidBufferSize(nameof(value));
 		}
@@ -177,7 +183,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static unsafe Uuid64 Read(byte* ptr, uint count)
 		{
-			if (count == 0) return default(Uuid64);
+			if (count == 0) return default;
 			if (count == 8) return new Uuid64(ReadUnsafe(ptr));
 			throw FailInvalidBufferSize(nameof(count));
 		}
@@ -186,7 +192,7 @@ namespace System
 
 		#region Parsing...
 
-#if ENABLED_SPAN
+#if ENABLE_SPAN
 
 		/// <summary>Parse a string representation of an UUid64</summary>
 		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
@@ -296,7 +302,7 @@ namespace System
 		{
 			if (s.Length == 0)
 			{
-				result = default(Uuid64);
+				result = default;
 				return true;
 			}
 
@@ -306,7 +312,7 @@ namespace System
 				return true;
 			}
 
-			result = default(Uuid64);
+			result = default;
 			return false;
 		}
 
@@ -1186,56 +1192,57 @@ namespace System
 			}
 		}
 
-	}
-
-	/// <summary>Generates 64-bit UUIDs using a secure random number generator</summary>
-	/// <remarks>Methods of this type are thread-safe.</remarks>
-	public sealed class Uuid64RandomGenerator
-	{
-
-		/// <summary>Default instance of a random generator</summary>
-		/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-		[NotNull]
-		public static readonly Uuid64RandomGenerator Default = new Uuid64RandomGenerator();
-
-		[NotNull] 
-		private RandomNumberGenerator Rng { get; }
-
-		[NotNull] 
-		private readonly byte[] Scratch = new byte[8];
-
-		/// <summary>Create a new instance of a random UUID generator</summary>
-		public Uuid64RandomGenerator()
-			: this(null)
-		{ }
-
-		/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
-		public Uuid64RandomGenerator(RandomNumberGenerator generator)
+		/// <summary>Generates 64-bit UUIDs using a secure random number generator</summary>
+		/// <remarks>Methods of this type are thread-safe.</remarks>
+		[PublicAPI]
+		public sealed class RandomGenerator
 		{
-			this.Rng = generator ?? RandomNumberGenerator.Create();
-		}
 
-		/// <summary>Return a new random 64-bit UUID</summary>
-		/// <returns>Uuid64 that contains 64 bits worth of randomness.</returns>
-		/// <remarks>
-		/// <p>This methods needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each threads.</p>
-		/// <p>The uniqueness of the generated uuids depends on the quality of the random number generator. If you cannot tolerate collisions, you either have to check if a newly generated uid already exists, or use a different kind of generator.</p>
-		/// </remarks>
-		[Pure]
-		public Uuid64 NewUuid()
-		{
-			//REVIEW: OPTIMIZE: use a per-thread instance of the rng and scratch buffer?
-			// => right now, NewUuid() is a Global Lock for the whole process!
-			lock (this.Rng)
+			/// <summary>Default instance of a random generator</summary>
+			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
+			[NotNull]
+			public static readonly Uuid64.RandomGenerator Default = new Uuid64.RandomGenerator();
+
+			[NotNull] 
+			private RandomNumberGenerator Rng { get; }
+
+			[NotNull] 
+			private readonly byte[] Scratch = new byte[SizeOf];
+
+			/// <summary>Create a new instance of a random UUID generator</summary>
+			public RandomGenerator()
+				: this(null)
+			{ }
+
+			/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
+			public RandomGenerator(RandomNumberGenerator generator)
 			{
-				// get 8 bytes of randomness (0 allowed)
-				this.Rng.GetBytes(this.Scratch);
-				//note: do *NOT* call GetBytes(byte[], int, int) because it creates creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
-				//TODO: PERF: use Span<byte> APIs once (if?) they become available!
-				return Uuid64.Read(this.Scratch);
+				this.Rng = generator ?? RandomNumberGenerator.Create();
 			}
-		}
 
+			/// <summary>Return a new random 64-bit UUID</summary>
+			/// <returns>Uuid64 that contains 64 bits worth of randomness.</returns>
+			/// <remarks>
+			/// <p>This methods needs to acquire a lock. If multiple threads needs to generate ids concurrently, you may need to create an instance of this class for each threads.</p>
+			/// <p>The uniqueness of the generated uuids depends on the quality of the random number generator. If you cannot tolerate collisions, you either have to check if a newly generated uid already exists, or use a different kind of generator.</p>
+			/// </remarks>
+			[Pure]
+			// ReSharper disable once MemberHidesStaticFromOuterClass
+			public Uuid64 NewUuid()
+			{
+				//REVIEW: OPTIMIZE: use a per-thread instance of the rng and scratch buffer?
+				// => right now, NewUuid() is a Global Lock for the whole process!
+				lock (this.Rng)
+				{
+					// get 8 bytes of randomness (0 allowed)
+					this.Rng.GetBytes(this.Scratch);
+					//note: do *NOT* call GetBytes(byte[], int, int) because it creates creates a temp buffer, calls GetBytes(byte[]) and copy the result back! (as of .NET 4.7.1)
+					//TODO: PERF: use Span<byte> APIs once (if?) they become available!
+					return Uuid64.Read(this.Scratch);
+				}
+			}
+
+		}
 	}
 
 }

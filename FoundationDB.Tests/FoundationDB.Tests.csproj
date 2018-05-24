@@ -125,6 +125,8 @@
     <Compile Include="Utils\SliceWriterFacts.cs" />
     <Compile Include="Utils\ConversionFacts.cs" />
     <Compile Include="Linq\AsyncEnumerableFacts.cs" />
+    <Compile Include="Utils\Uuid80Facts.cs" />
+    <Compile Include="Utils\Uuid96Facts.cs" />
     <Compile Include="VersionStampFacts.cs" />
   </ItemGroup>
   <ItemGroup>
