@@ -20,7 +20,11 @@ namespace System
 	[ImmutableObject(true), PublicAPI, Serializable]
 	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>
 	{
+		/// <summary>Uuid with all bits set to 0</summary>
 		public static readonly Uuid80 Empty = default(Uuid80);
+
+		/// <summary>Uuid with all bits set to 1</summary>
+		public static readonly Uuid80 MaxValue = new Uuid80(ushort.MaxValue, ulong.MaxValue);
 
 		/// <summary>Size is 10 bytes</summary>
 		public const int SizeOf = 10;

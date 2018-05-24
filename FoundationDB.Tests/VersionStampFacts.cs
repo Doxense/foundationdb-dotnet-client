@@ -197,5 +197,149 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public void Test_VersionStamp_Equality()
+		{
+			// IEquatable
+
+			Assert.That(VersionStamp.Incomplete(), Is.EqualTo(VersionStamp.Incomplete()));
+ 			Assert.That(VersionStamp.Incomplete(), Is.Not.EqualTo(VersionStamp.Incomplete(0x1234)));
+			Assert.That(VersionStamp.Incomplete(0x1234), Is.Not.EqualTo(VersionStamp.Incomplete()));
+			Assert.That(VersionStamp.Incomplete(0x1234), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
+			Assert.That(VersionStamp.Incomplete(0x1234), Is.Not.EqualTo(VersionStamp.Incomplete(0x4321)));
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.Not.EqualTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.Not.EqualTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.Not.EqualTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.Not.EqualTo(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC)));
+
+			// ReSharper disable EqualExpressionComparison
+
+			// ==
+			Assert.That(VersionStamp.Incomplete() == VersionStamp.Incomplete(), Is.True);
+			Assert.That(VersionStamp.Incomplete() == VersionStamp.Incomplete(0x1234), Is.False);
+			Assert.That(VersionStamp.Incomplete(0x1234) == VersionStamp.Incomplete(), Is.False);
+			Assert.That(VersionStamp.Incomplete(0x1234) == VersionStamp.Incomplete(0x1234), Is.True);
+			Assert.That(VersionStamp.Incomplete(0x1234) == VersionStamp.Incomplete(0x4321), Is.False);
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) == VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) == VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) == VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) == VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) == VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) == VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC), Is.False);
+
+			// !=
+			Assert.That(VersionStamp.Incomplete() != VersionStamp.Incomplete(), Is.False);
+			Assert.That(VersionStamp.Incomplete() != VersionStamp.Incomplete(0x1234), Is.True);
+			Assert.That(VersionStamp.Incomplete(0x1234) != VersionStamp.Incomplete(), Is.True);
+			Assert.That(VersionStamp.Incomplete(0x1234) != VersionStamp.Incomplete(0x1234), Is.False);
+			Assert.That(VersionStamp.Incomplete(0x1234) != VersionStamp.Incomplete(0x4321), Is.True);
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) != VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) != VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) != VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) != VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) != VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x3C3C), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA, 0x33CC) != VersionStamp.Complete(0x0123456789ABCDEFUL, 0x5A5A, 0x33CC), Is.True);
+
+			Assert.That(VersionStamp.Incomplete(0x1234), Is.LessThan(VersionStamp.Incomplete(0x1235)));
+			Assert.That(VersionStamp.Incomplete(0x1235), Is.GreaterThan(VersionStamp.Incomplete(0x1234)));
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) < VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) < VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AB), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) < VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55A9), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA) < VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) < VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF) < VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000) < VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF), Is.False);
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) <= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) <= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AB), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) <= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55A9), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA) <= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) <= VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF) <= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000) <= VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF), Is.False);
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) > VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) > VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AB), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) > VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55A9), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA) > VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) > VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF) > VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000) > VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF), Is.True);
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) >= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) >= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AB), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) >= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55A9), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA) >= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA) >= VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA), Is.True);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF) >= VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000), Is.False);
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000) >= VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF), Is.True);
+
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.LessThan(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AB)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.GreaterThan(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55A9)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA), Is.LessThan(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x55AA), Is.GreaterThan(VersionStamp.Complete(0x0123456789ABCDEEUL, 0x55AA)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF), Is.LessThan(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEFUL, 0x0000), Is.GreaterThan(VersionStamp.Complete(0x0123456789ABCDEEUL, 0xFFFF)));
+
+			//TODO: tests with user version !
+
+			// ReSharper restore EqualExpressionComparison
+		}
+
+		[Test]
+		public void Test_VersionStamp_To_Uuid80()
+		{
+			// To
+			Assert.That(VersionStamp.Incomplete().ToUuid80(), Is.EqualTo(Uuid80.MaxValue));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA).ToUuid80(), Is.EqualTo(new Uuid80(0x0123, 0x456789ABCDEF55AA)));
+
+			// From
+			Assert.That(VersionStamp.FromUuid80(Uuid80.MaxValue), Is.EqualTo(VersionStamp.Incomplete()));
+			Assert.That(VersionStamp.FromUuid80(new Uuid80(0x0123, 0x456789ABCDEF55AA)), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA)));
+
+			// casting
+			Assert.That((Uuid80) VersionStamp.Incomplete(), Is.EqualTo(Uuid80.MaxValue));
+			Assert.That((Uuid80) VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA), Is.EqualTo(new Uuid80(0x0123, 0x456789ABCDEF55AA)));
+			Assert.That((VersionStamp) Uuid80.MaxValue, Is.EqualTo(VersionStamp.Incomplete()));
+			Assert.That((VersionStamp) new Uuid80(0x0123, 0x456789ABCDEF55AA), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA)));
+
+			// should fail if size does not match
+			Assert.That(() => VersionStamp.Incomplete(0x1234).ToUuid80(), Throws.Exception);
+			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC).ToUuid80(), Throws.Exception);
+		}
+
+		[Test]
+		public void Test_VersionStamp_To_Uuid96()
+		{
+			// To
+			Assert.That(VersionStamp.Incomplete(0xFFFF).ToUuid96(), Is.EqualTo(Uuid96.MaxValue));
+			Assert.That(VersionStamp.Incomplete(0x1234).ToUuid96(), Is.EqualTo(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)));
+			Assert.That(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC).ToUuid96(), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
+
+			// From
+			Assert.That(VersionStamp.FromUuid96(Uuid96.MaxValue), Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
+			Assert.That(VersionStamp.FromUuid96(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
+			Assert.That(VersionStamp.FromUuid96(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
+
+			// cast
+			Assert.That((Uuid96) VersionStamp.Incomplete(0xFFFF), Is.EqualTo(Uuid96.MaxValue));
+			Assert.That((Uuid96) VersionStamp.Incomplete(0x1234), Is.EqualTo(new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL)));
+			Assert.That((Uuid96) VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC), Is.EqualTo(new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL)));
+			Assert.That((VersionStamp) Uuid96.MaxValue, Is.EqualTo(VersionStamp.Incomplete(0xFFFF)));
+			Assert.That((VersionStamp) new Uuid96(0xFFFFFFFF, 0xFFFFFFFFFFFF1234UL), Is.EqualTo(VersionStamp.Incomplete(0x1234)));
+			Assert.That((VersionStamp) new Uuid96(0x01234567U, 0x89ABCDEF55AA33CCUL), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA, 0x33CC)));
+
+			// should fail if size does not match
+			Assert.That(() => VersionStamp.Incomplete().ToUuid96(), Throws.Exception);
+			Assert.That(() => VersionStamp.Complete(0x0123456789ABCDEF, 0x55AA).ToUuid96(), Throws.Exception);
+
+		}
+
 	}
 }
