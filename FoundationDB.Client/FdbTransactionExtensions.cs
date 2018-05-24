@@ -370,6 +370,112 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
 
+		/// <summary>Cached 0 (32-bits)</summary>
+		private static readonly Slice Zero32 = Slice.FromFixed32(0);
+
+		/// <summary>Cached 0 (64-bits)</summary>
+		private static readonly Slice Zero64 = Slice.FromFixed64(0);
+
+		/// <summary>Cached +1 (32-bits)</summary>
+		private static readonly Slice PlusOne32 = Slice.FromFixed32(1);
+
+		/// <summary>+1 (64-bits)</summary>
+		private static readonly Slice PlusOne64 = Slice.FromFixed64(1);
+
+		/// <summary>-1 (32-bits)</summary>
+		private static readonly Slice MinusOne32 = Slice.FromFixed32(-1);
+
+		/// <summary>-1 (64-bits)</summary>
+		private static readonly Slice MinusOne64 = Slice.FromFixed64(-1);
+
+		/// <summary>Modify the database snapshot represented by this transaction to increment by one the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicIncrement32([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, PlusOne32, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to substract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicIncrement64([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, PlusOne64, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to substract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, int value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne32 : value == -1 ? MinusOne32 : Slice.FromFixed32(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, uint value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne32 : value == uint.MaxValue ? MinusOne32 : Slice.FromFixedU32(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, long value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne64 : value == -1 ? MinusOne64 : Slice.FromFixed64(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, ulong value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne64 : value == ulong.MaxValue ? MinusOne64 : Slice.FromFixedU64(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise AND between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
