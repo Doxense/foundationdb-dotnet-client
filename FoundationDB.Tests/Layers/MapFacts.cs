@@ -50,7 +50,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<string, string>("Foos", location.Partition.ByKey("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition.ByKey("Foos"), BinaryEncoding.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<string, string>("Foos", location.Partition.ByKey("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition.ByKey("Foos"), BinaryEncoding.StringEncoder);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
@@ -168,7 +168,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
 			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
-			var keyEncoder = KeyValueEncoders.Bind<IPEndPoint>(
+			var keyEncoder = new KeyEncoder<IPEndPoint>(
 				(ipe) => ipe == null ? Slice.Empty : TuPack.EncodeKey(ipe.Address, ipe.Port),
 				(packed) =>
 				{
@@ -189,7 +189,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts").UsingEncoder(keyEncoder), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts").UsingEncoder(keyEncoder), BinaryEncoding.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>
