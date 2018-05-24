@@ -711,7 +711,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
-		public static void WriteGuid(ref TupleWriter writer, Guid value)
+		public static void WriteGuid(ref TupleWriter writer, in Guid value)
 		{
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
@@ -737,6 +737,34 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static void WriteUuid128(ref TupleWriter writer, Uuid128? value)
 		{
 			if (!value.HasValue) WriteNil(ref writer); else WriteUuid128(ref writer, value.Value);
+		}
+
+		/// <summary>Writes a 96-bit UUID</summary>
+		public static void WriteUuid96(ref TupleWriter writer, in Uuid96 value)
+		{
+			writer.Output.EnsureBytes(11);
+			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
+			writer.Output.UnsafeWriteUuid96(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid96(ref TupleWriter writer, Uuid96? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUuid96(ref writer, value.Value);
+		}
+
+		/// <summary>Writes a 80-bit UUID</summary>
+		public static void WriteUuid80(ref TupleWriter writer, in Uuid80 value)
+		{
+			writer.Output.EnsureBytes(11);
+			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
+			writer.Output.UnsafeWriteUuid80(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid80(ref TupleWriter writer, Uuid80? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUuid80(ref writer, value.Value);
 		}
 
 		/// <summary>Writes a 64-bit UUID</summary>

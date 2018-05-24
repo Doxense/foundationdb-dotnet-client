@@ -1659,9 +1659,9 @@ namespace Doxense.Memory
 		#region UUIDs...
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
-		public void WriteUuid128(Uuid128 value)
+		public void WriteUuid128(in Uuid128 value)
 		{
-			var buffer = EnsureBytes(16);
+			var buffer = EnsureBytes(Uuid128.SizeOf);
 			int p = this.Position;
 			unsafe
 			{
@@ -1670,13 +1670,13 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 16;
+			this.Position = p + Uuid128.SizeOf;
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
-		public void UnsafeWriteUuid128(Uuid128 value)
+		public void UnsafeWriteUuid128(in Uuid128 value)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 15 < this.Buffer.Length);
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid128.SizeOf - 1) < this.Buffer.Length);
 			int p = this.Position;
 			unsafe
 			{
@@ -1685,13 +1685,73 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 16;
+			this.Position = p + Uuid128.SizeOf;
+		}
+
+		/// <summary>Write a 96-bit UUID, and advances the cursor</summary>
+		public void WriteUuid96(in Uuid96 value)
+		{
+			var buffer = EnsureBytes(Uuid96.SizeOf);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid96.SizeOf;
+		}
+
+		/// <summary>Write a 96-bit UUID, and advances the cursor</summary>
+		public void UnsafeWriteUuid96(in Uuid96 value)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid96.SizeOf - 1) < this.Buffer.Length);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &this.Buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid96.SizeOf;
+		}
+
+		/// <summary>Write a 80-bit UUID, and advances the cursor</summary>
+		public void WriteUuid80(in Uuid80 value)
+		{
+			var buffer = EnsureBytes(Uuid80.SizeOf);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid80.SizeOf;
+		}
+
+		/// <summary>Write a 80-bit UUID, and advances the cursor</summary>
+		public void UnsafeWriteUuid80(in Uuid80 value)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid80.SizeOf - 1) < this.Buffer.Length);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &this.Buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid80.SizeOf;
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid64(Uuid64 value)
 		{
-			var buffer = EnsureBytes(8);
+			var buffer = EnsureBytes(Uuid64.SizeOf);
 			int p = this.Position;
 			unsafe
 			{
@@ -1700,13 +1760,13 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 8;
+			this.Position = p + Uuid64.SizeOf;
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
 		public void UnsafeWriteUuid64(Uuid64 value)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 7 < this.Buffer.Length);
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid64.SizeOf - 1) < this.Buffer.Length);
 			int p = this.Position;
 			unsafe
 			{
@@ -1715,7 +1775,7 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 8;
+			this.Position = p + Uuid64.SizeOf;
 		}
 
 		#endregion

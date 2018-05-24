@@ -235,6 +235,120 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_TuplePack_Serialize_Uuid96s()
+		{
+			// Uuid96 instances are stored with prefix 0x32 followed by 12 bytes, and should preserve ordering
+
+			Slice packed;
+
+			packed = TuPack.EncodeKey(Uuid96.Parse("00010203-04050607-08090A0B"));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 00 01 02 03 04 05 06 07 08 09 0A 0B"));
+
+			packed = TuPack.EncodeKey(Uuid96.Parse("01234567-89ABCDEF-55AA33CC"));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 01 23 45 67 89 AB CD EF 55 AA 33 CC"));
+
+			packed = TuPack.EncodeKey(Uuid96.Empty);
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 00 00 00 00 00 00 00 00 00 00 00 00"));
+
+			packed = TuPack.EncodeKey(new Uuid96(0x12345678, 0xBADC0FFEE0DDF00DUL));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 12 34 56 78 BA DC 0F FE E0 DD F0 0D"));
+
+			packed = TuPack.EncodeKey(new Uuid96(0xFFFFFFFF, 0xDEADBEEFL));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("33 FF FF FF FF 00 00 00 00 DE AD BE EF"));
+		}
+
+		[Test]
+		public void Test_TuplePack_Deserialize_Uuid96s()
+		{
+			// Uuid96 instances are stored with prefix 0x33 followed by 12 bytes (the result of uuid.ToByteArray())
+			// we also accept byte arrays (prefix '01') if they are of length 12, and unicode strings (prefix '02')
+
+			ITuple packed;
+
+			packed = TuPack.Unpack(Slice.FromHexa("33 01 23 45 67 89 AB CD EF 55 AA 33 CC"));
+			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Parse("01234567-89ABCDEF-55AA33CC")));
+			Assert.That(packed[0], Is.EqualTo((VersionStamp) Uuid96.Parse("01234567-89ABCDEF-55AA33CC")));
+
+			packed = TuPack.Unpack(Slice.FromHexa("33 00 00 00 00 00 00 00 00 00 00 00 00"));
+			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Empty));
+			Assert.That(packed[0], Is.EqualTo((VersionStamp) Uuid96.Empty));
+
+			// 8 bytes
+			packed = TuPack.Unpack(Slice.FromHexa("01 01 23 45 67 89 ab cd ef 55 AA 33 CC 00"));
+			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Parse("01234567-89ABCDEF-55AA33CC")));
+			//note: t[0] returns a string, not a UUID
+
+			// unicode string
+			packed = TuPack.Unpack(Slice.Unescape("<02>01234567-89abcdef-55aa33cc<00>"));
+			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Parse("01234567-89abcdef-55aa33cc")));
+			packed = TuPack.Unpack(Slice.Unescape("<02>0123456789abcdef55aa33cc<00>"));
+			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Parse("01234567-89abcdef-55aa33cc")));
+
+			// null maps to Uuid.Empty
+			packed = TuPack.Unpack(Slice.Unescape("<00>"));
+			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Empty));
+			//note: t[0] returns null, not a UUID
+
+		}
+
+		[Test]
+		public void Test_TuplePack_Serialize_Uuid80s()
+		{
+			// Uuid80 instances are stored with prefix 0x32 followed by 10 bytes, and should preserve ordering
+
+			Slice packed;
+
+			packed = TuPack.EncodeKey(Uuid80.Parse("0001-02030405-06070809"));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 00 01 02 03 04 05 06 07 08 09"));
+
+			packed = TuPack.EncodeKey(Uuid80.Parse("0123-456789AB-CDEF55AA"));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 01 23 45 67 89 AB CD EF 55 AA"));
+
+			packed = TuPack.EncodeKey(Uuid80.Empty);
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 00 00 00 00 00 00 00 00 00 00"));
+
+			packed = TuPack.EncodeKey(new Uuid80(0x1234, 0xBADC0FFEE0DDF00DUL));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 12 34 BA DC 0F FE E0 DD F0 0D"));
+
+			packed = TuPack.EncodeKey(new Uuid80(0xFFFF, 0xDEADBEEFL));
+			Assert.That(packed.ToHexaString(' '), Is.EqualTo("32 FF FF 00 00 00 00 DE AD BE EF"));
+		}
+
+		[Test]
+		public void Test_TuplePack_Deserialize_Uuid80s()
+		{
+			// Uuid80 instances are stored with prefix '31' followed by 8 bytes (the result of uuid.ToByteArray())
+			// we also accept byte arrays (prefix '01') if they are of length 8, and unicode strings (prefix '02')
+
+			ITuple packed;
+
+			packed = TuPack.Unpack(Slice.FromHexa("32 01 23 45 67 89 AB CD EF 55 AA"));
+			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Parse("0123-456789AB-CDEF55AA")));
+			Assert.That(packed[0], Is.EqualTo((VersionStamp) Uuid80.Parse("0123-456789AB-CDEF55AA")));
+
+			packed = TuPack.Unpack(Slice.FromHexa("32 00 00 00 00 00 00 00 00 00 00"));
+			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Empty));
+			Assert.That(packed[0], Is.EqualTo((VersionStamp) Uuid80.Empty));
+
+			// 8 bytes
+			packed = TuPack.Unpack(Slice.FromHexa("01 01 23 45 67 89 ab cd ef 55 AA 00"));
+			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Parse("0123-456789AB-CDEF55AA")));
+			//note: t[0] returns a string, not a UUID
+
+			// unicode string
+			packed = TuPack.Unpack(Slice.Unescape("<02>0123-456789ab-cdef55aa<00>"));
+			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Parse("0123-456789ab-cdef55aa")));
+			packed = TuPack.Unpack(Slice.Unescape("<02>0123456789abcdef55aa<00>"));
+			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Parse("0123-456789ab-cdef55aa")));
+
+			// null maps to Uuid.Empty
+			packed = TuPack.Unpack(Slice.Unescape("<00>"));
+			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Empty));
+			//note: t[0] returns null, not a UUID
+
+		}
+
+		[Test]
 		public void Test_TuplePack_Serialize_Uuid64s()
 		{
 			// UUID64s are stored with prefix '31' followed by 8 bytes formatted according to RFC 4122
