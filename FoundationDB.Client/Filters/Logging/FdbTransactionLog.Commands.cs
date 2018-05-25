@@ -35,6 +35,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Text;
 	using System.Threading.Tasks;
 	using Doxense;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
@@ -122,20 +123,20 @@ namespace FoundationDB.Filters.Logging
 					switch (this.Op)
 					{
 						case Operation.Invalid:
-							return FdbTransactionLog.Mode.Invalid;
+							return Mode.Invalid;
 
 						case Operation.Set:
 						case Operation.Clear:
 						case Operation.ClearRange:
 						case Operation.Atomic:
-							return FdbTransactionLog.Mode.Write;
+							return Mode.Write;
 
 						case Operation.Get:
 						case Operation.GetKey:
 						case Operation.GetValues:
 						case Operation.GetKeys:
 						case Operation.GetRange:
-							return FdbTransactionLog.Mode.Read;
+							return Mode.Read;
 
 						case Operation.GetReadVersion:
 						case Operation.Reset:
@@ -144,13 +145,13 @@ namespace FoundationDB.Filters.Logging
 						case Operation.Commit:
 						case Operation.OnError:
 						case Operation.SetOption:
-							return FdbTransactionLog.Mode.Meta;
+							return Mode.Meta;
 
 						case Operation.Watch:
-							return FdbTransactionLog.Mode.Watch;
+							return Mode.Watch;
 
 						case Operation.Log:
-							return FdbTransactionLog.Mode.Annotation;
+							return Mode.Annotation;
 
 						default:
 						{ 
@@ -158,7 +159,7 @@ namespace FoundationDB.Filters.Logging
 							//FIXME: we probably forgot to add a case for a new type of command !
 							if (Debugger.IsAttached) Debugger.Break();
 #endif
-							return FdbTransactionLog.Mode.Invalid;
+							return Mode.Invalid;
 						}
 					}
 				}
@@ -277,8 +278,9 @@ namespace FoundationDB.Filters.Logging
 			public readonly Slice[] Prefixes;
 			public readonly string[] Paths;
 
-			public DirectoryKeyResolver(Dictionary<Slice, string> knownSubspaces)
+			public DirectoryKeyResolver([NotNull] Dictionary<Slice, string> knownSubspaces)
 			{
+				Contract.Requires(knownSubspaces != null);
 				var prefixes = new Slice[knownSubspaces.Count];
 				var paths = new string[knownSubspaces.Count];
 				int p = 0;
@@ -355,9 +357,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string Resolve(Slice key)
 			{
-				Slice prefix;
-				string path;
-				if (!TryLookup(key, out prefix, out path))
+				if (!TryLookup(key, out Slice prefix, out string path))
 				{
 					return base.Resolve(key);
 				}
@@ -365,17 +365,17 @@ namespace FoundationDB.Filters.Logging
 				var s = base.Resolve(key.Substring(prefix.Count));
 				if (s != null && s.Length >= 3 && s[0] == '(' && s[s.Length - 1] == ')')
 				{ // that was a tuple
-					return String.Concat("([", path, "], ", s.Substring(1));
+					return string.Concat("([", path, "], ", s.Substring(1));
 				}
-				return String.Concat("[", path, "]:", s);
+				return string.Concat("[", path, "]:", s);
 			}
 		}
 
-		public sealed class LogCommand : FdbTransactionLog.Command
+		public sealed class LogCommand : Command
 		{
 			public string Message { get; }
 
-			public override FdbTransactionLog.Operation Op => FdbTransactionLog.Operation.Log;
+			public override Operation Op => Operation.Log;
 
 			public LogCommand(string message)
 			{
@@ -637,8 +637,9 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetValues;
 
-			public GetValuesCommand(Slice[] keys)
+			public GetValuesCommand([NotNull] Slice[] keys)
 			{
+				Contract.Requires(keys != null);
 				this.Keys = keys;
 			}
 
@@ -692,8 +693,9 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetKeys;
 
-			public GetKeysCommand(KeySelector[] selectors)
+			public GetKeysCommand([NotNull] KeySelector[] selectors)
 			{
+				Contract.Requires(selectors != null);
 				this.Selectors = selectors;
 			}
 

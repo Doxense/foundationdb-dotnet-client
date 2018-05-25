@@ -33,6 +33,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -400,6 +401,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
+			Contract.Requires(keys != null);
 			return ExecuteAsync(
 				new FdbTransactionLog.GetValuesCommand(Grab(keys)),
 				(tr, cmd) => tr.GetValuesAsync(keys)
@@ -408,6 +410,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
+			Contract.Requires(selectors != null);
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeysCommand(Grab(selectors)),
 				(tr, cmd) => tr.GetKeysAsync(selectors)
@@ -503,6 +506,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
+				Contract.Requires(keys != null);
 				return ExecuteAsync(
 					new FdbTransactionLog.GetValuesCommand(m_parent.Grab(keys)),
 					(tr, cmd) => tr.GetValuesAsync(cmd.Keys)
@@ -511,6 +515,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
+				Contract.Requires(selectors != null);
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeysCommand(m_parent.Grab(selectors)),
 					(tr, cmd) => tr.GetKeysAsync(cmd.Selectors)
