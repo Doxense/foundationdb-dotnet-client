@@ -122,7 +122,8 @@ namespace FoundationDB.Filters.Logging
 
 		private Slice[] Grab(Slice[] slices)
 		{
-			if (slices == null || slices.Length == 0) return null;
+			if (slices == null) return null;
+			if (slices.Length == 0) return Array.Empty<Slice>();
 
 			lock (m_lock)
 			{
@@ -157,7 +158,8 @@ namespace FoundationDB.Filters.Logging
 
 		private KeySelector[] Grab(KeySelector[] selectors)
 		{
-			if (selectors == null || selectors.Length == 0) return null;
+			if (selectors == null) return null;
+			if (selectors.Length == 0) return Array.Empty<KeySelector>();
 
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
