@@ -357,6 +357,25 @@ namespace FoundationDB.Filters.Logging
 
 		public override void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
+			if (mutation == FdbMutationType.VersionStampedKey)
+			{ // we must remove the stamp offset at the end
+				if (Fdb.ApiVersion >= 520)
+				{ // 4 bytes
+					key = key.Substring(0, key.Count - 4);
+				}
+				else if(Fdb.ApiVersion >= 400)
+				{ // 2 bytes
+					key = key.Substring(0, key.Count - 2);
+				}
+			}
+			else if (mutation == FdbMutationType.VersionStampedValue)
+			{ // we must remove the stamp offset at the end
+				if (Fdb.ApiVersion >= 520)
+				{ // 4 bytes
+					param = param.Substring(0, param.Count - 4);
+				}
+			}
+
 			Execute(
 				new FdbTransactionLog.AtomicCommand(Grab(key), Grab(param), mutation),
 				(_tr, _cmd) => _tr.Atomic(_cmd.Key, _cmd.Param, _cmd.Mutation)
