@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define FULL_DEBUG
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
@@ -66,15 +68,9 @@ namespace Doxense.Linq.Async.Iterators
 		}
 
 		/// <summary>Returns true if the pump has completed (with success or failure)</summary>
-		public bool IsCompleted
-		{
-			get { return m_state >= STATE_FAILED; }
-		}
+		public bool IsCompleted => m_state >= STATE_FAILED;
 
-		internal int State
-		{
-			get { return m_state; }
-		}
+		internal int State => m_state;
 
 		[Conditional("FULL_DEBUG")]
 		private static void LogDebug(string msg)
@@ -153,3 +149,5 @@ namespace Doxense.Linq.Async.Iterators
 	}
 
 }
+
+#endif

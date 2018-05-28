@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense //REVIEW: what would be the best namespace for this? (mostly used by layers)
 {
 	using System;
@@ -756,3 +758,5 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 	}
 
 }
+
+#endif

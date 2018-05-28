@@ -26,11 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using JetBrains.Annotations;
 
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
 	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
@@ -44,3 +46,5 @@ namespace Doxense.Linq
 	}
 
 }
+
+#endif
