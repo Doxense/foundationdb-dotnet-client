@@ -510,6 +510,7 @@ namespace FoundationDB.Filters.Logging
 
 			/// <summary>Key modified in the database</summary>
 			public Slice Key { get; set; }
+
 			/// <summary>Parameter depending of the type of mutation</summary>
 			public Slice Param { get; }
 
@@ -526,7 +527,31 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return string.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToString("K"));
+				var key = this.Key;
+				var val = this.Param;
+
+				//TODO: FIXME: the ApiVersion should be stored with the command or log, not read from a static variable, because it will prevent us from loading a log from a file, produced by another server with a different Api Version!
+
+				if (this.Mutation == FdbMutationType.VersionStampedKey)
+				{ // we must remove the stamp offset at the end
+					if (Fdb.ApiVersion >= 520)
+					{ // 4 bytes
+						key = key.Substring(0, key.Count - 4);
+					}
+					else if(Fdb.ApiVersion >= 400)
+					{ // 2 bytes
+						key = key.Substring(0, key.Count - 2);
+					}
+				}
+				else if (this.Mutation == FdbMutationType.VersionStampedValue)
+				{ // we must remove the stamp offset at the end
+					if (Fdb.ApiVersion >= 520)
+					{ // 4 bytes
+						val = val.Substring(0, val.Count - 4);
+					}
+				}
+
+				return string.Concat(resolver.Resolve(key), " ", this.Mutation.ToString(), " ", val.ToString("V"));
 			}
 
 			public override string ToString(KeyResolver resolver)
