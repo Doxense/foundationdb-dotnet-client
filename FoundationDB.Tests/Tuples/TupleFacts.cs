@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples.Tests
 	using System;
 	using System.Linq;
 	using System.Net;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Runtime.Converters;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
@@ -1788,6 +1789,11 @@ namespace Doxense.Collections.Tuples.Tests
 			Check("(18446744073709551615,)", STuple.Create(ulong.MaxValue));
 			Check("(3.1415926535897931, 2.7182818284590451)", STuple.Create(Math.PI, Math.E));
 			Check("(123E45,-123E-45)", STuple.Create(123E45, -123E-45));
+
+			Check("(|System|)", STuple.Create(TuPackUserType.System));
+			Check("(|Directory|)", STuple.Create(TuPackUserType.Directory));
+			Check("(|System|,\"Hello\")", STuple.Create(TuPackUserType.System, "Hello"));
+			Check("(|Directory|,42,\"Hello\")", STuple.Create(TuPackUserType.Directory, 42, "Hello"));
 		}
 
 		#endregion

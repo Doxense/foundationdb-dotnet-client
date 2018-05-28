@@ -803,6 +803,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteVersionStamp(ref writer, value.Value);
 		}
 
+		public static void WriteUserType(ref TupleWriter writer, TuPackUserType value)
+		{
+			if (value == null)
+			{
+				WriteNil(ref writer);
+				return;
+			}
+
+			var arg = value.Value;
+			if (arg.Count == 0)
+			{
+				writer.Output.WriteByte((byte) value.Type);
+			}
+			else
+			{
+				writer.Output.EnsureBytes(checked(1 + arg.Count));
+				writer.Output.WriteByte(value.Type);
+				writer.Output.WriteBytes(arg);
+			}
+		}
+
 		/// <summary>Mark the start of a new embedded tuple</summary>
 		public static void BeginTuple(ref TupleWriter writer)
 		{

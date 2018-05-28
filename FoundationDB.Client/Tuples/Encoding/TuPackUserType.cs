@@ -26,23 +26,72 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace Doxense.Collections.Tuples
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Diagnostics;
+	using JetBrains.Annotations;
 
-	/// <summary>Special tuple values</summary>
-	public enum FdbTupleAlias
+	/// <summary>Represent a custom user type for the TuPack encoding</summary>
+	[DebuggerDisplay("{ToString()},nq")]
+	public sealed class TuPackUserType : IEquatable<TuPackUserType>
 	{
-		//TODO: find a better name!
-		//TODO: maybe remove this ? This was needed before refactoring the Subspaces to handle binary prefix...
-		// only helps in parsing hybrid keys that are part tuple, part suffix (like \x00, \xFF added for ranges, or \xFE added for the DirectoryLayer)
 
-		/// <summary>Alias that represents the Null or Min value '\0' when used in the last position.</summary>
-		Zero = 0,
-		/// <summary>Alias that represents the value '\xFE', frequently used by the Directory Layer</summary>
-		Directory = 254,
-		/// <summary>Alias that represents the Max value '\xFF', also used by the System Keys when in the first position</summary>
-		System = 255
+		[NotNull]
+		public static readonly TuPackUserType Directory = new TuPackUserType(0xFE);
+
+		[NotNull]
+		public static readonly TuPackUserType System = new TuPackUserType(0xFF);
+
+		public TuPackUserType(int type)
+		{
+			this.Type = type;
+		}
+
+		public TuPackUserType(int type, Slice value)
+		{
+			this.Type = type;
+			this.Value = value;
+		}
+
+		public readonly int Type;
+
+		public readonly Slice Value;
+
+		public override string ToString()
+		{
+			switch (this.Type)
+			{
+				case 0xFE: return "|Directory|";
+				case 0xFF: return "|System|";
+			}
+
+			if (this.Value.IsNull)
+			{
+				return $"|User-{this.Type:X02}|";
+			}
+			return $"|User-{this.Type:X02}:{this.Value:N}|";
+		}
+
+		#region Equality...
+
+		public override bool Equals(object obj)
+		{
+			return obj is TuPackUserType ut && Equals(ut);
+		}
+
+		public bool Equals(TuPackUserType other)
+		{
+			if (other == null) return false;
+			if (ReferenceEquals(this, other)) return true;
+			return this.Type == other.Type && this.Value.Equals(other.Value);
+		}
+
+		public override int GetHashCode()
+		{
+			return HashCodes.Combine(this.Type, this.Value.GetHashCode());
+		}
+
+		#endregion
 	}
-
 }

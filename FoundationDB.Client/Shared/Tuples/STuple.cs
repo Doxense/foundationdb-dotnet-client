@@ -35,6 +35,7 @@ namespace Doxense.Collections.Tuples
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization;
 	using JetBrains.Annotations;
@@ -794,6 +795,13 @@ namespace Doxense.Collections.Tuples
 								expectItem = false;
 								break;
 							}
+							case '|':
+							{ // Custom type?
+								var x = ReadCustomTypeLiteral();
+								items.Add(x);
+								expectItem = false;
+								break;
+							}
 
 							default:
 							{
@@ -1019,6 +1027,46 @@ namespace Doxense.Collections.Tuples
 					throw new FormatException("Invalid GUID in Tuple expression.");
 				}
 
+				private TuPackUserType ReadCustomTypeLiteral()
+				{
+					var s = this.Expression;
+					int p = this.Cursor;
+					int end = s.Length;
+					char c = s[p];
+					if (s[p] != '|') throw new FormatException($"Unexpected token '{c}' at start of User Type in Tuple expression");
+					++p;
+					int start = p;
+					while (p < end)
+					{
+						c = s[p];
+						if (c == '|')
+						{
+							string lit = s.Substring(start, p - start);
+							TuPackUserType ut;
+							if (lit == "System")
+							{
+								ut = TuPackUserType.System;
+							}
+							else if (lit == "Directory")
+							{
+								ut = TuPackUserType.Directory;
+							}
+							else if (lit.StartsWith("User-"))
+							{
+								throw new NotImplementedException("Implementation parsing of custom user types in Tuple expressions");
+							}
+							else
+							{
+								break;
+							}
+							this.Cursor = p + 1;
+							return ut;
+						}
+						++p;
+					}
+
+					throw new FormatException("Invalid custom User Type in Tuple expression.");
+				}
 			}
 		}
 

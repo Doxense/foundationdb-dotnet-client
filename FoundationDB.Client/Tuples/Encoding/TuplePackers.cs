@@ -624,14 +624,22 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteUuid64(ref writer, value);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, VersionStamp value)
 		{
 			TupleParser.WriteVersionStamp(ref writer, in value);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, VersionStamp? value)
 		{
 			TupleParser.WriteVersionStamp(ref writer, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, TuPackUserType value)
+		{
+			TupleParser.WriteUserType(ref writer, value);
 		}
 
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
@@ -829,6 +837,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress),
 				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
 				[typeof(ITuple)] = new Func<Slice, ITuple>(TuplePackers.DeserializeTuple),
+				[typeof(TuPackUserType)] = new Func<Slice, TuPackUserType>(TuplePackers.DeserializeUserType)
 			};
 
 			// add Nullable versions for all these types
@@ -1002,6 +1011,17 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
 					case TupleTypes.VersionStamp80: return TupleParser.ParseVersionStamp(slice);
 					case TupleTypes.VersionStamp96: return TupleParser.ParseVersionStamp(slice);
+
+					case TupleTypes.Directory:
+					{
+						if (slice.Count == 1) return TuPackUserType.Directory;
+						break;
+					}
+					case TupleTypes.Escape:
+					{
+						if (slice.Count == 1) return TuPackUserType.System;
+						break;
+					}
 				}
 			}
 
@@ -1079,6 +1099,24 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static byte[] DeserializeBytes(Slice slice)
 		{
 			return DeserializeSlice(slice).GetBytes();
+		}
+
+		public static TuPackUserType DeserializeUserType(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return null; //TODO: fail ?
+
+			int type = slice[0];
+			if (slice.Count == 1)
+			{
+				switch (type)
+				{
+					case 0xFE: return TuPackUserType.Directory;
+					case 0xFF: return TuPackUserType.System;
+				}
+				return new TuPackUserType(type);
+			}
+
+			return new TuPackUserType(type, slice.Substring(1));
 		}
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
@@ -2041,5 +2079,4 @@ namespace Doxense.Collections.Tuples.Encoding
 		#endregion
 
 	}
-
 }
