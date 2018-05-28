@@ -525,13 +525,11 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Key.Count + this.Param.Count;
 
-			public override string GetArguments(KeyResolver resolver)
+			private Slice GetUserKey()
 			{
 				var key = this.Key;
-				var val = this.Param;
 
 				//TODO: FIXME: the ApiVersion should be stored with the command or log, not read from a static variable, because it will prevent us from loading a log from a file, produced by another server with a different Api Version!
-
 				if (this.Mutation == FdbMutationType.VersionStampedKey)
 				{ // we must remove the stamp offset at the end
 					if (Fdb.ApiVersion >= 520)
@@ -543,7 +541,16 @@ namespace FoundationDB.Filters.Logging
 						key = key.Substring(0, key.Count - 2);
 					}
 				}
-				else if (this.Mutation == FdbMutationType.VersionStampedValue)
+
+				return key;
+			}
+
+			private Slice GetUserValue()
+			{
+				var val = this.Param;
+
+				//TODO: FIXME: the ApiVersion should be stored with the command or log, not read from a static variable, because it will prevent us from loading a log from a file, produced by another server with a different Api Version!
+				if (this.Mutation == FdbMutationType.VersionStampedValue)
 				{ // we must remove the stamp offset at the end
 					if (Fdb.ApiVersion >= 520)
 					{ // 4 bytes
@@ -551,7 +558,12 @@ namespace FoundationDB.Filters.Logging
 					}
 				}
 
-				return string.Concat(resolver.Resolve(key), " ", this.Mutation.ToString(), " ", val.ToString("V"));
+				return val;
+			}
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return string.Concat(resolver.Resolve(GetUserKey()), " ", this.Mutation.ToString(), " ", GetUserValue().ToString("V"));
 			}
 
 			public override string ToString(KeyResolver resolver)
@@ -559,7 +571,7 @@ namespace FoundationDB.Filters.Logging
 				resolver = resolver ?? KeyResolver.Default;
 				var sb = new StringBuilder();
 				if (this.Snapshot) sb.Append("Snapshot.");
-				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(this.Key)).Append(", <").Append(this.Param.ToHexaString(' ')).Append('>');
+				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(GetUserKey())).Append(", <").Append(GetUserValue().ToHexaString(' ')).Append('>');
 				return sb.ToString();
 			}
 		}

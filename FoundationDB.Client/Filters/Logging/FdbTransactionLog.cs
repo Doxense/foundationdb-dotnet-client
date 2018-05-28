@@ -254,9 +254,10 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Generate an ASCII report with all the commands that were executed by the transaction</summary>
 		[NotNull]
-		public string GetCommandsReport(bool detailed = false)
+		public string GetCommandsReport(bool detailed = false, KeyResolver keyResolver = null)
 		{
 			var culture = CultureInfo.InvariantCulture;
+			keyResolver = keyResolver ?? KeyResolver.Default;
 
 			var sb = new StringBuilder();
 
@@ -280,7 +281,7 @@ namespace FoundationDB.Filters.Logging
 						/* 0 */ cmd.Step,
 						/* 1 */ cmd.StartOffset.TotalMilliseconds,
 						/* 2 */ cmd.Duration.Ticks / 10.0,
-						/* 3 */ cmd.ToString()
+						/* 3 */ cmd.ToString(keyResolver)
 					);
 				}
 				else
@@ -289,7 +290,7 @@ namespace FoundationDB.Filters.Logging
 						culture,
 						"{0,3} : {2}{1}",
 						/* 0 */ cmd.Step,
-						/* 1 */ cmd.ToString(),
+						/* 1 */ cmd.ToString(keyResolver),
 						/* 2 */ cmd.Error != null ? "[FAILED] " : ""
 					);
 				}
@@ -313,6 +314,7 @@ namespace FoundationDB.Filters.Logging
 		public string GetTimingsReport(bool showCommands = false, KeyResolver keyResolver = null)
 		{
 			var culture = CultureInfo.InvariantCulture;
+			keyResolver = keyResolver ?? KeyResolver.Default;
 
 			var sb = new StringBuilder();
 			TimeSpan duration = this.TotalDuration;
@@ -387,7 +389,7 @@ namespace FoundationDB.Filters.Logging
 							/* 8 */ cmd.ArgumentBytes,
 							/* 9 */ cmd.ResultBytes,
 							/* 10 */ cmd.Error != null ? "!" : " ",
-							/* 11 */ showCommands ? cmd.ToString(keyResolver) : String.Empty
+							/* 11 */ showCommands ? cmd.ToString(keyResolver) : string.Empty
 						);
 					}
 					else
@@ -402,7 +404,7 @@ namespace FoundationDB.Filters.Logging
 							/* 4 */ ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ',
 							/* 5 */ w,
 							/* 6 */ cmd.StartOffset.TotalMilliseconds,
-							/* 7 */ showCommands ? cmd.ToString(keyResolver) : String.Empty
+							/* 7 */ showCommands ? cmd.ToString(keyResolver) : string.Empty
 						);
 					}
 
