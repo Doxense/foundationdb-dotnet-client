@@ -2,6 +2,8 @@
 // See License.MD for license information
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Diagnostics.Contracts
 {
 	using JetBrains.Annotations;
@@ -55,7 +57,7 @@ namespace Doxense.Diagnostics.Contracts
 
 	/// <summary>Classe helper pour la vérification de pré-requis, invariants, assertions, ...</summary>
 	[DebuggerNonUserCode]
-	public static class Contract
+	internal static class Contract
 	{
 
 		public static bool IsUnitTesting { get; set; }
@@ -1392,3 +1394,5 @@ namespace Doxense.Diagnostics.Contracts
 	}
 
 }
+
+#endif

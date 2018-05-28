@@ -2,6 +2,8 @@
 // See License.MD for license information
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace System
 {
 	using System;
@@ -1012,3 +1014,5 @@ namespace System
 	}
 
 }
+
+#endif

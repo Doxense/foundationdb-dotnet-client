@@ -2,6 +2,8 @@
 // See License.MD for license information
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Diagnostics.Contracts
 {
 	using System;
@@ -10,7 +12,7 @@ namespace Doxense.Diagnostics.Contracts
 	using SDC = System.Diagnostics.Contracts;
 
 	[Serializable]
-	public sealed class ContractException : Exception
+	internal sealed class ContractException : Exception
 	{
 		// copie de l'implémentation "internal" de System.Data.Contracts.ContractException
 
@@ -64,3 +66,5 @@ namespace Doxense.Diagnostics.Contracts
 	}
 
 }
+
+#endif

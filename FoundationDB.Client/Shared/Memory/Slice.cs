@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define ENABLE_SPAN
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace System
 {
 	using System;
@@ -2517,3 +2519,5 @@ namespace System
 	}
 
 }
+
+#endif

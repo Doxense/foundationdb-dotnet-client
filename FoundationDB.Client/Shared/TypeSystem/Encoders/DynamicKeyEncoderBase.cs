@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -175,3 +177,5 @@ namespace FoundationDB.Client
 		}
 	}
 }
+
+#endif

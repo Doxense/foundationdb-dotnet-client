@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense
 {
 	using System;
@@ -214,3 +216,5 @@ namespace Doxense
 
 	}
 }
+
+#endif

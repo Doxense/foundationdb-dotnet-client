@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#define ENABLE_ARRAY_POOL
 //#define ENABLE_SPAN
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Memory
 {
 	using System;
@@ -2444,3 +2446,5 @@ namespace Doxense.Memory
 	}
 
 }
+
+#endif

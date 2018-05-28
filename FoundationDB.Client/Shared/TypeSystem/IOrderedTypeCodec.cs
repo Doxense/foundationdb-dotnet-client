@@ -26,12 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
 
 namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using Doxense.Memory;
+	using JetBrains.Annotations;
 
+	/// <summary>Represents a codec that can produce keys or values that keep the original ordering</summary>
+	[PublicAPI]
 	public interface IOrderedTypeCodec<T>
 	{
 		void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
@@ -44,3 +48,5 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
+
+#endif

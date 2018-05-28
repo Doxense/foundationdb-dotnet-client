@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Diagnostics.Contracts
 {
 	using JetBrains.Annotations;
@@ -414,3 +416,5 @@ namespace Doxense.Diagnostics.Contracts
 	}
 
 }
+
+#endif

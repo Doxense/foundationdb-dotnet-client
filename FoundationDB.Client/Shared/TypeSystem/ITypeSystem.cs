@@ -26,14 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using JetBrains.Annotations;
 
+	/// <summary>Represents a particular encoding scheme that can convert with keys and values into binary literals</summary>
 	public interface ITypeSystem : IKeyEncoding, IValueEncoding
 	{
+
+		/// <summary>Name of the encoding</summary>
 		[NotNull]
 		string Name { get; }
+
 	}
 }
+
+#endif
