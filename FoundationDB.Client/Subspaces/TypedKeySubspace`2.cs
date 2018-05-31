@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 		/// <returns>Encoded key in this subspace</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			tuple.OfSize(2);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1));

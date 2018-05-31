@@ -50,7 +50,7 @@ namespace Doxense.Serialization.Encoders
 		/// <param name="writer">Buffer where to append the binary representation</param>
 		/// <param name="items">Tuple of any size (0 to N)</param>
 		/// <exception cref="System.FormatException">If some elements in <paramref name="items"/> are not supported by this type system</exception>
-		void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : ITuple;
+		void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple;
 
 		/// <summary>Encode a key composed of a single element into a binary slice</summary>
 		/// <typeparam name="T">Type of the element</typeparam>
@@ -163,7 +163,7 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Decode a binary slice into a tuple or arbitrary length</summary>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="PackKey{TTuple}"/></param>
 		/// <returns>Tuple of any size (0 to N)</returns>
-		ITuple UnpackKey(Slice packed);
+		IVarTuple UnpackKey(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly on element</summary>
 		/// <typeparam name="T">Expected type of the element</typeparam>
@@ -238,7 +238,7 @@ namespace Doxense.Serialization.Encoders
 		/// <summary>Return a key range using a tuple as a prefix</summary>
 		/// <param name="prefix">Optional binary prefix that should be added before encoding the key</param>
 		/// <param name="items">Tuple of any size (0 to N)</param>
-		(Slice Begin, Slice End) ToRange(Slice prefix, ITuple items);
+		(Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items);
 
 		/// <summary>Return a key range using a single element as a prefix</summary>
 		/// <typeparam name="T1">Type of the element</typeparam>

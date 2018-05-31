@@ -283,7 +283,7 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						ITuple tuple = null;
+						IVarTuple tuple = null;
 						string suffix = null;
 						bool skip = false;
 

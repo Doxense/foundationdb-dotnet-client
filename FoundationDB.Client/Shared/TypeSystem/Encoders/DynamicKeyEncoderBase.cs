@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 			return KeyRange.StartsWith(prefix);
 		}
 
-		public abstract void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : ITuple;
+		public abstract void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple;
 
 		public virtual void EncodeKey<T1>(ref SliceWriter writer, T1 item1)
 		{
@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 			PackKey(ref writer, STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8));
 		}
 
-		public abstract ITuple UnpackKey(Slice packed);
+		public abstract IVarTuple UnpackKey(Slice packed);
 
 		public virtual T DecodeKey<T>(Slice packed)
 		{
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d, T5 e, T6 f) => STuple.Create(a, b, c, d, e, f));
 		}
 
-		public virtual (Slice Begin, Slice End) ToRange(Slice prefix, ITuple items)
+		public virtual (Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items)
 		{
 			var writer = new SliceWriter(prefix, 16);
 			PackKey(ref writer, items);

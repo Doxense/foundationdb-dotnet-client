@@ -227,9 +227,9 @@ namespace Doxense.Runtime.Converters
 				}
 			}
 
-			if (typeof(ITuple).IsAssignableFrom(t1) && typeof(ITuple).IsAssignableFrom(t2))
+			if (typeof(IVarTuple).IsAssignableFrom(t1) && typeof(IVarTuple).IsAssignableFrom(t2))
 			{
-				return (x, y) => x == null ? y == null : y != null && ((ITuple) x).Equals((ITuple) y);
+				return (x, y) => x == null ? y == null : y != null && ((IVarTuple) x).Equals((IVarTuple) y);
 			}
 
 			//TODO: some other way to compare ?

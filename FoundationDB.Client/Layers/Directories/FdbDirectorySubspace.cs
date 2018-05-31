@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace([NotNull] ITuple location, [NotNull] ITuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, Slice layer, [NotNull] IKeyEncoding encoding)
+		internal FdbDirectorySubspace([NotNull] IVarTuple location, [NotNull] IVarTuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, Slice layer, [NotNull] IKeyEncoding encoding)
 			: base(prefix, encoding)
 		{
 			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
@@ -63,11 +63,11 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Absolute location of the directory</summary>
 		[NotNull]
-		protected ITuple Location { get; private set; }
+		protected IVarTuple Location { get; private set; }
 
 		/// <summary>Location of the directory relative to its parent Directory Layer</summary>
 		[NotNull]
-		protected ITuple RelativeLocation { get; private set; }
+		protected IVarTuple RelativeLocation { get; private set; }
 
 		/// <summary>Absolute path of this directory</summary>
 		public IReadOnlyList<string> Path { get; private set; }
@@ -86,7 +86,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Return the DirectoryLayer instance that should be called for the given path</summary>
 		/// <param name="relativeLocation">Location relative to this directory subspace</param>
-		protected virtual FdbDirectoryLayer GetLayerForPath(ITuple relativeLocation)
+		protected virtual FdbDirectoryLayer GetLayerForPath(IVarTuple relativeLocation)
 		{
 			// for regular directories, always returns its DL.
 			return this.DirectoryLayer;
@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="location">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
 		[NotNull]
-		protected virtual ITuple ToRelativePath(ITuple location)
+		protected virtual IVarTuple ToRelativePath(IVarTuple location)
 		{
 			return location == null ? this.RelativeLocation : this.RelativeLocation.Concat(location);
 		}
@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
 		[NotNull]
-		protected ITuple ToRelativePath(IEnumerable<string> path)
+		protected IVarTuple ToRelativePath(IEnumerable<string> path)
 		{
 			return ToRelativePath(path == null ? null : STuple.FromEnumerable<string>(path));
 		}

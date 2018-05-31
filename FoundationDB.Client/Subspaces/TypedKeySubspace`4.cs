@@ -193,7 +193,7 @@ namespace FoundationDB.Client
 
 		[Pure]
 		public Slice Pack<TTuple>(TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			tuple.OfSize(4);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));

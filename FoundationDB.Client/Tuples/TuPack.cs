@@ -54,7 +54,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<TTuple>([CanBeNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			return TupleEncoder.Pack(tuple);
 		}
@@ -172,7 +172,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples([NotNull] params ITuple[] tuples)
+		public static Slice[] PackTuples([NotNull] params IVarTuple[] tuples)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuples);
@@ -249,7 +249,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples([NotNull, InstantHandle] this IEnumerable<ITuple> tuples)
+		public static Slice[] PackTuples([NotNull, InstantHandle] this IEnumerable<IVarTuple> tuples)
 		{
 			var empty = default(Slice);
 			return TupleEncoder.Pack(empty, tuples);
@@ -260,7 +260,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void PackTo<TTuple>(ref SliceWriter writer, [CanBeNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			TupleEncoder.PackTo(ref writer, tuple);
 		}
@@ -273,7 +273,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<TTuple>(Slice prefix, [CanBeNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			return TupleEncoder.Pack(prefix, tuple);
 		}
@@ -338,7 +338,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples(Slice prefix, [NotNull] params ITuple[] tuples)
+		public static Slice[] PackTuples(Slice prefix, [NotNull] params IVarTuple[] tuples)
 		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
@@ -349,21 +349,21 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] PackTuples(Slice prefix, [NotNull] IEnumerable<ITuple> tuples)
+		public static Slice[] PackTuples(Slice prefix, [NotNull] IEnumerable<IVarTuple> tuples)
 		{
 			return TupleEncoder.Pack(prefix, tuples);
 		}
 
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<TElement, TTuple>(Slice prefix, [NotNull] TElement[] elements, Func<TElement, TTuple> transform)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			return TupleEncoder.Pack(prefix, elements, transform);
 		}
 
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<TElement, TTuple>(Slice prefix, [NotNull] IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			return TupleEncoder.Pack(prefix, elements, transform);
 		}
@@ -498,7 +498,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>([NotNull] ITuple prefix, [NotNull] IEnumerable<T> keys)
+		public static Slice[] EncodePrefixedKeys<T>([NotNull] IVarTuple prefix, [NotNull] IEnumerable<T> keys)
 		{
 			Contract.NotNull(prefix, nameof(prefix));
 
@@ -511,7 +511,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] EncodePrefixedKeys<T>([NotNull] ITuple prefix, [NotNull] params T[] keys)
+		public static Slice[] EncodePrefixedKeys<T>([NotNull] IVarTuple prefix, [NotNull] params T[] keys)
 		{
 			Contract.NotNull(prefix, nameof(prefix));
 
@@ -543,7 +543,7 @@ namespace Doxense.Collections.Tuples
 		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<TTuple>([NotNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
@@ -929,7 +929,7 @@ namespace Doxense.Collections.Tuples
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, [NotNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
@@ -1036,7 +1036,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure, NotNull]
-		public static ITuple Unpack(Slice packedKey)
+		public static IVarTuple Unpack(Slice packedKey)
 		{
 			if (packedKey.IsNull) throw new ArgumentNullException(nameof(packedKey), "Cannot unpack tuple from Nil");
 			if (packedKey.Count == 0) return STuple.Empty;
@@ -1048,7 +1048,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Binary key containing a previously packed tuple, or Slice.Nil</param>
 		/// <returns>Unpacked tuple, the empty tuple if <paramref name="packedKey"/> is equal to <see cref="Slice.Empty"/>, or null if the key is <see cref="Slice.Nil"/></returns>
 		[Pure, CanBeNull]
-		public static ITuple UnpackOrDefault(Slice packedKey)
+		public static IVarTuple UnpackOrDefault(Slice packedKey)
 		{
 			if (packedKey.IsNull) return null;
 			if (packedKey.Count == 0) return STuple.Empty;

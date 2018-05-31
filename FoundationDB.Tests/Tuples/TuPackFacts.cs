@@ -69,7 +69,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserialize_Bytes()
 		{
-			ITuple t;
+			IVarTuple t;
 
 			t = TuPack.Unpack(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}));
@@ -120,7 +120,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserialize_Unicode_Strings()
 		{
-			ITuple t;
+			IVarTuple t;
 
 			// simple string
 			t = TuPack.Unpack(Slice.Unescape("<02>hello world<00>"));
@@ -168,7 +168,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// 128-bit Guids are stored with prefix '30' followed by 16 bytes
 			// we also accept byte arrays (prefix '01') if they are of length 16
 
-			ITuple packed;
+			IVarTuple packed;
 
 			packed = TuPack.Unpack(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
@@ -211,7 +211,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// UUID128s are stored with prefix '30' followed by 16 bytes (the result of uuid.ToByteArray())
 			// we also accept byte arrays (prefix '01') if they are of length 16
 
-			ITuple packed;
+			IVarTuple packed;
 
 			// note: new Uuid(bytes from 0 to 15) => "00010203-0405-0607-0809-0a0b0c0d0e0f";
 			packed = TuPack.Unpack(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
@@ -378,7 +378,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// UUID64s are stored with prefix '31' followed by 8 bytes (the result of uuid.ToByteArray())
 			// we also accept byte arrays (prefix '01') if they are of length 8, and unicode strings (prefix '02')
 
-			ITuple packed;
+			IVarTuple packed;
 
 			// note: new Uuid(bytes from 0 to 15) => "00010203-0405-0607-0809-0a0b0c0d0e0f";
 			packed = TuPack.Unpack(Slice.Unescape("<31><01><23><45><67><89><AB><CD><EF>"));
@@ -994,7 +994,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Serialize_Embedded_Tuples()
 		{
-			Action<ITuple, string> verify = (t, expected) =>
+			void Verify(IVarTuple t, string expected)
 			{
 				var key = TuPack.Pack(t);
 				Assert.That(key.ToHexaString(' '), Is.EqualTo(expected));
@@ -1002,54 +1002,54 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t2, Is.Not.Null);
 				Assert.That(t2.Count, Is.EqualTo(t.Count), "{0}", t2);
 				Assert.That(t2, Is.EqualTo(t));
-			};
+			}
 
 			// Index composite key
-			ITuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
+			IVarTuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
 			string docId = "Doc123";
 			// key would be "(..., value, id)"
 
-			verify(
+			Verify(
 				STuple.Create(42, value, docId),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
-			verify(
+			Verify(
 				STuple.Create(new object[] {42, value, docId}),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
-			verify(
+			Verify(
 				STuple.Create(42).Append(value).Append(docId),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
-			verify(
+			Verify(
 				STuple.Create(42).Append(value, docId),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 
 			// multiple depth
-			verify(
+			Verify(
 				STuple.Create(1, STuple.Create(2, 3), STuple.Create(STuple.Create(4, 5, 6)), 7),
 				"15 01 05 15 02 15 03 00 05 05 15 04 15 05 15 06 00 00 15 07"
 			);
 
 			// corner cases
-			verify(
+			Verify(
 				STuple.Create(STuple.Empty),
 				"05 00" // empty tumple should have header and footer
 			);
-			verify(
+			Verify(
 				STuple.Create(STuple.Empty, default(string)),
 				"05 00 00" // outer null should not be escaped
 			);
-			verify(
+			Verify(
 				STuple.Create(STuple.Create(default(string)), default(string)),
 				"05 00 FF 00 00" // inner null should be escaped, but not outer
 			);
-			verify(
+			Verify(
 				STuple.Create(STuple.Create(0x100, 0x10000, 0x1000000)),
 				"05 16 01 00 17 01 00 00 18 01 00 00 00 00"
 			);
-			verify(
+			Verify(
 				STuple.Create(default(string), STuple.Empty, default(string), STuple.Create(default(string)), default(string)),
 				"00 05 00 00 05 00 FF 00 00" // inner null should be escaped, but not outer
 			);
@@ -1068,12 +1068,12 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t, Is.Not.Null);
 				Assert.That(t.Count, Is.EqualTo(4));
 				Assert.That(t.Get<int>(0), Is.EqualTo(42));
-				Assert.That(t.Get<ITuple>(1), Is.EqualTo(STuple.Create(2014, 11, 6)));
+				Assert.That(t.Get<IVarTuple>(1), Is.EqualTo(STuple.Create(2014, 11, 6)));
 				Assert.That(t.Get<string>(2), Is.EqualTo("Hello"));
 				Assert.That(t.Get<bool>(3), Is.True);
 			}
 			{
-				var t = TuPack.DecodeKey<STuple<int, ITuple, string, bool>>(packed);
+				var t = TuPack.DecodeKey<STuple<int, IVarTuple, string, bool>>(packed);
 				Assert.That(t, Is.Not.Null);
 				Assert.That(t.Item1, Is.EqualTo(42));
 				Assert.That(t.Item2, Is.EqualTo(STuple.Create(2014, 11, 6)));
@@ -1093,7 +1093,7 @@ namespace Doxense.Collections.Tuples.Tests
 			packed = TuPack.EncodeKey(default(string));
 			Log($"t = {TuPack.Unpack(packed)}");
 			{
-				var t = TuPack.DecodeKey<ITuple>(packed);
+				var t = TuPack.DecodeKey<IVarTuple>(packed);
 				Assert.That(t, Is.Null);
 			}
 			{
@@ -1125,25 +1125,25 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var expected = TuPack.EncodeKey("Hello World");
 				Assert.That(TuPack.Pack(STuple.Create("Hello World")), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(((ITuple) STuple.Create("Hello World"))), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World"})), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234).Substring(0, 1)), Is.EqualTo(expected));
 			}
 			{
 				var expected = TuPack.EncodeKey("Hello World", 1234);
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(((ITuple) STuple.Create("Hello World", 1234))), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(((ITuple) STuple.Create("Hello World")).Append(1234)), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World")).Append(1234)), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World", 1234})), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo").Substring(0, 2)), Is.EqualTo(expected));
 			}
 			{
 				var expected = TuPack.EncodeKey("Hello World", 1234, "Foo");
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo")), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(((ITuple) STuple.Create("Hello World", 1234, "Foo"))), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234, "Foo"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234).Append("Foo")), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(((ITuple) STuple.Create("Hello World")).Append(1234).Append("Foo")), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World")).Append(1234).Append("Foo")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World", 1234, "Foo"})), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo", "Bar").Substring(0, 3)), Is.EqualTo(expected));
 			}
@@ -1339,7 +1339,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			{
 				Slice[] slices;
-				var tuples = new ITuple[]
+				var tuples = new IVarTuple[]
 				{
 					STuple.Create("hello"),
 					STuple.Create(123),
@@ -1474,7 +1474,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			{
 				Slice[] slices;
-				var tuples = new ITuple[]
+				var tuples = new IVarTuple[]
 				{
 					STuple.Create("hello"),
 					STuple.Create(123),

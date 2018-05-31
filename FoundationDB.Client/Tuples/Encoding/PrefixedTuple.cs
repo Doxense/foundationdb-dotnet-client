@@ -39,15 +39,15 @@ namespace Doxense.Collections.Tuples.Encoding
 	/// <summary>Tuple that has a fixed abitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class PrefixedTuple : ITuple, ITupleSerializable
+	public sealed class PrefixedTuple : IVarTuple, ITupleSerializable
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
 		private readonly Slice m_prefix;
-		private readonly ITuple m_items;
+		private readonly IVarTuple m_items;
 
-		public PrefixedTuple(Slice prefix, ITuple items)
+		public PrefixedTuple(Slice prefix, IVarTuple items)
 		{
 			Contract.Requires(!prefix.IsNull && items != null);
 
@@ -79,7 +79,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public object this[int index] => m_items[index];
 
-		public ITuple this[int? fromIncluded, int? toExcluded] => m_items[fromIncluded, toExcluded];
+		public IVarTuple this[int? fromIncluded, int? toExcluded] => m_items[fromIncluded, toExcluded];
 
 		public T Get<T>(int index)
 		{
@@ -91,12 +91,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return m_items.Last<T>();
 		}
 
-		ITuple ITuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>(T value)
 		{
 			return Append<T>(value);
 		}
 
-		ITuple ITuple.Concat(ITuple tuple)
+		IVarTuple IVarTuple.Concat(IVarTuple tuple)
 		{
 			return Concat(tuple);
 		}
@@ -108,7 +108,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure, NotNull]
-		public PrefixedTuple Concat([NotNull] ITuple tuple)
+		public PrefixedTuple Concat([NotNull] IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			if (tuple.Count == 0) return this;
@@ -143,7 +143,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}

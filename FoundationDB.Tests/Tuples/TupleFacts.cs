@@ -350,7 +350,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_Many()
 		{
 			// ReSharper disable once RedundantExplicitParamsArrayCreation
-			ITuple tn = STuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI });
+			IVarTuple tn = STuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI });
 			Assert.That(tn.Count, Is.EqualTo(8));
 			Assert.That(tn.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tn.Get<int>(1), Is.EqualTo(123));
@@ -596,36 +596,36 @@ namespace Doxense.Collections.Tuples.Tests
 			var t1 = STuple.Create(1);
 			Assert.That(t1.First<int>(), Is.EqualTo(1));
 			Assert.That(t1.First<string>(), Is.EqualTo("1"));
-			Assert.That(((ITuple)t1).Last<int>(), Is.EqualTo(1));
-			Assert.That(((ITuple)t1).Last<string>(), Is.EqualTo("1"));
+			Assert.That(((IVarTuple)t1).Last<int>(), Is.EqualTo(1));
+			Assert.That(((IVarTuple)t1).Last<string>(), Is.EqualTo("1"));
 
 			var t2 = STuple.Create(1, 2);
 			Assert.That(t2.First<int>(), Is.EqualTo(1));
 			Assert.That(t2.First<string>(), Is.EqualTo("1"));
 			Assert.That(t2.Last, Is.EqualTo(2));
-			Assert.That(((ITuple)t2).Last<int>(), Is.EqualTo(2));
-			Assert.That(((ITuple)t2).Last<string>(), Is.EqualTo("2"));
+			Assert.That(((IVarTuple)t2).Last<int>(), Is.EqualTo(2));
+			Assert.That(((IVarTuple)t2).Last<string>(), Is.EqualTo("2"));
 
 			var t3 = STuple.Create(1, 2, 3);
 			Assert.That(t3.First<int>(), Is.EqualTo(1));
 			Assert.That(t3.First<string>(), Is.EqualTo("1"));
 			Assert.That(t3.Last, Is.EqualTo(3));
-			Assert.That(((ITuple)t3).Last<int>(), Is.EqualTo(3));
-			Assert.That(((ITuple)t3).Last<string>(), Is.EqualTo("3"));
+			Assert.That(((IVarTuple)t3).Last<int>(), Is.EqualTo(3));
+			Assert.That(((IVarTuple)t3).Last<string>(), Is.EqualTo("3"));
 
 			var t4 = STuple.Create(1, 2, 3, 4);
 			Assert.That(t4.First<int>(), Is.EqualTo(1));
 			Assert.That(t4.First<string>(), Is.EqualTo("1"));
 			Assert.That(t4.Last, Is.EqualTo(4));
-			Assert.That(((ITuple)t4).Last<int>(), Is.EqualTo(4));
-			Assert.That(((ITuple)t4).Last<string>(), Is.EqualTo("4"));
+			Assert.That(((IVarTuple)t4).Last<int>(), Is.EqualTo(4));
+			Assert.That(((IVarTuple)t4).Last<string>(), Is.EqualTo("4"));
 
 			var t5 = STuple.Create(1, 2, 3, 4, 5);
 			Assert.That(t5.First<int>(), Is.EqualTo(1));
 			Assert.That(t5.First<string>(), Is.EqualTo("1"));
 			Assert.That(t5.Last, Is.EqualTo(5));
-			Assert.That(((ITuple)t5).Last<int>(), Is.EqualTo(5));
-			Assert.That(((ITuple)t5).Last<string>(), Is.EqualTo("5"));
+			Assert.That(((IVarTuple)t5).Last<int>(), Is.EqualTo(5));
+			Assert.That(((IVarTuple)t5).Last<string>(), Is.EqualTo("5"));
 
 			var tn = STuple.Create(1, 2, 3, 4, 5, 6);
 			Assert.That(tn.First<int>(), Is.EqualTo(1));
@@ -633,14 +633,14 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tn.Last<int>(), Is.EqualTo(6));
 			Assert.That(tn.Last<string>(), Is.EqualTo("6"));
 
-			Assert.That(() => ((ITuple) STuple.Empty).First<string>(), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => ((ITuple) STuple.Empty).Last<string>(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => ((IVarTuple) STuple.Empty).First<string>(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => ((IVarTuple) STuple.Empty).Last<string>(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]
 		public void Test_Tuple_CreateBoxed()
 		{
-			ITuple tuple;
+			IVarTuple tuple;
 
 			tuple = STuple.CreateBoxed(default(object));
 			Assert.That(tuple.Count, Is.EqualTo(1));
@@ -676,36 +676,36 @@ namespace Doxense.Collections.Tuples.Tests
 			STuple<string, string> y = STuple.Create("C", "D");
 
 			// using the instance method that returns a STuple<T1, T2, T3>
-			ITuple z = x.Append(y);
+			IVarTuple z = x.Append(y);
 			Log(z);
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z.Count, Is.EqualTo(3));
 			Assert.That(z[0], Is.EqualTo("A"));
 			Assert.That(z[1], Is.EqualTo("B"));
 			Assert.That(z[2], Is.EqualTo(y));
-			var t = z.Get<ITuple>(2);
+			var t = z.Get<IVarTuple>(2);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(2));
 			Assert.That(t[0], Is.EqualTo("C"));
 			Assert.That(t[1], Is.EqualTo("D"));
 
 			// casted down to the interface ITuple
-			z = ((ITuple)x).Append((ITuple)y);
+			z = ((IVarTuple)x).Append((IVarTuple)y);
 			Log(z);
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z.Count, Is.EqualTo(3));
 			Assert.That(z[0], Is.EqualTo("A"));
 			Assert.That(z[1], Is.EqualTo("B"));
 			Assert.That(z[2], Is.EqualTo(y));
-			t = z.Get<ITuple>(2);
+			t = z.Get<IVarTuple>(2);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(2));
 			Assert.That(t[0], Is.EqualTo("C"));
 			Assert.That(t[1], Is.EqualTo("D"));
 
 			// composite index key "(prefix, value, id)"
-			ITuple subspace = STuple.Create(123, 42);
-			ITuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
+			IVarTuple subspace = STuple.Create(123, 42);
+			IVarTuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
 			const string ID = "Doc123";
 			z = subspace.Append(value, ID);
 			Log(z);
@@ -716,7 +716,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_With()
 		{
 			//note: important to always cast to (ITuple) to be sure that we don't call specialized instance methods (tested elsewhere)
-			ITuple t;
+			IVarTuple t;
 			bool called;
 
 			// Size 1
@@ -995,7 +995,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// VerifySize(n) only check the size
 			// Both should throw if tuple is null, or not the expected size
 
-			void Verify(ITuple t)
+			void Verify(IVarTuple t)
 			{
 				for (int i = 0; i <= 10; i++)
 				{
@@ -1034,7 +1034,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Verify(STuple.FromEnumerable(Enumerable.Range(0, 50)).Substring(15, 6));
 
 			// ReSharper disable ExpressionIsAlwaysNull
-			ITuple none = null;
+			IVarTuple none = null;
 			Assert.That(() => none.OfSize(0), Throws.ArgumentNullException);
 			Assert.That(() => none.OfSizeAtLeast(0), Throws.ArgumentNullException);
 			Assert.That(() => none.OfSizeAtMost(0), Throws.ArgumentNullException);
@@ -1044,7 +1044,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_Tuple_Truncate()
 		{
-			ITuple t = STuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+			IVarTuple t = STuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
 
 			var head = t.Truncate(1);
 			Assert.That(head, Is.Not.Null);
@@ -1087,7 +1087,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Tuple_As()
 		{
 			// ITuple.As<...>() adds types to an untyped ITuple
-			ITuple t;
+			IVarTuple t;
 
 			t = STuple.Create("Hello");
 			var t1 = t.As<string>();
@@ -1210,7 +1210,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 		#region Splicing...
 
-		private static void VerifyTuple(string message, ITuple t, object[] expected)
+		private static void VerifyTuple(string message, IVarTuple t, object[] expected)
 		{
 			// count
 			if (t.Count != expected.Length)
@@ -1351,7 +1351,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			const int N = 100 * 1000;
 
-			var tuples = new ITuple[14];
+			var tuples = new IVarTuple[14];
 			tuples[0] = STuple.Empty;
 			tuples[1] = STuple.Create("A");
 			tuples[2] = STuple.Create("A", "B");
@@ -1456,7 +1456,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 		#region Equality / Comparison
 
-		private static void AssertEquality(ITuple x, ITuple y)
+		private static void AssertEquality(IVarTuple x, IVarTuple y)
 		{
 			Assert.That(x.Equals(y), Is.True, "x.Equals(y)");
 			Assert.That(x.Equals((object)y), Is.True, "x.Equals((object)y)");
@@ -1464,7 +1464,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(y.Equals((object)x), Is.True, "y.Equals((object)y");
 		}
 
-		private static void AssertInequality(ITuple x, ITuple y)
+		private static void AssertInequality(IVarTuple x, IVarTuple y)
 		{
 			Assert.That(x.Equals(y), Is.False, "!x.Equals(y)");
 			Assert.That(x.Equals((object)y), Is.False, "!x.Equals((object)y)");
@@ -1544,14 +1544,14 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_Tuple_Substring_Equality()
 		{
-			ITuple x = STuple.FromArray<string>(new[] {"A", "C"});
-			ITuple y = STuple.FromArray<string>(new[] {"A", "B", "C"});
+			IVarTuple x = STuple.FromArray<string>(new[] {"A", "C"});
+			IVarTuple y = STuple.FromArray<string>(new[] {"A", "B", "C"});
 
 			Assert.That(x.Substring(0, 1), Is.EqualTo(y.Substring(0, 1)));
 			Assert.That(x.Substring(1, 1), Is.EqualTo(y.Substring(2, 1)));
 
-			ITuple a = x.Substring(0, 1);
-			ITuple b = y.Substring(0, 1);
+			IVarTuple a = x.Substring(0, 1);
+			IVarTuple b = y.Substring(0, 1);
 			Assert.That(a.Equals(b), Is.True);
 			Assert.That(a.Equals((object)b), Is.True);
 			Assert.That(object.Equals(a, b), Is.True);
@@ -1681,7 +1681,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_Can_Deformat_Simple_Tuples()
 		{
 
-			void Check(string expr, ITuple expected)
+			void Check<TTuple>(string expr, TTuple expected) where TTuple : IVarTuple
 			{
 				Log("> " + expr);
 				var actual = STuple.Deformatter.Parse(expr);

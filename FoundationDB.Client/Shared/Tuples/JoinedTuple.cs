@@ -41,15 +41,15 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class JoinedTuple : ITuple
+	public sealed class JoinedTuple : IVarTuple
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
 		/// <summary>First tuple (first N items)</summary>
-		public readonly ITuple Head;
+		public readonly IVarTuple Head;
 
 		/// <summary>Second tuple (last M items)</summary>
-		public readonly ITuple Tail;
+		public readonly IVarTuple Tail;
 
 		/// <summary>Offset at which the Tail tuple starts. Items are in Head tuple if index &lt; split. Items are in Tail tuple if index &gt;= split.</summary>
 		private readonly int m_split;
@@ -57,7 +57,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Total size of the tuple (sum of the size of the two inner tuples)</summary>
 		private readonly int m_count;
 
-		public JoinedTuple(ITuple head, ITuple tail)
+		public JoinedTuple(IVarTuple head, IVarTuple tail)
 		{
 			Contract.NotNull(head, nameof(head));
 			Contract.NotNull(tail, nameof(tail));
@@ -84,7 +84,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
+		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
@@ -113,7 +113,7 @@ namespace Doxense.Collections.Tuples
 			return index < m_split ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - m_split);
 		}
 
-		ITuple ITuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>(T value)
 		{
 			return new LinkedTuple<T>(this, value);
 		}
@@ -124,7 +124,7 @@ namespace Doxense.Collections.Tuples
 			return new LinkedTuple<T>(this, value);
 		}
 
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 
@@ -169,7 +169,7 @@ namespace Doxense.Collections.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -184,7 +184,7 @@ namespace Doxense.Collections.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var tuple = other as ITuple;
+			var tuple = other as IVarTuple;
 			if (!object.ReferenceEquals(tuple, null))
 			{
 				if (tuple.Count != m_count) return false;

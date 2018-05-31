@@ -956,7 +956,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
 		[Pure]
-		public static ITuple ParseTuple(Slice slice)
+		public static IVarTuple ParseTuple(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.EmbeddedTuple && slice[-1] == 0);
 			if (slice.Count <= 2) return STuple.Empty;

@@ -44,14 +44,14 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public readonly struct STuple : ITuple
+	public readonly struct STuple : IVarTuple
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
 		/// <summary>Empty tuple</summary>
 		/// <remarks>Not to be mistaken with a 1-tuple containing 'null' !</remarks>
 		[NotNull]
-		public static readonly ITuple Empty = new STuple();
+		public static readonly IVarTuple Empty = new STuple();
 
 		#region Empty Tuple
 
@@ -60,16 +60,16 @@ namespace Doxense.Collections.Tuples
 		object IReadOnlyList<object>.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
-		public ITuple this[int? from, int? to] => this;
+		public IVarTuple this[int? from, int? to] => this;
 
 		public TItem Get<TItem>(int index)
 		{
 			throw new InvalidOperationException("Tuple is empty");
 		}
 
-		public ITuple Append<T1>(T1 value) => new STuple<T1>(value);
+		public IVarTuple Append<T1>(T1 value) => new STuple<T1>(value);
 
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			if (tuple.Count == 0) return this;
@@ -101,19 +101,19 @@ namespace Doxense.Collections.Tuples
 			return 0;
 		}
 
-		public bool Equals(ITuple value)
+		public bool Equals(IVarTuple value)
 		{
 			return value != null && value.Count == 0;
 		}
 
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as ITuple);
+			return Equals(obj as IVarTuple);
 		}
 
 		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
 		{
-			return other is ITuple tuple && tuple.Count == 0;
+			return other is IVarTuple tuple && tuple.Count == 0;
 		}
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
@@ -179,7 +179,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
 		[NotNull]
-		public static ITuple Create([NotNull] params object[] items)
+		public static IVarTuple Create([NotNull] params object[] items)
 		{
 			Contract.NotNull(items, nameof(items));
 
@@ -194,7 +194,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		/// <remarks>This is the non-generic equivalent of STuple.Create&lt;object&gt;()</remarks>
 		[NotNull]
-		public static ITuple CreateBoxed(object item)
+		public static IVarTuple CreateBoxed(object item)
 		{
 			return new STuple<object>(item);
 		}
@@ -202,7 +202,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new N-tuple that wraps an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static ITuple Wrap([NotNull] object[] items)
+		public static IVarTuple Wrap([NotNull] object[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
 			Contract.NotNull(items, nameof(items));
@@ -212,14 +212,14 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static ITuple Wrap([NotNull] object[] items, int offset, int count)
+		public static IVarTuple Wrap([NotNull] object[] items, int offset, int count)
 		{
 			return FromObjects(items, offset, count, copy: false);
 		}
 
 		/// <summary>Create a new N-tuple by copying the content of an array of untyped items</summary>
 		[NotNull]
-		public static ITuple FromObjects([NotNull] object[] items)
+		public static IVarTuple FromObjects([NotNull] object[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
 			Contract.NotNull(items, nameof(items));
@@ -228,7 +228,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new N-tuple by copying a section of an array of untyped items</summary>
 		[NotNull]
-		public static ITuple FromObjects([NotNull] object[] items, int offset, int count)
+		public static IVarTuple FromObjects([NotNull] object[] items, int offset, int count)
 		{
 			return FromObjects(items, offset, count, copy: true);
 		}
@@ -236,7 +236,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If <paramref name="copy"/> is true, and the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static ITuple FromObjects([NotNull] object[] items, int offset, int count, bool copy)
+		public static IVarTuple FromObjects([NotNull] object[] items, int offset, int count, bool copy)
 		{
 			Contract.NotNull(items, nameof(items));
 			Contract.Positive(offset, nameof(offset));
@@ -262,7 +262,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="items">Array of items</param>
 		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
 		[NotNull]
-		public static ITuple FromArray<T>([NotNull] T[] items)
+		public static IVarTuple FromArray<T>([NotNull] T[] items)
 		{
 			Contract.NotNull(items, nameof(items));
 
@@ -271,7 +271,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
 		[NotNull]
-		public static ITuple FromArray<T>([NotNull] T[] items, int offset, int count)
+		public static IVarTuple FromArray<T>([NotNull] T[] items, int offset, int count)
 		{
 			Contract.NotNull(items, nameof(items));
 			Contract.Positive(offset, nameof(offset));
@@ -299,7 +299,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new tuple from a sequence of typed items</summary>
 		[NotNull]
-		public static ITuple FromEnumerable<T>([NotNull] IEnumerable<T> items)
+		public static IVarTuple FromEnumerable<T>([NotNull] IEnumerable<T> items)
 		{
 			Contract.NotNull(items, nameof(items));
 
@@ -309,7 +309,7 @@ namespace Doxense.Collections.Tuples
 			}
 
 			// may already be a tuple (because it implements IE<obj>)
-			if (items is ITuple tuple)
+			if (items is IVarTuple tuple)
 			{
 				return tuple;
 			}
@@ -321,7 +321,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Concatenates two tuples together</summary>
 		[NotNull]
-		public static ITuple Concat([NotNull] ITuple head, [NotNull] ITuple tail)
+		public static IVarTuple Concat([NotNull] IVarTuple head, [NotNull] IVarTuple tail)
 		{
 			Contract.NotNull(head, nameof(head));
 			Contract.NotNull(tail, nameof(tail));
@@ -406,7 +406,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="right">Right tuple</param>
 		/// <returns>True if the tuples are considered equal; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
 		/// <remarks>This method is equivalent of calling left.Equals(right), </remarks>
-		public static bool Equals(ITuple left, ITuple right)
+		public static bool Equals(IVarTuple left, IVarTuple right)
 		{
 			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
 			return left.Equals(right);
@@ -416,7 +416,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="left">Left tuple</param>
 		/// <param name="right">Right tuple</param>
 		/// <returns>True if the tuples are considered similar; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
-		public static bool Equivalent(ITuple left, ITuple right)
+		public static bool Equivalent(IVarTuple left, IVarTuple right)
 		{
 			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
 			return !object.ReferenceEquals(right, null) && TupleHelpers.Equals(left, right, TupleComparisons.Default);
@@ -641,7 +641,7 @@ namespace Doxense.Collections.Tuples
 
 
 			[Pure, NotNull]
-			public static ITuple Parse([NotNull] string expression)
+			public static IVarTuple Parse([NotNull] string expression)
 			{
 				Contract.NotNullOrWhiteSpace(expression, nameof(expression));
 				var parser = new Parser(expression.Trim());
@@ -653,7 +653,7 @@ namespace Doxense.Collections.Tuples
 			/// <summary>Parse a tuple expression at the start of a string</summary>
 			/// <param name="expression">String that starts with a valid Tuple expression, with optional extra characters</param>
 			/// <returns>First item is the parsed tuple, and the second item is the rest of the string (or null if we consumed the whole expression)</returns>
-			public static void ParseNext(string expression, out ITuple tuple, out string tail)
+			public static void ParseNext(string expression, out IVarTuple tuple, out string tail)
 			{
 				Contract.NotNullOrWhiteSpace(expression, nameof(expression));
 				if (string.IsNullOrWhiteSpace(expression))
@@ -729,7 +729,7 @@ namespace Doxense.Collections.Tuples
 
 				/// <summary>Parse a tuple</summary>
 				[Pure, NotNull]
-				public ITuple ParseExpression()
+				public IVarTuple ParseExpression()
 				{
 
 					char c = ReadNext();

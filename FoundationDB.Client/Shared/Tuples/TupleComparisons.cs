@@ -46,7 +46,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Tuple comparer that uses the default BCL object comparison ("123" != 123 != 123L != 123.0d)</summary>
 		public static readonly EqualityComparer Bcl = new EqualityComparer(EqualityComparer<object>.Default);
 
-		public sealed class EqualityComparer : IEqualityComparer<ITuple>, IEqualityComparer
+		public sealed class EqualityComparer : IEqualityComparer<IVarTuple>, IEqualityComparer
 		{
 			private readonly IEqualityComparer m_comparer;
 
@@ -55,7 +55,7 @@ namespace Doxense.Collections.Tuples
 				m_comparer = comparer;
 			}
 
-			public bool Equals(ITuple x, ITuple y)
+			public bool Equals(IVarTuple x, IVarTuple y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
 				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -63,7 +63,7 @@ namespace Doxense.Collections.Tuples
 				return x.Equals(y, m_comparer);
 			}
 
-			public int GetHashCode(ITuple obj)
+			public int GetHashCode(IVarTuple obj)
 			{
 				return HashCodes.Compute(obj, m_comparer);
 			}
@@ -73,9 +73,9 @@ namespace Doxense.Collections.Tuples
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;
 
-				if (x is ITuple t) return t.Equals(y, m_comparer);
+				if (x is IVarTuple t) return t.Equals(y, m_comparer);
 
-				t = y as ITuple;
+				t = y as IVarTuple;
 				if (t != null) return t.Equals(x, m_comparer);
 
 				return false;
@@ -85,7 +85,7 @@ namespace Doxense.Collections.Tuples
 			{
 				if (obj == null) return 0;
 
-				var t = obj as ITuple;
+				var t = obj as IVarTuple;
 				if (!object.ReferenceEquals(t, null)) return t.GetHashCode(m_comparer);
 
 				// returns a hash base on the pointers
@@ -99,7 +99,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer">Comparer for the item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<ITuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
+		public static IComparer<IVarTuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
 		{
 			return new CompositeComparer<T1>(offset, comparer);
 		}
@@ -127,17 +127,17 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer3">Comparer for the third item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<ITuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
+		public static IComparer<IVarTuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
 		{
 			return new CompositeComparer<T1, T2, T3>(offset, comparer1, comparer2, comparer3);
 		}
 
 		/// <summary>Comparer that compares tuples with at least 1 item</summary>
 		/// <typeparam name="T1">Type of the item</typeparam>
-		public sealed class CompositeComparer<T1> : IComparer<ITuple>
+		public sealed class CompositeComparer<T1> : IComparer<IVarTuple>
 		{
 
-			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1>();
+			public static readonly IComparer<IVarTuple> Default = new CompositeComparer<T1>();
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			public CompositeComparer()
@@ -169,7 +169,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(ITuple x, ITuple y)
+			public int Compare(IVarTuple x, IVarTuple y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;
@@ -187,10 +187,10 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Comparer that compares tuples with at least 2 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
-		public sealed class CompositeComparer<T1, T2> : IComparer<ITuple>, IComparer<STuple<T1, T2>>, IComparer<(T1, T2)>
+		public sealed class CompositeComparer<T1, T2> : IComparer<IVarTuple>, IComparer<STuple<T1, T2>>, IComparer<(T1, T2)>
 		{
 
-			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2>();
+			public static readonly IComparer<IVarTuple> Default = new CompositeComparer<T1, T2>();
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			public CompositeComparer()
@@ -227,7 +227,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(ITuple x, ITuple y)
+			public int Compare(IVarTuple x, IVarTuple y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;
@@ -277,10 +277,10 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
 		/// <typeparam name="T3">Type of the thrid item</typeparam>
-		public sealed class CompositeComparer<T1, T2, T3> : IComparer<ITuple>
+		public sealed class CompositeComparer<T1, T2, T3> : IComparer<IVarTuple>
 		{
 
-			public static readonly IComparer<ITuple> Default = new CompositeComparer<T1, T2, T3>();
+			public static readonly IComparer<IVarTuple> Default = new CompositeComparer<T1, T2, T3>();
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			public CompositeComparer()
@@ -322,7 +322,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(ITuple x, ITuple y)
+			public int Compare(IVarTuple x, IVarTuple y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;

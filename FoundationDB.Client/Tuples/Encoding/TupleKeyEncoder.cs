@@ -45,7 +45,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public IKeyEncoding Encoding => TuPack.Encoding;
 
 		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			var tw = new TupleWriter(writer);
 			TupleEncoder.WriteTo(ref tw, items);
@@ -136,7 +136,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public ITuple UnpackKey(Slice packed)
+		public IVarTuple UnpackKey(Slice packed)
 		{
 			return TuPack.Unpack(packed);
 		}
@@ -186,7 +186,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.ToRange(prefix);
 		}
 
-		public (Slice Begin, Slice End) ToRange(Slice prefix, ITuple items)
+		public (Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items)
 		{
 			return TuPack.ToPrefixedKeyRange(prefix, items);
 		}

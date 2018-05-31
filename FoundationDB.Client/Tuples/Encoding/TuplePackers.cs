@@ -109,7 +109,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			// maybe it is a tuple ?
-			if (typeof(ITuple).IsAssignableFrom(type))
+			if (typeof(IVarTuple).IsAssignableFrom(type))
 			{
 				if (type == typeof(STuple) || (type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal) && type.Namespace == typeof(STuple).Namespace))
 				{ // well-known STuple<T...> struct
@@ -314,7 +314,8 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(TimeSpan)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (TimeSpan) value),
 				[typeof(DateTime)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTime) value),
 				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTimeOffset) value),
-				[typeof(ITuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
+				[typeof(IVarTuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (IVarTuple) value),
+				//TODO: add System.Runtime.CompilerServices.ITuple for net471+
 				[typeof(DBNull)] = (ref TupleWriter writer, object value) => TupleParser.WriteNil(ref writer)
 			};
 
@@ -638,7 +639,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Serialize an embedded tuples</summary>
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			Contract.Requires(tuple != null);
 
@@ -796,7 +797,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
 				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress),
 				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
-				[typeof(ITuple)] = new Func<Slice, ITuple>(TuplePackers.DeserializeTuple),
+				[typeof(IVarTuple)] = new Func<Slice, IVarTuple>(TuplePackers.DeserializeTuple),
 				[typeof(TuPackUserType)] = new Func<Slice, TuPackUserType>(TuplePackers.DeserializeUserType)
 			};
 
@@ -825,7 +826,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			// STuple<...>
-			if (typeof(ITuple).IsAssignableFrom(type))
+			if (typeof(IVarTuple).IsAssignableFrom(type))
 			{
 				if (type.IsValueType && type.IsGenericType && type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal))
 				return (Func<Slice, T>) MakeSTupleDeserializer(type);
@@ -1048,7 +1049,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
 		[CanBeNull]
-		public static ITuple DeserializeTuple(Slice slice)
+		public static IVarTuple DeserializeTuple(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 

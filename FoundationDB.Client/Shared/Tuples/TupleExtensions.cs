@@ -47,21 +47,22 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Returns true if the tuple is either null or empty</summary>
 		[ContractAnnotation("null => true")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsNullOrEmpty(this ITuple tuple)
+		public static bool IsNullOrEmpty(this IVarTuple tuple)
 		{
 			return tuple == null || tuple.Count == 0;
 		}
 
 		/// <summary>Returns true if the tuple is not null, and contains only one item</summary>
 		[ContractAnnotation("null => false")]
-		public static bool IsSingleton(this ITuple tuple)
+		[Obsolete] //TODO: remove this!
+		public static bool IsSingleton(this IVarTuple tuple)
 		{
 			return tuple != null && tuple.Count == 1;
 		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		[NotNull, ItemCanBeNull]
-		public static object[] ToArray([NotNull] this ITuple tuple)
+		public static object[] ToArray([NotNull] this IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 
@@ -75,7 +76,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Returns a typed array containing all the items of a tuple</summary>
 		[NotNull]
-		public static T[] ToArray<T>([NotNull] this ITuple tuple)
+		public static T[] ToArray<T>([NotNull] this IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 
@@ -95,7 +96,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
 		[Pure]
 		[ContractAnnotation("null => true")]
-		public static T First<T>([NotNull] this ITuple tuple)
+		public static T First<T>([NotNull] this IVarTuple tuple)
 		{
 			return tuple.Get<T>(0);
 		}
@@ -106,14 +107,14 @@ namespace Doxense.Collections.Tuples
 		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
 		[Pure]
 		[ContractAnnotation("null => true")]
-		public static T Last<T>([NotNull] this ITuple tuple)
+		public static T Last<T>([NotNull] this IVarTuple tuple)
 		{
 			return tuple.Get<T>(-1);
 		}
 
 		/// <summary>Appends two values at the end of a tuple</summary>
 		[NotNull]
-		public static ITuple Append<T1, T2>([NotNull] this ITuple tuple, T1 value1, T2 value2)
+		public static IVarTuple Append<T1, T2>([NotNull] this IVarTuple tuple, T1 value1, T2 value2)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			return new JoinedTuple(tuple, STuple.Create(value1, value2));
@@ -121,7 +122,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends three values at the end of a tuple</summary>
 		[NotNull]
-		public static ITuple Append<T1, T2, T3>([NotNull] this ITuple tuple, T1 value1, T2 value2, T3 value3)
+		public static IVarTuple Append<T1, T2, T3>([NotNull] this IVarTuple tuple, T1 value1, T2 value2, T3 value3)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3>(value1, value2, value3));
@@ -129,7 +130,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends four values at the end of a tuple</summary>
 		[NotNull]
-		public static ITuple Append<T1, T2, T3, T4>([NotNull] this ITuple tuple, T1 value1, T2 value2, T3 value3, T4 value4)
+		public static IVarTuple Append<T1, T2, T3, T4>([NotNull] this IVarTuple tuple, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
@@ -140,7 +141,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="offset">Offset from the start of the current tuple (negative value means from the end)</param>
 		/// <returns>Tuple that contains only the items past the first <param name="offset"/> items of the current tuple</returns>
 		[NotNull]
-		public static ITuple Substring([NotNull] this ITuple tuple, int offset)
+		public static IVarTuple Substring([NotNull] this IVarTuple tuple, int offset)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 
@@ -153,7 +154,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="count">Number of items to keep</param>
 		/// <returns>Tuple that contains only the selected items from the current tuple</returns>
 		[NotNull]
-		public static ITuple Substring([NotNull] this ITuple tuple, int offset, int count)
+		public static IVarTuple Substring([NotNull] this IVarTuple tuple, int offset, int count)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			Contract.Positive(count, nameof(count));
@@ -171,7 +172,7 @@ namespace Doxense.Collections.Tuples
 		/// (a, b, c).Truncate(2) => (a, b)
 		/// (a, b, c).Truncate(-2) => (b, c)
 		/// </example>
-		public static ITuple Truncate([NotNull] this ITuple tuple, int count)
+		public static IVarTuple Truncate([NotNull] this IVarTuple tuple, int count)
 		{
 			tuple.OfSizeAtLeast(Math.Abs(count));
 
@@ -190,7 +191,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="left">Larger tuple</param>
 		/// <param name="right">Smaller tuple</param>
 		/// <returns>True if the beginning of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
-		public static bool StartsWith([NotNull] this ITuple left, [NotNull] ITuple right)
+		public static bool StartsWith([NotNull] this IVarTuple left, [NotNull] IVarTuple right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));
@@ -203,7 +204,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="left">Larger tuple</param>
 		/// <param name="right">Smaller tuple</param>
 		/// <returns>True if the end of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
-		public static bool EndsWith([NotNull] this ITuple left, [NotNull] ITuple right)
+		public static bool EndsWith([NotNull] this IVarTuple left, [NotNull] IVarTuple right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));
@@ -216,7 +217,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple that contains any number of elements</param>
 		/// <returns>Sequence of tuples that contains a single element</returns>
 		/// <example>(123, ABC, false,).Explode() => [ (123,), (ABC,), (false,) ]</example>
-		public static IEnumerable<ITuple> Explode([NotNull] this ITuple tuple)
+		public static IEnumerable<IVarTuple> Explode([NotNull] this IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 
@@ -236,11 +237,10 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="ArgumentNullException">If <paramref name="tuple"/> is null</exception>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller or larger than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
-		[NotNull]
-		public static ITuple OfSize(this ITuple tuple, int size)
+		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IVarTuple OfSize(this IVarTuple tuple, int size)
 		{
-			if (tuple == null || tuple.Count != size) ThrowInvalidTupleSize(tuple, size, 0);
-			return tuple;
+			return tuple != null && tuple.Count == size ? tuple : ThrowInvalidTupleSize(tuple, size, 0);
 		}
 
 		/// <summary>Verify that this tuple has at least a certain size</summary>
@@ -250,11 +250,10 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="ArgumentNullException">If <paramref name="tuple"/> is null</exception>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
-		[NotNull]
-		public static ITuple OfSizeAtLeast(this ITuple tuple, int size)
+		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IVarTuple OfSizeAtLeast(this IVarTuple tuple, int size)
 		{
-			if (tuple == null || tuple.Count < size) ThrowInvalidTupleSize(tuple, size, -1);
-			return tuple;
+			return tuple != null && tuple.Count >= size ? tuple : ThrowInvalidTupleSize(tuple, size, -1);
 		}
 
 		/// <summary>Verify that this tuple has at most a certain size</summary>
@@ -264,15 +263,14 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="ArgumentNullException">If <paramref name="tuple"/> is null</exception>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is larger than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
-		[NotNull]
-		public static ITuple OfSizeAtMost(this ITuple tuple, int size)
+		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IVarTuple OfSizeAtMost(this IVarTuple tuple, int size)
 		{
-			if (tuple == null || tuple.Count > size) ThrowInvalidTupleSize(tuple, size, 1);
-			return tuple;
+			return tuple != null && tuple.Count <= size ? tuple : ThrowInvalidTupleSize(tuple, size, 1);
 		}
 
-		[ContractAnnotation("=> halt")]
-		internal static void ThrowInvalidTupleSize(ITuple tuple, int expected, int test)
+		[MethodImpl(MethodImplOptions.NoInlining), ContractAnnotation("=> halt")]
+		internal static IVarTuple ThrowInvalidTupleSize(IVarTuple tuple, int expected, int test)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			switch(test)
@@ -387,7 +385,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 1</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1>([NotNull] this ITuple tuple, [NotNull] Action<T1> lambda)
+		public static void With<T1>([NotNull] this IVarTuple tuple, [NotNull] Action<T1> lambda)
 		{
 			OfSize(tuple, 1);
 			lambda(tuple.Get<T1>(0));
@@ -397,7 +395,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 2</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2> lambda)
+		public static void With<T1, T2>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2> lambda)
 		{
 			OfSize(tuple, 2);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
@@ -407,7 +405,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 3</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3> lambda)
+		public static void With<T1, T2, T3>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2, T3> lambda)
 		{
 			OfSize(tuple, 3);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
@@ -417,7 +415,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 4</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4> lambda)
+		public static void With<T1, T2, T3, T4>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2, T3, T4> lambda)
 		{
 			OfSize(tuple, 4);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
@@ -427,7 +425,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 5</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5> lambda)
+		public static void With<T1, T2, T3, T4, T5>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5> lambda)
 		{
 			OfSize(tuple, 5);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
@@ -437,7 +435,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 6</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5, T6>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6> lambda)
+		public static void With<T1, T2, T3, T4, T5, T6>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6> lambda)
 		{
 			OfSize(tuple, 6);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
@@ -447,7 +445,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 7</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5, T6, T7>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7> lambda)
+		public static void With<T1, T2, T3, T4, T5, T6, T7>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7> lambda)
 		{
 			OfSize(tuple, 7);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
@@ -457,7 +455,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple of size 8</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static void With<T1, T2, T3, T4, T5, T6, T7, T8>([NotNull] this ITuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
+		public static void With<T1, T2, T3, T4, T5, T6, T7, T8>([NotNull] this IVarTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
 		{
 			OfSize(tuple, 8);
 			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));
@@ -468,7 +466,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, TResult> lambda)
+		public static TResult With<T1, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, TResult> lambda)
 		{
 			return lambda(tuple.OfSize(1).Get<T1>(0));
 		}
@@ -478,7 +476,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, TResult> lambda)
+		public static TResult With<T1, T2, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, TResult> lambda)
 		{
 			OfSize(tuple, 2);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
@@ -489,7 +487,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, TResult> lambda)
+		public static TResult With<T1, T2, T3, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, T3, TResult> lambda)
 		{
 			OfSize(tuple, 3);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
@@ -500,7 +498,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, T3, T4, TResult> lambda)
 		{
 			OfSize(tuple, 4);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
@@ -511,7 +509,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, TResult> lambda)
 		{
 			OfSize(tuple, 5);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
@@ -522,7 +520,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, T6, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, T6, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, TResult> lambda)
 		{
 			OfSize(tuple, 6);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
@@ -533,7 +531,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, T6, T7, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, T6, T7, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, TResult> lambda)
 		{
 			OfSize(tuple, 7);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
@@ -544,7 +542,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
-		public static TResult With<T1, T2, T3, T4, T5, T6, T7, T8, TResult>([NotNull] this ITuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> lambda)
+		public static TResult With<T1, T2, T3, T4, T5, T6, T7, T8, TResult>([NotNull] this IVarTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> lambda)
 		{
 			OfSize(tuple, 8);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));
@@ -555,13 +553,13 @@ namespace Doxense.Collections.Tuples
 		#region Deconstruction
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1>(this ITuple value, out T1 item1)
+		public static void Deconstruct<T1>(this IVarTuple value, out T1 item1)
 		{
 			item1 = value.OfSize(1).Get<T1>(0);
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2>(this ITuple value, out T1 item1, out T2 item2)
+		public static void Deconstruct<T1, T2>(this IVarTuple value, out T1 item1, out T2 item2)
 		{
 			value.OfSize(2);
 			item1 = value.Get<T1>(0);
@@ -569,7 +567,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3>(this ITuple value, out T1 item1, out T2 item2, out T3 item3)
+		public static void Deconstruct<T1, T2, T3>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3)
 		{
 			value.OfSize(3);
 			item1 = value.Get<T1>(0);
@@ -578,7 +576,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4>(this ITuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
+		public static void Deconstruct<T1, T2, T3, T4>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
 		{
 			value.OfSize(4);
 			item1 = value.Get<T1>(0);
@@ -588,7 +586,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5>(this ITuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5)
+		public static void Deconstruct<T1, T2, T3, T4, T5>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5)
 		{
 			value.OfSize(5);
 			item1 = value.Get<T1>(0);
@@ -599,7 +597,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6>(this ITuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6)
 		{
 			value.OfSize(6);
 			item1 = value.Get<T1>(0);
@@ -611,7 +609,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7>(this ITuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7)
 		{
 			value.OfSize(7);
 			item1 = value.Get<T1>(0);
@@ -624,7 +622,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7, T8>(this ITuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7, out T8 item8)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7, T8>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7, out T8 item8)
 		{
 			value.OfSize(8);
 			item1 = value.Get<T1>(0);

@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
 		public DynamicPartition Partition { get; }
 
-		public Slice this[[NotNull] ITuple item]
+		public Slice this[[NotNull] IVarTuple item]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Keys.Pack(item);
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
 		[Pure]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
@@ -161,7 +161,7 @@ namespace FoundationDB.Client
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
 		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
 		/// <returns>Original tuple</returns>
-		public ITuple Unpack(Slice packedKey)
+		public IVarTuple Unpack(Slice packedKey)
 		{
 			return this.Encoder.UnpackKey(this.Parent.ExtractKey(packedKey));
 		}
@@ -176,7 +176,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
 		/// <param name="tuple">Tuple used as a prefix for the range</param>
-		public KeyRange ToRange([NotNull] ITuple tuple)
+		public KeyRange ToRange([NotNull] IVarTuple tuple)
 		{
 			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
 		}
@@ -451,7 +451,7 @@ namespace FoundationDB.Client
 			get => new DynamicKeySubspace(this.Subspace[binarySuffix], this.Subspace.Encoding);
 		}
 
-		public IDynamicKeySubspace this[ITuple suffix]
+		public IDynamicKeySubspace this[IVarTuple suffix]
 		{
 			[Pure, NotNull]
 			get => new DynamicKeySubspace(this.Subspace.Keys.Pack(suffix), this.Subspace.Encoding);
