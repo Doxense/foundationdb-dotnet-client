@@ -156,27 +156,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.DecodeLast<T>(packed);
 		}
 
-		public STuple<T1, T2> DecodeKey<T1, T2>(Slice packed)
+		public (T1, T2) DecodeKey<T1, T2>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2>(packed);
 		}
 
-		public STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packed)
+		public (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3>(packed);
 		}
 
-		public STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packed)
+		public (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4>(packed);
 		}
 
-		public STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
+		public (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
 		}
 
-		public STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
+		public (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
 		}

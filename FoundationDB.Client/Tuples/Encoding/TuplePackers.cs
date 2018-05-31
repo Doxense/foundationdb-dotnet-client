@@ -788,6 +788,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(ulong)] = new Func<Slice, ulong>(TuplePackers.DeserializeUInt64),
 				[typeof(float)] = new Func<Slice, float>(TuplePackers.DeserializeSingle),
 				[typeof(double)] = new Func<Slice, double>(TuplePackers.DeserializeDouble),
+				[typeof(decimal)] = new Func<Slice, decimal>(TuplePackers.DeserializeDecimal),
 				[typeof(Guid)] = new Func<Slice, Guid>(TuplePackers.DeserializeGuid),
 				[typeof(Uuid128)] = new Func<Slice, Uuid128>(TuplePackers.DeserializeUuid128),
 				[typeof(Uuid96)] = new Func<Slice, Uuid96>(TuplePackers.DeserializeUuid96),
@@ -795,7 +796,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64),
 				[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan),
 				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
-				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress),
+				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIpAddress),
 				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
 				[typeof(IVarTuple)] = new Func<Slice, IVarTuple>(TuplePackers.DeserializeTuple),
 				[typeof(TuPackUserType)] = new Func<Slice, TuPackUserType>(TuplePackers.DeserializeUserType)
@@ -1076,148 +1077,46 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1> DeserializeTuple<T1>(Slice slice)
 		{
-			var res = default(STuple<T1>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
-					case TupleTypes.EmbeddedTuple:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
+			return DeserializeValueTuple<T1>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2> DeserializeTuple<T1, T2>(Slice slice)
 		{
-			var res = default(STuple<T1, T2>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
-					case TupleTypes.EmbeddedTuple:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
+			return DeserializeValueTuple<T1, T2>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3> DeserializeTuple<T1, T2, T3>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
-					case TupleTypes.EmbeddedTuple:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
-
+			return DeserializeValueTuple<T1, T2, T3>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4> DeserializeTuple<T1, T2, T3, T4>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3, T4>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
-					case TupleTypes.EmbeddedTuple:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
-
+			return DeserializeValueTuple<T1, T2, T3, T4>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4, T5> DeserializeTuple<T1, T2, T3, T4, T5>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3, T4, T5>);
+			return DeserializeValueTuple<T1, T2, T3, T4, T5>(slice);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1, T2, T3, T4, T5, T6> DeserializeTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		{
+			return DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(slice);
+		}
+
+		[Pure]
+		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
+		{
+			ValueTuple<T1> res = default;
 			if (slice.IsPresent)
 			{
 				byte type = slice[0];
@@ -1249,9 +1148,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5, T6> DeserializeTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		public static ValueTuple<T1, T2> DeserializeValueTuple<T1, T2>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3, T4, T5, T6>);
+			var res = default(ValueTuple<T1, T2>);
 			if (slice.IsPresent)
 			{
 				byte type = slice[0];
@@ -1282,40 +1181,142 @@ namespace Doxense.Collections.Tuples.Encoding
 			return res;
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3> DeserializeValueTuple<T1, T2, T3>(Slice slice)
 		{
-			return DeserializeTuple<T1>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2) DeserializeValueTuple<T1, T2>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3, T4> DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
 		{
-			return DeserializeTuple<T1, T2>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3, T4>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3) DeserializeValueTuple<T1, T2, T3>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3, T4, T5> DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
 		{
-			return DeserializeTuple<T1, T2, T3>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3, T4, T5>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3, T4) DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3, T4, T5, T6> DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
 		{
-			return DeserializeTuple<T1, T2, T3, T4>(slice).ToValueTuple();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3, T4, T5) DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
-		{
-			return DeserializeTuple<T1, T2, T3, T4, T5>(slice).ToValueTuple();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3, T4, T5, T6) DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
-		{
-			return DeserializeTuple<T1, T2, T3, T4, T5, T6>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3, T4, T5, T6>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
 		}
 
 		/// <summary>Deserialize a tuple segment into a Boolean</summary>
@@ -1874,7 +1875,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public static VersionStamp DeserializeVersionStamp(Slice slice)
 		{
-			if (slice.IsNullOrEmpty) return default(VersionStamp);
+			if (slice.IsNullOrEmpty) return default;
 
 			int type = slice[0];
 
@@ -1893,7 +1894,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[CanBeNull]
-		public static System.Net.IPAddress DeserializeIPAddress(Slice slice)
+		public static System.Net.IPAddress DeserializeIpAddress(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 

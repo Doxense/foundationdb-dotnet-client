@@ -64,8 +64,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1>(STuple<T1> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, ref tuple);
+			return TupleEncoder.Pack(default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -73,8 +72,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2>(STuple<T1, T2> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, ref tuple);
+			return TupleEncoder.Pack(default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -82,8 +80,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, ref tuple);
+			return TupleEncoder.Pack(default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -91,8 +88,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, ref tuple);
+			return TupleEncoder.Pack(default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -100,8 +96,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, ref tuple);
+			return TupleEncoder.Pack(default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -109,8 +104,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, ref tuple);
+			return TupleEncoder.Pack(default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -118,8 +112,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1>(ValueTuple<T1> tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuple.ToSTuple());
+			return TupleEncoder.Pack(default, ref tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -127,8 +120,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2>((T1, T2) tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuple.ToSTuple());
+			return TupleEncoder.Pack(default, ref tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -136,8 +128,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3>((T1, T2, T3) tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuple.ToSTuple());
+			return TupleEncoder.Pack(default, ref tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -145,8 +136,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuple.ToSTuple());
+			return TupleEncoder.Pack(default, ref tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -154,8 +144,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuple.ToSTuple());
+			return TupleEncoder.Pack(default, ref tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -163,8 +152,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuple.ToSTuple());
+			return TupleEncoder.Pack(default, ref tuple);
 		}
 
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
@@ -174,8 +162,18 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples([NotNull] params IVarTuple[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
+		}
+
+		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
+		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice[] PackTuples<TTuple>([NotNull] params TTuple[] tuples)
+			where TTuple : IVarTuple
+		{
+			return TupleEncoder.Pack<TTuple>(default, tuples);
 		}
 
 		/// <summary>Pack an array of 1-tuples, all sharing the same buffer</summary>
@@ -185,8 +183,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<T1>([NotNull] params STuple<T1>[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Pack an array of 2-tuples, all sharing the same buffer</summary>
@@ -196,8 +193,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<T1, T2>([NotNull] params STuple<T1, T2>[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Pack an array of 3-tuples, all sharing the same buffer</summary>
@@ -207,8 +203,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<T1, T2, T3>([NotNull] params STuple<T1, T2, T3>[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Pack an array of 4-tuples, all sharing the same buffer</summary>
@@ -218,8 +213,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<T1, T2, T3, T4>([NotNull] params STuple<T1, T2, T3, T4>[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Pack an array of 5-tuples, all sharing the same buffer</summary>
@@ -229,8 +223,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<T1, T2, T3, T4, T5>([NotNull] params STuple<T1, T2, T3, T4, T5>[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Pack an array of 6-tuples, all sharing the same buffer</summary>
@@ -240,8 +233,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples<T1, T2, T3, T4, T5, T6>([NotNull] params STuple<T1, T2, T3, T4, T5, T6>[] tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
@@ -251,8 +243,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] PackTuples([NotNull, InstantHandle] this IEnumerable<IVarTuple> tuples)
 		{
-			var empty = default(Slice);
-			return TupleEncoder.Pack(empty, tuples);
+			return TupleEncoder.Pack(default(Slice), tuples);
 		}
 
 		/// <summary>Efficiently write the packed representation of a tuple</summary>
@@ -284,7 +275,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1>(Slice prefix, STuple<T1> tuple)
 		{
-			return TupleEncoder.Pack(prefix, ref tuple);
+			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -293,7 +284,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2>(Slice prefix, STuple<T1, T2> tuple)
 		{
-			return TupleEncoder.Pack(prefix, ref tuple);
+			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -302,7 +293,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3>(Slice prefix, STuple<T1, T2, T3> tuple)
 		{
-			return TupleEncoder.Pack(prefix, ref tuple);
+			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -311,7 +302,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, STuple<T1, T2, T3, T4> tuple)
 		{
-			return TupleEncoder.Pack(prefix, ref tuple);
+			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -320,7 +311,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			return TupleEncoder.Pack(prefix, ref tuple);
+			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -329,7 +320,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			return TupleEncoder.Pack(prefix, ref tuple);
+			return TupleEncoder.Pack(prefix, in tuple);
 		}
 
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
@@ -619,8 +610,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -634,8 +624,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, ref tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -648,7 +637,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2>(T1 item1, T2 item2)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -675,8 +664,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -688,8 +676,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>((T1, T2, T3) tuple)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, ref tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -701,7 +688,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -727,8 +714,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -753,7 +739,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -779,8 +765,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -805,7 +790,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -831,8 +816,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -844,8 +828,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var empty = default(Slice);
-			var packed = TupleEncoder.Pack(empty, ref tuple);
+			var packed = TupleEncoder.Pack(default, ref tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -857,7 +840,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -881,7 +864,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -905,7 +888,7 @@ namespace Doxense.Collections.Tuples
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7, item8);
+			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7, item8);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -964,7 +947,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(prefix, ref tuple);
+			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -978,7 +961,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(prefix, ref tuple);
+			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -992,7 +975,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(prefix, ref tuple);
+			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -1006,7 +989,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(prefix, ref tuple);
+			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -1020,7 +1003,7 @@ namespace Doxense.Collections.Tuples
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
 			// tuple => [ packed."\0", packed."\xFF" )
-			var packed = TupleEncoder.Pack(prefix, ref tuple);
+			var packed = TupleEncoder.Pack(prefix, in tuple);
 			return (
 				packed + 0x00,
 				packed + 0xFF
@@ -1092,7 +1075,7 @@ namespace Doxense.Collections.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1 DecodeKey<T1>(Slice packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out STuple<T1> tuple);
+			TupleEncoder.DecodeKey(packedKey, out ValueTuple<T1> tuple);
 			return tuple.Item1;
 		}
 
@@ -1100,9 +1083,9 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1, T2> DecodeKey<T1, T2>(Slice packedKey)
+		public static (T1, T2) DecodeKey<T1, T2>(Slice packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out STuple<T1, T2> tuple);
+			TupleEncoder.DecodeKey(packedKey, out (T1, T2) tuple);
 			return tuple;
 		}
 
@@ -1110,9 +1093,9 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packedKey)
+		public static (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out STuple<T1, T2, T3> tuple);
+			TupleEncoder.DecodeKey(packedKey, out (T1, T2, T3) tuple);
 			return tuple;
 		}
 
@@ -1120,9 +1103,9 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packedKey)
+		public static (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out STuple<T1, T2, T3, T4> tuple);
+			TupleEncoder.DecodeKey(packedKey, out (T1, T2, T3, T4) tuple);
 			return tuple;
 		}
 
@@ -1130,9 +1113,9 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
+		public static (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out STuple<T1, T2, T3, T4, T5> tuple);
+			TupleEncoder.DecodeKey(packedKey, out (T1, T2, T3, T4, T5) tuple);
 			return tuple;
 		}
 
@@ -1140,9 +1123,9 @@ namespace Doxense.Collections.Tuples
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey)
+		public static (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey)
 		{
-			TupleEncoder.DecodeKey(packedKey, out STuple<T1, T2, T3, T4, T5, T6> tuple);
+			TupleEncoder.DecodeKey(packedKey, out (T1, T2, T3, T4, T5, T6) tuple);
 			return tuple;
 		}
 

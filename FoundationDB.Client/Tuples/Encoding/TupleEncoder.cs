@@ -266,6 +266,16 @@ namespace Doxense.Collections.Tuples.Encoding
 			return writer.ToSlice();
 		}
 
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
+		[Pure]
+		public static Slice Pack<T1>(Slice prefix, ref ValueTuple<T1> items)
+		{
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
+			TuplePackers.SerializeTo(ref writer, items.Item1);
+			return writer.ToSlice();
+		}
+
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
 		public static Slice EncodeKey<T1, T2>(Slice prefix, T1 value1, T2 value2)
@@ -459,7 +469,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		// => Encode?
 
 		/// <summary>Pack a 1-tuple directly into a slice</summary>
-		public static Slice Pack<T1>(Slice prefix, ref STuple<T1> tuple)
+		public static Slice Pack<T1>(Slice prefix, in STuple<T1> tuple)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -468,7 +478,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
-		public static Slice Pack<T1, T2>(Slice prefix, ref STuple<T1, T2> tuple)
+		public static Slice Pack<T1, T2>(Slice prefix, in STuple<T1, T2> tuple)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -477,7 +487,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
-		public static Slice Pack<T1, T2, T3>(Slice prefix, ref STuple<T1, T2, T3> tuple)
+		public static Slice Pack<T1, T2, T3>(Slice prefix, in STuple<T1, T2, T3> tuple)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -486,7 +496,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
-		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, ref STuple<T1, T2, T3, T4> tuple)
+		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, in STuple<T1, T2, T3, T4> tuple)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -495,7 +505,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Pack a 5-tuple directly into a slice</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, ref STuple<T1, T2, T3, T4, T5> tuple)
+		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -504,7 +514,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, ref STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -804,29 +814,27 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than one element.</remarks>
-		public static void DecodeKey<T1>(Slice packedKey, out STuple<T1> tuple) //REVIEW: or T1 instead of STuple<T1> ?
+		public static void DecodeKey<T1>(Slice packedKey, out ValueTuple<T1> tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack a single value out of an empty tuple");
 
 			var slice = TuplePackers.UnpackSingle(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
-			tuple = new STuple<T1>(TuplePacker<T1>.Deserialize(slice));
+			tuple = new ValueTuple<T1>(TuplePacker<T1>.Deserialize(slice));
 		}
 
-		public static void DecodeKey<T1>(ref TupleReader reader, out STuple<T1> tuple) //REVIEW: or T1 instead of STuple<T1> ?
+		public static void DecodeKey<T1>(ref TupleReader reader, out T1 item1)
 		{
-			if (!DecodeNext(ref reader, out T1 item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than two items");
-
-			tuple = new STuple<T1>(item1);
 		}
 
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than two elements.</remarks>
-		public static void DecodeKey<T1, T2>(Slice packedKey, out STuple<T1, T2> tuple)
+		public static void DecodeKey<T1, T2>(Slice packedKey, out (T1, T2) tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -834,12 +842,11 @@ namespace Doxense.Collections.Tuples.Encoding
 			DecodeKey(ref reader, out tuple);
 		}
 
-		public static void DecodeKey<T1, T2>(ref TupleReader reader, out STuple<T1, T2> tuple)
+		public static void DecodeKey<T1, T2>(ref TupleReader reader, out (T1, T2) tuple)
 		{
-			if (!DecodeNext(ref reader, out T1 item1)) throw new FormatException("Failed to decode first item");
-			if (!DecodeNext(ref reader, out T2 item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than two items");
-			tuple = new STuple<T1, T2>(item1, item2);
 		}
 
 
@@ -854,7 +861,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than three elements.</remarks>
-		public static void DecodeKey<T1, T2, T3>(Slice packedKey, out STuple<T1, T2, T3> tuple)
+		public static void DecodeKey<T1, T2, T3>(Slice packedKey, out (T1, T2, T3) tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -862,13 +869,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			DecodeKey(ref reader, out tuple);
 		}
 
-		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out STuple<T1, T2, T3> tuple)
+		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out (T1, T2, T3) tuple)
 		{
-			if (!DecodeNext(ref reader, out T1 item1)) throw new FormatException("Failed to decode first item");
-			if (!DecodeNext(ref reader, out T2 item2)) throw new FormatException("Failed to decode second item");
-			if (!DecodeNext(ref reader, out T3 item3)) throw new FormatException("Failed to decode third item");
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item3)) throw new FormatException("Failed to decode third item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than three items");
-			tuple = new STuple<T1, T2, T3>(item1, item2, item3);
 		}
 
 		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3)
@@ -883,7 +889,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than four elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4>(Slice packedKey, out STuple<T1, T2, T3, T4> tuple)
+		public static void DecodeKey<T1, T2, T3, T4>(Slice packedKey, out (T1, T2, T3, T4) tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -891,14 +897,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			DecodeKey(ref reader, out tuple);
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out STuple<T1, T2, T3, T4> tuple)
+		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out (T1, T2, T3, T4) tuple)
 		{
-			if (!DecodeNext(ref reader, out T1 item1)) throw new FormatException("Failed to decode first item");
-			if (!DecodeNext(ref reader, out T2 item2)) throw new FormatException("Failed to decode second item");
-			if (!DecodeNext(ref reader, out T3 item3)) throw new FormatException("Failed to decode third item");
-			if (!DecodeNext(ref reader, out T4 item4)) throw new FormatException("Failed to decode fourth item");
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item3)) throw new FormatException("Failed to decode third item");
+			if (!DecodeNext(ref reader, out tuple.Item4)) throw new FormatException("Failed to decode fourth item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
-			tuple = new STuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
 		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
@@ -914,7 +919,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than five elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey, out STuple<T1, T2, T3, T4, T5> tuple)
+		public static void DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey, out (T1, T2, T3, T4, T5) tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -922,15 +927,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			DecodeKey(ref reader, out tuple);
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5> tuple)
+		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out (T1, T2, T3, T4, T5) tuple)
 		{
-			if (!DecodeNext(ref reader, out T1 item1)) throw new FormatException("Failed to decode first item");
-			if (!DecodeNext(ref reader, out T2 item2)) throw new FormatException("Failed to decode second item");
-			if (!DecodeNext(ref reader, out T3 item3)) throw new FormatException("Failed to decode third item");
-			if (!DecodeNext(ref reader, out T4 item4)) throw new FormatException("Failed to decode fourth item");
-			if (!DecodeNext(ref reader, out T5 item5)) throw new FormatException("Failed to decode fifth item");
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item3)) throw new FormatException("Failed to decode third item");
+			if (!DecodeNext(ref reader, out tuple.Item4)) throw new FormatException("Failed to decode fourth item");
+			if (!DecodeNext(ref reader, out tuple.Item5)) throw new FormatException("Failed to decode fifth item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
-			tuple = new STuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
 		}
 
 		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5)
@@ -947,7 +951,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with six elements</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty of has more than six elements.</remarks>
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey, out STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packedKey, out (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
 
@@ -955,16 +959,15 @@ namespace Doxense.Collections.Tuples.Encoding
 			DecodeKey(ref reader, out tuple);
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(ref TupleReader reader, out STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static void DecodeKey<T1, T2, T3, T4, T5, T6>(ref TupleReader reader, out (T1, T2, T3, T4, T5, T6) tuple)
 		{
-			if (!DecodeNext(ref reader, out T1 item1)) throw new FormatException("Failed to decode first item");
-			if (!DecodeNext(ref reader, out T2 item2)) throw new FormatException("Failed to decode second item");
-			if (!DecodeNext(ref reader, out T3 item3)) throw new FormatException("Failed to decode third item");
-			if (!DecodeNext(ref reader, out T4 item4)) throw new FormatException("Failed to decode fourth item");
-			if (!DecodeNext(ref reader, out T5 item5)) throw new FormatException("Failed to decode fifth item");
-			if (!DecodeNext(ref reader, out T6 item6)) throw new FormatException("Failed to decode sixth item");
+			if (!DecodeNext(ref reader, out tuple.Item1)) throw new FormatException("Failed to decode first item");
+			if (!DecodeNext(ref reader, out tuple.Item2)) throw new FormatException("Failed to decode second item");
+			if (!DecodeNext(ref reader, out tuple.Item3)) throw new FormatException("Failed to decode third item");
+			if (!DecodeNext(ref reader, out tuple.Item4)) throw new FormatException("Failed to decode fourth item");
+			if (!DecodeNext(ref reader, out tuple.Item5)) throw new FormatException("Failed to decode fifth item");
+			if (!DecodeNext(ref reader, out tuple.Item6)) throw new FormatException("Failed to decode sixth item");
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than six items");
-			tuple = new STuple<T1, T2, T3, T4, T5, T6>(item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Unpack the next item in the tuple, and advance the cursor</summary>

@@ -180,8 +180,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T2">Expected type of the second element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2}"/> or <see cref="EncodeKey{T1, T2}"/></param>
 		/// <returns>Tuple containing two elements, or an exception if the data is invalid, or the tuples has less or more than two elements</returns>
-		STuple<T1, T2> DecodeKey<T1, T2>(Slice packed);
-		//REVIEW: return ValueTuple instead?
+		(T1, T2) DecodeKey<T1, T2>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly three elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -189,8 +188,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Expected type of the third element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3}"/> or <see cref="EncodeKey{T1, T2, T3}"/></param>
 		/// <returns>Tuple containing three elements, or an exception if the data is invalid, or the tuples has less or more than three elements</returns>
-		STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packed);
-		//REVIEW: return ValueTuple instead?
+		(T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly four elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -199,8 +197,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T4">Expected type of the fourth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4}"/> or <see cref="EncodeKey{T1, T2, T3, T4}"/></param>
 		/// <returns>Tuple containing four elements, or an exception if the data is invalid, or the tuples has less or more than four elements</returns>
-		STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packed);
-		//REVIEW: return ValueTuple instead?
+		(T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly five elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -210,8 +207,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T5">Expected type of the fifth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
-		STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed);
-		//REVIEW: return ValueTuple instead?
+		(T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly six elements</summary>
 		/// <typeparam name="T1">Expected type of the first element</typeparam>
@@ -222,8 +218,7 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T6">Expected type of the sixth element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/> or <see cref="EncodeKey{T1, T2, T3, T4, T5, T6}"/></param>
 		/// <returns>Tuple containing five elements, or an exception if the data is invalid, or the tuples has less or more than five elements</returns>
-		STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
-		//REVIEW: return ValueTuple instead?
+		(T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed);
 
 		#endregion
 

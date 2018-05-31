@@ -521,7 +521,10 @@ namespace Doxense.Runtime.Converters
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TOutput Convert<TInput, TOutput>(TInput value)
 		{
-			//note: most of the types, T will be equal to R. We should get an optimized converter that will not box the values
+#if !DEBUG
+			//note: we expect that, in a lot of calls, TInput == TOutput so expect the JIT to optimize this away completely (only in Release builds)
+			if (typeof(TInput) == typeof(TOutput)) return (TOutput) (object) value;
+#endif
 			return Cache<TInput, TOutput>.Converter.Convert(value);
 		}
 

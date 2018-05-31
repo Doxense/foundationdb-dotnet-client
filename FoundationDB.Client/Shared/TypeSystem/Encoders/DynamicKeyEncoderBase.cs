@@ -104,29 +104,29 @@ namespace FoundationDB.Client
 			return UnpackKey(packed).OfSizeAtLeast(1).Get<T>(-1);
 		}
 
-		public virtual STuple<T1, T2> DecodeKey<T1, T2>(Slice packed)
+		public virtual (T1, T2) DecodeKey<T1, T2>(Slice packed)
 		{
-			return UnpackKey(packed).With((T1 a, T2 b) => STuple.Create(a, b));
+			return UnpackKey(packed).As<T1, T2>();
 		}
 
-		public virtual STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packed)
+		public virtual (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed)
 		{
-			return UnpackKey(packed).With((T1 a, T2 b, T3 c) => STuple.Create(a, b, c));
+			return UnpackKey(packed).As<T1, T2, T3>();
 		}
 
-		public virtual STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packed)
+		public virtual (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed)
 		{
-			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d) => STuple.Create(a, b, c, d));
+			return UnpackKey(packed).As<T1, T2, T3, T4>();
 		}
 
-		public virtual STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
+		public virtual (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
 		{
-			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d, T5 e) => STuple.Create(a, b, c, d, e));
+			return UnpackKey(packed).As<T1, T2, T3, T4, T5>();
 		}
 
-		public virtual STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
+		public virtual (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
 		{
-			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d, T5 e, T6 f) => STuple.Create(a, b, c, d, e, f));
+			return UnpackKey(packed).As<T1, T2, T3, T4, T5, T6>();
 		}
 
 		public virtual (Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items)

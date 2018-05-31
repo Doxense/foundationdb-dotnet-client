@@ -1094,31 +1094,16 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t1.Item1, Is.EqualTo("Hello"));
 
 			t = STuple.Create("Hello", 123);
-			var t2 = t.As<string, int>();
-			Assert.That(t2.Item1, Is.EqualTo("Hello"));
-			Assert.That(t2.Item2, Is.EqualTo(123));
+			Assert.That(t.As<string, int>(), Is.EqualTo(("Hello", 123)));
 
 			t = STuple.Create("Hello", 123, false);
-			var t3 = t.As<string, int, bool>();
-			Assert.That(t3.Item1, Is.EqualTo("Hello"));
-			Assert.That(t3.Item2, Is.EqualTo(123));
-			Assert.That(t3.Item3, Is.False);
+			Assert.That(t.As<string, int, bool>(), Is.EqualTo(("Hello", 123, false)));
 
-			var t4 = STuple
-				.Create("Hello", 123, false, TimeSpan.FromSeconds(5))
-				.As<string, int, bool, TimeSpan>();
-			Assert.That(t4.Item1, Is.EqualTo("Hello"));
-			Assert.That(t4.Item2, Is.EqualTo(123));
-			Assert.That(t4.Item3, Is.False);
-			Assert.That(t4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			t = STuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5));
+			Assert.That(t.As<string, int, bool, TimeSpan>(), Is.EqualTo(("Hello", 123, false, TimeSpan.FromSeconds(5))));
 
 			t = STuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
-			var t5 = t.As<string, int, bool, TimeSpan, string>();
-			Assert.That(t5.Item1, Is.EqualTo("Hello"));
-			Assert.That(t5.Item2, Is.EqualTo(123));
-			Assert.That(t5.Item3, Is.False);
-			Assert.That(t5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
-			Assert.That(t5.Item5, Is.EqualTo("World"));
+			Assert.That(t.As<string, int, bool, TimeSpan, string>(), Is.EqualTo(("Hello", 123, false, TimeSpan.FromSeconds(5), "World")));
 		}
 
 		[Test]

@@ -52,18 +52,16 @@ namespace Doxense.Collections.Tuples.Tests
 			// - Best case:  packed_size = 2 + array_len
 			// - Worst case: packed_size = 2 + array_len * 2
 
-			Slice packed;
+			Assert.That(TuPack.EncodeKey(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 })).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
 
-			packed = TuPack.EncodeKey(new byte[] {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0});
-			Assert.That(packed.ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
-			packed = TuPack.EncodeKey(new byte[] {0x00, 0x42});
-			Assert.That(packed.ToString(), Is.EqualTo("<01><00><FF>B<00>"));
-			packed = TuPack.EncodeKey(new byte[] {0x42, 0x00});
-			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF><00>"));
-			packed = TuPack.EncodeKey(new byte[] {0x42, 0x00, 0x42});
-			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF>B<00>"));
-			packed = TuPack.EncodeKey(new byte[] {0x42, 0x00, 0x00, 0x42});
-			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF><00><FF>B<00>"));
+			Assert.That(TuPack.EncodeKey(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice()).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice())).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+
+			Assert.That(TuPack.EncodeKey(new byte[] { 0x00, 0x42 }).ToString(), Is.EqualTo("<01><00><FF>B<00>"));
+			Assert.That(TuPack.EncodeKey(new byte[] { 0x42, 0x00 }).ToString(), Is.EqualTo("<01>B<00><FF><00>"));
+			Assert.That(TuPack.EncodeKey(new byte[] { 0x42, 0x00, 0x42 }).ToString(), Is.EqualTo("<01>B<00><FF>B<00>"));
+			Assert.That(TuPack.EncodeKey(new byte[] { 0x42, 0x00, 0x00, 0x42 }).ToString(), Is.EqualTo("<01>B<00><FF><00><FF>B<00>"));
 		}
 
 		[Test]
@@ -90,6 +88,9 @@ namespace Doxense.Collections.Tuples.Tests
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><00><FF><42><00>"));
 			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00, 0x00, 0x42}));
 			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00 00 42"));
+
+			Assert.That(TuPack.DecodeKey<byte[]>(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>")), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }));
+			Assert.That(TuPack.DecodeKey<Slice>(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>")), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }.AsSlice()));
 		}
 
 		[Test]
@@ -97,24 +98,19 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurences of '00' in the UTF8 bytes are escaped with '00 FF'
 
-			Slice packed;
-
 			// simple string
-			packed = TuPack.EncodeKey("hello world");
-			Assert.That(packed.ToString(), Is.EqualTo("<02>hello world<00>"));
+			Assert.That(TuPack.EncodeKey("hello world").ToString(), Is.EqualTo("<02>hello world<00>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create("hello world")).ToString(), Is.EqualTo("<02>hello world<00>"));
 
 			// empty
-			packed = TuPack.EncodeKey(String.Empty);
-			Assert.That(packed.ToString(), Is.EqualTo("<02><00>"));
+			Assert.That(TuPack.EncodeKey(String.Empty).ToString(), Is.EqualTo("<02><00>"));
 
 			// null
-			packed = TuPack.EncodeKey(default(string));
-			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
+			Assert.That(TuPack.EncodeKey(default(string)).ToString(), Is.EqualTo("<00>"));
 
 			// unicode
-			packed = TuPack.EncodeKey("こんにちは世界");
 			// note: Encoding.UTF8.GetBytes("こんにちは世界") => { e3 81 93 e3 82 93 e3 81 ab e3 81 a1 e3 81 af e4 b8 96 e7 95 8c }
-			Assert.That(packed.ToString(), Is.EqualTo("<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>"));
+			Assert.That(TuPack.EncodeKey("こんにちは世界").ToString(), Is.EqualTo("<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>"));
 		}
 
 		[Test]
@@ -124,24 +120,26 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// simple string
 			t = TuPack.Unpack(Slice.Unescape("<02>hello world<00>"));
-			Assert.That(t.Get<String>(0), Is.EqualTo("hello world"));
+			Assert.That(t.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(t[0], Is.EqualTo("hello world"));
 
 			// empty
 			t = TuPack.Unpack(Slice.Unescape("<02><00>"));
-			Assert.That(t.Get<String>(0), Is.EqualTo(String.Empty));
+			Assert.That(t.Get<string>(0), Is.EqualTo(String.Empty));
 			Assert.That(t[0], Is.EqualTo(String.Empty));
 
 			// null
 			t = TuPack.Unpack(Slice.Unescape("<00>"));
-			Assert.That(t.Get<String>(0), Is.EqualTo(default(string)));
+			Assert.That(t.Get<string>(0), Is.EqualTo(default(string)));
 			Assert.That(t[0], Is.Null);
 
 			// unicode
 			t = TuPack.Unpack(Slice.Unescape("<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>"));
 			// note: Encoding.UTF8.GetString({ e3 81 93 e3 82 93 e3 81 ab e3 81 a1 e3 81 af e4 b8 96 e7 95 8c }) => "こんにちは世界"
-			Assert.That(t.Get<String>(0), Is.EqualTo("こんにちは世界"));
+			Assert.That(t.Get<string>(0), Is.EqualTo("こんにちは世界"));
 			Assert.That(t[0], Is.EqualTo("こんにちは世界"));
+
+			Assert.That(TuPack.DecodeKey<string>(Slice.Unescape("<02>hello world<00>")), Is.EqualTo("hello world"));
 		}
 
 		[Test]
@@ -151,14 +149,11 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// System.Guid are stored in Little-Endian, but RFC 4122's UUIDs are stored in Big Endian, so per convention we will swap them
 
-			Slice packed;
-
 			// note: new Guid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
-			packed = TuPack.EncodeKey(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-			Assert.That(packed.ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(TuPack.EncodeKey(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"))).ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
-			packed = TuPack.EncodeKey(Guid.Empty);
-			Assert.That(packed.ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			Assert.That(TuPack.EncodeKey(Guid.Empty).ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 
 		}
 
@@ -188,6 +183,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Empty));
 			//note: t[0] returns null, not a GUID
 
+			Assert.That(TuPack.DecodeKey<Guid>(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>")), Is.EqualTo(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 		}
 
 		[Test]
@@ -195,14 +191,11 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// UUID128s are stored with prefix '30' followed by 16 bytes formatted according to RFC 4122
 
-			Slice packed;
-
 			// note: new Uuid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
-			packed = TuPack.EncodeKey(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-			Assert.That(packed.ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(TuPack.EncodeKey(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f"))).ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
-			packed = TuPack.EncodeKey(Uuid128.Empty);
-			Assert.That(packed.ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			Assert.That(TuPack.EncodeKey(Uuid128.Empty).ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 		}
 
 		[Test]
@@ -232,6 +225,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(packed.Get<Uuid128>(0), Is.EqualTo(Uuid128.Empty));
 			//note: t[0] returns null, not a UUID
 
+			Assert.That(TuPack.DecodeKey<Uuid128>(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>")), Is.EqualTo(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 		}
 
 		[Test]
@@ -353,23 +347,14 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			// UUID64s are stored with prefix '31' followed by 8 bytes formatted according to RFC 4122
 
-			Slice packed;
-
 			// note: new Uuid(bytes from 0 to 7) => "00010203-04050607";
-			packed = TuPack.EncodeKey(Uuid64.Parse("00010203-04050607"));
-			Assert.That(packed.ToString(), Is.EqualTo("1<00><01><02><03><04><05><06><07>"));
+			Assert.That(TuPack.EncodeKey(Uuid64.Parse("00010203-04050607")).ToString(), Is.EqualTo("1<00><01><02><03><04><05><06><07>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(Uuid64.Parse("00010203-04050607"))).ToString(), Is.EqualTo("1<00><01><02><03><04><05><06><07>"));
 
-			packed = TuPack.EncodeKey(Uuid64.Parse("01234567-89ABCDEF"));
-			Assert.That(packed.ToString(), Is.EqualTo("1<01>#Eg<89><AB><CD><EF>"));
-
-			packed = TuPack.EncodeKey(Uuid64.Empty);
-			Assert.That(packed.ToString(), Is.EqualTo("1<00><00><00><00><00><00><00><00>"));
-
-			packed = TuPack.EncodeKey(new Uuid64(0xBADC0FFEE0DDF00DUL));
-			Assert.That(packed.ToString(), Is.EqualTo("1<BA><DC><0F><FE><E0><DD><F0><0D>"));
-
-			packed = TuPack.EncodeKey(new Uuid64(0xDEADBEEFL));
-			Assert.That(packed.ToString(), Is.EqualTo("1<00><00><00><00><DE><AD><BE><EF>"));
+			Assert.That(TuPack.EncodeKey(Uuid64.Parse("01234567-89ABCDEF")).ToString(), Is.EqualTo("1<01>#Eg<89><AB><CD><EF>"));
+			Assert.That(TuPack.EncodeKey(Uuid64.Empty).ToString(), Is.EqualTo("1<00><00><00><00><00><00><00><00>"));
+			Assert.That(TuPack.EncodeKey(new Uuid64(0xBADC0FFEE0DDF00DUL)).ToString(), Is.EqualTo("1<BA><DC><0F><FE><E0><DD><F0><0D>"));
+			Assert.That(TuPack.EncodeKey(new Uuid64(0xDEADBEEFL)).ToString(), Is.EqualTo("1<00><00><00><00><DE><AD><BE><EF>"));
 		}
 
 		[Test]
@@ -404,6 +389,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(packed.Get<Uuid64>(0), Is.EqualTo(Uuid64.Empty));
 			//note: t[0] returns null, not a UUID
 
+			Assert.That(TuPack.DecodeKey<Uuid64>(Slice.Unescape("<31><01><23><45><67><89><AB><CD><EF>")), Is.EqualTo(Uuid64.Parse("01234567-89abcdef")));
 		}
 
 		[Test]
@@ -469,8 +455,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserialize_Integers()
 		{
-
-			Action<string, long> verify = (encoded, value) =>
+			void Verify(string encoded, long value)
 			{
 				var slice = Slice.Unescape(encoded);
 				Assert.That(TuplePackers.DeserializeBoxed(slice), Is.EqualTo(value), "DeserializeBoxed({0})", encoded);
@@ -555,26 +540,26 @@ namespace Doxense.Collections.Tuples.Tests
 				{
 					Assert.That<byte>(() => TuplePackers.DeserializeByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeByte({0})", encoded);
 				}
+			}
 
-			};
-			verify("<14>", 0);
-			verify("<15>{", 123);
-			verify("<15><80>", 128);
-			verify("<15><FF>", 255);
-			verify("<16><01><00>", 256);
-			verify("<16><04><D2>", 1234);
-			verify("<16><80><00>", 32768);
-			verify("<16><FF><FF>", 65535);
-			verify("<17><01><00><00>", 65536);
-			verify("<13><FE>", -1);
-			verify("<13><00>", -255);
-			verify("<12><FE><FF>", -256);
-			verify("<12><00><00>", -65535);
-			verify("<11><FE><FF><FF>", -65536);
-			verify("<18><7F><FF><FF><FF>", int.MaxValue);
-			verify("<10><7F><FF><FF><FF>", int.MinValue);
-			verify("<1C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MaxValue);
-			verify("<0C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MinValue);
+			Verify("<14>", 0);
+			Verify("<15>{", 123);
+			Verify("<15><80>", 128);
+			Verify("<15><FF>", 255);
+			Verify("<16><01><00>", 256);
+			Verify("<16><04><D2>", 1234);
+			Verify("<16><80><00>", 32768);
+			Verify("<16><FF><FF>", 65535);
+			Verify("<17><01><00><00>", 65536);
+			Verify("<13><FE>", -1);
+			Verify("<13><00>", -255);
+			Verify("<12><FE><FF>", -256);
+			Verify("<12><00><00>", -65535);
+			Verify("<11><FE><FF><FF>", -65536);
+			Verify("<18><7F><FF><FF><FF>", int.MaxValue);
+			Verify("<10><7F><FF><FF><FF>", int.MinValue);
+			Verify("<1C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MaxValue);
+			Verify("<0C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MinValue);
 		}
 
 		[Test]
@@ -813,6 +798,10 @@ namespace Doxense.Collections.Tuples.Tests
 				TuPack.EncodeKey(VersionStamp.Incomplete()).ToHexaString(' '),
 				Is.EqualTo("32 FF FF FF FF FF FF FF FF FF FF")
 			);
+			Assert.That(
+				TuPack.Pack(ValueTuple.Create(VersionStamp.Incomplete())).ToHexaString(' '),
+				Is.EqualTo("32 FF FF FF FF FF FF FF FF FF FF")
+			);
 
 			// incomplete, 96 bits
 			Assert.That(
@@ -835,6 +824,10 @@ namespace Doxense.Collections.Tuples.Tests
 			// complete, 80 bits
 			Assert.That(
 				TuPack.EncodeKey(VersionStamp.Complete(0x0123456789ABCDEF, 1234)).ToHexaString(' '),
+				Is.EqualTo("32 01 23 45 67 89 AB CD EF 04 D2")
+			);
+			Assert.That(
+				TuPack.Pack(ValueTuple.Create(VersionStamp.Complete(0x0123456789ABCDEF, 1234))).ToHexaString(' '),
 				Is.EqualTo("32 01 23 45 67 89 AB CD EF 04 D2")
 			);
 
@@ -860,6 +853,9 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserailize_VersionStamps()
 		{
+			Assert.That(TuPack.Unpack(Slice.FromHexa("32 FF FF FF FF FF FF FF FF FF FF")).Get<VersionStamp>(0), Is.EqualTo(VersionStamp.Incomplete()), "Incomplete()");
+			Assert.That(TuPack.Unpack(Slice.FromHexa("32 01 23 45 67 89 AB CD EF 04 D2")).Get<VersionStamp>(0), Is.EqualTo(VersionStamp.Complete(0x0123456789ABCDEF, 1234)), "Complete(..., 1234)");
+
 			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("32 FF FF FF FF FF FF FF FF FF FF")), Is.EqualTo(VersionStamp.Incomplete()), "Incomplete()");
 
 			Assert.That(TuPack.DecodeKey<VersionStamp>(Slice.FromHexa("33 FF FF FF FF FF FF FF FF FF FF 00 00")), Is.EqualTo(VersionStamp.Incomplete(0)), "Incomplete(0)");
@@ -924,12 +920,19 @@ namespace Doxense.Collections.Tuples.Tests
 				Is.EqualTo("01 01 02 03 04 00")
 			);
 
+			Assert.That(
+				TuPack.Pack(ValueTuple.Create(IPAddress.Loopback)).ToHexaString(' '),
+				Is.EqualTo("01 7F 00 FF 00 FF 01 00")
+			);
+
 		}
 
 
 		[Test]
 		public void Test_TuplePack_Deserialize_IPAddress()
 		{
+			Assert.That(TuPack.Unpack(Slice.Unescape("<01><7F><00><FF><00><FF><01><00>")).Get<IPAddress>(0), Is.EqualTo(IPAddress.Parse("127.0.0.1")));
+
 			Assert.That(TuPack.DecodeKey<IPAddress>(Slice.Unescape("<01><7F><00><FF><00><FF><01><00>")), Is.EqualTo(IPAddress.Parse("127.0.0.1")));
 			Assert.That(TuPack.DecodeKey<IPAddress>(Slice.Unescape("<01><00><FF><00><FF><00><FF><00><FF><00>")), Is.EqualTo(IPAddress.Parse("0.0.0.0")));
 			Assert.That(TuPack.DecodeKey<IPAddress>(Slice.Unescape("<01><01><02><03><04><00>")), Is.EqualTo(IPAddress.Parse("1.2.3.4")));
@@ -969,17 +972,27 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(TuPack.EncodeKey<TimeSpan?>(TimeSpan.Zero), Is.EqualTo(Slice.Unescape("!<80><00><00><00><00><00><00><00>")));
 			Assert.That(TuPack.EncodeKey<TimeSpan?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
+			Assert.That(TuPack.Pack(ValueTuple.Create<int?>(123)), Is.EqualTo(Slice.Unescape("<15>{")));
+			Assert.That(TuPack.Pack(ValueTuple.Create<long?>(123)), Is.EqualTo(Slice.Unescape("<15>{")));
+			Assert.That(TuPack.Pack(ValueTuple.Create<bool?>(true)), Is.EqualTo(Slice.Unescape("<27>")));
+
 			// deserialize
 
 			Assert.That(TuPack.DecodeKey<int?>(Slice.Unescape("<14>")), Is.EqualTo(0));
 			Assert.That(TuPack.DecodeKey<int?>(Slice.Unescape("<15>{")), Is.EqualTo(123));
 			Assert.That(TuPack.DecodeKey<int?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(TuPack.Unpack(Slice.Unescape("<15>{")).Get<int?>(0), Is.EqualTo(123));
+			Assert.That(TuPack.Unpack(Slice.Unescape("<00>")).Get<int?>(0), Is.Null);
 
 			Assert.That(TuPack.DecodeKey<int?>(Slice.Unescape("<14>")), Is.EqualTo(0L));
 			Assert.That(TuPack.DecodeKey<long?>(Slice.Unescape("<15>{")), Is.EqualTo(123L));
 			Assert.That(TuPack.DecodeKey<long?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(TuPack.Unpack(Slice.Unescape("<15>{")).Get<long?>(0), Is.EqualTo(123L));
+			Assert.That(TuPack.Unpack(Slice.Unescape("<00>")).Get<long?>(0), Is.Null);
 
+			Assert.That(TuPack.DecodeKey<bool?>(Slice.Unescape("<27>")), Is.True);
 			Assert.That(TuPack.DecodeKey<bool?>(Slice.Unescape("<15><01>")), Is.True);
+			Assert.That(TuPack.DecodeKey<bool?>(Slice.Unescape("<26>")), Is.False);
 			Assert.That(TuPack.DecodeKey<bool?>(Slice.Unescape("<14>")), Is.False);
 			Assert.That(TuPack.DecodeKey<bool?>(Slice.Unescape("<00>")), Is.Null);
 
@@ -1059,12 +1072,23 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Deserialize_Embedded_Tuples()
 		{
-			// ((42, (2014, 11, 6), "Hello", true), )
+			// ( (42, (2014, 11, 6), "Hello", true), )
 			var packed = TuPack.EncodeKey(STuple.Create(42, STuple.Create(2014, 11, 6), "Hello", true));
 			Log($"t = {TuPack.Unpack(packed)}");
 			Assert.That(packed[0], Is.EqualTo(TupleTypes.EmbeddedTuple), "Missing Embedded Tuple marker");
 			{
-				var t = TuPack.DecodeKey<ITuple>(packed);
+				var t = TuPack.Unpack(packed);
+				Assert.That(t, Is.Not.Null);
+				Assert.That(t.Count, Is.EqualTo(1));
+				var t1 = t.Get<IVarTuple>(0);
+				Assert.That(t1.Count, Is.EqualTo(4));
+				Assert.That(t1.Get<int>(0), Is.EqualTo(42));
+				Assert.That(t1.Get<IVarTuple>(1), Is.EqualTo(STuple.Create(2014, 11, 6)));
+				Assert.That(t1.Get<string>(2), Is.EqualTo("Hello"));
+				Assert.That(t1.Get<bool>(3), Is.True);
+			}
+			{
+				var t = TuPack.DecodeKey<IVarTuple>(packed);
 				Assert.That(t, Is.Not.Null);
 				Assert.That(t.Count, Is.EqualTo(4));
 				Assert.That(t.Get<int>(0), Is.EqualTo(42));
@@ -1081,16 +1105,25 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item4, Is.True);
 			}
 			{
-				var t = TuPack.DecodeKey<STuple<int, STuple<int, int, int>, string, bool>>(packed);
+				var t = TuPack.DecodeKey<(int, IVarTuple, string, bool)>(packed);
+				Assert.That(t, Is.Not.Null);
+				Assert.That(t, Is.EqualTo((42, STuple.Create(2014, 11, 6), "Hello", true)));
+			}
+			{
+				STuple<int, STuple<int, int, int>, string, bool> t = TuPack.DecodeKey<STuple<int, STuple<int, int, int>, string, bool>>(packed);
 				Assert.That(t, Is.Not.Null);
 				Assert.That(t.Item1, Is.EqualTo(42));
 				Assert.That(t.Item2, Is.EqualTo(STuple.Create(2014, 11, 6)));
 				Assert.That(t.Item3, Is.EqualTo("Hello"));
 				Assert.That(t.Item4, Is.True);
 			}
+			{
+				var t = TuPack.DecodeKey<(int, (int, int, int), string, bool)>(packed);
+				Assert.That(t, Is.EqualTo((42, (2014, 11, 6), "Hello", true)));
+			}
 
 			// (null,)
-			packed = TuPack.EncodeKey(default(string));
+			packed = Slice.FromByte(0);
 			Log($"t = {TuPack.Unpack(packed)}");
 			{
 				var t = TuPack.DecodeKey<IVarTuple>(packed);
@@ -1102,6 +1135,10 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item2, Is.EqualTo(default(STuple<int, int, int>)));
 				Assert.That(t.Item3, Is.Null);
 				Assert.That(t.Item4, Is.False);
+			}
+			{
+				var t = TuPack.DecodeKey<(int, (int, int, int), string, bool)>(packed);
+				Assert.That(t, Is.EqualTo((0, (0, 0, 0), default(string), false)));
 			}
 
 			//fallback if encoded as slice
@@ -1116,6 +1153,10 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(t.Item3, Is.EqualTo("Hello"));
 				Assert.That(t.Item4, Is.True);
 			}
+			{
+				var t = TuPack.DecodeKey<(int, (int, int, int), string, bool)>(packed);
+				Assert.That(t, Is.EqualTo((42, (2014, 11, 6), "Hello", true)));
+			}
 		}
 
 		[Test]
@@ -1124,6 +1165,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// two ways on packing the "same" tuple yield the same binary output
 			{
 				var expected = TuPack.EncodeKey("Hello World");
+				Assert.That(TuPack.Pack(ValueTuple.Create("Hello World")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create(new object[] {"Hello World"})), Is.EqualTo(expected));
@@ -1131,6 +1173,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			{
 				var expected = TuPack.EncodeKey("Hello World", 1234);
+				Assert.That(TuPack.Pack(("Hello World", 1234)), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234)), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234)), Is.EqualTo(expected));
@@ -1140,6 +1183,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 			{
 				var expected = TuPack.EncodeKey("Hello World", 1234, "Foo");
+				Assert.That(TuPack.Pack(("Hello World", 1234, "Foo")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234, "Foo"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234).Append("Foo")), Is.EqualTo(expected));
@@ -1149,6 +1193,7 @@ namespace Doxense.Collections.Tuples.Tests
 			}
 
 			// also, there should be no differences between int,long,uint,... if they have the same value
+			Assert.That(TuPack.Pack(("Hello", 123)), Is.EqualTo(TuPack.Pack(("Hello", 123L))));
 			Assert.That(TuPack.Pack(STuple.Create("Hello", 123)), Is.EqualTo(TuPack.Pack(STuple.Create("Hello", 123L))));
 			Assert.That(TuPack.Pack(STuple.Create("Hello", -123)), Is.EqualTo(TuPack.Pack(STuple.Create("Hello", -123L))));
 
@@ -2264,16 +2309,13 @@ namespace Doxense.Collections.Tuples.Tests
 			);
 
 			{ // Embedded Tuples
-				var packed = TuPack.Pack(ValueTuple.Create("hello", ValueTuple.Create(123, false), "world"));
+				var packed = TuPack.Pack(("hello", (123, false), "world"));
 				Assert.That(
 					packed.ToString(),
 					Is.EqualTo("<02>hello<00><05><15>{&<00><02>world<00>")
 				);
-				var t = TuPack.DecodeKey<string, ValueTuple<int, bool>, string>(packed);
-				Assert.That(t.Item1, Is.EqualTo("hello"));
-				Assert.That(t.Item2.Item1, Is.EqualTo(123));
-				Assert.That(t.Item2.Item2, Is.False);
-				Assert.That(t.Item3, Is.EqualTo("world"));
+				var t = TuPack.DecodeKey<string, (int, bool), string>(packed);
+				Assert.That(t, Is.EqualTo(("hello", (123, false), "world")));
 			}
 
 		}
