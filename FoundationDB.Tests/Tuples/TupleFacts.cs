@@ -1675,78 +1675,6 @@ namespace Doxense.Collections.Tuples.Tests
 
 		#endregion
 
-		#region Formatters
-
-		[Test]
-		public void Test_Default_TupleFormatter_For_Common_Types()
-		{
-
-			// common simple types
-			Assert.That(TupleFormatter<int>.Default, Is.InstanceOf<GenericTupleFormatter<int>>());
-			Assert.That(TupleFormatter<bool>.Default, Is.InstanceOf<GenericTupleFormatter<bool>>());
-			Assert.That(TupleFormatter<string>.Default, Is.InstanceOf<GenericTupleFormatter<string>>());
-
-			// corner cases
-			Assert.That(TupleFormatter<ITuple>.Default, Is.InstanceOf<AnonymousTupleFormatter<ITuple>>());
-			//Assert.That(TupleFormatter<MemoizedTuple>.Default, Is.InstanceOf<AnonymousTupleFormatter<MemoizedTuple>>());
-
-			// ITupleFormattable types
-			Assert.That(TupleFormatter<Thing>.Default, Is.InstanceOf<FormattableTupleFormatter<Thing>>());
-		}
-
-		[Test]
-		public void Test_Format_Common_Types()
-		{
-			Assert.That(TupleFormatter<int>.Default.ToTuple(123), Is.EqualTo(STuple.Create(123)));
-			Assert.That(TupleFormatter<int>.Default.FromTuple(STuple.Create(123)), Is.EqualTo(123));
-
-			Assert.That(TupleFormatter<bool>.Default.ToTuple(true), Is.EqualTo(STuple.Create(true)));
-			Assert.That(TupleFormatter<bool>.Default.FromTuple(STuple.Create(true)), Is.True);
-
-			Assert.That(TupleFormatter<string>.Default.ToTuple("hello"), Is.EqualTo(STuple.Create<string>("hello")));
-			Assert.That(TupleFormatter<string>.Default.FromTuple(STuple.Create("hello")), Is.EqualTo("hello"));
-
-			var t = STuple.Create(new object[] { "hello", 123, false });
-			Assert.That(TupleFormatter<ITuple>.Default.ToTuple(t), Is.SameAs(t));
-			Assert.That(TupleFormatter<ITuple>.Default.FromTuple(t), Is.SameAs(t));
-
-			var thing = new Thing { Foo = 123, Bar = "hello" };
-			Assert.That(TupleFormatter<Thing>.Default.ToTuple(thing), Is.EqualTo(STuple.Create(123, "hello")));
-
-			var thing2 = TupleFormatter<Thing>.Default.FromTuple(STuple.Create(456, "world"));
-			Assert.That(thing2, Is.Not.Null);
-			Assert.That(thing2.Foo, Is.EqualTo(456));
-			Assert.That(thing2.Bar, Is.EqualTo("world"));
-
-		}
-
-		[Test]
-		public void Test_Create_Appender_Formatter()
-		{
-			// create an appender formatter that will always add the values after the same prefix
-
-			var fmtr = TupleFormatter<int>.CreateAppender(STuple.Create("hello", "world"));
-			Assert.That(fmtr, Is.InstanceOf<AnonymousTupleFormatter<int>>());
-
-			Assert.That(fmtr.ToTuple(123), Is.EqualTo(STuple.Create("hello", "world", 123)));
-			Assert.That(fmtr.ToTuple(456), Is.EqualTo(STuple.Create("hello", "world", 456)));
-			Assert.That(fmtr.ToTuple(-1), Is.EqualTo(STuple.Create("hello", "world", -1)));
-
-			Assert.That(fmtr.FromTuple(STuple.Create("hello", "world", 42)), Is.EqualTo(42));
-			Assert.That(fmtr.FromTuple(STuple.Create("hello", "world", -1)), Is.EqualTo(-1));
-
-			Assert.That(() => fmtr.FromTuple(null), Throws.ArgumentNullException);
-			Assert.That(() => fmtr.FromTuple(STuple.Empty), Throws.InstanceOf<ArgumentException>());
-			Assert.That(() => fmtr.FromTuple(STuple.Create("hello", "world", 42, 77)), Throws.InstanceOf<ArgumentException>(), "Too many values");
-			Assert.That(() => fmtr.FromTuple(STuple.Create("hello_world", 42)), Throws.InstanceOf<ArgumentException>(), "not enough values");
-			Assert.That(() => fmtr.FromTuple(STuple.Create("world", "hello", "42")), Throws.InstanceOf<ArgumentException>(), "incorrect type");
-			Assert.That(() => fmtr.FromTuple(STuple.Create(42)), Throws.InstanceOf<ArgumentException>(), "missing prefix");
-			Assert.That(() => fmtr.FromTuple(STuple.Create("extra", "hello", "world", 42)), Throws.InstanceOf<ArgumentException>(), "prefix must match exactly");
-			Assert.That(() => fmtr.FromTuple(STuple.Create("Hello", "World", 42)), Throws.InstanceOf<ArgumentException>(), "case sensitive");
-		}
-
-		#endregion
-
 		#region Deformatters
 
 		[Test]
@@ -1909,24 +1837,6 @@ namespace Doxense.Collections.Tuples.Tests
 #endif
 
 		#endregion
-
-		private class Thing : ITupleFormattable
-		{
-
-			public int Foo { get; set; }
-			public string Bar { get; set; }
-
-			ITuple ITupleFormattable.ToTuple()
-			{
-				return STuple.Create(this.Foo, this.Bar);
-			}
-
-			void ITupleFormattable.FromTuple(ITuple tuple)
-			{
-				this.Foo = tuple.Get<int>(0);
-				this.Bar = tuple.Get<string>(1);
-			}
-		}
 
 		#region System.ValueTuple integration...
 

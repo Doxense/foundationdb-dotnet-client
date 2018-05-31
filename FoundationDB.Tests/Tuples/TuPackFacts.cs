@@ -1964,47 +1964,6 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_TuplePack_Serialize_ITupleFormattable()
-		{
-			// types that implement ITupleFormattable should be packed by calling ToTuple() and then packing the returned tuple
-
-			Slice packed;
-
-			packed = TuplePacker<Thing>.Serialize(new Thing {Foo = 123, Bar = "hello"});
-			Assert.That(packed.ToString(), Is.EqualTo("<05><15>{<02>hello<00><00>"));
-
-			packed = TuplePacker<Thing>.Serialize(new Thing());
-			Assert.That(packed.ToString(), Is.EqualTo("<05><14><00><FF><00>"));
-
-			packed = TuplePacker<Thing>.Serialize(default(Thing));
-			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
-
-		}
-
-		[Test]
-		public void Test_TuplePack_Deserialize_ITupleFormattable()
-		{
-			Slice slice;
-			Thing thing;
-
-			slice = Slice.Unescape("<05><16><01><C8><02>world<00><00>");
-			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
-			Assert.That(thing, Is.Not.Null);
-			Assert.That(thing.Foo, Is.EqualTo(456));
-			Assert.That(thing.Bar, Is.EqualTo("world"));
-
-			slice = Slice.Unescape("<05><14><00><FF><00>");
-			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
-			Assert.That(thing, Is.Not.Null);
-			Assert.That(thing.Foo, Is.EqualTo(0));
-			Assert.That(thing.Bar, Is.EqualTo(null));
-
-			slice = Slice.Unescape("<00>");
-			thing = TuplePackers.DeserializeFormattable<Thing>(slice);
-			Assert.That(thing, Is.Null);
-		}
-
-		[Test]
 		public void Test_TuplePack_EncodeKeys_Of_T()
 		{
 			Slice[] slices;
@@ -2276,23 +2235,6 @@ namespace Doxense.Collections.Tuples.Tests
 
 		}
 
-		private class Thing : ITupleFormattable
-		{
-			public int Foo { get; set; }
-			public string Bar { get; set; }
-
-			ITuple ITupleFormattable.ToTuple()
-			{
-				return STuple.Create(this.Foo, this.Bar);
-			}
-
-			void ITupleFormattable.FromTuple(ITuple tuple)
-			{
-				this.Foo = tuple.Get<int>(0);
-				this.Bar = tuple.Get<string>(1);
-			}
-		}
-
 		[Test]
 		public void Test_TuPack_ValueTuple_Pack()
 		{
@@ -2337,6 +2279,5 @@ namespace Doxense.Collections.Tuples.Tests
 		}
 
 	}
-
 
 }

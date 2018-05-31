@@ -143,17 +143,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-			// Can it transform itself into a tuple?
-			if (typeof(ITupleFormattable).IsAssignableFrom(type))
-			{
-				// If so, try to use the corresponding TuplePackers.SerializeFormattableTo(...) method
-				method = typeof(TuplePackers).GetMethod(nameof(SerializeFormattableTo), BindingFlags.Static | BindingFlags.Public);
-				if (method != null)
-				{
-					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
-				}
-			}
-
 			// ValueTuple<T..>
 			if (type == typeof(ValueTuple) || (type.Name.StartsWith(nameof(System.ValueTuple) + "`", StringComparison.Ordinal) && type.Namespace == "System"))
 			{
@@ -326,7 +315,6 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(DateTime)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTime) value),
 				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTimeOffset) value),
 				[typeof(ITuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
-				[typeof(ITupleFormattable)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
 				[typeof(DBNull)] = (ref TupleWriter writer, object value) => TupleParser.WriteNil(ref writer)
 			};
 
@@ -716,34 +704,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeTupleFormattableTo<TFormattable>(ref TupleWriter writer, TFormattable formattable)
-			where TFormattable : ITupleFormattable
-		{
-			var tuple = formattable.ToTuple();
-			if (tuple == null) throw new InvalidOperationException($"An instance of type '{formattable.GetType().Name}' returned a null Tuple while serialiazing");
-
-			TupleParser.BeginTuple(ref writer);
-			TupleEncoder.WriteTo(ref writer, tuple);
-			TupleParser.EndTuple(ref writer);
-		}
-
-		/// <summary>Serialize an embedded tuple formattable</summary>
-		public static void SerializeFormattableTo(ref TupleWriter writer, ITupleFormattable formattable)
-		{
-			if (formattable == null)
-			{
-				TupleParser.WriteNil(ref writer);
-				return;
-			}
-
-			var tuple = formattable.ToTuple();
-			if (tuple == null) throw new InvalidOperationException($"Custom formatter {formattable.GetType().Name}.ToTuple() cannot return null");
-
-			TupleParser.BeginTuple(ref writer);
-			TupleEncoder.WriteTo(ref writer, tuple);
-			TupleParser.EndTuple(ref writer);
-		}
-
 		public static void SerializeValueTupleTo<T1>(ref TupleWriter writer, ValueTuple<T1> tuple)
 		{
 			TupleParser.BeginTuple(ref writer);
@@ -1026,39 +986,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			throw new FormatException($"Cannot convert tuple segment with unknown type code 0x{type:X}");
-		}
-
-		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
-		/// <typeparam name="T">Type of a class that must implement ITupleFormattable and have a default constructor</typeparam>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
-		/// <remarks>The type must have a default parameter-less constructor in order to be created.</remarks>
-		public static T DeserializeFormattable<T>(Slice slice)
-			where T : ITupleFormattable, new()
-		{
-			if (TuplePackers.IsNilSegment(slice))
-			{
-				return default;
-			}
-
-			var tuple = TupleParser.ParseTuple(slice);
-			var value = new T();
-			value.FromTuple(tuple);
-			return value;
-		}
-
-		/// <summary>Deserialize a slice into a type that implements ITupleFormattable, using a custom factory method</summary>
-		/// <typeparam name="T">Type of a class that must implement ITupleFormattable</typeparam>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparamref name="T"/></param>
-		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
-		public static T DeserializeFormattable<T>(Slice slice, [NotNull] Func<T> factory)
-			where T : ITupleFormattable
-		{
-			var tuple = TupleParser.ParseTuple(slice);
-			var value = factory();
-			value.FromTuple(tuple);
-			return value;
 		}
 
 		/// <summary>Deserialize a tuple segment into a Slice</summary>
