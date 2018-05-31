@@ -112,7 +112,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static CompositeComparer<T1, T2> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		public static IComparer<IVarTuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
 		}

@@ -46,7 +46,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T3">Type of the 3rd item</typeparam>
 	/// <typeparam name="T4">Type of the 4th item</typeparam>
 	/// <typeparam name="T5">Type of the 5th item</typeparam>
-	/// <typeparam name="T6">Type of the 5th item</typeparam>
+	/// <typeparam name="T6">Type of the 6th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	public readonly struct STuple<T1, T2, T3, T4, T5, T6> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<(T1, T2, T3, T4, T5, T6)>
