@@ -83,7 +83,7 @@ namespace Doxense.Collections.Tuples
 		public int Count => 6;
 
 		/// <summary>Return the Nth item in this tuple</summary>
-		public object this[int index]
+		object IReadOnlyList<object>.this[int index]
 		{
 			get
 			{

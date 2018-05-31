@@ -68,7 +68,7 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => 3;
 
-		public object this[int index]
+		object IReadOnlyList<object>.this[int index]
 		{
 			get
 			{
