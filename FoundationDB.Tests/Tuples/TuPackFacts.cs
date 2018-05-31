@@ -257,7 +257,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Uuid96 instances are stored with prefix 0x33 followed by 12 bytes (the result of uuid.ToByteArray())
 			// we also accept byte arrays (prefix '01') if they are of length 12, and unicode strings (prefix '02')
 
-			ITuple packed;
+			IVarTuple packed;
 
 			packed = TuPack.Unpack(Slice.FromHexa("33 01 23 45 67 89 AB CD EF 55 AA 33 CC"));
 			Assert.That(packed.Get<Uuid96>(0), Is.EqualTo(Uuid96.Parse("01234567-89ABCDEF-55AA33CC")));
@@ -314,7 +314,7 @@ namespace Doxense.Collections.Tuples.Tests
 			// Uuid80 instances are stored with prefix '31' followed by 8 bytes (the result of uuid.ToByteArray())
 			// we also accept byte arrays (prefix '01') if they are of length 8, and unicode strings (prefix '02')
 
-			ITuple packed;
+			IVarTuple packed;
 
 			packed = TuPack.Unpack(Slice.FromHexa("32 01 23 45 67 89 AB CD EF 55 AA"));
 			Assert.That(packed.Get<Uuid80>(0), Is.EqualTo(Uuid80.Parse("0123-456789AB-CDEF55AA")));
