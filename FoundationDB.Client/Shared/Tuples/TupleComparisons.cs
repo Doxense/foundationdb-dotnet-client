@@ -38,6 +38,7 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class for tuple comparisons</summary>
+	[PublicAPI]
 	public static class TupleComparisons
 	{
 		/// <summary>Tuple comparer that treats similar values as equal ("123" = 123 = 123L = 123.0d)</summary>
@@ -99,7 +100,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer">Comparer for the item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<IVarTuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
+		public static CompositeComparer<T1> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
 		{
 			return new CompositeComparer<T1>(offset, comparer);
 		}
@@ -112,7 +113,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<IVarTuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		public static CompositeComparer<T1, T2> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
 		}
@@ -127,14 +128,15 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer3">Comparer for the third item's type</param>
 		/// <returns>New comparer instance</returns>
 		[NotNull]
-		public static IComparer<IVarTuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
+		public static CompositeComparer<T1, T2, T3> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
 		{
 			return new CompositeComparer<T1, T2, T3>(offset, comparer1, comparer2, comparer3);
 		}
 
 		/// <summary>Comparer that compares tuples with at least 1 item</summary>
 		/// <typeparam name="T1">Type of the item</typeparam>
-		public sealed class CompositeComparer<T1> : IComparer<IVarTuple>
+		[PublicAPI]
+		public sealed class CompositeComparer<T1> : IComparer<IVarTuple>, IComparer<STuple<T1>>, IComparer<ValueTuple<T1>>
 		{
 
 			public static readonly IComparer<IVarTuple> Default = new CompositeComparer<T1>();
@@ -182,11 +184,32 @@ namespace Doxense.Collections.Tuples
 				return this.Comparer.Compare(x.Get<T1>(p), y.Get<T1>(p));
 			}
 
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(STuple<T1> x, STuple<T1> y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				return this.Comparer.Compare(x.Item1, y.Item1);
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(ValueTuple<T1> x, ValueTuple<T1> y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				return this.Comparer.Compare(x.Item1, y.Item1);
+			}
+
 		}
 
 		/// <summary>Comparer that compares tuples with at least 2 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
+		[PublicAPI]
 		public sealed class CompositeComparer<T1, T2> : IComparer<IVarTuple>, IComparer<STuple<T1, T2>>, IComparer<(T1, T2)>
 		{
 
@@ -277,7 +300,8 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
 		/// <typeparam name="T3">Type of the thrid item</typeparam>
-		public sealed class CompositeComparer<T1, T2, T3> : IComparer<IVarTuple>
+		[PublicAPI]
+		public sealed class CompositeComparer<T1, T2, T3> : IComparer<IVarTuple>, IComparer<STuple<T1, T2, T3>>, IComparer<(T1, T2, T3)>
 		{
 
 			public static readonly IComparer<IVarTuple> Default = new CompositeComparer<T1, T2, T3>();
@@ -344,6 +368,32 @@ namespace Doxense.Collections.Tuples
 				c = this.Comparer3.Compare(x.Get<T3>(p + 2), y.Get<T3>(p + 2));
 
 				return c;
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(STuple<T1, T2, T3> x, STuple<T1, T2, T3> y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				int cmp = this.Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = this.Comparer2.Compare(x.Item2, y.Item2);
+				if (cmp == 0) cmp = this.Comparer3.Compare(x.Item3, y.Item3);
+				return cmp;
+			}
+
+			/// <summary>Compare two tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare((T1, T2, T3) x, (T1, T2, T3) y)
+			{
+				if (this.Offset != 0) throw new InvalidOperationException("Cannot compare fixed tuples with non-zero offset.");
+				int cmp = this.Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = this.Comparer2.Compare(x.Item2, y.Item2);
+				if (cmp == 0) cmp = this.Comparer3.Compare(x.Item3, y.Item3);
+				return cmp;
 			}
 
 		}
