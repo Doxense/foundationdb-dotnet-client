@@ -257,9 +257,7 @@ namespace FoundationDB.Client
 
 		public void Decode(Slice packedKey, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
 		{
-			this.Encoder
-				.DecodeKey(this.Parent.ExtractKey(packedKey))
-				.Deconstruct(out item1, out item2, out item3, out item4);
+			(item1, item2, item3, item4) = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
 
 		#endregion

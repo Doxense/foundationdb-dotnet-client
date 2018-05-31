@@ -33,7 +33,6 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
@@ -116,7 +115,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static STuple<T1, T2> DecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded)
+		public static (T1, T2) DecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			decoder.ReadKeyFrom(ref reader, out var items);
@@ -124,7 +123,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
-		public static STuple<T1, T2> DecodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, Slice encoded)
+		public static (T1, T2) DecodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			encoder.ReadKeyPartsFrom(ref reader, count, out var items);
@@ -164,7 +163,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> decoder, Slice encoded)
+		public static (T1, T2, T3) DecodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			decoder.ReadKeyFrom(ref reader, out var items);
@@ -172,7 +171,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
-		public static STuple<T1, T2, T3> DecodeKeyParts<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, int count, Slice encoded)
+		public static (T1, T2, T3) DecodeKeyParts<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			encoder.ReadKeyPartsFrom(ref reader, count, out var items);
@@ -212,7 +211,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> decoder, Slice encoded)
+		public static (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			decoder.ReadKeyFrom(ref reader, out var items);
@@ -220,7 +219,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
-		public static STuple<T1, T2, T3, T4> DecodeKeyParts<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, int count, Slice encoded)
+		public static (T1, T2, T3, T4) DecodeKeyParts<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			encoder.ReadKeyPartsFrom(ref reader, count, out var items);
@@ -260,7 +259,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> decoder, Slice encoded)
+		public static (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			decoder.ReadKeyFrom(ref reader, out var items);
@@ -268,7 +267,7 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
-		public static STuple<T1, T2, T3, T4, T5> DecodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, Slice encoded)
+		public static (T1, T2, T3, T4, T5) DecodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			encoder.ReadKeyPartsFrom(ref reader, count, out var items);
