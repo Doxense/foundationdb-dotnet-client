@@ -60,10 +60,10 @@ namespace FoundationDB.Client
 		[Pure]
 		KeyRange ToRange(); //REVIEW: remove?
 
-		///// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
-		///// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
-		///// <returns>Full binary key</returns>
-		//Slice this[Slice relativeKey] { [Pure] get; }
+		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
+		Slice this[Slice relativeKey] { [Pure] get; }
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="absoluteKey">Key to test</param>
@@ -119,19 +119,6 @@ namespace FoundationDB.Client
 		public new Slice ExtractKey(Slice absoluteKey, bool boundCheck = false)
 		{
 			return base.ExtractKey(absoluteKey, boundCheck);
-		}
-
-		/// <summary>Append a key to the subspace key</summary>
-		/// <remarks>This is the equivalent of calling 'subspace.Key + suffix'</remarks>
-		public Slice this[Slice relativeKey]
-		{
-			get
-			{
-				//note: we don't want to leak our key!
-				var key = GetKeyPrefix();
-				if (relativeKey.IsNullOrEmpty) return key.Memoize(); //TODO: better solution!
-				return key.Concat(relativeKey);
-			}
 		}
 
 		public BinaryKeys Keys { get; }

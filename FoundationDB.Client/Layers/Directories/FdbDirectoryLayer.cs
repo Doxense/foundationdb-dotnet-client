@@ -158,6 +158,26 @@ namespace FoundationDB.Layers.Directories
 			}
 		}
 
+		[Pure, NotNull]
+		internal static FdbDirectoryLayer Create([NotNull] IKeyContext context, [NotNull] IVarTuple location, [NotNull] IKeyEncoding keyEncoding)
+		{
+			Contract.Requires(context != null && location != null && keyEncoding != null);
+			return new FdbDirectoryLayer(new DynamicKeySubspace(context.CreateChild(FdbKey.Directory), keyEncoding), new DynamicKeySubspace(context, keyEncoding), location);
+		}
+
+		/// <summary>Create an instance of a Directory Layer located under a specific prefix and path</summary>
+		/// <param name="context">Root context of the content. The nodes will be stored under the <paramref name="context"/>'s prefix + <c>0xFE</c></param>
+		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
+		/// <param name="encoding">Optional key encoding scheme. If not specified, will use the <see cref="TuPack"/> encoding by default.</param>
+		[NotNull]
+		public static FdbDirectoryLayer Create([NotNull] IKeyContext context, IEnumerable<string> path = null, IKeyEncoding encoding = null)
+		{
+			Contract.NotNull(context, nameof(context));
+			var subspace = KeySubspace.CreateDynamic(context, encoding ?? TuPack.Encoding);
+			var location = path != null ? ParsePath(path) : STuple.Empty;
+			return new FdbDirectoryLayer(subspace.Partition[FdbKey.Directory], subspace, location);
+		}
+
 		/// <summary>Create an instance of a Directory Layer located under a specific prefix and path</summary>
 		/// <param name="prefix">Prefix for the content. The nodes will be stored under <paramref name="prefix"/> + &lt;FE&gt;</param>
 		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
@@ -937,13 +957,14 @@ namespace FoundationDB.Layers.Directories
 
 			var path = this.Location.Concat(relativePath);
 			var prefix = this.NodeSubspace.Keys.Decode<Slice>(node.GetPrefix());
+			var context = BinaryPrefixContext.Create(prefix); //BUGBUG: TODO: create a "revokable key context" attached to this instance!
 			if (layer == FdbDirectoryPartition.LayerId)
 			{
-				return new FdbDirectoryPartition(path, relativePath, prefix, this, TuPack.Encoding);
+				return new FdbDirectoryPartition(path, relativePath, context, this, TuPack.Encoding);
 			}
 			else
 			{
-				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TuPack.Encoding);
+				return new FdbDirectorySubspace(path, relativePath, context, this, layer, TuPack.Encoding);
 			}
 		}
 

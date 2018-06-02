@@ -53,12 +53,11 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
-			var subspace = KeySubspace.FromKey(TestGlobalPrefix.Memoize());
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestHelpers.TestClusterFile,
 				DbName = TestHelpers.TestDbName,
-				GlobalSpace = subspace,
+				RootContext = BinaryPrefixContext.Create(TestGlobalPrefix),
 				DefaultTimeout = TimeSpan.FromMilliseconds(TestHelpers.DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);

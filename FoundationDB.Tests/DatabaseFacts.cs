@@ -52,7 +52,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(cluster, Is.Not.Null);
 				Assert.That(cluster.Path, Is.Null);
 
-				using (var db = await cluster.OpenDatabaseAsync("DB", KeySubspace.Empty, false, this.Cancellation))
+				using (var db = await cluster.OpenDatabaseAsync("DB", BinaryPrefixContext.Empty, TuPack.Encoding, false, this.Cancellation))
 				{
 					Assert.That(db, Is.Not.Null, "Should return a valid object");
 					Assert.That(db.Name, Is.EqualTo("DB"), "FdbDatabase.Name should match");
@@ -78,7 +78,7 @@ namespace FoundationDB.Client.Tests
 				using (var cluster = await Fdb.CreateClusterAsync(cts.Token))
 				{
 					cts.Cancel();
-					Assert.That(async () => await cluster.OpenDatabaseAsync("DB", KeySubspace.Empty, false, cts.Token), Throws.InstanceOf<OperationCanceledException>());
+					Assert.That(async () => await cluster.OpenDatabaseAsync("DB", BinaryPrefixContext.Empty, TuPack.Encoding, false, cts.Token), Throws.InstanceOf<OperationCanceledException>());
 				}
 			}
 		}
@@ -93,7 +93,7 @@ namespace FoundationDB.Client.Tests
 			// manually
 			using (var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
 			{
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", KeySubspace.Empty, false, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
+				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", BinaryPrefixContext.Empty, TuPack.Encoding, false, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 			}
 
 			// using Fdb.OpenAsync
@@ -281,7 +281,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { GlobalSpace = KeySubspace.FromKey(TuPack.EncodeKey("test")) }, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { RootContext = BinaryPrefixContext.Create(TuPack.EncodeKey("test")) }, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -298,7 +298,7 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// using a random binary prefix
-			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { GlobalSpace = KeySubspace.FromKey(new byte[] { 42, 255, 0, 90 }.AsSlice()) }, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { RootContext = BinaryPrefixContext.Create(new byte[] { 42, 255, 0, 90 }) }, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);

@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Serialization.Encoders;
 
 	/// <summary>Cluster connection context.</summary>
 	[PublicAPI]
@@ -57,12 +58,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Opens a database on this cluster, configured to only access a specific subspace of keys</summary>
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
-		/// <param name="subspace">Subspace of keys that will be accessed.</param>
+		/// <param name="rootContext">Root key context of all the keys that will be accessed.</param>
+		/// <param name="keyEncoding">Default key encoding for the global keyspace</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		[ItemNotNull]
-		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken ct);
+		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeyContext rootContext, IKeyEncoding keyEncoding, bool readOnly, CancellationToken ct);
 	}
 
 }

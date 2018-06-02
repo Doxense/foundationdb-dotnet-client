@@ -48,10 +48,10 @@ namespace FoundationDB.Client
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		CancellationToken Cancellation { get; }
 
-		/// <summary>Returns the global namespace used by this database instance</summary>
-		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
+		/// <summary>Returns the global keyspace used by this database instance</summary>
+		/// <remarks>All keys formatted using this keyspace will automatically be prefixed by the partition prefix.</remarks>
 		[NotNull]
-		IDynamicKeySubspace GlobalSpace { get; }
+		IDynamicKeySubspace GlobalSpace { get; } //REVIEW: what type of keyspace should this be?
 
 		/// <summary>Directory partition of this database instance</summary>
 		[NotNull]

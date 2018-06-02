@@ -40,8 +40,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public static Slice LayerId => Slice.FromString("partition");
 
-		internal FdbDirectoryPartition([NotNull] IVarTuple location, [NotNull] IVarTuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).AsDynamic(keyEncoding), FromKey(prefix).AsDynamic(keyEncoding), location), LayerId, keyEncoding)
+		internal FdbDirectoryPartition([NotNull] IVarTuple location, [NotNull] IVarTuple relativeLocation, IKeyContext prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
+			: base(location, relativeLocation, prefix, FdbDirectoryLayer.Create(prefix, location, keyEncoding), LayerId, keyEncoding)
 		{
 			this.ParentDirectoryLayer = directoryLayer;
 		}

@@ -63,6 +63,8 @@ namespace FoundationDB.Client
 
 		public TypedKeys<T1, T2, T3, T4> Keys { get; }
 
+		Slice IKeySubspace.this[Slice relativeKey] => throw new NotSupportedException("This method is not supported by subspaces of this type.");
+
 	}
 
 	[DebuggerDisplay("{Parent.ToString(),nq)}")]

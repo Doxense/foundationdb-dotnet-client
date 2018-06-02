@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
-	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
+	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSubspace}")]
 	public class FdbDatabase : IFdbDatabase
 	{
 		#region Private Fields...
@@ -76,9 +76,12 @@ namespace FoundationDB.Client
 		/// <summary>List of all "pending" transactions created from this database instance (and that have not yet been disposed)</summary>
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
 
+		/// <summary>Root key context attached to this database instance</summary>
+		private IKeyContext m_rootContext;
+
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private IDynamicKeySubspace m_globalSpace;
+		private DynamicKeySubspace m_globalSubspace;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -100,37 +103,40 @@ namespace FoundationDB.Client
 		/// <param name="cluster">Parent cluster</param>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
-		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
+		/// <param name="rootContext">Root key context the all keys accessible by this database instance</param>
+		/// <param name="keyEncoding">Default key encoding used by the global KeySpace</param>
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		protected FdbDatabase([NotNull] IFdbCluster cluster, [NotNull] IFdbDatabaseHandler handler, [NotNull] string name, [NotNull] IKeyContext rootContext, [CanBeNull] IKeyEncoding keyEncoding, [CanBeNull] IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
-			Contract.Requires(cluster != null && handler != null && name != null && contentSubspace != null);
+			Contract.Requires(cluster != null && handler != null && name != null && rootContext != null);
 
 			m_cluster = cluster;
 			m_handler = handler;
 			m_name = name;
 			m_readOnly = readOnly;
 			m_ownsCluster = ownsCluster;
-			ChangeRoot(contentSubspace, directory, readOnly);
+			ChangeRoot(rootContext, directory, keyEncoding, readOnly);
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
 		/// <param name="cluster">Parent cluster</param>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
-		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
+		/// <param name="rootContext">Root key context the all keys accessible by this database instance</param>
+		/// <param name="keyEncoding">Default key encoding used by the global KeySpace</param>
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		public static FdbDatabase Create([NotNull] IFdbCluster cluster, [NotNull] IFdbDatabaseHandler handler, [NotNull] string name, [NotNull] IKeyContext rootContext, [CanBeNull] IKeyEncoding keyEncoding, [CanBeNull] IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
-			if (cluster == null) throw new ArgumentNullException(nameof(cluster));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
-			if (contentSubspace == null) throw new ArgumentNullException(nameof(contentSubspace));
+			Contract.NotNull(cluster, nameof(cluster));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(name, nameof(name));
+			Contract.NotNull(rootContext, nameof(rootContext));
 
-			return new FdbDatabase(cluster, handler, name, contentSubspace, directory, readOnly, ownsCluster);
+			return new FdbDatabase(cluster, handler, name, rootContext, keyEncoding, directory, readOnly, ownsCluster);
 		}
 
 		#endregion
@@ -138,18 +144,10 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Cluster where the database is located</summary>
-		public IFdbCluster Cluster
-		{
-			[NotNull]
-			get { return m_cluster; }
-		}
+		public IFdbCluster Cluster => m_cluster;
 
 		/// <summary>Name of the database</summary>
-		public string Name
-		{
-			[NotNull]
-			get { return m_name; }
-		}
+		public string Name => m_name;
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -162,7 +160,6 @@ namespace FoundationDB.Client
 		/// <summary>Root directory of this database instance</summary>
 		public FdbDatabasePartition Directory
 		{
-			[NotNull]
 			get
 			{
 				if (m_directory == null)
@@ -183,7 +180,7 @@ namespace FoundationDB.Client
 		/// <summary>When overriden in a derived class, gets a database partition that wraps the root directory of this database instance</summary>
 		protected virtual FdbDatabasePartition GetRootDirectory()
 		{
-			return new FdbDatabasePartition(this, FdbDirectoryLayer.Create(m_globalSpace));
+			return new FdbDatabasePartition(this, FdbDirectoryLayer.Create(m_globalSubspace));
 		}
 
 		#endregion
@@ -442,29 +439,20 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(IKeySubspace subspace, IFdbDirectory directory, bool readOnly)
+		internal void ChangeRoot([NotNull] IKeyContext context, [CanBeNull] IFdbDirectory directory, [CanBeNull] IKeyEncoding keyEncoding, bool readOnly)
 		{
-			//REVIEW: rename to "ChangeRootSubspace" ?
-			subspace = subspace ?? KeySubspace.Empty;
+			Contract.Requires(context != null);
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = subspace.AsDynamic(TuPack.Encoding);
+				m_rootContext = context;
+				m_globalSubspace = new DynamicKeySubspace(context, keyEncoding ?? TuPack.Encoding);
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public IDynamicKeySubspace GlobalSpace
-		{
-			//REVIEW: rename to just "Subspace" ?
-			[NotNull]
-			get
-			{
-				// return a copy of the subspace, to be sure that nobody can change the real globalspace and read elsewhere.
-				return m_globalSpace;
-			}
-		}
+		public IDynamicKeySubspace GlobalSpace => m_globalSubspace;
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="database"></param>
@@ -519,29 +507,32 @@ namespace FoundationDB.Client
 		/// <returns>True if the key is not null and contained inside the globale subspace</returns>
 		public bool Contains(Slice key)
 		{
-			return key.HasValue && m_globalSpace.Contains(key);
+			return key.HasValue && m_globalSubspace.Contains(key);
 		}
 
 		public Slice BoundCheck(Slice key, bool allowSystemKeys)
 		{
-			return m_globalSpace.BoundCheck(key, allowSystemKeys);
+			return m_globalSubspace.BoundCheck(key, allowSystemKeys);
 		}
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck) => m_globalSpace.ExtractKey(key, boundCheck);
+		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck) => m_globalSubspace.ExtractKey(key, boundCheck);
 
-		IKeyContext IKeySubspace.GetContext() => m_globalSpace.GetContext();
+		IKeyContext IKeySubspace.GetContext() => m_globalSubspace.GetContext();
 
-		Slice IKeySubspace.GetPrefix() => m_globalSpace.GetPrefix();
+		Slice IKeySubspace.GetPrefix() => m_globalSubspace.GetPrefix();
 
-		KeyRange IKeySubspace.ToRange() => m_globalSpace.ToRange();
+		KeyRange IKeySubspace.ToRange() => m_globalSubspace.ToRange();
 
-		public DynamicPartition Partition => m_globalSpace.Partition;
+		public DynamicPartition Partition => m_globalSubspace.Partition;
 		//REVIEW: should we hide this on the main db?
 
-		IKeyEncoding IDynamicKeySubspace.Encoding => m_globalSpace.Encoding;
+		public DynamicKeys Keys => m_globalSubspace.Keys;
+		//REVIEW: should we hide this on the main db?
 
-		public DynamicKeys Keys => m_globalSpace.Keys;
+		public Slice this[Slice relativeKey] => m_globalSubspace[relativeKey];
+
+		IKeyEncoding IDynamicKeySubspace.Encoding => m_globalSubspace.Encoding;
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(ref Slice key)
@@ -575,7 +566,7 @@ namespace FoundationDB.Client
 		internal Slice BoundCheck(Slice key)
 		{
 			//REVIEW: should we always allow access to system keys ?
-			return m_globalSpace.BoundCheck(key, allowSystemKeys: true);
+			return m_globalSubspace.BoundCheck(key, allowSystemKeys: true);
 		}
 
 		#endregion

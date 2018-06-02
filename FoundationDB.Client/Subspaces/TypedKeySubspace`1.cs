@@ -66,6 +66,8 @@ namespace FoundationDB.Client
 
 		public TypedKeys<T1> Keys { get; }
 
+		Slice IKeySubspace.this[Slice relativeKey] => throw new NotSupportedException("This method is not supported by subspaces of this type.");
+
 	}
 
 	/// <summary>Encodes and Decodes keys composed of a single element</summary>

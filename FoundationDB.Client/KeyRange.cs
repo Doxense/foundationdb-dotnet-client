@@ -254,6 +254,19 @@ namespace FoundationDB.Client
 			return 0;
 		}
 
+		/// <summary>Return a KeyRange with a copy of the keys</summary>
+		public KeyRange Memoize()
+		{
+			// optimize for common case of End = Begin + \xFF
+			if (this.End.StartsWith(this.Begin))
+			{
+				var tmp = this.End.Memoize();
+				return new KeyRange(tmp.Substring(0, this.Begin.Count), tmp);
+			}
+
+			return new KeyRange(this.Begin.Memoize(), this.End.Memoize());
+		}
+
 		/// <summary>Returns a printable version of the range</summary>
 		public override string ToString()
 		{

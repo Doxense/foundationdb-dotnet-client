@@ -2108,16 +2108,14 @@ namespace FoundationDB.Client.Tests
 		{
 			using(var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.GlobalSpace;
-
 				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
 					await tr.GetReadVersionAsync();
 
-					var a = location[Slice.FromString("A")];
-					var b = location[Slice.FromString("B")];
-					var c = location[Slice.FromString("C")];
-					var z = location[Slice.FromString("Z")];
+					var a = db[Slice.FromString("A")];
+					var b = db[Slice.FromString("B")];
+					var c = db[Slice.FromString("C")];
+					var z = db[Slice.FromString("Z")];
 
 					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
 

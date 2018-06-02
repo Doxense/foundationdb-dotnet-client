@@ -148,7 +148,8 @@ namespace FoundationDB.Layers.Directories
 			// set the layer to the new value
 			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.RelativeLocation, newLayer).ConfigureAwait(false);
 			// and return the new version of the subspace
-			var keyContext = new BinaryPrefixContext(GetKeyPrefix()); //TODO: BUGBUG: use a different type of context that keeps a reference on this directory subspace!
+			var prefix = GetKeyPrefix();
+			var keyContext = new BinaryPrefixContext(prefix, KeyRange.StartsWith(prefix)); //TODO: BUGBUG: use a different type of context that keeps a reference on this directory subspace!
 			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, keyContext, this.DirectoryLayer, newLayer, this.Encoding);
 		}
 

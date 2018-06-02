@@ -571,7 +571,7 @@ namespace FoundationDB.Layers.Directories
 
 				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
-				var partitionKey = partition.Copy().GetPrefix();
+				var partitionKey = partition.GetPrefixUnsafe();
 				Log(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromStringAscii("partition")));
@@ -731,7 +731,7 @@ namespace FoundationDB.Layers.Directories
 
 					// should have kept the same prefix
 					//note: we need to cheat to get the key of the partition
-					Assert.That(bar.Copy().GetPrefix(), Is.EqualTo(foo.Copy().GetPrefix()));
+					Assert.That(bar.GetPrefixUnsafe(), Is.EqualTo(foo.GetPrefixUnsafe()));
 
 					// verify list again
 					folders = await directory.ListAsync(tr);
@@ -848,9 +848,9 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.Create(location);
 				Log(directory);
 
-				var partition = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
+				var folder = await directory.CreateAsync(db, "Foo", Slice.FromStringAscii("partition"), this.Cancellation);
 				//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
-				var subdir = await partition.CreateOrOpenAsync(db, "Bar", this.Cancellation);
+				var subdir = await folder.CreateOrOpenAsync(db, "Bar", this.Cancellation);
 				var barKey = subdir.GetPrefix();
 
 				// the constraint will always be the same for all the checks
@@ -867,61 +867,56 @@ namespace FoundationDB.Layers.Directories
 				// === PASS ===
 				// these methods are allowed to succeed on directory partitions, because we need them for the rest to work
 
-				ShouldPass(() => partition.Copy().GetPrefix()); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
-				ShouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
-				ShouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
-				ShouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
+				ShouldPass(() => folder.GetPrefixUnsafe()); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
+				ShouldPass(() => folder.GetContext().GetPrefix()); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
+				ShouldPass(() => folder.ToString()); // EXCEPTION: this should never fail!
+				ShouldPass(() => folder.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
+				ShouldPass(() => folder.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
 
 				// === FAIL ====
 
 				// Key
-				ShouldFail(() => partition.GetPrefix());
+				ShouldFail(() => folder.GetPrefix());
 
 				// Contains
-				ShouldFail(() => partition.Contains(barKey));
+				ShouldFail(() => folder.Contains(barKey));
 
 				// Extract / ExtractAndCheck / BoundCheck
-				ShouldFail(() => partition.ExtractKey(barKey, boundCheck: false));
-				ShouldFail(() => partition.ExtractKey(barKey, boundCheck: true));
+				ShouldFail(() => folder.ExtractKey(barKey, boundCheck: false));
+				ShouldFail(() => folder.ExtractKey(barKey, boundCheck: true));
 
 				// Partition
-				ShouldFail(() => partition.Partition.ByKey(123));
-				ShouldFail(() => partition.Partition.ByKey(123, "hello"));
-				ShouldFail(() => partition.Partition.ByKey(123, "hello", false));
-				ShouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
+
+				ShouldFail(() => folder.Partition.ByKey(123));
+				ShouldFail(() => folder.Partition.ByKey(123, "hello"));
+				ShouldFail(() => folder.Partition.ByKey(123, "hello", false));
+				ShouldFail(() => folder.Partition.ByKey(123, "hello", false, "world"));
 
 				// Keys
 
-				ShouldFail(() => partition[Slice.FromString("hello")]);
-				ShouldFail(() => partition[location.GetPrefix()]);
-				ShouldFail(() => partition[STuple.Create("hello", 123)]);
+				ShouldFail(() => folder[Slice.FromString("hello")]);
+				ShouldFail(() => folder[location.GetPrefix()]);
+				ShouldFail(() => folder[STuple.Create("hello", 123)]);
 
-				ShouldFail(() => partition.ToRange());
-				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				ShouldFail(() => partition.ToRange(TuPack.EncodeKey("hello")));
+				ShouldFail(() => folder.Keys.Encode(123));
+				ShouldFail(() => folder.Keys.Encode(123, "hello"));
+				ShouldFail(() => folder.Keys.Encode(123, "hello", false));
+				ShouldFail(() => folder.Keys.Encode(123, "hello", false, "world"));
+				ShouldFail(() => folder.Keys.Encode<object>(123));
 
- 				// Tuples
+				ShouldFail(() => folder.Keys.EncodeMany<int>(new[] { 123, 456, 789 }));
+				ShouldFail(() => folder.Keys.EncodeMany<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
+				ShouldFail(() => folder.Keys.EncodeMany<object>(new object[] { 123, "hello", true }));
+				ShouldFail(() => folder.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
-				ShouldFail(() => partition.Keys.Encode(123));
-				ShouldFail(() => partition.Keys.Encode(123, "hello"));
-				ShouldFail(() => partition.Keys.Encode(123, "hello", false));
-				ShouldFail(() => partition.Keys.Encode(123, "hello", false, "world"));
-				ShouldFail(() => partition.Keys.Encode<object>(123));
+				ShouldFail(() => folder.Keys.Unpack(barKey));
+				ShouldFail(() => folder.Keys.Decode<int>(barKey));
+				ShouldFail(() => folder.Keys.DecodeLast<int>(barKey));
+				ShouldFail(() => folder.Keys.DecodeFirst<int>(barKey));
 
-				ShouldFail(() => partition.Keys.EncodeMany<int>(new[] { 123, 456, 789 }));
-				ShouldFail(() => partition.Keys.EncodeMany<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
-				ShouldFail(() => partition.Keys.EncodeMany<object>(new object[] { 123, "hello", true }));
-				ShouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
-
-				ShouldFail(() => partition.Keys.Unpack(barKey));
-				ShouldFail(() => partition.Keys.Decode<int>(barKey));
-				ShouldFail(() => partition.Keys.DecodeLast<int>(barKey));
-				ShouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
-
-				ShouldFail(() => partition.Keys.ToRange());
-				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				ShouldFail(() => partition.Keys.ToRange(STuple.Create("hello")));
-
+				ShouldFail(() => folder.ToRange());
+				ShouldFail(() => folder.Keys.ToRange());
+				ShouldFail(() => folder.Keys.ToRange(STuple.Create("hello")));
 			}
 		}
 

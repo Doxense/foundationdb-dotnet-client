@@ -37,7 +37,9 @@ namespace FoundationDB.Client
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization.Encoders;
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using JetBrains.Annotations;
@@ -532,6 +534,7 @@ namespace FoundationDB.Client
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		[ItemNotNull]
+		//TODO: make Obsolete?
 		public static Task<IFdbDatabase> OpenAsync(CancellationToken ct = default)
 		{
 			return OpenInternalAsync(new FdbConnectionOptions(), ct);
@@ -544,11 +547,14 @@ namespace FoundationDB.Client
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		[ItemNotNull]
+		//TODO: make Obsolete?
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] IKeySubspace globalSpace, CancellationToken ct = default)
 		{
 			var options = new FdbConnectionOptions
 			{
-				GlobalSpace = globalSpace,
+				RootContext = globalSpace?.GetContext(),
+				KeyEncoding = (globalSpace as IDynamicKeySubspace)?.Encoding,
+
 			};
 			return OpenInternalAsync(options, ct);
 		}
@@ -563,6 +569,7 @@ namespace FoundationDB.Client
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		[ItemNotNull]
+		//TODO: make Obsolete?
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, CancellationToken ct = default)
 		{
 			var options = new FdbConnectionOptions
@@ -584,13 +591,15 @@ namespace FoundationDB.Client
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		[ItemNotNull]
+		//TODO: make Obsolete?
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, [CanBeNull] IKeySubspace globalSpace, bool readOnly = false, CancellationToken ct = default)
 		{
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = clusterFile,
 				DbName = dbName,
-				GlobalSpace = globalSpace,
+				RootContext = globalSpace?.GetContext(),
+				KeyEncoding = (globalSpace as IDynamicKeySubspace)?.Encoding,
 				ReadOnly = readOnly
 			};
 			return OpenInternalAsync(options, ct);
@@ -619,11 +628,12 @@ namespace FoundationDB.Client
 			string clusterFile = options.ClusterFile;
 			string dbName = options.DbName ?? FdbConnectionOptions.DefaultDbName; // new FdbConnectionOptions { GlobalSpace = 
 			bool readOnly = options.ReadOnly;
-			IKeySubspace globalSpace = options.GlobalSpace ?? KeySubspace.Empty;
+			var context = options.RootContext ?? BinaryPrefixContext.Empty;
+			var encoding = options.KeyEncoding ?? TuPack.Encoding;
 			string[] partitionPath = options.PartitionPath?.ToArray();
 			bool hasPartition = partitionPath != null && partitionPath.Length > 0;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
+			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and root context '{context}' ...");
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
@@ -632,7 +642,7 @@ namespace FoundationDB.Client
 			{
 				cluster = await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: !hasPartition && readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseInternalAsync(dbName, context, encoding, readOnly: !hasPartition && readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
 
 				// set the default options
 				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
@@ -861,12 +871,15 @@ namespace FoundationDB.Client
 
 		public int DefaultMaxRetryDelay { get; set; }
 
-		/// <summary>Global subspace in use by the database (empty prefix by default)</summary>
+		/// <summary>Root prefix for all the keys in this database instance (no prefix by default)</summary>
 		/// <remarks>If <see cref="PartitionPath"/> is also set, this subspace will be used to locate the top-level Directory Layer, and the actual GlobalSpace of the database will be the partition</remarks>
-		public IKeySubspace GlobalSpace { get; set; }
+		public IKeyContext RootContext { get; set; }
+
+		/// <summary>Defualt encoding for the Global Subspace (Tuple encoding by default)</summary>
+		public IKeyEncoding KeyEncoding { get; set; }
 
 		/// <summary>If specified, open the named partition at the specified path</summary>
-		/// <remarks>If <see cref="GlobalSpace"/> is also set, it will be used to locate the top-level Directory Layer.</remarks>
+		/// <remarks>If <see cref="RootContext"/> is also set, it will be used to locate the top-level Directory Layer.</remarks>
 		public string[] PartitionPath { get; set; }
 	}
 

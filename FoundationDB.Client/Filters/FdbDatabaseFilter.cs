@@ -125,6 +125,8 @@ namespace FoundationDB.Filters
 
 		public virtual DynamicKeys Keys => m_database.Keys;
 
+		public virtual Slice this[Slice relativeKey] => m_database[relativeKey];
+
 		public virtual bool Contains(Slice key)
 		{
 			return m_database.Contains(key);
