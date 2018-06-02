@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Doxense.Collections.Tuples
 {
+	using System;
 	using JetBrains.Annotations;
 	using System.Collections.Generic;
 	using System.Diagnostics;

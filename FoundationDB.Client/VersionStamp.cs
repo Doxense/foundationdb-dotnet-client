@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
