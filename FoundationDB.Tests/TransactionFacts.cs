@@ -1691,7 +1691,7 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.Zero, "Timeout (default)");
+					Assert.That(tr.Timeout, Is.EqualTo(15000), "Timeout (default)");
 					Assert.That(tr.RetryLimit, Is.Zero, "RetryLimit (default)");
 					Assert.That(tr.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
 
@@ -1711,7 +1711,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				Assert.That(db.DefaultTimeout, Is.Zero, "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
 				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 				Assert.That(db.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
 
@@ -1760,7 +1760,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
-				Assert.That(db.DefaultTimeout, Is.Zero, "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
 				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 
 				// By default, a transaction that gets reset or retried, clears the RetryLimit and Timeout settings, which needs to be reset everytime.
