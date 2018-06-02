@@ -971,7 +971,7 @@ namespace FoundationDB.Linq.Tests
 
 			// record the timing and call history to ensure that inner is called at least twice before the first item gets out
 
-			Func<int, (int Value, int Called)> record = (x) => STuple.Create(x, Volatile.Read(ref called));
+			Func<int, (int Value, int Called)> record = (x) => (x, Volatile.Read(ref called));
 
 			// without prefetching, the number of calls should match for the producer and the consumer
 			called = 0;
@@ -1016,9 +1016,9 @@ namespace FoundationDB.Linq.Tests
 				return Task.FromResult(Maybe.Return((int)index));
 			});
 
-			Func<int, STuple<int, int, TimeSpan>> record = (x) =>
+			Func<int, (int Value, int Called, TimeSpan Elapsed)> record = (x) =>
 			{
-				var res = STuple.Create(x, Volatile.Read(ref called), sw.Elapsed);
+				var res = (x, Volatile.Read(ref called), sw.Elapsed);
 				sw.Restart();
 				return res;
 			};
@@ -1028,7 +1028,7 @@ namespace FoundationDB.Linq.Tests
 			sw.Restart();
 			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
 			Log("P0: {0}", String.Join(", ", withoutPrefetching));
-			Assert.That(withoutPrefetching.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
+			Assert.That(withoutPrefetching.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
 
 			// with prefetching K, the consumer should always have K items in advance
 			//REVIEW: maybe we should change the implementation of the operator so that it still prefetch items in the background if the rest of the query is lagging a bit?

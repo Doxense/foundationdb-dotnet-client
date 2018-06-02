@@ -29,10 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("FoundationDB.Samples")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-
 [assembly: ComVisible(false)]
 
 [assembly: Guid("0a17dc3e-9bd8-49ce-87f8-8bc31f68d2ac")]
