@@ -603,11 +603,14 @@ namespace FdbShell
 						case "mem":
 						{
 							Console.WriteLine("Memory usage:");
+							Console.WriteLine("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
+							//TODO: how do we get these values on Linux/Mac?
+#if !NETCOREAPP
 							Console.WriteLine("- Working Set  : " + PerfCounters.WorkingSet.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak.NextValue().ToString("N0") + ")");
 							Console.WriteLine("- Virtual Bytes: " + PerfCounters.VirtualBytes.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak.NextValue().ToString("N0") + ")");
 							Console.WriteLine("- Private Bytes: " + PerfCounters.PrivateBytes.NextValue().ToString("N0"));
-							Console.WriteLine("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
 							Console.WriteLine("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps.NextValue().ToString("N0"));
+#endif
 							break;
 						}
 

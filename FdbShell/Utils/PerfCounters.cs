@@ -13,6 +13,8 @@ namespace FdbShell
 			ProcessName = p.ProcessName;
 			ProcessId = p.Id;
 
+			//TODO: how do we get these values on Linux/Mac?
+#if !NETCOREAPP
 			CategoryProcess = new PerformanceCounterCategory("Process");
 
 			ProcessorTime = new PerformanceCounter("Process", "% Processor Time", ProcessName);
@@ -31,11 +33,13 @@ namespace FdbShell
 			ClrGen0Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 0 Collections", p.ProcessName, true);
 			ClrGen1Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
 			ClrGen2Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
+#endif
 		}
 
 		public static readonly string ProcessName;
 		public static readonly int ProcessId;
 
+#if !NETCOREAPP
 		public static readonly PerformanceCounterCategory CategoryProcess;
 		public static readonly PerformanceCounter ProcessorTime;
 		public static readonly PerformanceCounter UserTime;
@@ -52,6 +56,7 @@ namespace FdbShell
 		public static readonly PerformanceCounter ClrGen0Collections;
 		public static readonly PerformanceCounter ClrGen1Collections;
 		public static readonly PerformanceCounter ClrGen2Collections;
+#endif
 
 	}
 
