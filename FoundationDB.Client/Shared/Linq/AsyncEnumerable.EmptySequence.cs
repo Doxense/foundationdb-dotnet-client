@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq
 {
 	using System;
@@ -151,3 +153,5 @@ namespace Doxense.Linq
 		}
 	}
 }
+
+#endif

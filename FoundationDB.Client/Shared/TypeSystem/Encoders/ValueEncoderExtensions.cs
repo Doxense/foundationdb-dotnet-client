@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
+#if !USE_SHARED_FRAMEWORK
 
 namespace Doxense.Serialization.Encoders
 {
@@ -129,3 +129,5 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
+
+#endif

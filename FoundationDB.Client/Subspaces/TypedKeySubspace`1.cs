@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			return Encode(tuple.OfSize(1).Get<T1>(0));
 		}

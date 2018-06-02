@@ -57,31 +57,25 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public static void WriteBool(ref TupleWriter writer, bool value)
 		{
-			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
-			if (value)
-			{ // true => 15 01
-				writer.Output.WriteBytes(TupleTypes.IntPos1, 1);
-			}
-			else
-			{ // false => 14
-				writer.Output.WriteByte(TupleTypes.IntZero);
-			}
+			// null  => 00
+			// false => 26
+			// true  => 27
+			//note: old versions used to encode bool as integer 0 or 1
+			writer.Output.WriteByte(value ? TupleTypes.True : TupleTypes.False);
 		}
 
 		public static void WriteBool(ref TupleWriter writer, bool? value)
 		{
-			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
-			if (value == null)
-			{ // null => 00
-				writer.Output.WriteByte(TupleTypes.Nil);
-			}
-			else if (value.Value)
-			{ // true => 15 01
-				writer.Output.WriteBytes(TupleTypes.IntPos1, 1);
+			// null  => 00
+			// false => 26
+			// true  => 27
+			if (value != null)
+			{
+				writer.Output.WriteByte(value.Value ? TupleTypes.True : TupleTypes.False);
 			}
 			else
-			{ // false => 14
-				writer.Output.WriteByte(TupleTypes.IntZero);
+			{
+				WriteNil(ref writer);
 			}
 		}
 
@@ -186,7 +180,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			ulong v;
 			if (value > 0)
 			{ // simple case
-				buffer[p++] = (byte)(TupleTypes.IntBase + bytes);
+				buffer[p++] = (byte)(TupleTypes.IntZero + bytes);
 				v = (ulong)value;
 			}
 			else
@@ -194,7 +188,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				// -1 => 0xFE
 				// -256 => 0xFFFE
 				// -65536 => 0xFFFFFE
-				buffer[p++] = (byte)(TupleTypes.IntBase - bytes);
+				buffer[p++] = (byte)(TupleTypes.IntZero - bytes);
 				v = (ulong)(~(-value));
 			}
 
@@ -284,7 +278,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			int p = writer.Output.Position;
 
 			// simple case (ulong can only be positive)
-			buffer[p++] = (byte)(TupleTypes.IntBase + bytes);
+			buffer[p++] = (byte)(TupleTypes.IntZero + bytes);
 
 			if (bytes > 0)
 			{
@@ -717,7 +711,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
-		public static void WriteGuid(ref TupleWriter writer, Guid value)
+		public static void WriteGuid(ref TupleWriter writer, in Guid value)
 		{
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
@@ -732,7 +726,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
-		public static void WriteUuid128(ref TupleWriter writer, Uuid128 value)
+		public static void WriteUuid128(ref TupleWriter writer, in Uuid128 value)
 		{
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
@@ -743,6 +737,34 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static void WriteUuid128(ref TupleWriter writer, Uuid128? value)
 		{
 			if (!value.HasValue) WriteNil(ref writer); else WriteUuid128(ref writer, value.Value);
+		}
+
+		/// <summary>Writes a 96-bit UUID</summary>
+		public static void WriteUuid96(ref TupleWriter writer, in Uuid96 value)
+		{
+			writer.Output.EnsureBytes(11);
+			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
+			writer.Output.UnsafeWriteUuid96(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid96(ref TupleWriter writer, Uuid96? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUuid96(ref writer, value.Value);
+		}
+
+		/// <summary>Writes a 80-bit UUID</summary>
+		public static void WriteUuid80(ref TupleWriter writer, in Uuid80 value)
+		{
+			writer.Output.EnsureBytes(11);
+			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
+			writer.Output.UnsafeWriteUuid80(value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid80(ref TupleWriter writer, Uuid80? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteUuid80(ref writer, value.Value);
 		}
 
 		/// <summary>Writes a 64-bit UUID</summary>
@@ -759,7 +781,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteUuid64(ref writer, value.Value);
 		}
 
-		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp value)
+		public static void WriteVersionStamp(ref TupleWriter writer, in VersionStamp value)
 		{
 			if (value.HasUserVersion)
 			{ // 96-bits Versionstamp
@@ -781,11 +803,32 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteVersionStamp(ref writer, value.Value);
 		}
 
+		public static void WriteUserType(ref TupleWriter writer, TuPackUserType value)
+		{
+			if (value == null)
+			{
+				WriteNil(ref writer);
+				return;
+			}
+
+			var arg = value.Value;
+			if (arg.Count == 0)
+			{
+				writer.Output.WriteByte((byte) value.Type);
+			}
+			else
+			{
+				writer.Output.EnsureBytes(checked(1 + arg.Count));
+				writer.Output.WriteByte(value.Type);
+				writer.Output.WriteBytes(arg);
+			}
+		}
+
 		/// <summary>Mark the start of a new embedded tuple</summary>
 		public static void BeginTuple(ref TupleWriter writer)
 		{
 			writer.Depth++;
-			writer.Output.WriteByte(TupleTypes.TupleStart);
+			writer.Output.WriteByte(TupleTypes.EmbeddedTuple);
 		}
 
 		/// <summary>Mark the end of an embedded tuple</summary>
@@ -803,7 +846,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <remarks>This method should only be used by custom decoders.</remarks>
 		public static long ParseInt64(int type, Slice slice)
 		{
-			int bytes = type - TupleTypes.IntBase;
+			int bytes = type - TupleTypes.IntZero;
 			if (bytes == 0) return 0L;
 
 			bool neg = false;
@@ -913,9 +956,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
 		[Pure]
-		public static ITuple ParseTuple(Slice slice)
+		public static IVarTuple ParseTuple(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.TupleStart && slice[-1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.EmbeddedTuple && slice[-1] == 0);
 			if (slice.Count <= 2) return STuple.Empty;
 
 			return TuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
@@ -1104,13 +1147,20 @@ namespace Doxense.Collections.Tuples.Encoding
 					return reader.Input.ReadByteString();
 				}
 
-				case TupleTypes.TupleStart:
+				case TupleTypes.LegacyTupleStart:
 				{ // <03>(packed tuple)<04>
 
+					//note: this format is NOT SUPPORTED ANYMORE, because it was not compatible with the current spec (<03>...<00> instead of <03>...<04> and is replaced by <05>....<00>)
+					//we prefer throwing here instead of still attempting to decode the tuple, because it could silently break layers (if we read an old-style key and update it with the new-style format)
+					throw TupleParser.FailLegacyTupleNotSupported();
+				}
+				case TupleTypes.EmbeddedTuple:
+				{ // <05>(packed tuple)<00>
 					//PERF: currently, we will first scan to get all the bytes of this tuple, and parse it later.
 					// This means that we may need to scan multiple times the bytes, which may not be efficient if there are multiple embedded tuples inside each other
 					return ReadEmbeddedTupleBytes(ref reader);
 				}
+
 				case TupleTypes.Single:
 				{ // <20>(4 bytes)
 					return reader.Input.ReadBytes(5);
@@ -1129,6 +1179,15 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{ // <23>(16 bytes)
 					return reader.Input.ReadBytes(17);
+				}
+
+				case TupleTypes.False:
+				{ // <26>
+					return reader.Input.ReadBytes(1);
+				}
+				case TupleTypes.True:
+				{ // <27>
+					return reader.Input.ReadBytes(1);
 				}
 
 				case TupleTypes.Uuid128:
@@ -1151,8 +1210,8 @@ namespace Doxense.Collections.Tuples.Encoding
 					return reader.Input.ReadBytes(13);
 				}
 
-				case TupleTypes.AliasDirectory:
-				case TupleTypes.AliasSystem:
+				case TupleTypes.Directory:
+				case TupleTypes.Escape:
 				{ // <FE> or <FF>
 					return reader.Input.ReadBytes(1);
 				}
@@ -1222,6 +1281,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
 			var token = TupleParser.ParseNext(ref reader);
 			return visitor(token, TupleTypes.DecodeSegmentType(token));
+		}
+
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static Exception FailLegacyTupleNotSupported()
+		{
+			throw new FormatException("Old style embedded tuples (0x03) are not supported anymore.");
 		}
 
 		#endregion

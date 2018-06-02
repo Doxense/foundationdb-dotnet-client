@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Collections.Tuples
 {
 	using JetBrains.Annotations;
@@ -38,7 +40,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class LinkedTuple<T> : ITuple
+	public sealed class LinkedTuple<T> : IVarTuple
 	{
 		//TODO: consider changing this to a struct ?
 
@@ -49,13 +51,13 @@ namespace Doxense.Collections.Tuples
 		public readonly T Tail;
 
 		/// <summary>Link to the parent tuple that contains the head.</summary>
-		public readonly ITuple Head;
+		public readonly IVarTuple Head;
 
 		/// <summary>Cached size of the size of the Head tuple. Add 1 to get the size of this tuple.</summary>
 		public readonly int Depth;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		public LinkedTuple([NotNull] ITuple head, T tail)
+		public LinkedTuple([NotNull] IVarTuple head, T tail)
 		{
 			Contract.NotNull(head, nameof(head));
 
@@ -77,7 +79,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
+		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		public TItem Get<TItem>(int index)
 		{
@@ -92,7 +94,7 @@ namespace Doxense.Collections.Tuples
 			get => this.Tail;
 		}
 
-		ITuple ITuple.Append<TItem>(TItem value)
+		IVarTuple IVarTuple.Append<TItem>(TItem value)
 		{
 			return this.Append<TItem>(value);
 		}
@@ -103,7 +105,7 @@ namespace Doxense.Collections.Tuples
 			return new LinkedTuple<TItem>(this, value);
 		}
 
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
@@ -138,7 +140,7 @@ namespace Doxense.Collections.Tuples
 			return obj != null && ((System.Collections.IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((System.Collections.IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -177,3 +179,5 @@ namespace Doxense.Collections.Tuples
 
 	}
 }
+
+#endif

@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "vector");
 
-				var vector = new FdbVector<Slice>(location, Slice.Empty, KeyValueEncoders.Values.BinaryEncoder);
+				var vector = new FdbVector<Slice>(location, Slice.Empty, BinaryEncoding.SliceEncoder);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{

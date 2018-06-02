@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq.Async.Expressions
 {
 	using JetBrains.Annotations;
@@ -53,10 +55,7 @@ namespace Doxense.Linq.Async.Expressions
 			m_asyncHandler = asyncHandler;
 		}
 
-		public bool Async
-		{
-			get { return m_handler != null; }
-		}
+		public bool Async => m_handler != null;
 
 		public TSource Invoke(TSource item)
 		{
@@ -130,3 +129,5 @@ namespace Doxense.Linq.Async.Expressions
 	}
 
 }
+
+#endif

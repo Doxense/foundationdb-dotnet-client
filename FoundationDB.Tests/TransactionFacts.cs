@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// ReSharper disable AccessToDisposedClosure
 namespace FoundationDB.Client.Tests
 {
 	using NUnit.Framework;
@@ -113,7 +114,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(() => tr2.Set(location.Keys.Encode("Hello"), Slice.Empty), Throws.InvalidOperationException);
 					Assert.That(() => tr2.Clear(location.Keys.Encode("Hello")), Throws.InvalidOperationException);
 					Assert.That(() => tr2.ClearRange(location.Keys.Encode("ABC"), location.Keys.Encode("DEF")), Throws.InvalidOperationException);
-					Assert.That(() => tr2.Atomic(location.Keys.Encode("Counter"), Slice.FromFixed32(1), FdbMutationType.Add), Throws.InvalidOperationException);
+					Assert.That(() => tr2.AtomicIncrement32(location.Keys.Encode("Counter")), Throws.InvalidOperationException);
 				}
 			}
 		}
@@ -739,10 +740,170 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					key = location.Keys.Encode("invalid");
-					Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), (FdbMutationType)42), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
+					Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), (FdbMutationType) 42), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
 				}
 			}
 		}
+
+		[Test]
+		public async Task Test_Can_AtomicAdd32()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "atomic");
+
+				// setup
+				await db.ClearRangeAsync(location, this.Cancellation);
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(location.Keys.Encode("AAA"), Slice.FromFixed32(0));
+					tr.Set(location.Keys.Encode("BBB"), Slice.FromFixed32(1));
+					tr.Set(location.Keys.Encode("CCC"), Slice.FromFixed32(43));
+					tr.Set(location.Keys.Encode("DDD"), Slice.FromFixed32(255));
+					//EEE does not exist
+				}, this.Cancellation);
+
+				// execute
+				await db.WriteAsync((tr) =>
+				{
+					tr.AtomicAdd32(location.Keys.Encode("AAA"), 1);
+					tr.AtomicAdd32(location.Keys.Encode("BBB"), 42);
+					tr.AtomicAdd32(location.Keys.Encode("CCC"), -1);
+					tr.AtomicAdd32(location.Keys.Encode("DDD"), 42);
+					tr.AtomicAdd32(location.Keys.Encode("EEE"), 42);
+				}, this.Cancellation);
+
+				// check
+				await db.ReadAsync(async (tr) =>
+				{
+					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("29 01 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00"));
+				}, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_AtomicIncrement32()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "atomic");
+
+				// setup
+				await db.ClearRangeAsync(location, this.Cancellation);
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(location.Keys.Encode("AAA"), Slice.FromFixed32(0));
+					tr.Set(location.Keys.Encode("BBB"), Slice.FromFixed32(1));
+					tr.Set(location.Keys.Encode("CCC"), Slice.FromFixed32(42));
+					tr.Set(location.Keys.Encode("DDD"), Slice.FromFixed32(255));
+					//EEE does not exist
+				}, this.Cancellation);
+
+				// execute
+				await db.WriteAsync((tr) =>
+				{
+					tr.AtomicIncrement32(location.Keys.Encode("AAA"));
+					tr.AtomicIncrement32(location.Keys.Encode("BBB"));
+					tr.AtomicIncrement32(location.Keys.Encode("CCC"));
+					tr.AtomicIncrement32(location.Keys.Encode("DDD"));
+					tr.AtomicIncrement32(location.Keys.Encode("EEE"));
+				}, this.Cancellation);
+
+				// check
+				await db.ReadAsync(async (tr) =>
+				{
+					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("02 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("00 01 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+				}, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_AtomicAdd64()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "atomic");
+
+				// setup
+				await db.ClearRangeAsync(location, this.Cancellation);
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(location.Keys.Encode("AAA"), Slice.FromFixed64(0));
+					tr.Set(location.Keys.Encode("BBB"), Slice.FromFixed64(1));
+					tr.Set(location.Keys.Encode("CCC"), Slice.FromFixed64(43));
+					tr.Set(location.Keys.Encode("DDD"), Slice.FromFixed64(255));
+					//EEE does not exist
+				}, this.Cancellation);
+
+				// execute
+				await db.WriteAsync((tr) =>
+				{
+					tr.AtomicAdd64(location.Keys.Encode("AAA"), 1);
+					tr.AtomicAdd64(location.Keys.Encode("BBB"), 42);
+					tr.AtomicAdd64(location.Keys.Encode("CCC"), -1);
+					tr.AtomicAdd64(location.Keys.Encode("DDD"), 42);
+					tr.AtomicAdd64(location.Keys.Encode("EEE"), 42);
+				}, this.Cancellation);
+
+				// check
+				await db.ReadAsync(async (tr) =>
+				{
+					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("29 01 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
+				}, this.Cancellation);
+			}
+		}
+
+		[Test]public async Task Test_Can_AtomicIncrement64()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "atomic");
+
+				// setup
+				await db.ClearRangeAsync(location, this.Cancellation);
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(location.Keys.Encode("AAA"), Slice.FromFixed64(0));
+					tr.Set(location.Keys.Encode("BBB"), Slice.FromFixed64(1));
+					tr.Set(location.Keys.Encode("CCC"), Slice.FromFixed64(42));
+					tr.Set(location.Keys.Encode("DDD"), Slice.FromFixed64(255));
+					//EEE does not exist
+				}, this.Cancellation);
+
+				// execute
+				await db.WriteAsync((tr) =>
+				{
+					tr.AtomicIncrement64(location.Keys.Encode("AAA"));
+					tr.AtomicIncrement64(location.Keys.Encode("BBB"));
+					tr.AtomicIncrement64(location.Keys.Encode("CCC"));
+					tr.AtomicIncrement64(location.Keys.Encode("DDD"));
+					tr.AtomicIncrement64(location.Keys.Encode("EEE"));
+				}, this.Cancellation);
+
+				// check
+				await db.ReadAsync(async (tr) =>
+				{
+					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("02 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("00 01 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+				}, this.Cancellation);
+			}
+		}
+
 
 		[Test]
 		public async Task Test_Can_Snapshot_Read()

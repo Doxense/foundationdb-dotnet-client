@@ -40,7 +40,7 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public static Slice LayerId => Slice.FromString("partition");
 
-		internal FdbDirectoryPartition([NotNull] ITuple location, [NotNull] ITuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
+		internal FdbDirectoryPartition([NotNull] IVarTuple location, [NotNull] IVarTuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
 			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).AsDynamic(keyEncoding), FromKey(prefix).AsDynamic(keyEncoding), location), LayerId, keyEncoding)
 		{
 			this.ParentDirectoryLayer = directoryLayer;
@@ -63,12 +63,12 @@ namespace FoundationDB.Layers.Directories
 			throw new InvalidOperationException("Cannot check whether a key belongs to the root of a directory partition.");
 		}
 
-		protected override ITuple ToRelativePath(ITuple location)
+		protected override IVarTuple ToRelativePath(IVarTuple location)
 		{
 			return location ?? STuple.Empty;
 		}
 
-		protected override FdbDirectoryLayer GetLayerForPath(ITuple relativeLocation)
+		protected override FdbDirectoryLayer GetLayerForPath(IVarTuple relativeLocation)
 		{
 			if (relativeLocation.Count == 0)
 			{ // Forward all actions on the Partition itself (empty path) to its parent's DL

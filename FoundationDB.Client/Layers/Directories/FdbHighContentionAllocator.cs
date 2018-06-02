@@ -101,7 +101,7 @@ namespace FoundationDB.Layers.Directories
 			}
 
 			// Increment the allocation count for the current window
-			trans.AtomicAdd(this.Counters.Keys.Encode(start), Slice.FromFixed64(1));
+			trans.AtomicAdd64(this.Counters.Keys.Encode(start), 1);
 
 			// As of the snapshot being read from, the window is less than half
 			// full, so this should be expected to take 2 tries.  Under high

@@ -329,7 +329,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Uuid64RangomGenerator_NewUid()
 		{
-			var gen = Uuid64RandomGenerator.Default;
+			var gen = Uuid64.RandomGenerator.Default;
 			Assert.That(gen, Is.Not.Null);
 
 			var a = gen.NewUuid();

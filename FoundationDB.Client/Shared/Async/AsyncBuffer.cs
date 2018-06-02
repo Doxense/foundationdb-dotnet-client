@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define FULL_DEBUG
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Async
 {
 	using System;
@@ -240,3 +242,5 @@ namespace Doxense.Async
 	}
 
 }
+
+#endif

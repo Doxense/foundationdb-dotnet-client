@@ -26,23 +26,76 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace Doxense.Collections.Tuples
+#if !USE_SHARED_FRAMEWORK
+
+namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Diagnostics;
+	using JetBrains.Annotations;
 
-	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
-	public sealed class GenericTupleFormatter<T> : ITupleFormatter<T>
+	/// <summary>Represent a custom user type for the TuPack encoding</summary>
+	[DebuggerDisplay("{ToString()},nq")]
+	public sealed class TuPackUserType : IEquatable<TuPackUserType>
 	{
 
-		public ITuple ToTuple(T key)
+		[NotNull]
+		public static readonly TuPackUserType Directory = new TuPackUserType(0xFE);
+
+		[NotNull]
+		public static readonly TuPackUserType System = new TuPackUserType(0xFF);
+
+		public TuPackUserType(int type)
 		{
-			return STuple.Create(key);
+			this.Type = type;
 		}
 
-		public T FromTuple(ITuple tuple)
+		public TuPackUserType(int type, Slice value)
 		{
-			return tuple.OfSize(1).Get<T>(0);
+			this.Type = type;
+			this.Value = value;
 		}
+
+		public readonly int Type;
+
+		public readonly Slice Value;
+
+		public override string ToString()
+		{
+			switch (this.Type)
+			{
+				case 0xFE: return "|Directory|";
+				case 0xFF: return "|System|";
+			}
+
+			if (this.Value.IsNull)
+			{
+				return $"|User-{this.Type:X02}|";
+			}
+			return $"|User-{this.Type:X02}:{this.Value:N}|";
+		}
+
+		#region Equality...
+
+		public override bool Equals(object obj)
+		{
+			return obj is TuPackUserType ut && Equals(ut);
+		}
+
+		public bool Equals(TuPackUserType other)
+		{
+			if (other == null) return false;
+			if (ReferenceEquals(this, other)) return true;
+			return this.Type == other.Type && this.Value.Equals(other.Value);
+		}
+
+		public override int GetHashCode()
+		{
+			return HashCodes.Combine(this.Type, this.Value.GetHashCode());
+		}
+
+		#endregion
 	}
-
 }
+
+#endif

@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 		/// <returns>Encoded key in this subspace</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack<TTuple>([NotNull] TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			tuple.OfSize(2);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1));
@@ -228,16 +228,14 @@ namespace FoundationDB.Client
 		[Pure]
 		//REVIEW: => Unpack()?
 		//REVIEW: return ValueTuple<..> instead? (C#7)
-		public STuple<T1, T2> Decode(Slice packedKey)
+		public (T1, T2) Decode(Slice packedKey)
 		{
 			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
 
 		public void Decode(Slice packedKey, out T1 item1, out T2 item2)
 		{
-			this.Encoder
-				.DecodeKey(this.Parent.ExtractKey(packedKey))
-				.Deconstruct(out item1, out item2);
+			(item1, item2) = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
 
 		#endregion

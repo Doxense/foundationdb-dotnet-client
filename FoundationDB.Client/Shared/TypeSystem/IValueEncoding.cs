@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Serialization.Encoders
 {
 	using System;
@@ -34,11 +36,20 @@ namespace Doxense.Serialization.Encoders
 	public interface IValueEncoding
 	{
 		/// <summary>Returns an encoder which can process values of a fixed type</summary>
-		/// <typeparam name="T1">Type of the element to encode</typeparam>
+		/// <typeparam name="TValue">Type of the element to encode</typeparam>
+		/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>
 		/// <returns>Value encoder</returns>
 		[NotNull]
-		IValueEncoder<T1> GetValueEncoder<T1>();
+		IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>();
 
-		//TODO: DynamicValueValue!
+		/// <summary>Returns an encoder which can process values of a fixed type</summary>
+		/// <typeparam name="TValue">Type of the element to encode</typeparam>
+		/// <returns>Value encoder</returns>
+		IValueEncoder<TValue> GetValueEncoder<TValue>();
+		//TODO: C#8: default implementation is to return GetValueEncoder<TValue, Slice>() !
+
 	}
+
 }
+
+#endif

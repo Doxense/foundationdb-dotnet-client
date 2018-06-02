@@ -36,7 +36,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Runtime.Converters;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	public sealed class SlicedTuple : ITuple, ITupleSerializable
+	public sealed class SlicedTuple : IVarTuple, ITupleSerializable
 	{
 		// STuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.
 		// This is helpful because in most cases, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
@@ -80,7 +80,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public object this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
+		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
@@ -110,12 +110,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return m_slices[m_offset + TupleHelpers.MapIndex(index, m_count)];
 		}
 
-		ITuple ITuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>(T value)
 		{
 			throw new NotSupportedException();
 		}
 
-		ITuple ITuple.Concat(ITuple tuple)
+		IVarTuple IVarTuple.Concat(IVarTuple tuple)
 		{
 			throw new NotSupportedException();
 		}
@@ -153,7 +153,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}

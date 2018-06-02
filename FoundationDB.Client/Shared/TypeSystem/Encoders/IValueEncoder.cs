@@ -26,22 +26,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using JetBrains.Annotations;
 
-	/// <summary>Class that know how to encode and decode values of a fixed type</summary>
-	/// <typeparam name="T">Type of the values</typeparam>
-	public interface IValueEncoder<T>
+	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
+	/// <typeparam name="TValue">Type of the values</typeparam>
+	/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>
+	public interface IValueEncoder<TValue, TStorage>
 	{
+
 		/// <summary>Encode a single value into a compact binary representation</summary>
-		Slice EncodeValue(T value);
+		TStorage EncodeValue(TValue value);
 
 		/// <summary>Decode a single value from a compact binary representation</summary>
 		/// <param name="encoded">Packed value</param>
 		[CanBeNull]
-		T DecodeValue(Slice encoded);
+		TValue DecodeValue(TStorage encoded);
+
+	}
+
+	/// <summary>Class that know how to encode and decode values of a fixed type</summary>
+	/// <typeparam name="TValue">Type of the values</typeparam>
+	public interface IValueEncoder<TValue> : IValueEncoder<TValue, Slice>
+	{
+		// no methods
 	}
 
 }
+
+#endif

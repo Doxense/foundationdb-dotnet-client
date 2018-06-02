@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -38,7 +40,7 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	[PublicAPI]
-	public sealed class ListTuple : ITuple
+	public sealed class ListTuple : IVarTuple
 	{
 		// We could use a ListTuple<T> for tuples where all items are of type T, and ListTuple could derive from ListTuple<object>.
 		// => this could speed up a bit the use case of STuple.FromArray<T> or STuple.FromSequence<T>
@@ -73,7 +75,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a new list tuple by merging the items of two tuples together</summary>
-		public ListTuple(ITuple a, ITuple b)
+		public ListTuple(IVarTuple a, IVarTuple b)
 		{
 			Contract.NotNull(a, nameof(a));
 			Contract.NotNull(b, nameof(b));
@@ -90,7 +92,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a new list tuple by merging the items of three tuples together</summary>
-		public ListTuple(ITuple a, ITuple b, ITuple c)
+		public ListTuple(IVarTuple a, IVarTuple b, IVarTuple c)
 		{
 			Contract.NotNull(a, nameof(a));
 			Contract.NotNull(b, nameof(b));
@@ -113,7 +115,7 @@ namespace Doxense.Collections.Tuples
 
 		public object this[int index] => m_items[m_offset + TupleHelpers.MapIndex(index, m_count)];
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
+		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
@@ -142,7 +144,7 @@ namespace Doxense.Collections.Tuples
 			return TypeConverters.ConvertBoxed<TItem>(m_items[m_offset + m_count - 1]);
 		}
 
-		ITuple ITuple.Append<TItem>(TItem value)
+		IVarTuple IVarTuple.Append<TItem>(TItem value)
 		{
 			return Append<TItem>(value);
 		}
@@ -180,7 +182,7 @@ namespace Doxense.Collections.Tuples
 			return new ListTuple(list, 0, list.Length);
 		}
 
-		public ListTuple Concat(ITuple tuple)
+		public ListTuple Concat(IVarTuple tuple)
 		{
 			if (tuple is ListTuple lt) return Concat(lt);
 
@@ -193,7 +195,7 @@ namespace Doxense.Collections.Tuples
 			return new ListTuple(list, 0, list.Length);
 		}
 
-		ITuple ITuple.Concat(ITuple tuple)
+		IVarTuple IVarTuple.Concat(IVarTuple tuple)
 		{
 			return Concat(tuple);
 		}
@@ -255,7 +257,7 @@ namespace Doxense.Collections.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -311,3 +313,5 @@ namespace Doxense.Collections.Tuples
 	}
 
 }
+
+#endif

@@ -402,7 +402,6 @@ namespace FoundationDB.Layers.Collections
 		private async Task<(T Value, bool HasValue)> PopHighContentionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
 			int backOff = 10;
-			Slice waitKey = Slice.Empty;
 
 			ct.ThrowIfCancellationRequested();
 
@@ -412,6 +411,7 @@ namespace FoundationDB.Layers.Collections
 				tr.Annotate("PopHighContention()");
 #endif
 
+				Slice waitKey;
 				try
 				{
 					// Check if there are other people waiting to be popped. If so, we cannot pop before them.
@@ -422,10 +422,7 @@ namespace FoundationDB.Layers.Collections
 						await tr.CommitAsync().ConfigureAwait(false);
 						return item;
 					}
-					else
-					{
-						await tr.CommitAsync().ConfigureAwait(false);
-					}
+					await tr.CommitAsync().ConfigureAwait(false);
 				}
 				catch (FdbException)
 				{ // If we didn't succeed, then register our pop request
@@ -459,7 +456,6 @@ namespace FoundationDB.Layers.Collections
 						await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 						continue;
 					}
-
 
 					try
 					{

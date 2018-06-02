@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Directories
 		internal FdbHighContentionAllocator Allocator { get; }
 
 		/// <summary>Gets the path for the root node of this <code>FdbDirectoryLayer</code>.</summary>
-		internal ITuple Location { [NotNull] get; }
+		internal IVarTuple Location { [NotNull] get; }
 
 		/// <summary>Name of root directory of this layer</summary>
 		/// <remarks>Returns String.Empty for the root Directory Layer, or the name of the partition</remarks>
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Convert a relative path in this Directory Layer, into an absolute path from the root of partition of the database</summary>
 		[NotNull]
-		internal ITuple PartitionSubPath(ITuple path = null)
+		internal IVarTuple PartitionSubPath(IVarTuple path = null)
 		{
 			// If the DL is the root, the path is already absolute
 			// If the DL is used by a partition, then the path of the partition will be prepended to the path
@@ -135,7 +135,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="nodeSubspace">Subspace where all the node metadata will be stored ('\xFE' by default)</param>
 		/// <param name="contentSubspace">Subspace where all automatically allocated directories will be stored (empty by default)</param>
 		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Ususally empty for the root partition of the database.</param>
-		internal FdbDirectoryLayer(IDynamicKeySubspace nodeSubspace, IDynamicKeySubspace contentSubspace, ITuple location)
+		internal FdbDirectoryLayer(IDynamicKeySubspace nodeSubspace, IDynamicKeySubspace contentSubspace, IVarTuple location)
 		{
 			Contract.Requires(nodeSubspace != null && contentSubspace != null);
 
@@ -492,7 +492,7 @@ namespace FoundationDB.Layers.Directories
 		private readonly struct Node
 		{
 
-			public Node(IDynamicKeySubspace subspace, ITuple path, ITuple targetPath, Slice layer)
+			public Node(IDynamicKeySubspace subspace, IVarTuple path, IVarTuple targetPath, Slice layer)
 			{
 				this.Subspace = subspace;
 				this.Path = path;
@@ -501,14 +501,14 @@ namespace FoundationDB.Layers.Directories
 			}
 
 			public readonly IDynamicKeySubspace Subspace;
-			public readonly ITuple Path;
-			public readonly ITuple TargetPath;
+			public readonly IVarTuple Path;
+			public readonly IVarTuple TargetPath;
 			public readonly Slice Layer;
 
 			public bool Exists => this.Subspace != null;
 
 			[NotNull]
-			public ITuple PartitionSubPath => this.TargetPath.Substring(this.Path.Count);
+			public IVarTuple PartitionSubPath => this.TargetPath.Substring(this.Path.Count);
 
 			public bool IsInPartition(bool includeEmptySubPath)
 			{
@@ -524,7 +524,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[NotNull]
-		internal static ITuple ParsePath(IEnumerable<string> path, string argName = null)
+		internal static IVarTuple ParsePath(IEnumerable<string> path, string argName = null)
 		{
 			if (path == null) return STuple.Empty;
 
@@ -540,7 +540,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[NotNull]
-		internal static ITuple VerifyPath([NotNull] ITuple path, string argName = null)
+		internal static IVarTuple VerifyPath([NotNull] IVarTuple path, string argName = null)
 		{
 			// The path should not contain any null strings
 			if (path == null) throw new ArgumentNullException(argName ?? nameof(path));
@@ -556,7 +556,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[NotNull]
-		internal IReadOnlyList<string> ToAbsolutePath([NotNull] ITuple path)
+		internal IReadOnlyList<string> ToAbsolutePath([NotNull] IVarTuple path)
 		{
 			if (path.Count == 0) return this.Path;
 			var converted = path.ToArray<string>();
@@ -566,7 +566,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Maps an absolute path to a relative path within this directory layer</summary>
 		[NotNull]
-		internal ITuple ToRelativePath([NotNull] ITuple path)
+		internal IVarTuple ToRelativePath([NotNull] IVarTuple path)
 		{
 			if (path == null) throw new ArgumentNullException(nameof(path));
 
@@ -575,7 +575,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[ItemCanBeNull]
-		internal async Task<FdbDirectorySubspace> CreateOrOpenInternalAsync(IFdbReadOnlyTransaction readTrans, IFdbTransaction trans, [NotNull] ITuple path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
+		internal async Task<FdbDirectorySubspace> CreateOrOpenInternalAsync(IFdbReadOnlyTransaction readTrans, IFdbTransaction trans, [NotNull] IVarTuple path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
 		{
 			Contract.Requires(readTrans != null || trans != null, "Need at least one transaction");
 			Contract.Requires(path != null, "Path must be specified");
@@ -684,7 +684,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[ItemCanBeNull]
-		internal async Task<FdbDirectorySubspace> MoveInternalAsync([NotNull] IFdbTransaction trans, [NotNull] ITuple oldPath, [NotNull] ITuple newPath, bool throwOnError)
+		internal async Task<FdbDirectorySubspace> MoveInternalAsync([NotNull] IFdbTransaction trans, [NotNull] IVarTuple oldPath, [NotNull] IVarTuple newPath, bool throwOnError)
 		{
 			Contract.Requires(trans != null && oldPath != null && newPath != null);
 
@@ -743,7 +743,7 @@ namespace FoundationDB.Layers.Directories
 			return ContentsOfNode(oldNode.Subspace, newPath, oldNode.Layer);
 		}
 
-		internal async Task<bool> RemoveInternalAsync([NotNull] IFdbTransaction trans, [NotNull] ITuple path, bool throwIfMissing)
+		internal async Task<bool> RemoveInternalAsync([NotNull] IFdbTransaction trans, [NotNull] IVarTuple path, bool throwIfMissing)
 		{
 			Contract.Requires(trans != null && path != null);
 
@@ -774,7 +774,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[ItemCanBeNull]
-		internal async Task<List<string>> ListInternalAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple path, bool throwIfMissing)
+		internal async Task<List<string>> ListInternalAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple path, bool throwIfMissing)
 		{
 			Contract.Requires(trans != null && path != null);
 
@@ -799,7 +799,7 @@ namespace FoundationDB.Layers.Directories
 				.ConfigureAwait(false);
 		}
 
-		internal async Task<bool> ExistsInternalAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] ITuple path)
+		internal async Task<bool> ExistsInternalAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple path)
 		{
 			Contract.Requires(trans != null && path != null);
 
@@ -817,7 +817,7 @@ namespace FoundationDB.Layers.Directories
 			return true;
 		}
 
-		internal async Task ChangeLayerInternalAsync([NotNull] IFdbTransaction trans, [NotNull] ITuple path, Slice newLayer)
+		internal async Task ChangeLayerInternalAsync([NotNull] IFdbTransaction trans, [NotNull] IVarTuple path, Slice newLayer)
 		{
 			Contract.Requires(trans != null && path != null);
 
@@ -931,7 +931,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
 		[NotNull]
-		private FdbDirectorySubspace ContentsOfNode([NotNull] IKeySubspace node, [NotNull] ITuple relativePath, Slice layer)
+		private FdbDirectorySubspace ContentsOfNode([NotNull] IKeySubspace node, [NotNull] IVarTuple relativePath, Slice layer)
 		{
 			Contract.Requires(node != null);
 
@@ -956,7 +956,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Finds a node subspace, given its path, by walking the tree from the root.</summary>
 		/// <returns>Node if it was found, or null</returns>
-		private async Task<Node> FindAsync([NotNull] IFdbReadOnlyTransaction tr, [NotNull] ITuple path)
+		private async Task<Node> FindAsync([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IVarTuple path)
 		{
 			Contract.Requires(tr != null && path != null);
 
@@ -1003,7 +1003,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Remove an existing node from its parents</summary>
 		/// <returns>True if the parent node was found, otherwise false</returns>
-		private async Task<bool> RemoveFromParent([NotNull] IFdbTransaction tr, [NotNull] ITuple path)
+		private async Task<bool> RemoveFromParent([NotNull] IFdbTransaction tr, [NotNull] IVarTuple path)
 		{
 			Contract.Requires(tr != null && path != null);
 
@@ -1070,7 +1070,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Tuple that should only contain strings</param>
 		/// <returns>Array of strings</returns>
 		[NotNull]
-		public static string[] ParsePath([NotNull] ITuple path)
+		public static string[] ParsePath([NotNull] IVarTuple path)
 		{
 			if (path == null) throw new ArgumentNullException(nameof(path));
 			var tmp = new string[path.Count];

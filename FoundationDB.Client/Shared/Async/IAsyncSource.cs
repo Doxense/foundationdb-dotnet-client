@@ -26,14 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Async
 {
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a source that can produce items</summary>
-	/// <typeparam name="T"></typeparam>
+	[PublicAPI]
 	public interface IAsyncSource<T>
 	{
 		//note: T cannot be covariant because Task<..> is not covariant :(
@@ -45,3 +48,5 @@ namespace Doxense.Async
 	}
 
 }
+
+#endif

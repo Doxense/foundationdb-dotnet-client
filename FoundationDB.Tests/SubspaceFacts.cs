@@ -169,12 +169,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(location.Keys.Encode("hello", 123, "world", 456, "!", 789).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
 
 			// Pack(ITuple)
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456, "!")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456, "!", 789)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456, "!")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456, "!", 789)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
 
 			// Pack(ValueTuple)
 			Assert.That(location.Keys.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
@@ -221,7 +221,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(location.Keys.Encode("hello").ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
 
 			// Pack(ITuple)
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
 
 			// Pack(ValueTuple)
 			Assert.That(location.Keys.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
@@ -247,7 +247,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(location.Keys.Encode("hello", 123).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
 
 			// Pack(ITuple)
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
 
 			// Pack(ValueTuple)
 			Assert.That(location.Keys.Pack(("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
@@ -274,7 +274,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(location.Keys.Encode("hello", 123, "world").ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
 
 			// Pack(ITuple)
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
 
 			// Pack(ValueTuple)
 			Assert.That(location.Keys.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
@@ -302,7 +302,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(location.Keys.Encode("hello", 123, "world", 456).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
 
 			// Pack(ITuple)
-			Assert.That(location.Keys.Pack((ITuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Keys.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
 
 			// Pack(ValueTuple)
 			Assert.That(location.Keys.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));

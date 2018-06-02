@@ -86,6 +86,30 @@ namespace FoundationDB.Client
 			this.Flags = flags;
 		}
 
+		/// <summary>Convert a 80-bits UUID into a 80-bits VersionStamp</summary>
+		public static VersionStamp FromUuid80(Uuid80 value)
+		{
+			unsafe
+			{
+				byte* ptr = stackalloc byte[16]; // 10 required
+				value.WriteToUnsafe(ptr);
+				ReadUnsafe(ptr, 10, out var vs);
+				return vs;
+			}
+		}
+
+		/// <summary>Convert a 96-bits UUID into a 96-bits VersionStamp</summary>
+		public static VersionStamp FromUuid96(Uuid96 value)
+		{
+			unsafe
+			{
+				byte* ptr = stackalloc byte[Uuid80.SizeOf];
+				value.WriteToUnsafe(ptr);
+				ReadUnsafe(ptr, 12, out var vs);
+				return vs;
+			}
+		}
+
 		/// <summary>Creates an incomplete 80-bit <see cref="VersionStamp"/> with no user version.</summary>
 		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF</code> (10 bytes).</returns>
 		/// <remarks>
@@ -125,11 +149,54 @@ namespace FoundationDB.Client
 			return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
 		}
 
+		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
+		/// <returns>Complete stamp, with a user version.</returns>
+		public static VersionStamp Custom(Uuid80 uuid, bool incomplete)
+		{
+			unsafe
+			{
+				byte* ptr = stackalloc byte[10];
+				uuid.WriteToUnsafe(ptr);
+				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
+				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
+				return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
+			}
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static VersionStamp Custom(ulong version, ushort order, int userVersion, bool incomplete)
 		{
 			Contract.Between(userVersion, 0, 0xFFFF, nameof(userVersion), "Local version must fit in 16-bits.");
 			return new VersionStamp(version, order, (ushort) userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
+		}
+
+		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
+		/// <returns>Complete stamp, with a user version.</returns>
+		public static VersionStamp Custom(Uuid80 uuid, ushort userVersion, bool incomplete)
+		{
+			unsafe
+			{
+				byte* ptr = stackalloc byte[10];
+				uuid.WriteToUnsafe(ptr);
+				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
+				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
+				return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
+			}
+		}
+
+		/// <summary>Creates a 96-bit <see cref="VersionStamp"/>.</summary>
+		/// <returns>Complete stamp, with a user version.</returns>
+		public static VersionStamp Custom(Uuid96 uuid, bool incomplete)
+		{
+			unsafe
+			{
+				byte* ptr = stackalloc byte[12];
+				uuid.WriteToUnsafe(ptr);
+				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
+				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
+				ushort userVersion = UnsafeHelpers.LoadUInt16BE(ptr + 10);
+				return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
+			}
 		}
 
 		/// <summary>Creates a 80-bit <see cref="VersionStamp"/>, obtained from the database.</summary>
@@ -204,6 +271,32 @@ namespace FoundationDB.Client
 				}
 			}
 			return tmp;
+		}
+
+		/// <summary>Convert this 80-bits VersionStamp into a 80-bits UUID</summary>
+		public Uuid80 ToUuid80()
+		{
+			if (this.HasUserVersion) throw new InvalidOperationException("Cannot convert 96-bit VersionStamp into a 80-bit UUID.");
+			unsafe
+			{
+				byte* ptr = stackalloc byte[Uuid80.SizeOf];
+				WriteUnsafe(ptr, 10, in this);
+				Uuid80.ReadUnsafe(ptr, out var res);
+				return res;
+			}
+		}
+
+		/// <summary>Convert this 96-bits VersionStamp into a 96-bits UUID</summary>
+		public Uuid96 ToUuid96()
+		{
+			if (!this.HasUserVersion) throw new InvalidOperationException("Cannot convert 80-bit VersionStamp into a 96-bit UUID.");
+			unsafe
+			{
+				byte* ptr = stackalloc byte[16]; // 12 required
+				WriteUnsafe(ptr, 12, in this);
+				Uuid96.ReadUnsafe(ptr, out var res);
+				return res;
+			}
 		}
 
 		public void WriteTo(in Slice buffer)
@@ -282,6 +375,18 @@ namespace FoundationDB.Client
 			vs = new VersionStamp(ver, order, idx, flags);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator VersionStamp(Uuid80 value) => FromUuid80(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Uuid80(VersionStamp value) => value.ToUuid80();
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static implicit operator VersionStamp(Uuid96 value) => FromUuid96(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static explicit operator Uuid96(VersionStamp value) => value.ToUuid96();
+
 		#region Equality, Comparision, ...
 
 		public override bool Equals(object obj)
@@ -332,6 +437,7 @@ namespace FoundationDB.Client
 			{
 				if (other.IsIncomplete) return -1; // we are before
 				int cmp = this.TransactionVersion.CompareTo(other.TransactionVersion);
+				if (cmp == 0) cmp = this.TransactionOrder.CompareTo(other.TransactionOrder);
 				if (cmp != 0) return cmp;
 			}
 

@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef ENABLE_LOGGING
+//#define ENABLE_LOGGING
 
 namespace FoundationDB.Layers.Collections.Tests
 {
@@ -39,6 +39,9 @@ namespace FoundationDB.Layers.Collections.Tests
 	using Doxense.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
+#if ENABLE_LOGGING
+	using FoundationDB.Filters.Logging;
+#endif
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -175,49 +178,68 @@ namespace FoundationDB.Layers.Collections.Tests
 				var pushTreads = Enumerable.Range(0, K)
 					.Select(async id =>
 					{
-						// wait for the signal
-						await pushLock.Task.ConfigureAwait(false);
-
-						var res = new List<string>(NUM);
-
-						for (int i = 0; i < NUM; i++)
+						try
 						{
-							var item = id.ToString() + "." + i.ToString();
-							await db.ReadWriteAsync((tr) => queue.PushAsync(tr, item), tok).ConfigureAwait(false);
+							// wait for the signal
+							await pushLock.Task.ConfigureAwait(false);
 
-							Interlocked.Increment(ref pushCount);
-							res.Add(item);
+							var res = new List<string>(NUM);
+
+							for (int i = 0; i < NUM; i++)
+							{
+								var item = id.ToString() + "." + i.ToString();
+								await db.ReadWriteAsync((tr) => queue.PushAsync(tr, item), tok).ConfigureAwait(false);
+
+								Interlocked.Increment(ref pushCount);
+								res.Add(item);
+							}
+
+							return res;
 						}
-
-						return res;
+						catch (Exception e)
+						{
+							Log("PushThread[" + id + "] failed: " + e);
+							Assert.Fail("PushThread[" + id + "] failed: " + e.Message);
+							throw;
+						}
+						
 					}).ToArray();
 
 				var popThreads = Enumerable.Range(0, K)
 					.Select(async id =>
 					{
-						// make everyone wait a bit, to ensure that they all start roughly at the same time
-						await popLock.Task.ConfigureAwait(false);
-
-						var res = new List<string>(NUM);
-
-						int i = 0;
-						while (i < NUM)
+						try
 						{
-							var item = await queue.PopAsync(db, tok).ConfigureAwait(false);
-							if (item.HasValue)
-							{
-								Interlocked.Increment(ref popCount);
-								res.Add(item.Value);
-								++i;
-							}
-							else
-							{
-								Interlocked.Increment(ref stalls);
-								await Task.Delay(10).ConfigureAwait(false);
-							}
-						}
+							// make everyone wait a bit, to ensure that they all start roughly at the same time
+							await popLock.Task.ConfigureAwait(false);
 
-						return res;
+							var res = new List<string>(NUM);
+
+							int i = 0;
+							while (i < NUM)
+							{
+								var item = await queue.PopAsync(db, tok).ConfigureAwait(false);
+								if (item.HasValue)
+								{
+									Interlocked.Increment(ref popCount);
+									res.Add(item.Value);
+									++i;
+								}
+								else
+								{
+									Interlocked.Increment(ref stalls);
+									await Task.Delay(10).ConfigureAwait(false);
+								}
+							}
+
+							return res;
+						}
+						catch (Exception e)
+						{
+							Log("PopThread[" + id + "] failed: " + e);
+							Assert.Fail("PopThread[" + id + "] failed: " + e.Message);
+							throw;
+						}
 					}).ToArray();
 
 				var sw = Stopwatch.StartNew();
@@ -299,31 +321,16 @@ namespace FoundationDB.Layers.Collections.Tests
 				var location = await GetCleanDirectory(db, "queue");
 
 #if ENABLE_LOGGING
-				var list = new List<FdbTransactionLog>(NUM);
-				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { lock (list) { list.Add(tr.Log); } });
+				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 #else
 				var logged = db;
 #endif
 
 				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM, this.Cancellation);
-#if ENABLE_LOGGING
-				foreach (var log in list)
-				{
-					Log(log.GetTimingsReport(true));
-				}
-				list.Clear();
-#endif
 
 				Log("------------------------------------------------");
 
 				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM, this.Cancellation);
-#if ENABLE_LOGGING
-				foreach (var log in list)
-				{
-					Log(log.GetTimingsReport(true));
-				}
-				list.Clear();
-#endif
 
 				Log("------------------------------------------------");
 

@@ -47,7 +47,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	/// <typeparam name="TTuple">Type of tuples that can be processed by this instance</typeparam>
 	[PublicAPI]
 	public interface ITupleSerializer<TTuple> //REVIEW: ITuplePacker<T> ?
-		where TTuple : ITuple
+		where TTuple : IVarTuple
 	{
 		/// <summary>Appends the packed bytes of an item to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>

@@ -80,7 +80,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			var method = typeof(TuplePackers).GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: new[] { typeof(TupleWriter).MakeByRefType(), type }, modifiers: null);
 			if (method != null)
 			{ // we have a direct serializer
-				return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				try
+				{
+					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+				catch (Exception e)
+				{
+					throw new InvalidOperationException($"Failed to compile fast tuple serializer {method.Name} for type '{type.Name}'.", e);
+				}
 			}
 
 			// maybe it is a nullable type ?
@@ -90,12 +97,19 @@ namespace Doxense.Collections.Tuples.Encoding
 				method = typeof(TuplePackers).GetMethod(nameof(SerializeNullableTo), BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
-					return method.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					try
+					{
+						return method.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					}
+					catch (Exception e)
+					{
+						throw new InvalidOperationException($"Failed to compile fast tuple serializer {method.Name} for type 'Nullable<{nullableType.Name}>'.", e);
+					}
 				}
 			}
 
 			// maybe it is a tuple ?
-			if (typeof(ITuple).IsAssignableFrom(type))
+			if (typeof(IVarTuple).IsAssignableFrom(type))
 			{
 				if (type == typeof(STuple) || (type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal) && type.Namespace == typeof(STuple).Namespace))
 				{ // well-known STuple<T...> struct
@@ -103,7 +117,14 @@ namespace Doxense.Collections.Tuples.Encoding
 					method = FindSTupleSerializerMethod(typeArgs);
 					if (method != null)
 					{
-						return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+						try
+						{
+							return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+						}
+						catch (Exception e)
+						{
+							throw new InvalidOperationException($"Failed to compile fast tuple serializer {method.Name} for Tuple type '{type.Name}'.", e);
+						}
 					}
 				}
 
@@ -111,18 +132,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				method = typeof(TuplePackers).GetMethod(nameof(SerializeTupleTo), BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
-					return method.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
-				}
-			}
-
-			// Can it transform itself into a tuple?
-			if (typeof(ITupleFormattable).IsAssignableFrom(type))
-			{
-				// If so, try to use the corresponding TuplePackers.SerializeFormattableTo(...) method
-				method = typeof(TuplePackers).GetMethod(nameof(SerializeFormattableTo), BindingFlags.Static | BindingFlags.Public);
-				if (method != null)
-				{
-					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					try
+					{
+						return method.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					}
+					catch (Exception e)
+					{
+						throw new InvalidOperationException($"Failed to compile fast tuple serializer {method.Name} for Tuple type '{type.Name}'.", e);
+					}
 				}
 			}
 
@@ -133,7 +150,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				method = FindValueTupleSerializerMethod(typeArgs);
 				if (method != null)
 				{
-					return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					try
+					{
+						return method.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+					}
+					catch (Exception e)
+					{
+						throw new InvalidOperationException($"Failed to compile fast tuple serializer {method.Name} for Tuple type '{type.Name}'.", e);
+					}
 				}
 			}
 
@@ -180,11 +204,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(byte)) { TupleParser.WriteUInt32(ref writer, (byte) (object) value); return; }
 			if (typeof(T) == typeof(float)) { TupleParser.WriteSingle(ref writer, (float) (object) value); return; }
 			if (typeof(T) == typeof(double)) { TupleParser.WriteDouble(ref writer, (double) (object) value); return; }
+			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
 			if (typeof(T) == typeof(char)) { TupleParser.WriteChar(ref writer, (char) (object) value); return; }
 			if (typeof(T) == typeof(Guid)) { TupleParser.WriteGuid(ref writer, (Guid) (object) value); return; }
 			if (typeof(T) == typeof(Uuid128)) { TupleParser.WriteUuid128(ref writer, (Uuid128) (object) value); return; }
+			if (typeof(T) == typeof(Uuid96)) { TupleParser.WriteUuid96(ref writer, (Uuid96) (object) value); return; }
+			if (typeof(T) == typeof(Uuid80)) { TupleParser.WriteUuid80(ref writer, (Uuid80) (object) value); return; }
 			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value); return; }
-			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
+			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value); return; }
 			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value); return; }
 
 			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value); return; }
@@ -198,11 +225,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(byte?)) { TupleParser.WriteUInt32(ref writer, (byte?) (object) value); return; }
 			if (typeof(T) == typeof(float?)) { TupleParser.WriteSingle(ref writer, (float?) (object) value); return; }
 			if (typeof(T) == typeof(double?)) { TupleParser.WriteDouble(ref writer, (double?) (object) value); return; }
+			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
 			if (typeof(T) == typeof(char?)) { TupleParser.WriteChar(ref writer, (char?) (object) value); return; }
 			if (typeof(T) == typeof(Guid?)) { TupleParser.WriteGuid(ref writer, (Guid?) (object) value); return; }
 			if (typeof(T) == typeof(Uuid128?)) { TupleParser.WriteUuid128(ref writer, (Uuid128?) (object) value); return; }
+			if (typeof(T) == typeof(Uuid96?)) { TupleParser.WriteUuid96(ref writer, (Uuid96?) (object) value); return; }
+			if (typeof(T) == typeof(Uuid80?)) { TupleParser.WriteUuid80(ref writer, (Uuid80?) (object) value); return; }
 			if (typeof(T) == typeof(Uuid64?)) { TupleParser.WriteUuid64(ref writer, (Uuid64?) (object) value); return; }
-			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
+			if (typeof(T) == typeof(VersionStamp?)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) (object) value); return; }
 #endif
 			//</JIT_HACK>
 
@@ -277,12 +307,15 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(byte[])] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (byte[]) value),
 				[typeof(Guid)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Guid) value),
 				[typeof(Uuid128)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid128) value),
+				[typeof(Uuid96)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid96) value),
+				[typeof(Uuid80)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid80) value),
 				[typeof(Uuid64)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid64) value),
+				[typeof(VersionStamp)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (VersionStamp) value),
 				[typeof(TimeSpan)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (TimeSpan) value),
 				[typeof(DateTime)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTime) value),
 				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTimeOffset) value),
-				[typeof(ITuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
-				[typeof(ITupleFormattable)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (ITuple) value),
+				[typeof(IVarTuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (IVarTuple) value),
+				//TODO: add System.Runtime.CompilerServices.ITuple for net471+
 				[typeof(DBNull)] = (ref TupleWriter writer, object value) => TupleParser.WriteNil(ref writer)
 			};
 
@@ -380,8 +413,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteInt32(ref writer, value);
 		}
 
+		/// <summary>Writes a signed int as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, int? value)
+		{
+			TupleParser.WriteInt32(ref writer, value);
+		}
+
 		/// <summary>Writes an unsigned int as an integer</summary>
 		public static void SerializeTo(ref TupleWriter writer, uint value)
+		{
+			TupleParser.WriteUInt32(ref writer, value);
+		}
+
+		/// <summary>Writes an unsigned int as an integer</summary>
+		public static void SerializeTo(ref TupleWriter writer, uint? value)
 		{
 			TupleParser.WriteUInt32(ref writer, value);
 		}
@@ -393,9 +439,23 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteInt64(ref writer, value);
 		}
 
+		/// <summary>Writes a signed long as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, long? value)
+		{
+			TupleParser.WriteInt64(ref writer, value);
+		}
+
 		/// <summary>Writes an unsigned long as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, ulong value)
+		{
+			TupleParser.WriteUInt64(ref writer, value);
+		}
+
+		/// <summary>Writes an unsigned long as an integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, ulong? value)
 		{
 			TupleParser.WriteUInt64(ref writer, value);
 		}
@@ -407,6 +467,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteSingle(ref writer, value);
 		}
 
+		/// <summary>Writes a 32-bit IEEE floating point number</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, float? value)
+		{
+			TupleParser.WriteSingle(ref writer, value);
+		}
+
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, double value)
@@ -414,8 +481,21 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteDouble(ref writer, value);
 		}
 
+		/// <summary>Writes a 64-bit IEEE floating point number</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, double? value)
+		{
+			TupleParser.WriteDouble(ref writer, value);
+		}
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, decimal value)
+		{
+			TupleParser.WriteDecimal(ref writer, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, decimal? value)
 		{
 			TupleParser.WriteDecimal(ref writer, value);
 		}
@@ -466,7 +546,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static void SerializeTo(ref TupleWriter writer, Guid value)
 		{
 			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty bytestring) ?
-			// => could spare ~16 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
+			// => could spare 17 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
+			TupleParser.WriteGuid(ref writer, in value);
+		}
+
+		/// <summary>Writes a Guid as a 128-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Guid? value)
+		{
 			TupleParser.WriteGuid(ref writer, value);
 		}
 
@@ -474,7 +561,42 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Uuid128 value)
 		{
+			TupleParser.WriteUuid128(ref writer, in value);
+		}
+
+		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid128? value)
+		{
 			TupleParser.WriteUuid128(ref writer, value);
+		}
+
+		/// <summary>Writes a Uuid as a 96-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid96 value)
+		{
+			TupleParser.WriteUuid96(ref writer, in value);
+		}
+
+		/// <summary>Writes a Uuid as a 96-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid96? value)
+		{
+			TupleParser.WriteUuid96(ref writer, value);
+		}
+
+		/// <summary>Writes a Uuid as a 80-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid80 value)
+		{
+			TupleParser.WriteUuid80(ref writer, in value);
+		}
+
+		/// <summary>Writes a Uuid as a 80-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid80? value)
+		{
+			TupleParser.WriteUuid80(ref writer, value);
 		}
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
@@ -484,9 +606,29 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteUuid64(ref writer, value);
 		}
 
+		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, Uuid64? value)
+		{
+			TupleParser.WriteUuid64(ref writer, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, VersionStamp value)
 		{
+			TupleParser.WriteVersionStamp(ref writer, in value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, VersionStamp? value)
+		{
 			TupleParser.WriteVersionStamp(ref writer, value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, TuPackUserType value)
+		{
+			TupleParser.WriteUserType(ref writer, value);
 		}
 
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
@@ -497,7 +639,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Serialize an embedded tuples</summary>
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			Contract.Requires(tuple != null);
 
@@ -560,34 +702,6 @@ namespace Doxense.Collections.Tuples.Encoding
 			SerializeTo(ref writer, tuple.Item4);
 			SerializeTo(ref writer, tuple.Item5);
 			SerializeTo(ref writer, tuple.Item6);
-			TupleParser.EndTuple(ref writer);
-		}
-
-		public static void SerializeTupleFormattableTo<TFormattable>(ref TupleWriter writer, TFormattable formattable)
-			where TFormattable : ITupleFormattable
-		{
-			var tuple = formattable.ToTuple();
-			if (tuple == null) throw new InvalidOperationException($"An instance of type '{formattable.GetType().Name}' returned a null Tuple while serialiazing");
-
-			TupleParser.BeginTuple(ref writer);
-			TupleEncoder.WriteTo(ref writer, tuple);
-			TupleParser.EndTuple(ref writer);
-		}
-
-		/// <summary>Serialize an embedded tuple formattable</summary>
-		public static void SerializeFormattableTo(ref TupleWriter writer, ITupleFormattable formattable)
-		{
-			if (formattable == null)
-			{
-				TupleParser.WriteNil(ref writer);
-				return;
-			}
-
-			var tuple = formattable.ToTuple();
-			if (tuple == null) throw new InvalidOperationException($"Custom formatter {formattable.GetType().Name}.ToTuple() cannot return null");
-
-			TupleParser.BeginTuple(ref writer);
-			TupleEncoder.WriteTo(ref writer, tuple);
 			TupleParser.EndTuple(ref writer);
 		}
 
@@ -674,14 +788,18 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(ulong)] = new Func<Slice, ulong>(TuplePackers.DeserializeUInt64),
 				[typeof(float)] = new Func<Slice, float>(TuplePackers.DeserializeSingle),
 				[typeof(double)] = new Func<Slice, double>(TuplePackers.DeserializeDouble),
+				[typeof(decimal)] = new Func<Slice, decimal>(TuplePackers.DeserializeDecimal),
 				[typeof(Guid)] = new Func<Slice, Guid>(TuplePackers.DeserializeGuid),
 				[typeof(Uuid128)] = new Func<Slice, Uuid128>(TuplePackers.DeserializeUuid128),
+				[typeof(Uuid96)] = new Func<Slice, Uuid96>(TuplePackers.DeserializeUuid96),
+				[typeof(Uuid80)] = new Func<Slice, Uuid80>(TuplePackers.DeserializeUuid80),
 				[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64),
 				[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan),
 				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
-				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIPAddress),
+				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIpAddress),
 				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
-				[typeof(ITuple)] = new Func<Slice, ITuple>(TuplePackers.DeserializeTuple),
+				[typeof(IVarTuple)] = new Func<Slice, IVarTuple>(TuplePackers.DeserializeTuple),
+				[typeof(TuPackUserType)] = new Func<Slice, TuPackUserType>(TuplePackers.DeserializeUserType)
 			};
 
 			// add Nullable versions for all these types
@@ -709,7 +827,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			// STuple<...>
-			if (typeof(ITuple).IsAssignableFrom(type))
+			if (typeof(IVarTuple).IsAssignableFrom(type))
 			{
 				if (type.IsValueType && type.IsGenericType && type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal))
 				return (Func<Slice, T>) MakeSTupleDeserializer(type);
@@ -837,7 +955,8 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Nil: return null;
 					case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
 					case TupleTypes.Utf8: return TupleParser.ParseUnicode(slice);
-					case TupleTypes.TupleStart: return TupleParser.ParseTuple(slice);
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple: return TupleParser.ParseTuple(slice);
 				}
 			}
 			else
@@ -848,47 +967,27 @@ namespace Doxense.Collections.Tuples.Encoding
 					case TupleTypes.Double: return TupleParser.ParseDouble(slice);
 					//TODO: Triple
 					case TupleTypes.Decimal: return TupleParser.ParseDecimal(slice);
+					case TupleTypes.False: return false;
+					case TupleTypes.True: return true;
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
 					case TupleTypes.Uuid64: return TupleParser.ParseUuid64(slice);
 					case TupleTypes.VersionStamp80: return TupleParser.ParseVersionStamp(slice);
 					case TupleTypes.VersionStamp96: return TupleParser.ParseVersionStamp(slice);
+
+					case TupleTypes.Directory:
+					{
+						if (slice.Count == 1) return TuPackUserType.Directory;
+						break;
+					}
+					case TupleTypes.Escape:
+					{
+						if (slice.Count == 1) return TuPackUserType.System;
+						break;
+					}
 				}
 			}
 
 			throw new FormatException($"Cannot convert tuple segment with unknown type code 0x{type:X}");
-		}
-
-		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
-		/// <typeparam name="T">Type of a class that must implement ITupleFormattable and have a default constructor</typeparam>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
-		/// <remarks>The type must have a default parameter-less constructor in order to be created.</remarks>
-		public static T DeserializeFormattable<T>(Slice slice)
-			where T : ITupleFormattable, new()
-		{
-			if (TuplePackers.IsNilSegment(slice))
-			{
-				return default;
-			}
-
-			var tuple = TupleParser.ParseTuple(slice);
-			var value = new T();
-			value.FromTuple(tuple);
-			return value;
-		}
-
-		/// <summary>Deserialize a slice into a type that implements ITupleFormattable, using a custom factory method</summary>
-		/// <typeparam name="T">Type of a class that must implement ITupleFormattable</typeparam>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparamref name="T"/></param>
-		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
-		public static T DeserializeFormattable<T>(Slice slice, [NotNull] Func<T> factory)
-			where T : ITupleFormattable
-		{
-			var tuple = TupleParser.ParseTuple(slice);
-			var value = factory();
-			value.FromTuple(tuple);
-			return value;
 		}
 
 		/// <summary>Deserialize a tuple segment into a Slice</summary>
@@ -917,7 +1016,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
 			{
-				if (type >= TupleTypes.IntBase) return Slice.FromInt64(DeserializeInt64(slice));
+				if (type >= TupleTypes.IntZero) return Slice.FromInt64(DeserializeInt64(slice));
 				return Slice.FromUInt64(DeserializeUInt64(slice));
 			}
 
@@ -931,9 +1030,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			return DeserializeSlice(slice).GetBytes();
 		}
 
+		public static TuPackUserType DeserializeUserType(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return null; //TODO: fail ?
+
+			int type = slice[0];
+			if (slice.Count == 1)
+			{
+				switch (type)
+				{
+					case 0xFE: return TuPackUserType.Directory;
+					case 0xFF: return TuPackUserType.System;
+				}
+				return new TuPackUserType(type);
+			}
+
+			return new TuPackUserType(type, slice.Substring(1));
+		}
+
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
 		[CanBeNull]
-		public static ITuple DeserializeTuple(Slice slice)
+		public static IVarTuple DeserializeTuple(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
@@ -948,7 +1065,8 @@ namespace Doxense.Collections.Tuples.Encoding
 				{
 					return TupleEncoder.Unpack(TupleParser.ParseBytes(slice));
 				}
-				case TupleTypes.TupleStart:
+				case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+				case TupleTypes.EmbeddedTuple:
 				{
 					return TupleParser.ParseTuple(slice);
 				}
@@ -959,144 +1077,46 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1> DeserializeTuple<T1>(Slice slice)
 		{
-			var res = default(STuple<T1>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.TupleStart:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
+			return DeserializeValueTuple<T1>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2> DeserializeTuple<T1, T2>(Slice slice)
 		{
-			var res = default(STuple<T1, T2>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.TupleStart:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
+			return DeserializeValueTuple<T1, T2>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3> DeserializeTuple<T1, T2, T3>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.TupleStart:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
-
+			return DeserializeValueTuple<T1, T2, T3>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4> DeserializeTuple<T1, T2, T3, T4>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3, T4>);
-			if (slice.IsPresent)
-			{
-				byte type = slice[0];
-				switch (type)
-				{
-					case TupleTypes.Nil:
-					{
-						break;
-					}
-					case TupleTypes.Bytes:
-					{
-						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
-						break;
-					}
-					case TupleTypes.TupleStart:
-					{
-						var reader = TupleReader.Embedded(slice);
-						TupleEncoder.DecodeKey(ref reader, out res);
-						break;
-					}
-					default:
-					{
-						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
-					}
-				}
-			}
-			return res;
-
+			return DeserializeValueTuple<T1, T2, T3, T4>(slice);
 		}
 
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4, T5> DeserializeTuple<T1, T2, T3, T4, T5>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3, T4, T5>);
+			return DeserializeValueTuple<T1, T2, T3, T4, T5>(slice);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1, T2, T3, T4, T5, T6> DeserializeTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		{
+			return DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(slice);
+		}
+
+		[Pure]
+		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
+		{
+			ValueTuple<T1> res = default;
 			if (slice.IsPresent)
 			{
 				byte type = slice[0];
@@ -1111,7 +1131,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1127,9 +1148,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[Pure]
-		public static STuple<T1, T2, T3, T4, T5, T6> DeserializeTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
+		public static ValueTuple<T1, T2> DeserializeValueTuple<T1, T2>(Slice slice)
 		{
-			var res = default(STuple<T1, T2, T3, T4, T5, T6>);
+			var res = default(ValueTuple<T1, T2>);
 			if (slice.IsPresent)
 			{
 				byte type = slice[0];
@@ -1144,7 +1165,8 @@ namespace Doxense.Collections.Tuples.Encoding
 						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
 						break;
 					}
-					case TupleTypes.TupleStart:
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
 					{
 						var reader = TupleReader.Embedded(slice);
 						TupleEncoder.DecodeKey(ref reader, out res);
@@ -1159,40 +1181,142 @@ namespace Doxense.Collections.Tuples.Encoding
 			return res;
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3> DeserializeValueTuple<T1, T2, T3>(Slice slice)
 		{
-			return DeserializeTuple<T1>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2) DeserializeValueTuple<T1, T2>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3, T4> DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
 		{
-			return DeserializeTuple<T1, T2>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3, T4>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
+
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3) DeserializeValueTuple<T1, T2, T3>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3, T4, T5> DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
 		{
-			return DeserializeTuple<T1, T2, T3>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3, T4, T5>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3, T4) DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
+		[Pure]
+		public static ValueTuple<T1, T2, T3, T4, T5, T6> DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
 		{
-			return DeserializeTuple<T1, T2, T3, T4>(slice).ToValueTuple();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3, T4, T5) DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
-		{
-			return DeserializeTuple<T1, T2, T3, T4, T5>(slice).ToValueTuple();
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1, T2, T3, T4, T5, T6) DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
-		{
-			return DeserializeTuple<T1, T2, T3, T4, T5, T6>(slice).ToValueTuple();
+			var res = default(ValueTuple<T1, T2, T3, T4, T5, T6>);
+			if (slice.IsPresent)
+			{
+				byte type = slice[0];
+				switch (type)
+				{
+					case TupleTypes.Nil:
+					{
+						break;
+					}
+					case TupleTypes.Bytes:
+					{
+						TupleEncoder.DecodeKey(TupleParser.ParseBytes(slice), out res);
+						break;
+					}
+					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
+					case TupleTypes.EmbeddedTuple:
+					{
+						var reader = TupleReader.Embedded(slice);
+						TupleEncoder.DecodeKey(ref reader, out res);
+						break;
+					}
+					default:
+					{
+						throw new FormatException($"Cannot convert tuple segment into a {res.GetType().Name}");
+					}
+				}
+			}
+			return res;
 		}
 
 		/// <summary>Deserialize a tuple segment into a Boolean</summary>
@@ -1238,6 +1362,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				case TupleTypes.Decimal:
 				{
 					return 0m != TupleParser.ParseDecimal(slice);
+				}
+				case TupleTypes.False:
+				{
+					return false;
+				}
+				case TupleTypes.True:
+				{
+					return true;
 				}
 			}
 
@@ -1654,6 +1786,60 @@ namespace Doxense.Collections.Tuples.Encoding
 			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid128");
 		}
 
+		/// <summary>Deserialize a tuple segment into a 96-bit UUID</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static Uuid96 DeserializeUuid96(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return Uuid96.Empty;
+
+			int type = slice[0];
+
+			switch (type)
+			{
+				case TupleTypes.Bytes:
+				{ // expect binary representation as a 12-byte array
+					return Uuid96.Read(TupleParser.ParseBytes(slice));
+				}
+				case TupleTypes.Utf8:
+				{ // expect text representation
+					return Uuid96.Parse(TupleParser.ParseUnicode(slice));
+				}
+				case TupleTypes.VersionStamp96:
+				{
+					return TupleParser.ParseVersionStamp(slice).ToUuid96();
+				}
+			}
+
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid96");
+		}
+
+		/// <summary>Deserialize a tuple segment into a 80-bit UUID</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static Uuid80 DeserializeUuid80(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return Uuid80.Empty;
+
+			int type = slice[0];
+
+			switch (type)
+			{
+				case TupleTypes.Bytes:
+				{ // expect binary representation as a 10-byte array
+					return Uuid80.Read(TupleParser.ParseBytes(slice));
+				}
+				case TupleTypes.Utf8:
+				{ // expect text representation
+					return Uuid80.Parse(TupleParser.ParseUnicode(slice));
+				}
+				case TupleTypes.VersionStamp80:
+				{
+					return TupleParser.ParseVersionStamp(slice).ToUuid80();
+				}
+			}
+
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid80");
+		}
+
 		/// <summary>Deserialize a tuple segment into 64-bit UUID</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Uuid64 DeserializeUuid64(Slice slice)
@@ -1689,7 +1875,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public static VersionStamp DeserializeVersionStamp(Slice slice)
 		{
-			if (slice.IsNullOrEmpty) return default(VersionStamp);
+			if (slice.IsNullOrEmpty) return default;
 
 			int type = slice[0];
 
@@ -1708,7 +1894,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[CanBeNull]
-		public static System.Net.IPAddress DeserializeIPAddress(Slice slice)
+		public static System.Net.IPAddress DeserializeIpAddress(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
@@ -1822,5 +2008,4 @@ namespace Doxense.Collections.Tuples.Encoding
 		#endregion
 
 	}
-
 }

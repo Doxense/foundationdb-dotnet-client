@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -44,7 +46,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T3">Type of the third item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1, T2, T3> : ITuple, IEquatable<STuple<T1, T2, T3>>, IEquatable<(T1, T2, T3)>
+	public readonly struct STuple<T1, T2, T3> : IVarTuple, IEquatable<STuple<T1, T2, T3>>, IEquatable<(T1, T2, T3)>
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -66,7 +68,7 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => 3;
 
-		public object this[int index]
+		object IReadOnlyList<object>.this[int index]
 		{
 			get
 			{
@@ -80,7 +82,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
+		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
@@ -117,7 +119,7 @@ namespace Doxense.Collections.Tuples
 			get { return new STuple<T2, T3>(this.Item2, this.Item3); }
 		}
 
-		ITuple ITuple.Append<T4>(T4 value)
+		IVarTuple IVarTuple.Append<T4>(T4 value)
 		{
 			// here, the caller doesn't care about the exact tuple type, so we simply return a boxed List Tuple.
 			return new ListTuple(new object[4] { this.Item1, this.Item2, this.Item3, value }, 0, 4);
@@ -142,17 +144,17 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Copy all the items of this tuple into an array at the specified offset</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3, ITuple> Append(ITuple value)
+		public STuple<T1, T2, T3, IVarTuple> Append(IVarTuple value)
 		{
 			//note: this override exists to prevent the explosion of tuple types such as STuple<T1, STuple<T1, T2>, STuple<T1, T2, T3>, STuple<T1, T2, T4>> !
-			return new STuple<T1, T2, T3, ITuple>(this.Item1, this.Item2, this.Item3, value);
+			return new STuple<T1, T2, T3, IVarTuple>(this.Item1, this.Item2, this.Item3, value);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
@@ -218,7 +220,7 @@ namespace Doxense.Collections.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -436,3 +438,5 @@ namespace Doxense.Collections.Tuples
 	}
 
 }
+
+#endif

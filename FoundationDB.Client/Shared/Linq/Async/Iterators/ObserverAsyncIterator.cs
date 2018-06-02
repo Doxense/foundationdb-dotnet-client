@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
@@ -81,3 +83,5 @@ namespace Doxense.Linq.Async.Iterators
 	}
 
 }
+
+#endif

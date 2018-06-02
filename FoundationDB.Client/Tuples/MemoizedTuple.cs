@@ -40,7 +40,7 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Represents an immutable tuple where the packed bytes are cached</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class MemoizedTuple : ITuple
+	public sealed class MemoizedTuple : IVarTuple
 	{
 		/// <summary>Items of the tuple</summary>
 		private readonly object[] m_items;
@@ -63,7 +63,7 @@ namespace Doxense.Collections.Tuples
 
 		public object this[int index] => m_items[TupleHelpers.MapIndex(index, m_items.Length)];
 
-		public ITuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
+		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		public void PackTo(ref TupleWriter writer)
 		{
@@ -105,7 +105,7 @@ namespace Doxense.Collections.Tuples
 			return TypeConverters.ConvertBoxed<T>(m_items[n - 1]);
 		}
 
-		ITuple ITuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>(T value)
 		{
 			return this.Append<T>(value);
 		}
@@ -115,7 +115,7 @@ namespace Doxense.Collections.Tuples
 			return new LinkedTuple<T>(this, value);
 		}
 
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
@@ -142,10 +142,10 @@ namespace Doxense.Collections.Tuples
 
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as ITuple);
+			return Equals(obj as IVarTuple);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			if (object.ReferenceEquals(other, null)) return false;
 

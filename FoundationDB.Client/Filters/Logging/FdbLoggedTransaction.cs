@@ -33,6 +33,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -122,7 +123,8 @@ namespace FoundationDB.Filters.Logging
 
 		private Slice[] Grab(Slice[] slices)
 		{
-			if (slices == null || slices.Length == 0) return null;
+			if (slices == null) return null;
+			if (slices.Length == 0) return Array.Empty<Slice>();
 
 			lock (m_lock)
 			{
@@ -157,7 +159,8 @@ namespace FoundationDB.Filters.Logging
 
 		private KeySelector[] Grab(KeySelector[] selectors)
 		{
-			if (selectors == null || selectors.Length == 0) return null;
+			if (selectors == null) return null;
+			if (selectors.Length == 0) return Array.Empty<KeySelector>();
 
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
@@ -211,15 +214,16 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private async Task ExecuteAsync<TCommand>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task> lambda)
+		private async Task ExecuteAsync<TCommand>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task> lambda, Action<FdbLoggedTransaction, IFdbTransaction> onSuccess = null)
 			where TCommand : FdbTransactionLog.Command
 		{
 			ThrowIfDisposed();
 			Exception error = null;
+			var tr = m_transaction;
 			this.Log.BeginOperation(cmd);
 			try
 			{
-				await lambda(m_transaction, cmd).ConfigureAwait(false);
+				await lambda(tr, cmd).ConfigureAwait(false);
 			}
 			catch (Exception e)
 			{
@@ -229,6 +233,7 @@ namespace FoundationDB.Filters.Logging
 			finally
 			{
 				this.Log.EndOperation(cmd, error);
+				if (error == null) onSuccess?.Invoke(this, tr);
 			}
 		}
 
@@ -291,19 +296,22 @@ namespace FoundationDB.Filters.Logging
 
 		#region Write...
 
-		public override async Task CommitAsync()
+		public override Task CommitAsync()
 		{
-			this.Log.CommitSize = m_transaction.Size;
-			this.Log.TotalCommitSize += m_transaction.Size;
+			int size = m_transaction.Size;
+			this.Log.CommitSize = size;
+			this.Log.TotalCommitSize += size;
 			this.Log.Attempts++;
 
-			await ExecuteAsync(
+			return ExecuteAsync(
 				new FdbTransactionLog.CommitCommand(),
-				(_tr, _cmd) => _tr.CommitAsync()
-			).ConfigureAwait(false);
-
-			this.Log.CommittedUtc = DateTimeOffset.UtcNow;
-			this.Log.CommittedVersion = m_transaction.GetCommittedVersion();
+				(tr, _) => tr.CommitAsync(),
+				(self, tr) =>
+				{
+					self.Log.CommittedUtc = DateTimeOffset.UtcNow;
+					self.Log.CommittedVersion = tr.GetCommittedVersion();
+				}
+			);
 		}
 
 		public override Task OnErrorAsync(FdbError code)
@@ -393,6 +401,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
+			Contract.Requires(keys != null);
 			return ExecuteAsync(
 				new FdbTransactionLog.GetValuesCommand(Grab(keys)),
 				(tr, cmd) => tr.GetValuesAsync(keys)
@@ -401,6 +410,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
+			Contract.Requires(selectors != null);
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeysCommand(Grab(selectors)),
 				(tr, cmd) => tr.GetKeysAsync(selectors)
@@ -496,6 +506,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
+				Contract.Requires(keys != null);
 				return ExecuteAsync(
 					new FdbTransactionLog.GetValuesCommand(m_parent.Grab(keys)),
 					(tr, cmd) => tr.GetValuesAsync(cmd.Keys)
@@ -504,6 +515,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
+				Contract.Requires(selectors != null);
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeysCommand(m_parent.Grab(selectors)),
 					(tr, cmd) => tr.GetKeysAsync(cmd.Selectors)

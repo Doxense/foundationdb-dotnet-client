@@ -174,7 +174,7 @@ namespace FoundationDB.Client
 
 		[Pure]
 		public Slice Pack<TTuple>(TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			tuple.OfSize(3);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
@@ -237,9 +237,7 @@ namespace FoundationDB.Client
 
 		public void Decode(Slice packedKey, out T1 item1, out T2 item2, out T3 item3)
 		{
-			this.Encoder
-				.DecodeKey(this.Parent.ExtractKey(packedKey))
-				.Deconstruct(out item1, out item2, out item3);
+			(item1, item2, item3) = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
 
 		#endregion

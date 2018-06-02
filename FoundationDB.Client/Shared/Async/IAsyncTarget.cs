@@ -26,15 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Async
 {
 	using System;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a target that receive items and can throttle the producer</summary>
 	/// <typeparam name="T">Type of values being accepted by the target</typeparam>
+	[PublicAPI]
 	public interface IAsyncTarget<in T>
 	{
 		//note: should OnCompleted and OnError be async or not ?
@@ -55,3 +59,5 @@ namespace Doxense.Async
 	}
 
 }
+
+#endif
