@@ -26,14 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Async
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Pump that takes items from a source, transform them, and outputs them</summary>
 	public sealed class AsyncTransform<TInput, TOutput> : IAsyncTarget<TInput>, IDisposable
@@ -54,10 +56,10 @@ namespace Doxense.Async
 		}
 
 		/// <summary>Target of the transform</summary>
-		public IAsyncTarget<Task<TOutput>> Target { get { return m_target; } }
+		public IAsyncTarget<Task<TOutput>> Target => m_target;
 
 		/// <summary>Optional scheduler used to run the tasks</summary>
-		public TaskScheduler Scheduler { get { return m_scheduler; } }
+		public TaskScheduler Scheduler => m_scheduler;
 
 		#region IAsyncTarget<T>...
 
@@ -65,7 +67,7 @@ namespace Doxense.Async
 		{
 			if (ct.IsCancellationRequested) return Task.CompletedTask;
 
-			if (m_done) throw new InvalidOperationException("Cannot send any more values because this transform has already completed");
+			if (m_done) throw new InvalidOperationException("Cannot send any more values because this transform has already completed.");
 
 			try
 			{
@@ -132,3 +134,5 @@ namespace Doxense.Async
 	}
 
 }
+
+#endif

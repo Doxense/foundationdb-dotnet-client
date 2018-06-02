@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -43,7 +45,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="toExcluded">End offset of the section (included)</param>
 		/// <returns>New tuple only containing items inside this section</returns>
 		[NotNull]
-		public static ITuple Splice([NotNull] ITuple tuple, int? fromIncluded, int? toExcluded)
+		public static IVarTuple Splice([NotNull] IVarTuple tuple, int? fromIncluded, int? toExcluded)
 		{
 			Contract.Requires(tuple != null);
 			int count = tuple.Count;
@@ -80,7 +82,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
-		public static bool StartsWith([NotNull] ITuple a, [NotNull] ITuple b)
+		public static bool StartsWith([NotNull] IVarTuple a, [NotNull] IVarTuple b)
 		{
 			Contract.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
@@ -101,7 +103,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
-		public static bool EndsWith([NotNull] ITuple a, [NotNull] ITuple b)
+		public static bool EndsWith([NotNull] IVarTuple a, [NotNull] IVarTuple b)
 		{
 			Contract.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
@@ -121,7 +123,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Helper to copy the content of a tuple at a specific position in an array</summary>
 		/// <returns>Updated offset just after the last element of the copied tuple</returns>
-		public static int CopyTo([NotNull] ITuple tuple, [NotNull] object[] array, int offset)
+		public static int CopyTo([NotNull] IVarTuple tuple, [NotNull] object[] array, int offset)
 		{
 			Contract.Requires(tuple != null && array != null && offset >= 0);
 
@@ -161,12 +163,12 @@ namespace Doxense.Collections.Tuples
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple's range (0..{count - 1})");
 		}
 
-		public static bool Equals(ITuple left, object other, [NotNull] IEqualityComparer comparer)
+		public static bool Equals(IVarTuple left, object other, [NotNull] IEqualityComparer comparer)
 		{
-			return object.ReferenceEquals(left, null) ? other == null : Equals(left, other as ITuple, comparer);
+			return object.ReferenceEquals(left, null) ? other == null : Equals(left, other as IVarTuple, comparer);
 		}
 
-		public static bool Equals(ITuple x, ITuple y, [NotNull] IEqualityComparer comparer)
+		public static bool Equals(IVarTuple x, IVarTuple y, [NotNull] IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(x, y)) return true;
 			if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -174,7 +176,7 @@ namespace Doxense.Collections.Tuples
 			return x.Count == y.Count && DeepEquals(x, y, comparer);
 		}
 
-		public static bool DeepEquals([NotNull] ITuple x, [NotNull] ITuple y, [NotNull] IEqualityComparer comparer)
+		public static bool DeepEquals([NotNull] IVarTuple x, [NotNull] IVarTuple y, [NotNull] IEqualityComparer comparer)
 		{
 			Contract.Requires(x != null && y != null && comparer != null);
 
@@ -191,7 +193,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public static int StructuralGetHashCode(ITuple tuple, [NotNull] IEqualityComparer comparer)
+		public static int StructuralGetHashCode(IVarTuple tuple, [NotNull] IEqualityComparer comparer)
 		{
 			Contract.Requires(comparer != null);
 
@@ -208,7 +210,7 @@ namespace Doxense.Collections.Tuples
 			return h;
 		}
 
-		public static int StructuralCompare(ITuple x, ITuple y, [NotNull] IComparer comparer)
+		public static int StructuralCompare(IVarTuple x, IVarTuple y, [NotNull] IComparer comparer)
 		{
 			Contract.Requires(comparer != null);
 
@@ -232,3 +234,5 @@ namespace Doxense.Collections.Tuples
 		}
 	}
 }
+
+#endif

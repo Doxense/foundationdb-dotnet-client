@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Filters.Logging
 {
+	using System;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
-	using System;
 
 	/// <summary>Set of extension methods that add logging support on transactions</summary>
 	public static class FdbLoggingExtensions
@@ -43,8 +43,8 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
-			if (database == null) throw new ArgumentNullException("database");
-			if (handler == null) throw new ArgumentNullException("handler");
+			if (database == null) throw new ArgumentNullException(nameof(database));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
 			// prevent multiple logging
 			database = WithoutLogging(database);
@@ -58,10 +58,9 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static IFdbDatabase WithoutLogging([NotNull] this IFdbDatabase database)
 		{
-			if (database == null) throw new ArgumentNullException("database");
+			if (database == null) throw new ArgumentNullException(nameof(database));
 
-			var logged = database as FdbLoggedDatabase;
-			if (logged != null) return logged.GetInnerDatabase();
+			if (database is FdbLoggedDatabase logged) return logged.GetInnerDatabase();
 
 			return database;
 		}
@@ -80,10 +79,7 @@ namespace FoundationDB.Filters.Logging
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string message)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null)
-			{
-				logged.Log.AddOperation(new FdbTransactionLog.LogCommand(message), countAsOperation: false);
-			}
+			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(message), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
@@ -92,7 +88,7 @@ namespace FoundationDB.Filters.Logging
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0)), countAsOperation: false);
+			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
@@ -101,7 +97,7 @@ namespace FoundationDB.Filters.Logging
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
+			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
@@ -110,7 +106,7 @@ namespace FoundationDB.Filters.Logging
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1, object arg2)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
+			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
@@ -119,7 +115,7 @@ namespace FoundationDB.Filters.Logging
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, params object[] args)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, args)), countAsOperation: false);
+			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, args)), countAsOperation: false);
 		}
 
 	}

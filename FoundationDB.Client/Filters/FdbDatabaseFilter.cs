@@ -29,12 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
@@ -91,7 +90,6 @@ namespace FoundationDB.Filters
 		public string Name => m_database.Name;
 
 		/// <summary>Cluster of the database</summary>
-		[NotNull]
 		public virtual IFdbCluster Cluster => m_database.Cluster;
 		//REVIEW: do we need a Cluster Filter ?
 
@@ -99,7 +97,6 @@ namespace FoundationDB.Filters
 		public CancellationToken Cancellation => m_database.Cancellation;
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		[NotNull]
 		public virtual IDynamicKeySubspace GlobalSpace => m_database.GlobalSpace;
 
 		/// <summary>Directory partition of this database instance</summary>
@@ -155,7 +152,7 @@ namespace FoundationDB.Filters
 
 		#region Transactionals...
 
-		public virtual IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default(CancellationToken), FdbOperationContext context = null)
+		public virtual IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
 		{
 			ThrowIfDisposed();
 
@@ -182,16 +179,16 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, ct);
 		}
 
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct)
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, ct);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, null, ct);
 		}
 
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, ct);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
 		}
 
 		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct)
@@ -230,16 +227,16 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, ct);
 		}
 
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct)
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, ct);
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, null, ct);
 		}
 
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, ct);
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
 		}
 
 		#endregion
@@ -266,7 +263,7 @@ namespace FoundationDB.Filters
 
 		public int DefaultTimeout
 		{
-			get { return m_database.DefaultTimeout; }
+			get => m_database.DefaultTimeout;
 			set
 			{
 				ThrowIfDisposed();
@@ -276,7 +273,7 @@ namespace FoundationDB.Filters
 
 		public int DefaultRetryLimit
 		{
-			get { return m_database.DefaultRetryLimit; }
+			get => m_database.DefaultRetryLimit;
 			set
 			{
 				ThrowIfDisposed();
@@ -286,7 +283,7 @@ namespace FoundationDB.Filters
 
 		public int DefaultMaxRetryDelay
 		{
-			get { return m_database.DefaultMaxRetryDelay; }
+			get => m_database.DefaultMaxRetryDelay;
 			set
 			{
 				ThrowIfDisposed();
@@ -298,16 +295,17 @@ namespace FoundationDB.Filters
 
 		#region IDisposable Members...
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void ThrowIfDisposed()
 		{
 			// this should be inlined by the caller
-			if (m_disposed) ThrowFilterAlreadyDisposed(this);
+			if (m_disposed) throw ThrowFilterAlreadyDisposed(this);
 		}
 
-		[ContractAnnotation("=> halt")]
-		private static void ThrowFilterAlreadyDisposed([NotNull] FdbDatabaseFilter filter)
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		private Exception ThrowFilterAlreadyDisposed([NotNull] FdbDatabaseFilter filter)
 		{
-			throw new ObjectDisposedException(filter.GetType().Name);
+			return new ObjectDisposedException(filter.GetType().Name);
 		}
 
 		public void Dispose()

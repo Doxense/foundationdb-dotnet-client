@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Runtime.Converters
 {
 	using System;
@@ -56,7 +58,6 @@ namespace Doxense.Runtime.Converters
 		/// <typeparam name="T">Source and Destination type</typeparam>
 		private sealed class Identity<T> : ITypeConverter<T, T>
 		{
-			private static readonly bool IsReferenceType = typeof(T).IsClass; //TODO: nullables ?
 
 			public static readonly ITypeConverter<T, T> Default = new Identity<T>();
 
@@ -76,11 +77,6 @@ namespace Doxense.Runtime.Converters
 				return FromObject(value);
 			}
 
-			public static T Cast(object value)
-			{
-				if (value == null && !IsReferenceType) return default(T);
-				return (T)value;
-			}
 		}
 
 		#endregion
@@ -130,15 +126,9 @@ namespace Doxense.Runtime.Converters
 				return (TOutput)(object)value;
 			}
 
-			public Type Source
-			{
-				get { return typeof(TInput); }
-			}
+			public Type Source => typeof(TInput);
 
-			public Type Destination
-			{
-				get { return typeof(TOutput); }
-			}
+			public Type Destination => typeof(TOutput);
 
 			public object ConvertBoxed(object value)
 			{
@@ -453,18 +443,6 @@ namespace Doxense.Runtime.Converters
 			return lambda.Compile();
 		}
 
-		/// <summary>Helper method that wraps a lambda function into a converter</summary>
-		/// <typeparam name="TInput">Source type</typeparam>
-		/// <typeparam name="TOutput">Destination type</typeparam>
-		/// <param name="converter">Lambda that converts a value of type <typeparamref name="TInput"/> into a value of type <typeparamref name="TOutput"/></param>
-		/// <returns>Converters that wraps the lambda</returns>
-		[NotNull]
-		public static ITypeConverter<TInput, TOutput> Create<TInput, TOutput>([NotNull] Func<TInput, TOutput> converter)
-		{
-			Contract.NotNull(converter, nameof(converter));
-			return new Anonymous<TInput, TOutput>(converter);
-		}
-
 		/// <summary>Add a new known converter (without locking)</summary>
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
@@ -534,17 +512,6 @@ namespace Doxense.Runtime.Converters
 			return (ITypeConverter<TInput, TOutput>) converter;
 		}
 
-		/// <summary>Wrap a Tye Converter into a corresponding Func&lt;....&gt;</summary>
-		/// <typeparam name="TInput">Source type</typeparam>
-		/// <typeparam name="TOutput">Destination type</typeparam>
-		/// <param name="converter">Instance that can convert from <typeparamref name="TInput"/> to <typeparamref name="TOutput"/></param>
-		/// <returns>Lambda function that, when called, invokes <paramref name="converter"/></returns>
-		[Pure, NotNull]
-		public static Func<TInput, TOutput> AsFunc<TInput, TOutput>([NotNull] this ITypeConverter<TInput, TOutput> converter)
-		{
-			return converter.Convert;
-		}
-
 		/// <summary>Convert a value of type <typeparamref name="TInput"/> into type <typeparamref name="TOutput"/></summary>
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
@@ -554,19 +521,11 @@ namespace Doxense.Runtime.Converters
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TOutput Convert<TInput, TOutput>(TInput value)
 		{
-			//note: most of the types, T will be equal to R. We should get an optimized converter that will not box the values
+#if !DEBUG
+			//note: we expect that, in a lot of calls, TInput == TOutput so expect the JIT to optimize this away completely (only in Release builds)
+			if (typeof(TInput) == typeof(TOutput)) return (TOutput) (object) value;
+#endif
 			return Cache<TInput, TOutput>.Converter.Convert(value);
-		}
-
-		/// <summary>Cast a boxed value (known to be of type <typeparamref name="T"/>) into an unboxed value</summary>
-		/// <typeparam name="T">Runtime type of the value</typeparam>
-		/// <param name="value">Value that is known to be of type <typeparamref name="T"/>, but is boxed into an object</param>
-		/// <returns>Original value casted into its runtime type</returns>
-		[Pure, ContractAnnotation("null=>null")]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T Unbox<T>(object value)
-		{
-			return Identity<T>.FromObject(value);
 		}
 
 		/// <summary>Convert a boxed value into type <typeparamref name="T"/></summary>
@@ -601,84 +560,13 @@ namespace Doxense.Runtime.Converters
 				{
 					return (T) converter.ConvertBoxed(value);
 				}
-
 			}
 
 			return (T) converter.ConvertBoxed(value);
 		}
 
-		[NotNull]
-		private static MethodInfo GetConverterMethod(Type input, Type output)
-		{
-			var m = typeof(TypeConverters).GetMethod(nameof(GetConverter), BindingFlags.Static | BindingFlags.Public).MakeGenericMethod(input, output);
-			Contract.Assert(m != null);
-			return m;
-		}
-
-		/// <summary>Create a boxed converter from <typeparamref name="TInput"/> to <paramref name="outputType"/></summary>
-		[Pure, NotNull]
-		public static Func<TInput, object> CreateBoxedConverter<TInput>(Type outputType)
-		{
-			var converter = (ITypeConverter) GetConverterMethod(typeof(TInput), outputType).Invoke(null, Array.Empty<object>());
-			return (x) => converter.ConvertBoxed(x);
-		}
-
-		/// <summary>Converts all the elements of a sequence</summary>
-		/// <returns>New sequence with all the converted elements</returns>
-		[Pure, NotNull]
-		public static IEnumerable<TOutput> ConvertAll<TInput, TOutput>([NotNull] this ITypeConverter<TInput, TOutput> converter, [NotNull] IEnumerable<TInput> items)
-		{
-			Contract.NotNull(converter, nameof(converter));
-			Contract.NotNull(items, nameof(items));
-
-			foreach (var item in items)
-			{
-				yield return converter.Convert(item);
-			}
-		}
-
-		/// <summary>Converts all the elements of a list</summary>
-		/// <returns>New list with all the converted elements</returns>
-		[NotNull]
-		public static List<TOutput> ConvertAll<TInput, TOutput>([NotNull] this ITypeConverter<TInput, TOutput> converter, [NotNull] List<TInput> items)
-		{
-			Contract.NotNull(converter, nameof(converter));
-			Contract.NotNull(items, nameof(items));
-
-			return items.ConvertAll<TOutput>(converter.Convert);
-		}
-
-		/// <summary>Converts all the elements of an array</summary>
-		/// <returns>New array with all the converted elements</returns>
-		[NotNull]
-		public static TOutput[] ConvertAll<TInput, TOutput>([NotNull] this ITypeConverter<TInput, TOutput> converter, [NotNull] TInput[] items)
-		{
-			Contract.NotNull(converter, nameof(converter));
-			Contract.NotNull(items, nameof(items));
-
-			var results = new TOutput[items.Length];
-			for (int i = 0; i < items.Length; i++)
-			{
-				results[i] = converter.Convert(items[i]);
-			}
-			return results;
-		}
-
-		/// <returns></returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static string ToString<TInput>(TInput value)
-		{
-			//note: raccourci pour Convert<TInput, string>(..) dont le but est d'être inliné par le JIT en release
-			return Cache<TInput, string>.Converter.Convert(value);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TOutput FromString<TOutput>(string text)
-		{
-			//note: raccourci pour Convert<TInput, string>(..) dont le but est d'être inliné par le JIT en release
-			return Cache<string, TOutput>.Converter.Convert(text);
-		}
-
 	}
 
 }
+
+#endif

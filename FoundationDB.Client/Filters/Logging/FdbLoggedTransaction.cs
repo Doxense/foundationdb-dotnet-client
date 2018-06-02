@@ -33,10 +33,12 @@ namespace FoundationDB.Filters.Logging
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	[Flags]
+	[PublicAPI]
 	public enum FdbLoggingOptions
 	{
 		/// <summary>Default logging options</summary>
@@ -54,6 +56,7 @@ namespace FoundationDB.Filters.Logging
 	}
 
 	/// <summary>Transaction filter that logs and measure all operations performed on the underlying transaction</summary>
+	[PublicAPI]
 	public sealed class FdbLoggedTransaction : FdbTransactionFilter
 	{
 		private Snapshotted m_snapshotted;
@@ -120,7 +123,8 @@ namespace FoundationDB.Filters.Logging
 
 		private Slice[] Grab(Slice[] slices)
 		{
-			if (slices == null || slices.Length == 0) return null;
+			if (slices == null) return null;
+			if (slices.Length == 0) return Array.Empty<Slice>();
 
 			lock (m_lock)
 			{
@@ -144,7 +148,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private KeySelector Grab(KeySelector selector)
+		private KeySelector Grab(in KeySelector selector)
 		{
 			return new KeySelector(
 				Grab(selector.Key),
@@ -155,12 +159,13 @@ namespace FoundationDB.Filters.Logging
 
 		private KeySelector[] Grab(KeySelector[] selectors)
 		{
-			if (selectors == null || selectors.Length == 0) return null;
+			if (selectors == null) return null;
+			if (selectors.Length == 0) return Array.Empty<KeySelector>();
 
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				res[i] = Grab(selectors[i]);
+				res[i] = Grab(in selectors[i]);
 			}
 			return res;
 		}
@@ -209,15 +214,16 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private async Task ExecuteAsync<TCommand>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task> lambda)
+		private async Task ExecuteAsync<TCommand>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task> lambda, Action<FdbLoggedTransaction, IFdbTransaction> onSuccess = null)
 			where TCommand : FdbTransactionLog.Command
 		{
 			ThrowIfDisposed();
 			Exception error = null;
+			var tr = m_transaction;
 			this.Log.BeginOperation(cmd);
 			try
 			{
-				await lambda(m_transaction, cmd).ConfigureAwait(false);
+				await lambda(tr, cmd).ConfigureAwait(false);
 			}
 			catch (Exception e)
 			{
@@ -227,6 +233,7 @@ namespace FoundationDB.Filters.Logging
 			finally
 			{
 				this.Log.EndOperation(cmd, error);
+				if (error == null) onSuccess?.Invoke(this, tr);
 			}
 		}
 
@@ -289,19 +296,22 @@ namespace FoundationDB.Filters.Logging
 
 		#region Write...
 
-		public override async Task CommitAsync()
+		public override Task CommitAsync()
 		{
-			this.Log.CommitSize = m_transaction.Size;
-			this.Log.TotalCommitSize += m_transaction.Size;
+			int size = m_transaction.Size;
+			this.Log.CommitSize = size;
+			this.Log.TotalCommitSize += size;
 			this.Log.Attempts++;
 
-			await ExecuteAsync(
+			return ExecuteAsync(
 				new FdbTransactionLog.CommitCommand(),
-				(_tr, _cmd) => _tr.CommitAsync()
-			).ConfigureAwait(false);
-
-			this.Log.CommittedUtc = DateTimeOffset.UtcNow;
-			this.Log.CommittedVersion = m_transaction.GetCommittedVersion();
+				(tr, _) => tr.CommitAsync(),
+				(self, tr) =>
+				{
+					self.Log.CommittedUtc = DateTimeOffset.UtcNow;
+					self.Log.CommittedVersion = tr.GetCommittedVersion();
+				}
+			);
 		}
 
 		public override Task OnErrorAsync(FdbError code)
@@ -384,13 +394,14 @@ namespace FoundationDB.Filters.Logging
 		public override Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return ExecuteAsync(
-				new FdbTransactionLog.GetKeyCommand(Grab(selector)),
+				new FdbTransactionLog.GetKeyCommand(Grab(in selector)),
 				(tr, cmd) => tr.GetKeyAsync(selector)
 			);
 		}
 
 		public override Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
+			Contract.Requires(keys != null);
 			return ExecuteAsync(
 				new FdbTransactionLog.GetValuesCommand(Grab(keys)),
 				(tr, cmd) => tr.GetValuesAsync(keys)
@@ -399,6 +410,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
+			Contract.Requires(selectors != null);
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeysCommand(Grab(selectors)),
 				(tr, cmd) => tr.GetKeysAsync(selectors)
@@ -408,7 +420,7 @@ namespace FoundationDB.Filters.Logging
 		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			return ExecuteAsync(
-				new FdbTransactionLog.GetRangeCommand(Grab(beginInclusive), Grab(endExclusive), options, iteration),
+				new FdbTransactionLog.GetRangeCommand(Grab(in beginInclusive), Grab(in endExclusive), options, iteration),
 				(tr, cmd) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration)
 			);
 		}
@@ -427,13 +439,7 @@ namespace FoundationDB.Filters.Logging
 
 		#region Snapshot...
 
-		public override IFdbReadOnlyTransaction Snapshot
-		{
-			get
-			{
-				return m_snapshotted ?? (m_snapshotted = new Snapshotted(this, m_transaction.Snapshot));
-			}
-		}
+		public override IFdbReadOnlyTransaction Snapshot => m_snapshotted ?? (m_snapshotted = new Snapshotted(this, m_transaction.Snapshot));
 
 		private sealed class Snapshotted : FdbReadOnlyTransactionFilter
 		{
@@ -445,8 +451,8 @@ namespace FoundationDB.Filters.Logging
 				m_parent = parent;
 			}
 
-			private async Task<R> ExecuteAsync<TCommand, R>([NotNull] TCommand cmd, [NotNull] Func<IFdbReadOnlyTransaction, TCommand, Task<R>> lambda)
-				where TCommand : FdbTransactionLog.Command<R>
+			private async Task<TResult> ExecuteAsync<TCommand, TResult>([NotNull] TCommand cmd, [NotNull] Func<IFdbReadOnlyTransaction, TCommand, Task<TResult>> lambda)
+				where TCommand : FdbTransactionLog.Command<TResult>
 			{
 				m_parent.ThrowIfDisposed();
 				Exception error = null;
@@ -454,8 +460,8 @@ namespace FoundationDB.Filters.Logging
 				m_parent.Log.BeginOperation(cmd);
 				try
 				{
-					R result = await lambda(m_transaction, cmd).ConfigureAwait(false);
-					cmd.Result = Maybe.Return<R>(result);
+					TResult result = await lambda(m_transaction, cmd).ConfigureAwait(false);
+					cmd.Result = Maybe.Return<TResult>(result);
 					return result;
 				}
 				catch (Exception e)
@@ -464,7 +470,7 @@ namespace FoundationDB.Filters.Logging
 #if NET_4_0
 					cmd.Result = Maybe.Error<R>(e);
 #else
-					cmd.Result = Maybe.Error<R>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
+					cmd.Result = Maybe.Error<TResult>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
 #endif
 					throw;
 				}
@@ -493,13 +499,14 @@ namespace FoundationDB.Filters.Logging
 			public override Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				return ExecuteAsync(
-					new FdbTransactionLog.GetKeyCommand(m_parent.Grab(selector)),
+					new FdbTransactionLog.GetKeyCommand(m_parent.Grab(in selector)),
 					(tr, cmd) => tr.GetKeyAsync(cmd.Selector)
 				);
 			}
 
 			public override Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
+				Contract.Requires(keys != null);
 				return ExecuteAsync(
 					new FdbTransactionLog.GetValuesCommand(m_parent.Grab(keys)),
 					(tr, cmd) => tr.GetValuesAsync(cmd.Keys)
@@ -508,6 +515,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
+				Contract.Requires(selectors != null);
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeysCommand(m_parent.Grab(selectors)),
 					(tr, cmd) => tr.GetKeysAsync(cmd.Selectors)
@@ -517,7 +525,7 @@ namespace FoundationDB.Filters.Logging
 			public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 			{
 				return ExecuteAsync(
-					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(beginInclusive), m_parent.Grab(endExclusive), options, iteration),
+					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(in beginInclusive), m_parent.Grab(in endExclusive), options, iteration),
 					(tr, cmd) => tr.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options, cmd.Iteration)
 				);
 			}

@@ -2,6 +2,8 @@
 // See License.MD for license information
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Diagnostics.Contracts
 {
 	using JetBrains.Annotations;
@@ -55,7 +57,7 @@ namespace Doxense.Diagnostics.Contracts
 
 	/// <summary>Classe helper pour la vérification de pré-requis, invariants, assertions, ...</summary>
 	[DebuggerNonUserCode]
-	public static class Contract
+	internal static class Contract
 	{
 
 		public static bool IsUnitTesting { get; set; }
@@ -396,7 +398,7 @@ namespace Doxense.Diagnostics.Contracts
 				return ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
 
-		/// <summary>[RUNTIME] The specified array must not be null or emtpy (assert: value != null &amp;&amp; value.Count != 0)</summary>
+		/// <summary>[RUNTIME] The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] T[] value,
@@ -405,7 +407,7 @@ namespace Doxense.Diagnostics.Contracts
 			if (value == null || value.Length == 0) throw FailArrayNullOrEmpty(value, paramName, null);
 		}
 
-		/// <summary>[RUNTIME] The specified array must not be null or emtpy (assert: value != null &amp;&amp; value.Count != 0)</summary>
+		/// <summary>[RUNTIME] The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] T[] value,
@@ -424,7 +426,7 @@ namespace Doxense.Diagnostics.Contracts
 				return ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
 		}
 
-		/// <summary>[RUNTIME] The specified collection must not be null or emtpy (assert: value != null &amp;&amp; value.Count != 0)</summary>
+		/// <summary>[RUNTIME] The specified collection must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<T> value,
@@ -433,7 +435,7 @@ namespace Doxense.Diagnostics.Contracts
 			if (value == null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName, null);
 		}
 
-		/// <summary>[RUNTIME] The specified collection must not be null or emtpy (assert: value != null &amp;&amp; value.Count != 0)</summary>
+		/// <summary>[RUNTIME] The specified collection must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void NotNullOrEmpty<T>(
 			[AssertionCondition(AssertionConditionType.IS_NOT_NULL)] ICollection<T> value,
@@ -1392,3 +1394,5 @@ namespace Doxense.Diagnostics.Contracts
 	}
 
 }
+
+#endif

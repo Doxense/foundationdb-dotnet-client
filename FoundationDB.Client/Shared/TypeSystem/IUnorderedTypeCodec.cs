@@ -26,11 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using Doxense.Memory;
 
+	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>
 	public interface IUnorderedTypeCodec<T>
 	{
 		void EncodeUnorderedSelfTerm(ref SliceWriter output, T value);
@@ -43,3 +46,5 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
+
+#endif

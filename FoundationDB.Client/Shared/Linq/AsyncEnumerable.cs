@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq
 {
 	using System;
@@ -39,6 +41,7 @@ namespace Doxense.Linq
 	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IAsyncEnumerable{T}"/>.</summary>
+	[PublicAPI]
 	public static partial class AsyncEnumerable
 	{
 		// Welcome to the wonderful world of the Monads!
@@ -1440,3 +1443,5 @@ namespace Doxense.Linq
 
 	}
 }
+
+#endif

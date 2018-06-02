@@ -38,28 +38,33 @@ namespace FoundationDB.Layers.Directories
 	/// Represents a directory in the <code>DirectoryLayer</code>. A <code>Directory</code> stores the path at which it is located and the layer that was used to create it.
 	/// The IFdbDirectory interface contains methods to operate on itself and its subdirectories.
 	/// </summary>
+	[PublicAPI]
 	public interface IFdbDirectory
 	{
 		/// <summary>Name of this <code>Directory</code>.</summary>
-		string Name { [NotNull] get; }
+		[NotNull]
+		string Name { get; }
 
 		/// <summary>Formatted path of this <code>Directory</code></summary>
-		string FullName { [NotNull] get; }
+		[NotNull]
+		string FullName { get; }
 
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
-		IReadOnlyList<string> Path { [NotNull] get; }
+		[NotNull]
+		IReadOnlyList<string> Path { get; }
 
 		/// <summary>Gets the layer id slice that was stored when this <code>Directory</code> was created.</summary>
 		Slice Layer { get; }
 
 		/// <summary>Get the <code>DirectoryLayer</code> that was used to create this <code>Directory</code>.</summary>
-		FdbDirectoryLayer DirectoryLayer { [NotNull] get; }
+		[NotNull]
+		FdbDirectoryLayer DirectoryLayer { get; }
 
 		/// <summary>Opens a subdirectory with the given path.
 		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
 		/// </summary>
-		Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default(Slice));
+		Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default);
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
 		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
@@ -67,7 +72,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
-		Task<FdbDirectorySubspace> OpenAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> path, Slice layer = default(Slice));
+		Task<FdbDirectorySubspace> OpenAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> path, Slice layer = default);
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
 		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
@@ -76,7 +81,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
-		Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> path, Slice layer = default(Slice));
+		Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> path, Slice layer = default);
 
 		/// <summary>Creates a subdirectory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given subdirectory already exists.
@@ -84,7 +89,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
-		Task<FdbDirectorySubspace> CreateAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default(Slice));
+		Task<FdbDirectorySubspace> CreateAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default);
 
 		/// <summary>Creates a subdirectory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given subdirectory already exists.
@@ -92,7 +97,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
-		Task<FdbDirectorySubspace> TryCreateAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default(Slice));
+		Task<FdbDirectorySubspace> TryCreateAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default);
 
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="subPath"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>

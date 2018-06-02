@@ -41,6 +41,7 @@ namespace FoundationDB.Client
 	/// Represents the context of a retryable transactional function which accepts a read-only or read-write transaction.
 	/// </summary>
 	[DebuggerDisplay("Retries={Retries}, Committed={Committed}, Elapsed={Elapsed}")]
+	[PublicAPI]
 	public sealed class FdbOperationContext : IDisposable
 	{
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
@@ -99,7 +100,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
 		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
+			Contract.NotNull(db, nameof(db));
 
 			this.Database = db;
 			this.Mode = mode;
@@ -115,6 +116,93 @@ namespace FoundationDB.Client
 				token = this.TokenSource.Token;
 			}
 			this.Cancellation = token;
+		}
+
+		/// <summary>List of one or more success handlers</summary>
+		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
+		private object SuccessHandlers { get; set; }
+
+		private void RegisterSuccessHandler(object handler)
+		{
+			Contract.Requires(handler is Delegate || handler is IHandleTransactionSuccess);
+			lock (this)
+			{
+				var previous = this.SuccessHandlers;
+				if (previous == null)
+				{ // first handler for this context
+					this.SuccessHandlers = handler;
+				}
+				else if (previous is object[] arr)
+				{ // one more 
+					Array.Resize(ref arr, arr.Length + 1);
+					arr[arr.Length - 1] = handler;
+					this.SuccessHandlers = arr;
+				}
+				else
+				{ // second handler
+					this.SuccessHandlers = new [] { previous, handler };
+				}
+			}
+		}
+
+		private Task ExecuteSuccessHandlers()
+		{
+			var handlers = this.SuccessHandlers;
+			if (handlers == null) return Task.CompletedTask;
+
+			if (handlers is object[] arr)
+			{
+				return ExecuteMultipleHandlers(arr);
+			}
+
+			return ExecuteSingleHandler(handlers);
+		}
+
+		private Task ExecuteSingleHandler(object del)
+		{
+			if (del is IHandleTransactionSuccess hts)
+			{
+				hts.OnTransactionSuccessfull();
+				return Task.CompletedTask;
+			}
+			if (del is IHandleTransactionFailure htf)
+			{
+				htf.OnTransactionFailed();
+				return Task.CompletedTask;
+			}
+
+			if (del is Action act)
+			{
+				act();
+				return Task.CompletedTask;
+			}
+
+			if (del is Func<CancellationToken, Task> fct)
+			{
+				return fct(this.Cancellation);
+			}
+
+			throw new NotSupportedException("Unexpected handler delegate type.");
+		}
+
+		private async Task ExecuteMultipleHandlers(object[] arr)
+		{
+			foreach (object del in arr)
+			{
+				if (del != null) await ExecuteSingleHandler(del).ConfigureAwait(false);
+			}
+		}
+
+		/// <summary>Register a callback that will only be called once the transaction has been sucessfully commited</summary>
+		/// <remarks>NOTE: there are _no_ guaranttes that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
+		public void OnSuccess([NotNull] Action callback)
+		{
+			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
+		}
+
+		public void OnSuccess([NotNull] Func<CancellationToken, Task> callback)
+		{
+			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
 
 		/// <summary>Execute a retry loop on this context</summary>
@@ -141,7 +229,6 @@ namespace FoundationDB.Client
 				{
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
-						FdbException e = null;
 						try
 						{
 							// call the user provided lambda
@@ -175,6 +262,20 @@ namespace FoundationDB.Client
 							// we are done
 							context.Committed = true;
 
+							// execute any success handlers if there are any
+							if (context.SuccessHandlers != null)
+							{
+								try
+								{
+									await context.ExecuteSuccessHandlers().ConfigureAwait(false);
+								}
+								catch (Exception)
+								{
+									//TODO: what should we do?
+								}
+							}
+
+							// execute any final logic, if there is any
 							if (onDone != null)
 							{
 								if (onDone is Action<IFdbReadOnlyTransaction> action1)
@@ -199,17 +300,14 @@ namespace FoundationDB.Client
 								}
 							}
 						}
-						catch (FdbException x)
-						{
-							//TODO: will be able to await in catch block in C# 6 !
-							e = x;
-						}
-
-						if (e != null)
+						catch (FdbException e)
 						{
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with error code {1}", trans.Id, e.Code));
 							await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
+
+							// reset any handler
+							context.SuccessHandlers = null;
 						}
 
 						// update the base time for the next attempt
@@ -264,7 +362,7 @@ namespace FoundationDB.Client
 			if (asyncHandler == null) throw new ArgumentNullException(nameof(asyncHandler));
 			ct.ThrowIfCancellationRequested();
 
-			TResult result = default(TResult);
+			TResult result = default;
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
 				result = await asyncHandler(tr).ConfigureAwait(false);
@@ -320,6 +418,22 @@ namespace FoundationDB.Client
 
 		#endregion
 
+	}
+ 
+	/// <summary>Marker interface for objects that need to 'activate' only once a transaction commits successfull.</summary>
+	internal interface IHandleTransactionSuccess
+	{
+		//REVIEW: for now internal only, we'll see if we make this public!
+
+		void OnTransactionSuccessfull();
+	}
+
+	/// <summary>Marker interface for objects that need to 'self destruct' if a transaction fails to commit.</summary>
+	internal interface IHandleTransactionFailure
+	{
+		//REVIEW: for now internal only, we'll see if we make this public!
+
+		void OnTransactionFailed();
 	}
 
 }

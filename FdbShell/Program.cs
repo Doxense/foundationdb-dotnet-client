@@ -127,11 +127,9 @@ namespace FdbShell
 
 			// Initialize FDB
 
-			//note: always use the latest version available
-			Fdb.UseApiVersion(Fdb.GetMaxSafeApiVersion());
 			try
 			{
-				Fdb.Start();
+				Fdb.Start(Fdb.GetMaxSafeApiVersion(200, Fdb.GetDefaultApiVersion()));
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();
@@ -215,7 +213,13 @@ namespace FdbShell
 			Db = null;
 			try
 			{
-				Db = await ChangeDatabase(clusterFile, dbName, partition, cancel);
+				var cnxOptions = new FdbConnectionOptions
+				{
+					ClusterFile = clusterFile,
+					DbName = dbName,
+					PartitionPath = partition
+				};
+				Db = await ChangeDatabase(cnxOptions, cancel);
 				Db.DefaultTimeout = Math.Max(0, timeout) * 1000;
 				Db.DefaultRetryLimit = Math.Max(0, maxRetries);
 
@@ -544,7 +548,13 @@ namespace FdbShell
 							IFdbDatabase newDb = null;
 							try
 							{
-								newDb = await ChangeDatabase(clusterFile, dbName, newPartition, cancel);
+								var options = new FdbConnectionOptions
+								{
+									ClusterFile = clusterFile,
+									DbName = dbName,
+									PartitionPath = newPartition
+								};
+								newDb = await ChangeDatabase(options, cancel);
 							}
 							catch (Exception)
 							{
@@ -722,16 +732,11 @@ namespace FdbShell
 			}
 		}
 
-		private static Task<IFdbDatabase> ChangeDatabase(string clusterFile, string dbName, string[] partition, CancellationToken ct)
+		private static Task<IFdbDatabase> ChangeDatabase(FdbConnectionOptions options, CancellationToken ct)
 		{
-			if (partition == null || partition.Length == 0)
-			{
-				return Fdb.OpenAsync(clusterFile, dbName, ct);
-			}
-			else
-			{
-				return Fdb.Directory.OpenNamedPartitionAsync(clusterFile, dbName, partition, false, ct);
-			}
+			options.DefaultTimeout = TimeSpan.FromSeconds(30);
+			options.DefaultRetryLimit = 50;
+			return Fdb.OpenAsync(options, ct);
 		}
 
 	}

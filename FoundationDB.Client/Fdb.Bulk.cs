@@ -194,7 +194,7 @@ namespace FoundationDB.Client
 				long items = 0;
 				using (var iterator = data.GetEnumerator())
 				{
-					if (progress != null) progress.Report(0);
+					progress?.Report(0);
 
 					while (!ct.IsCancellationRequested)
 					{
@@ -228,7 +228,7 @@ namespace FoundationDB.Client
 
 						items += chunk.Count;
 
-						if (progress != null) progress.Report(items);
+						progress?.Report(items);
 					}
 				}
 
@@ -381,7 +381,7 @@ namespace FoundationDB.Client
 				var bodyBlocking = body as Action<TSource, IFdbTransaction>;
 				if (bodyAsync == null && bodyBlocking == null)
 				{
-					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), nameof(body));
+					throw new ArgumentException($"Unsupported delegate type {body.GetType().FullName} for body", nameof(body));
 				}
 
 				var batch = new List<TSource>(batchCount);
@@ -452,15 +452,15 @@ namespace FoundationDB.Client
 						{
 							await bodyAsync(item, trans);
 						}
-						else if (bodyBlocking != null)
+						else
 						{
 							bodyBlocking(item, trans);
 						}
 
 						// commit the batch if ..
-						if (trans.Size >= sizeThreshold			// transaction is startting to get big...
-						 || batch.Count >= batchCount			// too many items would need to be retried...
-						 || timer.Elapsed.TotalSeconds >= 4		// it's getting late...
+						if (trans.Size >= sizeThreshold      // transaction is startting to get big...
+						 || batch.Count >= batchCount        // too many items would need to be retried...
+						 || timer.Elapsed.TotalSeconds >= 4  // it's getting late...
 						)
 						{
 							await commit().ConfigureAwait(false);
@@ -510,7 +510,7 @@ namespace FoundationDB.Client
 						await bodyAsync(chunk[offset + i], trans).ConfigureAwait(false);
 					}
 				}
-				else if (bodyBlocking != null)
+				else
 				{
 					for (int i = 0; i < count; i++)
 					{
@@ -697,7 +697,7 @@ namespace FoundationDB.Client
 				var bodyBlocking = body as Action<TSource[], IFdbTransaction>;
 				if (bodyAsync == null && bodyBlocking == null)
 				{
-					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), nameof(body));
+					throw new ArgumentException($"Unsupported delegate type {body.GetType().FullName} for body", nameof(body));
 				}
 
 			
@@ -785,15 +785,15 @@ namespace FoundationDB.Client
 							{
 								await bodyAsync(batch, trans);
 							}
-							else if (bodyBlocking != null)
+							else
 							{
 								bodyBlocking(batch, trans);
 							}
 							offset += batch.Length;
 
 							// commit the batch if ..
-							if (trans.Size >= sizeThreshold			// transaction is startting to get big...
-							 || timer.Elapsed.TotalSeconds >= 4)	// it's getting late...
+							if (trans.Size >= sizeThreshold         // transaction is startting to get big...
+							 || timer.Elapsed.TotalSeconds >= 4)    // it's getting late...
 							{
 								await commit().ConfigureAwait(false);
 
@@ -813,7 +813,7 @@ namespace FoundationDB.Client
 						{
 							await bodyAsync(batch, trans);
 						}
-						else if (bodyBlocking != null)
+						else
 						{
 							bodyBlocking(batch, trans);
 						}
@@ -856,7 +856,7 @@ namespace FoundationDB.Client
 				{
 					await bodyAsync(items, trans).ConfigureAwait(false);
 				}
-				else if (bodyBlocking != null)
+				else
 				{
 					bodyBlocking(items, trans);
 				}
@@ -922,7 +922,8 @@ namespace FoundationDB.Client
 			public sealed class BatchOperationContext
 			{
 				/// <summary>Transaction corresponding to the current generation</summary>
-				public IFdbReadOnlyTransaction Transaction { [NotNull] get; internal set; }
+				[NotNull] 
+				public IFdbReadOnlyTransaction Transaction { get; internal set; }
 
 				/// <summary>Offset of the current batch from the start of the source sequence</summary>
 				public long Position { get; internal set; }
@@ -943,13 +944,13 @@ namespace FoundationDB.Client
 				public int Cooldown { get; internal set; }
 
 				/// <summary>Total elapsed time since the start of this bulk operation</summary>
-				public TimeSpan ElapsedTotal { get { return this.TotalTimer.Elapsed; } }
+				public TimeSpan ElapsedTotal => this.TotalTimer.Elapsed;
 
 				/// <summary>Elapsed time since the start of the current transaction window</summary>
-				public TimeSpan ElapsedGeneration { get { return this.GenerationTimer.Elapsed; } }
+				public TimeSpan ElapsedGeneration => this.GenerationTimer.Elapsed;
 
 				/// <summary>Returns true if all values processed up to this point used the same transaction, or false if more than one transaction was used.</summary>
-				public bool IsTransactional { get { return this.Generation == 0; } }
+				public bool IsTransactional => this.Generation == 0;
 
 				/// <summary>Returns true if at least one unretryable exception happened during the process of one batch</summary>
 				public bool Failed { get; internal set; }
@@ -1154,7 +1155,7 @@ namespace FoundationDB.Client
 					bodyWithContextAndState == null &&
 					bodyWithContext == null)
 				{
-					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), nameof(body));
+					throw new ArgumentException($"Unsupported delegate type {body.GetType().FullName} for body", nameof(body));
 				}
 
 				var localFinallyVoid = localFinally as Action<TLocal>;
@@ -1163,16 +1164,16 @@ namespace FoundationDB.Client
 					localFinallyVoid == null &&
 					localFinallyWithResult == null)
 				{
-					throw new ArgumentException(String.Format("Unsupported delegate type {0} for local finally", body.GetType().FullName), nameof(localFinally));
+					throw new ArgumentException($"Unsupported delegate type {body.GetType().FullName} for local finally", nameof(localFinally));
 				}
 
 				int batchSize = initialBatchSize;
 				var batch = new List<TSource>(batchSize);
 
 				bool localInitialized = false;
-				TLocal localValue = default(TLocal);
+				TLocal localValue = default;
 				TSource[] items = null;
-				TResult result = default(TResult);
+				TResult result = default;
 
 				using (var iterator = source.GetEnumerator())
 				{
@@ -1180,7 +1181,7 @@ namespace FoundationDB.Client
 
 					using (var trans = db.BeginReadOnlyTransaction(ct))
 					{
-						var ctx = new BatchOperationContext()
+						var ctx = new BatchOperationContext
 						{
 							Transaction = trans,
 							Step = batchSize,
@@ -1259,9 +1260,9 @@ namespace FoundationDB.Client
 									{
 										error = e as FdbException;
 										// if the callback uses task.Wait() or task.Result the exception may be wrapped in an AggregateException
-										if (error == null && e is AggregateException)
+										if (error == null && e is AggregateException aggEx)
 										{
-											error = (e as AggregateException).InnerException as FdbException;
+											error = aggEx.InnerException as FdbException;
 										}
 									}
 
@@ -1478,31 +1479,22 @@ namespace FoundationDB.Client
 				// read the next batch from the db, retrying if needed
 				while (true)
 				{
-					FdbException error = null;
 					try
 					{
 						return await tr.GetRangeAsync(begin, end, options).ConfigureAwait(false);
 					}
 					catch (FdbException e)
 					{
-						error = e;
-						//TODO: update this once we can await inside catch blocks in C# 6.0
-					}
-					if (error != null)
-					{
-						if (error.Code == FdbError.PastVersion)
+						if (e.Code == FdbError.PastVersion)
 						{
 							tr.Reset();
 						}
 						else
 						{
-							await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+							await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 						}
 						// before retrying, we need to re-configure the transaction if needed
-						if (onReset != null)
-						{
-							onReset(tr);
-						}
+						onReset?.Invoke(tr);
 					}
 				}
 			}		

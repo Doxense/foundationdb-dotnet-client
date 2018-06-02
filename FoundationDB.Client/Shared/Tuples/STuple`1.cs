@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Collections.Tuples
 {
 	using System;
@@ -34,7 +36,6 @@ namespace Doxense.Collections.Tuples
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -42,7 +43,8 @@ namespace Doxense.Collections.Tuples
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct STuple<T1> : ITuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
+	[PublicAPI]
+	public readonly struct STuple<T1> : IVarTuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -58,7 +60,7 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => 1;
 
-		public object this[int index]
+		object IReadOnlyList<object>.this[int index]
 		{
 			get
 			{
@@ -67,10 +69,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
-		{
-			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
-		}
+		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
@@ -82,7 +81,7 @@ namespace Doxense.Collections.Tuples
 			return TypeConverters.Convert<T1, TItem>(this.Item1);
 		}
 
-		ITuple ITuple.Append<T2>(T2 value)
+		IVarTuple IVarTuple.Append<T2>(T2 value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -102,7 +101,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
@@ -159,7 +158,7 @@ namespace Doxense.Collections.Tuples
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -351,3 +350,5 @@ namespace Doxense.Collections.Tuples
 	}
 
 }
+
+#endif

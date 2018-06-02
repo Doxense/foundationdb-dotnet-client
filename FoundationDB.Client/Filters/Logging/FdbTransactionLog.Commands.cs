@@ -35,10 +35,12 @@ namespace FoundationDB.Filters.Logging
 	using System.Text;
 	using System.Threading.Tasks;
 	using Doxense;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public partial class FdbTransactionLog
 	{
 
@@ -71,11 +73,11 @@ namespace FoundationDB.Filters.Logging
 
 			/// <summary>Total size (in bytes) of the arguments</summary>
 			/// <remarks>For selectors, only include the size of the keys</remarks>
-			public virtual int? ArgumentBytes { get { return default(int?); } }
+			public virtual int? ArgumentBytes => null;
 
 			/// <summary>Total size (in bytes) of the result, or null if this operation does not produce a result</summary>
 			/// <remarks>Includes the keys and values for range reads</remarks>
-			public virtual int? ResultBytes { get { return default(int?); } }
+			public virtual int? ResultBytes => null;
 
 			/// <summary>Id of the thread that started the command</summary>
 			public int ThreadId { get; internal set; }
@@ -98,7 +100,7 @@ namespace FoundationDB.Filters.Logging
 			/// <summary>Returns a formatted representation of the arguments, for logging purpose</summary>
 			public virtual string GetArguments(KeyResolver resolver)
 			{
-				return String.Empty;
+				return string.Empty;
 			}
 
 			/// <summary>Returns a formatted representation of the results, for logging purpose</summary>
@@ -106,9 +108,9 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.Error != null)
 				{
-					var fdbEx = this.Error as FdbException;
-					if (fdbEx != null) return "[" + fdbEx.Code.ToString() + "] " + fdbEx.Message;
-					return "[" + this.Error.GetType().Name + "] " + this.Error.Message;
+					return this.Error is FdbException fdbEx
+						? "[" + fdbEx.Code.ToString() + "] " + fdbEx.Message
+						: "[" + this.Error.GetType().Name + "] " + this.Error.Message;
 				}
 				return String.Empty;
 			}
@@ -121,20 +123,20 @@ namespace FoundationDB.Filters.Logging
 					switch (this.Op)
 					{
 						case Operation.Invalid:
-							return FdbTransactionLog.Mode.Invalid;
+							return Mode.Invalid;
 
 						case Operation.Set:
 						case Operation.Clear:
 						case Operation.ClearRange:
 						case Operation.Atomic:
-							return FdbTransactionLog.Mode.Write;
+							return Mode.Write;
 
 						case Operation.Get:
 						case Operation.GetKey:
 						case Operation.GetValues:
 						case Operation.GetKeys:
 						case Operation.GetRange:
-							return FdbTransactionLog.Mode.Read;
+							return Mode.Read;
 
 						case Operation.GetReadVersion:
 						case Operation.Reset:
@@ -143,13 +145,13 @@ namespace FoundationDB.Filters.Logging
 						case Operation.Commit:
 						case Operation.OnError:
 						case Operation.SetOption:
-							return FdbTransactionLog.Mode.Meta;
+							return Mode.Meta;
 
 						case Operation.Watch:
-							return FdbTransactionLog.Mode.Watch;
+							return Mode.Watch;
 
 						case Operation.Log:
-							return FdbTransactionLog.Mode.Annotation;
+							return Mode.Annotation;
 
 						default:
 						{ 
@@ -157,7 +159,7 @@ namespace FoundationDB.Filters.Logging
 							//FIXME: we probably forgot to add a case for a new type of command !
 							if (Debugger.IsAttached) Debugger.Break();
 #endif
-							return FdbTransactionLog.Mode.Invalid;
+							return Mode.Invalid;
 						}
 					}
 				}
@@ -195,7 +197,7 @@ namespace FoundationDB.Filters.Logging
 				}
 			}
 
-			public override sealed string ToString()
+			public sealed override string ToString()
 			{
 				return ToString(null);
 			}
@@ -203,8 +205,8 @@ namespace FoundationDB.Filters.Logging
 			public virtual string ToString(KeyResolver resolver)
 			{
 				resolver = resolver ?? KeyResolver.Default;
-				var arg = this.GetArguments(resolver);
-				var res = this.GetResult(resolver);
+				var arg = GetArguments(resolver);
+				var res = GetResult(resolver);
 				var sb = new StringBuilder(255);
 				if (this.Snapshot) sb.Append("Snapshot.");
 				sb.Append(this.Op.ToString());
@@ -215,11 +217,7 @@ namespace FoundationDB.Filters.Logging
 
 			protected virtual string ResolveKey(Slice key, Func<Slice, string> resolver)
 			{
-				if (resolver == null)
-				{
-					return FdbKey.Dump(key);
-				}
-				return resolver(key);
+				return resolver == null ? FdbKey.Dump(key) : resolver(key);
 			}
 
 		}
@@ -280,8 +278,9 @@ namespace FoundationDB.Filters.Logging
 			public readonly Slice[] Prefixes;
 			public readonly string[] Paths;
 
-			public DirectoryKeyResolver(Dictionary<Slice, string> knownSubspaces)
+			public DirectoryKeyResolver([NotNull] Dictionary<Slice, string> knownSubspaces)
 			{
+				Contract.Requires(knownSubspaces != null);
 				var prefixes = new Slice[knownSubspaces.Count];
 				var paths = new string[knownSubspaces.Count];
 				int p = 0;
@@ -358,9 +357,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string Resolve(Slice key)
 			{
-				Slice prefix;
-				string path;
-				if (!TryLookup(key, out prefix, out path))
+				if (!TryLookup(key, out Slice prefix, out string path))
 				{
 					return base.Resolve(key);
 				}
@@ -368,20 +365,17 @@ namespace FoundationDB.Filters.Logging
 				var s = base.Resolve(key.Substring(prefix.Count));
 				if (s != null && s.Length >= 3 && s[0] == '(' && s[s.Length - 1] == ')')
 				{ // that was a tuple
-					return String.Concat("([", path, "], ", s.Substring(1));
+					return string.Concat("([", path, "], ", s.Substring(1));
 				}
-				return String.Concat("[", path, "]:", s);
+				return string.Concat("[", path, "]:", s);
 			}
 		}
 
-		public sealed class LogCommand : FdbTransactionLog.Command
+		public sealed class LogCommand : Command
 		{
-			public string Message { get; private set; }
+			public string Message { get; }
 
-			public override FdbTransactionLog.Operation Op
-			{
-				get { return FdbTransactionLog.Operation.Log; }
-			}
+			public override Operation Op => Operation.Log;
 
 			public LogCommand(string message)
 			{
@@ -397,15 +391,15 @@ namespace FoundationDB.Filters.Logging
 		public sealed class SetOptionCommand : Command
 		{
 			/// <summary>Option that is set on the transaction</summary>
-			public FdbTransactionOption Option { get; private set; }
+			public FdbTransactionOption Option { get; }
 
 			/// <summary>Integer value (if not null)</summary>
-			public long? IntValue { get; private set; }
+			public long? IntValue { get; }
 
 			/// <summary>String value (if not null)</summary>
-			public string StringValue { get; private set; }
+			public string StringValue { get; }
 
-			public override Operation Op { get { return Operation.SetOption; } }
+			public override Operation Op => Operation.SetOption;
 
 			public SetOptionCommand(FdbTransactionOption option)
 			{
@@ -428,28 +422,25 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.IntValue.HasValue)
 				{
-					return String.Format("{0} = {1}", this.Option.ToString(), this.IntValue.Value);
+					return $"{this.Option.ToString()} = {this.IntValue.Value}";
 				}
-				else if (this.StringValue != null)
+				if (this.StringValue != null)
 				{
-					return String.Format("{0} = '{1}'", this.Option.ToString(), this.StringValue);
+					return $"{this.Option.ToString()} = '{this.StringValue}'";
 				}
-				else
-				{
-					return this.Option.ToString();
-				}
+				return this.Option.ToString();
 			}
 		}
 
 		public sealed class SetCommand : Command
 		{
 			/// <summary>Key modified in the database</summary>
-			public Slice Key { get; private set; }
+			public Slice Key { get; }
 
 			/// <summary>Value written to the key</summary>
-			public Slice Value { get; private set; }
+			public Slice Value { get; }
 
-			public override Operation Op { get { return Operation.Set; } }
+			public override Operation Op => Operation.Set;
 
 			public SetCommand(Slice key, Slice value)
 			{
@@ -457,14 +448,11 @@ namespace FoundationDB.Filters.Logging
 				this.Value = value;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Key.Count + this.Value.Count; }
-			}
+			public override int? ArgumentBytes => this.Key.Count + this.Value.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("K"));
+				return string.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("K"));
 			}
 
 		}
@@ -472,19 +460,16 @@ namespace FoundationDB.Filters.Logging
 		public sealed class ClearCommand : Command
 		{
 			/// <summary>Key cleared from the database</summary>
-			public Slice Key { get; private set; }
+			public Slice Key { get; }
 
-			public override Operation Op { get { return Operation.Clear; } }
+			public override Operation Op => Operation.Clear;
 
 			public ClearCommand(Slice key)
 			{
 				this.Key = key;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Key.Count; }
-			}
+			public override int? ArgumentBytes => this.Key.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -496,12 +481,12 @@ namespace FoundationDB.Filters.Logging
 		public sealed class ClearRangeCommand : Command
 		{
 			/// <summary>Begin of the range cleared</summary>
-			public Slice Begin { get; private set; }
+			public Slice Begin { get; }
 
 			/// <summary>End of the range cleared</summary>
-			public Slice End { get; private set; }
+			public Slice End { get; }
 
-			public override Operation Op { get { return Operation.ClearRange; } }
+			public override Operation Op => Operation.ClearRange;
 
 			public ClearRangeCommand(Slice begin, Slice end)
 			{
@@ -509,14 +494,11 @@ namespace FoundationDB.Filters.Logging
 				this.End = end;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Begin.Count + this.End.Count; }
-			}
+			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
+				return string.Concat(resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
 			}
 
 		}
@@ -524,13 +506,15 @@ namespace FoundationDB.Filters.Logging
 		public sealed class AtomicCommand : Command
 		{
 			/// <summary>Type of mutation performed on the key</summary>
-			public FdbMutationType Mutation { get; private set; }
-			/// <summary>Key modified in the database</summary>
-			public Slice Key { get; private set; }
-			/// <summary>Parameter depending of the type of mutation</summary>
-			public Slice Param { get; private set; }
+			public FdbMutationType Mutation { get; }
 
-			public override Operation Op { get { return Operation.Atomic; } }
+			/// <summary>Key modified in the database</summary>
+			public Slice Key { get; set; }
+
+			/// <summary>Parameter depending of the type of mutation</summary>
+			public Slice Param { get; }
+
+			public override Operation Op => Operation.Atomic;
 
 			public AtomicCommand(Slice key, Slice param, FdbMutationType mutation)
 			{
@@ -539,23 +523,55 @@ namespace FoundationDB.Filters.Logging
 				this.Mutation = mutation;
 			}
 
-			public override int? ArgumentBytes
+			public override int? ArgumentBytes => this.Key.Count + this.Param.Count;
+
+			private Slice GetUserKey()
 			{
-				get { return this.Key.Count + this.Param.Count; }
+				var key = this.Key;
+
+				//TODO: FIXME: the ApiVersion should be stored with the command or log, not read from a static variable, because it will prevent us from loading a log from a file, produced by another server with a different Api Version!
+				if (this.Mutation == FdbMutationType.VersionStampedKey)
+				{ // we must remove the stamp offset at the end
+					if (Fdb.ApiVersion >= 520)
+					{ // 4 bytes
+						key = key.Substring(0, key.Count - 4);
+					}
+					else if(Fdb.ApiVersion >= 400)
+					{ // 2 bytes
+						key = key.Substring(0, key.Count - 2);
+					}
+				}
+
+				return key;
+			}
+
+			private Slice GetUserValue()
+			{
+				var val = this.Param;
+
+				//TODO: FIXME: the ApiVersion should be stored with the command or log, not read from a static variable, because it will prevent us from loading a log from a file, produced by another server with a different Api Version!
+				if (this.Mutation == FdbMutationType.VersionStampedValue)
+				{ // we must remove the stamp offset at the end
+					if (Fdb.ApiVersion >= 520)
+					{ // 4 bytes
+						val = val.Substring(0, val.Count - 4);
+					}
+				}
+
+				return val;
 			}
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToString("K"));
+				return string.Concat(resolver.Resolve(GetUserKey()), " ", this.Mutation.ToString(), " ", GetUserValue().ToString("V"));
 			}
 
 			public override string ToString(KeyResolver resolver)
 			{
 				resolver = resolver ?? KeyResolver.Default;
-				var arg = this.GetArguments(resolver);
 				var sb = new StringBuilder();
 				if (this.Snapshot) sb.Append("Snapshot.");
-				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(this.Key)).Append(", <").Append(this.Param.ToHexaString(' ')).Append('>');
+				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(GetUserKey())).Append(", <").Append(GetUserValue().ToHexaString(' ')).Append('>');
 				return sb.ToString();
 			}
 		}
@@ -563,13 +579,15 @@ namespace FoundationDB.Filters.Logging
 		public sealed class AddConflictRangeCommand : Command
 		{
 			/// <summary>Type of conflict</summary>
-			public FdbConflictRangeType Type { get; private set; }
-			/// <summary>Begin of the conflict range</summary>
-			public Slice Begin { get; private set; }
-			/// <summary>End of the conflict range</summary>
-			public Slice End { get; private set; }
+			public FdbConflictRangeType Type { get; }
 
-			public override Operation Op { get { return Operation.AddConflictRange; } }
+			/// <summary>Begin of the conflict range</summary>
+			public Slice Begin { get; }
+
+			/// <summary>End of the conflict range</summary>
+			public Slice End { get; }
+
+			public override Operation Op => Operation.AddConflictRange;
 
 			public AddConflictRangeCommand(Slice begin, Slice end, FdbConflictRangeType type)
 			{
@@ -578,14 +596,11 @@ namespace FoundationDB.Filters.Logging
 				this.Type = type;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Begin.Count + this.End.Count; }
-			}
+			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(this.Type.ToString(), "! ", resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
+				return string.Concat(this.Type.ToString(), "! ", resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
 			}
 
 		}
@@ -593,24 +608,18 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetCommand : Command<Slice>
 		{
 			/// <summary>Key read from the database</summary>
-			public Slice Key { get; private set; }
+			public Slice Key { get; }
 
-			public override Operation Op { get { return Operation.Get; } }
+			public override Operation Op => Operation.Get;
 
 			public GetCommand(Slice key)
 			{
 				this.Key = key;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Key.Count; }
-			}
+			public override int? ArgumentBytes => this.Key.Count;
 
-			public override int? ResultBytes
-			{
-				get { return !this.Result.HasValue ? default(int?) : this.Result.Value.Count; }
-			}
+			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : this.Result.Value.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -637,24 +646,18 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetKeyCommand : Command<Slice>
 		{
 			/// <summary>Selector to a key in the database</summary>
-			public KeySelector Selector { get; private set; }
+			public KeySelector Selector { get; }
 
-			public override Operation Op { get { return Operation.GetKey; } }
+			public override Operation Op => Operation.GetKey;
 
 			public GetKeyCommand(KeySelector selector)
 			{
 				this.Selector = selector;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Selector.Key.Count; }
-			}
+			public override int? ArgumentBytes => this.Selector.Key.Count;
 
-			public override int? ResultBytes
-			{
-				get { return !this.Result.HasValue ? default(int?) : this.Result.Value.Count; }
-			}
+			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : this.Result.Value.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -667,12 +670,13 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetValuesCommand : Command<Slice[]>
 		{
 			/// <summary>List of keys read from the database</summary>
-			public Slice[] Keys { get; private set; }
+			public Slice[] Keys { get; }
 
-			public override Operation Op { get { return Operation.GetValues; } }
+			public override Operation Op => Operation.GetValues;
 
-			public GetValuesCommand(Slice[] keys)
+			public GetValuesCommand([NotNull] Slice[] keys)
 			{
+				Contract.Requires(keys != null);
 				this.Keys = keys;
 			}
 
@@ -700,7 +704,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				string s = String.Concat("[", this.Keys.Length.ToString(), "] {");
+				string s = string.Concat("[", this.Keys.Length.ToString(), "] {");
 				if (this.Keys.Length > 0) s += resolver.Resolve(this.Keys[0]);
 				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[this.Keys.Length - 1]);
 				return s + " }";
@@ -710,7 +714,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (!this.Result.HasValue) return base.GetResult(resolver);
 				var res = this.Result.Value;
-				string s = String.Concat("[", res.Length.ToString(), "] {");
+				string s = string.Concat("[", res.Length.ToString(), "] {");
 				if (res.Length > 0) s += res[0].ToString("P");
 				if (res.Length > 1) s += " ... " + res[res.Length - 1].ToString("P");
 				return s + " }";
@@ -722,12 +726,13 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetKeysCommand : Command<Slice[]>
 		{
 			/// <summary>List of selectors looked up in the database</summary>
-			public KeySelector[] Selectors { get; private set; }
+			public KeySelector[] Selectors { get; }
 
-			public override Operation Op { get { return Operation.GetKeys; } }
+			public override Operation Op => Operation.GetKeys;
 
-			public GetKeysCommand(KeySelector[] selectors)
+			public GetKeysCommand([NotNull] KeySelector[] selectors)
 			{
+				Contract.Requires(selectors != null);
 				this.Selectors = selectors;
 			}
 
@@ -755,7 +760,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				string s = String.Concat("[", this.Selectors.Length.ToString(), "] {");
+				string s = string.Concat("[", this.Selectors.Length.ToString(), "] {");
 				//TODO: use resolver!
 				if (this.Selectors.Length > 0) s += this.Selectors[0].ToString();
 				if (this.Selectors.Length > 1) s += " ... " + this.Selectors[this.Selectors.Length - 1].ToString();
@@ -767,15 +772,18 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetRangeCommand : Command<FdbRangeChunk>
 		{
 			/// <summary>Selector to the start of the range</summary>
-			public KeySelector Begin { get; private set; }
-			/// <summary>Selector to the end of the range</summary>
-			public KeySelector End { get; private set; }
-			/// <summary>Options of the range read</summary>
-			public FdbRangeOptions Options { get; private set; }
-			/// <summary>Iteration number</summary>
-			public int Iteration { get; private set; }
+			public KeySelector Begin { get; }
 
-			public override Operation Op { get { return Operation.GetRange; } }
+			/// <summary>Selector to the end of the range</summary>
+			public KeySelector End { get; }
+
+			/// <summary>Options of the range read</summary>
+			public FdbRangeOptions Options { get; }
+
+			/// <summary>Iteration number</summary>
+			public int Iteration { get; }
+
+			public override Operation Op => Operation.GetRange;
 
 			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration)
 			{
@@ -785,10 +793,7 @@ namespace FoundationDB.Filters.Logging
 				this.Iteration = iteration;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Begin.Key.Count + this.End.Key.Count; }
-			}
+			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
 
 			public override int? ResultBytes
 			{
@@ -823,7 +828,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.Result.HasValue)
 				{
-					string s = String.Format("{0} result(s)", this.Result.Value.Count);
+					string s = $"{this.Result.Value.Count:N0} result(s)";
 					if (this.Result.Value.HasMore) s += ", has_more";
 					return s;
 				}
@@ -834,39 +839,34 @@ namespace FoundationDB.Filters.Logging
 
 		public sealed class GetVersionStampCommand : Command<VersionStamp>
 		{
-			public override Operation Op { get { return Operation.GetVersionStamp; } }
-
+			public override Operation Op => Operation.GetVersionStamp;
 		}
 
 		public sealed class GetReadVersionCommand : Command<long>
 		{
-			public override Operation Op { get { return Operation.GetReadVersion; } }
-
+			public override Operation Op => Operation.GetReadVersion;
 		}
 
 		public sealed class CancelCommand : Command
 		{
-			public override Operation Op { get { return Operation.Cancel; } }
-
+			public override Operation Op => Operation.Cancel;
 		}
 
 		public sealed class ResetCommand : Command
 		{
-			public override Operation Op { get { return Operation.Reset; } }
-
+			public override Operation Op => Operation.Reset;
 		}
 
 		public sealed class CommitCommand : Command
 		{
-			public override Operation Op { get { return Operation.Commit; } }
-
+			public override Operation Op => Operation.Commit;
 		}
 
 		public sealed class OnErrorCommand : Command
 		{
-			public FdbError Code { get; private set; }
+			public FdbError Code { get; }
 
-			public override Operation Op { get { return Operation.OnError; } }
+			public override Operation Op => Operation.OnError;
 
 			public OnErrorCommand(FdbError code)
 			{
@@ -875,28 +875,22 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Format(CultureInfo.InvariantCulture, "{0} ({1})", this.Code, (int)this.Code);
+				return string.Format(CultureInfo.InvariantCulture, "{0} ({1})", this.Code, (int)this.Code);
 			}
 		}
 
 		public sealed class WatchCommand : Command
 		{
-			public Slice Key { get; private set; }
+			public Slice Key { get; }
 
-			public override Operation Op
-			{
-				get { return Operation.Watch; }
-			}
+			public override Operation Op => Operation.Watch;
 
 			public WatchCommand(Slice key)
 			{
 				this.Key = key;
 			}
 
-			public override int? ArgumentBytes
-			{
-				get { return this.Key.Count; }
-			}
+			public override int? ArgumentBytes => this.Key.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -904,7 +898,6 @@ namespace FoundationDB.Filters.Logging
 			}
 
 		}
-
 
 	}
 

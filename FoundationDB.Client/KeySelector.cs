@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public readonly struct KeySelector : IEquatable<KeySelector>
 	{
 
@@ -56,7 +57,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Empty key selector</summary>
-		public static readonly KeySelector None = default(KeySelector);
+		public static readonly KeySelector None;
 
 		public bool Equals(KeySelector other)
 		{

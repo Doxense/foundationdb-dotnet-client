@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
 
 namespace Doxense.Linq.Async.Expressions
 {
@@ -38,6 +39,7 @@ namespace Doxense.Linq.Async.Expressions
 
 	/// <summary>Expression that evalute a condition on each item</summary>
 	/// <typeparam name="TSource">Type of the filtered elements</typeparam>
+	[PublicAPI]
 	public sealed class AsyncFilterExpression<TSource>
 	{
 		private readonly Func<TSource, bool> m_filter;
@@ -55,7 +57,7 @@ namespace Doxense.Linq.Async.Expressions
 			m_asyncFilter = asyncFilter;
 		}
 
-		public bool Async { get { return m_asyncFilter != null; } }
+		public bool Async => m_asyncFilter != null;
 
 		public bool Invoke(TSource item)
 		{
@@ -78,7 +80,7 @@ namespace Doxense.Linq.Async.Expressions
 		[ContractAnnotation("=> halt")]
 		private static void FailInvalidOperation()
 		{
-			throw new InvalidOperationException("Cannot invoke asynchronous filter synchronously");
+			throw new InvalidOperationException("Cannot invoke asynchronous filter synchronously.");
 		}
 
 		[NotNull]
@@ -175,3 +177,5 @@ namespace Doxense.Linq.Async.Expressions
 	}
 
 }
+
+#endif

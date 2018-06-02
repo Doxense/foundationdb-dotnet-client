@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
+	[PublicAPI]
 	public readonly struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>, IEquatable<(Slice Begin, Slice End)>, IComparable<(Slice Begin, Slice End)>
 	{
 
@@ -65,7 +66,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns an empty pair of keys</summary>
-		public static readonly KeyRange Empty = default(KeyRange);
+		public static readonly KeyRange Empty;
 
 		/// <summary>Returns a range that contains all the keys in the database</summary>
 		public static KeyRange All => new KeyRange(FdbKey.MinValue, FdbKey.MaxValue);
@@ -183,7 +184,7 @@ namespace FoundationDB.Client
 		/// <returns>New range where the Begin key is the smallest bound and the End key is the largest bound of both ranges.</returns>
 		/// <remarks>If both range are disjoint, then the resulting range will also contain the keys in between.</remarks>
 		[Pure]
-		public KeyRange Merge(KeyRange other)
+		public KeyRange Merge(in KeyRange other)
 		{
 			Slice begin = this.Begin.CompareTo(other.Begin) <= 0 ? this.Begin : other.Begin;
 			Slice end = this.End.CompareTo(other.End) >= 0 ? this.End : other.End;
@@ -195,7 +196,7 @@ namespace FoundationDB.Client
 		/// <returns>True if the other range intersects the current range.</returns>
 		/// <remarks>Note that ranges [0, 1) and [1, 2) do not intersect, since the end is exclusive by default</remarks>
 		[Pure]
-		public bool Intersects(KeyRange other)
+		public bool Intersects(in KeyRange other)
 		{
 			int c = this.Begin.CompareTo(other.Begin);
 			if (c == 0)
@@ -215,7 +216,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		/// <remarks>Note that ranges [0, 1) and [1, 2) are not disjoint because, even though they do not intersect, they are both contiguous.</remarks>
 		[Pure]
-		public bool Disjoint(KeyRange other)
+		public bool Disjoint(in KeyRange other)
 		{
 			int c = this.Begin.CompareTo(other.Begin);
 			if (c == 0)

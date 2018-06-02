@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace System
 {
 	using System;
@@ -125,6 +127,13 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal unsafe Uuid128(byte* ptr, uint count)
+			: this()
+		{
+			m_packed = Convert(ptr, count);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(int a, short b, short c, byte[] d)
 			: this(new Guid(a, b, c, d))
 		{ }
@@ -170,6 +179,8 @@ namespace System
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
 
+		/// <summary>Generate a new random 128-bit UUID.</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128 NewUuid()
 		{
 			return new Uuid128(Guid.NewGuid());
@@ -190,7 +201,7 @@ namespace System
 			}
 		}
 
-		public static unsafe Guid Convert(byte* buffer, int count)
+		public static unsafe Guid Convert(byte* buffer, uint count)
 		{
 			if (count == 0) return default(Guid);
 			if (count != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
@@ -439,33 +450,50 @@ namespace System
 		}
 
 		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
-		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
-		/// <param name="low">Receives the last 8 bytes (in network order) of this UUID</param>
-		public void Split(out ulong high, out ulong low)
+		/// <param name="a">xxxxxxxx-xxxx-xxxx-....-............</param>
+		/// <param name="b">........-....-....-xxxx-xxxxxxxxxxxx</param>
+		public void Deconstruct(out ulong a, out ulong b)
 		{
 			unsafe
 			{
 				byte* buffer = stackalloc byte[16];
 				WriteUnsafe(m_packed, buffer);
-				high = Uuid64.ReadUnsafe(buffer);
-				low = Uuid64.ReadUnsafe(buffer + 8);
+				a = UnsafeHelpers.LoadUInt64BE(buffer + 0);
+				b = UnsafeHelpers.LoadUInt64BE(buffer + 8);
 			}
 		}
 
 		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
-		/// <param name="high">Receives the first 8 bytes (in network order) of this UUID</param>
-		/// <param name="mid">Receives the middle 4 bytes (in network order) of this UUID</param>
-		/// <param name="low">Receives the last 4 bytes (in network order) of this UUID</param>
-		public void Split(out ulong high, out uint mid, out uint low)
+		/// <param name="a">xxxxxxxx-xxxx-xxxx-....-............</param>
+		/// <param name="b">........-....-....-xxxx-xxxx........</param>
+		/// <param name="c">........-....-....-....-....xxxxxxxx</param>
+		public void Deconstruct(out ulong a, out uint b, out uint c)
 		{
 			unsafe
 			{
 				byte* buffer = stackalloc byte[16];
 				WriteUnsafe(m_packed, buffer);
-				high = Uuid64.ReadUnsafe(buffer);
-				var id = Uuid64.ReadUnsafe(buffer + 8);
-				mid = (uint) (id >> 32);
-				low = (uint) id;
+				a = UnsafeHelpers.LoadUInt64BE(buffer + 0);
+				b = UnsafeHelpers.LoadUInt32BE(buffer + 8);
+				c = UnsafeHelpers.LoadUInt32BE(buffer + 12);
+			}
+		}
+
+		/// <summary>Split this 128-bit UUID into two 64-bit numbers</summary>
+		/// <param name="a">xxxxxxxx-....-....-....-............</param>
+		/// <param name="b">........-xxxx-xxxx-....-............</param>
+		/// <param name="c">........-....-....-xxxx-xxxx........</param>
+		/// <param name="d">........-....-....-....-....xxxxxxxx</param>
+		public void Deconstruct(out uint a, out uint b, out uint c, out uint d)
+		{
+			unsafe
+			{
+				byte* buffer = stackalloc byte[16];
+				WriteUnsafe(m_packed, buffer);
+				a = UnsafeHelpers.LoadUInt32BE(buffer + 0);
+				b = UnsafeHelpers.LoadUInt32BE(buffer + 4);
+				c = UnsafeHelpers.LoadUInt32BE(buffer + 8);
+				d = UnsafeHelpers.LoadUInt32BE(buffer + 12);
 			}
 		}
 
@@ -682,3 +710,5 @@ namespace System
 	}
 
 }
+
+#endif

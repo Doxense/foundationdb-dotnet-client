@@ -54,15 +54,27 @@ namespace FoundationDB.Client.Tests
 		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
 			var subspace = new KeySubspace(TestGlobalPrefix.Memoize());
-			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
+			var options = new FdbConnectionOptions
+			{
+				ClusterFile = TestHelpers.TestClusterFile,
+				DbName = TestHelpers.TestDbName,
+				GlobalSpace = subspace,
+				DefaultTimeout = TimeSpan.FromMilliseconds(TestHelpers.DefaultTimeout),
+			};
+			return Fdb.OpenAsync(options, ct);
 		}
 
 		/// <summary>Connect to the local test database</summary>
-		public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
+		public static Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
 		{
-			var db = await Fdb.Directory.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, false, ct);
-			db.DefaultTimeout = DefaultTimeout;
-			return db;
+			var options = new FdbConnectionOptions
+			{
+				ClusterFile = TestHelpers.TestClusterFile,
+				DbName = TestHelpers.TestDbName,
+				PartitionPath = TestHelpers.TestPartition,
+				DefaultTimeout = TimeSpan.FromMilliseconds(TestHelpers.DefaultTimeout),
+			};
+			return Fdb.OpenAsync(options, ct);
 		}
 
 		public static async Task<FdbDirectorySubspace> GetCleanDirectory([NotNull] IFdbDatabase db, [NotNull] string[] path, CancellationToken ct)

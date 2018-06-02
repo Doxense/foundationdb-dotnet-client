@@ -44,6 +44,30 @@ namespace FoundationDB.Client.Tests
 		private CancellationToken m_ct;
 		private Stopwatch m_timer;
 
+		protected int OverrideApiVersion = 0;
+
+		[OneTimeSetUp]
+		protected void BeforeAllTests()
+		{
+			// We must ensure that FDB is running before executing the tests
+			// => By default, we always use 
+			if (Fdb.ApiVersion == 0)
+			{
+				int version = OverrideApiVersion;
+				if (version == 0) version = Fdb.GetDefaultApiVersion();
+				if (version > Fdb.GetMaxApiVersion())
+				{
+					Assume.That(version, Is.LessThanOrEqualTo(Fdb.GetMaxApiVersion()), "Unit tests require that the native fdb client version be at least equal to the current binding version!");
+				}
+				Fdb.Start(version);
+			}
+			else if (OverrideApiVersion != Fdb.ApiVersion)
+			{
+				//note: cannot change API version on the fly! :(
+				Assume.That(Fdb.ApiVersion, Is.EqualTo(OverrideApiVersion), "The API version selected is not what this test is expecting!");
+			}
+		}
+
 		[SetUp]
 		protected void BeforeEachTest()
 		{

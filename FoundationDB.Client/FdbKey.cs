@@ -67,7 +67,7 @@ namespace FoundationDB.Client
 			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(slice));
 
 			int lastNonFFByte;
-			var tmp = slice.GetBytes();
+			var tmp = slice.GetBytesOrEmpty();
 			for (lastNonFFByte = tmp.Length - 1; lastNonFFByte >= 0; --lastNonFFByte)
 			{
 				if (tmp[lastNonFFByte] != 0xFF)
@@ -203,7 +203,7 @@ namespace FoundationDB.Client
 
 			private KeyValuePair<int, int> GetChunk()
 			{
-				if (m_remaining == 0) return default(KeyValuePair<int, int>);
+				if (m_remaining == 0) return default;
 
 				lock (m_lock)
 				{
@@ -283,7 +283,7 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						ITuple tuple = null;
+						IVarTuple tuple = null;
 						string suffix = null;
 						bool skip = false;
 

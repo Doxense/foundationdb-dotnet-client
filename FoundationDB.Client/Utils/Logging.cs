@@ -225,9 +225,9 @@ namespace FoundationDB.Client
 			if (Logging.IsError)
 			{
 				// flatten aggregate exceptions
-				if (e is AggregateException) e = ((AggregateException) e).Flatten().InnerException;
+				if (e is AggregateException aggEx) e = aggEx.Flatten().InnerException;
 
-				string msg = String.Format("Exception in {0} - {1}.", GetObjectUniqueId(obj, method), e.Message);
+				string msg = $"Exception in {GetObjectUniqueId(obj, method)} - {e.Message}.";
 				if (!string.IsNullOrWhiteSpace(e.StackTrace)) msg += "\r\n" + e.StackTrace;
 				PrintLine(TraceEventType.Error, 0, msg);
 			}
@@ -292,7 +292,7 @@ namespace FoundationDB.Client
 
 		private static string GetObjectUniqueId(object obj, string method)
 		{
-			string suffix = method != null ? ("::" + method + "()") : String.Empty;
+			string suffix = method != null ? ("::" + method + "()") : string.Empty;
 
 			// create a friendly name for this object
 			if (obj == null)
@@ -302,20 +302,17 @@ namespace FoundationDB.Client
 
 			//TODO: custom name for FdbDatabase, FdbTransaction, ... ?
 
-			var tr = obj as IFdbReadOnlyTransaction;
-			if (tr != null)
+			if (obj is IFdbReadOnlyTransaction tr)
 			{
 				return "FdbTransaction#" + tr.Id.ToString(CultureInfo.InvariantCulture) + suffix;
 			}
 
-			var db = obj as IFdbDatabase;
-			if (db != null)
+			if (obj is IFdbDatabase db)
 			{
 				return "FdbDatabase('" + db.Name + "')" + suffix;
 			}
 
-			var type = obj as Type;
-			if (type != null)
+			if (obj is Type type)
 			{
 				return type.Name + suffix;
 			}

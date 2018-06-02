@@ -34,9 +34,7 @@ namespace FdbBurner
 					ClusterPath = args[0];
 				}
 
-				//note: always use the latest version available
-				Fdb.UseApiVersion(Fdb.GetMaxSafeApiVersion());
-				Fdb.Start();
+				Fdb.Start(Fdb.GetDefaultApiVersion());
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();

@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -369,6 +370,112 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
 
+		/// <summary>Cached 0 (32-bits)</summary>
+		private static readonly Slice Zero32 = Slice.FromFixed32(0);
+
+		/// <summary>Cached 0 (64-bits)</summary>
+		private static readonly Slice Zero64 = Slice.FromFixed64(0);
+
+		/// <summary>Cached +1 (32-bits)</summary>
+		private static readonly Slice PlusOne32 = Slice.FromFixed32(1);
+
+		/// <summary>+1 (64-bits)</summary>
+		private static readonly Slice PlusOne64 = Slice.FromFixed64(1);
+
+		/// <summary>-1 (32-bits)</summary>
+		private static readonly Slice MinusOne32 = Slice.FromFixed32(-1);
+
+		/// <summary>-1 (64-bits)</summary>
+		private static readonly Slice MinusOne64 = Slice.FromFixed64(-1);
+
+		/// <summary>Modify the database snapshot represented by this transaction to increment by one the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicIncrement32([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, PlusOne32, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to substract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicIncrement64([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, PlusOne64, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to substract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, int value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne32 : value == -1 ? MinusOne32 : Slice.FromFixed32(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
+		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, uint value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne32 : value == uint.MaxValue ? MinusOne32 : Slice.FromFixedU32(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, long value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne64 : value == -1 ? MinusOne64 : Slice.FromFixed64(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
+		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, ulong value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			var arg = value == 1 ? PlusOne64 : value == ulong.MaxValue ? MinusOne64 : Slice.FromFixedU64(value);
+			trans.Atomic(key, arg, FdbMutationType.Add);
+		}
+
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise AND between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
@@ -427,6 +534,11 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Min);
 		}
 
+		/// <summary>Find the location of the VersionStamp in a key or value</summary>
+		/// <param name="buffer">Buffer that must contains <paramref name="token"/> once and only once</param>
+		/// <param name="token">Token that represents the VersionStamp</param>
+		/// <param name="argName"></param>
+		/// <returns>Offset in <paramref name="buffer"/> where the stamp was found</returns>
 		private static int GetVersionStampOffset(Slice buffer, Slice token, string argName)
 		{
 			// the buffer MUST contain one incomplete stamp, either the random token of the current transsaction or the default token (all-FF)
@@ -459,6 +571,12 @@ namespace FoundationDB.Client
 			return p;
 		}
 
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		private static Exception FailVersionStampNotSupported()
+		{
+			return new NotSupportedException($"VersionStamps are not supported at API version {Fdb.ApiVersion}. You need to select at least API Version 400 or above.");
+		}
+
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
@@ -471,30 +589,66 @@ namespace FoundationDB.Client
 			var token = trans.CreateVersionStamp().ToSlice();
 			var offset = GetVersionStampOffset(key, token, nameof(key));
 
-			var writer = new SliceWriter(key.Count + 2);
-			writer.WriteBytes(key);
-			writer.WriteFixed16(checked((ushort) offset)); //note: currently stored as 16-bits in Little Endian
+			int apiVer = Fdb.ApiVersion;
+			if (apiVer < 400)
+			{ // introduced in 400
+				throw FailVersionStampNotSupported();
+			}
 
-			trans.Atomic(writer.ToSlice(), value, FdbMutationType.VersionStampedKey);
+			Slice arg;
+			if (apiVer < 520)
+			{ // prior to 520, the offset is only 16-bits
+				var writer = new SliceWriter(key.Count + 2);
+				writer.WriteBytes(key);
+				writer.WriteFixed16(checked((ushort) offset)); // 16-bits little endian
+				arg = writer.ToSlice();
+			}
+			else
+			{ // starting from 520, the offset is 32 bits
+				var writer = new SliceWriter(key.Count + 4);
+				writer.WriteBytes(key);
+				writer.WriteFixed32(checked((uint) offset)); // 32-bits little endian
+				arg = writer.ToSlice();
+			}
+
+			trans.Atomic(arg, value, FdbMutationType.VersionStampedKey);
 		}
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose start is defined by <paramref name="stampOffset"/>.</param>
-		/// <param name="stampOffset">Offset within <paramref name="key"/> of the start of the 80-bit VersionStamp.</param>
+		/// <param name="stampOffset">Offset in <paramref name="key"/> where the 80-bit VersionStamp is located.</param>
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			
+			Contract.Positive(stampOffset, nameof(stampOffset));
 			if (stampOffset > key.Count - 10) throw new ArgumentException("The VersionStamp overflows past the end of the key.", nameof(stampOffset));
-			if (stampOffset > 0xFFFF) throw new ArgumentException("The offset is too large to fit within 16-bits.");
 
-			var writer = new SliceWriter(key.Count + 2);
-			writer.WriteBytes(key);
-			writer.WriteFixed16(checked((ushort) stampOffset)); //note: currently stored as 16-bits in Little Endian
+			int apiVer = Fdb.ApiVersion;
+			if (apiVer < 400)
+			{ // introduced in 400
+				throw FailVersionStampNotSupported();
+			}
 
-			trans.Atomic(writer.ToSlice(), value, FdbMutationType.VersionStampedKey);
+			Slice arg;
+			if (apiVer < 520)
+			{ // prior to 520, the offset is only 16-bits
+				if (stampOffset > 0xFFFF) throw new ArgumentException("The offset is too large to fit within 16-bits.");
+				var writer = new SliceWriter(key.Count + 2);
+				writer.WriteBytes(key);
+				writer.WriteFixed16(checked((ushort) stampOffset)); //stored as 32-bits in Little Endian
+				arg = writer.ToSlice();
+			}
+			else
+			{ // starting from 520, the offset is 32 bits
+				var writer = new SliceWriter(key.Count + 4);
+				writer.WriteBytes(key);
+				writer.WriteFixed32(checked((uint) stampOffset)); //stored as 32-bits in Little Endian
+				arg = writer.ToSlice();
+			}
+
+			trans.Atomic(arg, value, FdbMutationType.VersionStampedKey);
 		}
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
@@ -504,10 +658,75 @@ namespace FoundationDB.Client
 		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
 			Contract.NotNull(trans, nameof(trans));
-
 			if (value.Count < 10) throw new ArgumentException("The value must be at least 10 bytes long.", nameof(value));
 
-			trans.Atomic(key, value, FdbMutationType.VersionStampedValue);
+			int apiVer = Fdb.ApiVersion;
+			if (apiVer < 400)
+			{ // introduced in 400
+				throw FailVersionStampNotSupported();
+			}
+
+			Slice arg;
+			if (apiVer < 520)
+			{ // prior to 520, the stamp is always at offset 0
+				arg = value;
+			}
+			else
+			{ // starting from 520, the offset is stored in the last 32 bits
+
+				//TODO: PERF: optimize this to not have to allocate!
+				var token = trans.CreateVersionStamp().ToSlice();
+				var offset = GetVersionStampOffset(key, token, nameof(key));
+				Contract.Requires(offset >=0 && offset <= key.Count - 10);
+
+				var writer = new SliceWriter(value.Count + 4);
+				writer.WriteBytes(value);
+				writer.WriteFixed32(checked((uint) offset));
+				arg = writer.ToSlice();
+			}
+
+			trans.Atomic(key, arg, FdbMutationType.VersionStampedValue);
+		}
+
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
+		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
+		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value, int stampOffset)
+		{
+			Contract.NotNull(trans, nameof(trans));
+			Contract.Positive(stampOffset, nameof(stampOffset));
+			if (stampOffset > key.Count - 10) throw new ArgumentException("The VersionStamp overflows past the end of the value.", nameof(stampOffset));
+
+			int apiVer = Fdb.ApiVersion;
+			if (apiVer < 400)
+			{ // introduced in 400
+				throw FailVersionStampNotSupported();
+			}
+
+			Slice arg;
+			if (apiVer < 520)
+			{ // prior to 520, the stamp is always at offset 0
+				if (stampOffset != 0) throw new InvalidOperationException("Prior to API version 520, the VersionStamp can only be located at offset 0. Please update to API Version 520 or above!");
+				// let it slide!
+				arg = value;
+			}
+			else
+			{ // starting from 520, the offset is stored in the last 32 bits
+
+				//TODO: PERF: optimize this to not have to allocate!
+				var token = trans.CreateVersionStamp().ToSlice();
+				var offset = GetVersionStampOffset(key, token, nameof(key));
+				Contract.Requires(offset >=0 && offset <= key.Count - 10);
+
+				var writer = new SliceWriter(value.Count + 4);
+				writer.WriteBytes(value);
+				writer.WriteFixed32(checked((uint) offset));
+				arg = writer.ToSlice();
+			}
+
+			trans.Atomic(key, arg, FdbMutationType.VersionStampedValue);
 		}
 
 		#endregion

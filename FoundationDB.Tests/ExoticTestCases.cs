@@ -114,16 +114,16 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Keys.Encode("CCC"), Slice.FromFixed32(255));
 
 					// add 1 to everybody
-					tr.AtomicAdd(subspace.Keys.Encode("AAA"), Slice.FromFixed32(1));
-					tr.AtomicAdd(subspace.Keys.Encode("BBB"), Slice.FromFixed32(1));
-					tr.AtomicAdd(subspace.Keys.Encode("CCC"), Slice.FromFixed32(1));
-					tr.AtomicAdd(subspace.Keys.Encode("DDD"), Slice.FromFixed32(1));
-					tr.AtomicAdd(subspace.Keys.Encode("EEE"), Slice.FromFixed32(1));
+					tr.AtomicAdd32(subspace.Keys.Encode("AAA"), 1);
+					tr.AtomicAdd32(subspace.Keys.Encode("BBB"), -1);
+					tr.AtomicAdd32(subspace.Keys.Encode("CCC"), 1U);
+					tr.AtomicAdd64(subspace.Keys.Encode("DDD"), 1L);
+					tr.AtomicAdd64(subspace.Keys.Encode("EEE"), 1UL);
 
 					// overwrite DDD with a fixed value
 					tr.Set(subspace.Keys.Encode("DDD"), Slice.FromFixed32(5));
 					// double add on EEE
-					tr.AtomicAdd(subspace.Keys.Encode("EEE"), Slice.FromFixed32(1));
+					tr.AtomicAdd32(subspace.Keys.Encode("EEE"), 1);
 
 					await tr.CommitAsync();
 				}

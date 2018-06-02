@@ -32,7 +32,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 
 	/// <summary>Encoder for variable-length elements, that uses the Tuple Binary Encoding format</summary>
 	public sealed class TupleKeyEncoder : IDynamicKeyEncoder
@@ -46,7 +45,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public IKeyEncoding Encoding => TuPack.Encoding;
 
 		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			var tw = new TupleWriter(writer);
 			TupleEncoder.WriteTo(ref tw, items);
@@ -137,7 +136,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
-		public ITuple UnpackKey(Slice packed)
+		public IVarTuple UnpackKey(Slice packed)
 		{
 			return TuPack.Unpack(packed);
 		}
@@ -157,27 +156,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.DecodeLast<T>(packed);
 		}
 
-		public STuple<T1, T2> DecodeKey<T1, T2>(Slice packed)
+		public (T1, T2) DecodeKey<T1, T2>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2>(packed);
 		}
 
-		public STuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packed)
+		public (T1, T2, T3) DecodeKey<T1, T2, T3>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3>(packed);
 		}
 
-		public STuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packed)
+		public (T1, T2, T3, T4) DecodeKey<T1, T2, T3, T4>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4>(packed);
 		}
 
-		public STuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
+		public (T1, T2, T3, T4, T5) DecodeKey<T1, T2, T3, T4, T5>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4, T5>(packed);
 		}
 
-		public STuple<T1, T2, T3, T4, T5, T6> DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
+		public (T1, T2, T3, T4, T5, T6) DecodeKey<T1, T2, T3, T4, T5, T6>(Slice packed)
 		{
 			return TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(packed);
 		}
@@ -187,7 +186,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.ToRange(prefix);
 		}
 
-		public (Slice Begin, Slice End) ToRange(Slice prefix, ITuple items)
+		public (Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items)
 		{
 			return TuPack.ToPrefixedKeyRange(prefix, items);
 		}

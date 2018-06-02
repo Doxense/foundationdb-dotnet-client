@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Serialization.Encoders
 {
 	using System;
@@ -49,4 +51,61 @@ namespace Doxense.Serialization.Encoders
 		void ReadKeyFrom(ref SliceReader reader, out T1 value);
 	}
 
+	public class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
+	{
+		public KeyEncoder(Func<TKey, Slice> pack, Func<Slice, TKey> unpack)
+		{
+			this.Pack = pack;
+			this.Unpack = unpack;
+		}
+
+		private Delegate Pack { get; }
+		private Delegate Unpack { get; }
+
+		#region KeyEncoding...
+
+		IKeyEncoder<T> IKeyEncoding.GetKeyEncoder<T>()
+		{
+			if (typeof(T) != typeof(TKey)) throw new NotSupportedException($"This custom encoding can only process keys of type {typeof(TKey).Name}.");
+			return (IKeyEncoder<T>) (object) this;
+		}
+
+		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
+
+		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
+
+		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
+
+		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
+
+		#endregion
+
+		#region KeyEncoder...
+
+		public IKeyEncoding Encoding => this;
+
+		public void WriteKeyTo(ref SliceWriter writer, TKey value)
+		{
+			if (this.Pack is Func<TKey, Slice> f)
+			{
+				writer.WriteBytes(f(value));
+				return;
+			}
+			throw new InvalidOperationException();
+		}
+
+		public void ReadKeyFrom(ref SliceReader reader, out TKey value)
+		{
+			if (this.Unpack is Func<Slice, TKey> f)
+			{
+				value = f(reader.ReadToEnd());
+				return;
+			}
+			throw new InvalidOperationException();
+		}
+
+		#endregion
+	}
 }
+
+#endif

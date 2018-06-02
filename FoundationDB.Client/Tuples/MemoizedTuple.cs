@@ -35,10 +35,12 @@ namespace Doxense.Collections.Tuples
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
+	using JetBrains.Annotations;
 
 	/// <summary>Represents an immutable tuple where the packed bytes are cached</summary>
-	[DebuggerDisplay("{ToString()}")]
-	public sealed class MemoizedTuple : ITuple
+	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
+	public sealed class MemoizedTuple : IVarTuple
 	{
 		/// <summary>Items of the tuple</summary>
 		private readonly object[] m_items;
@@ -55,25 +57,13 @@ namespace Doxense.Collections.Tuples
 			m_packed = packed;
 		}
 
-		public int PackedSize
-		{
-			get { return m_packed.Count; }
-		}
+		public int PackedSize => m_packed.Count;
 
-		public int Count
-		{
-			get { return m_items.Length; }
-		}
+		public int Count => m_items.Length;
 
-		public object this[int index]
-		{
-			get { return m_items[TupleHelpers.MapIndex(index, m_items.Length)]; }
-		}
+		public object this[int index] => m_items[TupleHelpers.MapIndex(index, m_items.Length)];
 
-		public ITuple this[int? fromIncluded, int? toExcluded]
-		{
-			get { return TupleHelpers.Splice(this, fromIncluded, toExcluded); }
-		}
+		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		public void PackTo(ref TupleWriter writer)
 		{
@@ -103,19 +93,19 @@ namespace Doxense.Collections.Tuples
 			return obj;
 		}
 
-		public R Get<R>(int index)
+		public T Get<T>(int index)
 		{
-			return TypeConverters.ConvertBoxed<R>(this[index]);
+			return TypeConverters.ConvertBoxed<T>(this[index]);
 		}
 
-		public R Last<R>()
+		public T Last<T>()
 		{
 			int n = m_items.Length;
-			if (n == 0) throw new InvalidOperationException("Tuple is emtpy");
-			return TypeConverters.ConvertBoxed<R>(m_items[n - 1]);
+			if (n == 0) throw new InvalidOperationException("Tuple is empty.");
+			return TypeConverters.ConvertBoxed<T>(m_items[n - 1]);
 		}
 
-		ITuple ITuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>(T value)
 		{
 			return this.Append<T>(value);
 		}
@@ -125,7 +115,7 @@ namespace Doxense.Collections.Tuples
 			return new LinkedTuple<T>(this, value);
 		}
 
-		public ITuple Concat(ITuple tuple)
+		public IVarTuple Concat(IVarTuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
@@ -152,10 +142,10 @@ namespace Doxense.Collections.Tuples
 
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as ITuple);
+			return Equals(obj as IVarTuple);
 		}
 
-		public bool Equals(ITuple other)
+		public bool Equals(IVarTuple other)
 		{
 			if (object.ReferenceEquals(other, null)) return false;
 

@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //#define ENABLE_ARRAY_POOL
 //#define ENABLE_SPAN
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Memory
 {
 	using System;
@@ -710,7 +712,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a segment of bytes to the end of the buffer</summary>
-		public void WriteBytes(ref Slice data)
+		public void WriteBytes(in Slice data)
 		{
 			data.EnsureSliceIsValid();
 
@@ -819,6 +821,100 @@ namespace Doxense.Memory
 			}
 		}
 
+
+		/// <summary>Write a byte array to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteBytesReversed([CanBeNull] byte[] data)
+		{
+			if (data != null && data.Length > 0)
+			{
+				unsafe
+				{
+					fixed (byte* pIn = &data[0])
+					{
+						WriteBytesReversed(pIn, (uint) data.Length);
+					}
+				}
+			}
+		}
+
+		/// <summary>Write a chunk of a byte array to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public void WriteBytesReversed(byte[] data, int offset, int count)
+		{
+			if (count > 0)
+			{
+				UnsafeHelpers.EnsureBufferIsValidNotNull(data, offset, count);
+				unsafe
+				{
+					fixed (byte* pIn = &data[offset])
+					{
+						WriteBytesReversed(pIn, (uint) count);
+					}
+				}
+			}
+		}
+
+		/// <summary>Write a chunk of a byte array to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public void WriteBytesReversed(Slice data)
+		{
+			if (data.Count > 0)
+			{
+				data.EnsureSliceIsValid();
+				unsafe
+				{
+					fixed (byte* pIn = &data.DangerousGetPinnableReference())
+					{
+						WriteBytesReversed(pIn, (uint) data.Count);
+					}
+				}
+			}
+		}
+
+#if ENABLE_SPAN
+		/// <summary>Write a segment of bytes to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public void WriteBytesReversed(ReadOnlySpan<byte> data)
+		{
+			if (data.Length > 0)
+			{
+				unsafe
+				{
+					fixed (byte* pIn = &MemoryMarshal.GetReference(data))
+					{
+						WriteBytesReversed(pIn, (uint) data.Length);
+					}
+				}
+			}
+		}
+#endif
+
+		/// <summary>Write a segment of bytes to the end of the buffer, in reverse order</summary>
+		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		public unsafe void WriteBytesReversed(byte* data, uint count)
+		{
+			if (count == 0) return;
+			if (data == null) throw ThrowHelper.ArgumentNullException(nameof(data));
+
+			var buffer = EnsureBytes(count);
+			int p = this.Position;
+			Contract.Assert(buffer != null && p >= 0 && p + count <= buffer.Length);
+			//note: we compute the end offset BEFORE, to protect against arithmetic overflow
+			int q = checked((int)(p + count));
+			fixed (byte* pOut = &buffer[p])
+			{
+				byte* src = data + count - 1;
+				byte* dst = pOut;
+				for (int i = 0; i < count; i++)
+				{
+					*dst++ = *src--;
+				}
+			}
+			this.Position = q;
+		}
+
 		// Appending is used when the caller want to get a Slice that points to the location where the bytes where written in the internal buffer
 
 		/// <summary>Append a byte array to the end of the buffer</summary>
@@ -866,7 +962,7 @@ namespace Doxense.Memory
 		/// <returns>Slice that maps the interned data using the writer's buffer.</returns>
 		/// <remarks>If you do not need the resulting Slice, you should call <see cref="WriteBytes(Slice)"/> instead!</remarks>
 		[Pure]
-		public Slice AppendBytes(ref Slice data)
+		public Slice AppendBytes(in Slice data)
 		{
 			data.EnsureSliceIsValid();
 
@@ -1367,9 +1463,7 @@ namespace Doxense.Memory
 			}
 			this.Position = checked(p + n + 1);
 		}
-#endif
 
-#if ENABLE_SPAN
 		private void WriteVarBytesSlow(ReadOnlySpan<byte> value)
 		{
 			int n = value.Length;
@@ -1565,9 +1659,9 @@ namespace Doxense.Memory
 		#region UUIDs...
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
-		public void WriteUuid128(Uuid128 value)
+		public void WriteUuid128(in Uuid128 value)
 		{
-			var buffer = EnsureBytes(16);
+			var buffer = EnsureBytes(Uuid128.SizeOf);
 			int p = this.Position;
 			unsafe
 			{
@@ -1576,13 +1670,13 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 16;
+			this.Position = p + Uuid128.SizeOf;
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
-		public void UnsafeWriteUuid128(Uuid128 value)
+		public void UnsafeWriteUuid128(in Uuid128 value)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 15 < this.Buffer.Length);
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid128.SizeOf - 1) < this.Buffer.Length);
 			int p = this.Position;
 			unsafe
 			{
@@ -1591,13 +1685,73 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 16;
+			this.Position = p + Uuid128.SizeOf;
+		}
+
+		/// <summary>Write a 96-bit UUID, and advances the cursor</summary>
+		public void WriteUuid96(in Uuid96 value)
+		{
+			var buffer = EnsureBytes(Uuid96.SizeOf);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid96.SizeOf;
+		}
+
+		/// <summary>Write a 96-bit UUID, and advances the cursor</summary>
+		public void UnsafeWriteUuid96(in Uuid96 value)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid96.SizeOf - 1) < this.Buffer.Length);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &this.Buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid96.SizeOf;
+		}
+
+		/// <summary>Write a 80-bit UUID, and advances the cursor</summary>
+		public void WriteUuid80(in Uuid80 value)
+		{
+			var buffer = EnsureBytes(Uuid80.SizeOf);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid80.SizeOf;
+		}
+
+		/// <summary>Write a 80-bit UUID, and advances the cursor</summary>
+		public void UnsafeWriteUuid80(in Uuid80 value)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid80.SizeOf - 1) < this.Buffer.Length);
+			int p = this.Position;
+			unsafe
+			{
+				fixed (byte* ptr = &this.Buffer[p])
+				{
+					value.WriteToUnsafe(ptr);
+				}
+			}
+			this.Position = p + Uuid80.SizeOf;
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
 		public void WriteUuid64(Uuid64 value)
 		{
-			var buffer = EnsureBytes(8);
+			var buffer = EnsureBytes(Uuid64.SizeOf);
 			int p = this.Position;
 			unsafe
 			{
@@ -1606,13 +1760,13 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 8;
+			this.Position = p + Uuid64.SizeOf;
 		}
 
 		/// <summary>Write a 128-bit UUID, and advances the cursor</summary>
 		public void UnsafeWriteUuid64(Uuid64 value)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 7 < this.Buffer.Length);
+			Contract.Requires(this.Buffer != null && this.Position + (Uuid64.SizeOf - 1) < this.Buffer.Length);
 			int p = this.Position;
 			unsafe
 			{
@@ -1621,7 +1775,7 @@ namespace Doxense.Memory
 					value.WriteToUnsafe(ptr);
 				}
 			}
-			this.Position = p + 8;
+			this.Position = p + Uuid64.SizeOf;
 		}
 
 		#endregion
@@ -1968,7 +2122,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchInt16(int index, short value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -1982,7 +2136,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchUInt16(int index, ushort value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -1996,7 +2150,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchInt16BE(int index, short value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2010,7 +2164,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchUInt16BE(int index, ushort value)
 		{
-			if (index + 2 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2028,7 +2182,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchInt32(int index, int value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2042,7 +2196,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchUInt32(int index, uint value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2056,7 +2210,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchInt32BE(int index, int value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2070,7 +2224,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchUInt32BE(int index, uint value)
 		{
-			if (index + 4 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2088,7 +2242,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchInt64(int index, long value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2102,7 +2256,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchUInt64(int index, ulong value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2116,7 +2270,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchInt64BE(int index, long value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2130,7 +2284,7 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchUInt64BE(int index, ulong value)
 		{
-			if (index + 8 > this.Position) ThrowHelper.ThrowIndexOutOfRangeException();
+			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
 				fixed (byte* ptr = &this.Buffer[index])
@@ -2292,3 +2446,5 @@ namespace Doxense.Memory
 	}
 
 }
+
+#endif

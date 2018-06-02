@@ -31,7 +31,6 @@ namespace FoundationDB.Client.Converters.Tests
 	using System;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 
@@ -44,7 +43,7 @@ namespace FoundationDB.Client.Converters.Tests
 		{
 			// The current ordered int32 encoder uses the Tuple encoding
 
-			var encoder = KeyValueEncoders.Ordered.Int32Encoder;
+			var encoder = TuPack.Encoding.GetKeyEncoder<int>();
 			Assert.That(encoder, Is.Not.Null);
 
 			Assert.That(encoder.EncodeKey(0), Is.EqualTo(Slice.Unescape("<14>")));
@@ -63,7 +62,7 @@ namespace FoundationDB.Client.Converters.Tests
 		{
 			// The current ordered string encoder uses UTF-8 and the Tuple encoding
 
-			var encoder = KeyValueEncoders.Ordered.StringEncoder;
+			var encoder = TuPack.Encoding.GetKeyEncoder<string>();
 			Assert.That(encoder, Is.Not.Null);
 
 			Assert.That(encoder.EncodeKey("héllø Wörld"), Is.EqualTo(Slice.Unescape("<02>h<C3><A9>ll<C3><B8> W<C3><B6>rld<00>")));
@@ -82,7 +81,7 @@ namespace FoundationDB.Client.Converters.Tests
 		{
 			// The current ordered binary encoder uses the Tuple encoding
 
-			var encoder = KeyValueEncoders.Ordered.BinaryEncoder;
+			var encoder = TuPack.Encoding.GetKeyEncoder<Slice>();
 			Assert.That(encoder, Is.Not.Null);
 
 			Assert.That(encoder.EncodeKey(Slice.FromString("hello world")), Is.EqualTo(Slice.Unescape("<01>hello world<00>")));
@@ -105,7 +104,7 @@ namespace FoundationDB.Client.Converters.Tests
 			long y = 123;
 			Guid z = Guid.NewGuid();
 
-			var encoder = KeyValueEncoders.Tuples.CompositeKey<string, long, Guid>();
+			var encoder = TuPack.Encoding.GetKeyEncoder<string, long, Guid>();
 			Assert.That(encoder, Is.Not.Null);
 
 			// full key encoding

@@ -41,10 +41,11 @@ namespace FoundationDB.Layers.Directories
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
 	[DebuggerDisplay("Path={this.FullName}, Prefix={Key}, Layer={Layer}")]
+	[PublicAPI]
 	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace([NotNull] ITuple location, [NotNull] ITuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, Slice layer, [NotNull] IKeyEncoding encoding)
+		internal FdbDirectorySubspace([NotNull] IVarTuple location, [NotNull] IVarTuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, Slice layer, [NotNull] IKeyEncoding encoding)
 			: base(prefix, encoding)
 		{
 			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
@@ -61,37 +62,31 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Absolute location of the directory</summary>
-		protected ITuple Location { [NotNull] get; private set; }
+		[NotNull]
+		protected IVarTuple Location { get; private set; }
 
 		/// <summary>Location of the directory relative to its parent Directory Layer</summary>
-		protected ITuple RelativeLocation { [NotNull] get; private set; }
+		[NotNull]
+		protected IVarTuple RelativeLocation { get; private set; }
 
 		/// <summary>Absolute path of this directory</summary>
-		public IReadOnlyList<string> Path { [NotNull] get; private set; }
+		public IReadOnlyList<string> Path { get; private set; }
 
 		/// <summary>Name of the directory</summary>
-		public string Name
-		{
-			[NotNull]
-			get { return this.Path.Count == 0 ? String.Empty : this.Path[this.Path.Count - 1]; }
-		}
+		public string Name => this.Path.Count == 0 ? string.Empty : this.Path[this.Path.Count - 1];
 
 		/// <summary>Formatted path of this directory</summary>
-		public string FullName
-		{
-			[NotNull]
-			get { return String.Join("/", this.Path); }
-		}
+		public string FullName => string.Join("/", this.Path);
 
 		/// <summary>Instance of the DirectoryLayer that was used to create or open this directory</summary>
-		public FdbDirectoryLayer DirectoryLayer { [NotNull] get; private set; }
+		public FdbDirectoryLayer DirectoryLayer { get; private set; }
 
 		/// <summary>Layer id of this directory</summary>
 		public Slice Layer { get; private set; }
 
 		/// <summary>Return the DirectoryLayer instance that should be called for the given path</summary>
 		/// <param name="relativeLocation">Location relative to this directory subspace</param>
-		protected virtual FdbDirectoryLayer GetLayerForPath(ITuple relativeLocation)
+		protected virtual FdbDirectoryLayer GetLayerForPath(IVarTuple relativeLocation)
 		{
 			// for regular directories, always returns its DL.
 			return this.DirectoryLayer;
@@ -101,7 +96,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="location">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
 		[NotNull]
-		protected virtual ITuple ToRelativePath(ITuple location)
+		protected virtual IVarTuple ToRelativePath(IVarTuple location)
 		{
 			return location == null ? this.RelativeLocation : this.RelativeLocation.Concat(location);
 		}
@@ -110,9 +105,9 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
 		[NotNull]
-		protected ITuple ToRelativePath(IEnumerable<string> path)
+		protected IVarTuple ToRelativePath(IEnumerable<string> path)
 		{
-			return ToRelativePath(path == null ? null :  STuple.FromEnumerable<string>(path));
+			return ToRelativePath(path == null ? null : STuple.FromEnumerable<string>(path));
 		}
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
@@ -162,7 +157,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to create or open</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.</param>
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (path == null) throw new ArgumentNullException(nameof(path));
@@ -176,7 +171,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (path == null) throw new ArgumentNullException(nameof(path));
@@ -190,7 +185,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
-		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (path == null) throw new ArgumentNullException(nameof(path));
@@ -203,7 +198,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (path == null) throw new ArgumentNullException(nameof(path));
@@ -216,7 +211,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
-		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (path == null) throw new ArgumentNullException(nameof(path));

@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using Doxense.Linq.Async.Iterators;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public static class FdbMergeQueryExtensions
 	{
 
@@ -52,7 +53,7 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
-				default(int?),
+				default,
 				keySelector,
 				(kv) => kv,
 				keyComparer
@@ -71,7 +72,7 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
-				default(int?),
+				default,
 				keySelector,
 				resultSelector,
 				keyComparer
@@ -120,7 +121,7 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
-				default(int?),
+				default,
 				keySelector,
 				(kv) => kv,
 				keyComparer
@@ -135,7 +136,7 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
-				default(int?),
+				default,
 				keySelector,
 				resultSelector,
 				keyComparer
@@ -219,7 +220,7 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
-				default(int?),
+				default,
 				keySelector,
 				(kv) => kv,
 				keyComparer
@@ -257,7 +258,7 @@ namespace FoundationDB.Client
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
 				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
-				default(int?),
+				default,
 				keySelector,
 				resultSelector,
 				keyComparer

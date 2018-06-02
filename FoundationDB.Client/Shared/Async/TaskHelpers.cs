@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Threading.Tasks
 {
 	using System;
@@ -393,9 +395,9 @@ namespace Doxense.Threading.Tasks
 			{
 				tcs.TrySetCanceled();
 			}
-			else if (e is AggregateException)
+			else if (e is AggregateException aggEx)
 			{
-				tcs.TrySetException(((AggregateException) e).Flatten().InnerExceptions);
+				tcs.TrySetException(aggEx.Flatten().InnerExceptions);
 			}
 			else
 			{
@@ -506,3 +508,5 @@ namespace Doxense.Threading.Tasks
 
 	}
 }
+
+#endif

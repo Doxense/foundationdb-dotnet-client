@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using JetBrains.Annotations;
 
 	/// <summary>Represents an object that can serialize itself using the Tuple Binary Encoding format</summary>
+	[PublicAPI]
 	public interface ITupleSerializable //REVIEW: ITuplePackable?
 	{
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
@@ -44,8 +45,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	/// <summary>Represents an object that can serialize or deserialize tuples of type <typeparamref name="TTuple"/>, using the Tuple Binary Encoding format</summary>
 	/// <typeparam name="TTuple">Type of tuples that can be processed by this instance</typeparam>
+	[PublicAPI]
 	public interface ITupleSerializer<TTuple> //REVIEW: ITuplePacker<T> ?
-		where TTuple : ITuple
+		where TTuple : IVarTuple
 	{
 		/// <summary>Appends the packed bytes of an item to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>

@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
+#if !USE_SHARED_FRAMEWORK
 
 namespace Doxense.Serialization.Encoders
 {
@@ -64,14 +64,12 @@ namespace Doxense.Serialization.Encoders
 
 			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
 
-			var array = values as T[];
-			if (array != null)
+			if (values is T[] array)
 			{ // optimized path for arrays
 				return EncodeValues<T>(encoder, array);
 			}
 
-			var coll = values as ICollection<T>;
-			if (coll != null)
+			if (values is ICollection<T> coll)
 			{ // optimized path when we know the count
 				var slices = new List<Slice>(coll.Count);
 				foreach (var value in coll)
@@ -131,3 +129,5 @@ namespace Doxense.Serialization.Encoders
 	}
 
 }
+
+#endif

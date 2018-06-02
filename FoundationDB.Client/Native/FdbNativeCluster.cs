@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Native
 {
 	using System;
-	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -51,9 +50,9 @@ namespace FoundationDB.Client.Native
 			return FdbNative.GlobalContext.CreateClusterAsync(clusterFile, ct);
 		}
 
-		public bool IsInvalid { get { return m_handle.IsInvalid; } }
+		public bool IsInvalid => m_handle.IsInvalid;
 
-		public bool IsClosed { get { return m_handle.IsClosed; } }
+		public bool IsClosed => m_handle.IsClosed;
 
 		public void SetOption(FdbClusterOption option, Slice data)
 		{
@@ -84,8 +83,7 @@ namespace FoundationDB.Client.Native
 				databaseName,
 				(h, state) =>
 				{
-					DatabaseHandle database;
-					var err = FdbNative.FutureGetDatabase(h, out database);
+					var err = FdbNative.FutureGetDatabase(h, out DatabaseHandle database);
 					if (err != FdbError.Success)
 					{
 						database.Dispose();

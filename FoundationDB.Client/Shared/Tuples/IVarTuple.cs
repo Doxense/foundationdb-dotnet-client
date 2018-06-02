@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Collections.Tuples
 {
 	using JetBrains.Annotations;
@@ -33,10 +35,11 @@ namespace Doxense.Collections.Tuples
 	using System.Collections.Generic;
 	using System.ComponentModel;
 
-	/// <summary>Represents a Tuple of N elements of any type</summary>
+	/// <summary>Represents a Tuple of variable length and elements of different types</summary>
 	[ImmutableObject(true)]
 	[CannotApplyEqualityOperator]
-	public interface ITuple : IEquatable<ITuple>, IReadOnlyList<object>, System.Collections.IStructuralEquatable
+	[PublicAPI]
+	public interface IVarTuple : IEquatable<IVarTuple>, IReadOnlyList<object>, System.Collections.IStructuralEquatable
 	{
 		// Tuples should, by default, behave as closely to Python's tuples as possible. See http://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences
 
@@ -55,11 +58,15 @@ namespace Doxense.Collections.Tuples
 		// - If an operation does not change the tuple (like Append(STuple.Empty), or tuple.Substring(0)), then the tuple should return itself
 		// - If the same tuple will be packed frequently, it should be memoized (converted into a MemoizedTuple)
 
+
+		//TODO: BUGBUG: the old name (ITuple) collides with System.Runtime.CompilerServices.ITuple which is made public in .NET 4.7.1+
+		// This interfaces defines an indexer, and the property "Length", but we are using "Count" which comes from IReadOnlyList<object> ...
+
 		/// <summary>Return a section of the tuple</summary>
 		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
 		/// <returns>Tuple that include all items in the current tuple whose offset are greather than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
-		ITuple this[int? fromIncluded, int? toExcluded] { [NotNull, Pure] get; }
+		IVarTuple this[int? fromIncluded, int? toExcluded] { [NotNull, Pure] get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
@@ -79,15 +86,15 @@ namespace Doxense.Collections.Tuples
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
-		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="ITuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="ITuple.Concat"/></remarks>
+		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
 		[Pure, NotNull]
-		ITuple Append<TItem>(TItem value);
+		IVarTuple Append<TItem>(TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
 		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
 		[Pure, NotNull]
-		ITuple Concat([NotNull] ITuple tuple);
+		IVarTuple Concat([NotNull] IVarTuple tuple);
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
 		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
@@ -101,3 +108,5 @@ namespace Doxense.Collections.Tuples
 	}
 
 }
+
+#endif

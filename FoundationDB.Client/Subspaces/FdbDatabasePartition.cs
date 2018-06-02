@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>View of a database that is bound to a specific Partition</summary>
 	[DebuggerDisplay("Database={Database.Name}, Partition={Directory.FullName}, Prefix={Database.GlobalSpace}")]
+	[PublicAPI]
 	public sealed class FdbDatabasePartition : IFdbDirectory
 	{
 
@@ -62,16 +63,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Formatted path of this <code>Partition</code></summary>
 		/// <remarks>This returns the formatted path, using '/' as the separator</remarks>
-		[NotNull]
 		public string FullName => this.Directory.FullName;
 
 		/// <summary>Gets the path represented by this <code>Partition</code>.</summary>
 		/// <remarks>Returns an empty list for the root partition of the database, or a non empty list for a sub-partition</remarks>
-		[NotNull]
 		public IReadOnlyList<string> Path => this.Directory.Path;
 
 		/// <summary>Get the DirectoryLayer that was used to create this partition.</summary>
-		[NotNull]
 		public FdbDirectoryLayer DirectoryLayer => this.Directory.DirectoryLayer;
 
 		#region Layer...

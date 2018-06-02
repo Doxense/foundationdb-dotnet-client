@@ -26,13 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Linq
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Async;
 
 	public static partial class AsyncEnumerable
 	{
@@ -57,10 +58,10 @@ namespace Doxense.Linq
 				try
 				{
 					inner = this.Source.GetEnumerator();
-					Contract.Assert(inner != null, "The underlying sequence returned an empty enumerator");
+					Contract.Assert(inner != null, "The underlying sequence returned an empty enumerator.");
 
 					var outer = this.Factory(inner, ct);
-					if (outer == null) throw new InvalidOperationException("The async factory returned en empty enumerator");
+					if (outer == null) throw new InvalidOperationException("The async factory returned en empty enumerator.");
 
 					return outer;
 				}
@@ -75,3 +76,5 @@ namespace Doxense.Linq
 
 	}
 }
+
+#endif

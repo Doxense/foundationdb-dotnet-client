@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Async
 {
 	using System;
@@ -40,8 +42,6 @@ namespace Doxense.Async
 	/// <summary>Helper methods for creating and manipulating async sequences.</summary>
 	public static class AsyncHelpers
 	{
-		internal static readonly Action NoOpCompletion = () => { };
-		internal static readonly Action<ExceptionDispatchInfo> NoOpError = (e) => { };
 		internal static readonly Action<ExceptionDispatchInfo> RethrowError = (e) => { e.Throw(); };
 
 		#region Targets...
@@ -326,3 +326,5 @@ namespace Doxense.Async
 
 	}
 }
+
+#endif

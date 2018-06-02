@@ -39,7 +39,6 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -67,15 +66,10 @@
     <ItemGroup>
       <InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
       <InputAssemblies Include="$(OutputPath)\FoundationDB.Client.dll" />
+      <InputAssemblies Include="$(OutputPath)\System.ValueTuple.dll" />
+      <InputAssemblies Include="$(OutputPath)\System.Runtime.InteropServices.RuntimeInformation.dll" />
     </ItemGroup>
-        <ILRepack
-            Parallel="true"
-            Internalize="true"
-            InternalizeExclude="@(DoNotInternalizeAssemblies)"
-            InputAssemblies="@(InputAssemblies)"
-            TargetKind="Exe"
-            OutputFile="$(OutputPath)\$(AssemblyName).Merged.exe"
-        />
+    <ILRepack Parallel="true" Internalize="true" InternalizeExclude="@(DoNotInternalizeAssemblies)" InputAssemblies="@(InputAssemblies)" TargetKind="Exe" OutputFile="$(OutputPath)\$(AssemblyName).Merged.exe" />
   </Target>
   <!-- /ILRepack -->
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

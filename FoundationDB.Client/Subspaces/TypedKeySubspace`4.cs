@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
+	[PublicAPI]
 	public interface ITypedKeySubspace<T1, T2, T3, T4> : IKeySubspace
 	{
 		/// <summary>Helper to encode/decode keys using this subspace's default encoding</summary>
@@ -48,6 +49,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[PublicAPI]
 	public sealed class TypedKeySubspace<T1, T2, T3, T4> : KeySubspace, ITypedKeySubspace<T1, T2, T3, T4>
 	{
 		public ICompositeKeyEncoder<T1, T2, T3, T4> KeyEncoder { get; }
@@ -64,6 +66,7 @@ namespace FoundationDB.Client
 	}
 
 	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[PublicAPI]
 	public sealed class TypedKeys<T1, T2, T3, T4>
 	{
 
@@ -190,7 +193,7 @@ namespace FoundationDB.Client
 
 		[Pure]
 		public Slice Pack<TTuple>(TTuple tuple)
-			where TTuple : ITuple
+			where TTuple : IVarTuple
 		{
 			tuple.OfSize(4);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
@@ -210,7 +213,6 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
-
 
 		#region EncodePartial()
 
@@ -255,9 +257,7 @@ namespace FoundationDB.Client
 
 		public void Decode(Slice packedKey, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
 		{
-			this.Encoder
-				.DecodeKey(this.Parent.ExtractKey(packedKey))
-				.Deconstruct(out item1, out item2, out item3, out item4);
+			(item1, item2, item3, item4) = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
 
 		#endregion

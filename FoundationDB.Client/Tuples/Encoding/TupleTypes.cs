@@ -39,65 +39,83 @@ namespace Doxense.Collections.Tuples.Encoding
 		internal const byte Nil = 0;
 
 		/// <summary>ASCII String</summary>
-		internal const byte Bytes = 1;
+		internal const byte Bytes = 0x1;
 
 		/// <summary>UTF-8 String</summary>
-		internal const byte Utf8 = 2;
+		internal const byte Utf8 = 0x2;
 
 		/// <summary>Nested tuple start [OBSOLETE]</summary>
-		internal const byte TupleStart = 3;
+		/// <remarks>Deprecated and should not be used anymore</remarks>
+		internal const byte LegacyTupleStart = 0x3;
+
 		/// <summary>Nested tuple end [OBSOLETE]</summary>
-		internal const byte TupleEnd = 4;
+		/// <remarks>Deprecated and should not be used anymore</remarks>
+		internal const byte LegacyTupleEnd = 0x4;
 
-		internal const byte TupleStartNew = 5;
+		/// <summary>Nested tuple</summary>
+		internal const byte EmbeddedTuple = 0x5;
 
-		internal const byte IntNeg8 = 12;
-		internal const byte IntNeg7 = 13;
-		internal const byte IntNeg6 = 14;
-		internal const byte IntNeg5 = 15;
-		internal const byte IntNeg4 = 16;
-		internal const byte IntNeg3 = 17;
-		internal const byte IntNeg2 = 18;
-		internal const byte IntNeg1 = 19;
-		internal const byte IntZero = 20;
-		internal const byte IntPos1 = 21;
-		internal const byte IntPos2 = 22;
-		internal const byte IntPos3 = 23;
-		internal const byte IntPos4 = 24;
-		internal const byte IntPos5 = 25;
-		internal const byte IntPos6 = 26;
-		internal const byte IntPos7 = 27;
-		internal const byte IntPos8 = 28;
+		/// <summary>Negative arbitrary-precision integer</summary>
+		internal const byte NegativeBigInteger = 0x0B;
 
-		/// <summary>Base value for integer types (20 +/- n)</summary>
-		internal const int IntBase = 20;
+		internal const byte IntNeg8 = 0x0C;
+		internal const byte IntNeg7 = 0x0D;
+		internal const byte IntNeg6 = 0x0E;
+		internal const byte IntNeg5 = 0x0F;
+		internal const byte IntNeg4 = 0x10;
+		internal const byte IntNeg3 = 0x11;
+		internal const byte IntNeg2 = 0x12;
+		internal const byte IntNeg1 = 0x13;
+		/// <summary>Integer 0</summary>
+		internal const byte IntZero = 0x14;
+		internal const byte IntPos1 = 0x15;
+		internal const byte IntPos2 = 0x16;
+		internal const byte IntPos3 = 0x17;
+		internal const byte IntPos4 = 0x18;
+		internal const byte IntPos5 = 0x19;
+		internal const byte IntPos6 = 0x1A;
+		internal const byte IntPos7 = 0x1B;
+		internal const byte IntPos8 = 0x1C;
+
+		/// <summary>Positive arbitrary-precision integer</summary>
+		internal const byte PositiveBigInteger = 0x1D;
 
 		/// <summary>Single precision decimals (32-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Single = 32;
+		internal const byte Single = 0x20;
 		/// <summary>Double precision decimals (64-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Double = 33;
+		internal const byte Double = 0x21;
 		/// <summary>Triple precision decimals (80-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Triple = 34; //note: javascript numbers
+		internal const byte Triple = 0x22; //note: javascript numbers
 		/// <summary>Quadruple precision decimals (128-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Decimal = 35;
+		internal const byte Decimal = 0x23;
 
-		/// <summary>RFC4122 UUID (128 bits) [DRAFT]</summary>
-		internal const byte Uuid128 = 48;
-		/// <summary>UUID (64 bits) [DRAFT]</summary>
-		internal const byte Uuid64 = 49; //TODO: this is not official yet! may change!
+		/// <summary>True Value [OBSOLETE]</summary>
+		/// <remarks>Deprecated and should not be used anymore</remarks>
+		internal const byte LegacyTrue = 0x25;
 
-		//TODO: xmldoc
+		/// <summary>False Value</summary>
+		internal const byte False = 0x26;
+
+		/// <summary>True Value</summary>
+		internal const byte True = 0x27;
+
+		/// <summary>RFC4122 UUID (128 bits)</summary>
+		internal const byte Uuid128 = 0x30;
+		/// <summary>UUID (64 bits)</summary>
+		internal const byte Uuid64 = 0x31; //TODO: this is not official yet! may change!
+
+		/// <summary>80-bit VersionStamp</summary>
 		internal const byte VersionStamp80 = 0x32;
-		//TODO: xmldoc
+
+		/// <summary>96-bit VersionStamp</summary>
 		internal const byte VersionStamp96 = 0x33;
 
 		/// <summary>Standard prefix of the Directory Layer</summary>
 		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print tuples that would otherwise be unparsable.</remarks>
-		internal const byte AliasDirectory = 254;
+		internal const byte Directory = 254;
 
 		/// <summary>Standard prefix of the System keys, or frequent suffix with key ranges</summary>
-		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print End keys from ranges, that would otherwise be unparsable.</remarks>
-		internal const byte AliasSystem = 255;
+		internal const byte Escape = 255;
 
 		/// <summary>Return the type of a tuple segment, from its header</summary>
 		public static TupleSegmentType DecodeSegmentType(Slice segment)
@@ -110,7 +128,8 @@ namespace Doxense.Collections.Tuples.Encoding
 				case Nil: return TupleSegmentType.Nil;
 				case Bytes: return TupleSegmentType.ByteString;
 				case Utf8: return TupleSegmentType.UnicodeString;
-				case TupleStart: return TupleSegmentType.Tuple;
+				case LegacyTupleStart: return TupleSegmentType.Invalid; // not supported anymore
+				case EmbeddedTuple: return TupleSegmentType.Tuple;
 				case Single: return TupleSegmentType.Single;
 				case Double: return TupleSegmentType.Double;
 				case Triple: return TupleSegmentType.Triple;
@@ -121,7 +140,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				case VersionStamp96: return TupleSegmentType.VersionStamp96;
 			}
 
-			if (type <= IntPos8 && type >= IntNeg8)
+			if (type <= IntPos8 & type >= IntNeg8)
 			{
 				return TupleSegmentType.Integer;
 			}

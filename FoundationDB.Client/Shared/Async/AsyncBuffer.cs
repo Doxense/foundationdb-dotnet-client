@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define FULL_DEBUG
 
+#if !USE_SHARED_FRAMEWORK
+
 namespace Doxense.Async
 {
 	using System;
@@ -39,8 +41,7 @@ namespace Doxense.Async
 	using JetBrains.Annotations;
 
 	/// <summary>Buffer that holds a fixed number of items and can rate-limit the producer</summary>
-	/// <typeparam name="TInput"></typeparam>
-	/// <typeparam name="TOutput"></typeparam>
+	[PublicAPI]
 	public class AsyncBuffer<TInput, TOutput> : AsyncProducerConsumerQueue<TInput>, IAsyncSource<TOutput>
 	{
 		#region Private Members...
@@ -173,7 +174,7 @@ namespace Doxense.Async
 				else
 				{
 					wait = MarkConsumerAsBlocked_NeedsLocking(ct);
-					item = default(Maybe<TInput>); // needed to please the compiler
+					item = default; // needed to please the compiler
 				}
 			}
 
@@ -241,3 +242,5 @@ namespace Doxense.Async
 	}
 
 }
+
+#endif
