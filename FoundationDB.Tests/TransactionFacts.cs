@@ -260,7 +260,7 @@ namespace FoundationDB.Client.Tests
 					// Writes about 5 MB of stuff in 100k chunks
 					for (int i = 0; i < 50; i++)
 					{
-						tr.Set(location.Keys.Encode(i), Slice.Random(rnd, 100 * 1000));
+						tr.Set(location.Keys.Encode(i), Slice.Random(rnd, 100_000));
 					}
 
 					// start commiting
@@ -271,11 +271,7 @@ namespace FoundationDB.Client.Tests
 					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					tr.Cancel();
 
-					await TestHelpers.AssertThrowsFdbErrorAsync(
-						() => t,
-						FdbError.TransactionCancelled,
-						"Cancelling a transaction that is writing to the server should fail the commit task"
-					);
+					Assert.That(async () => await t, Throws.InstanceOf<TaskCanceledException>(), "Cancelling a transaction that is writing to the server should fail the commit task");
 				}
 			}
 		}
@@ -2347,123 +2343,127 @@ namespace FoundationDB.Client.Tests
 #endif
 			const int R = 100;
 
-			using (var db = await OpenTestDatabaseAsync())
+			try
 			{
-				var location = db.Partition.ByKey("Fuzzer");
-
-				var rnd = new Random();
-				int seed = rnd.Next();
-				Log("Using random seeed {0}", seed);
-				rnd = new Random(seed);
-
-				await db.WriteAsync((tr) =>
+				using (var db = await OpenTestDatabaseAsync())
 				{
-					for (int i = 0; i < R; i++)
+					var location = db.Partition.ByKey("Fuzzer");
+					var rnd = new Random();
+					int seed = rnd.Next();
+					Log("Using random seeed {0}", seed);
+					rnd = new Random(seed);
+
+					await db.WriteAsync((tr) =>
 					{
+						for (int i = 0; i < R; i++)
+						{
 						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
-					}
-				}, this.Cancellation);
+						}
+					}, this.Cancellation);
 
-				var start = DateTime.UtcNow;
-				Log("This test will run for {0} seconds", DURATION_SEC);
+					var start = DateTime.UtcNow;
+					Log("This test will run for {0} seconds", DURATION_SEC);
 
-				int time = 0;
+					int time = 0;
 
-				List<IFdbTransaction> m_alive = new List<IFdbTransaction>();
-				var sb = new StringBuilder();
-				while (DateTime.UtcNow - start < TimeSpan.FromSeconds(DURATION_SEC))
-				{
-					switch (rnd.Next(10))
+					var line = new StringBuilder(256);
+
+					var alive = new List<IFdbTransaction>(100);
+					var lastCheck = start;
+					while (DateTime.UtcNow - start < TimeSpan.FromSeconds(DURATION_SEC))
 					{
-						case 0:
+						int x = rnd.Next(10);
+
+						if (x == 0)
 						{ // start a new transaction
-							sb.Append('T');
+							line.Append('T');
 							var tr = db.BeginTransaction(FdbTransactionMode.Default, this.Cancellation);
-							m_alive.Add(tr);
-							break;
+							alive.Add(tr);
 						}
-						case 1:
+						else if (x == 1)
 						{ // drop a random transaction
-							if (m_alive.Count == 0) continue;
-							sb.Append('L');
-							int p = rnd.Next(m_alive.Count);
+							if (alive.Count == 0) continue;
+							line.Append('L');
+							int p = rnd.Next(alive.Count);
 
-							m_alive.RemoveAt(p);
-							//no dispose
-							break;
+							alive.RemoveAt(p);
+							//no dispose!
 						}
-						case 2:
+						else if (x == 2)
 						{ // dispose a random transaction
-							if (m_alive.Count == 0) continue;
-							sb.Append('D');
-							int p = rnd.Next(m_alive.Count);
+							if (alive.Count == 0) continue;
+							line.Append('D');
+							int p = rnd.Next(alive.Count);
 
-							var tr = m_alive[p];
+							var tr = alive[p];
+							alive.RemoveAt(p);
 							tr.Dispose();
-							m_alive.RemoveAt(p);
-							break;
 						}
-						case 3:
-						{ // GC!
-							sb.Append('C');
+						else if (x == 3)
+						{ // get read version
+							line.Append('R');
 							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
-							m_alive.Add(tr);
+							alive.Add(tr);
 							_ = await tr.GetReadVersionAsync();
-							break;
 						}
+						else
+						{
+							if (x % 2 == 0)
+							{ // read a random value from a random transaction
+								if (alive.Count == 0) continue;
+								line.Append('G');
+								int p = rnd.Next(alive.Count);
+								var tr = alive[p];
 
-						case 4:
-						case 5:
-						case 6:
-						{ // read a random value from a random transaction
-							sb.Append('G');
-							if (m_alive.Count == 0) break;
-							int p = rnd.Next(m_alive.Count);
-							var tr = m_alive[p];
-
-							int x = rnd.Next(R);
-							try
-							{
-								_ = await tr.GetAsync(location.Keys.Encode(x));
+								int k = rnd.Next(R);
+								try
+								{
+									await tr.GetAsync(location.Keys.Encode(x));
+								}
+								catch (FdbException)
+								{
+									line.Append('!');
+									alive.RemoveAt(p);
+									tr.Dispose();
+								}
 							}
-							catch (FdbException)
-							{
-								sb.Append('!');
-							}
-							break;
-						}
-						case 7:
-						case 8:
-						case 9:
-						{ // read a random value, but drop the task
-							sb.Append('g');
-							if (m_alive.Count == 0) break;
-							int p = rnd.Next(m_alive.Count);
-							var tr = m_alive[p];
+							else
+							{ // read a random value, but drop the task
+								if (alive.Count == 0) continue;
+								line.Append('g');
+								int p = rnd.Next(alive.Count);
+								var tr = alive[p];
 
-							int x = rnd.Next(R);
-							_ = tr.GetAsync(location.Keys.Encode(x)).ContinueWith((_) => sb.Append('!') /*BUGBUG: locking ?*/, TaskContinuationOptions.NotOnRanToCompletion);
-							// => t is not stored
-							break;
+								int k = rnd.Next(R);
+								var t = tr.GetAsync(location.Keys.Encode(k)).ContinueWith((_) => { var err = _.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
+								// => t is not stored
+							}
 						}
+
+						if ((++time) % 10 == 0 && DateTime.UtcNow - lastCheck >= TimeSpan.FromSeconds(1))
+						{
+							Log(line.ToString());
+							line.Clear();
+							Log("State: {0}", alive.Count);
+							//Log("Performing full GC");
+							//GC.Collect(2);
+							//GC.WaitForPendingFinalizers();
+							//GC.Collect(2);
+							lastCheck = DateTime.UtcNow;
+						}
+
+						//await Task.Delay(1);
 
 					}
-					if ((time++) % 80 == 0)
-					{
-						Log(sb.ToString());
-						Log("State: {0}", m_alive.Count);
-						sb.Clear();
-						sb.Append('C');
-						GC.Collect();
-						GC.WaitForPendingFinalizers();
-						GC.Collect();
-					}
 
+					GC.Collect();
+					GC.WaitForPendingFinalizers();
+					GC.Collect();
 				}
-
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-				GC.Collect();
+			}
+			finally
+			{
+				Log("Test methods completed!");
 			}
 
 		}

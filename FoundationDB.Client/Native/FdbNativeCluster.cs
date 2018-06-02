@@ -29,42 +29,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Native
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDBCluster* handle</summary>
-	internal sealed class FdbNativeCluster : IFdbClusterHandler
+	internal sealed class FdbNativeCluster : FdbFutureContext<ClusterHandle>, IFdbClusterHandler
 	{
-		private readonly ClusterHandle m_handle;
+		//private readonly ClusterHandle m_handle;
 
 		public FdbNativeCluster(ClusterHandle handle)
+			: base(handle)
 		{
-			Contract.Requires(handle != null);
-			m_handle = handle;
 		}
 
 		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken ct)
 		{
-			var future = FdbNative.CreateCluster(clusterFile);
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
-				{
-					var err = FdbNative.FutureGetCluster(h, out ClusterHandle cluster);
-					if (err != FdbError.Success)
-					{
-						cluster.Dispose();
-						throw Fdb.MapToException(err);
-					}
-					var handler = new FdbNativeCluster(cluster);
-					return (IFdbClusterHandler) handler;
-				},
-				ct
-			);
+			return FdbNative.GlobalContext.CreateClusterAsync(clusterFile, ct);
 		}
-
-		internal ClusterHandle Handle => m_handle;
 
 		public bool IsInvalid => m_handle.IsInvalid;
 
@@ -94,10 +78,10 @@ namespace FoundationDB.Client.Native
 		{
 			if (ct.IsCancellationRequested) return Task.FromCanceled<IFdbDatabaseHandler>(ct);
 
-			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) =>
+			return RunAsync(
+				(handle, state) => FdbNative.ClusterCreateDatabase(handle, state),
+				databaseName,
+				(h, state) =>
 				{
 					var err = FdbNative.FutureGetDatabase(h, out DatabaseHandle database);
 					if (err != FdbError.Success)
@@ -105,16 +89,12 @@ namespace FoundationDB.Client.Native
 						database.Dispose();
 						throw Fdb.MapToException(err);
 					}
-					var handler = new FdbNativeDatabase(database);
+					var handler = new FdbNativeDatabase(database, (string)state);
 					return (IFdbDatabaseHandler) handler;
 				},
+				databaseName,
 				ct
 			);
-		}
-
-		public void Dispose()
-		{
-			m_handle?.Dispose();
 		}
 
 	}

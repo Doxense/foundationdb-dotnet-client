@@ -938,8 +938,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (slice.Count <= 2) return String.Empty;
 
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-
-			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return decoded.ToStringAscii();
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
@@ -951,7 +950,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (slice.Count <= 2) return String.Empty;
 			//TODO: check args
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return decoded.ToUnicode();
 		}
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>

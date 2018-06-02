@@ -101,7 +101,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-				return m_parent.m_handler.GetAsync(key, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetAsync(key, snapshot: true, ct: CancellationToken.None);
 			}
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
@@ -116,7 +116,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
-				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, ct: CancellationToken.None);
 			}
 
 			public async Task<Slice> GetKeyAsync(KeySelector selector)
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: m_parent.m_cancellation).ConfigureAwait(false);
+				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: CancellationToken.None).ConfigureAwait(false);
 
 				// don't forget to truncate keys that would fall outside of the database's globalspace !
 				return m_parent.m_database.BoundCheck(key);
@@ -149,7 +149,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", $"Getting batch of {selectors.Length} keys ...");
 #endif
 
-				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, ct: CancellationToken.None);
 			}
 
 			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration)
@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
 				if (iteration == 0) iteration = 1;
 
-				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, ct: CancellationToken.None);
 			}
 
 			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options)
@@ -178,7 +178,7 @@ namespace FoundationDB.Client
 			public Task<string[]> GetAddressesForKeyAsync(Slice key)
 			{
 				EnsureCanRead();
-				return m_parent.m_handler.GetAddressesForKeyAsync(key, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetAddressesForKeyAsync(key, CancellationToken.None);
 			}
 
 			void IFdbReadOnlyTransaction.Cancel()

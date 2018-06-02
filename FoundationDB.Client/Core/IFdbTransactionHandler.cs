@@ -52,6 +52,7 @@ namespace FoundationDB.Client.Core
 		void SetOption(FdbTransactionOption option, Slice data);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
+		/// <param name="ct">Token used to cancel the operation from the outside, if different than the cancellation token of the transaction itself</param>
 		Task<long> GetReadVersionAsync(CancellationToken ct);
 
 		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>

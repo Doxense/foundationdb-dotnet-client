@@ -43,6 +43,25 @@ namespace Doxense.Memory.Tests
 	public class SliceFacts : FdbTest
 	{
 
+#if MEASURE
+		[TestFixtureTearDown]
+		public void DumpStats()
+		{
+			Log("# MemCopy:");
+			for (int i = 0; i < SliceHelpers.CopyHistogram.Length; i++)
+			{
+				if (SliceHelpers.CopyHistogram[i] == 0) continue;
+				Log("# {0} : {1:N0} ({2:N1} ns, {3:N3} ns/byte)", i, SliceHelpers.CopyHistogram[i], SliceHelpers.CopyDurations[i] / SliceHelpers.CopyHistogram[i], SliceHelpers.CopyDurations[i] / (SliceHelpers.CopyHistogram[i] * i));
+			}
+			Log("# MemCompare:");
+			for (int i = 0; i < SliceHelpers.CompareHistogram.Length; i++)
+			{
+				if (SliceHelpers.CompareHistogram[i] == 0) continue;
+				Log("# {0} : {1:N0} ({2:N1} ns, {3:N3} ns/byte)", i, SliceHelpers.CompareHistogram[i], SliceHelpers.CompareDurations[i] / SliceHelpers.CompareHistogram[i], SliceHelpers.CompareDurations[i] / (SliceHelpers.CompareHistogram[i] * i));
+			}
+		}
+#endif
+
 		[Test]
 		public void Test_Slice_Nil()
 		{

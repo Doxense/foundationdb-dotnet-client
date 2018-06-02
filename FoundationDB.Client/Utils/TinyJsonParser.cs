@@ -344,7 +344,7 @@ namespace FoundationDB.Client.Utils
 			if (token == Token.Eof) return null;
 
 			// ensure we got an object
-			if (token != Token.MapBegin) throw new InvalidOperationException(String.Format("JSON object expected, but got a {0}", token));
+			if (token != Token.MapBegin) throw new InvalidOperationException($"JSON object expected, but got a {token}");
 			var map = (Dictionary<string, object>)parser.m_current;
 
 			// ensure that there is nothing after the object
@@ -371,8 +371,7 @@ namespace FoundationDB.Client.Utils
 		[NotNull]
 		internal static Dictionary<string, object> GetMapField(Dictionary<string,object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (Dictionary<string, object>)item : s_missingMap;
+			return map != null && map.TryGetValue(field, out object item) ? (Dictionary<string, object>)item : s_missingMap;
 		}
 
 		[NotNull]

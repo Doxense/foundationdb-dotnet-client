@@ -422,6 +422,36 @@ namespace Doxense.Threading.Tasks
 			}
 		}
 
+		private delegate CancellationTokenRegistration RegisterWithoutECDelegate(ref CancellationToken ct, Action<object> callback, object state);
+		private static readonly RegisterWithoutECDelegate RegisterWithoutECHandler = GetRegisterWithoutECDelegate();
+
+		[NotNull]
+		private static RegisterWithoutECDelegate GetRegisterWithoutECDelegate()
+		{
+			try
+			{
+				// CancellationToken.Register(..., useExecutionContext) is "private", and all the public version of Register pass true, which does costly allocations (capturing context, ...)
+				// There is however CancellationToken.InternalRegisterWithoutEC which is internal and pass false.
+				// => we will attempt to create a delegate to call the internal method - if possible - or fallback to the default version of Register, if this is not possible.
+				var method = typeof(CancellationToken).GetMethod("InternalRegisterWithoutEC", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, new[] { typeof(Action<object>), typeof(object) }, null);
+				if (method != null)
+				{
+					return (RegisterWithoutECDelegate)Delegate.CreateDelegate(typeof(RegisterWithoutECDelegate), null, method);
+				}
+			}
+			catch
+			{ }
+
+			return (ref CancellationToken token, Action<object> callback, object state) => token.Register(callback, state);
+		}
+
+		/// <summary>Version of CancellationToken.Register() that does not propagate the current ExecutionContext to the callback (faster, but unsafe!)</summary>
+		/// <remarks>This should only be used with callbacks that do not execute user-provided code!</remarks>
+		internal static CancellationTokenRegistration RegisterWithoutEC(this CancellationToken ct, [NotNull] Action<object> callback, object state)
+		{
+			return RegisterWithoutECHandler(ref ct, callback, state);
+		}
+
 		/// <summary>Safely cancel a CancellationTokenSource</summary>
 		/// <param name="source">CancellationTokenSource that needs to be cancelled</param>
 		public static void SafeCancel(this CancellationTokenSource source)
