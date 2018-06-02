@@ -39,16 +39,19 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
+	/// <summary>Represents the result of a deferred computation</summary>
+	/// <typeparam name="T">Type of the values produced by the computation</typeparam>
+	/// <remarks>A computation can be in three states: 1) hasn't run yet and has no value, 2) has run and produced a value, 3) has run and faulted.</remarks>
 	[PublicAPI]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
-		/// <summary>Réprésente un résultat vide (no computation)</summary>
-		public static readonly Maybe<T> Nothing = new Maybe<T>();
+		/// <summary>Returns an empy result (no computation)</summary>
+		public static readonly Maybe<T> Nothing = default;
 
-		/// <summary>Représente un résultat correspondant à la valeur par défaut du type (0, false, null)</summary>
+		/// <summary>Returns a result that is the default of type <typeparamref name="T"/> (0, false, null, ...)</summary>
 		public static readonly Maybe<T> Default = new Maybe<T>(default);
 
-		/// <summary>Cached completed Task that always return an empty value</summary>
+		/// <summary>Cached completed Task that always return an empty result</summary>
 		public static readonly Task<Maybe<T>> EmptyTask = Task.FromResult(default(Maybe<T>));
 
 		#region Private Fields...
@@ -56,9 +59,9 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		// ==================================================================================
 		//  m_hasValue |   m_value   |  m_error     | description
 		// ==================================================================================
-		//     True    |   Resultat  |   null       | Le calcul a produit un résultat (qui peut etre le défaut du type, mais qui n'est pas "vide")
-		//     False   |      -      |   null       | Le calcul n'a pas produit de résultat
-		//     False   |      -      |   Exception  | Le calcul a provoqué une exception
+		//     True    |   Resultat  |   null       | The computation produced a result (that could be the default of the type, but is not "empty")
+		//     False   |      -      |   null       | The computation did not produce any result
+		//     False   |      -      |   Exception  | The computation has failed
 
 		/// <summary>If true, there is a value. If false, either no value or an exception</summary>
 		private readonly T m_value;
@@ -214,6 +217,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			if (m_errorContainer != null) return !m_hasValue && m_errorContainer.Equals(other.m_errorContainer);
 			return !other.m_hasValue & other.m_errorContainer == null;
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(T other)
 		{
 			return m_hasValue && EqualityComparer<T>.Default.Equals(m_value, other);
@@ -228,6 +233,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return false;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int GetHashCode()
 		{
 			return m_hasValue ? EqualityComparer<T>.Default.GetHashCode(m_value) : m_errorContainer?.GetHashCode() ?? -1;
@@ -394,10 +400,9 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 	public static class Maybe
 	{
 
-		/// <summary>Crée un Maybe&lt;T&gt; représentant une valeur connue</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="value">Valeur à convertir</param>
-		/// <returns>Maybe&lt;T&gt; contenant la valeur</returns>
+		/// <summary>Create a <see cref="Maybe{T}">Maybe&lt;T&gt;</see> from a concrete value</summary>
+		/// <typeparam name="T">Value type</typeparam>
+		/// <param name="value">Result of a computation</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Return<T>(T value)
 		{
@@ -405,11 +410,9 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return new Maybe<T>(value);
 		}
 
-		/// <summary>Retourne un Maybe&lt;T&gt; correspondant à cette valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="value">Valeur à convertir</param>
-		/// <returns>Maybe&lt;T&gt; contenant cette valeur</returns>
-		/// <remarks>Note: si T est un ReferenceType et que value est null, le Maybe retourné n'est pas vide (il a une valeur, qui est null). Il faut utiliser .IfNotNull() pour protéger contre les nullref</remarks>
+		/// <summary>Converts this value into a <see cref="Maybe{T}">Maybe&lt;T&gt;</see> instance.</summary>
+		/// <typeparam name="T">Value type</typeparam>
+		/// <remarks>Note: if <typeparamref name="T"/> is a ReferenceType and the current <paramref name="value"/> is null, a resolved Maybe instance will be returned. You need to call <see cref="ToMaybeOrNothing{T}"/> if you want to return <see cref="Maybe{T}.Nothing"/> instead for this case!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> ToMaybe<T>(this T value)
 		{
@@ -417,10 +420,9 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return new Maybe<T>(value);
 		}
 
-		/// <summary>Retourne un Maybe&lt;T&gt; correspondant à cette valeur</summary>
+		/// <summary>Converts this value into <see cref="Maybe{T}">Maybe&lt;T&gt;</see> instance, or <see cref="Maybe{T}.Nothing"/> if it is null.</summary>
 		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="value">Valeur à convertir (ou null)</param>
-		/// <returns>Maybe&lt;T&gt; contenant cette valeur</returns>
+		/// <remarks>If the current <paramref name="value"/> is <c>null</c>, then <see cref="Maybe{T}.Nothing"/> will be returned.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> ToMaybe<T>(this T? value)
 			where T : struct
@@ -428,21 +430,18 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return value.HasValue ? new Maybe<T>(value.Value) : Maybe<T>.Nothing;
 		}
 
-		/// <summary>Convertit les référence null en Maybe.Nothing</summary>
-		/// <typeparam name="T">Reference Type</typeparam>
-		/// <param name="value">Instance à protéger (peut être null)</param>
-		/// <returns>Maybe.Nothing si l'instance est null, sinon un Maybe encapsulant cette instance</returns>
+		/// <summary>Converts this value into a <see cref="Maybe{T}">Maybe&lt;T&gt;</see> instance, or <see cref="Maybe{T}.Nothing"/> if it is null.</summary>
+		/// <typeparam name="T">Value type</typeparam>
+		/// <remarks>Note: if <typeparamref name="T"/> is a ReferenceType and the current <paramref name="value"/> is null, then <see cref="Maybe{T}"/>.Nothing will be returned. You need to call <see cref="ToMaybe{T}(T)"/> if you want to return <see cref="Maybe{T}.Default"/> instead for this case!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> IfNotNull<T>(this T value)
+		public static Maybe<T> ToMaybeOrNothing<T>(this T value)
 			where T : class
 		{
 			// ENTER THE MONAD
 			return value == null ? Maybe<T>.Nothing : new Maybe<T>(value);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <returns>Maybe vide</returns>
+		/// <summary>Returns <see cref="Maybe{T}.Nothing"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Nothing<T>()
 		{
@@ -450,10 +449,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return default;
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt;.Nothing en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <returns>Maybe vide</returns>
+		/// <summary>Returns <see cref="Maybe{T}.Nothing"/></summary>
+		/// <param name="_">Value that is only used to help the compiler detect the type</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Nothing<T>(T _)
 		{
@@ -461,10 +458,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return default;
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> that represents a faulted computation</summary>
+		/// <param name="error">Exception that occured during the computation</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(Exception error)
 		{
@@ -472,10 +467,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> that represents a faulted computation</summary>
+		/// <param name="error">Captured exception that occured during the computation</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(ExceptionDispatchInfo error)
 		{
@@ -483,11 +476,9 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception, en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> that represents a faulted computation</summary>
+		/// <param name="_">Value that is only used to help the compiler detect the type</param>
+		/// <param name="error">Exception that occured during the computation</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(T _, Exception error)
 		{
@@ -495,11 +486,9 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour créer un Maybe&lt;T&gt; représentant une Exception, en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T">Type de la valeur</typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error">Exception à enrober</param>
-		/// <returns>Maybe encapsulant l'erreur</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> that represents a faulted computation</summary>
+		/// <param name="_">Value that is only used to help the compiler detect the type</param>
+		/// <param name="error">Captured exception that occured during the computation</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> Error<T>(T _, ExceptionDispatchInfo error)
 		{
@@ -507,12 +496,10 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return Maybe<T>.Failure(error);
 		}
 
-		/// <summary>Helper pour combiner des erreurs, en utilisant le compilateur pour inférer le type de la valeur</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="_">Paramètre dont la valeur est ignorée, et qui sert juste à aider le compilateur à inférer le type</param>
-		/// <param name="error0">Première exception (peut être null)</param>
-		/// <param name="error1">Deuxième exception (peut être null)</param>
-		/// <returns>Maybe encapsulant la ou les erreur. Si les deux erreurs sont présentes, elles sont combinées dans une AggregateException</returns>
+		/// <summary>Returns a <see cref="Maybe{T}"/> that represents multiple faulted computations</summary>
+		/// <param name="_">Value that is only used to help the compiler detect the type</param>
+		/// <param name="error0">First exception (can be null)</param>
+		/// <param name="error1">Second exception (can be null)</param>
 		[Pure]
 		public static Maybe<T> Error<T>(T _, Exception error0, Exception error1)
 		{
@@ -530,23 +517,20 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return Maybe<T>.Failure(new AggregateException(error0, error1));
 		}
 
-		/// <summary>Convertit un Maybe&lt;T&;t en T? (lorsque T est un ValueType)</summary>
-		/// <typeparam name="T">ValueType</typeparam>
-		/// <param name="m">Maybe à convertir</param>
-		/// <returns>Version nullable du maybe, qui vaut default(T?) si le Maybe est Nothing, ou la valeur elle même s'il contient un résultat.</returns>
+		/// <summary>Returns the equivalent <see cref="Nullable{T}"/> from the value of this instance</summary>
+		/// <returns>The result of the computation, or <c>default(T?)</c> it did not happen or has faulted</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T? ToNullable<T>(this Maybe<T> m)
 			where T : struct
 		{
 			// EXIT THE MONAD
-			//TODO: propager l'exception ?
+			//TODO: throw if faulted ?
 			return m.HasValue ? m.Value : default(T?);
 		}
 
-		/// <summary>Convertit un T? en Maybe&lt;T&;t (lorsque T est un ValueType)</summary>
-		/// <typeparam name="T">ValueType</typeparam>
-		/// <param name="value">Nullable à convertir</param>
-		/// <returns>Version maybe du nullable, qui vaut Nothing si le nullable est default(T?), ou la valeur elle même s'il contient un résultat.</returns>
+		/// <summary>Converts this value into <see cref="Maybe{T}">Maybe&lt;T&gt;</see> instance, or <see cref="Maybe{T}.Nothing"/> if it is null.</summary>
+		/// <typeparam name="T">Type de la valeur</typeparam>
+		/// <remarks>If the current <paramref name="value"/> is <c>null</c>, then <see cref="Maybe{T}.Nothing"/> will be returned.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Maybe<T> FromNullable<T>(T? value)
 			where T : struct
@@ -554,7 +538,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return value.HasValue ? new Maybe<T>(value.Value) : default;
 		}
 
-		/// <summary>Retourne le résultat d'un Maybe, ou une valeur par défaut s'il est vide.</summary>
+		/// <summary>Return the result of this instance, or a default value if it is <see cref="Maybe{T}.Nothing"/> or is faulted</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T OrDefault<T>(this Maybe<T> m, T @default = default)
 		{
@@ -738,21 +722,35 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		}
 
 		[Pure, NotNull]
-		private static Func<Maybe<T>, Maybe<TResult>> Combine<T, TIntermediate, TResult>([NotNull] Func<Maybe<T>, Maybe<TIntermediate>> f, Func<Maybe<TIntermediate>, Maybe<TResult>> g)
+		private static Func<Maybe<TInput>, Maybe<TResult>> Combine<TInput, TIntermediate, TResult>([NotNull] Func<Maybe<TInput>, Maybe<TIntermediate>> f, Func<Maybe<TIntermediate>, Maybe<TResult>> g)
 		{
 			return (mt) => g(f(mt));
 		}
 
+		/// <summary>Combine two lambdas into a single one</summary>
+		/// <typeparam name="TInput">Type of input of <see cref="f"/></typeparam>
+		/// <typeparam name="TIntermediate">Type of the output of <see cref="f"/> and input of <see cref="g"/></typeparam>
+		/// <typeparam name="TResult">Type of the result of <see cref="g"/></typeparam>
+		/// <param name="f">First function (that runs first)</param>
+		/// <param name="g">Second function (that runs on the result of <see cref="f"/></param>
+		/// <returns>Function h(x) = g(f(x))</returns>
 		[Pure, NotNull]
-		public static Func<Maybe<T>, Maybe<TResult>> Bind<T, TIntermediate, TResult>([NotNull] Func<T, Maybe<TIntermediate>> f, [NotNull] Func<TIntermediate, Maybe<TResult>> g)
+		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>([NotNull] Func<TInput, Maybe<TIntermediate>> f, [NotNull] Func<TIntermediate, Maybe<TResult>> g)
 		{
-			return Combine(Maybe<T>.Bind(f), Maybe<TIntermediate>.Bind<TResult>(g));
+			return Combine(Maybe<TInput>.Bind(f), Maybe<TIntermediate>.Bind<TResult>(g));
 		}
 
+		/// <summary>Combine two lambdas into a single one</summary>
+		/// <typeparam name="TInput">Type of input of <see cref="f"/></typeparam>
+		/// <typeparam name="TIntermediate">Type of the output of <see cref="f"/> and input of <see cref="g"/></typeparam>
+		/// <typeparam name="TResult">Type of the result of <see cref="g"/></typeparam>
+		/// <param name="f">First function (that runs first)</param>
+		/// <param name="g">Second function (that runs on the result of <see cref="f"/></param>
+		/// <returns>Function h(x) = g(f(x))</returns>
 		[Pure, NotNull]
-		public static Func<Maybe<TU>, Maybe<TResult>> Bind<TU, TIntermediate, TResult>([NotNull] Func<TU, Maybe<TIntermediate>> f, [NotNull] Func<Maybe<TIntermediate>, Maybe<TResult>> g)
+		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>([NotNull] Func<TInput, Maybe<TIntermediate>> f, [NotNull] Func<Maybe<TIntermediate>, Maybe<TResult>> g)
 		{
-			return Combine(Maybe<TU>.Bind(f), g);
+			return Combine(Maybe<TInput>.Bind(f), g);
 		}
 
 	}
