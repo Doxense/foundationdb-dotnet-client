@@ -897,8 +897,8 @@ namespace System
 
 			foreach (var slice in slices)
 			{
-				writer.WriteBytes(this);
-				writer.WriteBytes(slice);
+				writer.WriteBytes(in this);
+				writer.WriteBytes(in slice);
 				next.Add(writer.Position);
 			}
 
@@ -923,8 +923,8 @@ namespace System
 
 			foreach (var slice in slices)
 			{
-				writer.WriteBytes(this);
-				writer.WriteBytes(slice);
+				writer.WriteBytes(in this);
+				writer.WriteBytes(in slice);
 				next.Add(writer.Position);
 			}
 
@@ -966,9 +966,9 @@ namespace System
 			int count = a.Count + b.Count + c.Count;
 			if (count == 0) return Slice.Empty;
 			var writer = new SliceWriter(count);
-			writer.WriteBytes(a);
-			writer.WriteBytes(b);
-			writer.WriteBytes(c);
+			writer.WriteBytes(in a);
+			writer.WriteBytes(in b);
+			writer.WriteBytes(in c);
 			return writer.ToSlice();
 		}
 
@@ -979,7 +979,7 @@ namespace System
 			for (int i = 0; i < args.Length; i++) count += args[i].Count;
 			if (count == 0) return Slice.Empty;
 			var writer = new SliceWriter(count);
-			for (int i = 0; i < args.Length; i++) writer.WriteBytes(args[i]);
+			for (int i = 0; i < args.Length; i++) writer.WriteBytes(in args[i]);
 			return writer.ToSlice();
 		}
 
@@ -1166,8 +1166,8 @@ namespace System
 			var writer = new SliceWriter(tmp);
 			for (int i = 0; i < values.Length; i++)
 			{
-				if (i > 0) writer.WriteBytes(separator);
-				writer.WriteBytes(values[i]);
+				if (i > 0) writer.WriteBytes(in separator);
+				writer.WriteBytes(in values[i]);
 			}
 			Contract.Assert(writer.Buffer.Length == size);
 			return writer.ToSlice();
@@ -1391,8 +1391,8 @@ namespace System
 			bool hasPrefix = prefix.IsPresent;
 			foreach (var key in keys)
 			{
-				if (hasPrefix) writer.WriteBytes(prefix);
-				writer.WriteBytes(key);
+				if (hasPrefix) writer.WriteBytes(in prefix);
+				writer.WriteBytes(in key);
 				next.Add(writer.Position);
 			}
 
@@ -1422,8 +1422,8 @@ namespace System
 			bool hasPrefix = prefix.IsPresent;
 			foreach (var key in keys)
 			{
-				if (hasPrefix) writer.WriteBytes(prefix);
-				writer.WriteBytes(key);
+				if (hasPrefix) writer.WriteBytes(in prefix);
+				writer.WriteBytes(in key);
 				next.Add(writer.Position);
 			}
 

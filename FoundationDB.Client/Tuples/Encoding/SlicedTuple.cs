@@ -72,7 +72,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			int count = m_count;
 			for (int i = 0; i < count; i++)
 			{
-				writer.Output.WriteBytes(slices[i + offset]);
+				writer.Output.WriteBytes(in slices[i + offset]);
 			}
 		}
 

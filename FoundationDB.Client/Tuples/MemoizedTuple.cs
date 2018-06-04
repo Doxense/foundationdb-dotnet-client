@@ -69,7 +69,7 @@ namespace Doxense.Collections.Tuples
 		{
 			if (m_packed.IsPresent)
 			{
-				writer.Output.WriteBytes(m_packed);
+				writer.Output.WriteBytes(in m_packed);
 			}
 		}
 

@@ -235,7 +235,7 @@ namespace FoundationDB.Client
 		{
 			var key = GetKeyPrefix();
 			var sw = new SliceWriter(key.Count + extra); //TODO: BufferPool ?
-			sw.WriteBytes(key);
+			sw.WriteBytes(in key);
 			return sw;
 		}
 

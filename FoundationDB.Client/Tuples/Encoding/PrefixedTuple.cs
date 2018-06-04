@@ -64,7 +64,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 		internal void PackTo(ref TupleWriter writer)
 		{
-			writer.Output.WriteBytes(m_prefix);
+			writer.Output.WriteBytes(in m_prefix);
 			TupleEncoder.WriteTo(ref writer, m_items);
 		}
 

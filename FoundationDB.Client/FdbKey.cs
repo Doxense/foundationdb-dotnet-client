@@ -106,8 +106,8 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				writer.WriteBytes(key);
+				if (prefix.IsPresent) writer.WriteBytes(in prefix);
+				writer.WriteBytes(in key);
 				next.Add(writer.Position);
 			}
 
@@ -137,8 +137,8 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				writer.WriteBytes(key);
+				if (prefix.IsPresent) writer.WriteBytes(in prefix);
+				writer.WriteBytes(in key);
 				next.Add(writer.Position);
 			}
 

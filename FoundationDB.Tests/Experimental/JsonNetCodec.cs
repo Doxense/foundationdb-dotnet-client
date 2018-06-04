@@ -100,7 +100,7 @@ namespace FoundationDB.Types.Json
 			var packed = EncodeInternal(value);
 			Contract.Assert(packed.Count >= 0);
 			output.WriteVarInt32((uint)packed.Count);
-			output.WriteBytes(packed);
+			output.WriteBytes(in packed);
 		}
 
 		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)

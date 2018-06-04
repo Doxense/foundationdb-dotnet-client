@@ -80,7 +80,7 @@ namespace Doxense.Memory.Tests
 				PerformWriterTest(test, new byte[] {65, 66, 67}, "41 42 43");
 			}
 			{
-				TestHandler<Slice> test = (ref SliceWriter writer, Slice value) => writer.WriteBytes(value);
+				TestHandler<Slice> test = (ref SliceWriter writer, Slice value) => writer.WriteBytes(in value);
 
 				PerformWriterTest(test, Slice.Nil, "");
 				PerformWriterTest(test, Slice.Empty, "");

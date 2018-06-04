@@ -811,7 +811,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				return;
 			}
 
-			var arg = value.Value;
+			ref readonly Slice arg = ref value.Value;
 			if (arg.Count == 0)
 			{
 				writer.Output.WriteByte((byte) value.Type);
@@ -820,7 +820,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				writer.Output.EnsureBytes(checked(1 + arg.Count));
 				writer.Output.WriteByte(value.Type);
-				writer.Output.WriteBytes(arg);
+				writer.Output.WriteBytes(in arg);
 			}
 		}
 
