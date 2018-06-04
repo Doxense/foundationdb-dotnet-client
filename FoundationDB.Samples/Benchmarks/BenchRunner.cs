@@ -123,11 +123,10 @@ namespace FoundationDB.Samples.Benchmarks
 							}
 							case BenchMode.Watch:
 							{
-								var w = await db.GetAndWatch(foo, ct);
-								var v = w.Value;
+								(var v, var w) = await db.ReadWriteAsync(async tr => (await tr.GetAsync(foo), tr.Watch(foo, ct)), ct);
 
 								// swap
-								v = v == bar ? barf : bar;
+								v = (v == bar) ? barf : bar;
 
 								await db.WriteAsync((tr) => tr.Set(foo, v), ct);
 
