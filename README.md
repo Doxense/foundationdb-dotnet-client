@@ -4,7 +4,7 @@ FoundationDB.Net Client
 This code is licensed under the 3-clause BSD Licence.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
-[![foundationdb-dotnet-client MyGet Build Status](https://www.myget.org/BuildSource/Badge/foundationdb-dotnet-client?identifier=faedfb95-0e53-4c43-9bb3-dae95d59e2b8)](https://www.myget.org/)
+[![foundationdb-dotnet-client MyGet Build Status](https://www.myget.org/BuildSource/Badge/foundationdb-dotnet-client?identifier=faedfb95-0e53-4c43-9bb3-dae95d59e2b8)](https://www.myget.org/feed/Packages/foundationdb-dotnet-client)
 
 How to use
 ----------
