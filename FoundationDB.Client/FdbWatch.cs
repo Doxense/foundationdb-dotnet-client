@@ -37,70 +37,52 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 
 	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
-	[DebuggerDisplay("Status={m_future.Task.Status}, Key={m_key}")]
+	[DebuggerDisplay("Status={Future.Task.Status}, Key={Key}")]
 	[PublicAPI]
-	public struct FdbWatch : IDisposable
+	public sealed class FdbWatch : IDisposable
 	{
-		//REVIEW: sould we change this to a class?
 
-		private readonly FdbFuture<Slice> m_future; //REVIEW: this is specific to the native handler, we should find a better abstraction for the generic case! (we need a Task-like object that can be cancelled/disposed)
-		private readonly Slice m_key;
-		private Slice m_value;
-
-		internal FdbWatch(FdbFuture<Slice> future, Slice key, Slice value)
+		internal FdbWatch([NotNull] FdbFuture<Slice> future, Slice key)
 		{
 			Contract.Requires(future != null);
-			m_future = future;
-			m_key = key;
-			m_value = value;
+			this.Future = future;
+			this.Key = key;
 		}
+
+		[NotNull]
+		private readonly FdbFuture<Slice> Future;
 
 		/// <summary>Key that is being watched</summary>
-		public Slice Key => m_key;
-
-		/// <summary>Original value of the key, at the time the watch was created (optional)</summary>
-		/// <remarks>This property will return Slice.Nil if the original value was not known at the creation of this Watch instance.</remarks>
-		public Slice Value
-		{
-			get => m_value;
-			internal set => m_value = value;
-		}
+		public readonly Slice Key;
 
 		/// <summary>Returns true if the watch is still active, or false if it fired or was cancelled</summary>
-		public bool IsAlive => m_future != null && !m_future.Task.IsCompleted;
-
-		/// <summary>Returns true if the watch has fired signaling that the key may have changed in the database</summary>
-		public bool HasChanged => m_future != null && m_future.Task.Status == TaskStatus.RanToCompletion;
+		public bool IsAlive => !this.Future.Task.IsCompleted;
 
 		/// <summary>Task that will complete when the watch fires, or is cancelled. It will return the watched key, or an exception.</summary>
-		public Task<Slice> Task => m_future?.Task;
+		public Task<Slice> Task => this.Future.Task;
 
 		/// <summary>Returns an awaiter for the Watch</summary>
 		public TaskAwaiter<Slice> GetAwaiter()
 		{
 			//note: this is to make "await" work directly on the FdbWatch instance, without needing to do "await watch.Task"
 
-			if (m_future != null)
+			if (this.Future.HasFlag(FdbFuture.Flags.DISPOSED))
 			{
-				if (m_future.HasFlag(FdbFuture.Flags.DISPOSED))
-				{
-					throw new ObjectDisposedException("Cannot await a watch that has already been disposed");
-				}
-				return m_future.Task.GetAwaiter();
+				throw ThrowHelper.ObjectDisposedException("Cannot await a watch that has already been disposed");
 			}
-			throw new InvalidOperationException("Cannot await an empty watch");
+			return this.Future.Task.GetAwaiter();
 		}
 
 		/// <summary>Cancel the watch. It will immediately stop monitoring the key. Has no effect if the watch has already fired</summary>
 		public void Cancel()
 		{
-			m_future?.Cancel();
+			this.Future.Cancel();
 		}
 
 		/// <summary>Dispose the resources allocated by the watch.</summary>
 		public void Dispose()
 		{
-			m_future?.Dispose();
+			this.Future.Dispose();
 		}
 
 		public override string ToString()

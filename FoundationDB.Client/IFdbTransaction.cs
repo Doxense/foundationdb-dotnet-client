@@ -110,6 +110,7 @@ namespace FoundationDB.Client
 		/// Read-only transactions do not modify the database when committed and will have a committed version of -1.
 		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
 		/// </remarks>
+		[Pure]
 		long GetCommittedVersion();
 
 		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
@@ -128,6 +129,7 @@ namespace FoundationDB.Client
 		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
 		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
 		/// </remarks>
+		[Pure]
 		VersionStamp CreateVersionStamp();
 
 		/// <summary>Return a place-holder 96-bit VersionStamp with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
@@ -137,6 +139,7 @@ namespace FoundationDB.Client
 		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
 		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
 		/// </remarks>
+		[Pure]
 		VersionStamp CreateVersionStamp(int userVersion);
 
 		/// <summary>
@@ -146,6 +149,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
 		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property.</remarks>
+		[Pure, NotNull]
 		FdbWatch Watch(Slice key, CancellationToken ct);
 
 	}

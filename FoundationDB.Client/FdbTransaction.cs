@@ -781,8 +781,15 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
 		/// <remarks>You can directly await an FdbWatch, or obtain a <see cref="Task{T}">Task&lt;Slice&gt;</see> by reading the <see cref="FdbWatch.Task"/> property</remarks>
+		[Pure]
 		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
+			//note: the caller CANNOT use the transactions's own token, or else the watch would not survive after the commit, rendering it useless
+			if (ct.CanBeCanceled && ct.Equals(m_cancellation))
+			{
+				throw new ArgumentException("You cannot use the transaction's own cancellation token, because the Watch will need to execute after the transaction has completed. You may use the same token that was used by the parent retry loop, or any other token.");
+			}
+
 			ct.ThrowIfCancellationRequested();
 			EnsureCanRead();
 

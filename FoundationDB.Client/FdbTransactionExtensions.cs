@@ -928,60 +928,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Watches...
-
-		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
-		public static async Task<FdbWatch> GetAndWatchAsync([NotNull] this IFdbTransaction trans, Slice key, CancellationToken ct)
-		{
-			Contract.NotNull(trans, nameof(trans));
-			ct.ThrowIfCancellationRequested();
-
-			var value = await trans.GetAsync(key);
-			var watch = trans.Watch(key, ct);
-			watch.Value = value;
-
-			return watch;
-		}
-
-		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch([NotNull] this IFdbTransaction trans, Slice key, Slice value, CancellationToken ct)
-		{
-			Contract.NotNull(trans, nameof(trans));
-			ct.ThrowIfCancellationRequested();
-
-			trans.Set(key, value);
-			var watch = trans.Watch(key, ct);
-			watch.Value = value;
-
-			return watch;
-		}
-
-		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		/// <param name="encoder">Encoder use to convert <paramref name="value"/> into a slice</param>
-		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch<TValue>([NotNull] this IFdbTransaction trans, Slice key, TValue value, [NotNull] IValueEncoder<TValue> encoder, CancellationToken ct)
-		{
-			Contract.NotNull(encoder, nameof(encoder));
-			ct.ThrowIfCancellationRequested();
-			return SetAndWatch(trans, key, encoder.EncodeValue(value), ct);
-		}
-
-		#endregion
-
 		#region Batching...
 
 		/// <summary>

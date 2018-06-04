@@ -440,50 +440,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Watches...
-
-		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
-		/// <param name="db">Database instance.</param>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
-		public static Task<FdbWatch> GetAndWatch([NotNull] this IFdbRetryable db, Slice key, CancellationToken ct)
-		{
-			Contract.NotNull(db, nameof(db));
-
-			return db.ReadWriteAsync(async (tr) =>
-			{
-				var result = await tr.GetAsync(key).ConfigureAwait(false);
-				var watch = tr.Watch(key, ct);
-				watch.Value = result.Memoize();
-				return watch;
-			}, ct);
-		}
-
-		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
-		/// <param name="db">Database instance.</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		/// <param name="ct">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static async Task<FdbWatch> SetAndWatch([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
-		{
-			Contract.NotNull(db, nameof(db));
-
-			var watch = default(FdbWatch);
-
-			await db.WriteAsync((tr) =>
-			{
-				tr.Set(key, value);
-				watch = tr.Watch(key, ct);
-			}, ct).ConfigureAwait(false);
-
-			watch.Value = value.Memoize();
-			return watch;
-		}
-
-		#endregion
-
 	}
 
 }
