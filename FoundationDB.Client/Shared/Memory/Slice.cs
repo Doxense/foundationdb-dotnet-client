@@ -1066,11 +1066,13 @@ namespace System
 			if (m == n) return source.Equals(value) ? 0 : NOT_FOUND;
 			if (m <= n)
 			{
+				//TODO: OPTIMIZE: write a version that uses pointers!
 				byte[] src = source.Array;
 				int p = source.Offset;
 				byte firstByte = value[0];
 
 				// note: this is a very simplistic way to find a value, and is optimized for the case where the separator is only one byte (most common)
+				n -= (m - 1); // no need to scan the tail because it would not fit
 				while (n-- > 0)
 				{
 					if (src[p++] == firstByte)
