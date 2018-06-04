@@ -7,6 +7,7 @@
     <RestorePackages>true</RestorePackages>
     <RootNamespace>FoundationDB.Samples</RootNamespace>
     <AssemblyName>FoundationDB.Samples</AssemblyName>
+    <LangVersion>7.2</LangVersion>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <Version>5.2.0-preview1</Version>
     <Authors>Doxense</Authors>

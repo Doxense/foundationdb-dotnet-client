@@ -5,6 +5,7 @@
     <TargetFrameworks>netcoreapp2.1;net461;net471</TargetFrameworks>
     <ProjectGuid>{A1731E5B-59B5-49E0-A9B2-E552B18FA1C6}</ProjectGuid>
     <RestorePackages>true</RestorePackages>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <RootNamespace>FdbTop</RootNamespace>
     <AssemblyName>FdbTop</AssemblyName>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>

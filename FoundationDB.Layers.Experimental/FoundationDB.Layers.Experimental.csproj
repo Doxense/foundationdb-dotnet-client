@@ -4,6 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>FoundationDB.Layers</RootNamespace>
     <AssemblyName>FoundationDB.Layers.Experimental</AssemblyName>
+    <LangVersion>7.2</LangVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <Version>5.2.0-preview1</Version>
@@ -20,7 +21,6 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>latest</LangVersion>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
@@ -29,7 +29,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
     <DocumentationFile>bin\Release\netstandard2.0\FoundationDB.Layers.Common.xml</DocumentationFile>
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
