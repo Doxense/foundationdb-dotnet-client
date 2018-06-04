@@ -56,10 +56,10 @@ namespace FoundationDB.Client.Native
 		private StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeTransaction(FdbNativeDatabase db, TransactionHandle handle)
+		public FdbNativeTransaction([NotNull] FdbNativeDatabase db, [NotNull] TransactionHandle handle)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (handle == null) throw new ArgumentNullException("handle");
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handle, nameof(handle));
 
 			m_database = db;
 			m_handle = handle;
@@ -83,25 +83,19 @@ namespace FoundationDB.Client.Native
 
 		#region Properties...
 
-		public bool IsClosed { get { return m_handle.IsClosed; } }
+		public bool IsClosed => m_handle.IsClosed;
 
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
-		public TransactionHandle Handle { get { return m_handle; } }
+		public TransactionHandle Handle => m_handle;
 
 		/// <summary>Database handler that owns this transaction</summary>
-		public FdbNativeDatabase Database { get { return m_database; } }
+		public FdbNativeDatabase Database => m_database;
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
-		public int Size { get { return m_payloadBytes; } }
+		public int Size => m_payloadBytes;
 
-		public FdbIsolationLevel IsolationLevel
-		{
-			get
-			{
-				// FDB currently only supports Serializable transaction.
-				return FdbIsolationLevel.Serializable;
-			}
-		}
+		public FdbIsolationLevel IsolationLevel => FdbIsolationLevel.Serializable;
+		// FDB currently only supports Serializable transaction.
 
 		#endregion
 
@@ -137,8 +131,7 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
-					long version;
-					var err = FdbNative.FutureGetVersion(h, out version);
+					var err = FdbNative.FutureGetVersion(h, out long version);
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif
@@ -158,8 +151,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(h != null);
 
-			bool present;
-			var err = FdbNative.FutureGetValue(h, out present, out result);
+			var err = FdbNative.FutureGetValue(h, out bool present, out result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 #endif
@@ -171,8 +163,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(h != null);
 
-			Slice result;
-			if (!TryGetValueResult(h, out result))
+			if (!TryGetValueResult(h, out Slice result))
 			{
 				return Slice.Nil;
 			}
@@ -218,8 +209,7 @@ namespace FoundationDB.Client.Native
 		[NotNull]
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
 		{
-			KeyValuePair<Slice, Slice>[] result;
-			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
+			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
 			Fdb.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Ensures(result != null);
@@ -239,10 +229,7 @@ namespace FoundationDB.Client.Native
 				(h) =>
 				{
 					// TODO: quietly return if disposed
-
-					bool hasMore;
-					var chunk = GetKeyValueArrayResult(h, out hasMore);
-
+					var chunk = GetKeyValueArrayResult(h, out bool hasMore);
 					return new FdbRangeChunk(hasMore, chunk, iteration, reversed);
 				},
 				ct
@@ -253,8 +240,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(h != null);
 
-			Slice result;
-			var err = FdbNative.FutureGetKey(h, out result);
+			var err = FdbNative.FutureGetKey(h, out Slice result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
 #endif
@@ -344,8 +330,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(h != null);
 
-			string[] result;
-			var err = FdbNative.FutureGetStringArray(h, out result);
+			var err = FdbNative.FutureGetStringArray(h, out string[] result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
@@ -373,8 +358,7 @@ namespace FoundationDB.Client.Native
 			var future = FdbNative.TransactionWatch(m_handle, key);
 			return new FdbWatch(
 				FdbFuture.FromHandle<Slice>(future, (h) => key, ct),
-				key,
-				Slice.Nil
+				key
 			);
 		}
 
@@ -384,8 +368,7 @@ namespace FoundationDB.Client.Native
 
 		public long GetCommittedVersion()
 		{
-			long version;
-			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
+			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out long version);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
 #endif
