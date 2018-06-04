@@ -119,6 +119,7 @@ namespace FoundationDB.Client
 		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
 		/// </remarks>
 		Task<VersionStamp> GetVersionStampAsync();
+		//REVIEW: we should not return a Task<VersionStamp> but some sort of struct that is awaitable (like FdbWatch), to prevent misuse and potential deadlocks!
 
 		/// <summary>Return a place-holder 80-bit VersionStamp, whose value is not yet known, but will be filled by the database at commit time.</summary>
 		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>

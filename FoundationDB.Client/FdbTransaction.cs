@@ -296,7 +296,10 @@ namespace FoundationDB.Client
 		public Task<VersionStamp> GetVersionStampAsync()
 		{
 			EnsureNotFailedOrDisposed();
-
+			if (!this.StillAlive)
+			{ // we have already been committed or cancelleD?
+				ThrowOnInvalidState(this);
+			}
 			return m_handler.GetVersionStampAsync(m_cancellation);
 		}
 
@@ -980,7 +983,6 @@ namespace FoundationDB.Client
 					return;
 				}
 			}
-
 		}
 
 		[ContractAnnotation("=> halt")]

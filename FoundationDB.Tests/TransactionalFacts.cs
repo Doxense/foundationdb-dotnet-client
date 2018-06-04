@@ -453,5 +453,50 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Transactional_GetVersionStamp_Pattern()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+
+				var location = await GetCleanDirectory(db, "Transactionals");
+				var key = location.Keys.Encode("Hello");
+
+				// Cannot get version stamp after commit
+				Assert.That(
+					async () => await db.WriteAsync(
+					(tr) =>
+					{
+						tr.Set(key, Slice.FromString("GetVersionStamp"));
+						tr.SetVersionStampedKey(key + tr.CreateVersionStamp().ToSlice(), Slice.Empty);
+					},
+					(tr) => tr.GetVersionStampAsync(),
+					this.Cancellation),
+					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
+					"Trying to read a key in success handler should fail"
+				);
+				//note: since the transaction is already committed, we should observe its result
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp")));
+
+				// but getting stamp before commit and awaiting it after should work
+				VersionStamp st = await db.ReadWriteAsync(
+					async (tr) =>
+					{
+						var prev = await tr.GetAsync(key);
+						tr.Set(key, Slice.FromString("GetVersionStamp2"));
+						tr.SetVersionStampedKey(key + VersionStamp.Incomplete().ToSlice(), key.Count, prev);
+						return new { Stamp = tr.GetVersionStampAsync() }; //REVIEW: "return tr.GetVersionStampAsync()" will deadlock because 'ReadWrite' will try to await it!
+					},
+					(tr, res) => res.Stamp,
+					this.Cancellation
+				);
+				Assert.That(st.IsIncomplete, Is.False, "Stamp should be completed");
+				Assert.That(st.TransactionVersion, Is.Not.Zero.And.Not.EqualTo(ulong.MaxValue), "Stamp should be completed");
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp2")));
+
+
+			}
+		}
+
 	}
 }

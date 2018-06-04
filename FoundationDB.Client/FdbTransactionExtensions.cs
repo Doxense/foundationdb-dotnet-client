@@ -543,6 +543,8 @@ namespace FoundationDB.Client
 		{
 			// the buffer MUST contain one incomplete stamp, either the random token of the current transsaction or the default token (all-FF)
 
+			if (buffer.Count < token.Count) throw new ArgumentException("The key is too small to contain a VersionStamp.", argName);
+
 			int p = token.HasValue ? buffer.IndexOf(token) : -1;
 			if (p >= 0)
 			{ // found a candidate spot, we have to make sure that it is only present once in the key!
