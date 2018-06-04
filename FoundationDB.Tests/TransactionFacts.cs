@@ -774,13 +774,14 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// check
-				await db.ReadAsync(async (tr) =>
+				_ = await db.ReadAsync(async (tr) =>
 				{
 					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("29 01 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00"));
+					return 123;
 				}, this.Cancellation);
 			}
 		}
@@ -814,13 +815,14 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// check
-				await db.ReadAsync(async (tr) =>
+				_ = await db.ReadAsync(async (tr) =>
 				{
 					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("02 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("00 01 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+					return 123;
 				}, this.Cancellation);
 			}
 		}
@@ -854,13 +856,14 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// check
-				await db.ReadAsync(async (tr) =>
+				_ = await db.ReadAsync(async (tr) =>
 				{
 					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("29 01 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("2A 00 00 00 00 00 00 00"));
+					return 123;
 				}, this.Cancellation);
 			}
 		}
@@ -893,13 +896,14 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// check
-				await db.ReadAsync(async (tr) =>
+				_ = await db.ReadAsync(async (tr) =>
 				{
 					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("02 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))).ToHexaString(' '), Is.EqualTo("2B 00 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))).ToHexaString(' '), Is.EqualTo("00 01 00 00 00 00 00 00"));
 					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					return 123;
 				}, this.Cancellation);
 			}
 		}
@@ -1768,7 +1772,7 @@ namespace FoundationDB.Client.Tests
 				db.DefaultRetryLimit = 3;
 
 				int counter = 0;
-				var t = db.ReadAsync((tr) =>
+				var t = db.ReadAsync<int>((tr) =>
 				{
 					++counter;
 					Log("Called {0} time(s)", counter);

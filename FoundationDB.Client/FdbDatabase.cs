@@ -301,99 +301,152 @@ namespace FoundationDB.Client
 		#region IFdbReadOnlyTransactional methods...
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
-		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-only transaction on each retry.</param>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct)
+		[Obsolete("Please use ReadAsync<TResult>(..) instead.")]
+		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
-		{
-			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, ct);
+			return FdbOperationContext.RunReadAsync(this, handler, ct);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
-		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, null, ct);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, ct);
 		}
 
-		/// <summary>EXPERIMENTAL</summary>
-		public Task<TResult> ReadAsync<TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		public Task<TResult> ReadAsync<TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, [InstantHandle] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, success, ct);
+		}
+
+		public Task<TResult> ReadAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunReadWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+		}
+
+		public Task<TResult> ReadAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunReadWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
 		}
 
 		#endregion
 
 		#region IFdbTransactional methods...
 
+		#region Write Only...
+
 		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
 		/// <param name="handler">Lambda function that is passed a new read-write transaction on each retry. It should only call non-async methods, such as Set, Clear or any atomic operation.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
 		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, handler, null, ct);
+			return FdbOperationContext.RunWriteAsync(this, handler, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
+		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Action<IFdbTransaction> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, handler, onDone, ct);
+			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
+		}
+
+		/// <summary>EXPERIMENTAL</summary>
+		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
+		}
+
+		/// <summary>EXPERIMENTAL</summary>
+		public Task<TResult> WriteAsync<TResult>([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Func<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteAsync<TResult>(this, handler, success, ct);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
-		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
-		{
-			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
-
-			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
-			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
+		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, CancellationToken ct)
 		{
 			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
 			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
 			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, ct);
-		}
-
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, ct);
+			return FdbOperationContext.RunWriteAsync(this, handler, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
+		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, [InstantHandle] Action<IFdbTransaction> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, ct);
-		}
-
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> asyncHandler, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, null, ct);
+			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
+			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
+			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
+			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
 		}
 
 		/// <summary>EXPERIMENTAL</summary>
-		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken ct)
+		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, [InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, asyncHandler, onDone, ct);
+			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
+			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
+			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
+			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
 		}
+
+		#endregion
+
+		#region Read+Write....
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteAsync(this, handler, ct);
+		}
+
+		/// <summary>EXPERIMENTAL</summary>
+		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, [InstantHandle] Action<IFdbTransaction> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, [InstantHandle] Action<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, success, ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+		}
+
+		#endregion
 
 		#endregion
 

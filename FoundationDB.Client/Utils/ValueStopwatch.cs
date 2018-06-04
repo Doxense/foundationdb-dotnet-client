@@ -26,65 +26,57 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Collections.Tests
+namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
-	using System.Text;
-	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
+	using System.Runtime.CompilerServices;
+	using JetBrains.Annotations;
 
-	[TestFixture]
-	[Obsolete]
-	public class RankedTestFacts : FdbTest
+	/// <summary>Helper that can measure time elapsed with the same precision has <see cref="Stopwatch"/>, but without allocating an instance</summary>
+	/// <remarks>This watch cannot be stopped or restarted</remarks>
+	internal readonly struct ValueStopwatch
 	{
-		[Test]
-		public async Task Test_Vector_Fast()
+		private static readonly double Frequency = Stopwatch.Frequency;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ValueStopwatch StartNew()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			return new ValueStopwatch(Stopwatch.GetTimestamp());
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ValueStopwatch(long startTicks)
+		{
+			this.Start = startTicks;
+		}
+
+		public readonly long Start;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public long GetRawElapsedTicks()
+		{
+			return Stopwatch.GetTimestamp() - this.Start;
+		}
+
+		public long GetElapsedDateTimeTicks()
+		{
+			long rawTicks = GetRawElapsedTicks();
+			if (Stopwatch.IsHighResolution)
 			{
-				var location = await GetCleanDirectory(db, "ranked_set");
-
-				var vector = new FdbRankedSet(location);
-
-				await db.ReadWriteAsync(async (tr) =>
-				{
-					await vector.OpenAsync(tr);
-					await PrintRankedSet(vector, tr);
-				}, this.Cancellation);
-
-				Log();
-				var rnd = new Random();
-				var sw = Stopwatch.StartNew();
-				for (int i = 0; i < 100; i++)
-				{
-					Console.Write("\rInserting " + i);
-					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, TuPack.EncodeKey(rnd.Next())), this.Cancellation);
-				}
-				sw.Stop();
-				Log("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
-
-				Log(await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation));
+				// convert high resolution perf counter to DateTime ticks
+				return unchecked((long) (rawTicks * ValueStopwatch.Frequency));
+			}
+			else
+			{
+				return rawTicks;
 			}
 		}
 
-		private static async Task<string> PrintRankedSet(FdbRankedSet rs, IFdbReadOnlyTransaction tr)
+		public TimeSpan Elapsed
 		{
-			var sb = new StringBuilder();
-			for (int l = 0; l < 6; l++)
-			{
-				sb.AppendFormat("Level {0}:\r\n", l);
-				await tr.GetRange(rs.Subspace.Partition.ByKey(l).Keys.ToRange()).ForEachAsync((kvp) =>
-				{
-					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Keys.Unpack(kvp.Key), kvp.Value.ToInt64());
-				});
-			}
-			return sb.ToString();
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => new TimeSpan(GetElapsedDateTimeTicks());
 		}
-
 	}
-
 }

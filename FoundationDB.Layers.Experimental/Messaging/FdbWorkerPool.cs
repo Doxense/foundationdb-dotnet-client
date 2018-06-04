@@ -237,19 +237,19 @@ namespace FoundationDB.Layers.Messaging
 				// store the task in the db
 				StoreTask(tr, taskId, now, taskBody);
 			}, 
-			onDone: (tr) =>
+			success: (tr) =>
 			{
 				Interlocked.Increment(ref m_schedulingMessages);
 			},
 			ct: ct).ConfigureAwait(false);
 		}
 
-		static int counter = 0;
+		private static int s_counter;
 
 		/// <summary>Run the worker loop</summary>
 		public async Task RunWorkerAsync(IFdbDatabase db, Func<FdbWorkerMessage, CancellationToken, Task> handler, CancellationToken ct)
 		{
-			int num = Interlocked.Increment(ref counter);
+			int num = Interlocked.Increment(ref s_counter);
 
 			Slice workerId = Slice.Nil;
 			Slice previousTaskId = Slice.Nil;
@@ -351,7 +351,7 @@ namespace FoundationDB.Layers.Messaging
 							}
 
 						},
-						onDone: (tr) =>
+						success: (tr) =>
 						{ // we have successfully acquired some work, or got a watch
 							previousTaskId = Slice.Nil;
 							workerId = myId;

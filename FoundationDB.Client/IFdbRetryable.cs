@@ -39,15 +39,50 @@ namespace FoundationDB.Client
 	{
 		// note: see IFdbReadOnlyRetryable for comments about the differences between the .NET binding and other binding regarding the design of Transactionals
 
+		#region Write Only
+
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task WriteAsync([NotNull, InstantHandle]  Action<IFdbTransaction> handler, CancellationToken ct);
+		Task WriteAsync([NotNull, InstantHandle] Action<IFdbTransaction> handler, CancellationToken ct);
+
+		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task WriteAsync([NotNull, InstantHandle] Action<IFdbTransaction> handler, [NotNull, InstantHandle] Action<IFdbTransaction> success, CancellationToken ct);
+
+		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task WriteAsync([NotNull, InstantHandle] Action<IFdbTransaction> handler, [NotNull, InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct);
+
+		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> WriteAsync<TResult>([NotNull, InstantHandle] Action<IFdbTransaction> handler, [NotNull, InstantHandle] Func<IFdbTransaction, TResult> success, CancellationToken ct);
 
 		/// <summary>Run an idempotent transactional block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="handler">Idempotent async handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
@@ -57,42 +92,103 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task WriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> handler, CancellationToken ct);
+		Task WriteAsync([NotNull, InstantHandle] Func<IFdbTransaction, Task> handler, CancellationToken ct);
 
-		/// <summary>Run an idempotent transactional block inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="asyncHandler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <summary>Run an idempotent transactional block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent async handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct);
+		Task WriteAsync([NotNull, InstantHandle] Func<IFdbTransaction, Task> handler, [NotNull, InstantHandle] Action<IFdbTransaction> success, CancellationToken ct);
+
+		/// <summary>Run an idempotent transactional block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent async handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task WriteAsync([NotNull, InstantHandle] Func<IFdbTransaction, Task> handler, [NotNull, InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct);
+
+		#endregion
+
+		#region Read + Write
+
+		/// <summary>Run an idempotent transactional block inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task ReadWriteAsync([NotNull, InstantHandle] Func<IFdbTransaction, Task> handler, CancellationToken ct);
+
+		/// <summary>Run an idempotent transactional block inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task ReadWriteAsync([NotNull, InstantHandle] Func<IFdbTransaction, Task> handler, [NotNull, InstantHandle] Action<IFdbTransaction> success, CancellationToken ct);
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="asyncHandler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
+		/// <param name="handler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Result of the lambda function if the transaction committed successfully.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<TResult>> asyncHandler, CancellationToken ct);
+		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct);
 
-		//REVIEW: should we keep these ?
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
+		/// <param name="success">Will be called at most once with the result of <paramref name="handler"/>, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the lambda function if the transaction committed successfully.</returns>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, [NotNull, InstantHandle] Action<IFdbTransaction, TResult> success, CancellationToken ct);
 
-		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task WriteAsync([NotNull, InstantHandle]  Action<IFdbTransaction> handler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
+		/// <param name="success">Will be called at most once with the result of <paramref name="handler"/>, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the <paramref name="success"/>lambda function if the transaction committed successfully.</returns>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> ReadWriteAsync<TIntermediate, TResult>([NotNull, InstantHandle] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull, InstantHandle] Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct);
 
-		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task WriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> handler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
+		/// <param name="success">Will be called at most once with the result of <paramref name="handler"/>, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the <paramref name="success"/>lambda function if the transaction committed successfully.</returns>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> ReadWriteAsync<TIntermediate, TResult>([NotNull, InstantHandle] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull, InstantHandle] Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
 
-		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task ReadWriteAsync([NotNull, InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
-
-		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle]  Func<IFdbTransaction, Task<TResult>> asyncHandler, [NotNull, InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken ct);
+		#endregion
 	}
 
 }

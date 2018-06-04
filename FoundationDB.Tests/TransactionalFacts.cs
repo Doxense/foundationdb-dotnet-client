@@ -45,7 +45,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await db.Directory.CreateOrOpenAsync(new[] { "Transactionals" }, this.Cancellation);
+				var location = await GetCleanDirectory(db, "Transactionals");
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -80,7 +80,7 @@ namespace FoundationDB.Client.Tests
 				int called = 0;
 
 				// ReadAsync should return a failed Task, and not bubble up the exception.
-				var task = db.ReadAsync((tr) =>
+				var task = db.ReadAsync<int>((tr) =>
 				{
 					Assert.That(called, Is.Zero, "ReadAsync should not retry on regular exceptions");
 					++called;
@@ -98,8 +98,6 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
-
 				int called = 0;
 				int? id = null;
 
@@ -215,7 +213,7 @@ namespace FoundationDB.Client.Tests
 					bool called = false;
 
 					// ReadAsync should return a canceled Task, and never call the handler
-					var t = db.ReadAsync((tr) =>
+					var t = db.ReadAsync<int>((tr) =>
 					{
 						called = true;
 						Log("FAILED");
@@ -312,6 +310,146 @@ namespace FoundationDB.Client.Tests
 
 				// The values of 3 and 6 should be the initial values
 				Assert.That(results, Is.EqualTo(Enumerable.Range(0, 10).ToList()));
+			}
+		}
+
+		[Test]
+		public async Task Test_Transactionals_Execute_Success_Handler_Only_Once()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = await GetCleanDirectory(db, "Transactionals");
+
+				string secret = Guid.NewGuid().ToString();
+
+				using(var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.Set(location.Keys.Encode("Hello"), Slice.FromString(secret));
+					await tr.CommitAsync();
+				}
+
+				int called = 0;
+				Slice result = await db.ReadWriteAsync<Slice>(
+					(tr) =>
+					{
+						if (tr.Context.Retries == 0) throw new FdbException(FdbError.NotCommitted, "Fake Not Committed!");
+						tr.Set(location.Keys.Encode("World"), Slice.Empty);
+						return tr.GetAsync(location.Keys.Encode("Hello"));
+					},
+					(tr, res) =>
+					{
+						called++;
+						Assert.That(tr.Context.Retries == 1, "Transaction should only have retried once!");
+						Assert.That(res.ToUnicode(), Is.EqualTo(secret), "Argument passed to sucess callback does not match expected value.");
+					},
+					this.Cancellation);
+
+				Assert.That(called, Is.EqualTo(1), "Success callback should only have been called once");
+				Assert.That(result.ToUnicode(), Is.EqualTo(secret), "Result does not match excpected value.");
+			}
+		}
+
+		[Test]
+		public async Task Test_Transactionals_Never_Execute_Success_Handler_If_Failed()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = await GetCleanDirectory(db, "Transactionals");
+
+				string secret = Guid.NewGuid().ToString();
+
+				using(var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.Set(location.Keys.Encode("Hello"), Slice.FromString(secret));
+					await tr.CommitAsync();
+				}
+
+				int called = 0;
+				Assert.That(
+					async () => await db.ReadWriteAsync<Slice>(
+						(tr) => throw new InvalidOperationException("KAPOW!"),
+						(tr, res) =>
+						{
+							called++;
+							Assert.Fail("Success callback should never have been called!");
+						},
+						this.Cancellation),
+					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("KAPOW!"),
+					"Success callback should only have been called once"
+				);
+
+				Assert.That(called, Is.Zero, "Success callback should never have been called!");
+			}
+		}
+
+		[Test]
+		public async Task Test_Transactionals_Mutating_Transaction_In_Success_Handler_Should_Fail()
+		{
+			// Verify that attempting to keep using the transaction instance in the success handler will throw and InvalidOperationException
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = await GetCleanDirectory(db, "Transactionals");
+				var key = location.Keys.Encode("Hello");
+
+				// Cannot set a key after commit
+				Assert.That(
+					async () => await db.WriteAsync(
+						(tr) => tr.Set(key, Slice.FromString("Set")),
+						(tr) => tr.Set(key, Slice.Empty),
+						this.Cancellation),
+					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
+					"Trying to write in success handler should fail"
+				);
+				//note: since the transaction is already committed, we should observe its result
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Set")));
+
+				// Cannot double-commit!
+				Assert.That(
+					async () => await db.WriteAsync(
+						(tr) => tr.Set(key, Slice.FromString("Commit")),
+						(tr) => tr.CommitAsync(),
+						this.Cancellation),
+					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
+					"Trying to double-Commit in success handler should fail"
+				);
+				//note: since the transaction is already committed, we should observe its result
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Commit")));
+
+				// Cannot read a key after commit
+				Assert.That(
+					async () => await db.WriteAsync(
+						(tr) => tr.Set(key, Slice.FromString("Get")),
+						(tr) => tr.GetAsync(key),
+						this.Cancellation),
+					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
+					"Trying to read a key in success handler should fail"
+				);
+				//note: since the transaction is already committed, we should observe its result
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Get")));
+
+				// GetCommitVersion() is allowed to be executed AFTER the commit!
+				var cv = await db.WriteAsync(
+					(tr) => tr.Set(key, Slice.FromString("GetCommitVersion")),
+					(tr) => tr.GetCommittedVersion(),
+					this.Cancellation
+				);
+				Assert.That(cv, Is.GreaterThan(0));
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetCommitVersion")));
+
+				// GetCommitVersion() is allowed to be executed AFTER the commit!
+				var rv = await db.WriteAsync(
+					(tr) => tr.Set(key, Slice.FromString("GetReadVersion")),
+					(tr) =>
+					{
+						var rvt = tr.GetReadVersionAsync();
+						Assert.That(rvt.Status, Is.EqualTo(TaskStatus.RanToCompletion), "GetReadVersionAsync() should complete immediately after commit");
+						return rvt.Result;
+					},
+					this.Cancellation
+				);
+				Assert.That(rv, Is.GreaterThan(0));
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetReadVersion")));
 			}
 		}
 
