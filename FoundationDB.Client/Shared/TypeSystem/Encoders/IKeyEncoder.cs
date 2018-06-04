@@ -88,7 +88,8 @@ namespace Doxense.Serialization.Encoders
 		{
 			if (this.Pack is Func<TKey, Slice> f)
 			{
-				writer.WriteBytes(f(value));
+				var key = f(value);
+				writer.WriteBytes(in key);
 				return;
 			}
 			throw new InvalidOperationException();
