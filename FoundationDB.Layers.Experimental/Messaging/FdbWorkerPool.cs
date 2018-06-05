@@ -253,7 +253,7 @@ namespace FoundationDB.Layers.Messaging
 
 			Slice workerId = Slice.Nil;
 			Slice previousTaskId = Slice.Nil;
-			FdbWatch watch = default(FdbWatch);
+			FdbWatch watch = null;
 			FdbWorkerMessage msg = null;
 
 			Interlocked.Increment(ref m_workers);
@@ -271,7 +271,7 @@ namespace FoundationDB.Layers.Messaging
 							tr.Annotate("I'm worker #{0} with id {1:P}", num, workerId);
 
 							myId = workerId;
-							watch = default(FdbWatch);
+							watch = null;
 							msg = new FdbWorkerMessage();
 
 							if (previousTaskId != null)

@@ -1928,10 +1928,10 @@ namespace FoundationDB.Client.Tests
 				var key1 = location.Keys.Encode("watched");
 				var key2 = location.Keys.Encode("witness");
 
-				await db.WriteAsync((tr) =>
+				await db.SetValuesAsync(new []
 				{
-					tr.Set(key1, Slice.FromString("some value"));
-					tr.Set(key2, Slice.FromString("some other value"));
+					(key1, Slice.FromString("some value")),
+					(key2, Slice.FromString("some other value")),
 				}, this.Cancellation);
 
 				using (var cts = new CancellationTokenSource())
@@ -1948,31 +1948,112 @@ namespace FoundationDB.Client.Tests
 
 						// note: Watches will get cancelled if the transaction is not committed !
 						await tr.CommitAsync();
-
 					}
 
 					// Watches should survive the transaction
-					await Task.Delay(100);
+					await Task.Delay(100, this.Cancellation);
 					Assert.That(w1.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w1 should survive the transaction without being triggered");
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should survive the transaction without being triggered");
 
 					await db.WriteAsync((tr) => tr.Set(key1, Slice.FromString("some new value")), this.Cancellation);
 
 					// the first watch should have triggered
-					await Task.Delay(100);
+					await Task.Delay(100, this.Cancellation);
 					Assert.That(w1.Task.Status, Is.EqualTo(TaskStatus.RanToCompletion), "w1 should have been triggered because key1 was changed");
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should still be pending because key2 was untouched");
 
 					// cancelling the token associated to the watch should cancel them
 					cts.Cancel();
 
-					await Task.Delay(100);
+					await Task.Delay(100, this.Cancellation);
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.Canceled), "w2 should have been cancelled");
-
 				}
-
 			}
+		}
 
+		[Test]
+		public async Task Test_Cannot_Use_Transaction_CancellationToken_With_Watch()
+		{
+			// tr.Watch(..., tr.Cancellation) is forbidden, because the watch would not survive the transaction
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var location = db.Partition.ByKey("test", "bigbrother");
+
+					await db.ClearRangeAsync(location, this.Cancellation);
+
+					var key = location.Keys.Encode("watched");
+
+					Assert.That(() => tr.Watch(key, tr.Cancellation), Throws.Exception, "Watch(...) should reject the transaction's own cancellation");
+
+					// should accept the same token used for the retry loop
+					var w = tr.Watch(key, this.Cancellation);
+					Assert.That(w, Is.Not.Null);
+					w.Cancel();
+
+					// should accept CancellationToken.None
+					w = tr.Watch(key, this.Cancellation);
+					Assert.That(w, Is.Not.Null);
+					w.Cancel();
+
+					// should accept some other cancellation token
+					using (var cts = new CancellationTokenSource())
+					{
+						w = tr.Watch(key, cts.Token);
+						Assert.That(w, Is.Not.Null);
+						w.Cancel();
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Setting_Key_To_Same_Value_Should_Not_Trigger_Watch()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "bigbrother");
+
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				var key = location.Keys.Encode("watched");
+
+				Log("Set to initial value...");
+				await db.SetAsync(key, Slice.FromString("initial value"), this.Cancellation);
+
+				Log("Create watch...");
+				var w = await db.ReadWriteAsync(tr => tr.Watch(key, this.Cancellation), this.Cancellation);
+				Assert.That(w.IsAlive, Is.True, "Watch should still be alive");
+				Assert.That(w.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation));
+
+				// change the key to the same value
+				Log("Set to same value...");
+				await db.SetAsync(key, Slice.FromString("initial value"), this.Cancellation);
+
+				//note: it is difficult to verify something "that should never happen"
+				// let's say that 1sec is a good approximation of an inifinite time
+				Log("Watch should not fire");
+				await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
+				Assert.That(w.IsAlive, Is.True, "Watch should still be active");
+				Assert.That(w.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation));
+
+				// now really change the value
+				Log("Set to a different value...");
+				await db.SetAsync(key, Slice.FromString("new value"), this.Cancellation);
+
+				Log("Watch should fire...");
+				await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
+				if (!w.Task.IsCompleted)
+				{
+					Assert.That(w.Task.Status, Is.EqualTo(TaskStatus.RanToCompletion), "Watch should have fired by now!");
+				}
+				else
+				{
+					await w;
+				}
+			}
 		}
 
 		[Test]
