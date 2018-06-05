@@ -262,6 +262,12 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, ct);
 		}
 
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, TResult> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+		}
+
 		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
 			ThrowIfDisposed();

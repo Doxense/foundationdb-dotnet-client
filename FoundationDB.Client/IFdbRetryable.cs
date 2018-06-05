@@ -150,6 +150,17 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
+		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle] Func<IFdbTransaction, TResult> handler, CancellationToken ct);
+
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the lambda function if the transaction committed successfully.</returns>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically.
+		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
 		Task<TResult> ReadWriteAsync<TResult>([NotNull, InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct);
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>

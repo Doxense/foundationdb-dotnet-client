@@ -531,6 +531,24 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non-retryable error</summary>
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, TResult> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			void Handler(IFdbTransaction tr)
+			{
+				result = handler(tr);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(db, context, (Action<IFdbTransaction>) Handler, null).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non-retryable error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));

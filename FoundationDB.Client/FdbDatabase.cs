@@ -414,6 +414,14 @@ namespace FoundationDB.Client
 		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
 		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, TResult> handler, CancellationToken ct)
+		{
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
 		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
 			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
