@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -72,6 +73,7 @@ namespace FoundationDB.Client
 
 		/// <summary>True if the transaction has been opened in read-only mode</summary>
 		private readonly bool m_readOnly;
+		// => to bit flag so that we can have more options? ("write only", etc...)
 
 		private readonly IFdbTransactionHandler m_handler;
 
@@ -923,6 +925,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the transaction is not in a valid state (for reading/writing) and that we can proceed with a read operation</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void EnsureCanRead()
 		{
 			// note: read operations are async, so they can NOT be called from the network without deadlocking the system !
@@ -930,9 +933,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the transaction is not in a valid state (for writing) and that we can proceed with a write operation</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void EnsureCanWrite()
 		{
-			if (m_readOnly) ThrowReadOnlyTransaction(this);
+			if (m_readOnly) throw ThrowReadOnlyTransaction(this);
 			// note: write operations are not async, and cannnot block, so it is (somewhat) safe to call them from the network thread itself.
 			EnsureStilValid(allowFromNetworkThread: true, allowFailedState: false);
 		}
@@ -1006,10 +1010,10 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[ContractAnnotation("=> halt")]
-		internal static void ThrowReadOnlyTransaction(FdbTransaction trans)
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static Exception ThrowReadOnlyTransaction(FdbTransaction trans)
 		{
-			throw new InvalidOperationException("Cannot write to a read-only transaction");
+			return new InvalidOperationException("Cannot write to a read-only transaction");
 		}
 
 		/// <summary>
