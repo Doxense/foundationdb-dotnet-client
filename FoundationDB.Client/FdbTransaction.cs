@@ -791,7 +791,7 @@ namespace FoundationDB.Client
 			}
 
 			ct.ThrowIfCancellationRequested();
-			EnsureCanRead();
+			EnsureCanWrite();
 
 			m_database.EnsureKeyIsValid(ref key);
 
