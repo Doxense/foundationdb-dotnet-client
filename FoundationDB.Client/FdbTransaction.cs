@@ -613,6 +613,22 @@ namespace FoundationDB.Client
 				// ok!
 				return;
 			}
+			if (mutation == FdbMutationType.AppendIfFits)
+			{
+				if (selectedApiVersion < 520)
+				{
+					if (Fdb.GetMaxApiVersion() >= 520)
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from API level 520. You need to select API level 520 or more at the start of your process.");
+					}
+					else
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from client version 5.2. You need to update the version of the client, and select API level 520 or more at the start of your process..");
+					}
+				}
+				// ok!
+				return;
+			}
 
 			// this could be a new mutation type, or an invalid value.
 			throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");

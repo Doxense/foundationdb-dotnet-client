@@ -66,6 +66,12 @@ namespace FoundationDB.Client
 		/// </summary>
 		BitXor = 8,
 
+		/// <summary>Appends ``param`` to the end of the existing value already in the database at the given key (or creates the key and sets the value to ``param`` if the key is empty).
+		/// This will only append the value if the final concatenated value size is less than or equal to the maximum value size (i.e., if it fits).
+		/// WARNING: No error is surfaced back to the user if the final value is too large because the mutation will not be applied until after the transaction has been committed.
+		/// Therefore, it is only safe to use this mutation type if one can guarantee that one will keep the total value size under the maximum size.
+		/// </summary>
+		AppendIfFits = 9,
 
 		// Obsolete names (will be removed in the future)
 

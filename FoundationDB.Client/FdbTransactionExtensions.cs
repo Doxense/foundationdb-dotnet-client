@@ -512,6 +512,17 @@ namespace FoundationDB.Client
 			trans.Atomic(key, mask, FdbMutationType.BitXor);
 		}
 
+		/// <summary>Modify the database snapshot represented by this transaction to append to a value, unless it would become larger that the maximum value size supported by the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value to append.</param>
+		public static void AtomicAppendIfFits([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, value, FdbMutationType.AppendIfFits);
+		}
+
 		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
