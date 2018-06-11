@@ -95,11 +95,34 @@ namespace FoundationDB.Client
 		/// </summary>
 		Min = 13,
 
-		//TODO: XML Comments!
+		/// <summary>Transforms ``key`` using a versionstamp for the transaction.
+		/// Sets the transformed key in the database to ``param``.
+		/// The key is transformed by removing the final four bytes from the key and reading those as a little-Endian 32-bit integer to get a position ``pos``.
+		/// The 10 bytes of the key from ``pos`` to ``pos + 10`` are replaced with the versionstamp of the transaction used.
+		/// The first byte of the key is position 0.
+		/// A versionstamp is a 10 byte, unique, monotonically (but not sequentially) increasing value for each committed transaction.
+		/// The first 8 bytes are the committed version of the database (serialized in big-Endian order).
+		/// The last 2 bytes are monotonic in the serialization order for transactions.
+		/// WARNING: prior to API version 520, the offset was computed from only the final two bytes rather than the final four bytes.
+		/// </summary>
 		VersionStampedKey = 14,
 
-		//TODO: XML Comments!
+		/// <summary>Transforms ``param`` using a versionstamp for the transaction.
+		/// Sets the ``key`` given to the transformed ``param``.
+		/// The parameter is transformed by removing the final four bytes from ``param`` and reading those as a little-Endian 32-bit integer to get a position ``pos``.
+		/// The 10 bytes of the parameter from ``pos`` to ``pos + 10`` are replaced with the versionstamp of the transaction used.
+		/// The first byte of the parameter is position 0.
+		/// A versionstamp is a 10 byte, unique, monotonically (but not sequentially) increasing value for each committed transaction.
+		/// The first 8 bytes are the committed version of the database (serialized in big-Endian order).
+		/// The last 2 bytes are monotonic in the serialization order for transactions.
+		/// WARNING: prior to API version 520, the versionstamp was always placed at the beginning of the parameter rather than computing an offset.</summary>
 		VersionStampedValue = 15,
+
+		//TODO: xml comments
+		ByteMin = 16,
+
+		//TODO: xml comments
+		ByteMax = 17,
 
 	}
 
