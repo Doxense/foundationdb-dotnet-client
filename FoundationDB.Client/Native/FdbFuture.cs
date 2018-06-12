@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Futures
 //#define DEBUG_FUTURES
 
+#define SUPPORTS_ASYNC_CONTINUATIONS
+
 namespace FoundationDB.Client.Native
 {
 	using System;
@@ -141,6 +143,11 @@ namespace FoundationDB.Client.Native
 
 		#endregion
 
+#if SUPPORTS_ASYNC_CONTINUATIONS
+		protected FdbFuture() : base(TaskCreationOptions.RunContinuationsAsynchronously)
+		{ }
+#endif
+
 		#region State Management...
 
 		internal bool HasFlag(int flag)
@@ -199,11 +206,17 @@ namespace FoundationDB.Client.Native
 
 				// ensure that the task always complete !
 				// note: always defer the completion on the threadpool, because we don't want to dead lock here (we can be called by Dispose)
+#if SUPPORTS_ASYNC_CONTINUATIONS
+				if (!this.Task.IsCompleted)
+				{
+					TrySetCanceled();
+				}
+#else
 				if (!this.Task.IsCompleted && TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
 				{
 					PostCancellationOnThreadPool(this);
 				}
-
+#endif
 				// The only surviving value after this would be a Task and an optional WorkItem on the ThreadPool that will signal it...
 			}
 			finally
@@ -224,62 +237,83 @@ namespace FoundationDB.Client.Native
 		/// <summary>Set the result of this future</summary>
 		/// <param name="result">Result of the future</param>
 		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void SetResult(T result, bool fromCallback)
 		{
+#if SUPPORTS_ASYNC_CONTINUATIONS
+			TrySetResult(result);
+#else
 			if (!fromCallback)
 			{
-				this.TrySetResult(result);
+				TrySetResult(result);
 			}
 			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
 			{
 				PostCompletionOnThreadPool(this, result);
 			}
+#endif
 		}
 
 		/// <summary>Fault the future's Task</summary>
 		/// <param name="e">Error that will be the result of the task</param>
 		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void SetFaulted(Exception e, bool fromCallback)
 		{
+#if SUPPORTS_ASYNC_CONTINUATIONS
+			TrySetException(e);
+#else
 			if (!fromCallback)
 			{
-				this.TrySetException(e);
+				TrySetException(e);
 			}
 			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
 			{
 				PostFailureOnThreadPool(this, e);
 			}
+#endif
 		}
 
 		/// <summary>Fault the future's Task</summary>
 		/// <param name="errors">Error that will be the result of the task</param>
 		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void SetFaulted(IEnumerable<Exception> errors, bool fromCallback)
 		{
+#if SUPPORTS_ASYNC_CONTINUATIONS
+			TrySetException(errors);
+#else
 			if (!fromCallback)
 			{
-				this.TrySetException(errors);
+				TrySetException(errors);
 			}
 			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
 			{
 				PostFailureOnThreadPool(this, errors);
 			}
+#endif
 		}
 
 		/// <summary>Cancel the future's Task</summary>
 		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void SetCanceled(bool fromCallback)
 		{
+#if SUPPORTS_ASYNC_CONTINUATIONS
+			TrySetCanceled();
+#else
 			if (!fromCallback)
 			{
-				this.TrySetCanceled();
+				TrySetCanceled();
 			}
 			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
 			{
 				PostCancellationOnThreadPool(this);
 			}
+#endif
 		}
 
+#if !SUPPORTS_ASYNC_CONTINUATIONS
 		/// <summary>Defer setting the result of a TaskCompletionSource on the ThreadPool</summary>
 		private static void PostCompletionOnThreadPool(TaskCompletionSource<T> future, T result)
 		{
@@ -327,6 +361,7 @@ namespace FoundationDB.Client.Native
 				future
 			);
 		}
+#endif
 
 		#endregion
 
@@ -465,7 +500,11 @@ namespace FoundationDB.Client.Native
 					if (!this.Task.IsCompleted)
 					{
 						CancelHandles();
+#if SUPPORTS_ASYNC_CONTINUATIONS
+						TrySetCanceled();
+#else
 						SetCanceled(fromCallback);
+#endif
 					}
 				}
 				finally
