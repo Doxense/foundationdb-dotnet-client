@@ -29,6 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters.Logging
 {
 	using System;
+	using System.Globalization;
+	using System.Runtime.CompilerServices;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -43,8 +46,8 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
-			if (database == null) throw new ArgumentNullException(nameof(database));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(database, nameof(database));
+			Contract.NotNull(handler, nameof(handler));
 
 			// prevent multiple logging
 			database = WithoutLogging(database);
@@ -58,11 +61,9 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static IFdbDatabase WithoutLogging([NotNull] this IFdbDatabase database)
 		{
-			if (database == null) throw new ArgumentNullException(nameof(database));
+			Contract.NotNull(database, nameof(database));
 
-			if (database is FdbLoggedDatabase logged) return logged.GetInnerDatabase();
-
-			return database;
+			return database is FdbLoggedDatabase logged ? logged.GetInnerDatabase() : database;
 		}
 
 		[CanBeNull]
@@ -74,8 +75,20 @@ namespace FoundationDB.Filters.Logging
 			return trans as FdbLoggedTransaction;
 		}
 
+		/// <summary>Test if logging is enabled on this transaction</summary>
+		/// <remarks>If <c>false</c>, then there is no point in calling <see cref="Annotate(FoundationDB.Client.IFdbReadOnlyTransaction,string)"/> because logging is disabled.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsLogged([NotNull] this IFdbReadOnlyTransaction trans)
+		{
+			return trans is FdbLoggedTransaction;
+		}
+
 		/// <summary>Annotate a logged transaction</summary>
-		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
+		/// <remarks>
+		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting <paramref name="message"/> when logging not enabled.
+		/// </remarks>
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string message)
 		{
 			var logged = GetLogger(trans);
@@ -83,39 +96,52 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
-		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
+		/// <remarks>
+		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
+		/// </remarks>
 		[StringFormatMethod("format")]
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0)
 		{
 			var logged = GetLogger(trans);
-			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0)), countAsOperation: false);
+			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, arg0)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
-		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
+		/// <remarks>
+		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
+		/// </remarks>
 		[StringFormatMethod("format")]
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1)
 		{
-			var logged = GetLogger(trans);
-			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
+			GetLogger(trans)?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
-		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
+		/// <remarks>
+		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
+		/// </remarks>
 		[StringFormatMethod("format")]
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1, object arg2)
 		{
-			var logged = GetLogger(trans);
-			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
+			GetLogger(trans)?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1, arg2)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
-		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
+		/// <remarks>
+		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// Calling this method on regular transaction is a no-op.
+		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
+		/// </remarks>
 		[StringFormatMethod("format")]
 		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, params object[] args)
 		{
-			var logged = GetLogger(trans);
-			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, args)), countAsOperation: false);
+			GetLogger(trans)?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, args)), countAsOperation: false);
 		}
 
 	}
