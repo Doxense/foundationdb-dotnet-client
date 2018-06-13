@@ -23,10 +23,10 @@ namespace FoundationDB.Layers.Messaging
 			var cts = new CancellationTokenSource();
 			try
 			{
-				string clusterFile = null;
-				//string clusterFile = @"c:\temp\fdb\nuc.cluster";
-				string dbName = "DB";
-				using (var db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult())
+				var options = new FdbConnectionOptions();
+				//TODO: change options using the command line arguments?
+
+				using (var db = Fdb.OpenAsync(options, cts.Token).GetAwaiter().GetResult())
 				{
 					var location = db.Directory.CreateOrOpenAsync(new [] { "T", "WorkerPool" }, cts.Token).GetAwaiter().GetResult();
 					db.ClearRangeAsync(location, cts.Token).GetAwaiter().GetResult();

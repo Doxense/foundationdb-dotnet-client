@@ -153,10 +153,15 @@ namespace FdbBurner
 				const int CAPACITY = 4 * 2;
 				var history = new Queue<Datum>(CAPACITY);
 
-				using (var db = await Fdb.OpenAsync(ClusterPath, "DB", cancel))
+				var options = new FdbConnectionOptions
 				{
-					db.DefaultTimeout = 10000;
+					ClusterFile = Program.ClusterPath,
+					DefaultTimeout = TimeSpan.FromSeconds(10)
+				};
+				//TODO: proper parsing of command line arguments!
 
+				using (var db = await Fdb.OpenAsync(options, cancel))
+				{
 					bool exit = false;
 					bool hot = false;
 					bool repaint = true;

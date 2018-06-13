@@ -543,7 +543,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull]
+		[ItemNotNull, Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] IKeySubspace globalSpace, CancellationToken ct = default)
 		{
 			var options = new FdbConnectionOptions
@@ -562,7 +562,7 @@ namespace FoundationDB.Client
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull]
+		[ItemNotNull, Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, CancellationToken ct = default)
 		{
 			var options = new FdbConnectionOptions
@@ -583,7 +583,7 @@ namespace FoundationDB.Client
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull]
+		[ItemNotNull, Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
 		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, [CanBeNull] IKeySubspace globalSpace, bool readOnly = false, CancellationToken ct = default)
 		{
 			var options = new FdbConnectionOptions

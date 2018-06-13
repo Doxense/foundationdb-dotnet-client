@@ -41,7 +41,7 @@ namespace FdbTop
 
 	public static class Program
 	{
-		private static string ClusterPath;
+		private static readonly FdbConnectionOptions Options = new FdbConnectionOptions();
 
 		public static void Main(string[] args)
 		{
@@ -66,10 +66,14 @@ namespace FdbTop
 			string title = Console.Title;
 			try
 			{
+				// default settings
+				Program.Options.ClusterFile = null;
+				Program.Options.DefaultTimeout = TimeSpan.FromSeconds(10);
 
 				if (args.Length > 0)
 				{
-					ClusterPath = args[0];
+					//TODO: proper arguments parsing!
+					Options.ClusterFile = args[0];
 				}
 
 				Console.Title = "fdbtop";
@@ -113,9 +117,8 @@ namespace FdbTop
 
 				DisplayMode mode = DisplayMode.Metrics;
 
-				using (var db = await Fdb.OpenAsync(ClusterPath, "DB", cancel))
+				using (var db = await Fdb.OpenAsync(Options, cancel))
 				{
-					db.DefaultTimeout = 10000;
 
 					while (!exit && !cancel.IsCancellationRequested)
 					{
@@ -302,11 +305,6 @@ namespace FdbTop
 
 		private const int HistoryCapacity = 50;
 		private static readonly RingBuffer<HistoryMetric> History = new RingBuffer<HistoryMetric>(HistoryCapacity);
-
-		static Program()
-		{
-			Program.ClusterPath = null;
-		}
 
 		private const int MAX_RW_WIDTH = 40;
 		private const int MAX_WS_WIDTH = 20;

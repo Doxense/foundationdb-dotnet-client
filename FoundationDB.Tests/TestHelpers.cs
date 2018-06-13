@@ -40,26 +40,23 @@ namespace FoundationDB.Client.Tests
 
 	internal static class TestHelpers
 	{
-		// change these to target a specific test cluster
-
-		public static readonly string TestClusterFile = null;
-		public static readonly string TestDbName = "DB";
-		public static readonly Slice TestGlobalPrefix = Slice.FromStringAscii("T");
-		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
-		public static readonly int DefaultTimeout = 15 * 1000;
+		public const string TestClusterFile = null;
+		public const string TestDbName = "DB";
+		public static readonly Slice TestGlobalPrefix = Slice.FromByte('T');
+		public static readonly string[] TestPartition = { "Tests", Environment.MachineName };
+		public const int DefaultTimeout = 15_000;
 
 		//TODO: move these methods to FdbTest ?
 
 		/// <summary>Connect to the local test database</summary>
 		public static Task<IFdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
-			var subspace = new KeySubspace(TestGlobalPrefix.Memoize());
 			var options = new FdbConnectionOptions
 			{
-				ClusterFile = TestHelpers.TestClusterFile,
-				DbName = TestHelpers.TestDbName,
-				GlobalSpace = subspace,
-				DefaultTimeout = TimeSpan.FromMilliseconds(TestHelpers.DefaultTimeout),
+				ClusterFile = TestClusterFile,
+				DbName = TestDbName,
+				GlobalSpace = KeySubspace.FromKey(TestGlobalPrefix),
+				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
 		}
@@ -69,10 +66,10 @@ namespace FoundationDB.Client.Tests
 		{
 			var options = new FdbConnectionOptions
 			{
-				ClusterFile = TestHelpers.TestClusterFile,
-				DbName = TestHelpers.TestDbName,
-				PartitionPath = TestHelpers.TestPartition,
-				DefaultTimeout = TimeSpan.FromMilliseconds(TestHelpers.DefaultTimeout),
+				ClusterFile = TestClusterFile,
+				DbName = TestDbName,
+				PartitionPath = TestPartition,
+				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
 		}

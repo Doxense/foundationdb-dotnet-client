@@ -60,8 +60,8 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 
-			// the easy way		
-			using(var db = await Fdb.OpenAsync())
+			// the easy way
+			using(var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.Name, Is.EqualTo("DB"));
@@ -107,15 +107,15 @@ namespace FoundationDB.Client.Tests
 
 			// file not found
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@".\file_not_found.cluster", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@".\file_not_found.cluster", "DB", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @".\file_not_found.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
 
 			// unreachable path
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"C:\..\..\fdb.cluster", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@"C:\..\..\fdb.cluster", "DB", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"C:\..\..\fdb.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 
 			// malformed path
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"FOO:\invalid$path!/fdb.cluster", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@"FOO:\invalid$path!/fdb.cluster", "DB", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"FOO:\invalid$path!/fdb.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 		}
 
 		[Test]
@@ -133,7 +133,7 @@ namespace FoundationDB.Client.Tests
 				System.IO.File.WriteAllBytes(path, bytes);
 
 				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(path, this.Cancellation), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(path, "DB"), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
+				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = path }, this.Cancellation), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
 			}
 			finally
 			{
@@ -171,7 +171,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_FdbDatabase_Key_Validation()
 		{
-			using(var db = await Fdb.OpenAsync())
+			using(var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				// IsKeyValid
 				Assert.That(db.IsKeyValid(Slice.Nil), Is.False, "Null key is invalid");
@@ -369,8 +369,9 @@ namespace FoundationDB.Client.Tests
 
 			string clusterPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "notfound.cluster");
 			File.WriteAllText(clusterPath, "local:thisClusterShouldNotExist@127.0.0.1:4566");
+			var options = new FdbConnectionOptions { ClusterFile = clusterPath };
 
-			using (var db = await Fdb.OpenAsync(clusterPath, "DB"))
+			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
 			{
 				bool exists = false;
 				var err = FdbError.Success;

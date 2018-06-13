@@ -483,7 +483,13 @@ namespace FoundationDB.Client.Tests
 			Slice key;
 
 			// note: we can't have any prefix on the keys, so open the test database in read-only mode
-			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, KeySubspace.Empty, readOnly: true, ct: this.Cancellation))
+			var options = new FdbConnectionOptions
+			{
+				ClusterFile = TestHelpers.TestClusterFile,
+				DbName = TestHelpers.TestDbName,
+				ReadOnly = true,
+			};
+			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
 			{
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
@@ -2116,7 +2122,12 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Boundary_Keys()
 		{
-			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, this.Cancellation))
+			var options = new FdbConnectionOptions
+			{
+				ClusterFile = TestHelpers.TestClusterFile,
+				DbName = TestHelpers.TestDbName
+			};
+			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
 			{
 				//var cf = await db.GetCoordinatorsAsync();
 				//Log("Connected to {0}", cf.ToString());
