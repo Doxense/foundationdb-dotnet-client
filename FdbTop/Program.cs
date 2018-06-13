@@ -49,6 +49,7 @@ namespace FdbTop
 
 			try
 			{
+				//note: .NET Core may or may not be able to change the size of the console depending on the platform!
 				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
 				{
 					Console.WindowWidth = 160;
@@ -57,10 +58,23 @@ namespace FdbTop
 			}
 			catch
 			{
-				Console.Error.WriteLine("This tool requires cannot run in a console smaller than 160 characters.");
-				Console.Error.WriteLine("Either increase the screen resolution, or reduce the font size of your console.");
-				Environment.ExitCode = -1;
-				return;
+				bool tooSmall;
+				try
+				{
+					tooSmall = Console.WindowWidth < 160 || Console.WindowHeight < 60;
+				}
+				catch
+				{
+					tooSmall = true;
+				}
+
+				if (tooSmall)
+				{
+					Console.Error.WriteLine("This tool requires cannot run in a console smaller than 160 characters.");
+					Console.Error.WriteLine("Either increase the screen resolution, or reduce the font size of your console.");
+					Environment.ExitCode = -1;
+					return;
+				}
 			}
 
 			string title = Console.Title;
