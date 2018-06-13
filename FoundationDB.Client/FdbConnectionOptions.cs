@@ -67,5 +67,13 @@ namespace FoundationDB.Client
 		[CanBeNull, ItemNotNull]
 		public string[] PartitionPath { get; set; }
 
+		/// <summary>If set, specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
+		[CanBeNull]
+		public string DataCenterId { get; set; }
+
+		/// <summary>If set, specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
+		[CanBeNull]
+		public string MachineId { get; set; }
+
 	}
 }
