@@ -836,38 +836,4 @@ namespace FoundationDB.Client
 		}
 
 	}
-
-	public sealed class FdbConnectionOptions
-	{
-
-		public const string DefaultDbName = "DB";
-
-		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
-		public string ClusterFile { get; set; }
-
-		/// <summary>Default database name</summary>
-		/// <remarks>Only "DB" is supported for now</remarks>
-		public string DbName { get; set; } = DefaultDbName;
-
-		/// <summary>If true, opens a read-only view of the database</summary>
-		/// <remarks>If set to true, only read-only transactions will be allowed on the database instance</remarks>
-		public bool ReadOnly { get; set; }
-
-		/// <summary>Default timeout for all transactions, in milliseconds precision (or infinite if 0)</summary>
-		public TimeSpan DefaultTimeout { get; set; } // sec
-
-		/// <summary>Default maximum number of retries for all transactions (or infinite if 0)</summary>
-		public int DefaultRetryLimit { get; set; }
-
-		public int DefaultMaxRetryDelay { get; set; }
-
-		/// <summary>Global subspace in use by the database (empty prefix by default)</summary>
-		/// <remarks>If <see cref="PartitionPath"/> is also set, this subspace will be used to locate the top-level Directory Layer, and the actual GlobalSpace of the database will be the partition</remarks>
-		public IKeySubspace GlobalSpace { get; set; }
-
-		/// <summary>If specified, open the named partition at the specified path</summary>
-		/// <remarks>If <see cref="GlobalSpace"/> is also set, it will be used to locate the top-level Directory Layer.</remarks>
-		public string[] PartitionPath { get; set; }
-	}
-
 }
