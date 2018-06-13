@@ -397,5 +397,39 @@ namespace FoundationDB.Client.Tests
 
 		}
 
+		[Test]
+		public void Test_Can_Serialize_Connection_Options()
+		{
+			var options = new FdbConnectionOptions();
+			Assert.That(options.ToString(), Is.EqualTo("cluster_file=default; db=DB"));
+
+			options = new FdbConnectionOptions
+			{
+				ClusterFile = "X:\\some\\path\\to\\fdb.cluster",
+				PartitionPath = new[] { "Hello", "World" },
+			};
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; db=DB; partition=/Hello/World"));
+
+			options = new FdbConnectionOptions
+			{
+				ClusterFile = "X:\\some\\path\\to\\fdb.cluster",
+				ReadOnly = true,
+				DefaultTimeout = TimeSpan.FromSeconds(42.5),
+				DefaultRetryLimit = 123,
+				DataCenterId = "AC/DC",
+				MachineId = "Marble Machine X"
+			};
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; db=DB; readonly; timeout=42.5; retry_limit=123; dc_id=AC/DC; machine_id=""Marble Machine X"""));
+
+			options = new FdbConnectionOptions
+			{
+				ClusterFile = "/etc/foundationdb/fdb.cluster",
+				DbName = "Steins;DB",
+				MachineId = "James \"The Machine\" Wade",
+				DefaultTimeout = TimeSpan.FromTicks((long) (Math.PI * TimeSpan.TicksPerSecond)),
+			};
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=/etc/foundationdb/fdb.cluster; db=""Steins;DB""; timeout=3.1415926; machine_id=""James \""The Machine\"" Wade"""));
+		}
+
 	}
 }

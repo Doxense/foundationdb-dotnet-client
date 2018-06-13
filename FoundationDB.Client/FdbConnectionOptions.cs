@@ -29,11 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Diagnostics;
+	using System.Globalization;
+	using System.Text;
 	using JetBrains.Annotations;
 
 	/// <summary>Settings used when establishing the connection with a FoundationDB cluster</summary>
+	[DebuggerDisplay("{" + nameof(ToString) + "(),nq}")]
 	public sealed class FdbConnectionOptions
 	{
+		//REVIEW: rename this to "FdbConnectionString"? (so that it feels more like ADO.NET?)
 
 		public const string DefaultDbName = "DB";
 
@@ -43,7 +48,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Default database name</summary>
 		/// <remarks>Only "DB" is supported for now</remarks>
-		public string DbName { get; set; } = FdbConnectionOptions.DefaultDbName;
+		public string DbName { get; set; } = DefaultDbName;
 
 		/// <summary>If true, opens a read-only view of the database</summary>
 		/// <remarks>If set to true, only read-only transactions will be allowed on the database instance</remarks>
@@ -61,6 +66,8 @@ namespace FoundationDB.Client
 		/// <remarks>If <see cref="PartitionPath"/> is also set, this subspace will be used to locate the top-level Directory Layer, and the actual GlobalSpace of the database will be the partition</remarks>
 		[CanBeNull]
 		public IKeySubspace GlobalSpace { get; set; }
+		//REVIEW: get rid of this? cannot be serialized into a string, and can conflicting with PartitionPath
+		// => maybe let the caller call ChangeRoot(...) if they want this feature?
 
 		/// <summary>If specified, open the named partition at the specified path</summary>
 		/// <remarks>If <see cref="GlobalSpace"/> is also set, it will be used to locate the top-level Directory Layer.</remarks>
@@ -75,5 +82,53 @@ namespace FoundationDB.Client
 		[CanBeNull]
 		public string MachineId { get; set; }
 
+
+		public override string ToString()
+		{
+			var sb = new StringBuilder();
+			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
+			AddKeyValue(sb, "db", this.DbName);
+			if (this.PartitionPath != null) AddKeyValue(sb, "partition", "/" + string.Join("/", this.PartitionPath));
+			//REVIEW: cannot serialize subspace into a string ! :(
+			if (this.ReadOnly) AddKeyword(sb, "readonly");
+			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);
+			if (this.DefaultRetryLimit > 0) AddKeyValue(sb, "retry_limit", this.DefaultRetryLimit);
+			if (this.DefaultMaxRetryDelay > 0) AddKeyValue(sb, "retry_delay", this.DefaultMaxRetryDelay);
+			AddKeyValue(sb, "dc_id", this.DataCenterId);
+			AddKeyValue(sb, "machine_id", this.MachineId);
+			return sb.ToString();
+		}
+
+		private static void AddKeyValue(StringBuilder sb, string key, string value)
+		{
+			if (value == null) return;
+			if (value.IndexOf(' ') >= 0 || value.IndexOf(';') >= 0)
+			{ // encode '"' into '\"'
+				value = "\"" + value.Replace("\"", "\\\"") + "\"";
+			}
+
+			if (sb.Length > 0) sb.Append("; ");
+			sb.Append(key).Append('=').Append(value);
+		}
+
+		private static void AddKeyValue(StringBuilder sb, string key, long value)
+		{
+			if (sb.Length > 0) sb.Append("; ");
+			sb.Append(key).Append('=').Append(value.ToString(CultureInfo.InvariantCulture));
+		}
+
+		private static void AddKeyValue(StringBuilder sb, string key, double value)
+		{
+			if (sb.Length > 0) sb.Append("; ");
+			sb.Append(key).Append('=').Append(value.ToString("R", CultureInfo.InvariantCulture));
+		}
+
+		private static void AddKeyword(StringBuilder sb, string key)
+		{
+			if (sb.Length > 0) sb.Append("; ");
+			sb.Append(key);
+		}
+
 	}
+
 }
