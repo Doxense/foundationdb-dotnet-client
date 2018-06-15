@@ -42,18 +42,18 @@ namespace FdbShell
 		{
 			if (log == null) log = Console.Out;
 
-			log.WriteLine("# Listing {0}:", string.Join("/", path));
+			Program.Comment(log, $"# Listing /{string.Join("/", path)}:");
 
 			var parent = await TryOpenCurrentDirectoryAsync(path, db, ct);
 			if (parent == null)
 			{
-				log.WriteLine("  Directory not found.");
+				Program.Error(log, "Directory not found.");
 				return;
 			}
 
 			if (parent.Layer.IsPresent)
 			{
-				log.WriteLine("# Layer: {0:P}", parent.Layer);
+				log.WriteLine($"# Layer: {parent.Layer:P}");
 			}
 
 			var folders = await Fdb.Directory.BrowseAsync(db, parent, ct);
@@ -70,30 +70,32 @@ namespace FdbShell
 							if (!(subfolder is FdbDirectoryPartition))
 							{
 								long count = await Fdb.System.EstimateCountAsync(db, subfolder.Keys.ToRange(), ct);
-								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Copy().GetPrefix()), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
+								Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">")),-12} {count,9:N0} {name}", ConsoleColor.White);
 							}
 							else
 							{
-								log.WriteLine("  {0,-12} {1,-12} {3,9} {2}", FdbKey.Dump(subfolder.Copy().GetPrefix()), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
+								Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">")),-12} {"-",9} {name}", ConsoleColor.White);
 							}
 						}
 						else
 						{
-							log.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Copy().GetPrefix()), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+							Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">")),-12} {name}", ConsoleColor.White);
 						}
 					}
 					else
 					{
-						log.WriteLine("  WARNING: {0} seems to be missing!", name);
+						Program.Error(log, $"  WARNING: {name} seems to be missing!");
 					}
 				}
-				log.WriteLine("  {0} sub-directorie(s).", folders.Count);
+				log.WriteLine($"  {folders.Count} sub-directorie(s).");
 			}
 			else
 			{
 				//TODO: test if it contains data?
-				log.WriteLine("  No sub-directories.");
+				log.WriteLine("No sub-directories.");
 			}
+
+			//TODO: check if there is at least one key?
 		}
 
 		/// <summary>Creates a new directory</summary>
@@ -103,24 +105,24 @@ namespace FdbShell
 
 			string layer = extras.Count > 0 ? extras.Get<string>(0) : null;
 
-			log.WriteLine("# Creating directory {0} with layer '{1}'", String.Join("/", path), layer);
+			log.WriteLine($"# Creating directory {String.Join("/", path)} with layer '{layer}'");
 
 			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder != null)
 			{
-				log.WriteLine("- Directory {0} already exists!", string.Join("/", path));
+				log.WriteLine($"- Directory {string.Join("/", path)} already exists!");
 				return;
 			}
 
 			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), ct: ct);
-			log.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.GetPrefix()), folder.GetPrefix().ToHexaString(' '));
+			log.WriteLine($"- Created under {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}]");
 
 			// look if there is already stuff under there
 			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.Keys.ToRange()).FirstOrDefaultAsync(), ct: ct);
 			if (stuff.Key.IsPresent)
 			{
-				log.WriteLine("CAUTION: There is already some data under {0} !");
-				log.WriteLine("  {0} = {1:V}", FdbKey.Dump(stuff.Key), stuff.Value);
+				Program.Error(log, $"CAUTION: There is already some data under {string.Join("/", path)} !");
+				Program.Error(log, $"  {FdbKey.Dump(stuff.Key)} = {stuff.Value:V}");
 			}
 		}
 
@@ -134,7 +136,7 @@ namespace FdbShell
 			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder == null)
 			{
-				log.WriteLine("# Directory {0} does not exist", string.Join("/", path));
+				Program.Error(log, $"# Directory /{string.Join("/", path)} does not exist");
 				return;
 			}
 
@@ -143,14 +145,13 @@ namespace FdbShell
 			if (subDirs != null && subDirs.Count > 0)
 			{
 				//TODO: "-r" flag ?
-				log.WriteLine("# Cannot remove {0} because it still contains {1} sub-directorie(s)", string.Join("/", path), subDirs.Count);
+				Program.Error(log, $"# Cannot remove /{string.Join("/", path)} because it still contains {subDirs.Count:N0} sub-directorie(s)");
 			}
 
 			//TODO: ask for confirmation?
 
-			log.WriteLine("# Deleting directory {0} ...", String.Join("/", path));
 			await folder.RemoveAsync(db, ct);
-			log.WriteLine("# Gone!");
+			Program.Success(log, $"Deleted directory /{string.Join("/", path)}");
 		}
 
 		/// <summary>Move/Rename a directory</summary>
@@ -159,19 +160,19 @@ namespace FdbShell
 			var folder = await db.Directory.TryOpenAsync(srcPath, ct: ct);
 			if (folder == null)
 			{
-				log.WriteLine("# Source directory {0} does not exist!", string.Join("/", srcPath));
+				Program.Error(log, $"# Source directory /{string.Join("/", srcPath)} does not exist!");
 				return;
 			}
 
 			folder = await db.Directory.TryOpenAsync(dstPath, ct: ct);
 			if (folder != null)
 			{
-				log.WriteLine("# Destination directory {0} already exists!", string.Join("/", dstPath));
+				Program.Error(log, $"# Destination directory /{string.Join("/", dstPath)} already exists!");
 				return;
 			}
 
 			await db.Directory.MoveAsync(srcPath, dstPath, ct);
-			Console.WriteLine("Moved {0} to {1}", string.Join("/", srcPath), string.Join("/", dstPath));
+			Program.Success(log, $"Moved /{string.Join("/", srcPath)} to {string.Join("/", dstPath)}");
 		}
 
 		public static async Task ShowDirectoryLayer(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
@@ -179,16 +180,16 @@ namespace FdbShell
 			var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct);
 			if (dir == null)
 			{
-				log.WriteLine("# Directory {0} does not exist anymore", String.Join("/", path));
+				Program.Error(log, $"# Directory {String.Join("/", path)} does not exist anymore");
 			}
 			else
 			{
 				if (dir.Layer == FdbDirectoryPartition.LayerId)
-					log.WriteLine("# Directory {0} is a partition", String.Join("/", path));
+					log.WriteLine($"# Directory {String.Join("/", path)} is a partition");
 				else if (dir.Layer.IsPresent)
-					log.WriteLine("# Directory {0} has layer {1:P}", String.Join("/", path), dir.Layer);
+					log.WriteLine($"# Directory {String.Join("/", path)} has layer {dir.Layer:P}");
 				else
-					log.WriteLine("# Directory {0} does not have a layer defined", String.Join("/", path));
+					log.WriteLine($"# Directory {String.Join("/", path)} does not have a layer defined");
 			}
 		}
 
@@ -197,12 +198,12 @@ namespace FdbShell
 			var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct);
 			if (dir == null)
 			{
-				log.WriteLine("# Directory {0} does not exist anymore", String.Join("/", path));
+				Program.Error(log, $"# Directory {String.Join("/", path)} does not exist anymore");
 			}
 			else
 			{
 				dir = await db.ReadWriteAsync((tr) => dir.ChangeLayerAsync(tr, Slice.FromString(layer)), ct);
-				log.WriteLine("# Directory {0} layer changed to {1:P}", String.Join("/", path), dir.Layer);
+				Program.Success(log, $"# Directory {String.Join("/", path)} layer changed to {dir.Layer:P}");
 			}
 		}
 
@@ -213,20 +214,21 @@ namespace FdbShell
 			var folder = (await TryOpenCurrentDirectoryAsync(path, db, ct)) as FdbDirectorySubspace;
 			if (folder == null)
 			{
-				log.WriteLine("# Directory {0} does not exist", String.Join("/", path));
+				Program.Error(log, $"# Directory {String.Join("/", path)} does not exist");
 				return;
 			}
 
 			var copy = folder.Copy();
-			log.WriteLine("# Counting keys under {0} ...", FdbKey.Dump(copy.GetPrefix()));
+			log.WriteLine($"# Counting keys under {FdbKey.Dump(copy.GetPrefix())} ...");
 
 			var progress = new Progress<(long Count, Slice Current)>((state) =>
 			{
-				log.Write("\r# Found {0:N0} keys...", state.Count);
+				log.Write($"\r# Found {state.Count:N0} keys...");
 			});
 
 			long count = await Fdb.System.EstimateCountAsync(db, copy.ToRange(), progress, ct);
-			log.WriteLine("\r# Found {0:N0} keys in {1}", count, folder.FullName);
+			log.Write("\r");
+			Program.Success(log, $"Found {count:N0} keys in {folder.FullName}");
 		}
 
 		/// <summary>Shows the first few keys of a directory</summary>
@@ -239,11 +241,23 @@ namespace FdbShell
 				if (x > 0) count = x;
 			}
 
+			if (path == null || path.Length == 0)
+			{
+				Program.Error(log, "Cannot directory list the content of Root Partition.");
+				return;
+			}
+
 			// look if there is something under there
 			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder != null)
 			{
-				log.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.GetPrefix()), folder.GetPrefix().ToHexaString(' '));
+				if (folder.Layer == FdbDirectoryPartition.LayerId)
+				{
+					Program.Error(log, "Cannot list the content of a Directory Partition!");
+					return;
+				}
+				Program.Comment(log, $"# Content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}]");
+
 				var keys = await db.QueryAsync((tr) =>
 					{
 						var query = tr.GetRange(folder.Keys.ToRange());
@@ -256,7 +270,7 @@ namespace FdbShell
 					if (reverse) keys.Reverse();
 					foreach (var key in keys.Take(count))
 					{
-						log.WriteLine("...{0} = {1:V}", FdbKey.Dump(folder.ExtractKey(key.Key)), key.Value);
+						log.WriteLine($"...{FdbKey.Dump(folder.ExtractKey(key.Key))} = {key.Value:V}");
 					}
 					if (!reverse && keys.Count == count + 1)
 					{
@@ -265,7 +279,56 @@ namespace FdbShell
 				}
 				else
 				{
-					log.WriteLine("  no content found");
+					log.WriteLine("Folder is empty");
+				}
+			}
+		}
+
+		public static async Task Dump(string[] path, string output, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+			// look if there is something under there
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			if (folder == null)
+			{
+				Program.Comment(log, $"# Directory {String.Join("/", path)} does not exist");
+				return;
+			}
+
+			//TODO: if file already exists, ask confirmation before overriding?
+			output = Path.GetFullPath(output);
+			File.Delete(output);
+
+			using (var fs = new FileStream(output, FileMode.Create, FileAccess.Write, FileShare.Read, 64 * 1024))
+			using (var sw = new StreamWriter(fs, Encoding.UTF8, 32 * 1024))
+			{
+				Program.Comment(log, $"# Dumping content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}] to {output}");
+				long bytes = 0;
+				var kr = new[] { '|', '/', '-', '\\' };
+				int p = 0;
+				var count = await Fdb.Bulk.ExportAsync(
+					db,
+					folder.ToRange(),
+					(batch, offset, _ct) =>
+					{
+						if (log == Console.Out) log.Write($"\r{kr[(p++) % kr.Length]} {bytes:N0} bytes");
+						foreach (var kv in batch)
+						{
+							bytes += kv.Key.Count + kv.Value.Count;
+							sw.WriteLine("{0} = {1:V}", FdbKey.Dump(folder.ExtractKey(kv.Key)), kv.Value);
+						}
+						ct.ThrowIfCancellationRequested();
+						return sw.FlushAsync();
+					},
+					ct
+				);
+				if (log == Console.Out) log.Write("\r");
+				if (count > 0)
+				{
+					Program.Success(log, $"Found {count:N0} keys ({bytes:N0} bytes)");
+				}
+				else
+				{
+					Program.StdOut(log, "Folder is empty.");
 				}
 			}
 		}
@@ -273,16 +336,16 @@ namespace FdbShell
 		/// <summary>Display a tree of a directory's children</summary>
 		public static async Task Tree(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			if (log == null) log = Console.Out;
+			log = log ?? Console.Out;
 
-			log.WriteLine("# Tree of {0}:", String.Join("/", path));
+			Program.Comment(log, $"# Tree of {String.Join("/", path)}:");
 
 			FdbDirectorySubspace root = null;
 			if (path.Length > 0) root = await db.Directory.TryOpenAsync(path, ct: ct);
 
 			await TreeDirectoryWalk(root, new List<bool>(), db, log, ct);
 
-			log.WriteLine("# done");
+			Program.Comment(log, "# done");
 		}
 
 		private static async Task TreeDirectoryWalk(FdbDirectorySubspace folder, List<bool> last, IFdbDatabase db, TextWriter stream, CancellationToken ct)
@@ -304,7 +367,7 @@ namespace FdbShell
 			}
 			else
 			{
-				stream.WriteLine(sb.ToString() + (folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name) + (folder.Layer.IsNullOrEmpty ? String.Empty : (" [" + folder.Layer.ToString() + "]")));
+				stream.WriteLine($"{sb}{(folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(folder.Layer.IsNullOrEmpty ? string.Empty : (" [" + folder.Layer.ToString() + "]"))}");
 				node = folder;
 			}
 
@@ -321,34 +384,34 @@ namespace FdbShell
 		public static async Task Map(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			// we want to merge the map of shards, with the map of directories from the Directory Layer, and count for each directory how many shards intersect
-
+			bool progress = log == Console.Out;
 
 			var folder = await TryOpenCurrentDirectoryAsync(path, db, ct);
 			if (folder == null)
 			{
-				log.WriteLine("# Directory not found");
+				Program.Error(log, "# Directory not found");
 				return;
 			}
 
-			var span = folder.DirectoryLayer.ContentSubspace.Keys.ToRange();
+			Program.StdOut(log, "Listing all shards...");
 
 			// note: this may break in future versions of the DL! Maybe we need a custom API to get a flat list of all directories in a DL that span a specific range ?
-
+			var span = folder.DirectoryLayer.ContentSubspace.Keys.ToRange();
 			var shards = await Fdb.System.GetChunksAsync(db, span, ct);
 			int totalShards = shards.Count;
-			log.WriteLine("Found {0} shard(s) in partition /{1}", totalShards, folder.DirectoryLayer.FullName);
+			Program.StdOut(log, $"> Found {totalShards} shard(s) in partition /{folder.DirectoryLayer.FullName}", ConsoleColor.Gray);
 
-			log.WriteLine("Listing all directories...");
+			Program.StdOut(log, "Listing all directories...");
 			var map = new Dictionary<string, int>(StringComparer.Ordinal);
-			Action<string[], int> account = (p, c) =>
+
+			void Account(string[] p, int c)
 			{
 				for (int i = 1; i <= p.Length; i++)
 				{
-					var s = "/" + String.Join("/", p, 0, i);
-					int x;
-					map[s] = map.TryGetValue(s, out x) ? (x + c) : c;
+					var s = "/" + string.Join("/", p, 0, i);
+					map[s] = map.TryGetValue(s, out int x) ? (x + c) : c;
 				}
-			};
+			}
 
 			var work = new Stack<IFdbDirectory>();
 			work.Push(folder);
@@ -369,29 +432,30 @@ namespace FdbShell
 						var p = sub.FullName;
 						if (sub is FdbDirectoryPartition)
 						{
-							log.WriteLine("\r! Skipping partition {0}     ", sub.Name);
+							if (progress) log.Write("\r");
+							Program.StdOut(log ,$"! Skipping partition {sub.Name}     ", ConsoleColor.DarkRed);
 							n = 0;
 							continue;
 						}
-						log.Write("\r/{0}{1}", p, p.Length > n ? String.Empty : new string(' ', n - p.Length));
+						if (progress) log.Write($"\r/{p}{(p.Length > n ? String.Empty : new string(' ', n - p.Length))}");
 						n = p.Length;
 						work.Push(sub);
 						dirs.Add(sub);
 					}
 				}
 			}
-			log.Write("\r" + new string(' ', n + 2));
-			log.WriteLine("\r> Found {0} sub-directories", dirs.Count);
+			if (progress) log.Write("\r" + new string(' ', n + 2) + "\r");
+			Program.StdOut(log, $"> Found {dirs.Count} sub-directories", ConsoleColor.Gray);
 
 			log.WriteLine();
-			log.WriteLine("Estimating size of each directory...");
+			Program.StdOut(log, "Estimating size of each directory...");
 			int foundShards = 0;
 			n = 0;
 			int max = 0;
 			IFdbDirectory bigBad = null;
 			foreach (var dir in dirs)
 			{
-				log.Write("\r> {0}{1}", dir.Name, dir.Name.Length > n ? String.Empty : new string(' ', n - dir.Name.Length));
+				if (progress) log.Write($"\r> {dir.Name}{(dir.Name.Length > n ? String.Empty : new string(' ', n - dir.Name.Length))}");
 				n = dir.Name.Length;
 
 				var p = dir.Path.ToArray();
@@ -415,28 +479,28 @@ namespace FdbShell
 					// we need to check if the shards actually contain data
 					//Console.WriteLine("/{0} under {1} with {2} shard(s)", string.Join("/", p), FdbKey.Dump(key), shards.Count);
 					foundShards += shards.Count;
-					account(p, shards.Count);
+					Account(p, shards.Count);
 					if (shards.Count > max) { max = shards.Count; bigBad = dir; }
 				}
 				else
 				{
-					account(p, 0);
+					Account(p, 0);
 				}
 			}
-			log.Write("\r" + new string(' ', n + 2));
-			log.WriteLine("\rFound a total of {0} shard(s) in {1} folder(s)", foundShards, dirs.Count);
+			if (progress) log.Write("\r" + new string(' ', n + 2) + "\r");
+			Program.StdOut(log, $"> Found a total of {foundShards:N0} shard(s) in {dirs.Count:N0} folder(s)", ConsoleColor.Gray);
 			log.WriteLine();
 
-			log.WriteLine("Shards %Total              Path");
+			Program.StdOut(log ,"Shards %Total              Path");
 			foreach(var kvp in map.OrderBy(x => x.Key))
 			{
-				log.WriteLine("{0,6} {1,-20} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 20), kvp.Key);
+				Program.StdOut(log, $"{kvp.Value,6} {RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 20),-20} {kvp.Key}", ConsoleColor.Gray);
 			}
 			log.WriteLine();
 
 			if (bigBad != null)
 			{
-				log.WriteLine("Biggest folder is /{0} with {1} shards ({2:N1}% total, {3:N1}% subtree)", bigBad.FullName, max, 100.0 * max / totalShards, 100.0 * max / foundShards);
+				Program.StdOut(log, $"Biggest folder is /{bigBad.FullName} with {max} shards ({100.0 * max / totalShards:N1}% total, {100.0 * max / foundShards:N1}% subtree)");
 				log.WriteLine();
 			}
 		}
@@ -457,7 +521,7 @@ namespace FdbShell
 		public static async Task Topology(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var coords = await Fdb.System.GetCoordinatorsAsync(db, ct);
-			log.WriteLine("[Cluster] {0}", coords.Id);
+			log.WriteLine($"[Cluster] {coords.Id}");
 
 			var servers = await db.QueryAsync(tr => tr
 				.WithReadAccessToSystemKeys()
@@ -542,33 +606,32 @@ namespace FdbShell
 				}
 			}
 			log.WriteLine();
-			log.WriteLine("Found {0} process(es) on {1} machine(s) in {2} datacenter(s)", numNodes, numMachines, numDCs);
+			Program.StdOut(log, $"Found {numNodes:N0} process(es) on {numMachines:N0} machine(s) in {numDCs:N0} datacenter(s)", ConsoleColor.White);
 			log.WriteLine();
 		}
 
 		public static async Task Shards(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue, ct);
-			Console.WriteLine("Found {0} shards in the whole cluster", ranges.Count);
+			Console.WriteLine($"Found {ranges.Count} shards in the whole cluster");
 
 			// look if there is something under there
-			var folder = (await TryOpenCurrentDirectoryAsync(path, db, ct)) as FdbDirectorySubspace;
-			if (folder != null)
+			if ((await TryOpenCurrentDirectoryAsync(path, db, ct)) is FdbDirectorySubspace folder)
 			{
 				var r = KeyRange.StartsWith(folder.Copy().GetPrefix());
-				Console.WriteLine("Searching for shards that intersect with /{0} ...", String.Join("/", path));
+				Console.WriteLine($"Searching for shards that intersect with /{String.Join("/", path)} ...");
 				ranges = await Fdb.System.GetChunksAsync(db, r, ct);
-				Console.WriteLine("Found {0} ranges intersecting {1}:", ranges.Count, r);
+				Console.WriteLine($"> Found {ranges.Count} ranges intersecting {r}:");
 				var last = Slice.Empty;
 				foreach (var range in ranges)
 				{
-					Console.Write("> " + FdbKey.Dump(range.Begin) + " ...");
+					Console.Write($"> {FdbKey.Dump(range.Begin)} ...");
 					long count = await Fdb.System.EstimateCountAsync(db, range, ct);
-					Console.WriteLine(" {0:N0}", count);
+					Console.WriteLine($" {count:N0}");
 					last = range.End;
 					//TODO: we can probably get more details on this shard looking in the system keyspace (where it is, how many replicas, ...)
 				}
-				Console.WriteLine("> ... " + FdbKey.Dump(last));
+				Console.WriteLine($"> ... {FdbKey.Dump(last)}");
 			}
 
 			//Console.WriteLine("Found " + ranges.Count + " shards in the cluster");
@@ -591,7 +654,7 @@ namespace FdbShell
 			if (folder is FdbDirectorySubspace)
 			{
 				span = KeyRange.StartsWith((folder as FdbDirectorySubspace).Copy().GetPrefix());
-				log.WriteLine("Reading list of shards for /{0} under {1} ...", String.Join("/", path), FdbKey.Dump(span.Begin));
+				log.WriteLine($"Reading list of shards for /{String.Join("/", path)} under {FdbKey.Dump(span.Begin)} ...");
 			}
 			else
 			{
@@ -601,7 +664,7 @@ namespace FdbShell
 
 			// dump keyServers
 			var ranges = await Fdb.System.GetChunksAsync(db, span, ct);
-			log.WriteLine("> Found {0:N0} shard(s)", ranges.Count);
+			log.WriteLine($"> Found {ranges.Count:N0} shard(s)");
 
 			// take a sample
 			var samples = new List<KeyRange>();
@@ -609,7 +672,7 @@ namespace FdbShell
 			if (ranges.Count <= 32)
 			{ // small enough to scan it all
 				samples.AddRange(ranges);
-				log.WriteLine("Sampling all {0:N0} shards ...", samples.Count);
+				log.WriteLine($"Sampling all {samples.Count:N0} shards ...");
 			}
 			else
 			{ // need to take a random subset
@@ -628,7 +691,7 @@ namespace FdbShell
 					samples.Add(population[p]);
 					population.RemoveAt(p);
 				}
-				log.WriteLine("Sampling " + samples.Count + " out of " + ranges.Count + " shards (" + (100.0 * samples.Count / ranges.Count).ToString("N1") + "%) ...");
+				log.WriteLine($"Sampling {samples.Count:N0} out of {ranges.Count:N0} shards ({(100.0 * samples.Count / ranges.Count):N1}%) ...");
 			}
 
 			log.WriteLine();
@@ -742,15 +805,15 @@ namespace FdbShell
 			log.WriteLine();
 			if (n != ranges.Count)
 			{
-				log.WriteLine("Sampled " + FormatSize(globalSize) + " (" + globalSize.ToString("N0") + " bytes) and " + globalCount.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
-				log.WriteLine("> Estimated total size is " + FormatSize(globalSize * ranges.Count / n));
+				log.WriteLine($"Sampled {FormatSize(globalSize)} ({globalSize:N0} bytes) and {globalCount:N0} keys in {sw.Elapsed.TotalSeconds:N1} sec");
+				log.WriteLine($"> Estimated total size is {FormatSize(globalSize * ranges.Count / n)}");
 			}
 			else
 			{
-				log.WriteLine("Found " + FormatSize(globalSize) + " (" + globalSize.ToString("N0") + " bytes) and " + globalCount.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
+				log.WriteLine($"Found {FormatSize(globalSize)} ({globalSize:N0} bytes) and {globalCount:N0} keys in {sw.Elapsed.TotalSeconds:N1} sec");
 				// compare to the whole cluster
 				ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue, ct);
-				log.WriteLine("> This directory contains ~{0:N2}% of all data", (100.0 * n / ranges.Count));
+				log.WriteLine($"> This directory contains ~{(100.0 * n / ranges.Count):N2}% of all data");
 			}
 			log.WriteLine();
 		}

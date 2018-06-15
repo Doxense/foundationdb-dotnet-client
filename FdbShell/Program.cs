@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FdbShell
 {
 	using System;
+	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
 	using System.Net;
@@ -49,6 +50,8 @@ namespace FdbShell
 
 		internal static string CurrentDirectoryPath = "/";
 
+		internal static string Description = "?";
+
 		private static StreamWriter GetLogFile(string name)
 		{
 			long localTime = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) - 62135596800000;
@@ -66,6 +69,49 @@ namespace FdbShell
 			return stream;
 		}
 
+		internal static void Comment(TextWriter output, string msg)
+		{
+			StdOut(output, msg, ConsoleColor.DarkGray);
+		}
+
+		internal static void Error(TextWriter output, string msg)
+		{
+			StdOut(output, msg, ConsoleColor.Red);
+		}
+
+		internal static void Success(TextWriter output, string msg)
+		{
+			StdOut(output, msg, ConsoleColor.Green);
+		}
+
+		internal static void StdOut(TextWriter output, string msg, ConsoleColor color = ConsoleColor.DarkGray)
+		{
+			if (output == Console.Out)
+			{
+				StdOut(msg, color);
+			}
+			else
+			{
+				output.WriteLine(msg);
+			}
+		}
+
+		private static void StdOut(string msg, ConsoleColor color = ConsoleColor.DarkGray)
+		{
+			var prev = Console.ForegroundColor;
+			if (prev != color) Console.ForegroundColor = color;
+			Console.WriteLine(msg);
+			if (prev != color) Console.ForegroundColor = prev;
+		}
+
+		private static void StdErr(string msg, ConsoleColor color = ConsoleColor.DarkRed)
+		{
+			var prev = Console.ForegroundColor;
+			Console.ForegroundColor = color;
+			Console.Error.WriteLine(msg);
+			Console.ForegroundColor = prev;
+		}
+
 		public static async Task RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command, CancellationToken cancel)
 		{
 			TextWriter log = null;
@@ -78,10 +124,8 @@ namespace FdbShell
 				{
 					await command(db, log, cts.Token).ConfigureAwait(false);
 				}
-				catch (Exception e)
+				finally
 				{
-					Console.WriteLine("EPIC FAIL!");
-					Console.Error.WriteLine(e.ToString());
 					cts.Cancel();
 				}
 			}
@@ -101,10 +145,11 @@ namespace FdbShell
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine("EPIC FAIL!");
-					Console.Error.WriteLine(e.ToString());
-					cts.Cancel();
 					return Maybe.Error<T>(e);
+				}
+				finally
+				{
+					cts.Cancel();
 				}
 			}
 		}
@@ -138,7 +183,7 @@ namespace FdbShell
 			finally
 			{
 				Fdb.Stop();
-				Console.WriteLine("Bye");
+				StdOut("Bye");
 			}
 		}
 
@@ -157,7 +202,7 @@ namespace FdbShell
 			var opts = new OptionSet()
 			{
 				{ 
-					"c|connfile=",
+					"c|C|connfile=",
 					"The path of a file containing the connection string for the FoundationDB cluster.",
 					v => clusterFile = v
 				},
@@ -223,20 +268,33 @@ namespace FdbShell
 				Db.DefaultTimeout = Math.Max(0, timeout) * 1000;
 				Db.DefaultRetryLimit = Math.Max(0, maxRetries);
 
-				Console.WriteLine("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")");
-				Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));
-				Console.WriteLine();
-				Console.WriteLine("FoundationDB Shell menu:");
-				Console.WriteLine("\tdir\tShow the content of the current directory");
-				Console.WriteLine("\ttree\tShow all the directories under the current directory");
-				Console.WriteLine("\tsampling\tDisplay statistics on random shards from the database");
-				Console.WriteLine("\tcoordinators\tShow the current coordinators for the cluster");
-				Console.WriteLine("\tmem\tShow memory usage statistics");
-				Console.WriteLine("\tgc\tTrigger garbage collection");
-				Console.WriteLine("\tquit\tQuit");
+				StdOut("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")", ConsoleColor.Gray);
+				StdOut("Cluster file: " + (clusterFile ?? "<default>"), ConsoleColor.Gray);
+				StdOut("");
+				StdOut("FoundationDB Shell menu:");
+				StdOut("\tcd\tChange the current directory");
+				StdOut("\tdir\tList the sub-directories the current directory");
+				StdOut("\tshow\tShow the content of the current directory");
+				StdOut("\ttree\tShow all the directories under the current directory");
+				StdOut("\tsampling\tDisplay statistics on random shards from the database");
+				StdOut("\tcoordinators\tShow the current coordinators for the cluster");
+				//StdOut("\thelp\tShow all the commands");
+				StdOut("\tquit\tQuit");
+				StdOut("");
 
-				Console.WriteLine("Ready...");
-
+				try
+				{
+					var cf = await Fdb.System.GetCoordinatorsAsync(Db, cancel);
+					Description = cf.Description;
+					StdOut("Ready...", ConsoleColor.DarkGreen);
+				}
+				catch (Exception e)
+				{
+					StdErr("Failed to get coordinators state from cluster: " + e.Message, ConsoleColor.DarkRed);
+					Description = "???";
+				}
+				
+				StdOut("");
 
 				var le = new LineEditor("FDBShell");
 
@@ -246,6 +304,7 @@ namespace FdbShell
 					"coordinators",
 					"count",
 					"dir",
+					"dump",
 					"exit",
 					"gc",
 					"help",
@@ -319,328 +378,393 @@ namespace FdbShell
 				le.TabAtStartCompletes = true;
 
 				string prompt = null;
-				Action<string> updatePrompt = (path) => { prompt = String.Format("fdb:{0}> ", path); };
-				updatePrompt(CurrentDirectoryPath);
+
+				void UpdatePrompt(string path)
+				{
+					prompt = $"[fdb:{Description} {path}]# ";
+				}
+				le.PromptColor = ConsoleColor.Cyan;
+				UpdatePrompt(CurrentDirectoryPath);
 
 				while (!stop)
 				{
-					string s = startCommand != null ? startCommand : le.Edit(prompt, "");
-					startCommand = null;
+					string s;
+					if (startCommand != null)
+					{
+						s = startCommand;
+						startCommand = null;
+					}
+					else
+					{
+						s = startCommand ?? le.Edit(prompt, "");
+					}
 
 					if (s == null) break;
 
 					var tokens = s.Trim().Split(new [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-					string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
-					string prm = tokens.Length > 1 ? tokens[1] : String.Empty;
-					var extras = tokens.Length > 2 ? STuple.FromEnumerable<string>(tokens.Skip(2)) : STuple.Empty;
+					string cmd = tokens.Length > 0 ? tokens[0] : string.Empty;
+					var extras = tokens.Length > 1 ? STuple.FromEnumerable<string>(tokens.Skip(1)) : STuple.Empty;
 
 					var trimmedCommand = cmd.Trim().ToLowerInvariant();
-					switch (trimmedCommand)
+					try
 					{
-						case "":
+						switch (trimmedCommand)
 						{
-							continue;
-						}
-						case "log":
-						{
-							LogCommand(prm, Console.Out);
-
-							break;
-						}
-
-						case "version":
-						{
-							await VersionCommand(prm, clusterFile, Console.Out, cancel);
-							break;
-						}
-
-						case "tree":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Tree(path, extras, db, log, ct), cancel);
-							break;
-						}
-						case "map":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Map(path, extras, db, log, ct), cancel);
-							break;
-						}
-
-						case "dir":
-						case "ls":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct), cancel);
-							break;
-						}
-						case "ll":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.ShowCount, db, log, ct), cancel);
-							break;
-						}
-
-						case "count":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Count(path, extras, db, log, ct), cancel);
-							break;
-						}
-
-						case "show":
-						case "top":
-						{
-							var path = ParsePath(CurrentDirectoryPath);
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, false, db, log, ct), cancel);
-							break;
-						}
-						case "last":
-						{
-							var path = ParsePath(CurrentDirectoryPath);
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, true, db, log, ct), cancel);
-							break;
-						}
-
-						case "cd":
-						case "pwd":
-						{
-							if (!string.IsNullOrEmpty(prm))
+							case "":
 							{
-								var newPath = CombinePath(CurrentDirectoryPath, prm);
-								var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(newPath), db, ct), cancel);
-								if (res.Failed)
-								{
-									Console.Error.WriteLine("# Failed to open Directory {0}: {1}", newPath, res.Error.Message);
-									Console.Beep();
-								}
-								else if (res.Value == null)
-								{
-									Console.WriteLine("# Directory {0} does not exist!", newPath);
-									Console.Beep();
-								}
-								else
-								{
-									CurrentDirectoryPath = newPath;
-									updatePrompt(CurrentDirectoryPath);
-								}
+								continue;
 							}
-							else
+							case "log":
 							{
-								var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(CurrentDirectoryPath), db, ct), cancel);
-								if (res.Failed)
-								{
-									Console.Error.WriteLine("# Failed to query Directory {0}: {1}", Program.CurrentDirectoryPath, res.Error.Message);
-								}
-								else if (res.Value == null)
-								{
-									Console.WriteLine("# Directory {0} does not exist anymore", CurrentDirectoryPath);
-								}
-								else
-								{
-									Console.WriteLine("# {0}", res);
-								}
-							}
-							break;
-						}
-						case "mkdir":
-						case "md":
-						{ // "mkdir DIRECTORYNAME"
-
-							if (!string.IsNullOrEmpty(prm))
-							{
-								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-								await RunAsyncCommand((db, log, ct) => BasicCommands.CreateDirectory(path, extras, db, log, ct), cancel);
-							}
-							break;
-						}
-						case "rmdir":
-						{ // "rmdir DIRECTORYNAME"
-							if (!string.IsNullOrEmpty(prm))
-							{
-								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-								await RunAsyncCommand((db, log, ct) => BasicCommands.RemoveDirectory(path, extras, db, log, ct), cancel);
-							}
-							break;
-						}
-
-						case "mv":
-						case "ren":
-						{ // "mv SOURCE DESTINATION"
-							
-							var srcPath = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							var dstPath = ParsePath(CombinePath(CurrentDirectoryPath, extras.Get<string>(0)));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.MoveDirectory(srcPath, dstPath, extras.Substring(1), db, log, ct), cancel);
-
-							break;
-						}
-
-						case "layer":
-						{
-							if (string.IsNullOrEmpty(prm))
-							{ // displays the layer id of the current folder
-								var path = ParsePath(CurrentDirectoryPath);
-								await RunAsyncCommand((db, log, ct) => BasicCommands.ShowDirectoryLayer(path, extras, db, log, ct), cancel);
-
-							}
-							else
-							{ // change the layer id of the current folder
-								prm = prm.Trim();
-								// double or single quotes can be used to escape the value
-								if (prm.Length >= 2 && (prm.StartsWith("'") && prm.EndsWith("'")) || (prm.StartsWith("\"") && prm.EndsWith("\"")))
-								{
-									prm = prm.Substring(1, prm.Length - 2);
-								}
-								var path = ParsePath(CurrentDirectoryPath);
-								await RunAsyncCommand((db, log, ct) => BasicCommands.ChangeDirectoryLayer(path, prm, extras, db, log, ct), cancel);
-							}
-							break;
-						}
-
-						case "mkpart":
-						{ // "mkpart PARTITIONNAME"
-
-							if (!string.IsNullOrEmpty(prm))
-							{
-								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-								await RunAsyncCommand((db, log, ct) => BasicCommands.CreateDirectory(path, STuple.Create(FdbDirectoryPartition.LayerId).Concat(extras), db, log, ct), cancel);
-							}
-
-							break;
-						}
-
-						case "topology":
-						{
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Topology(null, extras, db, log, ct), cancel);
-							break;
-						}
-
-						case "shards":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Shards(path, extras, db, log, ct), cancel);
-							break;
-						}
-
-						case "sampling":
-						{
-							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Sampling(path, extras, db, log, ct), cancel);
-							break;
-						}
-
-						case "coordinators":
-						{
-							await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, log, ct), cancel);
-							break;
-						}
-
-						case "partition":
-						{
-							if (string.IsNullOrEmpty(prm))
-							{
-								Console.WriteLine("# Current partition is {0}", String.Join("/", partition));
-								//TODO: browse existing partitions ?
+								string prm = PopParam(ref extras);
+								LogCommand(prm, extras, Console.Out);
 								break;
 							}
 
-							var newPartition = prm.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-							IFdbDatabase newDb = null;
-							try
+							case "version":
 							{
-								var options = new FdbConnectionOptions
-								{
-									ClusterFile = clusterFile,
-									DbName = dbName,
-									PartitionPath = newPartition
-								};
-								newDb = await ChangeDatabase(options, cancel);
+								await VersionCommand(extras, clusterFile, Console.Out, cancel);
+								break;
 							}
-							catch (Exception)
+
+							case "tree":
 							{
-								if (newDb != null) newDb.Dispose();
-								newDb = null;
-								throw;
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Tree(path, extras, db, log, ct), cancel);
+								break;
 							}
-							finally
+							case "map":
 							{
-								if (newDb != null)
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Map(path, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "dir":
+							case "ls":
+							{
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct), cancel);
+								break;
+							}
+							case "ll":
+							{
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.ShowCount, db, log, ct), cancel);
+								break;
+							}
+
+							case "count":
+							{
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Count(path, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "show":
+							case "top":
+							{
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, false, db, log, ct), cancel);
+								break;
+							}
+							case "last":
+							{
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, true, db, log, ct), cancel);
+								break;
+							}
+
+							case "dump":
+							{
+								string output = PopParam(ref extras);
+								if (string.IsNullOrEmpty(output))
 								{
-									if (Db != null) { Db.Dispose(); Db = null; }
-									Db = newDb;
-									partition = newPartition;
-									Console.WriteLine("# Changed partition to {0}", partition);
+									StdErr("You must specify a target file path.", ConsoleColor.Red);
+									break;
 								}
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Dump(path, output, extras, db, log, ct), cancel);
+								break;
 							}
-							break;
-						}
 
-						case "q":
-						case "x":
-						case "quit":
-						case "exit":
-						case "bye":
-						{
-							stop = true;
-							break;
-						}
-
-						case "gc":
-						{
-							long before = GC.GetTotalMemory(false);
-							Console.Write("Collecting garbage...");
-							GC.Collect();
-							GC.WaitForPendingFinalizers();
-							GC.Collect();
-							Console.WriteLine(" Done");
-							long after = GC.GetTotalMemory(false);
-							Console.WriteLine("- before = " + before.ToString("N0"));
-							Console.WriteLine("- after  = " + after.ToString("N0"));
-							Console.WriteLine("- delta  = " + (before - after).ToString("N0"));
-							break;
-						}
-
-						case "mem":
-						{
-							Console.WriteLine("Memory usage:");
-							Console.WriteLine("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
-							//TODO: how do we get these values on Linux/Mac?
-#if !NETCOREAPP
-							Console.WriteLine("- Working Set  : " + PerfCounters.WorkingSet.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak.NextValue().ToString("N0") + ")");
-							Console.WriteLine("- Virtual Bytes: " + PerfCounters.VirtualBytes.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak.NextValue().ToString("N0") + ")");
-							Console.WriteLine("- Private Bytes: " + PerfCounters.PrivateBytes.NextValue().ToString("N0"));
-							Console.WriteLine("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps.NextValue().ToString("N0"));
-#endif
-							break;
-						}
-
-						case "wide":
-						{
-							Console.WindowWidth = 160;
-							break;
-						}
-
-						case "status":
-						case "wtf":
-						{
-							var result = await RunAsyncCommand((_, log, ct) => FdbCliCommands.RunFdbCliCommand("status details", null, clusterFile, log, ct), cancel);
-							if (result.Failed) break;
-							if (result.Value.ExitCode != 0)
+							case "cd":
+							case "pwd":
 							{
-								Console.WriteLine("# fdbcli exited with code {0}", result.Value.ExitCode);
-								Console.WriteLine("> StdErr:");
-								Console.WriteLine(result.Value.StdErr);
-								Console.WriteLine("> StdOut:");
-							}
-							Console.WriteLine(result.Value.StdOut);
-							break;
-						}
+								string prm = PopParam(ref extras);
+								if (!string.IsNullOrEmpty(prm))
+								{
+									var newPath = CombinePath(CurrentDirectoryPath, prm);
+									var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(newPath), db, ct), cancel);
+									if (res.Failed)
+									{
+										StdErr($"# Failed to open Directory {newPath}: {res.Error.Message}", ConsoleColor.Red);
+										Console.Beep();
+									}
+									else if (res.Value == null)
+									{
+										StdOut($"# Directory {newPath} does not exist!", ConsoleColor.Red);
+										Console.Beep();
+									}
+									else
+									{
+										CurrentDirectoryPath = newPath;
+										UpdatePrompt(CurrentDirectoryPath);
+									}
+								}
+								else
+								{
+									var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(CurrentDirectoryPath), db, ct), cancel);
+									if (res.Failed)
+									{
+										StdErr($"# Failed to query Directory {Program.CurrentDirectoryPath}: {res.Error.Message}", ConsoleColor.Red);
+									}
+									else if (res.Value == null)
+									{
+										StdOut($"# Directory {Program.CurrentDirectoryPath} does not exist anymore");
+									}
+								}
 
-						default:
-						{
-							Console.WriteLine(string.Format("Unknown command : '{0}'", trimmedCommand));
-							break;
+								break;
+							}
+							case "mkdir":
+							case "md":
+							{ // "mkdir DIRECTORYNAME"
+
+								string prm = PopParam(ref extras);
+								if (!string.IsNullOrEmpty(prm))
+								{
+									var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+									await RunAsyncCommand((db, log, ct) => BasicCommands.CreateDirectory(path, extras, db, log, ct), cancel);
+								}
+
+								break;
+							}
+							case "rmdir":
+							{ // "rmdir DIRECTORYNAME"
+								string prm = PopParam(ref extras);
+								if (!string.IsNullOrEmpty(prm))
+								{
+									var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+									await RunAsyncCommand((db, log, ct) => BasicCommands.RemoveDirectory(path, extras, db, log, ct), cancel);
+								}
+
+								break;
+							}
+
+							case "mv":
+							case "ren":
+							{ // "mv SOURCE DESTINATION"
+
+								string prm = PopParam(ref extras);
+								var srcPath = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								var dstPath = ParsePath(CombinePath(CurrentDirectoryPath, extras.Get<string>(0)));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.MoveDirectory(srcPath, dstPath, extras.Substring(1), db, log, ct), cancel);
+
+								break;
+							}
+
+							case "layer":
+							{
+								string prm = PopParam(ref extras);
+								if (string.IsNullOrEmpty(prm))
+								{ // displays the layer id of the current folder
+									var path = ParsePath(CurrentDirectoryPath);
+									await RunAsyncCommand((db, log, ct) => BasicCommands.ShowDirectoryLayer(path, extras, db, log, ct), cancel);
+
+								}
+								else
+								{ // change the layer id of the current folder
+									prm = prm.Trim();
+									// double or single quotes can be used to escape the value
+									if (prm.Length >= 2 && (prm.StartsWith("'") && prm.EndsWith("'")) || (prm.StartsWith("\"") && prm.EndsWith("\"")))
+									{
+										prm = prm.Substring(1, prm.Length - 2);
+									}
+
+									var path = ParsePath(CurrentDirectoryPath);
+									await RunAsyncCommand((db, log, ct) => BasicCommands.ChangeDirectoryLayer(path, prm, extras, db, log, ct), cancel);
+								}
+
+								break;
+							}
+
+							case "mkpart":
+							{ // "mkpart PARTITIONNAME"
+
+								string prm = PopParam(ref extras);
+								if (!string.IsNullOrEmpty(prm))
+								{
+									var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+									await RunAsyncCommand((db, log, ct) => BasicCommands.CreateDirectory(path, STuple.Create(FdbDirectoryPartition.LayerId).Concat(extras), db, log, ct), cancel);
+								}
+
+								break;
+							}
+
+							case "topology":
+							{
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Topology(null, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "shards":
+							{
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Shards(path, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "sampling":
+							{
+								string prm = PopParam(ref extras);
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Sampling(path, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "coordinators":
+							{
+								await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, log, ct), cancel);
+								break;
+							}
+
+							case "partition":
+							{
+								string prm = PopParam(ref extras);
+								if (string.IsNullOrEmpty(prm))
+								{
+									StdOut($"# Current partition is {String.Join("/", partition)}");
+									//TODO: browse existing partitions ?
+									break;
+								}
+
+								var newPartition = prm.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+								IFdbDatabase newDb = null;
+								try
+								{
+									var options = new FdbConnectionOptions
+									{
+										ClusterFile = clusterFile,
+										DbName = dbName,
+										PartitionPath = newPartition
+									};
+									newDb = await ChangeDatabase(options, cancel);
+								}
+								catch (Exception)
+								{
+									newDb?.Dispose();
+									newDb = null;
+									throw;
+								}
+								finally
+								{
+									if (newDb != null)
+									{
+										if (Db != null)
+										{
+											Db.Dispose();
+											Db = null;
+										}
+
+										Db = newDb;
+										partition = newPartition;
+										StdOut($"# Changed partition to /{string.Join("/", partition)}");
+									}
+								}
+
+								break;
+							}
+
+							case "q":
+							case "x":
+							case "quit":
+							case "exit":
+							case "bye":
+							{
+								stop = true;
+								break;
+							}
+
+							case "gc":
+							{
+								long before = GC.GetTotalMemory(false);
+								Console.Write("Collecting garbage...");
+								GC.Collect();
+								GC.WaitForPendingFinalizers();
+								GC.Collect();
+								StdOut(" Done");
+								long after = GC.GetTotalMemory(false);
+								StdOut("- before = " + before.ToString("N0"));
+								StdOut("- after  = " + after.ToString("N0"));
+								StdOut("- delta  = " + (before - after).ToString("N0"));
+								break;
+							}
+
+							case "mem":
+							{
+								StdOut("Memory usage:");
+								StdOut("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
+								//TODO: how do we get these values on Linux/Mac?
+#if !NETCOREAPP
+								StdOut("- Working Set  : " + PerfCounters.WorkingSet.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak.NextValue().ToString("N0") + ")");
+								StdOut("- Virtual Bytes: " + PerfCounters.VirtualBytes.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak.NextValue().ToString("N0") + ")");
+								StdOut("- Private Bytes: " + PerfCounters.PrivateBytes.NextValue().ToString("N0"));
+								StdOut("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps.NextValue().ToString("N0"));
+#endif
+								break;
+							}
+
+							case "wide":
+							{
+								try
+								{
+									Console.WindowWidth = 160;
+								}
+								catch (Exception e)
+								{
+									StdErr("Failed to change console width: " + e.Message, ConsoleColor.DarkRed);
+								}
+
+								break;
+							}
+
+							case "status":
+							case "wtf":
+							{
+								var result = await RunAsyncCommand((_, log, ct) => FdbCliCommands.RunFdbCliCommand("status details", null, clusterFile, log, ct), cancel);
+								if (result.Failed) break;
+								if (result.Value.ExitCode != 0)
+								{
+									StdErr($"# fdbcli exited with code {result.Value.ExitCode}", ConsoleColor.DarkRed);
+									StdOut("> StdErr:", ConsoleColor.DarkGray);
+									StdOut(result.Value.StdErr);
+									StdOut("> StdOut:", ConsoleColor.DarkGray);
+								}
+
+								StdOut(result.Value.StdOut);
+								break;
+							}
+
+							default:
+							{
+								StdErr($"Unknown command : '{trimmedCommand}'", ConsoleColor.Red);
+								break;
+							}
 						}
+					}
+					catch (Exception e)
+					{
+						StdErr($"Failed to execute command '{trimmedCommand}': " + e.Message, ConsoleColor.Red);
+#if DEBUG
+						StdErr(e.ToString(), ConsoleColor.DarkRed);
+#endif
 					}
 
 					if (!string.IsNullOrEmpty(execCommand))
@@ -652,8 +776,20 @@ namespace FdbShell
 			}
 			finally
 			{
-				if (Db != null) Db.Dispose();
+				Program.Db?.Dispose();
 			}
+		}
+
+		private static string PopParam(ref IVarTuple extras)
+		{
+			if (extras.Count == 0)
+			{
+				return null;
+			}
+
+			string prm = extras.Get<string>(0);
+			extras = extras.Substring(1);
+			return prm;
 		}
 
 		#region Directories...
@@ -661,8 +797,29 @@ namespace FdbShell
 		private static string CombinePath(string parent, string children)
 		{
 			if (string.IsNullOrEmpty(children) || children == ".") return parent;
-			if (children.StartsWith("/")) return children;
-			return System.IO.Path.GetFullPath(System.IO.Path.Combine(parent, children)).Replace("\\", "/").Substring(2);
+			if (children.StartsWith("/", StringComparison.Ordinal)) return children;
+
+			if (!parent.EndsWith("/", StringComparison.Ordinal)) parent += "/";
+			if (children.EndsWith("/", StringComparison.Ordinal)) children = children.Substring(0, children.Length - 1);
+
+			string[] tokens = (parent + children).Substring(1).Split('/');
+			// we need to remove all the "." and ".." !
+			var s = new List<string>();
+			foreach(var tok in tokens)
+			{
+				if (tok == ".") continue;
+				if (tok == "..")
+				{
+					if (s.Count == 0)
+					{
+						throw new InvalidOperationException("The specified path is invalid.");
+					}
+					s.RemoveAt(s.Count - 1);
+					continue;
+				}
+				s.Add(tok);
+			}
+			return "/" + string.Join("/", s);
 		}
 
 		private static string[] ParsePath(string path)
@@ -683,7 +840,7 @@ namespace FdbShell
 
 		#endregion
 
-		private static void LogCommand(string prm, TextWriter log)
+		private static void LogCommand(string prm, IVarTuple extras, TextWriter log)
 		{
 			switch (prm.ToLowerInvariant())
 			{
@@ -707,7 +864,7 @@ namespace FdbShell
 			} 
 		}
 
-		private static async Task VersionCommand(string prm, string clusterFile, TextWriter log, CancellationToken cancel)
+		private static async Task VersionCommand(IVarTuple extras, string clusterFile, TextWriter log, CancellationToken cancel)
 		{
 			log.WriteLine("Using .NET Binding v{0} with API level {1}", new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName).Version, Fdb.ApiVersion);
 			var res = await RunAsyncCommand((db, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, log, ct), cancel);
@@ -726,12 +883,20 @@ namespace FdbShell
 		private static async Task CoordinatorsCommand(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
-			log.WriteLine("Connnected to: " + cf.Description + " (" + cf.Id + ")");
-			log.WriteLine("Found {0} coordinator(s):", cf.Coordinators.Length);
+			Description = cf.Description;
+			Program.StdOut(log, $"Connnected to: {cf.Description} ({cf.Id})", ConsoleColor.Gray);
+			Program.StdOut(log, $"Found {cf.Coordinators.Length} coordinator(s):");
 			foreach (var coordinator in cf.Coordinators)
 			{
-				var iphost = Dns.GetHostEntry(coordinator.Address);
-				log.WriteLine("- " + coordinator.Address + ":" + coordinator.Port + " (" + iphost.HostName + ")");
+				//string hostName = null;
+				//try
+				//{
+				//	var ipHost = Dns.GetHostEntry(coordinator.Address);
+				//	hostName = " (" + ipHost.HostName + ")";
+				//}
+				//catch (Exception) { }
+
+				Program.StdOut(log, $"  {coordinator.Address}:{coordinator.Port}", ConsoleColor.White);
 			}
 		}
 
@@ -744,3 +909,4 @@ namespace FdbShell
 
 	}
 }
+

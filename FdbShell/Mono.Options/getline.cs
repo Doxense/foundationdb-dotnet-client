@@ -216,10 +216,20 @@ namespace Mono.Terminal
 			Render();
 		}
 
+		public ConsoleColor PromptColor { get; set; } = ConsoleColor.DarkGreen;
+
+		public ConsoleColor CommandColor { get; set; } = ConsoleColor.White;
+
 		void Render()
 		{
-			Console.Write(shown_prompt);
-			Console.Write(rendered_text);
+			{
+				var x = Console.ForegroundColor;
+				Console.ForegroundColor = this.PromptColor;
+				Console.Write(shown_prompt);
+				Console.ForegroundColor = this.CommandColor;
+				Console.Write(rendered_text);
+				Console.ForegroundColor = x;
+			}
 
 			int max = System.Math.Max(rendered_text.Length + shown_prompt.Length, max_rendered);
 
