@@ -59,6 +59,10 @@ namespace FoundationDB.Client
 		/// <summary>Current attempt number (0 for first, 1+ for retries)</summary>
 		public int Retries { get; private set; }
 
+		/// <summary>Error code of the previous attempt</summary>
+		/// <remarks>Equal to <see cref="FdbError.Success"/> for the first attempt, or the error code generate by the previous failed attempt.</remarks>
+		public FdbError PreviousError { get; private set; }
+
 		/// <summary>Stopwatch that is started at the creation of the transaction, and stopped when it commits or gets disposed</summary>
 		private ValueStopwatch Clock; //REVIEW: must be a field!
 
@@ -255,6 +259,7 @@ namespace FoundationDB.Client
 
 							// we are done
 							context.Committed = true;
+							context.PreviousError = FdbError.Success;
 
 							// execute any success handlers if there are any
 							if (context.SuccessHandlers != null)
@@ -296,6 +301,8 @@ namespace FoundationDB.Client
 						}
 						catch (FdbException e)
 						{
+							context.PreviousError = e.Code;
+
 							// reset any handler
 							context.SuccessHandlers = null;
 
