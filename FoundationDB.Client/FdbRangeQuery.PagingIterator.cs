@@ -178,6 +178,7 @@ namespace FoundationDB.Client
 					Limit = this.RemainingCount,
 					TargetBytes = this.RemainingSize,
 					Mode = this.Query.Mode,
+					Read = this.Query.Read,
 					Reverse = this.Query.Reversed
 				};
 

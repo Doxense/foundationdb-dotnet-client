@@ -152,10 +152,17 @@ namespace FoundationDB.Filters
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
-		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		/// <inheritdoc />
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		{
+			return GetRange(beginInclusive, endExclusive, kv => kv, options);
+		}
+
+		/// <inheritdoc />
+		public virtual FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetRange(beginInclusive, endExclusive, options);
+			return m_transaction.GetRange<TResult>(beginInclusive, endExclusive, selector, options);
 		}
 
 		/// <inheritdoc />
@@ -405,9 +412,16 @@ namespace FoundationDB.Filters
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
-		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endInclusive, FdbRangeOptions options = null)
+		/// <inheritdoc />
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endInclusive, FdbRangeOptions options = null)
 		{
-			return m_transaction.GetRange(beginInclusive, endInclusive, options);
+			return GetRange(beginInclusive, endInclusive, kv => kv, options);
+		}
+
+		/// <inheritdoc />
+		public virtual FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endInclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		{
+			return m_transaction.GetRange(beginInclusive, endInclusive, selector, options);
 		}
 
 		/// <inheritdoc />

@@ -36,9 +36,9 @@ namespace FoundationDB.Client.Native
 	internal struct FdbKeyValue
 	{
 		public IntPtr Key;
-		public int KeyLength;
+		public uint KeyLength;
 		public IntPtr Value;
-		public int ValueLength;
+		public uint ValueLength;
 	}
 
 }

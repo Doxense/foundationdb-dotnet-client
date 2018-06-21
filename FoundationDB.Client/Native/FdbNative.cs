@@ -38,6 +38,7 @@ namespace FoundationDB.Client.Native
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 
 	internal static unsafe class FdbNative
 	{
@@ -759,14 +760,15 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, FdbReadMode read, out KeyValuePair<Slice, Slice>[] result, out bool more)
 		{
 			result = null;
 
-			int count;
-			FdbKeyValue* kvp;
+			bool readKeys = read != FdbReadMode.Values;
+			bool readValues = read != FdbReadMode.Keys;
 
-			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out kvp, out count, out more);
+			FdbKeyValue* kvp;
+			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 #endif
@@ -775,7 +777,7 @@ namespace FoundationDB.Client.Native
 			{
 				Contract.Assert(count >= 0, "Return count was negative");
 
-				result = new KeyValuePair<Slice, Slice>[count];
+				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
 
 				if (count > 0)
 				{ // convert the keyvalue result into an array
@@ -787,12 +789,16 @@ namespace FoundationDB.Client.Native
 					// link to the different chunks of this buffer.
 
 					// first pass to compute the total size needed
-					int total = 0;
+					long total = 0;
 					for (int i = 0; i < count; i++)
 					{
 						//TODO: protect against negative values or values too big ?
-						Contract.Assert(kvp[i].KeyLength >= 0 && kvp[i].ValueLength >= 0);
-						total += kvp[i].KeyLength + kvp[i].ValueLength;
+						uint kl = kvp[i].KeyLength;
+						uint vl = kvp[i].ValueLength;
+						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
+						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larget than a signed 32-bit int!");
+						if (readKeys) total += kl;
+						if (readValues) total += vl;
 					}
 
 					// allocate all memory in one chunk, and make the key/values point to it
@@ -802,27 +808,47 @@ namespace FoundationDB.Client.Native
 					//TODO: protect against too much memory allocated ?
 					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
 
+					//TODO: some keys/values will be small (32 bytes or less) while other will be big
+					//consider having to copy methods, optimized for each scenario ?
+
 					var page = new byte[total];
-					int p = 0;
-					for (int i = 0; i < result.Length; i++)
+					fixed (byte* ptr = &page[0])
 					{
-						int kl = kvp[i].KeyLength;
-						int vl = kvp[i].ValueLength;
+						uint p = 0;
+						for (int i = 0; i < result.Length; i++)
+						{
+							Slice key;
+							Slice value;
 
-						//TODO: some keys/values will be small (32 bytes or less) while other will be big
-						//consider having to copy methods, optimized for each scenario ?
+							if (readKeys)
+							{
+								uint kl = kvp[i].KeyLength;
+								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
+								key = page.AsSlice(p, kl);
+								p += kl;
+							}
+							else
+							{
+								key = Slice.Nil;
+							}
 
-						Marshal.Copy(kvp[i].Key, page, p, kl);
-						Marshal.Copy(kvp[i].Value, page, p + kl, vl);
+							if (readValues)
+							{
+								uint vl = kvp[i].ValueLength;
+								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
+								value = page.AsSlice(p, vl);
+								p += vl;
+							}
+							else
+							{
+								value = Slice.Nil;
+							}
 
-						result[i] = new KeyValuePair<Slice, Slice>(
-							page.AsSlice(p, kl),
-							page.AsSlice(p + kl, vl)
-						);
+							result[i] = new KeyValuePair<Slice, Slice>(key, value);
+						}
 
-						p += kl + vl;
+						Contract.Assert(p == total);
 					}
-					Contract.Assert(p == total);
 				}
 			}
 
@@ -833,10 +859,8 @@ namespace FoundationDB.Client.Native
 		{
 			result = null;
 
-			int count;
 			byte** strings;
-
-			var err = NativeMethods.fdb_future_get_string_array(future, out strings, out count);
+			var err = NativeMethods.fdb_future_get_string_array(future, out strings, out int count);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_string_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
 #endif

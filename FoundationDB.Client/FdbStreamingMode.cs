@@ -72,4 +72,15 @@ namespace FoundationDB.Client
 		Serial = 4
 	}
 
+	/// <summary>Defines if the range read will only return the keys, values or both.</summary>
+	public enum FdbReadMode
+	{
+		/// <summary>Read both keys and values (default)</summary>
+		Both = 0,
+		/// <summary>Read only the keys. The values will all be equal to <see cref="Slice.Nil"/></summary>
+		Keys = 1,
+		/// <summary>Read only the values. The keys will all be equal to <see cref="Slice.Nil"/></summary>
+		Values = 2
+	}
+
 }

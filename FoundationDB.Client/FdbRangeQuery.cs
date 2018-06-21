@@ -96,8 +96,10 @@ namespace FoundationDB.Client
 		public int? TargetBytes => this.Options.TargetBytes;
 
 		/// <summary>Streaming mode</summary>
-		//REVIEW: nullable?
 		public FdbStreamingMode Mode => this.Options.Mode ?? FdbStreamingMode.Iterator;
+
+		/// <summary>Read mode</summary>
+		public FdbReadMode Read => this.Options.Read ?? FdbReadMode.Both;
 
 		/// <summary>Should we perform the range using snapshot mode ?</summary>
 		public bool Snapshot { get; }

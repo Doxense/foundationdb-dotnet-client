@@ -126,7 +126,7 @@ namespace FoundationDB.Filters
 			return base.GetAddressesForKeyAsync(Encode(key));
 		}
 
-		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<System.Collections.Generic.KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
 		{
 			throw new NotImplementedException();
 		}

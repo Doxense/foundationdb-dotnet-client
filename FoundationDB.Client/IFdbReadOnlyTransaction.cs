@@ -112,6 +112,17 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null);
 
+		/// <summary>
+		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction, and transform them into a result of type <typeparamref name="TResult"/>
+		/// </summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="selector">Selector used to convert each key-value pair into an element of type <typeparamref name="TResult"/></param>
+		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
+		[Pure, NotNull, LinqTunnel]
+		FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null);
+
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>

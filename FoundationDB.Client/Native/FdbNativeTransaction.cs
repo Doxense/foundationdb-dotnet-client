@@ -204,9 +204,9 @@ namespace FoundationDB.Client.Native
 		/// <param name="more">Receives true if there are more result, or false if all results have been transmited</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
 		[NotNull]
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, FdbReadMode read, out bool more)
 		{
-			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
+			var err = FdbNative.FutureGetKeyValueArray(h, read, out var result, out more);
 			Fdb.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Ensures(result != null);
@@ -226,7 +226,7 @@ namespace FoundationDB.Client.Native
 				(h) =>
 				{
 					// TODO: quietly return if disposed
-					var chunk = GetKeyValueArrayResult(h, out bool hasMore);
+					var chunk = GetKeyValueArrayResult(h, options.Read ?? FdbReadMode.Both, out bool hasMore);
 					return new FdbRangeChunk(hasMore, chunk, iteration, reversed);
 				},
 				ct

@@ -36,7 +36,6 @@ namespace FoundationDB.Client.Tests
 	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Layers.Directories;
 	using NUnit.Framework;
 
@@ -86,6 +85,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(query.TargetBytes, Is.Null);
 					Assert.That(query.Reversed, Is.False);
 					Assert.That(query.Mode, Is.EqualTo(FdbStreamingMode.Iterator));
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Both));
 					Assert.That(query.Snapshot, Is.False);
 					Assert.That(query.Range.Begin, Is.EqualTo(query.Begin));
 					Assert.That(query.Range.End, Is.EqualTo(query.End));
@@ -112,13 +112,257 @@ namespace FoundationDB.Client.Tests
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 
-						// value should be a guid
+						// value should be equal to the index
 						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
 					}
 				}
 
 			}
 		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_Only_Keys()
+		{
+			// test that we can get a range of with only the keys, or only the values
+
+			const int N = 1000; // total item count
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "Queries", "Range");
+
+				// insert all values (batched)
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{ 
+					foreach (int i in Enumerable.Range(0, N))
+					{
+						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+					}
+
+					await tr.CommitAsync();
+				}
+
+				// via FdbReadMode.Keys option
+				// => returns a seqence of KV<Slice, Slice> but with Value == Slice.Nil
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(location.Keys.Encode(0), location.Keys.Encode(N), new FdbRangeOptions { Read = FdbReadMode.Keys });
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						var kvp = items[i];
+
+						// key should be a tuple in the correct order
+						var key = location.Keys.Unpack(kvp.Key);
+						Assert.That(key.Count, Is.EqualTo(1));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+
+						// value should be nil!
+						Assert.That(kvp.Value, Is.EqualTo(Slice.Nil), "Reading with read mode 'Keys' should return nil values");
+					}
+				}
+
+				// via GetRangeKeys()
+				// => return only a sequence of Slice
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr.GetRangeKeys(location.Keys.Encode(0), location.Keys.Encode(N));
+
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						// key should be a tuple in the correct order
+						var key = location.Keys.Unpack(items[i]);
+						Assert.That(key.Count, Is.EqualTo(1));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+					}
+				}
+
+				// via OnlyKeys() LINQ extension
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr
+						.GetRange(location.Keys.Encode(0), location.Keys.Encode(N))
+						.OnlyKeys();
+
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						// key should be a tuple in the correct order
+						var key = location.Keys.Unpack(items[i]);
+						Assert.That(key.Count, Is.EqualTo(1));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_Only_Values()
+		{
+			// test that we can get a range of with only the keys, or only the values
+
+			const int N = 1000; // total item count
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "Queries", "Range");
+
+				// insert all values (batched)
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{ 
+					foreach (int i in Enumerable.Range(0, N))
+					{
+						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+					}
+
+					await tr.CommitAsync();
+				}
+
+				// via FdbReadMode.Values option
+				// => returns a seqence of KV<Slice, Slice> but with Key == Slice.Nil
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						new FdbRangeOptions { Read = FdbReadMode.Values }
+					);
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						var kvp = items[i];
+
+						// key should be a tuple in the correct order
+						Assert.That(kvp.Key, Is.EqualTo(Slice.Nil), "Reading with read mode 'Values' should return nil keys");
+
+						// value should be equal to the index
+						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
+						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
+					}
+				}
+
+				// via GetRangeValues()
+				// => return only a sequence of Slice
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr.GetRangeValues(location.Keys.Encode(0), location.Keys.Encode(N));
+
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						// value should be equal to the index
+						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
+						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
+					}
+				}
+
+				// via OnlyValues() LINQ extension
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr
+						.GetRange(location.Keys.Encode(0), location.Keys.Encode(N))
+						.OnlyValues();
+
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						// value should be equal to the index
+						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
+						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_Transformed()
+		{
+			// test that we can get a range of keys and convert them into another type
+
+			const int N = 1000; // total item count
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "Queries", "Range");
+
+				// insert all values (batched)
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{ 
+					foreach (int i in Enumerable.Range(0, N))
+					{
+						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+					}
+
+					await tr.CommitAsync();
+				}
+
+				// GetRange<T>
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						(kv) => (Index: location.Keys.DecodeLast<int>(kv.Key), Score: kv.Value.ToInt32()),
+						new FdbRangeOptions { Limit = N / 2 }
+					);
+					Assert.That(query, Is.Not.Null);
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N / 2));
+
+					for (int i = 0; i < N / 2; i++)
+					{
+						Assert.That(items[i].Index, Is.EqualTo(i));
+						Assert.That(items[i].Score, Is.EqualTo(i));
+					}
+				}
+
+			}
+		}
+
 
 		[Test]
 		public async Task Test_Can_Get_Range_First_Single_And_Last()

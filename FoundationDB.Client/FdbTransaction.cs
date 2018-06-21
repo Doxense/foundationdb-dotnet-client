@@ -369,7 +369,7 @@ namespace FoundationDB.Client
 			m_database.EnsureKeyIsValid(beginInclusive.Key);
 			m_database.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, false);
+			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
@@ -382,27 +382,35 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions options, bool snapshot)
+		[Pure, NotNull, LinqTunnel]
+		internal FdbRangeQuery<TResult> GetRangeCore<TResult>(KeySelector begin, KeySelector end, FdbRangeOptions options, bool snapshot, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> selector)
 		{
+			Contract.Requires(selector != null);
+
+			EnsureCanRead();
 			this.Database.EnsureKeyIsValid(begin.Key);
 			this.Database.EnsureKeyIsValid(end.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, false);
+			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
 #endif
 
-			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kv) => kv, snapshot, options);
+			return new FdbRangeQuery<TResult>(this, begin, end, selector, snapshot, options);
 		}
 
 		/// <inheritdoc />
 		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
-			EnsureCanRead();
+			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, (kv) => kv);
+		}
 
-			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false);
+		/// <inheritdoc />
+		public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		{
+			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, selector);
 		}
 
 		#endregion

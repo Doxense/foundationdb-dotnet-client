@@ -425,11 +425,11 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
 		{
 			ThrowIfDisposed();
 
-			var query = m_transaction.GetRange(beginInclusive, endExclusive, options);
+			var query = m_transaction.GetRange(beginInclusive, endExclusive, selector, options);
 			// this method does not execute immediately, so we don't need to record any operation here, only when GetRangeAsync() is called (by ToListAsync() or any other LINQ operator)
 			// we must override the transaction used by the query, so that we are notified when this happens
 			return query.UseTransaction(this);
@@ -530,10 +530,10 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+			public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
 			{
 				m_parent.ThrowIfDisposed();
-				var query = m_transaction.GetRange(beginInclusive, endExclusive, options);
+				var query = m_transaction.GetRange(beginInclusive, endExclusive, selector, options);
 				return query.UseTransaction(this);
 			}
 
