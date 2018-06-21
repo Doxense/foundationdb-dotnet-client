@@ -94,9 +94,6 @@ namespace FoundationDB.Client.Native
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size => m_payloadBytes;
 
-		public FdbIsolationLevel IsolationLevel => FdbIsolationLevel.Serializable;
-		// FDB currently only supports Serializable transaction.
-
 		#endregion
 
 		#region Options...

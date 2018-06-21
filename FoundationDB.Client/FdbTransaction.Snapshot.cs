@@ -73,9 +73,6 @@ namespace FoundationDB.Client
 
 			public IFdbReadOnlyTransaction Snapshot => this;
 
-			public FdbIsolationLevel IsolationLevel => FdbIsolationLevel.Snapshot;
-			//TODO: not all transaction handlers may support Snapshot isolation level??
-
 			public void EnsureCanRead()
 			{
 				m_parent.EnsureCanRead();

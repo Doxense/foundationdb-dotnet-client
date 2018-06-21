@@ -159,9 +159,6 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if this transaction only supports read operations, or false if it supports both read and write operations</summary>
 		public bool IsReadOnly => m_readOnly;
 
-		/// <summary>Returns the isolation level of this transaction.</summary>
-		public FdbIsolationLevel IsolationLevel => m_handler.IsolationLevel;
-
 		#endregion
 
 		#region Options..
