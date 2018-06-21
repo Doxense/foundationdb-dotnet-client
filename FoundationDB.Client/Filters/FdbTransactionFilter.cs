@@ -33,6 +33,7 @@ namespace FoundationDB.Filters
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Base class for simple transaction filters</summary>
@@ -53,7 +54,7 @@ namespace FoundationDB.Filters
 		/// <param name="ownsTransaction">If true, the underlying transaction will also be disposed when this instance is disposed</param>
 		protected FdbTransactionFilter([NotNull] IFdbTransaction trans, bool forceReadOnly, bool ownsTransaction)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			Contract.NotNull(trans, nameof(trans));
 
 			m_transaction = trans;
 			m_readOnly = forceReadOnly || trans.IsReadOnly;
@@ -90,70 +91,61 @@ namespace FoundationDB.Filters
 			}
 		}
 
-		public int Id
-		{
-			get { return m_transaction.Id; }
-		}
+		/// <inheritdoc />
+		public int Id => m_transaction.Id;
 
-		public FdbOperationContext Context
-		{
-			get { return m_transaction.Context; }
-		}
+		/// <inheritdoc />
+		public FdbOperationContext Context => m_transaction.Context;
 
-		public bool IsSnapshot
-		{
-			get { return m_transaction.IsSnapshot; }
-		}
+		/// <inheritdoc />
+		public bool IsSnapshot => m_transaction.IsSnapshot;
 
-		public bool IsReadOnly
-		{
-			get { return m_readOnly; }
-		}
+		/// <inheritdoc />
+		public bool IsReadOnly => m_readOnly;
 
-		public virtual IFdbReadOnlyTransaction Snapshot
-		{
-			get
-			{
-				//BUGBUG: we need a snapshot wrapper ?
-				return m_transaction.Snapshot;
-			}
-		}
+		/// <inheritdoc />
+		public virtual IFdbReadOnlyTransaction Snapshot => m_transaction.Snapshot;
+		//BUGBUG: we need a snapshot wrapper ?
 
-		public CancellationToken Cancellation
-		{
-			get { return m_transaction.Cancellation; }
-		}
+		/// <inheritdoc />
+		public CancellationToken Cancellation => m_transaction.Cancellation;
 
+		/// <inheritdoc />
 		public virtual void EnsureCanRead()
 		{
 			ThrowIfDisposed();
 			m_transaction.EnsureCanRead();
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice> GetAsync(Slice key)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetAsync(key);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetValuesAsync(keys);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetKeyAsync(selector);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetKeysAsync(selectors);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			ThrowIfDisposed();
@@ -166,137 +158,157 @@ namespace FoundationDB.Filters
 			return m_transaction.GetRange(beginInclusive, endExclusive, options);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<string[]> GetAddressesForKeyAsync(Slice key)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetAddressesForKeyAsync(key);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<long> GetReadVersionAsync()
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetReadVersionAsync();
 		}
 
+		/// <inheritdoc />
 		public virtual void EnsureCanWrite()
 		{
 			ThrowIfDisposed();
 			m_transaction.EnsureCanWrite();
 		}
 
-		public virtual int Size
-		{
-			get { return m_transaction.Size; }
-		}
+		/// <inheritdoc />
+		public virtual int Size => m_transaction.Size;
 
+		/// <inheritdoc />
 		public virtual void Set(Slice key, Slice value)
 		{
 			ThrowIfDisposed();
 			m_transaction.Set(key, value);
 		}
 
+		/// <inheritdoc />
 		public virtual void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
 			ThrowIfDisposed();
 			m_transaction.Atomic(key, param, mutation);
 		}
 
+		/// <inheritdoc />
 		public virtual void Clear(Slice key)
 		{
 			ThrowIfDisposed();
 			m_transaction.Clear(key);
 		}
 
+		/// <inheritdoc />
 		public virtual void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			ThrowIfDisposed();
 			m_transaction.ClearRange(beginKeyInclusive, endKeyExclusive);
 		}
 
+		/// <inheritdoc />
 		public virtual void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
 			ThrowIfDisposed();
 			m_transaction.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
 		}
 
+		/// <inheritdoc />
 		public virtual void Cancel()
 		{
 			ThrowIfDisposed();
 			m_transaction.Cancel();
 		}
 
+		/// <inheritdoc />
 		public virtual void Reset()
 		{
 			ThrowIfDisposed();
 			m_transaction.Reset();
 		}
 
+		/// <inheritdoc />
 		public virtual Task CommitAsync()
 		{
 			ThrowIfDisposed();
 			return m_transaction.CommitAsync();
 		}
 
+		/// <inheritdoc />
 		public virtual long GetCommittedVersion()
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetCommittedVersion();
 		}
 
+		/// <inheritdoc />
 		public virtual Task<VersionStamp> GetVersionStampAsync()
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetVersionStampAsync();
 		}
 
+		/// <inheritdoc />
 		public virtual VersionStamp CreateVersionStamp()
 		{
 			ThrowIfDisposed();
 			return m_transaction.CreateVersionStamp();
 		}
 
+		/// <inheritdoc />
 		public virtual VersionStamp CreateVersionStamp(int userVersion)
 		{
 			ThrowIfDisposed();
 			return m_transaction.CreateVersionStamp(userVersion);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetReadVersion(long version)
 		{
 			ThrowIfDisposed();
 			m_transaction.SetReadVersion(version);
 		}
 
+		/// <inheritdoc />
 		public virtual Task OnErrorAsync(FdbError code)
 		{
 			ThrowIfDisposed();
 			return m_transaction.OnErrorAsync(code);
 		}
 
+		/// <inheritdoc />
 		public virtual FdbWatch Watch(Slice key, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			return m_transaction.Watch(key, ct);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option)
 		{
 			ThrowIfDisposed();
 			m_transaction.SetOption(option);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option, string value)
 		{
 			ThrowIfDisposed();
 			m_transaction.SetOption(option, value);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option, long value)
 		{
 			ThrowIfDisposed();
 			m_transaction.SetOption(option, value);
 		}
 
+		/// <inheritdoc />
 		public int Timeout
 		{
 			get { return m_transaction.Timeout; }
@@ -307,6 +319,7 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		/// <inheritdoc />
 		public int RetryLimit
 		{
 			get { return m_transaction.RetryLimit; }
@@ -317,6 +330,7 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		/// <inheritdoc />
 		public int MaxRetryDelay
 		{
 			get { return m_transaction.MaxRetryDelay; }
@@ -336,65 +350,56 @@ namespace FoundationDB.Filters
 
 		protected FdbReadOnlyTransactionFilter(IFdbReadOnlyTransaction transaction)
 		{
-			if (transaction == null) throw new ArgumentNullException("transaction");
+			Contract.NotNull(transaction, nameof(transaction));
 			m_transaction = transaction;
 		}
 
-		public int Id
-		{
-			get { return m_transaction.Id; }
-		}
+		/// <inheritdoc />
+		public int Id => m_transaction.Id;
 
-		public FdbOperationContext Context
-		{
-			get { return m_transaction.Context; }
-		}
+		/// <inheritdoc />
+		public FdbOperationContext Context => m_transaction.Context;
 
-		public bool IsSnapshot
-		{
-			get { return m_transaction.IsSnapshot; }
-		}
+		/// <inheritdoc />
+		public bool IsSnapshot => m_transaction.IsSnapshot;
 
-		public IFdbReadOnlyTransaction Snapshot
-		{
-			get { return this; }
-		}
+		/// <inheritdoc />
+		public IFdbReadOnlyTransaction Snapshot => this;
 
-		public FdbIsolationLevel IsolationLevel
-		{
-			get { return m_transaction.IsolationLevel; }
-		}
+		/// <inheritdoc />
+		public CancellationToken Cancellation => m_transaction.Cancellation;
 
-		public CancellationToken Cancellation
-		{
-			get { return m_transaction.Cancellation; }
-		}
-
+		/// <inheritdoc />
 		public void EnsureCanRead()
 		{
 			m_transaction.EnsureCanRead();
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice> GetAsync(Slice key)
 		{
 			return m_transaction.GetAsync(key);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
 			return m_transaction.GetValuesAsync(keys);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return m_transaction.GetKeyAsync(selector);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			return m_transaction.GetKeysAsync(selectors);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
@@ -405,63 +410,75 @@ namespace FoundationDB.Filters
 			return m_transaction.GetRange(beginInclusive, endInclusive, options);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<string[]> GetAddressesForKeyAsync(Slice key)
 		{
 			return m_transaction.GetAddressesForKeyAsync(key);
 		}
 
+		/// <inheritdoc />
 		public virtual Task<long> GetReadVersionAsync()
 		{
 			return m_transaction.GetReadVersionAsync();
 		}
 
+		/// <inheritdoc />
 		public virtual void SetReadVersion(long version)
 		{
 			m_transaction.SetReadVersion(version);
 		}
 
+		/// <inheritdoc />
 		public virtual void Cancel()
 		{
 			m_transaction.Cancel();
 		}
 
+		/// <inheritdoc />
 		public virtual void Reset()
 		{
 			m_transaction.Reset();
 		}
 
+		/// <inheritdoc />
 		public virtual Task OnErrorAsync(FdbError code)
 		{
 			return m_transaction.OnErrorAsync(code);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option)
 		{
 			m_transaction.SetOption(option);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option, string value)
 		{
 			m_transaction.SetOption(option, value);
 		}
 
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option, long value)
 		{
 			m_transaction.SetOption(option, value);
 		}
 
+		/// <inheritdoc />
 		public virtual int Timeout
 		{
 			get { return m_transaction.Timeout; }
 			set { m_transaction.Timeout = value; }
 		}
 
+		/// <inheritdoc />
 		public virtual int RetryLimit
 		{
 			get { return m_transaction.RetryLimit; }
 			set { m_transaction.RetryLimit = value; }
 		}
 
+		/// <inheritdoc />
 		public virtual int MaxRetryDelay
 		{
 			get { return m_transaction.MaxRetryDelay; }

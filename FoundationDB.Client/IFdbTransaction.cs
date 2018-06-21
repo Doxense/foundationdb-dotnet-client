@@ -37,7 +37,7 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public interface IFdbTransaction : IFdbReadOnlyTransaction
 	{
-		/// <summary>Returns true if this transaction instance only allow read operations</summary>
+		/// <summary>Returns <c>true</c> if this transaction instance only allows read operations</summary>
 		/// <remarks>Attempting to call a write method on a read-only transaction will immediately throw an exception</remarks>
 		bool IsReadOnly { get; }
 
@@ -49,9 +49,8 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
 		void EnsureCanWrite();
 
-		/// <summary>
-		/// Estimated payload size of the transaction (in bytes)
-		/// </summary>
+		/// <summary>Estimated payload size of the transaction (in bytes)</summary>
+		/// <remarks>This is not guaranteed to be accurate, and should only be used as a hint.</remarks>
 		int Size { get; }
 
 		/// <summary>
@@ -89,7 +88,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
 		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
-		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
+		/// <param name="type">One of the <see cref="FdbConflictRangeType"/> values indicating what type of conflict range is being set.</param>
 		void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type);
 
 		/// <summary>
@@ -122,7 +121,7 @@ namespace FoundationDB.Client
 		Task<VersionStamp> GetVersionStampAsync();
 		//REVIEW: we should not return a Task<VersionStamp> but some sort of struct that is awaitable (like FdbWatch), to prevent misuse and potential deadlocks!
 
-		/// <summary>Return a place-holder 80-bit VersionStamp, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <summary>Return a place-holder 80-bit <see cref="VersionStamp"/>, whose value is not yet known, but will be filled by the database at commit time.</summary>
 		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
 		/// <remarks>
 		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
@@ -132,7 +131,7 @@ namespace FoundationDB.Client
 		[Pure]
 		VersionStamp CreateVersionStamp();
 
-		/// <summary>Return a place-holder 96-bit VersionStamp with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
+		/// <summary>Return a place-holder 96-bit <see cref="VersionStamp"/> with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
 		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
 		/// <remarks>
 		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).

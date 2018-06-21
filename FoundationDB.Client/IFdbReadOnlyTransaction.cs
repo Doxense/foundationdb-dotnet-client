@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		FdbOperationContext Context { get; }
 
-		/// <summary>If true, the transaction is operating in Snapshot mode</summary>
+		/// <summary>If <c>true</c>, the transaction is operating in Snapshot mode</summary>
 		bool IsSnapshot { get; }
 
 		/// <summary>Return a Snapshotted version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
@@ -109,6 +109,7 @@ namespace FoundationDB.Client
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
+		[Pure, NotNull, LinqTunnel]
 		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null);
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>

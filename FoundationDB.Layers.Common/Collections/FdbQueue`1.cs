@@ -326,13 +326,13 @@ namespace FoundationDB.Layers.Collections
 		private Task<List<KeyValuePair<Slice, Slice>>> GetWaitingPopsAsync([NotNull] IFdbReadOnlyTransaction tr, int numPops)
 		{
 			var range = this.ConflictedPop.Keys.ToRange();
-			return tr.GetRange(range, limit: numPops, reverse: false).ToListAsync();
+			return tr.GetRange(range, new FdbRangeOptions { Limit = numPops }).ToListAsync();
 		}
 
 		private Task<List<KeyValuePair<Slice, Slice>>> GetItemsAsync([NotNull] IFdbReadOnlyTransaction tr, int numItems)
 		{
 			var range = this.QueueItem.Keys.ToRange();
-			return tr.GetRange(range, limit: numItems, reverse: false).ToListAsync();
+			return tr.GetRange(range, new FdbRangeOptions { Limit = numItems }).ToListAsync();
 		}
 
 		private async Task<bool> FulfillConflictedPops([NotNull] IFdbDatabase db, CancellationToken ct)

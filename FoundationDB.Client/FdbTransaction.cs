@@ -119,44 +119,33 @@ namespace FoundationDB.Client
 
 		#region Public Properties...
 
-		/// <summary>Internal local identifier of the transaction</summary>
-		/// <remarks>Should only used for logging/debugging purpose.</remarks>
+		/// <inheritdoc />
 		public int Id => m_id;
 
-		/// <summary>Always returns false. Use the <see cref="FdbTransaction.Snapshot"/> property to get a different view of this transaction that will perform snapshot reads.</summary>
+		/// <inheritdoc />
 		public bool IsSnapshot => false;
 
-		/// <summary>Returns the context of this transaction</summary>
-		public FdbOperationContext Context
-		{
-			[NotNull]
-			get { return m_context; }
-		}
+		/// <inheritdoc />
+		public FdbOperationContext Context => m_context;
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database
-		{
-			[NotNull]
-			get { return m_database; }
-		}
+		[NotNull]
+		public FdbDatabase Database => m_database;
 
 		/// <summary>Returns the handler for this transaction</summary>
-		internal IFdbTransactionHandler Handler
-		{
-			[NotNull]
-			get { return m_handler; }
-		}
+		[NotNull]
+		internal IFdbTransactionHandler Handler => m_handler;
 
 		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
 		internal bool StillAlive => this.State == STATE_READY;
 
-		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
+		/// <inheritdoc />
 		public int Size => m_handler.Size;
 
-		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
+		/// <inheritdoc />
 		public CancellationToken Cancellation => m_cancellation;
 
-		/// <summary>Returns true if this transaction only supports read operations, or false if it supports both read and write operations</summary>
+		/// <inheritdoc />
 		public bool IsReadOnly => m_readOnly;
 
 		#endregion
@@ -165,11 +154,7 @@ namespace FoundationDB.Client
 
 		#region Properties...
 
-		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
-		/// Valid parameter values are [0, int.MaxValue].
-		/// If set to 0, will disable all timeouts.
-		/// All pending and any future uses of the transaction will throw an exception.
-		/// The transaction can be used again after it is reset.</summary>
+		/// <inheritdoc />
 		public int Timeout
 		{
 			get => m_timeout;
@@ -181,10 +166,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code.
-		/// Valid parameter values are [-1, int.MaxValue].
-		/// If set to -1, will disable the retry limit.
-		/// </summary>
+		/// <inheritdoc />
 		public int RetryLimit
 		{
 			get => m_retryLimit;
@@ -196,10 +178,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Maximum amount of backoff delay incurred in the call to onError if the error is retryable.
-		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
-		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
-		/// </summary>
+		/// <inheritdoc />
 		public int MaxRetryDelay
 		{
 			get => m_maxRetryDelay;
@@ -213,8 +192,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Set an option on this transaction that does not take any parameter</summary>
-		/// <param name="option">Option to set</param>
+		/// <inheritdoc />
 		public void SetOption(FdbTransactionOption option)
 		{
 			EnsureNotFailedOrDisposed();
@@ -224,9 +202,7 @@ namespace FoundationDB.Client
 			m_handler.SetOption(option, Slice.Nil);
 		}
 
-		/// <summary>Set an option on this transaction that takes a string value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter (can be null)</param>
+		/// <inheritdoc />
 		public void SetOption(FdbTransactionOption option, string value)
 		{
 			EnsureNotFailedOrDisposed();
@@ -237,9 +213,7 @@ namespace FoundationDB.Client
 			m_handler.SetOption(option, data);
 		}
 
-		/// <summary>Set an option on this transaction that takes an integer value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
+		/// <inheritdoc />
 		public void SetOption(FdbTransactionOption option, long value)
 		{
 			EnsureNotFailedOrDisposed();
@@ -256,7 +230,7 @@ namespace FoundationDB.Client
 
 		#region Versions...
 
-		/// <summary>Returns this transaction snapshot read version.</summary>
+		/// <inheritdoc />
 		public Task<long> GetReadVersionAsync()
 		{
 			// can be called after the transaction has been committed
@@ -265,9 +239,7 @@ namespace FoundationDB.Client
 			return m_handler.GetReadVersionAsync(m_cancellation);
 		}
 
-		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
-		/// <returns>Version number, or -1 if this transaction was not committed (or did nothing)</returns>
-		/// <remarks>The value return by this method is undefined if Commit has not been called</remarks>
+		/// <inheritdoc />
 		public long GetCommittedVersion()
 		{
 			//TODO: should we only allow calls if transaction is in state "COMMITTED" ?
@@ -276,9 +248,7 @@ namespace FoundationDB.Client
 			return m_handler.GetCommittedVersion();
 		}
 
-		/// <summary>
-		/// Sets the snapshot read version used by a transaction. This is not needed in simple cases.
-		/// </summary>
+		/// <inheritdoc />
 		public void SetReadVersion(long version)
 		{
 			EnsureCanRead();
@@ -286,12 +256,7 @@ namespace FoundationDB.Client
 			m_handler.SetReadVersion(version);
 		}
 
-		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
-		/// <remarks>
-		/// The Task will be ready only after the successful completion of a call to <see cref="CommitAsync"/> on this transaction.
-		/// Read-only transactions do not modify the database when committed and will result in the Task completing with an error.
-		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
-		/// </remarks>
+		/// <inheritdoc />
 		public Task<VersionStamp> GetVersionStampAsync()
 		{
 			EnsureNotFailedOrDisposed();
@@ -335,13 +300,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Return a place-holder 80-bit VersionStamp, whose value is not yet known, but will be filled by the database at commit time.</summary>
-		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
-		/// <remarks>
-		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
-		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
-		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
-		/// </remarks>
+		/// <inheritdoc />
 		[Pure]
 		public VersionStamp CreateVersionStamp()
 		{
@@ -350,13 +309,7 @@ namespace FoundationDB.Client
 			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), incomplete: true);
 		}
 
-		/// <summary>Return a place-holder 96-bit VersionStamp with an attached user version, whose value is not yet known, but will be filled by the database at commit time.</summary>
-		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
-		/// <remarks>
-		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
-		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
-		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
-		/// </remarks>
+		/// <inheritdoc />
 		public VersionStamp CreateVersionStamp(int userVersion)
 		{
 			var token = m_versionStampToken;
@@ -369,15 +322,7 @@ namespace FoundationDB.Client
 
 		#region Get...
 
-		/// <summary>
-		/// Reads a value from the database snapshot represented by transaction.
-		/// </summary>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		/// <inheritdoc />
 		public Task<Slice> GetAsync(Slice key)
 		{
 			EnsureCanRead();
@@ -395,9 +340,7 @@ namespace FoundationDB.Client
 
 		#region GetValues...
 
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction
-		/// </summary>
+		/// <inheritdoc />
 		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException(nameof(keys));
@@ -418,16 +361,7 @@ namespace FoundationDB.Client
 
 		#region GetRangeAsync...
 
-		/// <summary>
-		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by limit, target_bytes, or mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
-		/// </summary>
-		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
-		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, StreamingMode, Reverse, ...)</param>
-		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <returns></returns>
+		/// <inheritdoc />
 		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			EnsureCanRead();
@@ -463,13 +397,7 @@ namespace FoundationDB.Client
 			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kv) => kv, snapshot, options);
 		}
 
-		/// <summary>
-		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
-		/// </summary>
-		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
-		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
+		/// <inheritdoc />
 		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			EnsureCanRead();
@@ -481,9 +409,7 @@ namespace FoundationDB.Client
 
 		#region GetKey...
 
-		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>
-		/// <param name="selector">Key selector to resolve</param>
-		/// <returns>Task that will return the key matching the selector, or an exception</returns>
+		/// <inheritdoc />
 		public async Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			EnsureCanRead();
@@ -504,11 +430,7 @@ namespace FoundationDB.Client
 
 		#region GetKeys..
 
-		/// <summary>
-		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
-		/// </summary>
-		/// <param name="selectors">Key selectors to resolve</param>
-		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		/// <inheritdoc />
 		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			EnsureCanRead();
@@ -529,12 +451,7 @@ namespace FoundationDB.Client
 
 		#region Set...
 
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
-		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
+		/// <inheritdoc />
 		public void Set(Slice key, Slice value)
 		{
 			EnsureCanWrite();
@@ -631,10 +548,7 @@ namespace FoundationDB.Client
 			throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.</summary>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
-		/// <param name="mutation">Type of mutation that should be performed on the key</param>
+		/// <inheritdoc />
 		public void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
 			//note: this method as many names in the various bindings:
@@ -661,10 +575,7 @@ namespace FoundationDB.Client
 
 		#region Clear...
 
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
-		/// </summary>
-		/// <param name="key">Name of the key to be removed from the database.</param>
+		/// <inheritdoc />
 		public void Clear(Slice key)
 		{
 			EnsureCanWrite();
@@ -682,12 +593,7 @@ namespace FoundationDB.Client
 
 		#region Clear Range...
 
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
-		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the range to clear.</param>
-		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
+		/// <inheritdoc />
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			EnsureCanWrite();
@@ -706,12 +612,7 @@ namespace FoundationDB.Client
 
 		#region Conflict Range...
 
-		/// <summary>
-		/// Adds a conflict range to a transaction without performing the associated read or write.
-		/// </summary>
-		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
-		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
-		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
+		/// <inheritdoc />
 		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
 			EnsureCanWrite();
@@ -730,11 +631,7 @@ namespace FoundationDB.Client
 
 		#region GetAddressesForKey...
 
-		/// <summary>
-		/// Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value
-		/// </summary>
-		/// <param name="key">Name of the key whose location is to be queried.</param>
-		/// <returns>Task that will return an array of strings, or an exception</returns>
+		/// <inheritdoc />
 		public Task<string[]> GetAddressesForKeyAsync(Slice key)
 		{
 			EnsureCanRead();
@@ -752,13 +649,7 @@ namespace FoundationDB.Client
 
 		#region Commit...
 
-		/// <summary>
-		/// Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 
-		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
-		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
-		/// </summary>
-		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
-		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
+		/// <inheritdoc />
 		public async Task CommitAsync()
 		{
 			EnsureCanWrite();
@@ -789,13 +680,7 @@ namespace FoundationDB.Client
 
 		#region Watches...
 
-		/// <summary>
-		/// Watch a key for any change in the database.
-		/// </summary>
-		/// <param name="key">Key to watch</param>
-		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
-		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
-		/// <remarks>You can directly await an FdbWatch, or obtain a <see cref="Task{T}">Task&lt;Slice&gt;</see> by reading the <see cref="FdbWatch.Task"/> property</remarks>
+		/// <inheritdoc />
 		[Pure]
 		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
@@ -830,14 +715,7 @@ namespace FoundationDB.Client
 
 		#region OnError...
 
-		/// <summary>
-		/// Implements the recommended retry and backoff behavior for a transaction.
-		/// 
-		/// This function knows which of the error codes generated by other query functions represent temporary error conditions and which represent application errors that should be handled by the application. 
-		/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
-		/// </summary>
-		/// <param name="code">FdbError code thrown by the previous command</param>
-		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
+		/// <inheritdoc />
 		public async Task OnErrorAsync(FdbError code)
 		{
 			EnsureCanRetry();
@@ -883,7 +761,7 @@ namespace FoundationDB.Client
 			m_versionStampToken = 0;
 		}
 
-		/// <summary>Reset the transaction to its initial state.</summary>
+		/// <inheritdoc />
 		public void Reset()
 		{
 			EnsureCanRetry();
@@ -898,7 +776,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
 
-		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
+		/// <inheritdoc />
 		public void Cancel()
 		{
 			var state = Interlocked.CompareExchange(ref m_state, STATE_CANCELED, STATE_READY);
