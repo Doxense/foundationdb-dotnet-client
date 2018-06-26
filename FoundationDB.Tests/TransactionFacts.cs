@@ -874,7 +874,8 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		[Test]public async Task Test_Can_AtomicIncrement64()
+		[Test]
+		public async Task Test_Can_AtomicIncrement64()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -914,6 +915,47 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_AppendIfFits()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "atomic");
+
+				// setup
+				await db.ClearRangeAsync(location, this.Cancellation);
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(location.Keys.Encode("AAA"), Slice.Empty);
+					tr.Set(location.Keys.Encode("BBB"), Slice.Repeat('B', 10));
+					tr.Set(location.Keys.Encode("CCC"), Slice.Repeat('C', 90_000));
+					tr.Set(location.Keys.Encode("DDD"), Slice.Repeat('D', 100_000));
+					//EEE does not exist
+				}, this.Cancellation);
+
+				// execute
+				await db.WriteAsync((tr) =>
+				{
+					tr.AtomicAppendIfFits(location.Keys.Encode("AAA"), Slice.FromString("Hello, World!"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("BBB"), Slice.FromString("Hello"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("BBB"), Slice.FromString(", World!"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("CCC"), Slice.Repeat('c', 10_000)); // should just fit exactly!
+					tr.AtomicAppendIfFits(location.Keys.Encode("DDD"), Slice.FromString("!")); // should not fit!
+					tr.AtomicAppendIfFits(location.Keys.Encode("EEE"), Slice.FromString("Hello, World!"));
+				}, this.Cancellation);
+
+				// check
+				_ = await db.ReadAsync(async (tr) =>
+				{
+					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))).ToString(), Is.EqualTo("Hello, World!"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToString(), Is.EqualTo("BBBBBBBBBBHello, World!"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))), Is.EqualTo(Slice.Repeat('C', 90_000) + Slice.Repeat('c', 10_000)));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))), Is.EqualTo(Slice.Repeat('D', 100_000)));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToString(), Is.EqualTo("Hello, World!"));
+					return 123;
+				}, this.Cancellation);
+			}
+		}
 
 		[Test]
 		public async Task Test_Can_Snapshot_Read()
