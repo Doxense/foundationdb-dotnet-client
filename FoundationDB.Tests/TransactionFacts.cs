@@ -2349,7 +2349,11 @@ namespace FoundationDB.Client.Tests
 					// value that contain the stamp
 					var val = Slice.FromString("$$$$$$$$$$Hello World!"); // '$' will be replaced by the stamp
 					Log($"> {val:X}");
-					tr.SetVersionStampedValue(location.Keys.Encode("baz"), val);
+					tr.SetVersionStampedValue(location.Keys.Encode("baz"), val, 0);
+
+					val = Slice.FromString("Hello,") + vs.ToSlice() + Slice.FromString(", World!"); // the middle of the value should be replaced with the VersionStamp
+					Log($"> {val:X}");
+					tr.SetVersionStampedValue(location.Keys.Encode("jazz"), val);
 
 					// need to be request BEFORE the commit
 					var vsTask = tr.GetVersionStampAsync();
@@ -2427,6 +2431,15 @@ namespace FoundationDB.Client.Tests
 						Assert.That(baz.Count, Is.GreaterThan(0), "Key should be present in the database");
 						Assert.That(baz.StartsWith(vsActual.ToSlice()), Is.True, "The first 10 bytes should match the resolved stamp");
 						Assert.That(baz.Substring(10), Is.EqualTo(Slice.FromString("Hello World!")), "The rest of the slice should be untouched");
+					}
+					{
+						var jazz = await tr.GetAsync(location.Keys.Encode("jazz"));
+						Log($"> {jazz:X}");
+						// ensure that the first 10 bytes have been overwritten with the stamp
+						Assert.That(jazz.Count, Is.GreaterThan(0), "Key should be present in the database");
+						Assert.That(jazz.Substring(6, 10), Is.EqualTo(vsActual.ToSlice()), "The bytes 6 to 15 should match the resolved stamp");
+						Assert.That(jazz.Substring(0, 6), Is.EqualTo(Slice.FromString("Hello,")), "The start of the slice should be left intact");
+						Assert.That(jazz.Substring(16), Is.EqualTo(Slice.FromString(", World!")), "The end of the slice should be left intact");
 					}
 				}
 

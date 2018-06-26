@@ -689,8 +689,8 @@ namespace FoundationDB.Client
 
 				//TODO: PERF: optimize this to not have to allocate!
 				var token = trans.CreateVersionStamp().ToSlice();
-				var offset = GetVersionStampOffset(key, token, nameof(key));
-				Contract.Requires(offset >=0 && offset <= key.Count - 10);
+				var offset = GetVersionStampOffset(value, token, nameof(value));
+				Contract.Requires(offset >=0 && offset <= value.Count - 10);
 
 				var writer = new SliceWriter(value.Count + 4);
 				writer.WriteBytes(in value);
@@ -729,13 +729,9 @@ namespace FoundationDB.Client
 			{ // starting from 520, the offset is stored in the last 32 bits
 
 				//TODO: PERF: optimize this to not have to allocate!
-				var token = trans.CreateVersionStamp().ToSlice();
-				var offset = GetVersionStampOffset(key, token, nameof(key));
-				Contract.Requires(offset >=0 && offset <= key.Count - 10);
-
 				var writer = new SliceWriter(value.Count + 4);
 				writer.WriteBytes(in value);
-				writer.WriteFixed32(checked((uint) offset));
+				writer.WriteFixed32(checked((uint) stampOffset));
 				arg = writer.ToSlice();
 			}
 
