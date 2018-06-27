@@ -207,6 +207,57 @@ namespace FdbShell
 			}
 		}
 
+
+		public static async Task Clear(string[] path, string from, string to, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+
+			if (path == null || path.Length == 0)
+			{
+				Program.Error(log, "Cannot directory list the content of Root Partition.");
+				return;
+			}
+
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			if (folder == null)
+			{
+				Program.Error(log, "The directory does not exist anymore");
+				return;
+			}
+			if (folder.Layer == FdbDirectoryPartition.LayerId)
+			{
+				Program.Error(log, "Cannot clear the content of a Directory Partition!");
+				return;
+			}
+
+			KeyRange range;
+			if (from == "*" && string.IsNullOrEmpty(to))
+			{ // clear all!
+
+				range = folder.ToRange();
+			}
+			else
+			{
+				Program.Error(log, "TODO: add support for custom range!");
+				return;
+			}
+
+			bool empty = await db.ReadWriteAsync(async tr =>
+			{
+				var any = await tr.GetRangeAsync(range, new FdbRangeOptions { Limit = 1 });
+				if (any.Count == 0) return true;
+				tr.ClearRange(folder.ToRange());
+				return false;
+			}, ct);
+			if (empty)
+			{
+				Program.StdOut(log, $"Directory {String.Join("/", path)} was already empty.", ConsoleColor.Cyan);
+			}
+			else
+			{
+				Program.Success(log, $"Cleared all content of Directory {String.Join("/", path)}.");
+			}
+		}
+
 		/// <summary>Counts the number of keys inside a directory</summary>
 		public static async Task Count(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
@@ -259,12 +310,12 @@ namespace FdbShell
 				Program.Comment(log, $"# Content of {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}]");
 
 				var keys = await db.QueryAsync((tr) =>
-					{
-						var query = tr.GetRange(folder.Keys.ToRange());
-						return reverse
-							? query.Reverse().Take(count)
-							: query.Take(count + 1);
-					}, ct: ct);
+				{
+					var query = tr.GetRange(folder.Keys.ToRange());
+					return reverse
+						? query.Reverse().Take(count)
+						: query.Take(count + 1);
+				}, ct: ct);
 				if (keys.Count > 0)
 				{
 					if (reverse) keys.Reverse();

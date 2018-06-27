@@ -301,6 +301,7 @@ namespace FdbShell
 				string[] cmds = new string[]
 				{
 					"cd",
+					"clear",
 					"coordinators",
 					"count",
 					"dir",
@@ -566,6 +567,22 @@ namespace FdbShell
 								var dstPath = ParsePath(CombinePath(CurrentDirectoryPath, extras.Get<string>(0)));
 								await RunAsyncCommand((db, log, ct) => BasicCommands.MoveDirectory(srcPath, dstPath, extras.Substring(1), db, log, ct), cancel);
 
+								break;
+							}
+
+							case "clear":
+							{ // "clear KEY" or "clear FROM TO" or "clear *"
+
+								string from = PopParam(ref extras);
+								if (string.IsNullOrEmpty(from))
+								{
+									StdErr("You must specify either '*', a prefix, or a key range.", ConsoleColor.Red);
+									break;
+								}
+								string to = extras.Count > 0 ? PopParam(ref extras) : null;
+
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Clear(path, from, to, extras, db, log, ct), cancel);
 								break;
 							}
 
@@ -904,6 +921,7 @@ namespace FdbShell
 		{
 			options.DefaultTimeout = TimeSpan.FromSeconds(30);
 			options.DefaultRetryLimit = 50;
+			Program.StdOut("Connecting to cluster...", ConsoleColor.Gray);
 			return Fdb.OpenAsync(options, ct);
 		}
 
