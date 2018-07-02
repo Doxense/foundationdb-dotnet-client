@@ -207,8 +207,134 @@ namespace FdbShell
 			}
 		}
 
+		public static async Task Get(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
 
-		public static async Task Clear(string[] path, string from, string to, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+			if (path == null || path.Length == 0)
+			{
+				Program.Error(log, "Cannot read keys of the Root Partition.");
+				return;
+			}
+
+			if (extras.Count == 0)
+			{
+				Program.Error(log, "You must specify a key of range of keys!");
+				return;
+			}
+
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			if (folder == null)
+			{
+				Program.Error(log, "The directory does not exist anymore");
+				return;
+			}
+			if (folder.Layer == FdbDirectoryPartition.LayerId)
+			{
+				Program.Error(log, "Cannot clear the content of a Directory Partition!");
+				return;
+			}
+
+			object key = extras[0];
+			Slice k = MakeKey(folder, key);
+
+			Program.Comment(log, "# Reading key: " + k.ToString("K"));
+
+			Slice v = await db.ReadWriteAsync(tr =>tr.GetAsync(k), ct);
+
+
+			if (v.IsNull)
+			{
+				Program.StdOut(log, "# Key does not exist in the database.", ConsoleColor.Red);
+				return;
+			}
+			if (v.IsEmpty)
+			{
+				Program.StdOut(log, "# Key exists but is empty.", ConsoleColor.Gray);
+				return;
+			}
+
+			Program.StdOut(log, $"# Size: {v.Count:N0}", ConsoleColor.Gray);
+			string format = extras.Count > 1 ? extras.Get<string>(1) : null;
+			switch (format)
+			{
+				case "--text":
+				case "--json":
+				case "--utf8":
+				{
+					Program.StdOut(log, v.ToStringUtf8(), ConsoleColor.Gray);
+					break;
+				}
+				case "--hex":
+				case "--hexa":
+				{
+					Program.StdOut(log, v.ToHexaString(), ConsoleColor.White);
+					break;
+				}
+				case "--dump":
+				{
+					var sb = new StringBuilder(v.Count * 3 + (v.Count >> 4) * 2 + 16);
+					for (int i = 0; i < v.Count; i += 16)
+					{
+						sb.AppendLine(v.Substring(i, 16).ToHexaString(' '));
+					}
+					Program.StdOut(log, sb.ToString(), ConsoleColor.White);
+					break;
+				}
+				case "--int":
+				{
+					if (v.Count <= 8)
+					{
+						long he = v.ToInt64BE();
+						long le = v.ToInt64();
+						Program.StdOut(log, $"BE: {he:X016} ({he:N0})", ConsoleColor.White);
+						Program.StdOut(log, $"LE: {le:X016} ({le:N0})", ConsoleColor.White);
+					}
+					else
+					{
+						Program.StdOut(log, $"Value is too large ({v.Count} bytes)", ConsoleColor.DarkRed);
+						Program.StdOut(log, v.ToHexaString(' '), ConsoleColor.Gray);
+					}
+					break;
+				}
+				case "--uint":
+				{
+					if (v.Count <= 8)
+					{
+						ulong he = v.ToUInt64BE();
+						ulong le = v.ToUInt64();
+						Program.StdOut(log, $"BE: {he:X016} ({he:N0})", ConsoleColor.White);
+						Program.StdOut(log, $"LE: {le:X016} ({le:N0})", ConsoleColor.White);
+					}
+					else
+					{
+						Program.StdOut(log, $"Value is too large ({v.Count} bytes)", ConsoleColor.DarkRed);
+						Program.StdOut(log, v.ToHexaString(' '), ConsoleColor.Gray);
+					}
+					break;
+				}
+				case "--tuple":
+				{
+					try
+					{
+						var t = TuPack.Unpack(v);
+						Program.StdOut(log, t.ToString(), ConsoleColor.Gray);
+					}
+					catch (Exception e)
+					{
+						Program.Error(log, "Key value does not seem to be a valid Tuple: " + e.Message);
+						Program.StdOut(log, v.ToHexaString(' '), ConsoleColor.Gray);
+					}
+					break;
+				}
+				default:
+				{
+					Program.StdOut(log, v.ToString("V"), ConsoleColor.White);
+					break;
+				}
+			}
+		}
+
+		public static async Task Clear(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 
 			if (path == null || path.Length == 0)
@@ -229,17 +355,100 @@ namespace FdbShell
 				return;
 			}
 
-			KeyRange range;
-			if (from == "*" && string.IsNullOrEmpty(to))
-			{ // clear all!
+			if (extras.Count == 0)
+			{
+				Program.Error(log, "You must specify a key of range of keys!");
+				return;
+			}
 
+			object key = extras[0];
+			Slice k = MakeKey(folder, key);
+
+			bool empty = await db.ReadWriteAsync(async tr =>
+			{
+				var v = await tr.GetAsync(k);
+				if (v.IsNullOrEmpty) return true;
+				tr.Clear(k);
+				return false;
+			}, ct);
+
+			if (empty)
+			{
+				Program.StdOut(log, "Key did not exist in the database.", ConsoleColor.Cyan);
+			}
+			else
+			{
+				Program.Success(log, $"Key {key} has been cleared from Directory {String.Join("/", path)}.");
+			}
+		}
+
+		private static Slice MakeKey(IKeySubspace folder, object key)
+		{
+			if (key is IVarTuple t)
+			{
+				return folder[TuPack.Pack(t)];
+			}
+			else if (key is string s)
+			{
+				return folder[Slice.FromStringUtf8(s)];
+			}
+			else
+			{
+				throw new FormatException("Unsupported key type: " + key);
+			}
+		}
+
+		public static async Task ClearRange(string[] path, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+
+			if (path == null || path.Length == 0)
+			{
+				Program.Error(log, "Cannot directory list the content of Root Partition.");
+				return;
+			}
+
+			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			if (folder == null)
+			{
+				Program.Error(log, "The directory does not exist anymore");
+				return;
+			}
+			if (folder.Layer == FdbDirectoryPartition.LayerId)
+			{
+				Program.Error(log, "Cannot clear the content of a Directory Partition!");
+				return;
+			}
+
+			if (extras.Count == 0)
+			{
+				Program.Error(log, "You must specify a key of range of keys!");
+				return;
+			}
+
+			KeyRange range;
+			if (extras.Get<string>(0) == "*")
+			{ // clear all!
 				range = folder.ToRange();
 			}
 			else
 			{
-				Program.Error(log, "TODO: add support for custom range!");
-				return;
+				object from = extras[0];
+				object to = extras.Count > 1 ? extras[1] : null;
+
+				if (to == null)
+				{
+					range = KeyRange.StartsWith(MakeKey(folder, from));
+				}
+				else
+				{
+					range = new KeyRange(
+						MakeKey(folder, from),
+						MakeKey(folder, to)
+					);
+				}
 			}
+
+			Program.Comment(log, "Clearing range " + range.ToString());
 
 			bool empty = await db.ReadWriteAsync(async tr =>
 			{

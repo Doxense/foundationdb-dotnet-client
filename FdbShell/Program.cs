@@ -33,6 +33,7 @@ namespace FdbShell
 	using System.IO;
 	using System.Linq;
 	using System.Net;
+	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
@@ -402,9 +403,10 @@ namespace FdbShell
 
 					if (s == null) break;
 
-					var tokens = s.Trim().Split(new [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-					string cmd = tokens.Length > 0 ? tokens[0] : string.Empty;
-					var extras = tokens.Length > 1 ? STuple.FromEnumerable<string>(tokens.Skip(1)) : STuple.Empty;
+					//TODO: we need a tokenizer that recognizes binary keys, tuples, escaped paths, etc...
+					var tokens = Tokenize(s);
+					string cmd = tokens.Count > 0 ? tokens.Get<string>(0) : string.Empty;
+					var extras = tokens.Count > 1 ? tokens.Substring(1) : STuple.Empty;
 
 					var trimmedCommand = cmd.Trim().ToLowerInvariant();
 					try
@@ -570,19 +572,45 @@ namespace FdbShell
 								break;
 							}
 
-							case "clear":
-							{ // "clear KEY" or "clear FROM TO" or "clear *"
+							case "get":
+							{ // "get KEY"
 
-								string from = PopParam(ref extras);
-								if (string.IsNullOrEmpty(from))
+								if (extras.Count == 0)
+								{
+									StdErr("You must specify a key to read.", ConsoleColor.Red);
+									break;
+								}
+
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Get(path, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "clear":
+							{ // "clear KEY"
+
+								if (extras.Count == 0)
+								{
+									StdErr("You must specify a key to clear.", ConsoleColor.Red);
+									break;
+								}
+
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Clear(path, extras, db, log, ct), cancel);
+								break;
+							}
+
+							case "clearrange":
+							{ // "clear *" or "clear FROM TO"
+
+								if (extras.Count == 0)
 								{
 									StdErr("You must specify either '*', a prefix, or a key range.", ConsoleColor.Red);
 									break;
 								}
-								string to = extras.Count > 0 ? PopParam(ref extras) : null;
 
 								var path = ParsePath(CurrentDirectoryPath);
-								await RunAsyncCommand((db, log, ct) => BasicCommands.Clear(path, from, to, extras, db, log, ct), cancel);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.Clear(path, extras, db, log, ct), cancel);
 								break;
 							}
 
@@ -923,6 +951,152 @@ namespace FdbShell
 			options.DefaultRetryLimit = 50;
 			Program.StdOut("Connecting to cluster...", ConsoleColor.Gray);
 			return Fdb.OpenAsync(options, ct);
+		}
+
+		private static IVarTuple Tokenize(string s)
+		{
+
+			bool hasToken = false;
+			var tokens = STuple.Empty;
+			int p = 0;
+
+
+			for (int i = 0; i < s.Length; i++)
+			{
+				char c = s[i];
+				switch (c)
+				{
+					case ' ':
+					case '\t':
+					{ // end of previous token, start of new token
+						if (hasToken)
+						{
+							tokens = tokens.Append(s.Substring(p, i - p));
+							hasToken = false;
+						}
+						break;
+					}
+					case '(':
+					{ 
+						if (!hasToken)
+						{ // start of tuple
+							string exp = s.Substring(i);
+							STuple.Deformatter.ParseNext(exp, out var tok, out string tail);
+							tokens = tokens.Append(tok);
+							if (string.IsNullOrEmpty(tail))
+							{
+								i = s.Length;
+							}
+							else
+							{
+								i += exp.Length - tail.Length - 1;
+							}
+						}
+						break;
+					}
+					case '\'':
+					case '"':
+					{
+						if (!hasToken)
+						{
+							tokens = tokens.Append(ParseQuotedString(s, c, i, out int j));
+							i = j;
+						}
+						break;
+					}
+					default:
+					{
+						if (!hasToken)
+						{
+							p = i;
+							hasToken = true;
+						}
+						break;
+					}
+				}
+			}
+			if (hasToken)
+			{
+				tokens = tokens.Append(s.Substring(p));
+			}
+
+			return tokens;
+		}
+
+		private static string ParseQuotedString(string s, char quote, int start, out int next)
+		{
+			//TODO: read '.....'
+			var sb = new StringBuilder();
+			bool slash = false;
+			for (int i = start + 1; i < s.Length; i++)
+			{
+				char c = s[i];
+				switch (c)
+				{
+					case '\'':
+					{
+						if (slash)
+						{
+							slash = false;
+							sb.Append('\'');
+							break;
+						}
+						if (quote == '\'')
+						{
+							next = i + 1;
+							return sb.ToString();
+						}
+
+						sb.Append('\'');
+						break;
+					}
+					case '"':
+					{
+						if (slash)
+						{
+							slash = false;
+							sb.Append('"');
+							break;
+						}
+						if (quote == '"')
+						{
+							next = i + 1;
+							return sb.ToString();
+						}
+						sb.Append('"');
+						break;
+					}
+					case '\\':
+					{
+						if (slash)
+						{
+							slash = false;
+							sb.Append('\\');
+							break;
+						}
+						slash = true;
+						break;
+					}
+					default:
+					{
+						if (slash)
+						{
+							slash = false;
+							switch (c)
+							{
+								case 't': sb.Append('\t'); break;
+								case 'r': sb.Append('\r'); break;
+								case 'n': sb.Append('\n'); break;
+								default: throw new FormatException("Invalid escape string literal");
+							}
+							break;
+						}
+						sb.Append(c);
+						break;
+					}
+				}
+			}
+			throw new FormatException("Missing final quote at end of string literal");
 		}
 
 	}
