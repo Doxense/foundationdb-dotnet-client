@@ -43,6 +43,11 @@ namespace FdbTop
 	{
 		private static readonly FdbConnectionOptions Options = new FdbConnectionOptions();
 
+		private const int MIN_WIDTH = 146;
+		private const int MIN_HEIGHT = 30;
+		private const int DEFAULT_WIDTH = 160;
+		private const int DEFAULT_HEIGHT = 60;
+
 		public static void Main(string[] args)
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
@@ -52,8 +57,8 @@ namespace FdbTop
 				//note: .NET Core may or may not be able to change the size of the console depending on the platform!
 				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
 				{
-					Console.WindowWidth = 160;
-					Console.WindowHeight = 60;
+					Console.WindowWidth = DEFAULT_WIDTH;
+					Console.WindowHeight = DEFAULT_HEIGHT;
 				}
 			}
 			catch
@@ -61,7 +66,7 @@ namespace FdbTop
 				bool tooSmall;
 				try
 				{
-					tooSmall = Console.WindowWidth < 160 || Console.WindowHeight < 60;
+					tooSmall = Console.WindowWidth < MIN_WIDTH || Console.WindowHeight < MIN_HEIGHT;
 				}
 				catch
 				{
@@ -70,12 +75,15 @@ namespace FdbTop
 
 				if (tooSmall)
 				{
-					Console.Error.WriteLine("This tool requires cannot run in a console smaller than 160 characters.");
+					Console.Error.WriteLine("This tool cannot run in a console smaller than 136x30 characters.");
 					Console.Error.WriteLine("Either increase the screen resolution, or reduce the font size of your console.");
 					Environment.ExitCode = -1;
 					return;
 				}
 			}
+
+			ScreenHeight = Console.WindowHeight;
+			ScreenWidth = Console.WindowWidth;
 
 			string title = Console.Title;
 			try
@@ -112,6 +120,11 @@ namespace FdbTop
 			}
 		}
 
+		public static int ScreenHeight;
+		public static int ScreenWidth;
+
+		public static FdbClusterFile CurrentCoordinators;
+
 		private static async Task MainAsync(string[] args, CancellationToken cancel)
 		{
 			Console.CursorVisible = false;
@@ -137,6 +150,11 @@ namespace FdbTop
 					while (!exit && !cancel.IsCancellationRequested)
 					{
 						now = DateTime.UtcNow;
+
+						if (CurrentCoordinators == null)
+						{
+							CurrentCoordinators = await Fdb.System.GetCoordinatorsAsync(db, cancel);
+						}
 
 						if (Console.KeyAvailable)
 						{
@@ -317,8 +335,8 @@ namespace FdbTop
 
 		private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-		private const int HistoryCapacity = 50;
-		private static readonly RingBuffer<HistoryMetric> History = new RingBuffer<HistoryMetric>(HistoryCapacity);
+		private const int MAX_HISTORY_CAPACITY = 100;
+		private static readonly RingBuffer<HistoryMetric> History = new RingBuffer<HistoryMetric>(MAX_HISTORY_CAPACITY);
 
 		private const int MAX_RW_WIDTH = 40;
 		private const int MAX_WS_WIDTH = 20;
@@ -408,7 +426,7 @@ namespace FdbTop
 
 		private static ConsoleColor FrenquencyColor(double hz)
 		{
-			return hz >= 100 ? ConsoleColor.White : hz >= 10 ? ConsoleColor.Gray : ConsoleColor.DarkGray;
+			return hz >= 100 ? ConsoleColor.White : hz >= 10 ? ConsoleColor.Gray : ConsoleColor.DarkCyan;
 		}
 
 		private static ConsoleColor DiskSpeedColor(double bps)
@@ -430,69 +448,87 @@ namespace FdbTop
 		private const int TOP_COL3 = TOP_COL2 + 36;
 		private const int TOP_COL4 = TOP_COL3 + 22;
 
-		private static void RepaintTopBar()
+		private const int TOP_ROW0 = 0;
+		private const int TOP_ROW1 = 1;
+		private const int TOP_ROW2 = 2;
+
+		private static void RepaintTopBar(string screen)
 		{
 			Console.Clear();
 			Console.ForegroundColor = ConsoleColor.DarkGray;
-			WriteAt(TOP_COL0, 1, "Reads  : {0,8} Hz", "");
-			WriteAt(TOP_COL0, 2, "Writes : {0,8} Hz", "");
-			WriteAt(TOP_COL0, 3, "Written: {0,8} MB/s", "");
+			WriteAt(TOP_COL0, TOP_ROW0, "Reads  : {0,8} Hz", "");
+			WriteAt(TOP_COL0, TOP_ROW1, "Writes : {0,8} Hz", "");
+			WriteAt(TOP_COL0, TOP_ROW2, "Written: {0,8} MB/s", "");
 
-			WriteAt(TOP_COL1, 1, "Total K/V: {0,10} MB", "");
-			WriteAt(TOP_COL1, 2, "Disk Used: {0,10} MB", "");
-			WriteAt(TOP_COL1, 3, "Shards: {0,5} x{0,6} MB", "");
+			WriteAt(TOP_COL1, TOP_ROW0, "Total K/V: {0,10} MB", "");
+			WriteAt(TOP_COL1, TOP_ROW1, "Disk Used: {0,10} MB", "");
+			WriteAt(TOP_COL1, TOP_ROW2, "Shards: {0,5} x{0,6} MB", "");
 
-			WriteAt(TOP_COL2, 1, "Server Time : {0,19}", "");
-			WriteAt(TOP_COL2, 2, "Client Time : {0,19}", "");
-			WriteAt(TOP_COL2, 3, "Read Version: {0,10}", "");
+			WriteAt(TOP_COL2, TOP_ROW0, "Server Time : {0,19}", "");
+			WriteAt(TOP_COL2, TOP_ROW1, "Client Time : {0,19}", "");
+			WriteAt(TOP_COL2, TOP_ROW2, "Read Version: {0,10}", "");
 
-			WriteAt(TOP_COL3, 1, "Coordinat.: {0,10}", "");
-			WriteAt(TOP_COL3, 2, "Storage   : {0,10}", "");
-			WriteAt(TOP_COL3, 3, "Redundancy: {0,10}", "");
+			WriteAt(TOP_COL3, TOP_ROW0, "Coordinat.: {0,10}", "");
+			WriteAt(TOP_COL3, TOP_ROW1, "Storage   : {0,10}", "");
+			WriteAt(TOP_COL3, TOP_ROW2, "Redundancy: {0,10}", "");
 
-			WriteAt(TOP_COL4, 1, "State: {0,10}", "");
-			WriteAt(TOP_COL4, 2, "Data : {0,20}", "");
-			WriteAt(TOP_COL4, 3, "Perf.: {0,20}", "");
+			WriteAt(TOP_COL4, TOP_ROW0, "State: {0,10}", "");
+			WriteAt(TOP_COL4, TOP_ROW1, "Data : {0,20}", "");
+			WriteAt(TOP_COL4, TOP_ROW2, "Perf.: {0,20}", "");
+
+			// Bottom
+
+			Console.BackgroundColor = ConsoleColor.DarkCyan;
+			WriteAt(0, ScreenHeight - 1, new string(' ', ScreenWidth - 1));
+			Console.ForegroundColor = screen == "metrics" ? ConsoleColor.White : ConsoleColor.Black;
+			WriteAt(0, ScreenHeight - 1, " [M]etrics ");
+			Console.ForegroundColor = screen == "transactions" ? ConsoleColor.White : ConsoleColor.Black;
+			WriteAt(11, ScreenHeight - 1, " [T]ransactions ");
+			Console.ForegroundColor = screen == "latency" ? ConsoleColor.White : ConsoleColor.Black;
+			WriteAt(27, ScreenHeight - 1, " [L]atency ");
+			Console.ForegroundColor = screen == "processes" ? ConsoleColor.White : ConsoleColor.Black;
+			WriteAt(38, ScreenHeight - 1, " [P]rocesses ");
+			Console.BackgroundColor = ConsoleColor.Black;
 		}
 
 		private static void UpdateTopBar(FdbSystemStatus status, HistoryMetric current)
 		{
 			Console.ForegroundColor = ConsoleColor.White;
-			WriteAt(TOP_COL0 + 9, 1, "{0,8:N0}", current.ReadsPerSecond);
-			WriteAt(TOP_COL0 + 9, 2, "{0,8:N0}", current.WritesPerSecond);
-			WriteAt(TOP_COL0 + 9, 3, "{0,8:N2}", MegaBytes(current.WrittenBytesPerSecond));
+			WriteAt(TOP_COL0 + 9, TOP_ROW0, "{0,8:N0}", current.ReadsPerSecond);
+			WriteAt(TOP_COL0 + 9, TOP_ROW1, "{0,8:N0}", current.WritesPerSecond);
+			WriteAt(TOP_COL0 + 9, TOP_ROW2, "{0,8:N2}", MegaBytes(current.WrittenBytesPerSecond));
 
-			WriteAt(TOP_COL1 + 11, 1, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalKVUsedBytes));
-			WriteAt(TOP_COL1 + 11, 2, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalDiskUsedBytes));
-			WriteAt(TOP_COL1 + 8, 3, "{0,5:N0}", status.Cluster.Data.PartitionsCount);
-			WriteAt(TOP_COL1 + 15, 3, "{0,6:N1}", MegaBytes(status.Cluster.Data.AveragePartitionSizeBytes));
+			WriteAt(TOP_COL1 + 11, TOP_ROW0, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalKVUsedBytes));
+			WriteAt(TOP_COL1 + 11, TOP_ROW1, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalDiskUsedBytes));
+			WriteAt(TOP_COL1 + 8, TOP_ROW2, "{0,5:N0}", status.Cluster.Data.PartitionsCount);
+			WriteAt(TOP_COL1 + 15, TOP_ROW2, "{0,6:N1}", MegaBytes(status.Cluster.Data.AveragePartitionSizeBytes));
 
 			var serverTime = Epoch.AddSeconds(current.Timestamp);
 			var clientTime = Epoch.AddSeconds(status.Client.Timestamp);
-			WriteAt(TOP_COL2 + 14, 1, "{0,19}", serverTime.ToString("u"));
+			WriteAt(TOP_COL2 + 14, TOP_ROW0, "{0,19}", serverTime.ToString("u"));
 			if (Math.Abs((serverTime - clientTime).TotalSeconds) >= 20) Console.ForegroundColor = ConsoleColor.Red;
-			WriteAt(TOP_COL2 + 14, 2, "{0,19}", clientTime.ToString("u"));
+			WriteAt(TOP_COL2 + 14, TOP_ROW1, "{0,19}", clientTime.ToString("u"));
 			Console.ForegroundColor = ConsoleColor.White;
-			WriteAt(TOP_COL2 + 14, 3, "{0:N0}", current.ReadVersion);
+			WriteAt(TOP_COL2 + 14, TOP_ROW2, "{0:N0}", current.ReadVersion);
 
 			Console.ForegroundColor = ConsoleColor.White;
-			WriteAt(TOP_COL3 + 12, 1, "{0,-10}", status.Cluster.Configuration.CoordinatorsCount);
-			WriteAt(TOP_COL3 + 12, 2, "{0,-10}", status.Cluster.Configuration.StorageEngine);
-			WriteAt(TOP_COL3 + 12, 3, "{0,-10}", status.Cluster.Configuration.RedundancyFactor);
+			WriteAt(TOP_COL3 + 12, TOP_ROW0, "{0,-10}", status.Cluster.Configuration.CoordinatorsCount);
+			WriteAt(TOP_COL3 + 12, TOP_ROW1, "{0,-10}", status.Cluster.Configuration.StorageEngine);
+			WriteAt(TOP_COL3 + 12, TOP_ROW2, "{0,-10}", status.Cluster.Configuration.RedundancyFactor);
 
 			if (!status.Client.DatabaseAvailable)
 			{
 				Console.ForegroundColor = ConsoleColor.Red;
-				WriteAt(TOP_COL4 + 7, 1, "UNAVAILABLE");
+				WriteAt(TOP_COL4 + 7, TOP_ROW0, "UNAVAILABLE");
 			}
 			else
 			{
 				Console.ForegroundColor = ConsoleColor.Green;
-				WriteAt(TOP_COL4 + 7, 1, "Available  ");
+				WriteAt(TOP_COL4 + 7, TOP_ROW0, "Available  ");
 			}
 			Console.ForegroundColor = ConsoleColor.White;
-			WriteAt(TOP_COL4 + 7, 2, "{0,-40}", status.Cluster.Data.StateName);
-			WriteAt(TOP_COL4 + 7, 3, "{0,-40}", status.Cluster.Qos.PerformanceLimitedBy.Name);
+			WriteAt(TOP_COL4 + 7, TOP_ROW1, "{0,-40}", status.Cluster.Data.StateName);
+			WriteAt(TOP_COL4 + 7, TOP_ROW2, "{0,-40}", status.Cluster.Qos.PerformanceLimitedBy.Name);
 
 			//Console.ForegroundColor = ConsoleColor.Gray;
 			//var msgs = status.Cluster.Messages.Concat(status.Client.Messages).ToArray();
@@ -513,8 +549,8 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = "fdbtop - Metrics";
-				RepaintTopBar();
+				Console.Title = $"fdbtop - {Program.CurrentCoordinators?.Description} - Metrics";
+				RepaintTopBar("metrics");
 
 				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Elapsed");
@@ -541,38 +577,44 @@ namespace FdbTop
 			foreach (var metric in History)
 			{
 				Console.ForegroundColor = ConsoleColor.DarkGray;
-				WriteAt(1, y,
-					"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
-					TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
-					""
-				);
-
-				if (metric.Available)
+				if (y < ScreenHeight)
 				{
-					bool isMaxRead = maxRead > 0 && metric.ReadsPerSecond == maxRead;
-					bool isMaxWrite = maxWrite > 0 && metric.WritesPerSecond == maxWrite;
-					bool isMaxSpeed = maxSpeed > 0 && metric.WrittenBytesPerSecond == maxSpeed;
+					Console.ForegroundColor = ConsoleColor.DarkGray;
+					WriteAt(
+						1,
+						y,
+						"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
+						TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
+						""
+					);
 
-					Console.ForegroundColor = isMaxRead ? ConsoleColor.Cyan : FrenquencyColor(metric.ReadsPerSecond);
-					WriteAt(COL1, y, "{0,8:N0}", metric.ReadsPerSecond);
-					Console.ForegroundColor = isMaxWrite ? ConsoleColor.Cyan : FrenquencyColor(metric.WritesPerSecond);
-					WriteAt(COL2, y, "{0,8:N0}", metric.WritesPerSecond);
-					Console.ForegroundColor = isMaxSpeed ? ConsoleColor.Cyan : DiskSpeedColor(metric.WrittenBytesPerSecond);
-					WriteAt(COL3, y, "{0,10:N3}", MegaBytes(metric.WrittenBytesPerSecond));
+					if (metric.Available)
+					{
+						bool isMaxRead = maxRead > 0 && metric.ReadsPerSecond == maxRead;
+						bool isMaxWrite = maxWrite > 0 && metric.WritesPerSecond == maxWrite;
+						bool isMaxSpeed = maxSpeed > 0 && metric.WrittenBytesPerSecond == maxSpeed;
 
-					Console.ForegroundColor = metric.ReadsPerSecond > 10 ? ConsoleColor.Green : ConsoleColor.DarkCyan;
-					WriteAt(COL1 + 9, y, metric.ReadsPerSecond == 0 ? "-" : new string(GetBarChar(metric.ReadsPerSecond), Bar(metric.ReadsPerSecond, scaleRead, MAX_RW_WIDTH)));
-					Console.ForegroundColor = metric.WritesPerSecond > 10 ? ConsoleColor.Green : ConsoleColor.DarkCyan;
-					WriteAt(COL2 + 9, y, metric.WritesPerSecond == 0 ? "-" : new string(GetBarChar(metric.WritesPerSecond), Bar(metric.WritesPerSecond, scaleWrite, MAX_RW_WIDTH)));
-					Console.ForegroundColor = metric.WrittenBytesPerSecond > 1000 ? ConsoleColor.Green : ConsoleColor.DarkCyan;
-					WriteAt(COL3 + 11, y, metric.WrittenBytesPerSecond == 0 ? "-" : new string(GetBarChar(metric.WrittenBytesPerSecond / 1000), Bar(metric.WrittenBytesPerSecond, scaleSpeed, MAX_WS_WIDTH)));
-				}
-				else
-				{
-					Console.ForegroundColor = ConsoleColor.DarkRed;
-					WriteAt(COL1, y, "{0,8}", "x");
-					WriteAt(COL2, y, "{0,8}", "x");
-					WriteAt(COL3, y, "{0,8}", "x");
+						Console.ForegroundColor = isMaxRead ? ConsoleColor.Cyan : FrenquencyColor(metric.ReadsPerSecond);
+						WriteAt(COL1, y, "{0,8:N0}", metric.ReadsPerSecond);
+						Console.ForegroundColor = isMaxWrite ? ConsoleColor.Cyan : FrenquencyColor(metric.WritesPerSecond);
+						WriteAt(COL2, y, "{0,8:N0}", metric.WritesPerSecond);
+						Console.ForegroundColor = isMaxSpeed ? ConsoleColor.Cyan : DiskSpeedColor(metric.WrittenBytesPerSecond);
+						WriteAt(COL3, y, "{0,10:N3}", MegaBytes(metric.WrittenBytesPerSecond));
+
+						Console.ForegroundColor = metric.ReadsPerSecond > 10 ? ConsoleColor.Green : ConsoleColor.DarkCyan;
+						WriteAt(COL1 + 9, y, metric.ReadsPerSecond == 0 ? "-" : new string(GetBarChar(metric.ReadsPerSecond), Bar(metric.ReadsPerSecond, scaleRead, MAX_RW_WIDTH)));
+						Console.ForegroundColor = metric.WritesPerSecond > 10 ? ConsoleColor.Green : ConsoleColor.DarkCyan;
+						WriteAt(COL2 + 9, y, metric.WritesPerSecond == 0 ? "-" : new string(GetBarChar(metric.WritesPerSecond), Bar(metric.WritesPerSecond, scaleWrite, MAX_RW_WIDTH)));
+						Console.ForegroundColor = metric.WrittenBytesPerSecond > 1000 ? ConsoleColor.Green : ConsoleColor.DarkCyan;
+						WriteAt(COL3 + 11, y, metric.WrittenBytesPerSecond == 0 ? "-" : new string(GetBarChar(metric.WrittenBytesPerSecond / 1000), Bar(metric.WrittenBytesPerSecond, scaleSpeed, MAX_WS_WIDTH)));
+					}
+					else
+					{
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						WriteAt(COL1, y, "{0,8}", "x");
+						WriteAt(COL2, y, "{0,8}", "x");
+						WriteAt(COL3, y, "{0,8}", "x");
+					}
 				}
 				--y;
 			}
@@ -589,8 +631,8 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = "fdbtop - Latency";
-				RepaintTopBar();
+				Console.Title = $"fdbtop - {Program.CurrentCoordinators?.Description} - Latency";
+				RepaintTopBar("latency");
 
 				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Elapsed");
@@ -616,38 +658,44 @@ namespace FdbTop
 			int y = 7 + History.Count - 1;
 			foreach (var metric in History)
 			{
-				Console.ForegroundColor = ConsoleColor.DarkGray;
-				WriteAt(1, y,
-					"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
-					TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
-					""
-				);
-
-				if (metric.Available)
+				if (y < ScreenHeight)
 				{
-					bool isMaxRead = maxCommit > 0 && metric.LatencyCommit == maxCommit;
-					bool isMaxWrite = maxRead > 0 && metric.LatencyRead == maxRead;
-					bool isMaxSpeed = maxStart > 0 && metric.LatencyStart == maxStart;
+					Console.ForegroundColor = ConsoleColor.DarkGray;
+					WriteAt(
+						1,
+						y,
+						"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
+						TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
+						""
+					);
 
-					Console.ForegroundColor = isMaxRead ? ConsoleColor.Cyan : LatencyColor(metric.LatencyCommit);
-					WriteAt(COL1, y, "{0,8:N3}", metric.LatencyCommit * 1000);
-					Console.ForegroundColor = isMaxWrite ? ConsoleColor.Cyan : LatencyColor(metric.LatencyRead);
-					WriteAt(COL2, y, "{0,8:N3}", metric.LatencyRead * 1000);
-					Console.ForegroundColor = isMaxSpeed ? ConsoleColor.Cyan : LatencyColor(metric.LatencyStart);
-					WriteAt(COL3, y, "{0,10:N3}", metric.LatencyStart * 1000);
+					if (metric.Available)
+					{
+						bool isMaxRead = maxCommit > 0 && metric.LatencyCommit == maxCommit;
+						bool isMaxWrite = maxRead > 0 && metric.LatencyRead == maxRead;
+						bool isMaxSpeed = maxStart > 0 && metric.LatencyStart == maxStart;
 
-					Console.ForegroundColor = ConsoleColor.Green;
-					WriteAt(COL1 + 9, y, metric.LatencyCommit == 0 ? "-" : new string('|', Bar(metric.LatencyCommit, scaleCommit, MAX_RW_WIDTH)));
-					WriteAt(COL2 + 9, y, metric.LatencyRead == 0 ? "-" : new string('|', Bar(metric.LatencyRead, scaleRead, MAX_RW_WIDTH)));
-					WriteAt(COL3 + 11, y, metric.LatencyStart == 0 ? "-" : new string('|', Bar(metric.LatencyStart, scaleStart, MAX_WS_WIDTH)));
+						Console.ForegroundColor = isMaxRead ? ConsoleColor.Cyan : LatencyColor(metric.LatencyCommit);
+						WriteAt(COL1, y, "{0,8:N3}", metric.LatencyCommit * 1000);
+						Console.ForegroundColor = isMaxWrite ? ConsoleColor.Cyan : LatencyColor(metric.LatencyRead);
+						WriteAt(COL2, y, "{0,8:N3}", metric.LatencyRead * 1000);
+						Console.ForegroundColor = isMaxSpeed ? ConsoleColor.Cyan : LatencyColor(metric.LatencyStart);
+						WriteAt(COL3, y, "{0,10:N3}", metric.LatencyStart * 1000);
+
+						Console.ForegroundColor = ConsoleColor.Green;
+						WriteAt(COL1 + 9, y, metric.LatencyCommit == 0 ? "-" : new string('|', Bar(metric.LatencyCommit, scaleCommit, MAX_RW_WIDTH)));
+						WriteAt(COL2 + 9, y, metric.LatencyRead == 0 ? "-" : new string('|', Bar(metric.LatencyRead, scaleRead, MAX_RW_WIDTH)));
+						WriteAt(COL3 + 11, y, metric.LatencyStart == 0 ? "-" : new string('|', Bar(metric.LatencyStart, scaleStart, MAX_WS_WIDTH)));
+					}
+					else
+					{
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						WriteAt(COL1, y, "{0,8}", "x");
+						WriteAt(COL2, y, "{0,8}", "x");
+						WriteAt(COL3, y, "{0,8}", "x");
+					}
 				}
-				else
-				{
-					Console.ForegroundColor = ConsoleColor.DarkRed;
-					WriteAt(COL1, y, "{0,8}", "x");
-					WriteAt(COL2, y, "{0,8}", "x");
-					WriteAt(COL3, y, "{0,8}", "x");
-				}
+
 				--y;
 			}
 
@@ -663,8 +711,8 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = "fdbtop - Transactions";
-				RepaintTopBar();
+				Console.Title = $"fdbtop - {Program.CurrentCoordinators?.Description} - Transactions";
+				RepaintTopBar("transactions");
 
 				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Elapsed");
@@ -690,40 +738,46 @@ namespace FdbTop
 			int y = 7 + History.Count - 1;
 			foreach (var metric in History)
 			{
-				Console.ForegroundColor = ConsoleColor.DarkGray;
-				WriteAt(1, y,
-					"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
-					TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
-					""
-				);
-
-				if (metric.Available)
+				if (y < ScreenHeight)
 				{
-					bool isMaxRead = maxStarted > 0 && metric.LatencyCommit == maxStarted;
-					bool isMaxWrite = maxCommitted > 0 && metric.LatencyRead == maxCommitted;
-					bool isMaxSpeed = maxConflicted > 0 && metric.LatencyStart == maxConflicted;
+					Console.ForegroundColor = ConsoleColor.DarkGray;
+					WriteAt(
+						1,
+						y,
+						"{0} | {1,8} {1,40} | {1,8} {1,40} | {1,10} {1,20} |",
+						TimeSpan.FromSeconds(Math.Round(metric.LocalTime.TotalSeconds, MidpointRounding.AwayFromZero)),
+						""
+					);
 
-					Console.ForegroundColor = isMaxRead ? ConsoleColor.Cyan : FrenquencyColor(metric.TransStarted);
-					WriteAt(COL1, y, "{0,8:N0}", metric.TransStarted);
-					Console.ForegroundColor = isMaxWrite ? ConsoleColor.Cyan : FrenquencyColor(metric.TransCommitted);
-					WriteAt(COL2, y, "{0,8:N0}", metric.TransCommitted);
-					Console.ForegroundColor = isMaxSpeed ? ConsoleColor.Cyan : FrenquencyColor(metric.TransConflicted);
-					WriteAt(COL3, y, "{0,8:N1}", metric.TransConflicted);
+					if (metric.Available)
+					{
+						bool isMaxRead = maxStarted > 0 && metric.LatencyCommit == maxStarted;
+						bool isMaxWrite = maxCommitted > 0 && metric.LatencyRead == maxCommitted;
+						bool isMaxSpeed = maxConflicted > 0 && metric.LatencyStart == maxConflicted;
 
-					Console.ForegroundColor = metric.TransStarted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen;
-					WriteAt(COL1 + 9, y, metric.TransStarted == 0 ? "-" : new string('|', Bar(metric.TransStarted, scaleStarted, MAX_RW_WIDTH)));
-					Console.ForegroundColor = metric.TransCommitted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen;
-					WriteAt(COL2 + 9, y, metric.TransCommitted == 0 ? "-" : new string('|', Bar(metric.TransCommitted, scaleComitted, MAX_RW_WIDTH)));
-					Console.ForegroundColor = metric.TransConflicted > 1000 ? ConsoleColor.Red : metric.TransConflicted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen;
-					WriteAt(COL3 + 9, y, metric.TransConflicted == 0 ? "-" : new string('|', Bar(metric.TransConflicted, scaleConflicted, MAX_WS_WIDTH)));
+						Console.ForegroundColor = isMaxRead ? ConsoleColor.Cyan : FrenquencyColor(metric.TransStarted);
+						WriteAt(COL1, y, "{0,8:N0}", metric.TransStarted);
+						Console.ForegroundColor = isMaxWrite ? ConsoleColor.Cyan : FrenquencyColor(metric.TransCommitted);
+						WriteAt(COL2, y, "{0,8:N0}", metric.TransCommitted);
+						Console.ForegroundColor = isMaxSpeed ? ConsoleColor.Cyan : FrenquencyColor(metric.TransConflicted);
+						WriteAt(COL3, y, "{0,8:N1}", metric.TransConflicted);
+
+						Console.ForegroundColor = metric.TransStarted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen;
+						WriteAt(COL1 + 9, y, metric.TransStarted == 0 ? "-" : new string('|', Bar(metric.TransStarted, scaleStarted, MAX_RW_WIDTH)));
+						Console.ForegroundColor = metric.TransCommitted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen;
+						WriteAt(COL2 + 9, y, metric.TransCommitted == 0 ? "-" : new string('|', Bar(metric.TransCommitted, scaleComitted, MAX_RW_WIDTH)));
+						Console.ForegroundColor = metric.TransConflicted > 1000 ? ConsoleColor.Red : metric.TransConflicted > 10 ? ConsoleColor.Green : ConsoleColor.DarkGreen;
+						WriteAt(COL3 + 9, y, metric.TransConflicted == 0 ? "-" : new string('|', Bar(metric.TransConflicted, scaleConflicted, MAX_WS_WIDTH)));
+					}
+					else
+					{
+						Console.ForegroundColor = ConsoleColor.DarkRed;
+						WriteAt(COL1, y, "{0,8}", "x");
+						WriteAt(COL2, y, "{0,8}", "x");
+						WriteAt(COL3, y, "{0,8}", "x");
+					}
 				}
-				else
-				{
-					Console.ForegroundColor = ConsoleColor.DarkRed;
-					WriteAt(COL1, y, "{0,8}", "x");
-					WriteAt(COL2, y, "{0,8}", "x");
-					WriteAt(COL3, y, "{0,8}", "x");
-				}
+
 				--y;
 			}
 
@@ -767,6 +821,8 @@ namespace FdbTop
 			}
 		}
 
+		private static int LastProcessYMax = 0;
+
 		private static void ShowProcessesScreen(FdbSystemStatus status, HistoryMetric current, bool repaint)
 		{
 			const int BARSZ = 15;
@@ -782,9 +838,8 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = "fdbtop - Processes";
-				RepaintTopBar();
-
+				Console.Title = $"fdbtop - {Program.CurrentCoordinators?.Description} - Processes";
+				RepaintTopBar("processes");
 				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Address (port)");
 				WriteAt(COL1, 5, "Network in / out (MB/s)");
@@ -792,6 +847,8 @@ namespace FdbTop
 				WriteAt(COL4, 5, "Memory Free / Total (GB)");
 				WriteAt(COL6, 5, "HDD (%busy)");
 				WriteAt(COL7, 5, "Roles");
+
+				LastProcessYMax = 0;
 
 #if DEBUG_LAYOUT
 				Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -872,39 +929,52 @@ namespace FdbTop
 					{
 						map.Add(role.Role);
 					}
-					Console.ForegroundColor = ConsoleColor.DarkGray;
-					WriteAt(1, y,
-						"{0,7} | {0,5} | {0,8} in {0,8} out | {0,6}% {0,15} | {0,5} / {0,5} GB {0,15} | {0,5}% {0,15} | {0,11} |",
-						""
-					);
 
-					Console.ForegroundColor = proc.Version != maxVersion ? ConsoleColor.DarkCyan : ConsoleColor.Gray;
-					WriteAt(1 +  10, y, "{0,5}", proc.Version);
+					if (y < ScreenHeight)
+					{
+						Console.ForegroundColor = ConsoleColor.DarkGray;
+						WriteAt(
+							1,
+							y,
+							"{0,7} | {0,5} | {0,8} in {0,8} out | {0,6}% {0,15} | {0,5} / {0,5} GB {0,15} | {0,5}% {0,15} | {0,11} |",
+							""
+						);
 
-					Console.ForegroundColor = proc.Excluded ? ConsoleColor.DarkRed : ConsoleColor.Gray;
-					WriteAt(COL0, y, "{0,7}", port);
-					Console.ForegroundColor = ConsoleColor.Gray;
-					WriteAt(COL1, y, "{0,8:N3}", MegaBytes(proc.Network.MegabitsReceived.Hz * 125000));
-					WriteAt(COL2, y, "{0,8:N3}", MegaBytes(proc.Network.MegabitsSent.Hz * 125000));
-					WriteAt(COL3, y, "{0,6:N1}", proc.Cpu.UsageCores * 100);
-					WriteAt(COL4, y, "{0,5:N1}", GigaBytes(proc.Memory.UsedBytes));
-					WriteAt(COL5, y, "{0,5:N1}", GigaBytes(proc.Memory.AvailableBytes));
-					WriteAt(COL6, y, "{0,5:N1}", Math.Min(proc.Disk.Busy * 100, 100)); // 1 == 1 core, but a process can go a little bit higher
-					WriteAt(COL7, y, "{0,11}", map);
+						Console.ForegroundColor = proc.Version != maxVersion ? ConsoleColor.DarkCyan : ConsoleColor.Gray;
+						WriteAt(1 + 10, y, "{0,5}", proc.Version);
 
-					Console.ForegroundColor = proc.Cpu.UsageCores >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
-					WriteAt(COL3 + 8, y, "{0,-15}", new string('|', Bar(proc.Cpu.UsageCores, 1, BARSZ)));
+						Console.ForegroundColor = proc.Excluded ? ConsoleColor.DarkRed : ConsoleColor.Gray;
+						WriteAt(COL0, y, "{0,7}", port);
+						Console.ForegroundColor = ConsoleColor.Gray;
+						WriteAt(COL1, y, "{0,8:N3}", MegaBytes(proc.Network.MegabitsReceived.Hz * 125000));
+						WriteAt(COL2, y, "{0,8:N3}", MegaBytes(proc.Network.MegabitsSent.Hz * 125000));
+						WriteAt(COL3, y, "{0,6:N1}", proc.Cpu.UsageCores * 100);
+						WriteAt(COL4, y, "{0,5:N1}", GigaBytes(proc.Memory.UsedBytes));
+						WriteAt(COL5, y, "{0,5:N1}", GigaBytes(proc.Memory.AvailableBytes));
+						WriteAt(COL6, y, "{0,5:N1}", Math.Min(proc.Disk.Busy * 100, 100)); // 1 == 1 core, but a process can go a little bit higher
+						WriteAt(COL7, y, "{0,11}", map);
 
-					Console.ForegroundColor = proc.Memory.UsedBytes >= 0.95 * proc.Memory.AvailableBytes ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
-					WriteAt(COL5 + 9, y, "{0,-15}", new string('|', Bar(proc.Memory.UsedBytes, proc.Memory.AvailableBytes, BARSZ)));
+						Console.ForegroundColor = proc.Cpu.UsageCores >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
+						WriteAt(COL3 + 8, y, "{0,-15}", new string('|', Bar(proc.Cpu.UsageCores, 1, BARSZ)));
 
-					Console.ForegroundColor = proc.Disk.Busy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
-					WriteAt(COL6 + 7, y, "{0,-15}", new string('|', Bar(proc.Disk.Busy, 1, BARSZ)));
+						Console.ForegroundColor = proc.Memory.UsedBytes >= 0.95 * proc.Memory.AvailableBytes ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
+						WriteAt(COL5 + 9, y, "{0,-15}", new string('|', Bar(proc.Memory.UsedBytes, proc.Memory.AvailableBytes, BARSZ)));
 
+						Console.ForegroundColor = proc.Disk.Busy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
+						WriteAt(COL6 + 7, y, "{0,-15}", new string('|', Bar(proc.Disk.Busy, 1, BARSZ)));
+					}
 					++y;
 				}
 				++y;
 			}
+
+			// clear the extra lines from the previous repaint
+			y = Math.Min(y, ScreenHeight);
+			for (; y < LastProcessYMax; y++)
+			{
+				WriteAt(COL0, y, new string(' ', ScreenWidth));
+			}
+			LastProcessYMax = y;
 
 		}
 
@@ -912,10 +982,15 @@ namespace FdbTop
 		{
 			if (repaint)
 			{
-				Console.Title = "fdbtop - Topology";
-				RepaintTopBar();
+				Console.Title = $"fdbtop - {Program.CurrentCoordinators?.Description} - Help";
+				RepaintTopBar("help");
 			}
 
+			int y = 5;
+			WriteAt(TOP_COL0, y + 0, "[M] Metrics");
+			WriteAt(TOP_COL0, y + 1, "[T] Transactions");
+			WriteAt(TOP_COL0, y + 2, "[L] Latencies");
+			WriteAt(TOP_COL0, y + 3, "[P] Processes");
 			//TODO!
 		}
 
