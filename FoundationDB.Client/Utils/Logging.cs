@@ -31,9 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
-#if !NET_4_0
 	using System.Runtime.CompilerServices;
-#endif
 	using System.Security;
 	using System.Threading;
 
@@ -58,9 +56,7 @@ namespace FoundationDB.Client
 		/// <summary>Return true if logging is enabled; otherwise false</summary>
 		public static bool On
 		{
-#if !NET_4_0
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get
 			{
 				if (!s_initialized)
@@ -100,41 +96,31 @@ namespace FoundationDB.Client
 
 		public static bool IsVerbose
 		{
-#if !NET_4_0
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get { return ShouldTrace(TraceEventType.Verbose); }
 		}
 
 		public static bool IsInformation
 		{
-#if !NET_4_0
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get { return ShouldTrace(TraceEventType.Information); }
 		}
 
 		public static bool IsWarning
 		{
-#if !NET_4_0
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get { return ShouldTrace(TraceEventType.Warning); }
 		}
 
 		public static bool IsError
 		{
-#if !NET_4_0
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get { return ShouldTrace(TraceEventType.Error); }
 		}
 
 		public static bool IsCritical
 		{
-#if !NET_4_0
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get { return ShouldTrace(TraceEventType.Critical); }
 		}
 

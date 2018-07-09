@@ -252,11 +252,7 @@ namespace FoundationDB.Filters.Logging
 			catch (Exception e)
 			{
 				error = e;
-#if NET_4_0
-				cmd.Result = Maybe.Error<R>(e);
-#else
 				cmd.Result = Maybe.Error<TResult>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
-#endif
 				throw;
 			}
 			finally
@@ -467,11 +463,7 @@ namespace FoundationDB.Filters.Logging
 				catch (Exception e)
 				{
 					error = e;
-#if NET_4_0
-					cmd.Result = Maybe.Error<R>(e);
-#else
 					cmd.Result = Maybe.Error<TResult>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
-#endif
 					throw;
 				}
 				finally
