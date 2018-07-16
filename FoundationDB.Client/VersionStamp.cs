@@ -26,7 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+#if !USE_SHARED_FRAMEWORK
+
+namespace System
 {
 	using System;
 	using System.Collections.Generic;
@@ -509,3 +511,5 @@ namespace FoundationDB.Client
 	}
 
 }
+
+ #endif
