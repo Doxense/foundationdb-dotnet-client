@@ -201,12 +201,50 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Extract a chunk of result from a completed Future</summary>
 		/// <param name="h">Handle to the completed Future</param>
-		/// <param name="more">Receives true if there are more result, or false if all results have been transmited</param>
+		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
+		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
+		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
 		[NotNull]
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, FdbReadMode read, out bool more)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
-			var err = FdbNative.FutureGetKeyValueArray(h, read, out var result, out more);
+			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
+			Fdb.DieOnError(err);
+			//note: result can only be null if an error occured!
+			Contract.Ensures(result != null);
+			first = result.Length > 0 ? result[0].Key : default;
+			last = result.Length > 0 ? result[result.Length - 1].Key : default;
+			return result;
+		}
+
+		/// <summary>Extract a chunk of result from a completed Future</summary>
+		/// <param name="h">Handle to the completed Future</param>
+		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
+		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
+		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
+		/// <returns>Array of key/value pairs, or an exception</returns>
+		[NotNull]
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultKeysOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
+		{
+			var err = FdbNative.FutureGetKeyValueArrayKeysOnly(h, out var result, out more);
+			Fdb.DieOnError(err);
+			//note: result can only be null if an error occured!
+			Contract.Ensures(result != null);
+			first = result.Length > 0 ? result[0].Key : default;
+			last = result.Length > 0 ? result[result.Length - 1].Key : default;
+			return result;
+		}
+
+		/// <summary>Extract a chunk of result from a completed Future</summary>
+		/// <param name="h">Handle to the completed Future</param>
+		/// <param name="more">Receives true if there are more result, or false if all results have been transmitted</param>
+		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
+		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
+		/// <returns>Array of key/value pairs, or an exception</returns>
+		[NotNull]
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultValuesOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
+		{
+			var err = FdbNative.FutureGetKeyValueArrayValuesOnly(h, out var result, out more, out first, out last);
 			Fdb.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Ensures(result != null);
@@ -225,9 +263,33 @@ namespace FoundationDB.Client.Native
 				future,
 				(h) =>
 				{
-					// TODO: quietly return if disposed
-					var chunk = GetKeyValueArrayResult(h, options.Read ?? FdbReadMode.Both, out bool hasMore);
-					return new FdbRangeChunk(hasMore, chunk, iteration, reversed);
+					var mode = options.Read ?? FdbReadMode.Both;
+					KeyValuePair<Slice, Slice>[] items;
+					bool hasMore;
+					Slice first, last;
+					switch (mode)
+					{
+						case FdbReadMode.Both:
+						{
+							items = GetKeyValueArrayResult(h, out hasMore, out first, out last);
+							break;
+						}
+						case FdbReadMode.Keys:
+						{
+							items = GetKeyValueArrayResultKeysOnly(h, out hasMore, out first, out last);
+							break;
+						}
+						case FdbReadMode.Values:
+						{
+							items = GetKeyValueArrayResultValuesOnly(h, out hasMore, out first, out last);
+							break;
+						}
+						default:
+						{
+							throw new InvalidOperationException();
+						}
+					}
+					return new FdbRangeChunk(items, hasMore, iteration, reversed, mode, first, last);
 				},
 				ct
 			);
@@ -397,7 +459,7 @@ namespace FoundationDB.Client.Native
 		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
 		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
 		/// </summary>
-		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
+		/// <returns>Task that succeeds if the transaction was committed successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
 		public Task CommitAsync(CancellationToken ct)
 		{

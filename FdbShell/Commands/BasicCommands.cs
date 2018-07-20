@@ -1020,7 +1020,7 @@ namespace FdbShell
 								if (data.Count == 0) break;
 
 								count += data.Count;
-								foreach (var kvp in data.Chunk)
+								foreach (var kvp in data)
 								{
 									keySize += kvp.Key.Count;
 									valueSize += kvp.Value.Count;
@@ -1031,7 +1031,7 @@ namespace FdbShell
 
 								if (!data.HasMore) break;
 
-								beginSelector = KeySelector.FirstGreaterThan(data.Last.Key);
+								beginSelector = KeySelector.FirstGreaterThan(data.Last);
 								++iter;
 							}
 

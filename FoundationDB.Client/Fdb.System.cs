@@ -344,11 +344,11 @@ namespace FoundationDB.Client
 						++iterations;
 						if (chunk.Count > 0)
 						{
-							foreach (var kvp in chunk.Chunk)
+							foreach (var kvp in chunk)
 							{
 								results.Add(kvp.Key.Substring(KeyServers.Count));
 							}
-							begin = chunk.Last.Key.Substring(KeyServers.Count) + 0;
+							begin = chunk.Last.Substring(KeyServers.Count) + 0;
 						}
 						if (!chunk.HasMore)
 						{

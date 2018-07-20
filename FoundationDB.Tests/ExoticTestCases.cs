@@ -26,8 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
-namespace FoundationDB.Client.Tests
+ namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Collections.Generic;
@@ -567,7 +566,7 @@ namespace FoundationDB.Client.Tests
 						// T 1
 						// => GETRANGE( (< 'KAAA<00>' +1) .. (< LAST +1)
 						Log($"Count={r.Count}, HasMore={r.HasMore}");
-						foreach (var kvp in r.Chunk)
+						foreach (var kvp in r)
 						{
 							Log($"{kvp.Key} = {kvp.Value}");
 						}

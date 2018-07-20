@@ -30,78 +30,314 @@ namespace FoundationDB.Client
 {
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 
 	[DebuggerDisplay("Count={Chunk!=null?Chunk.Length:0}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
 	[PublicAPI]
-	public readonly struct FdbRangeChunk
+	public sealed class FdbRangeChunk : IReadOnlyList<KeyValuePair<Slice, Slice>>
 	{
-		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
-		public readonly bool HasMore;
-
 		/// <summary>Contains the items that where </summary>
-		public readonly KeyValuePair<Slice, Slice>[] Chunk;
-		//REVIEW: consider renaming Chunk to Results or Items ?
-		// => I saw a lot of "var chunk = tr.GetRangeAsync(...); if (chunk.Chunk.Length > 0 { ... }" which is a bit ugly..
-
-		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
-		public readonly int Iteration;
+		[NotNull]
+		public KeyValuePair<Slice, Slice>[] Items { get; }
 
 		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
-		public readonly bool Reversed;
+		public bool Reversed { get; }
 
-		public FdbRangeChunk(bool hasMore, KeyValuePair<Slice, Slice>[] chunk, int iteration, bool reversed)
-		{
-			this.HasMore = hasMore;
-			this.Chunk = chunk;
-			this.Iteration = iteration;
-			this.Reversed = reversed;
-		}
+		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
+		public bool HasMore { get; }
 
-		/// <summary>Returns the number of results in this chunk</summary>
-		public int Count => Chunk?.Length ?? 0;
+		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
+		public int Iteration { get; }
 
-		/// <summary>Returns true if the chunk does not contain any item.</summary>
-		public bool IsEmpty => this.Chunk == null || this.Chunk.Length == 0;
+		/// <summary>Specify if the chunk contains only keys, only values, or both (default)</summary>
+		public FdbReadMode ReadMode { get; }
 
 		/// <summary>Returns the first item in the chunk</summary>
 		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
-		public KeyValuePair<Slice, Slice> First
-		{
-			get
-			{
-				var chunk = this.Chunk;
-				return chunk?.Length > 0 ? chunk[0] : default;
-			}
-		}
+		public Slice Last { get; }
 
 		/// <summary>Returns the last item in the chunk</summary>
 		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
-		public KeyValuePair<Slice, Slice> Last
+		public Slice First { get; }
+
+		public FdbRangeChunk([NotNull] KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
 		{
-			get
-			{
-				var chunk = this.Chunk;
-				return chunk?.Length > 0 ? chunk[chunk.Length - 1] : default;
-			}
+			Contract.NotNull(items, nameof(items));
+			this.Items = items;
+			this.HasMore = hasMore;
+			this.Iteration = iteration;
+			this.Reversed = reversed;
+			this.ReadMode = readMode;
+			this.First = first;
+			this.Last = last;
 		}
+
+		[Obsolete("This property will be removed in the next release.")]
+		public KeyValuePair<Slice, Slice>[] Chunk => this.Items;
+
+		/// <summary>Returns the number of results in this chunk</summary>
+		public int Count => this.Items.Length;
+
+		/// <summary>Returns true if the chunk does not contain any item.</summary>
+		public bool IsEmpty => this.Items.Length == 0;
 
 		/// <summary>Returns the total size of all keys and values in the chunk</summary>
 		public int GetSize()
 		{
 			long sum = 0;
-			var chunk = this.Chunk;
-			if (chunk != null)
+			var results = this.Items;
+			for (int i = 0; i < results.Length; i++)
 			{
-				for (int i = 0; i < chunk.Length; i++)
-				{
-					sum += chunk[i].Key.Count + chunk[i].Value.Count;
-				}
+				sum += results[i].Key.Count + results[i].Value.Count;
 			}
 			return checked((int) sum);
 		}
+
+		#region Items...
+
+		/// <summary>Return a reference to the result at the specified index</summary>
+		public KeyValuePair<Slice, Slice> this[int index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Items[index];
+		}
+
+		/// <summary>Return a reference to the result at the specified index</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public ref readonly KeyValuePair<Slice, Slice> ItemRef(int index) => ref this.Items[index];
+
+		public KeyValuePair<Slice, Slice>[] ToArray()
+		{
+			var tmp = new KeyValuePair<Slice, Slice>[this.Count];
+			this.Items.CopyTo(tmp, 0);
+			return tmp;
+		}
+
+		public void CopyTo(KeyValuePair<Slice, Slice>[] array, int offset)
+		{
+			this.Items.CopyTo(array, 0);
+		}
+
+		public ChunkEnumerator GetEnumerator()
+		{
+			return new ChunkEnumerator(this.Items);
+		}
+
+		IEnumerator<KeyValuePair<Slice, Slice>> IEnumerable<KeyValuePair<Slice, Slice>>.GetEnumerator() => GetEnumerator();
+
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		public struct ChunkEnumerator : IEnumerator<KeyValuePair<Slice, Slice>>
+		{
+
+			private readonly KeyValuePair<Slice, Slice>[] Items;
+			private int Index;
+
+			public ChunkEnumerator(KeyValuePair<Slice, Slice>[] items)
+			{
+				this.Items = items;
+				this.Index = -1;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool MoveNext()
+			{
+				int p = this.Index + 1;
+				if (p >= this.Items.Length) return MoveNextRare();
+				this.Index = p;
+				return true;
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private bool MoveNextRare()
+			{
+				this.Index = this.Items.Length;
+				return false;
+			}
+
+			public KeyValuePair<Slice, Slice> Current
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => this.Items[this.Index];
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void Dispose()
+			{ }
+
+			object IEnumerator.Current => Current;
+
+			void IEnumerator.Reset()
+			{
+				this.Index = -1;
+			}
+
+		}
+
+		#endregion
+
+		#region Keys...
+
+		public KeysCollection Keys => new KeysCollection(this.Items);
+
+		public readonly struct KeysCollection : IReadOnlyList<Slice>
+		{
+			private readonly KeyValuePair<Slice, Slice>[] Items;
+
+			internal KeysCollection(KeyValuePair<Slice, Slice>[] items)
+			{
+				this.Items = items;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public ChunkKeysEnumerator GetEnumerator()
+			{
+				return new ChunkKeysEnumerator(this.Items);
+			}
+
+			IEnumerator<Slice> IEnumerable<Slice>.GetEnumerator() => GetEnumerator();
+
+			IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+			public int Count => this.Items.Length;
+
+			public Slice this[int index] => this.Items[index].Key;
+		}
+
+		public struct ChunkKeysEnumerator : IEnumerator<Slice>
+		{
+
+			private readonly KeyValuePair<Slice, Slice>[] Items;
+			private int Index;
+
+			public ChunkKeysEnumerator(KeyValuePair<Slice, Slice>[] items)
+			{
+				this.Items = items;
+				this.Index = -1;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool MoveNext()
+			{
+				int p = this.Index + 1;
+				if (p >= this.Items.Length) return MoveNextRare();
+				this.Index = p;
+				return true;
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private bool MoveNextRare()
+			{
+				this.Index = this.Items.Length;
+				return false;
+			}
+
+			public Slice Current
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => this.Items[this.Index].Key;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void Dispose()
+			{ }
+
+			object IEnumerator.Current => Current;
+
+			void IEnumerator.Reset()
+			{
+				this.Index = -1;
+			}
+
+		}
+
+		#endregion
+
+		#region Values...
+
+		public ValuesCollection Values => new ValuesCollection(this.Items);
+
+		public readonly struct ValuesCollection : IReadOnlyList<Slice>
+		{
+			private readonly KeyValuePair<Slice, Slice>[] Items;
+
+			internal ValuesCollection(KeyValuePair<Slice, Slice>[] items)
+			{
+				this.Items = items;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public ChunkKeysEnumerator GetEnumerator()
+			{
+				return new ChunkKeysEnumerator(this.Items);
+			}
+
+			IEnumerator<Slice> IEnumerable<Slice>.GetEnumerator() => GetEnumerator();
+
+			IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+			public int Count => this.Items.Length;
+
+			public Slice this[int index] => this.Items[index].Value;
+		}
+
+		public struct ChunkValuesEnumerator : IEnumerator<Slice>
+		{
+
+			private readonly KeyValuePair<Slice, Slice>[] Items;
+			private int Index;
+
+			public ChunkValuesEnumerator(KeyValuePair<Slice, Slice>[] items)
+			{
+				this.Items = items;
+				this.Index = -1;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool MoveNext()
+			{
+				int p = this.Index + 1;
+				if (p >= this.Items.Length) return MoveNextRare();
+				this.Index = p;
+				return true;
+			}
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private bool MoveNextRare()
+			{
+				this.Index = this.Items.Length;
+				return false;
+			}
+
+			public Slice Current
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => this.Items[this.Index].Value;
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void Dispose()
+			{ }
+
+			object IEnumerator.Current => Current;
+
+			void IEnumerator.Reset()
+			{
+				this.Index = -1;
+			}
+
+		}
+
+		#endregion
+
+		#region Decoding Helpers...
+
+		//REVIEW: is this really used? It could be moved to a set of extensions methods instead?
 
 		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
 		/// <typeparam name="TKey">Type of the keys</typeparam>
@@ -115,18 +351,18 @@ namespace FoundationDB.Client
 			if (keyHandler == null) throw new ArgumentNullException(nameof(keyHandler));
 			if (valueHandler == null) throw new ArgumentNullException(nameof(valueHandler));
 
-			var chunk = this.Chunk;
-			var results = new KeyValuePair<TKey, TValue>[chunk.Length];
+			var results = this.Items;
+			var items = new KeyValuePair<TKey, TValue>[results.Length];
 
-			for (int i = 0; i < chunk.Length; i++)
+			for (int i = 0; i < results.Length; i++)
 			{
-				results[i] = new KeyValuePair<TKey, TValue>(
-					keyHandler(chunk[i].Key),
-					valueHandler(chunk[i].Value)
+				items[i] = new KeyValuePair<TKey, TValue>(
+					keyHandler(results[i].Key),
+					valueHandler(results[i].Value)
 				);
 			}
 
-			return results;
+			return items;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
@@ -145,18 +381,18 @@ namespace FoundationDB.Client
 			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
-			var chunk = this.Chunk;
-			var results = new KeyValuePair<TKey, TValue>[chunk.Length];
+			var results = this.Items;
+			var items = new KeyValuePair<TKey, TValue>[results.Length];
 
-			for (int i = 0; i < chunk.Length; i++)
+			for (int i = 0; i < results.Length; i++)
 			{
-				results[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(subspace.ExtractKey(chunk[i].Key, boundCheck: true)),
-					valueEncoder.DecodeValue(chunk[i].Value)
+				items[i] = new KeyValuePair<TKey, TValue>(
+					keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true)),
+					valueEncoder.DecodeValue(results[i].Value)
 				);
 			}
 
-			return results;
+			return items;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
@@ -172,18 +408,18 @@ namespace FoundationDB.Client
 			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
-			var chunk = this.Chunk;
-			var results = new KeyValuePair<TKey, TValue>[chunk.Length];
+			var results = this.Items;
+			var items = new KeyValuePair<TKey, TValue>[results.Length];
 
-			for (int i = 0; i < chunk.Length; i++)
+			for (int i = 0; i < results.Length; i++)
 			{
-				results[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(chunk[i].Key),
-					valueEncoder.DecodeValue(chunk[i].Value)
+				items[i] = new KeyValuePair<TKey, TValue>(
+					keyEncoder.DecodeKey(results[i].Key),
+					valueEncoder.DecodeValue(results[i].Value)
 				);
 			}
 
-			return results;
+			return items;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
@@ -195,12 +431,13 @@ namespace FoundationDB.Client
 		{
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-			var results = new T[this.Count];
-			for (int i = 0; i < results.Length; i++)
+			var results = this.Items;
+			var keys = new T[results.Length];
+			for (int i = 0; i < keys.Length; i++)
 			{
-				results[i] = handler(this.Chunk[i].Key);
+				keys[i] = handler(results[i].Key);
 			}
-			return results;
+			return keys;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
@@ -214,12 +451,13 @@ namespace FoundationDB.Client
 			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 
-			var results = new T[this.Count];
-			for(int i = 0; i< results.Length;i++)
+			var results = this.Items;
+			var keys = new T[results.Length];
+			for(int i = 0; i< keys.Length;i++)
 			{
-				results[i] = keyEncoder.DecodeKey(subspace.ExtractKey(this.Chunk[i].Key, boundCheck: true));
+				keys[i] = keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true));
 			}
-			return results;
+			return keys;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
@@ -231,12 +469,13 @@ namespace FoundationDB.Client
 		{
 			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
 
-			var results = new T[this.Count];
-			for (int i = 0; i < results.Length; i++)
+			var results = this.Items;
+			var values = new T[results.Length];
+			for (int i = 0; i < values.Length; i++)
 			{
-				results[i] = keyEncoder.DecodeKey(this.Chunk[i].Key);
+				values[i] = keyEncoder.DecodeKey(results[i].Key);
 			}
-			return results;
+			return values;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed values</summary>
@@ -248,12 +487,13 @@ namespace FoundationDB.Client
 		{
 			if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-			var results = new T[this.Count];
-			for (int i = 0; i < results.Length; i++)
+			var results = this.Items;
+			var values = new T[results.Length];
+			for (int i = 0; i < values.Length; i++)
 			{
-				results[i] = handler(this.Chunk[i].Value);
+				values[i] = handler(results[i].Value);
 			}
-			return results;
+			return values;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed values</summary>
@@ -265,14 +505,16 @@ namespace FoundationDB.Client
 		{
 			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
 
-			var results = new T[this.Count];
-			for (int i = 0; i < results.Length; i++)
+			var results = this.Items;
+			var values = new T[results.Length];
+			for (int i = 0; i < values.Length; i++)
 			{
-				results[i] = valueEncoder.DecodeValue(this.Chunk[i].Value);
+				values[i] = valueEncoder.DecodeValue(results[i].Value);
 			}
-			return results;
+			return values;
 		}
 
+		#endregion
 	}
 
 }

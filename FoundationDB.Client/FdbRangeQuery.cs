@@ -437,7 +437,7 @@ namespace FoundationDB.Client
 			}
 
 			// we have a result
-			return this.Transform(results.First);
+			return this.Transform(results[0]);
 		}
 
 		internal async Task<bool> AnyOrNoneAsync(bool any)

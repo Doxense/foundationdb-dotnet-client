@@ -44,6 +44,107 @@ namespace FoundationDB.Client.Tests
 	{
 
 		[Test]
+		public async Task Test_Can_Get_Range_Chunk()
+		{
+			// test that we can get a chunk of data
+
+			const int N = 100; // total item count
+			//note: should be small enough so that a WantAll read all of it in one chunk, but large enough that Iterator does not!
+
+			void Verify(FdbRangeChunk chunk, KeyValuePair<Slice, Slice>[] expected, int offset)
+			{
+				for (int i = 0; i < chunk.Count; i++)
+				{
+					Assert.That(chunk[i].Key, Is.EqualTo(expected[offset + i].Key), "[{0}].Key", i);
+					Assert.That(chunk[i].Value, Is.EqualTo(expected[offset + i].Value), "[{0}].Value", i);
+
+					Assert.That(chunk.Items[i].Key, Is.EqualTo(expected[offset + i].Key), "Items[{0}].Key", i);
+					Assert.That(chunk.Items[i].Value, Is.EqualTo(expected[offset + i].Value), "Items[{0}].Value", i);
+
+					Assert.That(chunk.Keys[i], Is.EqualTo(expected[offset + i].Key), "Keys[{0}]", i);
+					Assert.That(chunk.Values[i], Is.EqualTo(expected[offset + i].Value), "Values[{0}]", i);
+				}
+
+				Assert.That(chunk.First, Is.EqualTo(expected[offset].Key));
+				Assert.That(chunk.Last, Is.EqualTo(expected[offset + chunk.Count - 1].Key));
+			}
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "Queries", "Range");
+
+				var data = Enumerable
+					.Range(0, N)
+					.Select(i => new KeyValuePair<Slice, Slice>(location.Keys.Encode(i), Slice.FromInt32(i)))
+					.ToArray();
+
+				// insert all values (batched)
+				Log("Inserting {0:N0} keys...", N);
+				var insert = Stopwatch.StartNew();
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.SetValues(data);
+					await tr.CommitAsync();
+				}
+				insert.Stop();
+
+				Log("> Committed {0:N0} keys in {1:N1} ms", N, insert.Elapsed.TotalMilliseconds);
+
+				// Read All
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					Log("Getting range (WantAll)...");
+					var ts = Stopwatch.StartNew();
+					var chunk = await tr.GetRangeAsync(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+					);
+					ts.Stop();
+					Assert.That(chunk, Is.Not.Null);
+					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+
+					Assert.That(chunk.Count, Is.EqualTo(N), "Reading a small chunk in WantAll should return all results in one page! If this changes, you may need to tweak the parameters of the test!");
+					Assert.That(chunk.IsEmpty, Is.False, "Should not be empty");
+					Assert.That(chunk.HasMore, Is.False, "Should have all the results");
+					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
+					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.Reversed, Is.False);
+					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
+					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
+
+					Verify(chunk, data, 0);
+				}
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					Log("Getting range (Iterator)...");
+					var ts = Stopwatch.StartNew();
+					var chunk = await tr.GetRangeAsync(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator }
+					);
+					ts.Stop();
+					Assert.That(chunk, Is.Not.Null);
+					Log($"> Read {chunk.Count:N0} results in {ts.Elapsed.TotalMilliseconds:N1} ms");
+					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThan(N), "Should only have read a portion of the results!");
+					Assert.That(chunk.HasMore, Is.True, "Should have more results after that!");
+					Assert.That(chunk.Items, Is.Not.Null.And.Length.EqualTo(chunk.Count), "Items array should match result count");
+					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Both));
+					Assert.That(chunk.Reversed, Is.False);
+					Assert.That(chunk.Keys.Count, Is.EqualTo(chunk.Count), "Keys collection count does not match");
+					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
+
+					Verify(chunk, data, 0);
+				}
+
+			}
+		}
+
+				[Test]
 		public async Task Test_Can_Get_Range()
 		{
 			// test that we can get a range of keys
@@ -125,7 +226,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can get a range of with only the keys, or only the values
 
-			const int N = 1000; // total item count
+			const int N = 10_000; // total item count
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -144,7 +245,37 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// via FdbReadMode.Keys option
-				// => returns a seqence of KV<Slice, Slice> but with Value == Slice.Nil
+				// => returns a chunk of KV<Slice, Slice> but with Value == Slice.Nil
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var chunk = await tr.GetRangeAsync(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Keys }
+					);
+					// note: this will not read ALL the keys in one chunk !
+					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
+					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
+					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Keys));
+					Assert.That(chunk.First, Is.EqualTo(location.Keys.Encode(0)), "First key does not match");
+					Assert.That(chunk.Last, Is.EqualTo(location.Keys.Encode(chunk.Count - 1)), "Last key does not match");
+
+					for (int i = 0; i < chunk.Count; i++)
+					{
+						var kvp = chunk[i];
+
+						// key should be a tuple in the correct order
+						var key = location.Keys.Unpack(kvp.Key);
+						Assert.That(key.Count, Is.EqualTo(1));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
+
+						// value should be nil!
+						Assert.That(kvp.Value, Is.EqualTo(Slice.Nil), "Reading with read mode 'Keys' should return nil values");
+					}
+				}
+
+				// via FdbReadMode.Keys option
+				// => returns a sequence of KV<Slice, Slice> but with Value == Slice.Nil
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(location.Keys.Encode(0), location.Keys.Encode(N), new FdbRangeOptions { Read = FdbReadMode.Keys });
@@ -221,7 +352,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can get a range of with only the keys, or only the values
 
-			const int N = 1000; // total item count
+			const int N = 10_000; // total item count
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -239,8 +370,35 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 				}
 
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var chunk = await tr.GetRangeAsync(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Values }
+					);
+					// note: this will not read ALL the keys in one chunk !
+					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
+					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
+					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Values));
+					Assert.That(chunk.First, Is.EqualTo(location.Keys.Encode(0)), "The chunk should still read the first key (even in Values only mode)");
+					Assert.That(chunk.Last, Is.EqualTo(location.Keys.Encode(chunk.Count - 1)), "The chunk should still read the last key (even in Values only mode)");
+
+					for (int i = 0; i < chunk.Count; i++)
+					{
+						var kvp = chunk[i];
+
+						// key should be a tuple in the correct order
+						Assert.That(kvp.Key, Is.EqualTo(Slice.Nil), "Reading with read mode 'Values' should return nil keys");
+
+						// value should be equal to the index
+						Assert.That(chunk[i], Is.Not.EqualTo(Slice.Nil));
+						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
+					}
+				}
+
 				// via FdbReadMode.Values option
-				// => returns a seqence of KV<Slice, Slice> but with Key == Slice.Nil
+				// => returns a sequence of KV<Slice, Slice> but with Key == Slice.Nil
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(
@@ -310,7 +468,33 @@ namespace FoundationDB.Client.Tests
 						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
 					}
 				}
+
+				// if the range needs to read multiple chunks, it will need the last (or first) key for read the next chunk!
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var query = tr.GetRangeValues(
+						location.Keys.Encode(0),
+						location.Keys.Encode(N),
+						new FdbRangeOptions { Mode = FdbStreamingMode.Small }
+					);
+
+					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
+
+					var items = await query.ToListAsync();
+
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						// value should be equal to the index
+						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
+						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
+					}
+				}
+
 			}
+
 		}
 
 		[Test]
@@ -362,7 +546,6 @@ namespace FoundationDB.Client.Tests
 
 			}
 		}
-
 
 		[Test]
 		public async Task Test_Can_Get_Range_First_Single_And_Last()
@@ -895,7 +1078,7 @@ namespace FoundationDB.Client.Tests
 				IEnumerable<int> xs = series[0];
 				for (int i = 1; i < K; i++) xs = xs.Except(series[i]);
 				var expected = xs.ToArray();
-				Log("Expected: {0}", String.Join(", ", expected));
+				Log("Expected: {0}", string.Join(", ", expected));
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{

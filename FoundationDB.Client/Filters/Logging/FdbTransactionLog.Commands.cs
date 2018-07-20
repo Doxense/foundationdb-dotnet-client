@@ -801,7 +801,7 @@ namespace FoundationDB.Filters.Logging
 				{
 					if (!this.Result.HasValue) return null;
 					int sum = 0;
-					var chunk = this.Result.Value.Chunk;
+					var chunk = this.Result.Value.Items;
 					for (int i = 0; i < chunk.Length; i++)
 					{
 						sum += chunk[i].Key.Count + chunk[i].Value.Count;

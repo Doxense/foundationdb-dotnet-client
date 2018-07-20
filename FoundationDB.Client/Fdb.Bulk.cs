@@ -1435,13 +1435,13 @@ namespace FoundationDB.Client
 					while (page.HasMore)
 					{
 						// prefetch the next one (don't wait for the task yet)
-						var next = FetchNextBatchAsync(tr, KeySelector.FirstGreaterThan(page.Last.Key), end, options, reset);
+						var next = FetchNextBatchAsync(tr, KeySelector.FirstGreaterThan(page.Last), end, options, reset);
 
 						// process the current one
 						if (page.Count > 0)
 						{
 							ct.ThrowIfCancellationRequested();
-							await handler(page.Chunk, count, ct);
+							await handler(page.Items, count, ct);
 							++chunks;
 							count += page.Count;
 						}
@@ -1454,7 +1454,7 @@ namespace FoundationDB.Client
 					if (page.Count > 0)
 					{
 						ct.ThrowIfCancellationRequested();
-						await handler(page.Chunk, count, ct);
+						await handler(page.Items, count, ct);
 						++chunks;
 						count += page.Count;
 					}

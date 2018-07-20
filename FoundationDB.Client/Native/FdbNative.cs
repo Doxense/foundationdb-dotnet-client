@@ -760,15 +760,11 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, FdbReadMode read, out KeyValuePair<Slice, Slice>[] result, out bool more)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
 		{
 			result = null;
 
-			bool readKeys = read != FdbReadMode.Values;
-			bool readValues = read != FdbReadMode.Keys;
-
-			FdbKeyValue* kvp;
-			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out kvp, out int count, out more);
+			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 #endif
@@ -780,7 +776,7 @@ namespace FoundationDB.Client.Native
 				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
 
 				if (count > 0)
-				{ // convert the keyvalue result into an array
+				{ // convert the FdbKeyValue result into an array of slices
 
 					Contract.Assert(kvp != null, "We have results but array pointer was null");
 
@@ -796,9 +792,9 @@ namespace FoundationDB.Client.Native
 						uint kl = kvp[i].KeyLength;
 						uint vl = kvp[i].ValueLength;
 						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
-						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larget than a signed 32-bit int!");
-						if (readKeys) total += kl;
-						if (readValues) total += vl;
+						total += kl;
+						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
+						total += vl;
 					}
 
 					// allocate all memory in one chunk, and make the key/values point to it
@@ -817,32 +813,15 @@ namespace FoundationDB.Client.Native
 						uint p = 0;
 						for (int i = 0; i < result.Length; i++)
 						{
-							Slice key;
-							Slice value;
+							uint kl = kvp[i].KeyLength;
+							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
+							Slice key = page.AsSlice(p, kl);
+							p += kl;
 
-							if (readKeys)
-							{
-								uint kl = kvp[i].KeyLength;
-								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-								key = page.AsSlice(p, kl);
-								p += kl;
-							}
-							else
-							{
-								key = Slice.Nil;
-							}
-
-							if (readValues)
-							{
-								uint vl = kvp[i].ValueLength;
-								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
-								value = page.AsSlice(p, vl);
-								p += vl;
-							}
-							else
-							{
-								value = Slice.Nil;
-							}
+							uint vl = kvp[i].ValueLength;
+							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
+							Slice value = page.AsSlice(p, vl);
+							p += vl;
 
 							result[i] = new KeyValuePair<Slice, Slice>(key, value);
 						}
@@ -854,6 +833,159 @@ namespace FoundationDB.Client.Native
 
 			return err;
 		}
+
+		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
+		{
+			result = null;
+
+			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+#endif
+
+			if (Fdb.Success(err))
+			{
+				Contract.Assert(count >= 0, "Return count was negative");
+
+				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
+
+				if (count > 0)
+				{ // convert the FdbKeyValue result into an array of slices
+
+					Contract.Assert(kvp != null, "We have results but array pointer was null");
+
+					// in order to reduce allocations, we want to merge all keys and values
+					// into a single byte{] and return  list of Slice that will
+					// link to the different chunks of this buffer.
+
+					// first pass to compute the total size needed
+					long total = 0;
+					for (int i = 0; i < count; i++)
+					{
+						uint kl = kvp[i].KeyLength;
+						uint vl = kvp[i].ValueLength;
+						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
+						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
+						total += kl;
+					}
+
+					// allocate all memory in one chunk, and make the key/values point to it
+					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
+					// but it would rely on implementation details that could break at anytime...
+
+					//TODO: protect against too much memory allocated ?
+					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
+
+					//TODO: some keys/values will be small (32 bytes or less) while other will be big
+					//consider having to copy methods, optimized for each scenario ?
+
+					var page = new byte[total];
+					fixed (byte* ptr = &page[0])
+					{
+						uint p = 0;
+						for (int i = 0; i < result.Length; i++)
+						{
+							uint kl = kvp[i].KeyLength;
+							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
+							Slice key = page.AsSlice(p, kl);
+							p += kl;
+
+							result[i] = new KeyValuePair<Slice, Slice>(key, default);
+						}
+
+						Contract.Assert(p == total);
+					}
+				}
+			}
+
+			return err;
+		}
+
+		public static FdbError FutureGetKeyValueArrayValuesOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more, out Slice first, out Slice last)
+		{
+			result = null;
+			first = default;
+			last = default;
+
+			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out FdbKeyValue* kvp, out int count, out more);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+#endif
+
+			if (Fdb.Success(err))
+			{
+				Contract.Assert(count >= 0, "Return count was negative");
+
+				result = count > 0 ? new KeyValuePair<Slice, Slice>[count] : Array.Empty<KeyValuePair<Slice, Slice>>();
+
+				if (count > 0)
+				{ // convert the FdbKeyValue result into an array of slices
+
+					Contract.Assert(kvp != null, "We have results but array pointer was null");
+
+					// in order to reduce allocations, we want to merge all keys and values
+					// into a single byte{] and return  list of Slice that will
+					// link to the different chunks of this buffer.
+
+					int end = count - 1;
+
+					// first pass to compute the total size needed
+					long total = 0;
+					for (int i = 0; i < count; i++)
+					{
+						//TODO: protect against negative values or values too big ?
+						uint kl = kvp[i].KeyLength;
+						uint vl = kvp[i].ValueLength;
+						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
+						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
+						if (i == 0 || i == end) total += kl;
+						total += vl;
+					}
+
+					// allocate all memory in one chunk, and make the key/values point to it
+					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
+					// but it would rely on implementation details that could break at anytime...
+
+					//TODO: protect against too much memory allocated ?
+					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
+
+					//TODO: some keys/values will be small (32 bytes or less) while other will be big
+					//consider having to copy methods, optimized for each scenario ?
+
+					var page = new byte[total];
+					fixed (byte* ptr = &page[0])
+					{
+						uint p = 0;
+						for (int i = 0; i < result.Length; i++)
+						{
+							// note: even if we only read the values, we still need to keep the first and last keys,
+							// because we will need them for pagination when reading multiple ranges (ex: last key will be used as selector for next chunk when going forward)
+							if (i == 0 || i == end)
+							{
+								uint kl = kvp[i].KeyLength;
+								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
+								Slice key = page.AsSlice(p, kl);
+								p += kl;
+								if (i == 0) first = key;
+								if (i == end) last = key;
+							}
+
+							uint vl = kvp[i].ValueLength;
+							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
+							Slice value = page.AsSlice(p, vl);
+							p += vl;
+
+							result[i] = new KeyValuePair<Slice, Slice>(default, value);
+						}
+
+						Contract.Assert(p == total);
+					}
+				}
+			}
+
+			return err;
+		}
+
 
 		public static FdbError FutureGetStringArray(FutureHandle future, out string[] result)
 		{

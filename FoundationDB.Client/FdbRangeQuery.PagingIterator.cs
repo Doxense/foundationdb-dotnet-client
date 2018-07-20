@@ -216,7 +216,7 @@ namespace FoundationDB.Client
 					.GetRangeAsync(this.Begin, this.End, options, this.Iteration)
 					.Then((result) =>
 					{
-						this.Chunk = result.Chunk;
+						this.Chunk = result.Items;
 						this.RowCount += result.Count;
 						this.HasMore = result.HasMore;
 						// subtract number of row from the remaining allowed
@@ -228,14 +228,13 @@ namespace FoundationDB.Client
 
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
-							var lastKey = result.Last.Key;
 							if (this.Query.Reversed)
 							{
-								this.End = KeySelector.FirstGreaterOrEqual(lastKey);
+								this.End = KeySelector.FirstGreaterOrEqual(result.Last);
 							}
 							else
 							{
-								this.Begin = KeySelector.FirstGreaterThan(lastKey);
+								this.Begin = KeySelector.FirstGreaterThan(result.Last);
 							}
 						}
 #if DEBUG_RANGE_PAGING
@@ -243,7 +242,7 @@ namespace FoundationDB.Client
 #endif
 						if (!result.IsEmpty && this.Transaction != null)
 						{
-							return Publish(result.Chunk);
+							return Publish(result.Items);
 						}
 						return Completed();
 					});
