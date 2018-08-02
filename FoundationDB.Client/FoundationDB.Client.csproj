@@ -7,17 +7,11 @@
     <LangVersion>7.2</LangVersion>
     <SignAssembly Condition="'$(OS)' == 'Windows_NT'">true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-    <Version>5.2.0-preview1</Version>
-    <Authors>Doxense</Authors>
-    <PackageLicenseUrl>http://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>
-    <PackageProjectUrl>http://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
-    <PackageIconUrl>http://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
-    <RepositoryUrl>http://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
     <PackageTags>foundationdb fdb nosql</PackageTags>
-    <PackageReleaseNotes>This is a pre-release of the .NET Binding, the public API is still subject to changes.</PackageReleaseNotes>
     <Description>.NET Binding for FoundationDB</Description>
-    <Copyright>Copyright 2013-2018 Doxense SAS</Copyright>
   </PropertyGroup>
+
+  <Import Project="..\Common\VersionInfo.props" />
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

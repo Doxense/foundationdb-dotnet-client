@@ -9,10 +9,9 @@
     <AssemblyName>FoundationDB.Samples</AssemblyName>
     <LangVersion>7.2</LangVersion>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-    <Version>5.2.0-preview1</Version>
-    <Authors>Doxense</Authors>
-    <Copyright>Copyright 2013-2018 Doxense SAS</Copyright>
   </PropertyGroup>
+
+  <Import Project="..\Common\VersionInfo.props" />
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -25,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>

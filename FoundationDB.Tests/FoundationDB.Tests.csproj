@@ -7,10 +7,9 @@
     <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-    <Version>5.2.0-preview1</Version>
-    <Authors>Doxense</Authors>
-    <Copyright>Copyright 2013-2018 Doxense SAS</Copyright>
   </PropertyGroup>
+
+  <Import Project="..\Common\VersionInfo.props" />
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
