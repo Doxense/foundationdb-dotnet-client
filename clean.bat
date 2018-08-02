@@ -3,4 +3,4 @@ cd %~dp0
 
 for /d /r . %%d in (bin,obj) do @if exist "%%d" rd /s/q "%%d"
 
-nuget restore FoundationDB.Client.sln
+dotnet restore FoundationDB.Client.sln
