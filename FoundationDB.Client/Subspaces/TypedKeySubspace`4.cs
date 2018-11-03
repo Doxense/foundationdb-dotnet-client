@@ -245,17 +245,57 @@ namespace FoundationDB.Client
 
 		#region Decode()
 
+		/// <summary>Decode all the elements of the key</summary>
 		[Pure]
-		//REVIEW: => Unpack()?
-		//REVIEW: return ValueTuple<..> instead? (C#7)
 		public STuple<T1, T2, T3, T4> Decode(Slice packedKey)
 		{
 			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
 		}
 
+		/// <summary>Decode all the elements of the key</summary>
 		public void Decode(Slice packedKey, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
 		{
 			(item1, item2, item3, item4) = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode only the first, second and third elements of the key</summary>
+		public void DecodePartial(Slice packedKey, out T1 item1, out T2 item2, out T3 item3)
+		{
+			(item1, item2, item3, _) = this.Encoder.DecodeKeyParts(3, this.Parent.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode only the first and second elements of the key</summary>
+		public void DecodePartial(Slice packedKey, out T1 item1, out T2 item2)
+		{
+			(item1, item2, _, _) = this.Encoder.DecodeKeyParts(2, this.Parent.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode only the first element of the key</summary>
+		public void DecodePartial(Slice packedKey, out T1 item1)
+		{
+			(item1, _, _, _) = this.Encoder.DecodeKeyParts(1, this.Parent.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode only the first element of the key</summary>
+		public T1 DecodeFirst(Slice packedKey)
+		{
+			return this.Encoder.DecodeKeyParts(1, this.Parent.ExtractKey(packedKey)).Item1;
+		}
+
+		/// <summary>Decode only the last element of the key</summary>
+		public T4 DecodeLast(Slice packedKey)
+		{
+			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
+			// => for now, we have to decode the whole tuple, and throw all items except the last one!
+			return this.Encoder.DecodeKey(packedKey).Item4;
+		}
+
+		/// <summary>Decode only the last element of the key</summary>
+		public void DecodeLast(Slice packedKey, out T4 last)
+		{
+			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
+			// => for now, we have to decode the whole tuple, and throw all items except the last one!
+			last = this.Encoder.DecodeKey(packedKey).Item4;
 		}
 
 		#endregion
