@@ -610,7 +610,7 @@ namespace FdbShell
 								}
 
 								var path = ParsePath(CurrentDirectoryPath);
-								await RunAsyncCommand((db, log, ct) => BasicCommands.Clear(path, extras, db, log, ct), cancel);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.ClearRange(path, extras, db, log, ct), cancel);
 								break;
 							}
 
