@@ -87,9 +87,9 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		#region ToRange()
+		#region Ranges
 
-		/// <summary>Return the range of all legal keys in this subpsace</summary>
+		/// <summary>Return the range of all legal keys in this subspace</summary>
 		/// <returns>A "legal" key is one that can be decoded into the original pair of values</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToRange()
@@ -97,26 +97,26 @@ namespace FoundationDB.Client
 			return this.Parent.ToRange();
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified pair of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(STuple<T1, T2> tuple)
+		public KeyRange PackRange(STuple<T1, T2> tuple)
 		{
-			return ToRange(tuple.Item1, tuple.Item2);
+			return EncodeRange(tuple.Item1, tuple.Item2);
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified pair of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange((T1, T2) tuple)
+		public KeyRange PackRange((T1, T2) tuple)
 		{
-			return ToRange(tuple.Item1, tuple.Item2);
+			return EncodeRange(tuple.Item1, tuple.Item2);
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified pair of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(T1 item1, T2 item2)
+		public KeyRange EncodeRange(T1 item1, T2 item2)
 		{
 			//TODO: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(Encode(item1, item2));
@@ -126,18 +126,18 @@ namespace FoundationDB.Client
 
 		#region ToRangePartial()
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified first item</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified first item</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRangePartial(STuple<T1> tuple)
+		public KeyRange PackPartialRange(STuple<T1> tuple)
 		{
-			return ToRangePartial(tuple.Item1);
+			return EncodePartialRange(tuple.Item1);
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified first item</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified first item</summary>
 		/// <returns>Range that encompass all keys that start with (item1, ..)</returns>
 		[Pure]
-		public KeyRange ToRangePartial(T1 item1)
+		public KeyRange EncodePartialRange(T1 item1)
 		{
 			return KeyRange.PrefixedBy(EncodePartial(item1));
 		}

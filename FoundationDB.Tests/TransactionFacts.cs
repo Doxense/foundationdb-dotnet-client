@@ -2414,7 +2414,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					{
-						var foo = await tr.GetRange(location.Keys.ToKeyRange("foo")).SingleAsync();
+						var foo = await tr.GetRange(location.Keys.EncodeRange("foo")).SingleAsync();
 						Log("> Found 1 result under (foo,)");
 						Log($"- {location.ExtractKey(foo.Key):K} = {foo.Value:V}");
 						Assert.That(foo.Value.ToString(), Is.EqualTo("Hello, World!"));
@@ -2432,7 +2432,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					{
-						var items = await tr.GetRange(location.Keys.ToKeyRange("bar")).ToListAsync();
+						var items = await tr.GetRange(location.Keys.EncodeRange("bar")).ToListAsync();
 						Log($"> Found {items.Count} results under (bar,)");
 						foreach (var item in items)
 						{

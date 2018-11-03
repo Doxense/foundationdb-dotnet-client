@@ -920,7 +920,7 @@ namespace FoundationDB.Layers.Directories
 
 				ShouldFail(() => partition.Keys.ToRange());
 				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				ShouldFail(() => partition.Keys.ToRange(STuple.Create("hello")));
+				ShouldFail(() => partition.Keys.PackRange(STuple.Create("hello")));
 
 			}
 		}

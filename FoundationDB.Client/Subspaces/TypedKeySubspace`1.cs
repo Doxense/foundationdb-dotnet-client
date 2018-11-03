@@ -90,9 +90,9 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		#region ToRange()
+		#region Ranges...
 
-		/// <summary>Return the range of all legal keys in this subpsace</summary>
+		/// <summary>Return the range of all legal keys in this subspace</summary>
 		/// <returns>A "legal" key is one that can be decoded into the original pair of values</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToRange()
@@ -100,24 +100,24 @@ namespace FoundationDB.Client
 			return this.Parent.ToRange();
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified value</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified value</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(STuple<T1> tuple)
+		public KeyRange PackRange(STuple<T1> tuple)
 		{
-			return ToRange(tuple.Item1);
+			return EncodeRange(tuple.Item1);
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified value</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified value</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ..)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(ValueTuple<T1> tuple)
+		public KeyRange PackRange(ValueTuple<T1> tuple)
 		{
-			return ToRange(tuple.Item1);
+			return EncodeRange(tuple.Item1);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(T1 item1)
+		public KeyRange EncodeRange(T1 item1)
 		{
 			//TODO: add concept of "range" on IKeyEncoder ?
 			return KeyRange.PrefixedBy(Encode(item1));

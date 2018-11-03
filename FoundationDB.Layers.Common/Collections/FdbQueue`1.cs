@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Collections
 			this.HighContention = highContention;
 			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
 
-			//TODO: rewrite this, using FdbEncoderSubpsace<..> !
+			//TODO: rewrite this, using FdbEncoderSubspace<..> !
 			this.ConflictedPop = this.Subspace.Partition.ByKey(Slice.FromStringAscii("pop"));
 			this.ConflictedItem = this.Subspace.Partition.ByKey(Slice.FromStringAscii("conflict"));
 			this.QueueItem = this.Subspace.Partition.ByKey(Slice.FromStringAscii("item"));

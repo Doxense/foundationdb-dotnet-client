@@ -184,7 +184,7 @@ namespace FoundationDB.Layers.Directories
 			return new FdbDirectoryLayer(space.Partition[FdbKey.Directory], space, location);
 		}
 
-		/// <summary>Create an instance of a Directory Layer located under a specific subpsace and path</summary>
+		/// <summary>Create an instance of a Directory Layer located under a specific subspace and path</summary>
 		/// <param name="nodeSubspace">Subspace for the nodes of the Directory Layer.</param>
 		/// <param name="contentSubspace">Subspace for the content of the Directory Layer.</param>
 		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database</param>

@@ -86,9 +86,9 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		#region ToRange()
+		#region Ranges...
 
-		/// <summary>Return the range of all legal keys in this subpsace</summary>
+		/// <summary>Return the range of all legal keys in this subspace</summary>
 		/// <returns>A "legal" key is one that can be decoded into the original triple of values</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToRange()
@@ -96,61 +96,57 @@ namespace FoundationDB.Client
 			return this.Parent.ToRange();
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange(STuple<T1, T2, T3> tuple)
+		public KeyRange PackRange(STuple<T1, T2, T3> tuple)
 		{
-			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3);
+			return EncodeRange(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToRange((T1, T2, T3) tuple)
+		public KeyRange PackRange((T1, T2, T3) tuple)
 		{
-			return ToRange(tuple.Item1, tuple.Item2, tuple.Item3);
+			return EncodeRange(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRange(T1 item1, T2 item2, T3 item3)
+		public KeyRange EncodeRange(T1 item1, T2 item2, T3 item3)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(Encode(item1, item2, item3));
 		}
 
-		#endregion
-
-		#region ToRangePartial()
-
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRangePartial(STuple<T1, T2> tuple)
+		public KeyRange PackPartialRange(STuple<T1, T2> tuple)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2));
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRangePartial((T1, T2) tuple)
+		public KeyRange PackPartialRange((T1, T2) tuple)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(tuple.Item1, tuple.Item2));
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRangePartial(T1 item1, T2 item2)
+		public KeyRange EncodePartialRange(T1 item1, T2 item2)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(item1, item2));
 		}
 
-		/// <summary>Return the range of all legal keys in this subpsace, that start with the specified triple of values</summary>
+		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public KeyRange ToRangePartial(T1 item1)
+		public KeyRange EncodePartialRange(T1 item1)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(EncodePartial(item1));
