@@ -279,7 +279,7 @@ namespace Doxense.Serialization.Encoders
 
 		#region Batched...
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
 		[NotNull]
 		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params T[] values)
 		{
@@ -290,6 +290,25 @@ namespace Doxense.Serialization.Encoders
 			for (int i = 0; i < values.Length; i++)
 			{
 				slices[i] = encoder.EncodeKey(values[i]);
+			}
+			return slices;
+		}
+
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		[NotNull]
+		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, Slice prefix, [NotNull] params T[] values)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
+
+			var writer = new SliceWriter(checked((17 + prefix.Count) * values.Length));
+			var slices = new Slice[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				int p = writer.Position;
+				writer.WriteBytes(prefix);
+				encoder.WriteKeyTo(ref writer, values[i]);
+				slices[i] = writer.Substring(p);
 			}
 			return slices;
 		}
@@ -356,9 +375,12 @@ namespace Doxense.Serialization.Encoders
 			if (values is ICollection<T> coll)
 			{ // optimized path when we know the count
 				var slices = new List<Slice>(coll.Count);
+				var writer = new SliceWriter(checked(17 * coll.Count));
 				foreach (var value in coll)
 				{
-					slices.Add(encoder.EncodeKey(value));
+					int p = writer.Position;
+					encoder.WriteKeyTo(ref writer, value);
+					slices.Add(writer.Substring(p));
 				}
 				return slices;
 			}
@@ -366,6 +388,43 @@ namespace Doxense.Serialization.Encoders
 			// "slow" path
 			return values.Select(value => encoder.EncodeKey(value));
 		}
+
+		/// <summary>Convert a sequence of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
+		[NotNull]
+		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, Slice prefix, IEnumerable<T> values)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
+
+			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
+
+			if (values is T[] arr)
+			{ // optimized path for arrays
+				return EncodeKeys<T>(encoder, prefix, arr);
+			}
+
+			SliceWriter writer;
+			List<Slice> slices;
+			if (values is ICollection<T> coll)
+			{ // we can estimate the capacity given the number of items
+				writer = new SliceWriter(checked((17 + prefix.Count) * coll.Count));
+				slices = new List<Slice>(coll.Count);
+			}
+			else
+			{ // no way to guess before hand
+				writer = new SliceWriter();
+				slices = new List<Slice>();
+			}
+			foreach (var item in values)
+			{
+				int p = writer.Position;
+				writer.WriteBytes(prefix);
+				encoder.WriteKeyTo(ref writer, item);
+				slices.Add(writer.Substring(p));
+			}
+			return slices;
+		}
+
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]

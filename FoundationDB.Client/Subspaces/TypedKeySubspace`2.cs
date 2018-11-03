@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
@@ -176,6 +177,20 @@ namespace FoundationDB.Client
 		{
 			tuple.OfSize(2);
 			return Encode(tuple.Get<T1>(0), tuple.Get<T2>(1));
+		}
+
+		/// <summary>Encode an array of items into an array of keys</summary>
+		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice[] Pack(params (T1, T2)[] items)
+		{
+			return this.Encoder.EncodeKeys(this.Parent.GetPrefixUnsafe(), items);
+		}
+
+		/// <summary>Encode an array of items into an array of keys</summary>
+		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public IEnumerable<Slice> Pack(IEnumerable<(T1, T2)> items)
+		{
+			return this.Encoder.EncodeKeys(this.Parent.GetPrefixUnsafe(), items);
 		}
 
 		#endregion
