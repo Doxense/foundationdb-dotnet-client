@@ -181,6 +181,20 @@ namespace System
 			throw FailInvalidBufferSize(nameof(value));
 		}
 
+#if ENABLE_SPAN
+
+		/// <summary>Read a 64-bit UUID from slice of memory</summary>
+		/// <param name="value">Span of exactly 0 or 8 bytes</param>
+		[Pure]
+		public static Uuid64 Read(ReadOnlySpan<byte> value)
+		{
+			if (value.Length == 0) return default;
+			if (value.Length == 8) return new Uuid64(ReadUnsafe(value));
+			throw FailInvalidBufferSize(nameof(value));
+		}
+
+#endif
+
 		/// <summary>Read a 64-bit UUID from slice of memory</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static unsafe Uuid64 Read(byte* ptr, uint count)

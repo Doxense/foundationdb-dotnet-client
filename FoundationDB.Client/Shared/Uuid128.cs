@@ -574,25 +574,41 @@ namespace System
 		{
 			unsafe
 			{
-				fixed (Uuid128* self = &this)
+				fixed (Guid* self = &m_packed)
 				{
 					// serialize GUID into High Endian format
-					byte* buf = stackalloc byte[16];
-					WriteUnsafe((Guid*)self, buf);
+					byte* buf = stackalloc byte[SizeOf];
+					WriteUnsafe(self, buf);
 
 					// Add the low 64 bits (in HE)
-					ulong lo = UnsafeHelpers.LoadUInt64BE(buf + 8);
-					ulong sum = lo + value;
+					ulong sum = unchecked(UnsafeHelpers.LoadUInt64BE(buf + 8) + value);
 					if (sum < value)
 					{ // overflow occured, we must carry to the high 64 bits (in HE)
-						ulong hi = UnsafeHelpers.LoadUInt64BE(buf);
-						UnsafeHelpers.StoreUInt64BE(buf, unchecked(hi + 1));
+						UnsafeHelpers.StoreUInt64BE(buf, unchecked(UnsafeHelpers.LoadUInt64BE(buf) + 1));
 					}
 					UnsafeHelpers.StoreUInt64BE(buf + 8, sum);
 					// deserialize back to GUID
 					return new Uuid128(ReadUnsafe(buf));
 				}
 			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 operator +(Uuid128 left, long right)
+		{
+			return left.Increment(right);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 operator +(Uuid128 left, ulong right)
+		{
+			return left.Increment(right);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid128 operator ++(Uuid128 left)
+		{
+			return left.Increment(1);
 		}
 
 		//TODO: Decrement
