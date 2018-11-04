@@ -130,7 +130,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (ft == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return Completed();
-				ft = iterator.MoveNextAsync();
+				ft = iterator.MoveNextAsync().AsTask();
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -150,7 +150,7 @@ namespace Doxense.Linq.Async.Iterators
 					//TODO: add heuristics to check if the batch is large enough to stop there, or if we should eat the latency and wait for the next wave of items to arrive!
 					// ex: we batch by 10, inner return 11 consecutive items. We will transform the first 10, then only fill the next batch with the 11th item because the 12th item is still not ready.
 
-					m_nextTask = vt;
+					m_nextTask = vt.AsTask();
 					break;
 				}
 

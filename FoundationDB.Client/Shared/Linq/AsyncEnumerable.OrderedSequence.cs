@@ -158,7 +158,7 @@ namespace Doxense.Linq
 				m_ct = ct;
 			}
 
-			private async Task<bool> ReadAllThenSort()
+			private async ValueTask<bool> ReadAllThenSort()
 			{
 				if (m_offset == -1) return false; // already EOF or Disposed
 
@@ -194,7 +194,7 @@ namespace Doxense.Linq
 				return true;
 			}
 
-			public Task<bool> MoveNextAsync()
+			public ValueTask<bool> MoveNextAsync()
 			{
 				// Firt call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
 
@@ -207,12 +207,12 @@ namespace Doxense.Linq
 				if (pos < m_map.Length)
 				{
 					Publish(pos);
-					return TaskHelpers.True;
+					return new ValueTask<bool>(true);
 				}
 				else
 				{
 					Completed();
-					return TaskHelpers.False;
+					return new ValueTask<bool>(false);
 				}
 			}
 

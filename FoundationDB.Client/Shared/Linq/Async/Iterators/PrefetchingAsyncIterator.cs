@@ -37,7 +37,7 @@ namespace Doxense.Linq.Async.Iterators
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
 
-	/// <summary>Prefetches items from the inner sequence, before outputing them down the line.</summary>
+	/// <summary>Prefetches items from the inner sequence, before outputting them down the line.</summary>
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
 	public class PrefetchingAsyncIterator<TInput> : AsyncFilterIterator<TInput, TInput>
 	{
@@ -100,7 +100,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (ft == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return Completed();
-				ft = m_iterator.MoveNextAsync();
+				ft = m_iterator.MoveNextAsync().AsTask();
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -117,7 +117,7 @@ namespace Doxense.Linq.Async.Iterators
 				var vt = m_iterator.MoveNextAsync();
 				if (m_buffer.Count >= m_prefetchCount || !vt.IsCompleted)
 				{ // save it for next time
-					m_nextTask = vt;
+					m_nextTask = vt.AsTask();
 					break;
 				}
 

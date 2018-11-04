@@ -60,7 +60,7 @@ namespace Doxense.Linq
 				m_ct = ct;
 			}
 
-			public async Task<bool> MoveNextAsync()
+			public async ValueTask<bool> MoveNextAsync()
 			{
 				if (m_disposed)
 				{

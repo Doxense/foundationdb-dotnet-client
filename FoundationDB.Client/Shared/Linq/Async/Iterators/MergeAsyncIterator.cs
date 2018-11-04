@@ -63,7 +63,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			public bool Active;
 			public IAsyncEnumerator<TSource> Iterator;
-			public Task<bool> Next;
+			public ValueTask<bool> Next;
 			public bool HasCurrent;
 			public TKey Current;
 		}

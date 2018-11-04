@@ -55,9 +55,9 @@ namespace Doxense.Linq
 				return this;
 			}
 
-			Task<bool> IAsyncEnumerator<TSource>.MoveNextAsync()
+			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync()
 			{
-				return TaskHelpers.False;
+				return new ValueTask<bool>(false);
 			}
 
 			TSource IAsyncEnumerator<TSource>.Current => default(TSource);
@@ -113,7 +113,7 @@ namespace Doxense.Linq
 					m_lambda = lambda;
 				}
 
-				public async Task<bool> MoveNextAsync()
+				public async ValueTask<bool> MoveNextAsync()
 				{
 					m_ct.ThrowIfCancellationRequested();
 					if (m_called)

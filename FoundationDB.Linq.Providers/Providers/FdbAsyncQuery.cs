@@ -34,6 +34,7 @@ namespace FoundationDB.Linq.Providers
 	using FoundationDB.Linq.Expressions;
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using JetBrains.Annotations;
@@ -238,13 +239,15 @@ namespace FoundationDB.Linq.Providers
 			private readonly IAsyncEnumerator<T> m_iterator;
 			private readonly IFdbTransaction m_transaction;
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public TransactionIterator(IFdbTransaction transaction, IAsyncEnumerator<T> iterator)
 			{
 				m_transaction = transaction;
 				m_iterator = iterator;
 			}
 
-			public Task<bool> MoveNextAsync()
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public ValueTask<bool> MoveNextAsync()
 			{
 				return m_iterator.MoveNextAsync();
 			}

@@ -94,7 +94,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 		}
 
-		public async Task<bool> MoveNextAsync()
+		public async ValueTask<bool> MoveNextAsync()
 		{
 			var state = Volatile.Read(ref m_state);
 
