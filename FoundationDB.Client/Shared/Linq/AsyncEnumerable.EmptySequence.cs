@@ -47,6 +47,8 @@ namespace Doxense.Linq
 			private EmptySequence()
 			{ }
 
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => this;
+
 			public IAsyncEnumerator<TSource> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{
 				ct.ThrowIfCancellationRequested();
@@ -87,6 +89,8 @@ namespace Doxense.Linq
 			public SingletonSequence(Func<CancellationToken, Task<TElement>> lambda)
 				: this((Delegate)lambda)
 			{ }
+
+			public IAsyncEnumerator<TElement> GetAsyncEnumerator() => new Enumerator(m_lambda, CancellationToken.None);
 
 			public IAsyncEnumerator<TElement> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{

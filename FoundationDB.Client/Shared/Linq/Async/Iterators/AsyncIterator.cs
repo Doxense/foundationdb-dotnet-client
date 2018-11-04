@@ -58,6 +58,8 @@ namespace Doxense.Linq.Async.Iterators
 
 		#region IAsyncEnumerable<TResult>...
 
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+
 		public IAsyncEnumerator<TResult> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
 			ct.ThrowIfCancellationRequested();

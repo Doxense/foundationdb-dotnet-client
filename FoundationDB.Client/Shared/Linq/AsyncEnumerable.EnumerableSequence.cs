@@ -52,6 +52,11 @@ namespace Doxense.Linq
 				this.Factory = factory;
 			}
 
+			public IAsyncEnumerator<TResult> GetAsyncEnumerator()
+			{
+				return GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+			}
+
 			public IAsyncEnumerator<TResult> GetEnumerator(CancellationToken ct, AsyncIterationHint _)
 			{
 				IEnumerator<TSource> inner = null;

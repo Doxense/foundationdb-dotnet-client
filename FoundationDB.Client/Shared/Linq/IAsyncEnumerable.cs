@@ -41,6 +41,9 @@ namespace Doxense.Linq
 	/// <typeparam name="T">Element type.</typeparam>
 	public interface IAsyncEnumerable<out T>
 	{
+
+		IAsyncEnumerator<T> GetAsyncEnumerator();
+
 		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
 		/// <param name="ct">Token used to cancel the iterator from the outside</param>
 		/// <param name="hint">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>

@@ -50,6 +50,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			this.Factory = factory;
 		}
 
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+
 		public IAsyncEnumerator<TResult> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
 			ct.ThrowIfCancellationRequested();

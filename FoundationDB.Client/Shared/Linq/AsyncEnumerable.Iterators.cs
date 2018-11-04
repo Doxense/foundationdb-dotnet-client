@@ -95,6 +95,11 @@ namespace Doxense.Linq
 				m_state = state;
 			}
 
+			public IAsyncEnumerator<T> GetAsyncEnumerator()
+			{
+				return m_factory(m_state, CancellationToken.None);
+			}
+
 			public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint _)
 			{
 				ct.ThrowIfCancellationRequested();

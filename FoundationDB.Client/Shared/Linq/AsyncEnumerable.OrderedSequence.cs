@@ -81,6 +81,8 @@ namespace Doxense.Linq
 				return m_parent.GetEnumerableSorter(sorter);
 			}
 
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+
 			public IAsyncEnumerator<TSource> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{
 				ct.ThrowIfCancellationRequested();
