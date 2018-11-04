@@ -196,14 +196,12 @@ namespace Doxense.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
-
 			long count = 0;
 			using (var iterator = source.GetEnumerator(ct, mode))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNextAsync())
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					action(iterator.Current);
 					++count;
@@ -230,14 +228,12 @@ namespace Doxense.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
-
 			long count = 0;
 			using (var iterator = source.GetEnumerator(ct, mode))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNextAsync())
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					if (!action(iterator.Current))
 					{
@@ -264,16 +260,14 @@ namespace Doxense.Linq
 		{
 			ct.ThrowIfCancellationRequested();
 
-			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
-
 			long count = 0;
 			using (var iterator = source.GetEnumerator(ct, mode))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNextAsync())
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
-					await action(iterator.Current, ct);
+					await action(iterator.Current, ct).ConfigureAwait(false);
 					++count;
 				}
 			}
@@ -295,17 +289,15 @@ namespace Doxense.Linq
 		{
 			ct.ThrowIfCancellationRequested();
 
-			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
-
 			long count = 0;
 			using (var iterator = source.GetEnumerator(ct, mode))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNextAsync())
+				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					ct.ThrowIfCancellationRequested();
-					await action(iterator.Current);
+					await action(iterator.Current).ConfigureAwait(false);
 					++count;
 				}
 			}
@@ -327,18 +319,16 @@ namespace Doxense.Linq
 		{
 			ct.ThrowIfCancellationRequested();
 
-			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
-
 			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.Head))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
-				if (await iterator.MoveNextAsync())
+				if (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
 					TSource first = iterator.Current;
 					if (single)
 					{
-						if (await iterator.MoveNextAsync()) throw new InvalidOperationException("The sequence contained more than one element");
+						if (await iterator.MoveNextAsync().ConfigureAwait(false)) throw new InvalidOperationException("The sequence contained more than one element");
 					}
 					return first;
 				}
