@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		#region Write Only
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transaction, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
@@ -52,7 +52,7 @@ namespace FoundationDB.Client
 		Task WriteAsync([NotNull, InstantHandle] Action<IFdbTransaction> handler, CancellationToken ct);
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transaction, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
@@ -63,7 +63,7 @@ namespace FoundationDB.Client
 		Task WriteAsync([NotNull, InstantHandle] Action<IFdbTransaction> handler, [NotNull, InstantHandle] Action<IFdbTransaction> success, CancellationToken ct);
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transaction, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 		Task WriteAsync([NotNull, InstantHandle] Action<IFdbTransaction> handler, [NotNull, InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct);
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="handler">Idempotent handler that should only call write methods on the transation, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="handler">Idempotent handler that should only call write methods on the transaction, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>

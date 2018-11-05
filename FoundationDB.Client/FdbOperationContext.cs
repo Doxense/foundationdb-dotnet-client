@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 		public TimeSpan ElapsedTotal => this.Clock.Elapsed;
 
 		/// <summary>Time elapsed since the start of the current attempt</summary>
-		/// <remarks>This value is reset to zero every time the transation fails and is retried.
+		/// <remarks>This value is reset to zero every time the transaction fails and is retried.
 		/// Note that this may not represent the actual lifetime of the transaction with the database itself, which starts at the first read operation.</remarks>
 		public TimeSpan Elapsed => this.Clock.Elapsed.Subtract(this.BaseDuration);
 

@@ -1252,7 +1252,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
-		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successfull call to <paramref name="handler"/>.</returns>
+		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
 		[ItemNotNull]
 		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
 		{
