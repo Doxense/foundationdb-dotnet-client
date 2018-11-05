@@ -66,7 +66,7 @@ namespace FoundationDB.Linq.Tests
 				}
 			}
 			Assert.That(results.Count, Is.EqualTo(10));
-			Assert.That(results, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(results, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 		[Test]
@@ -91,7 +91,7 @@ namespace FoundationDB.Linq.Tests
 				}
 			}
 			Assert.That(results.Count, Is.EqualTo(10));
-			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
+			Assert.That(results, Is.EqualTo(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
 		}
 
 		[Test]
@@ -100,7 +100,7 @@ namespace FoundationDB.Linq.Tests
 			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
 
 			List<int> list = await source.ToListAsync();
-			Assert.That(list, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(list, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 		[Test]
@@ -118,7 +118,7 @@ namespace FoundationDB.Linq.Tests
 			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
 
 			int[] array = await source.ToArrayAsync();
-			Assert.That(array, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(array, Is.EqualTo(new [] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 		[Test]
@@ -136,6 +136,17 @@ namespace FoundationDB.Linq.Tests
 		{
 			var empty = AsyncEnumerable.Empty<int>();
 			Assert.That(empty, Is.Not.Null);
+
+			using (var it = empty.GetAsyncEnumerator())
+			{
+				// initial value of Current should be default(int)
+				Assert.That(it.Current, Is.Zero);
+
+				// MoveNext should return an already completed 'false' result
+				var next = it.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.False);
+			}
 
 			var results = await empty.ToListAsync();
 			Assert.That(results, Is.Empty);
@@ -156,8 +167,24 @@ namespace FoundationDB.Linq.Tests
 			var singleton = AsyncEnumerable.Singleton(42);
 			Assert.That(singleton, Is.Not.Null);
 
+			using (var iterator = singleton.GetAsyncEnumerator())
+			{
+				// initial value of Current should be default(int)
+				Assert.That(iterator.Current, Is.Zero);
+				
+				// first call to MoveNext should return an already completed 'true' result
+				var next = iterator.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.True);
+				Assert.That(iterator.Current, Is.EqualTo(42));
+				// second call to MoveNext should return an already completed 'false' result
+				next = iterator.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.False);
+			}
+
 			var results = await singleton.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+			Assert.That(results, Is.EqualTo(new [] { 42 }));
 
 			bool any = await singleton.AnyAsync();
 			Assert.That(any, Is.True);
@@ -179,15 +206,18 @@ namespace FoundationDB.Linq.Tests
 
 			using(var iterator = singleton.GetAsyncEnumerator())
 			{
-				var res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.True);
+				var next = await iterator.MoveNextAsync();
+				Assert.That(next, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.False);
+				next = await iterator.MoveNextAsync();
+				Assert.That(next, Is.False);
 			}
 
-			var results = await singleton.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+			var list = await singleton.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 42 }));
+
+			var array = await singleton.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 42 }));
 
 			bool any = await singleton.AnyAsync();
 			Assert.That(any, Is.True);
@@ -205,15 +235,18 @@ namespace FoundationDB.Linq.Tests
 
 			using (var iterator = singleton.GetAsyncEnumerator())
 			{
-				var res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.True);
+				var next = await iterator.MoveNextAsync();
+				Assert.That(next, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.False);
+				next = await iterator.MoveNextAsync();
+				Assert.That(next, Is.False);
 			}
 
-			results = await singleton.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+			list = await singleton.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 42 }));
+
+			array = await singleton.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 42 }));
 
 			any = await singleton.AnyAsync();
 			Assert.That(any, Is.True);
@@ -226,20 +259,23 @@ namespace FoundationDB.Linq.Tests
 
 			// Func<CancellationToken, Task<T>>
 
-			singleton = AsyncEnumerable.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42));
+			singleton = AsyncEnumerable.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42, ct));
 			Assert.That(singleton, Is.Not.Null);
 
 			using (var iterator = singleton.GetAsyncEnumerator())
 			{
-				var res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.True);
+				var next = await iterator.MoveNextAsync();
+				Assert.That(next, Is.True);
 				Assert.That(iterator.Current, Is.EqualTo(42));
-				res = await iterator.MoveNextAsync();
-				Assert.That(res, Is.False);
+				next = await iterator.MoveNextAsync();
+				Assert.That(next, Is.False);
 			}
 
-			results = await singleton.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+			list = await singleton.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 42 }));
+
+			array = await singleton.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 42 }));
 
 			any = await singleton.AnyAsync();
 			Assert.That(any, Is.True);
@@ -260,8 +296,28 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(selected, Is.Not.Null);
 			Assert.That(selected, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
-			var results = await selected.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
+			using (var iterator = selected.GetAsyncEnumerator())
+			{
+				ValueTask<bool> next;
+				// first 10 calls should return an already completed 'true' task, and current value should match
+				for (int i = 0; i < 10; i++)
+				{
+					next = iterator.MoveNextAsync();
+					Assert.That(next.IsCompleted, Is.True);
+					Assert.That(next.Result, Is.True);
+					Assert.That(iterator.Current, Is.EqualTo(i + 1));
+				}
+				// last call should return an already completed 'false' task
+				next = iterator.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.False);
+			}
+
+			var list = await selected.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
+
+			var array = await selected.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
 		}
 
 		[Test]
@@ -277,8 +333,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(selected, Is.Not.Null);
 			Assert.That(selected, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
-			var results = await selected.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
+			var list = await selected.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
+
+			var array = await selected.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
 		}
 
 		[Test]
@@ -294,8 +353,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(roots, Is.Not.Null);
 			Assert.That(roots, Is.InstanceOf<WhereSelectAsyncIterator<int, double>>());
 
-			var results = await roots.ToListAsync();
-			Assert.That(results, Is.EqualTo(new double[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
+			var list = await roots.ToListAsync();
+			Assert.That(list, Is.EqualTo(new [] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
+
+			var array = await roots.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
 		}
 
 		[Test]
@@ -311,8 +373,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(roots, Is.Not.Null);
 			Assert.That(roots, Is.InstanceOf<WhereSelectAsyncIterator<int, double>>());
 
-			var results = await roots.ToListAsync();
-			Assert.That(results, Is.EqualTo(new double[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
+			var list = await roots.ToListAsync();
+			Assert.That(list, Is.EqualTo(new [] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
+
+			var array = await roots.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
 		}
 
 		[Test]
@@ -323,8 +388,28 @@ namespace FoundationDB.Linq.Tests
 			var query = source.Where(x => x % 2 == 1);
 			Assert.That(query, Is.Not.Null);
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
+			using (var iterator = query.GetAsyncEnumerator())
+			{
+				ValueTask<bool> next;
+				// only half the items match, so only 5 are expected to go out of the enumeration...
+				for (int i = 0; i < 5; i++)
+				{
+					next = iterator.MoveNextAsync();
+					Assert.That(next.IsCompleted, Is.True);
+					Assert.That(next.Result, Is.True);
+					Assert.That(iterator.Current, Is.EqualTo(i * 2 + 1));
+				}
+				// last call should return false
+				next = iterator.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.False);
+			}
+
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 1, 3, 5, 7, 9 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 1, 3, 5, 7, 9 }));
 		}
 
 		[Test]
@@ -336,8 +421,28 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.Not.Null);
 			Assert.That(query, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			using (var iterator = query.GetAsyncEnumerator())
+			{
+				ValueTask<bool> next;
+				// first 10 calls should return an already completed 'true' task, and current value should match
+				for (int i = 0; i < 10; i++)
+				{
+					next = iterator.MoveNextAsync();
+					Assert.That(next.IsCompleted, Is.True);
+					Assert.That(next.Result, Is.True);
+					Assert.That(iterator.Current, Is.EqualTo(i));
+				}
+				// last call should return an already completed 'false' task
+				next = iterator.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.False);
+			}
+
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 
@@ -352,8 +457,28 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.Not.Null);
 			Assert.That(query, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>());
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 }));
+			using (var iterator = query.GetAsyncEnumerator())
+			{
+				ValueTask<bool> next;
+				// first 10 calls should return an already completed 'true' task, and current value should match
+				for (int i = 0; i < 10; i++)
+				{
+					next = iterator.MoveNextAsync();
+					Assert.That(next.IsCompleted, Is.True);
+					Assert.That(next.Result, Is.True);
+					Assert.That(iterator.Current, Is.EqualTo(i * 2 + 1));
+				}
+				// last call should return an already completed 'false' task
+				next = iterator.MoveNextAsync();
+				Assert.That(next.IsCompleted, Is.True);
+				Assert.That(next.Result, Is.False);
+			}
+
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 }));
 		}
 
 		[Test]
@@ -367,8 +492,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.Not.Null);
 			Assert.That(query, Is.InstanceOf<WhereAsyncIterator<int>>());
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 1, 3, 5, 7, 9 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 1, 3, 5, 7, 9 }));
 		}
 
 		[Test]
@@ -382,8 +510,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.Not.Null);
 			Assert.That(query, Is.InstanceOf<WhereAsyncIterator<int>>()); // should have been optimized
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 3, 9, 15, 21, 27, 33, 39 }));
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 3, 9, 15, 21, 27, 33, 39 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 3, 9, 15, 21, 27, 33, 39 }));
 		}
 
 		[Test]
@@ -397,8 +528,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.Not.Null);
 			Assert.That(query, Is.InstanceOf<WhereAsyncIterator<int>>());
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41 }));
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41 }));
 		}
 
 		[Test]
@@ -412,8 +546,11 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.Not.Null);
 			Assert.That(query, Is.InstanceOf<WhereSelectAsyncIterator<int, int>>()); // should be optimized
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 31, 33, 35, 37, 39, 41 }));
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new[] { 31, 33, 35, 37, 39, 41 }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 31, 33, 35, 37, 39, 41 }));
 		}
 
 		[Test]
@@ -424,8 +561,11 @@ namespace FoundationDB.Linq.Tests
 			var query = source.SelectMany((x) => Enumerable.Repeat((char)(65 + x), x));
 			Assert.That(query, Is.Not.Null);
 
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new [] { 'B', 'C', 'C', 'D', 'D', 'D', 'E', 'E', 'E', 'E' }));
+			var list = await query.ToListAsync();
+			Assert.That(list, Is.EqualTo(new [] { 'B', 'C', 'C', 'D', 'D', 'D', 'E', 'E', 'E', 'E' }));
+
+			var array = await query.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new[] { 'B', 'C', 'C', 'D', 'D', 'D', 'E', 'E', 'E', 'E' }));
 		}
 
 		[Test]
@@ -559,7 +699,7 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Can_Distinct()
 		{
-			var items = new int[] { 1, 42, 7, 42, 9, 13, 7, 66 };
+			var items = new[] { 1, 42, 7, 42, 9, 13, 7, 66 };
 			var source = items.ToAsyncEnumerable();
 
 			var distincts = await source.Distinct().ToListAsync();
@@ -574,7 +714,7 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Can_Distinct_With_Comparer()
 		{
-			var items = new string[] { "World", "hello", "Hello", "world", "World!", "FileNotFound" };
+			var items = new [] { "World", "hello", "Hello", "world", "World!", "FileNotFound" };
 
 			var source = items.ToAsyncEnumerable();
 
@@ -599,7 +739,7 @@ namespace FoundationDB.Linq.Tests
 			});
 
 			Assert.That(items.Count, Is.EqualTo(10));
-			Assert.That(items, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(items, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 		[Test]
@@ -617,7 +757,7 @@ namespace FoundationDB.Linq.Tests
 			});
 
 			Assert.That(items.Count, Is.EqualTo(10));
-			Assert.That(items, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(items, Is.EqualTo(new[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 		[Test]
@@ -755,39 +895,166 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Sum_Signed()
+		public async Task Test_Can_Sum()
 		{
 			var rnd = new Random(1234);
-			var items = Enumerable.Range(0, 100).Select(_ => (long)rnd.Next()).ToList();
 
-			var source = items.ToAsyncEnumerable();
-			long sum = await source.SumAsync();
-			long expected = 0;
-			foreach (var x in items) expected = checked(expected + x);
-			Assert.That(sum, Is.EqualTo(expected));
+			{ // int
+				var items = Enumerable.Range(0, 100).Select(_ => rnd.Next(0, 1000)).ToList();
 
-			// empty should return 0
-			source = AsyncEnumerable.Empty<long>();
-			sum = await source.SumAsync();
-			Assert.That(sum, Is.EqualTo(0));
+				var source = items.ToAsyncEnumerable();
+				long sum = await source.SumAsync();
+				long expected = 0;
+				foreach (var x in items) expected = checked(expected + x);
+				Assert.That(sum, Is.EqualTo(expected));
+
+				// empty should return 0
+				source = AsyncEnumerable.Empty<int>();
+				sum = await source.SumAsync();
+				Assert.That(sum, Is.EqualTo(0));
+			}
+
+			{ // uint
+				var items = Enumerable.Range(0, 100).Select(_ => (uint) rnd.Next(0, 1000)).ToList();
+
+				var source = items.ToAsyncEnumerable();
+				ulong sum = await source.SumAsync();
+				ulong expected = 0;
+				foreach (var x in items) expected = checked(expected + x);
+				Assert.That(sum, Is.EqualTo(expected));
+
+				// empty should return 0
+				source = AsyncEnumerable.Empty<uint>();
+				sum = await source.SumAsync();
+				Assert.That(sum, Is.EqualTo(0));
+			}
+
+			{ // long
+				var items = Enumerable.Range(0, 100).Select(_ => (long) rnd.Next(0, 1000)).ToList();
+
+				var source = items.ToAsyncEnumerable();
+				long sum = await source.SumAsync();
+				long expected = 0;
+				foreach (var x in items) expected = checked(expected + x);
+				Assert.That(sum, Is.EqualTo(expected));
+
+				// empty should return 0
+				source = AsyncEnumerable.Empty<long>();
+				sum = await source.SumAsync();
+				Assert.That(sum, Is.EqualTo(0));
+			}
+
+			{ // ulong
+				var items = Enumerable.Range(0, 100).Select(_ => (ulong) rnd.Next(0, 1000)).ToList();
+
+				var source = items.ToAsyncEnumerable();
+				ulong sum = await source.SumAsync();
+				ulong expected = 0;
+				foreach (var x in items) expected = checked(expected + x);
+				Assert.That(sum, Is.EqualTo(expected));
+
+				// empty should return 0
+				source = AsyncEnumerable.Empty<ulong>();
+				sum = await source.SumAsync();
+				Assert.That(sum, Is.EqualTo(0));
+			}
+
+			{ // float
+				var items = Enumerable.Range(0, 100).Select(_ => (float) rnd.NextDouble()).ToList();
+
+				var source = items.ToAsyncEnumerable();
+				float sum = await source.SumAsync();
+				float expected = 0f;
+				foreach (var x in items) expected = expected + x;
+				Assert.That(sum, Is.EqualTo(expected));
+
+				// empty should return 0
+				source = AsyncEnumerable.Empty<float>();
+				sum = await source.SumAsync();
+				Assert.That(sum, Is.EqualTo(0.0f));
+			}
+
+			{ // double
+				var items = Enumerable.Range(0, 100).Select(_ => rnd.NextDouble()).ToList();
+
+				var source = items.ToAsyncEnumerable();
+				double sum = await source.SumAsync();
+				double expected = 0f;
+				foreach (var x in items) expected = expected + x;
+				Assert.That(sum, Is.EqualTo(expected));
+
+				// empty should return 0
+				source = AsyncEnumerable.Empty<double>();
+				sum = await source.SumAsync();
+				Assert.That(sum, Is.EqualTo(0.0f));
+			}
+
+			// overflow detection
+			Assert.That(async () => await (new[] {int.MaxValue, int.MaxValue}.ToAsyncEnumerable()).SumAsync(), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] {uint.MaxValue, uint.MaxValue}.ToAsyncEnumerable()).SumAsync(), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] {long.MaxValue, long.MaxValue}.ToAsyncEnumerable()).SumAsync(), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] {ulong.MaxValue, ulong.MaxValue}.ToAsyncEnumerable()).SumAsync(), Throws.InstanceOf<OverflowException>());
 		}
 
 		[Test]
-		public async Task Test_Can_Sum_Unsigned()
+		public async Task Test_Can_Sum_Selector()
 		{
 			var rnd = new Random(1234);
-			var items = Enumerable.Range(0, 100).Select(_ => (ulong)rnd.Next()).ToList();
+			var items = Enumerable.Range(0, 100).Select(idx => new { Index = idx, Integer = rnd.Next(0, 1000), Decimal = rnd.NextDouble() }).ToList();
 
-			var source = items.ToAsyncEnumerable();
-			ulong sum = await source.SumAsync();
-			ulong expected = 0;
-			foreach (var x in items) expected = checked(expected + x);
-			Assert.That(sum, Is.EqualTo(expected));
+			{ // int
+				var source = items.ToAsyncEnumerable();
+				long sum = await source.SumAsync(x => x.Integer);
+				long expected = 0;
+				foreach (var x in items) expected = checked(expected + x.Integer);
+				Assert.That(sum, Is.EqualTo(expected));
+			}
 
-			// empty should return 0
-			source = AsyncEnumerable.Empty<ulong>();
-			sum = await source.SumAsync();
-			Assert.That(sum, Is.EqualTo(0));
+			{ // uint
+				var source = items.ToAsyncEnumerable();
+				ulong sum = await source.SumAsync(x => (uint) x.Integer);
+				ulong expected = 0;
+				foreach (var x in items) expected = checked(expected + (uint) x.Integer);
+				Assert.That(sum, Is.EqualTo(expected));
+			}
+
+			{ // long
+				var source = items.ToAsyncEnumerable();
+				long sum = await source.SumAsync(x => (long) x.Integer);
+				long expected = 0;
+				foreach (var x in items) expected = checked(expected + x.Integer);
+				Assert.That(sum, Is.EqualTo(expected));
+			}
+
+			{ // ulong
+				var source = items.ToAsyncEnumerable();
+				ulong sum = await source.SumAsync(x => (ulong) x.Integer);
+				ulong expected = 0;
+				foreach (var x in items) expected = checked(expected + (ulong) x.Integer);
+				Assert.That(sum, Is.EqualTo(expected));
+			}
+
+			{ // float
+				var source = items.ToAsyncEnumerable();
+				float sum = await source.SumAsync(x => (float) x.Decimal);
+				float expected = 0f;
+				foreach (var x in items) expected = expected + (float) x.Decimal;
+				Assert.That(sum, Is.EqualTo(expected));
+			}
+
+			{ // double
+				var source = items.ToAsyncEnumerable();
+				double sum = await source.SumAsync(x => x.Decimal);
+				double expected = 0f;
+				foreach (var x in items) expected = expected + x.Decimal;
+				Assert.That(sum, Is.EqualTo(expected));
+			}
+
+			// overflow detection
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => int.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => uint.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => long.MaxValue), Throws.InstanceOf<OverflowException>());
+			Assert.That(async () => await (new[] { "FOO", "BAR" }.ToAsyncEnumerable()).SumAsync(x => ulong.MaxValue), Throws.InstanceOf<OverflowException>());
 		}
 
 		[Test]
@@ -865,6 +1132,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(res, Is.EqualTo(pairs.OrderByDescending(kvp => kvp.Key).ThenByDescending(kvp => kvp.Value).ToList()));
 		}
 
+		[Test]
 		public async Task Test_Can_Batch()
 		{
 			var items = Enumerable.Range(0, 100).ToList();
@@ -914,7 +1182,7 @@ namespace FoundationDB.Linq.Tests
 			var source = new AnonymousAsyncGenerator<int>((index, ct) =>
 			{
 				if (index >= 50) return Task.FromResult(Maybe.Nothing<int>());
-				if (index % 13 == 0) return Task.Delay(100).ContinueWith((_) => Maybe.Return((int)index));
+				if (index % 13 == 0) return Task.Delay(100, this.Cancellation).ContinueWith((_) => Maybe.Return((int)index));
 				return Task.FromResult(Maybe.Return((int)index));
 			});
 
@@ -962,7 +1230,7 @@ namespace FoundationDB.Linq.Tests
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
-				return Task.Delay(15, ct).ContinueWith((_) => Maybe.Return((int)index), ct);
+				return Task.Delay(15, this.Cancellation).ContinueWith((_) => Maybe.Return((int)index));
 			});
 
 			var results = await source.ToListAsync();
@@ -1012,7 +1280,7 @@ namespace FoundationDB.Linq.Tests
 			{
 				Interlocked.Increment(ref called);
 				if (index >= 10) return Task.FromResult(Maybe.Nothing<int>());
-				if (index % 4 == 0) return Task.Delay(100).ContinueWith((_) => Maybe.Return((int)index));
+				if (index % 4 == 0) return Task.Delay(100, this.Cancellation).ContinueWith((_) => Maybe.Return((int)index));
 				return Task.FromResult(Maybe.Return((int)index));
 			});
 
@@ -1085,9 +1353,9 @@ namespace FoundationDB.Linq.Tests
 				.ToListAsync();
 
 			Assert.That(results.Count, Is.EqualTo(5));
-			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
-			Assert.That(results.Select(t => t.Square).ToArray(), Is.EqualTo(new int[] { 1, 9, 25, 49, 81 }));
-			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new double[] { 1.0, 3.0, 5.0, 7.0, 9.0 }));
+			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new [] { 1, 3, 5, 7, 9 }));
+			Assert.That(results.Select(t => t.Square).ToArray(), Is.EqualTo(new [] { 1, 9, 25, 49, 81 }));
+			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new [] { 1.0, 3.0, 5.0, 7.0, 9.0 }));
 			Assert.That(results.All(t => t.Odd), Is.True);
 		}
 
@@ -1104,8 +1372,8 @@ namespace FoundationDB.Linq.Tests
 			 .ToListAsync();
 
 			Assert.That(results.Count, Is.EqualTo(25));
-			Assert.That(results.Select(t => t.X).ToArray(), Is.EqualTo(new int[] { 1, 3, 3, 3, 5, 5, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9 }));
-			Assert.That(results.Select(t => t.Y).ToArray(), Is.EqualTo(new char[] { 'B', 'D', 'D', 'D', 'F', 'F', 'F', 'F', 'F', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J' }));
+			Assert.That(results.Select(t => t.X).ToArray(), Is.EqualTo(new [] { 1, 3, 3, 3, 5, 5, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9 }));
+			Assert.That(results.Select(t => t.Y).ToArray(), Is.EqualTo(new [] { 'B', 'D', 'D', 'D', 'F', 'F', 'F', 'F', 'F', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J' }));
 			Assert.That(results.All(t => t.Odd), Is.True);
 		}
 
@@ -1159,7 +1427,7 @@ namespace FoundationDB.Linq.Tests
 					{
 						int ms;
 						lock (rnd) {  ms = 10 + rnd.Next(25); }
-						await Task.Delay(ms);
+						await Task.Delay(ms, this.Cancellation);
 						return x;
 					})
 					.SelectAsync(async (x, ct) =>
@@ -1176,7 +1444,7 @@ namespace FoundationDB.Linq.Tests
 #endif
 								int ms;
 								lock (rnd) { ms = rnd.Next(25) + 50; }
-								await Task.Delay(ms);
+								await Task.Delay(ms, this.Cancellation);
 								Log("** " + sw.Elapsed + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
 
 								return x * x;
@@ -1206,7 +1474,7 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
-		public async Task Test_FdbAsyncBuffer()
+		public async Task Test_AsyncBuffer()
 		{
 			const int MAX_CAPACITY = 5;
 
@@ -1268,7 +1536,7 @@ namespace FoundationDB.Linq.Tests
 					if (rnd.Next(10) < 2)
 					{
 						Log("[PRODUCER] Thinking " + i);
-						await Task.Delay(10);
+						await Task.Delay(10, this.Cancellation);
 					}
 				}
 
@@ -1282,7 +1550,7 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
-		public async Task Test_FdbASyncIteratorPump()
+		public async Task Test_AsyncIteratorPump()
 		{
 			const int N = 20;
 
@@ -1352,7 +1620,7 @@ namespace FoundationDB.Linq.Tests
 					// We should have N items, plus 1 message for the completion
 					Assert.That(items.Count, Is.EqualTo(N));
 					Assert.That(done, Is.True);
-					if (error != null) error.Throw();
+					error?.Throw();
 
 					for (int i = 0; i < N; i++)
 					{
@@ -1380,7 +1648,7 @@ namespace FoundationDB.Linq.Tests
 
 			if (asyncError != null)
 			{
-				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError.ToString());
+				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError);
 				//TODO: compare exception types ?
 			}
 			else if (referenceError != null)
@@ -1418,7 +1686,7 @@ namespace FoundationDB.Linq.Tests
 
 			if (asyncError != null)
 			{
-				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError.ToString());
+				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError);
 				//TODO: compare exception types ?
 			}
 			else if (referenceError != null)
@@ -1450,7 +1718,7 @@ namespace FoundationDB.Linq.Tests
 
 			// note: we will also create a third LINQ query using lambda expressions, just to be able to have a nicer ToString() in case of errors
 
-			int[] SourceOfInts = new int[] { 1, 7, 42, -456, 123, int.MaxValue, -1, 1023, 0, short.MinValue, 5, 13, -273, 2013, 4534, -999 };
+			int[] sourceOfInts = { 1, 7, 42, -456, 123, int.MaxValue, -1, 1023, 0, short.MinValue, 5, 13, -273, 2013, 4534, -999 };
 
 			const int N = 1000;
 
@@ -1459,9 +1727,9 @@ namespace FoundationDB.Linq.Tests
 			for(int i=0;i<N;i++)
 			{
 
-				IAsyncEnumerable<int> query = SourceOfInts.ToAsyncEnumerable();
-				IEnumerable<int> reference = SourceOfInts;
-				IQueryable<int> witness = Queryable.AsQueryable(SourceOfInts);
+				IAsyncEnumerable<int> query = sourceOfInts.ToAsyncEnumerable();
+				IEnumerable<int> reference = sourceOfInts;
+				IQueryable<int> witness = sourceOfInts.AsQueryable();
 
 				// optional where
 				switch (rnd.Next(6))
@@ -1659,10 +1927,10 @@ namespace FoundationDB.Linq.Tests
 
 			var results = await query.ToListAsync();
 
-			Log("input : " + String.Join(", ", items));
-			Log("before: " + String.Join(", ", before));
-			Log("after : " + String.Join(", ", after));
-			Log("output: " + String.Join(", ", results));
+			Log($"input : {string.Join(", ", items)}");
+			Log($"before: {string.Join(", ", before)}");
+			Log($"after : {string.Join(", ", after)}");
+			Log($"output: {string.Join(", ", results)}");
 
 			Assert.That(before, Is.EqualTo(Enumerable.Range(0, 10).ToList()));
 			Assert.That(after, Is.EqualTo(Enumerable.Range(0, 10).Where(x => x % 2 == 1).ToList()));
