@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client", "FoundationDB.Client\FoundationDB.Client.csproj", "{773166B7-DE74-4FCC-845C-84080CC89533}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Client", "FoundationDB.Client\FoundationDB.Client.csproj", "{773166B7-DE74-4FCC-845C-84080CC89533}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Tests.Sandbox", "FoundationDB.Tests.Sandbox\FoundationDB.Tests.Sandbox.csproj", "{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Tests", "FoundationDB.Tests\FoundationDB.Tests.csproj", "{7C888F78-99B1-4CA1-8973-282EC5CCCACD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Tests", "FoundationDB.Tests\FoundationDB.Tests.csproj", "{7C888F78-99B1-4CA1-8973-282EC5CCCACD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Common", "FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj", "{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Layers.Common", "FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj", "{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3A8-BFC1-4A57-8062-83071A1D41F7}"
 	ProjectSection(SolutionItems) = preProject
@@ -17,13 +17,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3
 		VersionInfo.cs = VersionInfo.cs
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Linq.Providers", "FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj", "{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Linq.Providers", "FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj", "{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Samples", "FoundationDB.Samples\FoundationDB.Samples.csproj", "{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Samples", "FoundationDB.Samples\FoundationDB.Samples.csproj", "{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Experimental", "FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj", "{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Layers.Experimental", "FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj", "{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbShell", "FdbShell\FdbShell.csproj", "{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbShell", "FdbShell\FdbShell.csproj", "{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A7D90DEE-38B0-449C-93B5-32D7B845D990}"
 	ProjectSection(SolutionItems) = preProject
@@ -41,7 +41,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{C443AC73
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{B40329A5-32B5-4056-8C8F-424E845D2688}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbTop", "FdbTop\FdbTop.csproj", "{A1731E5B-59B5-49E0-A9B2-E552B18FA1C6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbTop", "FdbTop\FdbTop.csproj", "{A1731E5B-59B5-49E0-A9B2-E552B18FA1C6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbBurner", "FdbBurner\FdbBurner.csproj", "{60049BA1-A95F-4127-BAC5-74AF023D3082}"
 EndProject
@@ -56,6 +56,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{49DAFC
 		.nuget\NuGet.exe = .nuget\NuGet.exe
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.DependencyInjection", "FoundationDB.DependencyInjection\FoundationDB.DependencyInjection.csproj", "{CC454E83-5B58-4548-9B5F-A5AFFBA98D83}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -103,6 +105,10 @@ Global
 		{60049BA1-A95F-4127-BAC5-74AF023D3082}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60049BA1-A95F-4127-BAC5-74AF023D3082}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60049BA1-A95F-4127-BAC5-74AF023D3082}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC454E83-5B58-4548-9B5F-A5AFFBA98D83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC454E83-5B58-4548-9B5F-A5AFFBA98D83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC454E83-5B58-4548-9B5F-A5AFFBA98D83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC454E83-5B58-4548-9B5F-A5AFFBA98D83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -118,6 +124,7 @@ Global
 		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC} = {1F010B54-2028-4B4D-A6FF-9892A00E83FC}
 		{A1731E5B-59B5-49E0-A9B2-E552B18FA1C6} = {1F010B54-2028-4B4D-A6FF-9892A00E83FC}
 		{60049BA1-A95F-4127-BAC5-74AF023D3082} = {1F010B54-2028-4B4D-A6FF-9892A00E83FC}
+		{CC454E83-5B58-4548-9B5F-A5AFFBA98D83} = {A00227EE-033B-40BB-A159-3CBC99AE54F8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07944E4B-042C-4338-8E28-99FB373F52AA}
