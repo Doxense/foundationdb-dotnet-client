@@ -41,15 +41,22 @@ namespace Doxense.Linq
 	/// <typeparam name="T">Element type.</typeparam>
 	public interface IAsyncEnumerable<out T>
 	{
-
+		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
+		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
+		[NotNull]
 		IAsyncEnumerator<T> GetAsyncEnumerator();
+	}
+
+	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
+	public interface IConfigurableAsyncEnumerable<out T> : IAsyncEnumerable<T>
+	{
 
 		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
 		/// <param name="ct">Token used to cancel the iterator from the outside</param>
 		/// <param name="hint">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		[NotNull]
-		IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint hint);
+		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint);
 	}
 
 }

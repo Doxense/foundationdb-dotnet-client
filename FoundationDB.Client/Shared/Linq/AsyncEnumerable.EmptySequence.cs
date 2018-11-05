@@ -49,12 +49,6 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => this;
 
-			public IAsyncEnumerator<TSource> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
-			{
-				ct.ThrowIfCancellationRequested();
-				return this;
-			}
-
 			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync()
 			{
 				return new ValueTask<bool>(false);
@@ -67,7 +61,7 @@ namespace Doxense.Linq
 
 		}
 
-		private sealed class SingletonSequence<TElement> : IAsyncEnumerable<TElement>
+		private sealed class SingletonSequence<TElement> : IConfigurableAsyncEnumerable<TElement>
 		{
 
 			private readonly Delegate m_lambda;
@@ -92,7 +86,7 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TElement> GetAsyncEnumerator() => new Enumerator(m_lambda, CancellationToken.None);
 
-			public IAsyncEnumerator<TElement> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
+			public IAsyncEnumerator<TElement> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{
 				ct.ThrowIfCancellationRequested();
 				return new Enumerator(m_lambda, ct);

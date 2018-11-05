@@ -100,7 +100,7 @@ namespace Doxense.Linq.Async.Iterators
 			var mode = m_mode;
 			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
-			using (var iter = m_source.GetEnumerator(ct, mode))
+			using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator())
 			{
 				var set = new HashSet<TSource>(m_comparer);
 
@@ -127,7 +127,7 @@ namespace Doxense.Linq.Async.Iterators
 			var mode = m_mode;
 			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
-			using (var iter = m_source.GetEnumerator(ct, mode))
+			using (var iter = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator())
 			{
 				var set = new HashSet<TSource>(m_comparer);
 

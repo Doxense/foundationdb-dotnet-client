@@ -57,7 +57,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(source, Is.Not.Null);
 
 			var results = new List<int>();
-			using (var iterator = source.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+			using (var iterator = source.GetAsyncEnumerator())
 			{
 				while (await iterator.MoveNextAsync())
 				{
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(source, Is.Not.Null);
 
 			var results = new List<int>();
-			using (var iterator = source.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+			using (var iterator = source.GetAsyncEnumerator())
 			{
 				while (await iterator.MoveNextAsync())
 				{
@@ -177,7 +177,7 @@ namespace FoundationDB.Linq.Tests
 			var singleton = AsyncEnumerable.Single(() => 42);
 			Assert.That(singleton, Is.Not.Null);
 
-			using(var iterator = singleton.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+			using(var iterator = singleton.GetAsyncEnumerator())
 			{
 				var res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
@@ -203,7 +203,7 @@ namespace FoundationDB.Linq.Tests
 			singleton = AsyncEnumerable.Single(() => Task.Delay(50).ContinueWith(_ => 42));
 			Assert.That(singleton, Is.Not.Null);
 
-			using (var iterator = singleton.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+			using (var iterator = singleton.GetAsyncEnumerator())
 			{
 				var res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
@@ -229,7 +229,7 @@ namespace FoundationDB.Linq.Tests
 			singleton = AsyncEnumerable.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42));
 			Assert.That(singleton, Is.Not.Null);
 
-			using (var iterator = singleton.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+			using (var iterator = singleton.GetAsyncEnumerator())
 			{
 				var res = await iterator.MoveNextAsync();
 				Assert.That(res, Is.True);
@@ -1120,7 +1120,7 @@ namespace FoundationDB.Linq.Tests
 					return x;
 				});
 
-			using (var iterator = query.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+			using (var iterator = query.GetAsyncEnumerator())
 			{
 				// first move next should succeed
 				bool res = await iterator.MoveNextAsync();
@@ -1339,7 +1339,7 @@ namespace FoundationDB.Linq.Tests
 					}
 				);
 
-				using(var inner = source.GetEnumerator(this.Cancellation, AsyncIterationHint.Default))
+				using(var inner = source.GetAsyncEnumerator())
 				{
 					var pump = new AsyncIteratorPump<int>(inner, queue);
 

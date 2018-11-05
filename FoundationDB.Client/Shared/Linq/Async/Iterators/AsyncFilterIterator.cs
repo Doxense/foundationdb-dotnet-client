@@ -58,10 +58,15 @@ namespace Doxense.Linq.Async.Iterators
 			ct.ThrowIfCancellationRequested();
 			// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.
 			// => change all "Head" requests into "Iterator" to prevent any wrong optimizations by the underlying source (ex: using a too small batch size)
-			var mode = m_mode;
-			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
+			if (m_source is IConfigurableAsyncEnumerable<TSource> configurable)
+			{
+				var mode = m_mode;
+				if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
-			return m_source.GetEnumerator(m_ct, mode);
+				return configurable.GetAsyncEnumerator(m_ct, mode);
+			}
+
+			return m_source.GetAsyncEnumerator();
 		}
 
 		protected void MarkInnerAsCompleted()

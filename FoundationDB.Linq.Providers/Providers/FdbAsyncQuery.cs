@@ -37,6 +37,7 @@ namespace FoundationDB.Linq.Providers
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Base class for all Async LINQ queries</summary>
@@ -203,7 +204,9 @@ namespace FoundationDB.Linq.Providers
 
 			if (sequence.Transaction != null)
 			{
-				return generator(sequence.Transaction).GetEnumerator(sequence.Transaction.Cancellation, mode);
+				var source = generator(sequence.Transaction);
+				Contract.Assert(source != null);
+				return source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(sequence.Transaction.Cancellation, mode) : source.GetAsyncEnumerator();
 			}
 
 			//BUGBUG: how do we get a CancellationToken without a transaction?
@@ -215,7 +218,9 @@ namespace FoundationDB.Linq.Providers
 			try
 			{
 				trans = sequence.Database.BeginTransaction(ct);
-				iterator = generator(trans).GetEnumerator(ct, mode);
+				var source = generator(trans);
+				Contract.Assert(source != null);
+				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator();
 
 				return new TransactionIterator(trans, iterator);
 			}

@@ -41,7 +41,7 @@ namespace Doxense.Linq
 		/// <summary>Wraps a sequence of items into an async sequence of items</summary>
 		/// <typeparam name="TSource">Type of elements of the inner sequence</typeparam>
 		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class EnumerableSequence<TSource, TResult> : IAsyncEnumerable<TResult>
+		internal sealed class EnumerableSequence<TSource, TResult> : IConfigurableAsyncEnumerable<TResult>
 		{
 			public readonly IEnumerable<TSource> Source;
 			public readonly Func<IEnumerator<TSource>, CancellationToken, IAsyncEnumerator<TResult>> Factory;
@@ -54,10 +54,10 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TResult> GetAsyncEnumerator()
 			{
-				return GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+				return GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
 			}
 
-			public IAsyncEnumerator<TResult> GetEnumerator(CancellationToken ct, AsyncIterationHint _)
+			public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint _)
 			{
 				IEnumerator<TSource> inner = null;
 				try

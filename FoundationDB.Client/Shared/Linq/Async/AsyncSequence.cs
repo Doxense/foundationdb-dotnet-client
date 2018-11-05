@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class AsyncSequence<TSource, TResult> : IAsyncEnumerable<TResult>
+	internal sealed class AsyncSequence<TSource, TResult> : IConfigurableAsyncEnumerable<TResult>
 	{
 		public readonly IAsyncEnumerable<TSource> Source;
 		public readonly Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> Factory;
@@ -50,15 +50,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			this.Factory = factory;
 		}
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
 
-		public IAsyncEnumerator<TResult> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
 			ct.ThrowIfCancellationRequested();
 			IAsyncEnumerator<TSource> inner = null;
 			try
 			{
-				inner = this.Source.GetEnumerator(ct, mode);
+				inner = this.Source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : this.Source.GetAsyncEnumerator();
 				Contract.Requires(inner != null, "The underlying async sequence returned an empty enumerator");
 
 				var outer = this.Factory(inner);

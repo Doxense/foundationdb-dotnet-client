@@ -99,7 +99,7 @@ namespace Doxense.Linq.Async.Iterators
 					var state = new IteratorState
 					{
 						Active = true,
-						Iterator = sources[i].GetEnumerator(m_ct, mode)
+						Iterator = sources[i] is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(m_ct, mode) : sources[i].GetAsyncEnumerator()
 					};
 					state.Next = state.Iterator.MoveNextAsync();
 

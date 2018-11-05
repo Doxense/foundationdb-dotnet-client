@@ -92,7 +92,7 @@ namespace FoundationDB.Client
 				// on first call, setup the page iterator
 				if (m_chunkIterator == null)
 				{
-					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetEnumerator(m_ct, m_mode);
+					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetAsyncEnumerator(m_ct, m_mode);
 				}
 				return TaskHelpers.True;
 			}

@@ -197,7 +197,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source.GetEnumerator(ct, mode))
+			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -229,7 +229,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source.GetEnumerator(ct, mode))
+			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -261,7 +261,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source.GetEnumerator(ct, mode))
+			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -290,7 +290,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source.GetEnumerator(ct, mode))
+			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -319,7 +319,7 @@ namespace Doxense.Linq
 		{
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.Head))
+			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator())
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 

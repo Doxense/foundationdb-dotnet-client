@@ -44,7 +44,7 @@ namespace Doxense.Linq
 
 		/// <summary>Represent an async sequence that returns its elements according to a specific sort order</summary>
 		/// <typeparam name="TSource">Type of the elements of the sequence</typeparam>
-		internal class OrderedSequence<TSource> : IAsyncOrderedEnumerable<TSource>
+		internal class OrderedSequence<TSource> : IAsyncOrderedEnumerable<TSource>, IConfigurableAsyncEnumerable<TSource>
 		{
 			// If an instance of the base <TSource> class is constructed, it will sort by the items themselves (using a Comparer<TSource>)
 			// If an instance of the derived <TSource, TKey> class is constructed, then it will sort the a key extracted the each item (sing a Comparer<TKey>)
@@ -81,16 +81,16 @@ namespace Doxense.Linq
 				return m_parent.GetEnumerableSorter(sorter);
 			}
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => GetEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
 
-			public IAsyncEnumerator<TSource> GetEnumerator(CancellationToken ct, AsyncIterationHint mode)
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{
 				ct.ThrowIfCancellationRequested();
 				var sorter = GetEnumerableSorter(null);
 				var enumerator = default(IAsyncEnumerator<TSource>);
 				try
 				{
-					enumerator = m_source.GetEnumerator(ct, mode);
+					enumerator = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator();
 					return new OrderedEnumerator<TSource>(enumerator, sorter, ct);
 				}
 				catch (Exception)

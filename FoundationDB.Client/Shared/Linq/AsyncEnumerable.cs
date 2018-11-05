@@ -592,47 +592,46 @@ namespace Doxense.Linq
 
 		/// <summary>Create a list from an async sequence.</summary>
 		[ItemNotNull]
-		public static Task<List<T>> ToListAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<T>> ToListAsync<T>([NotNull] this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
-			return AggregateAsync(
-				source,
-				new Buffer<T>(),
-				(buffer, x) => buffer.Add(x),
-				(buffer) => buffer.ToList(),
-				ct
-			);
+			var buffer = new Buffer<T>();
+			await ForEachAsync(source, (x) => buffer.Add(x), CancellationToken.None).ConfigureAwait(false);
+			return buffer.ToList();
+		}
+
+		/// <summary>Create a list from an async sequence.</summary>
+		[ItemNotNull]
+		public static async Task<List<T>> ToListAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct)
+		{
+			Contract.NotNull(source, nameof(source));
+
+			var buffer = new Buffer<T>();
+			await ForEachAsync(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
+			return buffer.ToList();
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
 		[ItemNotNull]
-		public static Task<T[]> ToArrayAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<T[]> ToArrayAsync<T>([NotNull] this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
-			return AggregateAsync(
-				source,
-				new Buffer<T>(),
-				(buffer, x) => buffer.Add(x),
-				(buffer) => buffer.ToArray(),
-				ct
-			);
+			var buffer = new Buffer<T>();
+			await ForEachAsync(source, (x) => buffer.Add(x), CancellationToken.None).ConfigureAwait(false);
+			return buffer.ToArray();
 		}
 
-		/// <summary>Create an array from an async sequence, knowing a rough estimation of the number of elements.</summary>
+		/// <summary>Create an array from an async sequence.</summary>
 		[ItemNotNull]
-		internal static Task<T[]> ToArrayAsync<T>([NotNull] this IAsyncEnumerable<T> source, int estimatedSize, CancellationToken ct = default(CancellationToken))
+		public static async Task<T[]> ToArrayAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct)
 		{
-			Contract.Requires(source != null && estimatedSize >= 0);
+			Contract.NotNull(source, nameof(source));
 
-			return AggregateAsync(
-				source,
-				new List<T>(estimatedSize),
-				(buffer, x) => buffer.Add(x),
-				(buffer) => buffer.ToArray(),
-				ct
-			);
+			var buffer = new Buffer<T>();
+			await ForEachAsync(source, (x) => buffer.Add(x), CancellationToken.None).ConfigureAwait(false);
+			return buffer.ToArray();
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
@@ -708,7 +707,7 @@ namespace Doxense.Linq
 			Contract.NotNull(aggregator, nameof(aggregator));
 
 			ct.ThrowIfCancellationRequested();
-			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.All))
+			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.All) : source.GetAsyncEnumerator())
 			{
 				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
 
@@ -1302,7 +1301,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.Head))
+			using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator())
 			{
 				return await iterator.MoveNextAsync().ConfigureAwait(false);
 			}
@@ -1315,7 +1314,7 @@ namespace Doxense.Linq
 			Contract.NotNull(predicate, nameof(predicate));
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.Head))
+			using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator())
 			{
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
@@ -1332,7 +1331,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.Head))
+			using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator())
 			{
 				return !(await iterator.MoveNextAsync().ConfigureAwait(false));
 			}
@@ -1345,7 +1344,7 @@ namespace Doxense.Linq
 			Contract.NotNull(predicate, nameof(predicate));
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator(ct, AsyncIterationHint.Head))
+			using (var iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator())
 			{
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{

@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
 	[PublicAPI]
-	public sealed partial class FdbRangeQuery<T> : IAsyncEnumerable<T>
+	public sealed partial class FdbRangeQuery<T> : IConfigurableAsyncEnumerable<T>
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
@@ -272,12 +272,12 @@ namespace FoundationDB.Client
 
 		public IAsyncEnumerator<T> GetAsyncEnumerator()
 		{
-			return this.GetEnumerator(this.Transaction.Cancellation, AsyncIterationHint.Default);
+			return this.GetAsyncEnumerator(this.Transaction.Cancellation, AsyncIterationHint.Default);
 		}
 
-		public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint hint)
+		public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint)
 		{
-			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(ct, hint);
+			return new ResultIterator(this, this.Transaction, this.Transform).GetAsyncEnumerator(ct, hint);
 		}
 
 		/// <summary>Return a list of all the elements of the range results</summary>
@@ -288,6 +288,14 @@ namespace FoundationDB.Client
 			return AsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
 		}
 
+		/// <summary>Return a list of all the elements of the range results</summary>
+		[ItemNotNull]
+		public Task<List<T>> ToListAsync(CancellationToken ct)
+		{
+			// ReSharper disable once InvokeAsExtensionMethod
+			return AsyncEnumerable.ToListAsync(this, ct);
+		}
+
 		/// <summary>Return an array with all the elements of the range results</summary>
 		[ItemNotNull]
 		public Task<T[]> ToArrayAsync()
@@ -296,8 +304,16 @@ namespace FoundationDB.Client
 			return AsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
 		}
 
+		/// <summary>Return an array with all the elements of the range results</summary>
+		[ItemNotNull]
+		public Task<T[]> ToArrayAsync(CancellationToken ct)
+		{
+			// ReSharper disable once InvokeAsExtensionMethod
+			return AsyncEnumerable.ToArrayAsync(this, ct);
+		}
+
 		/// <summary>Return the number of elements in the range, by reading them</summary>
-		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync"/> when reading potentially large ranges.</remarks>
+		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync(FoundationDB.Client.IFdbDatabase,FoundationDB.Client.KeyRange,System.Threading.CancellationToken)"/> when reading potentially large ranges.</remarks>
 		public Task<int> CountAsync()
 		{
 			// ReSharper disable once InvokeAsExtensionMethod
