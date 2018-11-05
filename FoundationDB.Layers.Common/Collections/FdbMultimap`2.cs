@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+﻿#region BSD License
 /* Copyright (c) 2014-2015, Doxense SAS
 All rights reserved.
 
