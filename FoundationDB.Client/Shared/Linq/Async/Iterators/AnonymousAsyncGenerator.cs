@@ -60,6 +60,10 @@ namespace Doxense.Linq.Async.Iterators
 			: this((Delegate) generator)
 		{ }
 
+		public AnonymousAsyncGenerator(Func<long, CancellationToken, ValueTask<Maybe<TOutput>>> generator)
+			: this((Delegate)generator)
+		{ }
+
 		private AnonymousAsyncGenerator(Delegate generator)
 		{
 			Contract.Requires(generator != null);
@@ -89,7 +93,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				res = await genT(index, m_ct);
 			}
-			else if (m_generator is Func<long, CancellationToken, Task<Maybe<TOutput>>> genV)
+			else if (m_generator is Func<long, CancellationToken, ValueTask<Maybe<TOutput>>> genV)
 			{
 				res = await genV(index, m_ct);
 			}

@@ -50,7 +50,6 @@ namespace Doxense.Linq
 		}
 	}
 
-
 	public sealed class KeyValueSizeStatistics
 	{
 		/// <summary>Total number of pairs of keys and values that have flowed through this point</summary>

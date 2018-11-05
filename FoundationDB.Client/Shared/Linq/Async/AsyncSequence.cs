@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if !USE_SHARED_FRAMEWORK
 
- namespace Doxense.Linq.Async
+namespace Doxense.Linq.Async
 {
 	using System;
 	using System.Threading;
