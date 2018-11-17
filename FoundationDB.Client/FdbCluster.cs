@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using JetBrains.Annotations;
@@ -49,9 +50,9 @@ namespace FoundationDB.Client
 		private volatile bool m_disposed;
 
 		/// <summary>Wraps a cluster handle</summary>
-		public FdbCluster(IFdbClusterHandler handler, string path)
+		public FdbCluster([NotNull] IFdbClusterHandler handler, [CanBeNull] string path)
 		{
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(handler, nameof(handler));
 
 			m_handler = handler;
 			m_path = path;
@@ -104,9 +105,9 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
-		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IKeySubspace subspace, bool readOnly, CancellationToken ct)
+		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, [NotNull] IKeySubspace subspace, bool readOnly, CancellationToken ct)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(subspace, nameof(subspace));
 			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, ct: ct).ConfigureAwait(false);
 		}
 
@@ -124,8 +125,8 @@ namespace FoundationDB.Client
 		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IKeySubspace subspace, bool readOnly, bool ownsCluster, CancellationToken ct)
 		{
 			ThrowIfDisposed();
-			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException(nameof(databaseName));
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNullOrEmpty(databaseName, nameof(databaseName));
+			Contract.NotNull(subspace, nameof(subspace));
 
 			if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", $"Connecting to database '{databaseName}' ...");
 

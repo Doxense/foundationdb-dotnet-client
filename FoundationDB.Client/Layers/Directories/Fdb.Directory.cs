@@ -111,8 +111,8 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbDatabase db, [NotNull] IFdbDirectory parent, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
-				if (parent == null) throw new ArgumentNullException(nameof(parent));
+				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(parent, nameof(parent));
 
 				return await db.ReadAsync(async (tr) =>
 				{

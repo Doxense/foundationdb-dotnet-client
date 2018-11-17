@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
@@ -59,7 +60,7 @@ namespace FoundationDB.Client
 
 			public Snapshotted([NotNull] FdbTransaction parent)
 			{
-				if (parent == null) throw new ArgumentNullException(nameof(parent));
+				Contract.NotNull(parent, nameof(parent));
 				m_parent = parent;
 			}
 
@@ -103,7 +104,7 @@ namespace FoundationDB.Client
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
-				if (keys == null) throw new ArgumentNullException(nameof(keys));
+				Contract.NotNull(keys, nameof(keys));
 
 				EnsureCanRead();
 

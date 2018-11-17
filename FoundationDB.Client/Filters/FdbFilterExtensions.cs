@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters
 {
 	using System;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -37,11 +38,11 @@ namespace FoundationDB.Filters
 	{
 		/// <summary>Return a read-only view of this transaction, that will only allow read operations.</summary>
 		/// <param name="trans">Transaction to secure</param>
-		/// <returns>The same transaction instance if it is already read-only, or a thin read-only wrapper around the transaction if it is writeable.</returns>
+		/// <returns>The same transaction instance if it is already read-only, or a thin read-only wrapper around the transaction if it is writable.</returns>
 		[NotNull]
-		public static IFdbReadOnlyTransaction AsReadOnly(this IFdbTransaction trans)
+		public static IFdbReadOnlyTransaction AsReadOnly([NotNull] this IFdbTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			Contract.NotNull(trans, nameof(trans));
 
 			if (trans.IsReadOnly)
 			{ // this is already read-only

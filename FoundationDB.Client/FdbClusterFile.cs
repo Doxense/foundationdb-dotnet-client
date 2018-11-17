@@ -73,9 +73,9 @@ namespace FoundationDB.Client
 		/// <param name="coordinators"></param>
 		public FdbClusterFile([NotNull] string description, [NotNull] string identifier, [NotNull, ItemNotNull] IEnumerable<FdbEndPoint> coordinators)
 		{
-			if (description == null) throw new ArgumentNullException(nameof(description));
-			if (identifier == null) throw new ArgumentNullException(nameof(identifier));
-			if (coordinators == null) throw new ArgumentNullException(nameof(coordinators));
+			Contract.NotNull(description, nameof(description));
+			Contract.NotNull(identifier, nameof(identifier));
+			Contract.NotNull(coordinators, nameof(coordinators));
 
 			this.Description = description;
 			this.Id = identifier;

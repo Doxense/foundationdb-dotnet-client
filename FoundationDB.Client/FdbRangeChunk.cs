@@ -348,8 +348,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] Func<Slice, TKey> keyHandler, [NotNull] Func<Slice, TValue> valueHandler)
 		{
-			if (keyHandler == null) throw new ArgumentNullException(nameof(keyHandler));
-			if (valueHandler == null) throw new ArgumentNullException(nameof(valueHandler));
+			Contract.NotNull(keyHandler, nameof(keyHandler));
+			Contract.NotNull(valueHandler, nameof(valueHandler));
 
 			var results = this.Items;
 			var items = new KeyValuePair<TKey, TValue>[results.Length];
@@ -377,9 +377,9 @@ namespace FoundationDB.Client
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
-			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(keyEncoder, nameof(keyEncoder));
+			Contract.NotNull(valueEncoder, nameof(valueEncoder));
 
 			var results = this.Items;
 			var items = new KeyValuePair<TKey, TValue>[results.Length];
@@ -405,8 +405,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
-			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
-			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
+			Contract.NotNull(keyEncoder, nameof(keyEncoder));
+			Contract.NotNull(valueEncoder, nameof(valueEncoder));
 
 			var results = this.Items;
 			var items = new KeyValuePair<TKey, TValue>[results.Length];
@@ -429,7 +429,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] Func<Slice, T> handler)
 		{
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(handler, nameof(handler));
 
 			var results = this.Items;
 			var keys = new T[results.Length];
@@ -448,8 +448,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<T> keyEncoder)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(keyEncoder, nameof(keyEncoder));
 
 			var results = this.Items;
 			var keys = new T[results.Length];
@@ -467,7 +467,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] IKeyEncoder<T> keyEncoder)
 		{
-			if (keyEncoder == null) throw new ArgumentNullException(nameof(keyEncoder));
+			Contract.NotNull(keyEncoder, nameof(keyEncoder));
 
 			var results = this.Items;
 			var values = new T[results.Length];
@@ -485,7 +485,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeValues<T>([NotNull] Func<Slice, T> handler)
 		{
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			Contract.NotNull(handler, nameof(handler));
 
 			var results = this.Items;
 			var values = new T[results.Length];
@@ -503,7 +503,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeValues<T>([NotNull] IValueEncoder<T> valueEncoder)
 		{
-			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
+			Contract.NotNull(valueEncoder, nameof(valueEncoder));
 
 			var results = this.Items;
 			var values = new T[results.Length];

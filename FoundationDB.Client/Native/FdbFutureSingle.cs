@@ -32,6 +32,7 @@ namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>FDBFuture wrapper</summary>
@@ -52,8 +53,8 @@ namespace FoundationDB.Client.Native
 
 		internal FdbFutureSingle([NotNull] FutureHandle handle, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			if (handle == null) throw new ArgumentNullException(nameof(handle));
-			if (selector == null) throw new ArgumentNullException(nameof(selector));
+			Contract.NotNull(handle, nameof(handle));
+			Contract.NotNull(selector, nameof(selector));
 
 			m_handle = handle;
 			m_resultSelector = selector;

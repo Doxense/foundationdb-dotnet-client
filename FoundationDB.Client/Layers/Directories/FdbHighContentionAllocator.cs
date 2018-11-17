@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Directories
 	using System;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
 	[DebuggerDisplay("Subspace={" + nameof(FdbHighContentionAllocator.Subspace) + "}")]
@@ -48,7 +49,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="subspace"></param>
 		public FdbHighContentionAllocator(IDynamicKeySubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(subspace, nameof(subspace));
 
 			this.Subspace = subspace;
 			this.Counters = subspace.Partition.ByKey(COUNTERS);

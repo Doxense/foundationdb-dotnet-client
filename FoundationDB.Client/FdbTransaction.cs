@@ -343,7 +343,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
-			if (keys == null) throw new ArgumentNullException(nameof(keys));
+			Contract.NotNull(keys, nameof(keys));
 			//TODO: should we make a copy of the key array ?
 
 			EnsureCanRead();

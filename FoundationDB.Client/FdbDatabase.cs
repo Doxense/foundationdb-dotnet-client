@@ -126,11 +126,11 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		public static FdbDatabase Create([NotNull] IFdbCluster cluster, [NotNull] IFdbDatabaseHandler handler, string name, [NotNull] IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
-			if (cluster == null) throw new ArgumentNullException(nameof(cluster));
-			if (handler == null) throw new ArgumentNullException(nameof(handler));
-			if (contentSubspace == null) throw new ArgumentNullException(nameof(contentSubspace));
+			Contract.NotNull(cluster, nameof(cluster));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(contentSubspace, nameof(contentSubspace));
 
 			return new FdbDatabase(cluster, handler, name, contentSubspace, directory, readOnly, ownsCluster);
 		}
@@ -140,18 +140,10 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Cluster where the database is located</summary>
-		public IFdbCluster Cluster
-		{
-			[NotNull]
-			get { return m_cluster; }
-		}
+		public IFdbCluster Cluster => m_cluster;
 
 		/// <summary>Name of the database</summary>
-		public string Name
-		{
-			[NotNull]
-			get { return m_name; }
-		}
+		public string Name => m_name;
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -164,7 +156,6 @@ namespace FoundationDB.Client
 		/// <summary>Root directory of this database instance</summary>
 		public FdbDatabasePartition Directory
 		{
-			[NotNull]
 			get
 			{
 				if (m_directory == null)

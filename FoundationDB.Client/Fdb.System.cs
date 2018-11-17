@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				Contract.NotNull(trans, nameof(trans));
 
 				Slice data = await trans.GetAsync(StatusJsonKey).ConfigureAwait(false);
 
@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
+				Contract.NotNull(db, nameof(db));
 
 				// we should not retry the read to the status key!
 				using (var trans = db.BeginReadOnlyTransaction(ct))
@@ -134,7 +134,7 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<FdbClusterFile> GetCoordinatorsAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
+				Contract.NotNull(db, nameof(db));
 
 				var coordinators = await db.ReadAsync((tr) =>
 				{
@@ -157,8 +157,8 @@ namespace FoundationDB.Client
 			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
 			public static Task<Slice> GetConfigParameterAsync([NotNull] IFdbDatabase db, [NotNull] string name, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", nameof(name));
+				Contract.NotNull(db, nameof(db));
+				Contract.NotNullOrEmpty(name, nameof(name), "Configuration parameter name cannot be null or empty.");
 
 				return db.ReadAsync<Slice>((tr) =>
 				{
@@ -235,8 +235,8 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
-				if (trans == null) throw new ArgumentNullException(nameof(trans));
-				Contract.Assert(trans.Context?.Database != null);
+				Contract.NotNull(trans, nameof(trans));
+				Contract.Requires(trans.Context?.Database != null);
 
 				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
 				{
@@ -260,7 +260,7 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
-				if (db == null) throw new ArgumentNullException(nameof(db));
+				Contract.NotNull(db, nameof(db));
 
 				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), ct);
 			}
@@ -292,7 +292,7 @@ namespace FoundationDB.Client
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
-				if (db == null) throw new ArgumentNullException(nameof(db));
+				Contract.NotNull(db, nameof(db));
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
 				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, ct).ConfigureAwait(false);
@@ -428,7 +428,7 @@ namespace FoundationDB.Client
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
 				const int MIN_WINDOW_SIZE = 64; // use range reads when the windows size is smaller than 64
 
-				if (db == null) throw new ArgumentNullException(nameof(db));
+				Contract.NotNull(db, nameof(db));
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
 				ct.ThrowIfCancellationRequested();

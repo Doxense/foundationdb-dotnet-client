@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
-			if (keys == null) throw new ArgumentNullException(nameof(keys));
+			Contract.NotNull(keys, nameof(keys));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
-			if (keys == null) throw new ArgumentNullException(nameof(keys));
+			Contract.NotNull(keys, nameof(keys));
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 

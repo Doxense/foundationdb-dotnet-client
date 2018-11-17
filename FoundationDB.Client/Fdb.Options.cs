@@ -28,8 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{
@@ -70,9 +71,9 @@ namespace FoundationDB.Client
 			/// This *must* be called before the start of the network thread, otherwise it won't have any effects.
 			/// You can specify the path to a library with a custom file name by making sure that <paramref name="path"/> ends with ".dll". If not, then "fdb_c.dll" will be appended to the path.
 			/// </remarks>
-			public static void SetNativeLibPath(string path)
+			public static void SetNativeLibPath([NotNull] string path)
 			{
-				if (path == null) throw new ArgumentNullException(nameof(path));
+				Contract.NotNull(path, nameof(path));
 
 				//TODO: throw if native library has already been loaded
 				Fdb.Options.NativeLibPath = path;

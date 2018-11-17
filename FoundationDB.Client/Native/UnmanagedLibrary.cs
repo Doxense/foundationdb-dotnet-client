@@ -32,6 +32,7 @@ namespace FoundationDB.Client.Native
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 	using System.Security;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 	using Microsoft.Win32.SafeHandles;
 
@@ -125,9 +126,9 @@ namespace FoundationDB.Client.Native
 		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or that the file is not a  loadable image.</remarks>
 		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
 		[NotNull]
-		public static UnmanagedLibrary Load(string path)
+		public static UnmanagedLibrary Load([NotNull] string path)
 		{
-			if (path == null) throw new ArgumentNullException(nameof(path));
+			Contract.NotNull(path, nameof(path));
 
 			var handle = NativeMethods.LoadPlatformLibrary(path);
 			if (handle == null || handle.IsInvalid)

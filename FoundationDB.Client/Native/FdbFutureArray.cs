@@ -33,6 +33,7 @@ namespace FoundationDB.Client.Native
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>FDBFuture[] wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
@@ -57,9 +58,8 @@ namespace FoundationDB.Client.Native
 
 		internal FdbFutureArray([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			if (handles == null) throw new ArgumentNullException(nameof(handles));
-			if (handles.Length == 0) throw new ArgumentException("Handle array cannot be empty", nameof(handles));
-			if (selector == null) throw new ArgumentNullException(nameof(selector));
+			Contract.NotNullOrEmpty(handles, nameof(handles));
+			Contract.NotNull(selector, nameof(selector));
 
 			m_handles = handles;
 			m_resultSelector = selector;
@@ -163,7 +163,7 @@ namespace FoundationDB.Client.Native
 				{
 					if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 					{
-						//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
+						//REVIEW: there is a possibility of a race condition with Dispose() that could potentially call FutureDestroy(handle) at the same time (not verified)
 						FdbNative.FutureReleaseMemory(handle);
 					}
 				}
@@ -193,7 +193,7 @@ namespace FoundationDB.Client.Native
 				{
 					if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 					{
-						//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
+						//REVIEW: there is a possibility of a race condition with Dispose() that could potentially call FutureDestroy(handle) at the same time (not verified)
 						FdbNative.FutureCancel(handle);
 					}
 				}
@@ -205,7 +205,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
 		/// <param name="futureHandle">Handle on the future that became ready</param>
-		/// <param name="parameter">Paramter to the callback (unused)</param>
+		/// <param name="parameter">Parameter to the callback (unused)</param>
 		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
