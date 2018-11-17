@@ -62,11 +62,10 @@ namespace FoundationDB.Client
 		internal const int MinSafeApiVersion = FdbNative.FDB_API_MIN_VERSION;
 
 		/// <summary>Highest API version that this binding can support</summary>
-		/// <remarks>Ex: this binding has been tested against v3.x (300) but the installed client can be v4.x (400).</remarks>
 		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
 
 		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
-		internal const int DefaultApiVersion = 520; // v5.2.x
+		internal const int DefaultApiVersion = 600; // v6.0.x
 		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
