@@ -81,6 +81,7 @@ namespace FoundationDB.Client
 		/// This option, if used, must be set before any other TLS options
 		/// Parameter: (String) file path or linker-resolved name
 		/// </summary>
+		[Obsolete("This option is deprecated since v6.0")]
 		TLSPlugin = 41,
 
 		/// <summary>Set the certificate chain

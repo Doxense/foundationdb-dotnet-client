@@ -97,6 +97,7 @@ namespace FoundationDB.Client
 			#region TLS...
 
 			/// <summary>File path or linker-resolved name of the custom TLS plugin to load.</summary>
+			[Obsolete("This option is deprecated since v6.0")]
 			public static string TLSPlugin { get; private set; }
 
 			/// <summary>Content of the TLS root and client certificates used for TLS connections (none by default)</summary>
@@ -111,10 +112,11 @@ namespace FoundationDB.Client
 			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
 			public static string TLSPrivateKeyPath { get; private set; }
 
-			/// <summary>Pattern used to verifiy certificates of TLS peers (none by default)</summary>
+			/// <summary>Pattern used to verify certificates of TLS peers (none by default)</summary>
 			public static Slice TLSVerificationPattern { get; private set; }
 
 			/// <summary>Set the file path or linker-resolved name of the custom TLS plugin to load. </summary>
+			[Obsolete("This option is deprecated since v6.0")]
 			public static void SetTLSPlugin(string name)
 			{
 				Fdb.Options.TLSPlugin = name;

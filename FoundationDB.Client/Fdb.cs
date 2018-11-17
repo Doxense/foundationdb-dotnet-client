@@ -726,12 +726,14 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
 			}
 
+#pragma warning disable 618
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSPlugin))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will use custom TLS plugin '{Fdb.Options.TLSPlugin}'");
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSPlugin, Fdb.Options.TLSPlugin));
 			}
+#pragma warning restore 618
 
 			if (Fdb.Options.TLSCertificateBytes.IsPresent)
 			{
