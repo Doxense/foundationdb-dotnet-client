@@ -191,7 +191,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Checks whether the current and the specified range are intersecting (i.e: there exists at at least one key that belongs to both ranges)</summary>
-		/// <param name="other">Range that is being checked for interection</param>
+		/// <param name="other">Range that is being checked for interaction</param>
 		/// <returns>True if the other range intersects the current range.</returns>
 		/// <remarks>Note that ranges [0, 1) and [1, 2) do not intersect, since the end is exclusive by default</remarks>
 		[Pure]

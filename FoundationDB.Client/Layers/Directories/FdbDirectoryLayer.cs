@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Use this flag to make the Directory Layer start annotating the transactions with a descriptions of all operations.</summary>
 		/// <remarks>
-		/// This is only usefull if you want to diagnose performance or read conflict issues.
+		/// This is only useful if you want to diagnose performance or read conflict issues.
 		/// This will only work with logged transactions, obtained by applying the Logging Filter on a database instance
 		/// </remarks>
 		public static bool AnnotateTransactions { get; set; }
@@ -130,11 +130,11 @@ namespace FoundationDB.Layers.Directories
 		#region Constructors...
 
 		/// <summary>
-		/// Creates a new instance that will manages directories in FoudnationDB.
+		/// Creates a new instance that will manages directories in FoundationDB.
 		/// </summary>
 		/// <param name="nodeSubspace">Subspace where all the node metadata will be stored ('\xFE' by default)</param>
 		/// <param name="contentSubspace">Subspace where all automatically allocated directories will be stored (empty by default)</param>
-		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Ususally empty for the root partition of the database.</param>
+		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Usually empty for the root partition of the database.</param>
 		internal FdbDirectoryLayer(IDynamicKeySubspace nodeSubspace, IDynamicKeySubspace contentSubspace, IVarTuple location)
 		{
 			Contract.Requires(nodeSubspace != null && contentSubspace != null);
@@ -587,7 +587,7 @@ namespace FoundationDB.Layers.Directories
 			}
 
 			// to open an existing directory, we only need the read transaction
-			// if none was specified, we can use the writeable transaction
+			// if none was specified, we can use the writable transaction
 			if (readTrans == null) readTrans = trans;
 
 			await CheckReadVersionAsync(readTrans).ConfigureAwait(false);
@@ -625,8 +625,8 @@ namespace FoundationDB.Layers.Directories
 				return null;
 			}
 
-			// from there, we actually do need a wrtieable transaction
-			if (trans == null) throw new InvalidOperationException("A writeable transaction is needed to create a new directory.");
+			// from there, we actually do need a writable transaction
+			if (trans == null) throw new InvalidOperationException("A writable transaction is needed to create a new directory.");
 
 			await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
@@ -698,7 +698,7 @@ namespace FoundationDB.Layers.Directories
 			}
 			if (newPath.StartsWith(oldPath))
 			{
-				throw new InvalidOperationException($"The destination directory '{newPath}' cannot be a subdirectory of the source directory '{oldPath}'.");
+				throw new InvalidOperationException($"The destination directory '{newPath}' cannot be a sub-directory of the source directory '{oldPath}'.");
 			}
 
 			await CheckWriteVersionAsync(trans).ConfigureAwait(false);
@@ -867,7 +867,7 @@ namespace FoundationDB.Layers.Directories
 
 		private static void CheckVersion(Slice value, bool writeAccess)
 		{
-			// the version is stored as 3 x 32-bit unsigned ints, so (1, 0, 0) will be "<01><00><00><00> <00><00><00><00> <00><00><00><00>"
+			// the version is stored as 3 x 32-bit unsigned int, so (1, 0, 0) will be "<01><00><00><00> <00><00><00><00> <00><00><00><00>"
 			var reader = new SliceReader(value);
 			var major = reader.ReadFixed32();
 			var minor = reader.ReadFixed32();
@@ -1017,7 +1017,7 @@ namespace FoundationDB.Layers.Directories
 			return false;
 		}
 
-		/// <summary>Resursively remove a node (including the content), all its children</summary>
+		/// <summary>Recursively remove a node (including the content), all its children</summary>
 		private async Task RemoveRecursive([NotNull] IFdbTransaction tr, [NotNull] IDynamicKeySubspace node)
 		{
 			Contract.Requires(tr != null && node != null);

@@ -52,7 +52,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Wrapper on a transaction, that will use Snmapshot mode on all read operations</summary>
+		/// <summary>Wrapper on a transaction, that will use Snapshot mode on all read operations</summary>
 		private sealed class Snapshotted : IFdbReadOnlyTransaction
 		{
 			private readonly FdbTransaction m_parent;

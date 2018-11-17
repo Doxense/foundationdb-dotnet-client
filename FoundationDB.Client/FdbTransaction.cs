@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Native;
 	using JetBrains.Annotations;
 
-	/// <summary>FounrationDB transaction handle.</summary>
+	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
 	public sealed partial class FdbTransaction : IFdbTransaction
@@ -86,7 +86,7 @@ namespace FoundationDB.Client
 		/// <summary>Max Retry Delay (in ms) of this transaction</summary>
 		private int m_maxRetryDelay;
 
-		/// <summary>Cancelletation source specific to this instance.</summary>
+		/// <summary>Cancellation source specific to this instance.</summary>
 		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
@@ -136,7 +136,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		internal IFdbTransactionHandler Handler => m_handler;
 
-		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
+		/// <summary>If true, the transaction is still pending (not committed or rolled back).</summary>
 		internal bool StillAlive => this.State == STATE_READY;
 
 		/// <inheritdoc />
@@ -692,7 +692,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
-			//note: the caller CANNOT use the transactions's own token, or else the watch would not survive after the commit, rendering it useless
+			//note: the caller CANNOT use the transaction's own token, or else the watch would not survive after the commit, rendering it useless
 			if (ct.CanBeCanceled && ct.Equals(m_cancellation))
 			{
 				throw new ArgumentException("You cannot use the transaction's own cancellation token, because the Watch will need to execute after the transaction has completed. You may use the same token that was used by the parent retry loop, or any other token.");
@@ -713,7 +713,7 @@ namespace FoundationDB.Client
 #endif
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
-			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
+			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource every time),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
 			return m_handler.Watch(key, ct);
@@ -763,7 +763,7 @@ namespace FoundationDB.Client
 				this.Timeout = m_database.DefaultTimeout;
 			}
 
-			// if we have used a random token for versionstamps, we need to clear it (and generate a new one)
+			// if we have used a random token for VersionStamps, we need to clear it (and generate a new one)
 			// => this ensure that if the error was due to a collision between the token and another part of the key,
 			//    a transaction retry will hopefully use a different token that does not collide.
 			m_versionStampToken = 0;

@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		/// <summary>Underlying handler for this cluster (native, dummy, memory, ...)</summary>
 		private readonly IFdbClusterHandler m_handler;
 
-		/// <summary>Path to the cluster file userd by this connection</summary>
+		/// <summary>Path to the cluster file used by this connection</summary>
 		private readonly string m_path;
 
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
-		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
+		/// <param name="ct">Cancellation Token (optional) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>

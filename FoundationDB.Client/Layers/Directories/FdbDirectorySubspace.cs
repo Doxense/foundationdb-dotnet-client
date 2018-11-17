@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
 		/// <param name="layer">Expected layer id (if not empty)</param>
-		/// <exception cref="System.InvalidOperationException">If the directory was registerd with a different layer id</exception>
+		/// <exception cref="System.InvalidOperationException">If the directory was registered with a different layer id</exception>
 		public void CheckLayer(Slice layer)
 		{
 			if (layer.IsPresent && layer != this.Layer)
@@ -151,12 +151,12 @@ namespace FoundationDB.Layers.Directories
 			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, GetKeyPrefix(), this.DirectoryLayer, newLayer, this.Encoding);
 		}
 
-		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
-		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
+		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
+		/// If the sub-directory does not exist, it is created (creating intermediate subdirectories if necessary).
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the subdirectory to create or open</param>
-		/// <param name="layer">If <paramref name="layer"/> is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.</param>
+		/// <param name="path">Relative path of the sub-directory to create or open</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is checked against the layer of an existing sub-directory or set as the layer of a new sub-directory.</param>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -165,11 +165,11 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateOrOpenInternalAsync(null, trans, ToRelativePath(path), layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
-		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
-		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
+		/// An exception is thrown if the sub-directory does not exist, or if a layer is specified and a different layer was specified when the sub-directory was created.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="path">Relative path of the sub-directory to open</param>
 		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
@@ -178,11 +178,11 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, null, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
 		}
 
-		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
-		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
+		/// An exception is thrown if the sub-directory if a layer is specified and a different layer was specified when the sub-directory was created.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="path">Relative path of the sub-directory to open</param>
 		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default)
@@ -192,12 +192,12 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, null, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
 		}
 
-		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
-		/// An exception is thrown if the given subdirectory already exists.
+		/// <summary>Creates a sub-directory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// An exception is thrown if the given sub-directory already exists.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the subdirectory to create</param>
-		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
+		/// <param name="path">Relative path of the sub-directory to create</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the sub-directory and will be checked by future calls to open.</param>
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -205,12 +205,12 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateOrOpenInternalAsync(null, trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
 
-		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
-		/// An exception is thrown if the given subdirectory already exists.
+		/// <summary>Creates a sub-directory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// An exception is thrown if the given sub-directory already exists.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Relative path of the subdirectory to create</param>
-		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
+		/// <param name="path">Relative path of the sub-directory to create</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the sub-directory and will be checked by future calls to open.</param>
 		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -252,13 +252,13 @@ namespace FoundationDB.Layers.Directories
 			return directoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: true);
 		}
 
-		/// <summary>Moves the specified subdirectory to <paramref name="newPath"/>.
+		/// <summary>Moves the specified sub-directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
-		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
+		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful.</returns>
 		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
@@ -285,13 +285,13 @@ namespace FoundationDB.Layers.Directories
 			return directoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: false);
 		}
 
-		/// <summary>Attempts to move the specified subdirectory to <paramref name="newPath"/>.
+		/// <summary>Attempts to move the specified sub-directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
-		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
+		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory cannot be moved, then null is returned.</returns>
 		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{

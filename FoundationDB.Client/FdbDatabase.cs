@@ -88,10 +88,10 @@ namespace FoundationDB.Client
 		/// <summary>Default Retry Limit value for all transactions</summary>
 		private int m_defaultRetryLimit;
 
-		/// <summary>Default Max Retry Delay valeu for all transactions</summary>
+		/// <summary>Default Max Retry Delay value for all transactions</summary>
 		private int m_defaultMaxRetryDelay;
 
-		/// <summary>Instance of the DirectoryLayer used by this detabase (lazy initialized)</summary>
+		/// <summary>Instance of the DirectoryLayer used by this database (lazy initialized)</summary>
 		private FdbDatabasePartition m_directory;
 
 		#endregion

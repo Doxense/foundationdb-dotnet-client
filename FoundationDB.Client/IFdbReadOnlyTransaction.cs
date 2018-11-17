@@ -58,7 +58,7 @@ namespace FoundationDB.Client
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>
 		CancellationToken Cancellation { get; }
 
-		/// <summary>Ensure thats the transaction is in a valid state for issuing read operations.</summary>
+		/// <summary>Ensure that the transaction is in a valid state for issuing read operations.</summary>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
 		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0);
@@ -107,7 +107,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, NotNull, LinqTunnel]
 		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null);
@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="selector">Selector used to convert each key-value pair into an element of type <typeparamref name="TResult"/></param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, NotNull, LinqTunnel]
 		FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null);
@@ -158,7 +158,7 @@ namespace FoundationDB.Client
 		/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
 		/// </summary>
 		/// <param name="code">FdbError code thrown by the previous command</param>
-		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
+		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retry-able.</returns>
 		Task OnErrorAsync(FdbError code);
 
 		/// <summary>Set an option on this transaction that does not take any parameter</summary>
@@ -189,7 +189,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		int RetryLimit { get; set; }
 
-		/// <summary>Maximum amount of backoff delay incurred in the call to onError if the error is retryable.
+		/// <summary>Maximum amount of backoff delay incurred in the call to onError if the error is retry-able.
 		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
 		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
 		/// </summary>

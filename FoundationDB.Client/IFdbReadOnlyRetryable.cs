@@ -63,7 +63,7 @@ namespace FoundationDB.Client
 
 		//REVIEW: that's a lot of things to implement! => maybe we should have a set of extension methods that hook into a more simple but generic version?
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
 		//TODO: remove this method because it does not make any sense: It can only read, cannot have any side effect, and does not return anything (it can only throw)
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
 		/// <param name="success">Will be called at most once, and only if the transaction commits successfully.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, [InstantHandle] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct);
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
 		/// <param name="success">Will be called at most once, and only if the transaction commits successfully.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
@@ -103,7 +103,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TIntermediate, TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct);
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
 		/// <param name="success">Will be called at most once, and only if the transaction commits successfully.</param>
 		/// <param name="ct">Token used to cancel the operation</param>

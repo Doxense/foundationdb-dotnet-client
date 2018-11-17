@@ -39,7 +39,7 @@ namespace System
 	using JetBrains.Annotations;
 
 	/// <summary>VersionStamp</summary>
-	/// <remarks>A versionstamp is unique, monotonically (but not sequentially) increasing value for each committed transaction.
+	/// <remarks>A VersionStamp is unique, monotonically (but not sequentially) increasing value for each committed transaction.
 	/// Its size can either be 10 bytes (80-bits) or 12-bytes (96-bits).
 	/// The first 8 bytes are the committed version of the database. The next 2 bytes are monotonic in the serialization order for transactions.
 	/// The optional last 2 bytes can contain a user-provider version number used to allow multiple stamps inside the same transaction.
@@ -47,7 +47,7 @@ namespace System
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>
 	{
-		//REVIEW: they are called "Versionstamp" in the doc, but "VersionStamp" seems more  .NETy (like 'TimeSpan').
+		//REVIEW: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
 		// => Should we keep the uppercase 'S' or not ?
 
 		private const ulong PLACEHOLDER_VERSION = ulong.MaxValue;
@@ -114,7 +114,7 @@ namespace System
 		/// <summary>Creates an incomplete 80-bit <see cref="VersionStamp"/> with no user version.</summary>
 		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF</code> (10 bytes).</returns>
 		/// <remarks>
-		/// This stamp contains a temporary marker that will be later filled by the database with the actual VersioStamp by the database at transaction commit time.
+		/// This stamp contains a temporary marker that will be later filled by the database with the actual VersionStamp by the database at transaction commit time.
 		/// If you need to create multiple distinct stamps within the same transaction, please use <see cref="Incomplete(int)"/> instead.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +124,7 @@ namespace System
 		}
 
 		/// <summary>Creates an incomplete 96-bit <see cref="VersionStamp"/> with the given user version.</summary>
-		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the Versionstamp, making it unique <i>within</i> the transaction.</param>
+		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the VersionStamp, making it unique <i>within</i> the transaction.</param>
 		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF vv vv</code> (12 bytes) where 'vv vv' is the user version encoded in little-endian.</returns>
 		/// <exception cref="ArgumentException">If <paramref name="userVersion"/> is less than <c>0</c>, or greater than <c>65534</c> (0xFFFE).</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -135,7 +135,7 @@ namespace System
 		}
 
 		/// <summary>Creates an incomplete 96-bit <see cref="VersionStamp"/> with the given user version.</summary>
-		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the Versionstamp, making it unique <i>within</i> the transaction.</param>
+		/// <param name="userVersion">Value between 0 and 65535 that will be appended at the end of the VersionStamp, making it unique <i>within</i> the transaction.</param>
 		/// <returns>Placeholder that will be serialized as <code>FF FF FF FF FF FF FF FF FF FF vv vv</code> (12 bytes) where 'vv vv' is the user version encoded in little-endian.</returns>
 		/// <exception cref="ArgumentException">If <paramref name="userVersion"/> is less than <c>0</c>, or greater than <c>65534</c> (0xFFFE).</exception>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -239,7 +239,7 @@ namespace System
 			get => (this.Flags & FLAGS_IS_INCOMPLETE) != 0;
 		}
 
-		/// <summary>Return the length (in bytes) of the versionstamp when serialized in binary format</summary>
+		/// <summary>Return the length (in bytes) of the VersionStamp when serialized in binary format</summary>
 		/// <returns>Returns 12 bytes for stamps with a user version, and 10 bytes without.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int GetLength() => 10 + 2 * (this.Flags & FLAGS_HAS_VERSION);
@@ -366,7 +366,7 @@ namespace System
 		internal static unsafe void ReadUnsafe(byte* ptr, int len, out VersionStamp vs)
 		{
 			Contract.Debug.Assert(len == 10 || len == 12);
-			// reads a complete 12 bytes Versionstamp
+			// reads a complete 12 bytes VersionStamp
 			ulong ver = UnsafeHelpers.LoadUInt64BE(ptr);
 			ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
 			ushort idx = len == 10 ? NO_USER_VERSION : UnsafeHelpers.LoadUInt16BE(ptr + 10);
@@ -512,4 +512,4 @@ namespace System
 
 }
 
- #endif
+#endif

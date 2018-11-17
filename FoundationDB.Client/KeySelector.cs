@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 			return new KeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);
 		}
 
-		/// <summary>Substract a value to the selector's offset</summary>
+		/// <summary>Subtract a value from the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
 		/// <returns>fGE('abc')-7</returns>

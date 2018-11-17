@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		bool IsReadOnly { get; }
 
 		/// <summary>
-		/// Ensure thats the transaction is in a valid state for issuing write operations.
+		/// Ensure that the transaction is in a valid state for issuing write operations.
 		/// </summary>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
@@ -96,7 +96,7 @@ namespace FoundationDB.Client
 		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
 		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
 		/// </summary>
-		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
+		/// <returns>Task that succeeds if the transaction was committed successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
 		Task CommitAsync();
 
@@ -105,14 +105,14 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <returns></returns>
 		/// <remarks>
-		/// CommitAsync() must have been called on this transaction and the resulting task must have completed successfully before this function is callged, or the behavior is undefined.
+		/// CommitAsync() must have been called on this transaction and the resulting task must have completed successfully before this function is called, or the behavior is undefined.
 		/// Read-only transactions do not modify the database when committed and will have a committed version of -1.
 		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
 		/// </remarks>
 		[Pure]
 		long GetCommittedVersion();
 
-		/// <summary>Returns the <see cref="VersionStamp"/> which was used by versionstamps operations in this transaction.</summary>
+		/// <summary>Returns the <see cref="VersionStamp"/> which was used by VersionStamped operations in this transaction.</summary>
 		/// <remarks>
 		/// The Task will be ready only after the successful completion of a call to <see cref="CommitAsync"/> on this transaction.
 		/// Read-only transactions do not modify the database when committed and will result in the Task completing with an error.

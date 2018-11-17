@@ -398,7 +398,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, PlusOne32, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to substract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key)
@@ -418,7 +418,7 @@ namespace FoundationDB.Client
 			trans.Atomic(key, PlusOne64, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to substract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key)
@@ -552,7 +552,7 @@ namespace FoundationDB.Client
 		/// <returns>Offset in <paramref name="buffer"/> where the stamp was found</returns>
 		private static int GetVersionStampOffset(Slice buffer, Slice token, string argName)
 		{
-			// the buffer MUST contain one incomplete stamp, either the random token of the current transsaction or the default token (all-FF)
+			// the buffer MUST contain one incomplete stamp, either the random token of the current transaction or the default token (all-FF)
 
 			if (buffer.Count < token.Count) throw new ArgumentException("The key is too small to contain a VersionStamp.", argName);
 
@@ -971,7 +971,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">key selector pair defining the beginning and the end of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
@@ -988,7 +988,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Range of keys defining the beginning (inclusive) and the end (exclusive) of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null, int iteration = 0)
@@ -1007,7 +1007,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
 		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null, int iteration = 0)
@@ -1114,7 +1114,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <returns>Task that will return an array of values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value will be Slice.Nil.</returns>
+		/// <returns>Task that will return an array of values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value will be Slice.Nil.</returns>
 		[ItemNotNull]
 		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys)
 		{
@@ -1132,7 +1132,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
-		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
 		[ItemNotNull]
 		public static async Task<TValue[]> GetValuesAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IValueEncoder<TValue> decoder)
 		{
@@ -1207,7 +1207,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Array of keys to be looked up in the database</param>
 		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
-		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
 		[ItemNotNull]
 		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IValueEncoder<TValue> decoder)
 		{
@@ -1225,7 +1225,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
-		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
 		[ItemNotNull]
 		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] Slice[] keys, [NotNull] IValueEncoder<TValue> decoder)
 		{

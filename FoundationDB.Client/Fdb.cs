@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the maximum API version currently supported by the installed client.</summary>
 		/// <remarks>The version of the installed client (fdb_c.dll) can be different higher (or lower) than the version supported by this binding (FoundationDB.Client.dll)!
-		/// If you want the highest possible version that is supported by both the binding and the client, you must call <see cref="GetMaxSafeApiVersion"/>.
+		/// If you want the highest possible version that is supported by both the binding and the client, you must call <see cref="GetMaxSafeApiVersion()"/>.
 		/// Attempts to select an API version higher than this value will fail.
 		/// </remarks>
 		public static int GetMaxApiVersion()
@@ -130,7 +130,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns the default API version that is supported by the version of this binding</summary>
 		/// <remarks>
 		/// The version may be different than the version supported by the installed client, and the database cluster itself!
-		/// This version should only be used by tools that are versionned and deployed alongside the binding package.
+		/// This version should only be used by tools that are versioned and deployed alongside the binding package.
 		/// Application and Layers should define their own API version and not rely on this value.
 		/// </remarks>
 		public static int GetDefaultApiVersion()
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <remarks>
 		/// The version can only be set before calling <see cref="Fdb.Start(int)"/> or any method that indirectly calls it.
-		/// If the value is 0, then the the maximum version supported by both this bindign and the FoundationDB client (see <see cref="GetMaxSafeApiVersion"/>).
+		/// If the value is 0, then the the maximum version supported by both this binding and the FoundationDB client (see <see cref="GetMaxSafeApiVersion()"/>).
 		/// If you want to be conservative, you should target a specific version level, and only change to newer versions after making sure that all tests are passing!
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">When attempting to change the API version after the binding has been started.</exception>
@@ -156,7 +156,7 @@ namespace FoundationDB.Client
 		public static void UseApiVersion(int value)
 		{
 			value = CheckApiVersion(value);
-			if (s_apiVersion == value) return; //Alreay set to same version... skip it.
+			if (s_apiVersion == value) return; // Already set to same version... skip it.
 			if (s_started) throw new InvalidOperationException($"You cannot set API version {value} because version {s_apiVersion} has already been selected");
 			s_apiVersion = value;
 		}
@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 			//note: we don't actually select the version yet, only when Start() is called.
 
 			int min = GetMinApiVersion();
-			if (value < min) throw new ArgumentException($"The minimum API version supported by the native fdb client is {min}, which is higher than version {value} requested by the application. You must upgrade the aplication and/or .NET binding!");
+			if (value < min) throw new ArgumentException($"The minimum API version supported by the native fdb client is {min}, which is higher than version {value} requested by the application. You must upgrade the application and/or .NET binding!");
 			int max = GetMaxApiVersion();
 			if (value > max) throw new ArgumentException($"The maximum API version supported by the native fdb client is {max}, which is lower than version {value} required by the application. You must upgrade the native fdb client to a higher version!");
 
@@ -221,8 +221,8 @@ namespace FoundationDB.Client
 			return FdbNative.GetError(code);
 		}
 
-		/// <summary>Maps an error code into an Exception (to be throwned)</summary>
-		/// <param name="code"></param>
+		/// <summary>Maps an error code into an Exception (to be thrown)</summary>
+		/// <param name="code">Error code returned by a native fdb operation</param>
 		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
 		public static Exception MapToException(FdbError code)
 		{
@@ -306,7 +306,7 @@ namespace FoundationDB.Client
 				var thread = s_eventLoop;
 				if (thread != null && thread.IsAlive)
 				{
-					// BUGBUG: specs says that we need to wait for the network thread to stop gracefuly, or else data integrity may not be guaranteed...
+					// BUGBUG: specs says that we need to wait for the network thread to stop gracefully, or else data integrity may not be guaranteed...
 					// We should wait for a bit, and only attempt to Abort() the thread after a timeout (30sec ? more ?)
 
 					// keep track of how much time it took to stop...
@@ -329,7 +329,7 @@ namespace FoundationDB.Client
 							thread.Abort();
 
 							bool stopped = thread.Join(TimeSpan.FromSeconds(30));
-							//REVIEW: is this even usefull? If the thread is stuck in a native P/Invoke call, it won't get notified until it returns to managed code ...
+							//REVIEW: is this even useful? If the thread is stuck in a native P/Invoke call, it won't get notified until it returns to managed code ...
 							// => in that case, we have a zombie thread on our hands...
 
 							if (!stopped)
@@ -384,7 +384,7 @@ namespace FoundationDB.Client
 						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS FAILED!");
 						Console.Error.WriteLine("=> " + err);
 						// REVIEW: should we FailFast in release mode also?
-						// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
+						// => this may be a bit surprising for most users when applications unexpectedly crash for for no apparent reason.
 						Environment.FailFast("The FoundationDB Network Event Loop failed with error " + err + " and was terminated.");
 #endif
 					}
@@ -421,13 +421,13 @@ namespace FoundationDB.Client
 				if (Logging.On) Logging.Exception(typeof(Fdb), "EventLoop", e);
 
 #if DEBUG
-				// if we are running in DEBUG build, we want to get the attention of the developper on this.
+				// if we are running in DEBUG build, we want to get the attention of the developer on this.
 				// the best way is to make the test runner explode in mid-air with a scary looking message!
 
 				Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED!");
 				Console.Error.WriteLine("=> " + e.ToString());
 				// REVIEW: should we FailFast in release mode also?
-				// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
+				// => this may be a bit surprising for most users when applications unexpectedly crash for for no apparent reason.
 				Environment.FailFast("The FoundationDB Network Event Loop crashed and had to be terminated: " + e.Message, e);
 #endif
 			}
@@ -440,7 +440,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Returns true if the Network thread start is executing, otherwise falsse</summary>
+		/// <summary>Returns true if the Network thread start is executing, otherwise false</summary>
 		public static bool IsNetworkRunning => s_eventLoopRunning;
 
 		/// <summary>Returns 'true' if we are currently running on the Event Loop thread</summary>
@@ -516,7 +516,7 @@ namespace FoundationDB.Client
 
 			//TODO: check the path ? (exists, readable, ...)
 
-			//TODO: have a way to configure the default IFdbClusterHander !
+			//TODO: have a way to configure the default IFdbClusterHandler !
 			var handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, ct).ConfigureAwait(false);
 			return new FdbCluster(handler, clusterFile);
 		}
@@ -608,7 +608,7 @@ namespace FoundationDB.Client
 			return OpenInternalAsync(options, ct);
 		}
 
-		/// <summary>Create a new database handler instance using the specificied cluster file, database name, global subspace and read only settings</summary>
+		/// <summary>Create a new database handler instance using the specified cluster file, database name, global subspace and read only settings</summary>
 		[ItemNotNull]
 		internal static async Task<IFdbDatabase> OpenInternalAsync(FdbConnectionOptions options, CancellationToken ct)
 		{
@@ -616,7 +616,7 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 
 			string clusterFile = options.ClusterFile;
-			string dbName = options.DbName ?? FdbConnectionOptions.DefaultDbName; // new FdbConnectionOptions { GlobalSpace = 
+			string dbName = options.DbName ?? FdbConnectionOptions.DefaultDbName;
 			bool readOnly = options.ReadOnly;
 			IKeySubspace globalSpace = options.GlobalSpace ?? KeySubspace.Empty;
 			string[] partitionPath = options.PartitionPath?.ToArray();
@@ -652,7 +652,7 @@ namespace FoundationDB.Client
 			{
 				if (!success)
 				{
-					// cleanup the cluter if something went wrong
+					// cleanup the cluster if something went wrong
 					db?.Dispose();
 					cluster?.Dispose();
 				}
@@ -685,7 +685,7 @@ namespace FoundationDB.Client
 		{
 			if (s_started) return;
 
-			//BUGBUG: Specs say we cannot restart the network thread anymore in the process after stoping it ! :(
+			//BUGBUG: Specs say we cannot restart the network thread anymore in the process after stopping it ! :(
 
 			s_started = true;
 
@@ -771,7 +771,7 @@ namespace FoundationDB.Client
 			try { }
 			finally
 			{
-				// register with the AppDomain to ensure that everyting is cleared when the process exists
+				// register with the AppDomain to ensure that everything is cleared when the process exists
 				s_appDomainUnloadHandler = (sender, args) =>
 				{
 					if (s_started)
@@ -828,7 +828,7 @@ namespace FoundationDB.Client
 			{
 				s_started = false;
 
-				// unregister the event on the AppDomain
+				// Un-register the event on the AppDomain
 				AppDomain.CurrentDomain.DomainUnload -= s_appDomainUnloadHandler;
 				s_appDomainUnloadHandler = null;
 

@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 		[PublicAPI]
 		public static class System
 		{
-			//REVIEW: what happens if someone mutates (by mitake or not) the underlying buffer of the defaults keys ?
+			//REVIEW: what happens if someone mutates (by mistake or not) the underlying buffer of the defaults keys ?
 			// => eg. Fdb.System.MaxValue.Array[0] = 42;
 
 			/// <summary>"\xFF\xFF"</summary>
@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 				{
 					tr.WithReadAccessToSystemKeys();
 					tr.WithPrioritySystemImmediate();
-					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.Coordinators);
 				}, ct).ConfigureAwait(false);
@@ -164,7 +164,7 @@ namespace FoundationDB.Client
 				{
 					tr.WithReadAccessToSystemKeys();
 					tr.WithPrioritySystemImmediate();
-					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.ConfigKey(name));
 				}, ct);
@@ -265,7 +265,7 @@ namespace FoundationDB.Client
 				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), ct);
 			}
 
-			//REVIEW: should we call this chunks? shard? fragments? contigous ranges?
+			//REVIEW: should we call this chunks? shard? fragments? contiguous ranges?
 
 			/// <summary>Split a range of keys into smaller chunks where each chunk represents a contiguous range stored on a single server</summary>
 			/// <param name="db">Database to use for the operation</param>
@@ -363,7 +363,7 @@ namespace FoundationDB.Client
 					if (error != null)
 					{
 						if (error.Code == FdbError.PastVersion && begin != lastBegin)
-						{ // if we get a PastVersion and *something* has happened, then we are no longer transactionnal
+						{ // if we get a PastVersion and *something* has happened, then we are no longer transactional
 							trans.Reset();
 						}
 						else
@@ -404,7 +404,7 @@ namespace FoundationDB.Client
 			/// <summary>Estimate the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="range">Range defining the keys to count</param>
-			/// <param name="onProgress">Optional callback called everytime the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
+			/// <param name="onProgress">Optional callback called every time the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
@@ -418,7 +418,7 @@ namespace FoundationDB.Client
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="beginInclusive">Key defining the beginning of the range</param>
 			/// <param name="endExclusive">Key defining the end of the range</param>
-			/// <param name="onProgress">Optional callback called everytime the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
+			/// <param name="onProgress">Optional callback called every time the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
@@ -445,7 +445,7 @@ namespace FoundationDB.Client
 				// A few optimizations are possible:
 				// > we could start with a small window size, and then double its size on every full segment (up to a maximum)
 				// > for the last segment, we don't need to wait for a GetKey to complete before issuing the next, so we could split the segment into 4 (or more), do the GetKeyAsync() in parallel, detect the quarter that cross the boundary, and iterate again until the size is small
-				// > once the window size is small enough, we can switch to using GetRange to read the last segment in one shot, instead of iterating with window size 16, 8, 4, 2 and 1 (the wost case being 2^N - 1 items remaning)
+				// > once the window size is small enough, we can switch to using GetRange to read the last segment in one shot, instead of iterating with window size 16, 8, 4, 2 and 1 (the wost case being 2^N - 1 items remaining)
 
 				// note: we make a copy of the keys because the operation could take a long time and the key's could prevent a potentially large underlying buffer from being GCed
 				var cursor = beginInclusive.Memoize();

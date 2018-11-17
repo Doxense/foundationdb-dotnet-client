@@ -47,21 +47,21 @@ namespace FoundationDB.Client
 			//REVIEW: change this into a get-only, and force people to call SetNativeLibPath(..)?
 			public static string NativeLibPath = String.Empty;
 
-			/// <summary>Disable preloading of the native C API library. The CLR will handle the binding of the library.</summary>
+			/// <summary>Disable pre-loading of the native C API library. The CLR will handle the binding of the library.</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void DisableNativeLibraryPreloading()
 			{
 				Fdb.Options.NativeLibPath = null;
 			}
 
-			/// <summary>Enable automatic preloading of the native C API library. The operating system will handle the binding of the library</summary>
+			/// <summary>Enable automatic pre-loading of the native C API library. The operating system will handle the binding of the library</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void EnableNativeLibraryPreloading()
 			{
 				Fdb.Options.NativeLibPath = String.Empty;
 			}
 
-			/// <summary>Preload the native C API library from a specifc path (relative of absolute) where the fdb_c.dll library is located</summary>
+			/// <summary>Pre-load the native C API library from a specific path (relative of absolute) where the fdb_c.dll library is located</summary>
 			/// <example>
 			/// Fdb.Options.SetNativeLibPath(@".\libs\x64") will attempt to load ".\libs\x64\fdb_c.dll"
 			/// Fdb.Options.SetNativeLibPath(@".\libs\x64\my_custom_fdb_c.dll") will attempt to load ".\libs\x64\my_custom_fdb_c.dll"
@@ -154,7 +154,7 @@ namespace FoundationDB.Client
 				Fdb.Options.TLSPrivateKeyBytes = Slice.Nil;
 			}
 
-			/// <summary>Sets the pattern with wich to verify certificates of TLS peers</summary>
+			/// <summary>Sets the pattern with which to verify certificates of TLS peers</summary>
 			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void SetTlsVerificationPattern(Slice pattern)
 			{
