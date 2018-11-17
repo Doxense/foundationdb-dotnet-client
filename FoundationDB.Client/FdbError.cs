@@ -42,11 +42,11 @@ namespace FoundationDB.Client
 		OperationFailed = 1000,
 		/// <summary> Operation timed out</summary>
 		TimedOut = 1004,
-		/// <summary>Version no longer available</summary>
-		PastVersion = 1007,
+		/// <summary>Transaction is too old to perform reads or be committed</summary>
+		PastVersion = 1007, //note: this has been renamed to "transaction_too_old" in the specs, but we can't really change it here?
 		/// <summary>Request for future version</summary>
 		FutureVersion = 1009,
-		/// <summary>Transaction not committed</summary>
+		/// <summary>Transaction not committed due to conflict with another transaction</summary>
 		NotCommitted = 1020,
 		/// <summary>Transaction may or may not have committed</summary>
 		CommitUnknownResult = 1021,
@@ -54,23 +54,31 @@ namespace FoundationDB.Client
 		TransactionCancelled = 1025,
 		/// <summary>Operation aborted because the transaction timed out</summary>
 		TransactionTimedOut = 1031,
-		/// <summary>Too many watches are currently set</summary>
+		/// <summary>Too many watches currently set</summary>
 		TooManyWatches = 1032,
-		/// <summary>Disabling read your writes also disables watches</summary>
+		/// <summary>Watches cannot be set if read your writes is disabled</summary>
 		WatchesDisabled = 1034,
+		/// <summary>Read or wrote an unreadable key</summary>
+		AccessedUnreadable = 1036,
+		/// <summary>Database is locked</summary>
+		DatabaseLocked = 1038,
+		/// <summary>Cluster has been upgraded to a new protocol version</summary>
+		ClusterVersionChanged = 1039,
+		/// <summary>External client has already been loaded</summary>
+		ExternalClientAlreadyLoaded = 1040,
 		/// <summary>Broken Promise [UNDOCUMENTED]</summary>
 		BrokenPromise = 1100,
 		/// <summary>Asynchronous operation cancelled</summary>
 		OperationCancelled = 1101,
-		/// <summary>The future has been released</summary>
+		/// <summary>Future has been released</summary>
 		FutureReleased = 1102,
-		/// <summary>A platform error occurred</summary>
+		/// <summary>Platform error</summary>
 		PlatformError = 1500,
 		/// <summary>Large block allocation failed</summary>
 		LargeAllocFailed = 1501,
-		/// <summary>QueryPerformanceCounter doesn’t work</summary>
+		/// <summary>QueryPerformanceCounter error</summary>
 		PerformanceCounterError = 1502,
-		/// <summary>A disk i/o operation failed</summary>
+		/// <summary>Disk i/o operation failed</summary>
 		IOError = 1510,
 		/// <summary>File not found</summary>
 		FileNotFound = 1511,
@@ -120,6 +128,14 @@ namespace FoundationDB.Client
 		UsedDuringCommit = 2017,
 		/// <summary>An invalid atomic mutation type was issued</summary>
 		InvalidMutationType = 2018,
+		/// <summary>Transaction does not have a valid commit version</summary>
+		TransactionInvalidVersion = 2020,
+		/// <summary>Transaction is read-only and therefore does not have a commit version</summary>
+		TransactionVersionReadOnly = 2021, //note: it has the same name as 2023 in the specs, but we have to change one of them here!
+		/// <summary>Environment variable network option could not be set</summary>
+		EnvironmentVariableNetworkOptionFailed = 2022,
+		/// <summary>Attempted to commit a transaction specified as read-only</summary>
+		TransactionReadOnly = 2023,
 		/// <summary>Incompatible protocol version</summary>
 		IncompatibleProtocolVersion = 2100,
 		/// <summary>Transaction too large</summary>
@@ -136,6 +152,8 @@ namespace FoundationDB.Client
 		InvalidLocalAddress = 2106,
 		/// <summary>TLS error</summary>
 		TlsError = 2107,
+		/// <summary>Operation is not supported</summary>
+		UnsupportedOperation = 2108,
 		/// <summary>Api version must be set</summary>
 		ApiVersionUnset = 2200,
 		/// <summary>Api version may be set only once</summary>
