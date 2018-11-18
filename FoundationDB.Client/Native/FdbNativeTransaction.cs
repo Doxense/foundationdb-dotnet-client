@@ -104,16 +104,9 @@ namespace FoundationDB.Client.Native
 
 			unsafe
 			{
-				if (data.IsNull)
+				fixed (byte* ptr = data)
 				{
-					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, null, 0));
-				}
-				else
-				{
-					fixed (byte* ptr = data.Array)
-					{
-						Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count));
-					}
+					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr, data.Count));
 				}
 			}
 		}

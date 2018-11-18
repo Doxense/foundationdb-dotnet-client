@@ -577,11 +577,11 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionWatch(TransactionHandle transaction, Slice key)
 		{
-			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
+			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", nameof(key));
 
-			fixed (byte* ptrKey = key.Array)
+			fixed (byte* ptrKey = key)
 			{
-				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey + key.Offset, key.Count);
+				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey, key.Count);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_watch(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
@@ -652,14 +652,14 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionGet(TransactionHandle transaction, Slice key, bool snapshot)
 		{
-			if (key.IsNull) throw new ArgumentException("Key cannot be null", "key");
+			if (key.IsNull) throw new ArgumentException("Key cannot be null", nameof(key));
 
 			// the empty key is allowed !
 			if (key.Count == 0) key = Slice.Empty;
 
-			fixed (byte* ptrKey = key.Array)
+			fixed (byte* ptrKey = key)
 			{
-				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey + key.Offset, key.Count, snapshot);
+				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey, key.Count, snapshot);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.Handle.ToString("x"));
@@ -670,13 +670,13 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionGetRange(TransactionHandle transaction, KeySelector begin, KeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
 		{
-			fixed (byte* ptrBegin = begin.Key.Array)
-			fixed (byte* ptrEnd = end.Key.Array)
+			fixed (byte* ptrBegin = begin.Key)
+			fixed (byte* ptrEnd = end.Key)
 			{
 				var future = NativeMethods.fdb_transaction_get_range(
 					transaction,
-					ptrBegin + begin.Key.Offset, begin.Key.Count, begin.OrEqual, begin.Offset,
-					ptrEnd + end.Key.Offset, end.Key.Count, end.OrEqual, end.Offset,
+					ptrBegin, begin.Key.Count, begin.OrEqual, begin.Offset,
+					ptrEnd, end.Key.Count, end.OrEqual, end.Offset,
 					limit, targetBytes, mode, iteration, snapshot, reverse);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
@@ -688,11 +688,11 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionGetKey(TransactionHandle transaction, KeySelector selector, bool snapshot)
 		{
-			if (selector.Key.IsNull) throw new ArgumentException("Key cannot be null", "selector");
+			if (selector.Key.IsNull) throw new ArgumentException("Key cannot be null", nameof(selector));
 
-			fixed (byte* ptrKey = selector.Key.Array)
+			fixed (byte* ptrKey = selector.Key)
 			{
-				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey + selector.Key.Offset, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
+				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", " + selector.ToString() + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
@@ -703,11 +703,11 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, Slice key)
 		{
-			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
+			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", nameof(key));
 
-			fixed (byte* ptrKey = key.Array)
+			fixed (byte* ptrKey = key)
 			{
-				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey + key.Offset, key.Count);
+				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey, key.Count);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
@@ -1042,60 +1042,60 @@ namespace FoundationDB.Client.Native
 
 		public static void TransactionSet(TransactionHandle transaction, Slice key, Slice value)
 		{
-			fixed (byte* pKey = key.Array)
-			fixed (byte* pValue = value.Array)
+			fixed (byte* pKey = key)
+			fixed (byte* pValue = value)
 			{
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', value: '" + FdbKey.Dump(value) + "')");
 #endif
-				NativeMethods.fdb_transaction_set(transaction, pKey + key.Offset, key.Count, pValue + value.Offset, value.Count);
+				NativeMethods.fdb_transaction_set(transaction, pKey, key.Count, pValue, value.Count);
 			}
 		}
 
 		public static void TransactionAtomicOperation(TransactionHandle transaction, Slice key, Slice param, FdbMutationType operationType)
 		{
-			fixed (byte* pKey = key.Array)
-			fixed (byte* pParam = param.Array)
+			fixed (byte* pKey = key)
+			fixed (byte* pParam = param)
 			{
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_atomic_op(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', param: '" + FdbKey.Dump(param) + "', " + operationType.ToString() + ")");
 #endif
-				NativeMethods.fdb_transaction_atomic_op(transaction, pKey + key.Offset, key.Count, pParam + param.Offset, param.Count, operationType);
+				NativeMethods.fdb_transaction_atomic_op(transaction, pKey, key.Count, pParam, param.Count, operationType);
 			}
 		}
 
 		public static void TransactionClear(TransactionHandle transaction, Slice key)
 		{
-			fixed (byte* pKey = key.Array)
+			fixed (byte* pKey = key)
 			{
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "')");
 #endif
-				NativeMethods.fdb_transaction_clear(transaction, pKey + key.Offset, key.Count);
+				NativeMethods.fdb_transaction_clear(transaction, pKey, key.Count);
 			}
 		}
 
 		public static void TransactionClearRange(TransactionHandle transaction, Slice beginKey, Slice endKey)
 		{
-			fixed (byte* pBeginKey = beginKey.Array)
-			fixed (byte* pEndKey = endKey.Array)
+			fixed (byte* pBeginKey = beginKey)
+			fixed (byte* pEndKey = endKey)
 			{
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_clear_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "')");
 #endif
-				NativeMethods.fdb_transaction_clear_range(transaction, pBeginKey + beginKey.Offset, beginKey.Count, pEndKey + endKey.Offset, endKey.Count);
+				NativeMethods.fdb_transaction_clear_range(transaction, pBeginKey, beginKey.Count, pEndKey, endKey.Count);
 			}
 		}
 
 		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, Slice beginKey, Slice endKey, FdbConflictRangeType type)
 		{
-			fixed (byte* pBeginKey = beginKey.Array)
-			fixed (byte* pEndKey = endKey.Array)
+			fixed (byte* pBeginKey = beginKey)
+			fixed (byte* pEndKey = endKey)
 			{
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_add_conflict_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "', " + type.ToString() + ")");
 #endif
-				return NativeMethods.fdb_transaction_add_conflict_range(transaction, pBeginKey + beginKey.Offset, beginKey.Count, pEndKey + endKey.Offset, endKey.Count, type);
+				return NativeMethods.fdb_transaction_add_conflict_range(transaction, pBeginKey, beginKey.Count, pEndKey, endKey.Count, type);
 			}
 		}
 

@@ -534,7 +534,6 @@ namespace System
 			return ref this.Array[this.Offset];
 		}
 
-#if ENABLE_SPAN
 		/// <summary>
 		/// Returns a reference to the 0th element of the Span. If the Span is empty, returns null reference.
 		/// It can be used for pinning and is required to support the use of span within a fixed statement.
@@ -548,7 +547,6 @@ namespace System
 				return ref (this.Count != 0) ? ref this.Array[this.Offset] : ref Unsafe.AsRef<byte>(null);
 			}
 		}
-#endif
 
 		/// <summary>Copy this slice into another buffer, and move the cursor</summary>
 		/// <param name="buffer">Buffer where to copy this slice</param>

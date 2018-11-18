@@ -801,9 +801,9 @@ namespace FoundationDB.Client
 			unsafe
 			{
 				var data = FdbNative.ToNativeString(value, nullTerminated: false);
-				fixed (byte* ptr = data.Array)
+				fixed (byte* ptr = data)
 				{
-					return FdbNative.NetworkSetOption(option, ptr + data.Offset, data.Count);
+					return FdbNative.NetworkSetOption(option, ptr, data.Count);
 				}
 			}
 		}
@@ -814,9 +814,9 @@ namespace FoundationDB.Client
 			value.EnsureSliceIsValid();
 			unsafe
 			{
-				fixed (byte* ptr = value.Array)
+				fixed (byte* ptr = value)
 				{
-					return FdbNative.NetworkSetOption(option, ptr + value.Offset, value.Count);
+					return FdbNative.NetworkSetOption(option, ptr, value.Count);
 				}
 			}
 		}
