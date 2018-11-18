@@ -29,10 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("FoundationDB.Tests.Sandbox")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-
 [assembly: ComVisible(false)]
 
 [assembly: Guid("cd5ed177-a643-478d-a7ea-87f052f700c2")]

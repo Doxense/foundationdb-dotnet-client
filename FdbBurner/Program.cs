@@ -69,7 +69,6 @@ namespace FdbBurner
 		private static long Transactions;
 		private static long Bytes;
 
-
 		private static async Task BurnerThread(IFdbDatabase db, CancellationToken ct)
 		{
 
