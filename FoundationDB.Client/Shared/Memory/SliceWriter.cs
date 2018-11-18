@@ -329,7 +329,7 @@ namespace Doxense.Memory
 
 		/// <summary>Truncate the buffer by setting the cursor to the specified position.</summary>
 		/// <param name="position">New size of the buffer</param>
-		/// <remarks>If the buffer was smaller, it will be resized and filled with zeroes. If it was biffer, the cursor will be set to the specified position, but previous data will not be deleted.</remarks>
+		/// <remarks>If the buffer was smaller, it will be resized and filled with zeroes. If it was bigger, the cursor will be set to the specified position, but previous data will not be deleted.</remarks>
 		public void SetLength(int position)
 		{
 			Contract.Requires(position >= 0);
@@ -348,7 +348,7 @@ namespace Doxense.Memory
 		/// <summary>Delete the first N bytes of the buffer, and shift the remaining to the front</summary>
 		/// <param name="bytes">Number of bytes to remove at the head of the buffer</param>
 		/// <returns>New size of the buffer (or 0 if it is empty)</returns>
-		/// <remarks>This should be called after every successfull write to the underlying stream, to update the buffer.</remarks>
+		/// <remarks>This should be called after every successful write to the underlying stream, to update the buffer.</remarks>
 		public int Flush(int bytes) //REVIEW: plutot renommer en "RemoveHead"? ou faire un vrai "RemoveAt(offset, count)" ?
 		{
 			if (bytes == 0) return this.Position;
@@ -369,7 +369,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Empties the current buffer after a succesfull write</summary>
+		/// <summary>Empties the current buffer after a succesful write</summary>
 		/// <param name="zeroes">If true, fill the existing buffer with zeroes, if it is reused, to ensure that no previous data can leak.</param>
 		/// <remarks>If the current buffer is large enough, and less than 1/8th was used, then it will be discarded and a new smaller one will be allocated as needed</remarks>
 		public void Reset(bool zeroes = false)
@@ -435,7 +435,7 @@ namespace Doxense.Memory
 		/// <param name="count">Number of bytes to allocate</param>
 		/// <param name="pad">Pad value (0xFF by default)</param>
 		/// <returns>Slice that corresponds to the reserved segment in the buffer</returns>
-		/// <remarks>Will fill the reserved segment with <paramref name="pad"/> and the cursor will be positionned immediately after the segment.</remarks>
+		/// <remarks>Will fill the reserved segment with <paramref name="pad"/> and the cursor will be positioned immediately after the segment.</remarks>
 		public Slice Allocate(int count, byte pad = 0xFF)
 		{
 			Contract.Positive(count, nameof(count));
@@ -446,13 +446,13 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Advance the cursor by the amount required end up on an aligned byte position</summary>
-		/// <param name="aligment">Number of bytes to align to</param>
+		/// <param name="alignment">Number of bytes to align to</param>
 		/// <param name="pad">Pad value (0 by default)</param>
-		public void Align(int aligment, byte pad = 0)
+		public void Align(int alignment, byte pad = 0)
 		{
-			Contract.Requires(aligment > 0);
-			int r = this.Position % aligment;
-			if (r > 0) Skip(aligment - r, pad);
+			Contract.Requires(alignment > 0);
+			int r = this.Position % alignment;
+			if (r > 0) Skip(alignment - r, pad);
 		}
 
 		/// <summary>Rewinds the cursor to a previous position in the buffer, while saving the current position</summary>
@@ -511,7 +511,7 @@ namespace Doxense.Memory
 			this.Position = p + 1;
 		}
 
-		/// <summary>Dangerously write a sigle byte at the end of the buffer, without any capacity checks!</summary>
+		/// <summary>Dangerously write a single byte at the end of the buffer, without any capacity checks!</summary>
 		/// <remarks>
 		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
 		/// Failure to do so may introduce memory correction (buffer overflow!).
@@ -1400,7 +1400,7 @@ namespace Doxense.Memory
 		/// <summary>Writes a 7-bit encoded unsigned long (aka 'Varint64') at the end, and advances the cursor</summary>
 		public void WriteVarInt64(ulong value)
 		{
-			//note: if the size if 64-bits, we probably expact values to always be way above 128 so no need to optimize for this case here
+			//note: if the size if 64-bits, we probably expect values to always be way above 128 so no need to optimize for this case here
 
 			const uint MASK = 128;
 			// max encoded size is 10 bytes
@@ -1549,9 +1549,7 @@ namespace Doxense.Memory
 		// => caller MUST KNOWN the encoding! (usually UTF-8)
 		// => the string's length is NOT stored!
 
-		/// <summary>Write a variabe-sized string, using the specified encoding</summary>
-		/// <param name="value"></param>
-		/// <param name="encoding"></param>
+		/// <summary>Write a variable-sized string, using the specified encoding</summary>
 		public void WriteVarString(string value, Encoding encoding = null)
 		{
 			if (encoding == null)
@@ -2359,7 +2357,7 @@ namespace Doxense.Memory
 			return EnsureBytes(checked((int) count));
 		}
 
-		/// <summary>Ensures that we can fit data at a specifc offset in the buffer</summary>
+		/// <summary>Ensures that we can fit data at a specific offset in the buffer</summary>
 		/// <param name="offset">Offset into the buffer (from the start)</param>
 		/// <param name="count">Number of bytes that will be written at this offset</param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
@@ -2375,7 +2373,7 @@ namespace Doxense.Memory
 
 		/// <summary>Resize a buffer by doubling its capacity</summary>
 		/// <param name="buffer">Reference to the variable holding the buffer to create/resize. If null, a new buffer will be allocated. If not, the content of the buffer will be copied into the new buffer.</param>
-		/// <param name="minimumCapacity">Mininum guaranteed buffer size after resizing.</param>
+		/// <param name="minimumCapacity">Minimum guaranteed buffer size after resizing.</param>
 		/// <remarks>The buffer will be resized to the maximum between the previous size multiplied by 2, and <paramref name="minimumCapacity"/>. The capacity will always be rounded to a multiple of 16 to reduce memory fragmentation</remarks>
 		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
 		public static byte[] GrowBuffer(
@@ -2416,7 +2414,7 @@ namespace Doxense.Memory
 		private static Exception FailCannotGrowBuffer()
 		{
 #if DEBUG
-			// If you breakpoint here, that means that you probably have an uncheked maximum buffer size, or a runaway while(..) { append(..) } code in your layer code !
+			// If you breakpoint here, that means that you probably have an unchecked maximum buffer size, or a runaway while(..) { append(..) } code in your layer code !
 			// => you should ALWAYS ensure a reasonable maximum size of your allocations !
 			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif

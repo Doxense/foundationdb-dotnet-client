@@ -114,7 +114,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Validates that an unmanged buffer represents a valid memory location</summary>
+		/// <summary>Validates that an unmanaged buffer represents a valid memory location</summary>
 		/// <remarks>If <paramref name="count"/> is 0, then <paramref name="bytes"/> is allowed to be null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void EnsureBufferIsValid(byte* bytes, long count)
@@ -298,7 +298,7 @@ namespace Doxense.Memory
 		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
 		private static byte[] AllocateAligned(int minCapacity)
 		{
-			if (minCapacity < 0) throw FailBufferTooLarge(minCapacity); //note: probably an integer overlofw (unsigned -> signed)
+			if (minCapacity < 0) throw FailBufferTooLarge(minCapacity); //note: probably an integer overflow (unsigned -> signed)
 			return new byte[BitHelpers.AlignPowerOfTwo(minCapacity, 8)];
 		}
 
@@ -501,6 +501,7 @@ namespace Doxense.Memory
 			}
 		}
 
+		/// <summary>Copy a managed slice to the specified memory location</summary>
 		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void CopyUnsafe(Slice dest, byte* src, uint count)
@@ -543,6 +544,7 @@ namespace Doxense.Memory
 			return c != 0 ? c : (int) (leftCount - rightCount);
 		}
 
+		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int CompareUnsafe(byte* left, byte* right, uint count)
 		{
@@ -802,7 +804,7 @@ namespace Doxense.Memory
 		/// <remarks>WARNING: invalid use of this method WILL corrupt the heap!</remarks>
 		public static void ClearUnsafe([NotNull] byte* ptr, ulong length)
 		{
-			//pre-check incase of uint overflow
+			//pre-check in case of uint overflow
 			if (length >= 512)
 			{
 				Contract.Requires(ptr != null);
@@ -814,7 +816,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Fill the content of an unamanged array with zeroes, without checking the arguments</summary>
+		/// <summary>Fill the content of an unmanaged array with zeroes, without checking the arguments</summary>
 		/// <param name="ptr">Pointer to the start of the array</param>
 		/// <param name="count">Number of items to clear</param>
 		/// <param name="sizeOfItem">Size (in bytes) of one item</param>
@@ -884,7 +886,7 @@ namespace Doxense.Memory
 		/// <summary>Add padding bytes to the end of buffer if it is not aligned to a specific value, and advance the cursor</summary>
 		/// <param name="buffer">Start of a buffer that may need padding</param>
 		/// <param name="size">Size of the buffer</param>
-		/// <param name="alignment">Required alignement of the buffer size, which MUST be a power of two. If the buffer is not aligned, additional 0 bytes are added at the end.</param>
+		/// <param name="alignment">Required alignment of the buffer size, which MUST be a power of two. If the buffer is not aligned, additional 0 bytes are added at the end.</param>
 		/// <returns>Address of the next byte after the buffer, with padding included</returns>
 		[NotNull]
 		public static byte* PadBuffer([NotNull] byte* buffer, uint size, uint alignment)
@@ -3004,8 +3006,8 @@ namespace Doxense.Memory
 		{
 			// The lowest 4 bits almost give us the result we want:
 			// - '0'..'9': (c & 15) = 0..9; need to add 0 to get correct result
-			// - 'A'..'F': (c & 15) = 1..6; need to add 9 to get correct reuslt
-			// - 'a'..'f': (c & 15) = 1..6; need to add 9 to get correct reuslt
+			// - 'A'..'F': (c & 15) = 1..6; need to add 9 to get correct result
+			// - 'a'..'f': (c & 15) = 1..6; need to add 9 to get correct result
 			// We just need to tweak the value to have a bit that is different between digits and letters, and use that bit to compute the final offset of 0 or 9
 			return (c & 15) + (((((c + 16) & ~64) >> 4) & 1) * 9);
 		}
@@ -3251,7 +3253,7 @@ namespace Doxense.Memory
 		/// <remarks>
 		/// This is safe to use with 7-bit ASCII strings.
 		/// You should *NOT* use this if the buffer contains ANSI or UTF-8 encoded strings!
-		/// If the bufer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
+		/// If the buffer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
 		/// </remarks>
 		/// <example>
 		/// ConvertToByteString(new byte[] { 'A', 'B', 'C' }, 0, 3) => "ABC"
@@ -3280,7 +3282,7 @@ namespace Doxense.Memory
 		/// <remarks>
 		/// This is safe to use with 7-bit ASCII strings.
 		/// You should *NOT* use this if the buffer contains ANSI or UTF-8 encoded strings!
-		/// If the bufer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
+		/// If the buffer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
 		/// </remarks>
 		[Pure, NotNull]
 		public static string ConvertToByteString(byte* pBytes, uint count)

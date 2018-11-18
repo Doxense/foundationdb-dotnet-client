@@ -584,7 +584,7 @@ namespace System
 
 		/// <summary>Copy this slice into memory and return the advanced cursor</summary>
 		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="end">Pointer to the next byte after the last availble position in the output buffer</param>
+		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
 		/// <remarks>Copy will fail if there is not enough space in the output buffer (ie: if it would writer at or after <paramref name="end"/>)</remarks>
 		[NotNull]
 		public unsafe byte* CopyToUnsafe([NotNull] byte* ptr, [NotNull] byte* end)
@@ -605,7 +605,7 @@ namespace System
 
 		/// <summary>Try to copy this slice into memory and return the advanced cursor, if the destination is large enough</summary>
 		/// <param name="ptr">Pointer where to copy this slice</param>
-		/// <param name="end">Pointer to the next byte after the last availble position in the output buffer</param>
+		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
 		/// <returns>Point to the advanced memory position, or null if the destination buffer was too small</returns>
 		[CanBeNull]
 		public unsafe byte* TryCopyToUnsafe([NotNull] byte* ptr, [NotNull] byte* end)
