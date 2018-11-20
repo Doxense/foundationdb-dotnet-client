@@ -37,24 +37,14 @@ namespace FoundationDB.DependencyInjection
 	/// <summary>Provides access to a FoundationDB database instance</summary>
 	/// <remarks>This class is intended to be used with dependency injection containers</remarks>
 	[PublicAPI]
-	public interface IFdbDatabaseProvider : IDisposable
+	public interface IFdbDatabaseProvider : IFdbDatabaseScopeProvider
 	{
 
 		/// <summary>Start connecting to the database</summary>
-		void Start(CancellationToken ct);
+		void Start();
 
 		/// <summary>Abort all pending transactions using the current database instance</summary>
 		void Stop();
 
-		/// <summary>Return an instance of the database, once it is ready</summary>
-		/// <remarks>During the startup of the application, the task returned will wait until the database becomes ready. After that, the task will immediately return the database singleton.</remarks>
-		ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct);
-
-		/// <summary>Create a scope that will use the database provided by this instance, and which also needs to perform some initialization steps before being ready (ex: using the DirectoryLayer to open subspaces, ...)</summary>
-		/// <param name="start">Handler that will be called AFTER the database becomes ready, but BEFORE any consumer of this scope can run.</param>
-		IFdbDatabaseScopeProvider CreateScope([NotNull] Func<IFdbDatabase, CancellationToken, Task> start);
-
-		/// <summary>If <c>true</c>, the database instance is ready. If <c>false</c>, the provider is either not started, or the connection is still pending.</summary>
-		bool IsAvailable { get; }
 	}
 }

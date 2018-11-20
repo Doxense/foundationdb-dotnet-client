@@ -40,6 +40,7 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
+	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB binding</summary>
@@ -836,6 +837,13 @@ namespace FoundationDB.Client
 				StopEventLoop();
 				if (Logging.On) Logging.Info(typeof(Fdb), "Stop", "Network Thread stopped");
 			}
+		}
+
+		[Pure, NotNull]
+		public static IFdbDatabaseProvider CreateProvider([NotNull] FdbDatabaseProviderOptions options)
+		{
+			Contract.NotNull(options, nameof(options));
+			return new FdbDefaultDatabaseProvider(options);
 		}
 
 	}

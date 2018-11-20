@@ -39,7 +39,21 @@ namespace FoundationDB.DependencyInjection
 	public static class FdbDatabaseProviderExtensions
 	{
 
-		#region IFdbDatabaseProvider extensions...
+		#region IFdbDatabaseScopeProvider extensions...
+
+		public static ValueTask EnsureIsReady([NotNull] this IFdbDatabaseScopeProvider provider, CancellationToken ct)
+		{
+			if (provider.IsAvailable)
+			{
+				return default;
+			}
+			return WaitForReadiness(provider, ct);
+		}
+
+		private static async ValueTask WaitForReadiness(IFdbDatabaseScopeProvider provider, CancellationToken ct)
+		{
+			_ = await provider.GetDatabase(ct).ConfigureAwait(false);
+		}
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="provider">Provider of the database</param>
@@ -50,7 +64,7 @@ namespace FoundationDB.DependencyInjection
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task<TResult> ReadAsync<TResult>(
-			[NotNull] this IFdbDatabaseProvider provider,
+			[NotNull] this IFdbDatabaseScopeProvider provider,
 			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler,
 			CancellationToken ct)
 		{
@@ -69,7 +83,7 @@ namespace FoundationDB.DependencyInjection
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task<TResult> ReadWriteAsync<TResult>(
-			[NotNull] this IFdbDatabaseProvider provider,
+			[NotNull] this IFdbDatabaseScopeProvider provider,
 			[NotNull, InstantHandle] Func<IFdbTransaction, Task<TResult>> handler,
 			CancellationToken ct)
 		{
@@ -77,60 +91,7 @@ namespace FoundationDB.DependencyInjection
 			return await db.ReadWriteAsync(handler, ct).ConfigureAwait(false);
 		}
 
-		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
-		/// <param name="provider">Provider of the database</param>
-		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
-		/// <param name="ct">Token used to cancel the operation</param>
-		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
-		public static async Task<List<TResult>> QueryAsync<TResult>(
-			[NotNull] this IFdbDatabaseProvider provider,
-			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<TResult>> handler,
-			CancellationToken ct)
-		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.QueryAsync(handler, ct).ConfigureAwait(false);
-		}
-
-		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
-		/// <param name="provider">Provider of the database</param>
-		/// <param name="handler">Idempotent handler that should only call write methods on the transaction, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
-		/// <param name="ct">Token used to cancel the operation</param>
-		/// <remarks>
-		/// You do not need to commit the transaction inside the handler, it will be done automatically.
-		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
-		/// You must wait for the Task to complete successfully before updating the global state of the application.
-		/// </remarks>
-		public static async Task WriteAsync(
-			[NotNull] this IFdbDatabaseProvider provider,
-			[NotNull, InstantHandle] Action<IFdbTransaction> handler,
-			CancellationToken ct)
-		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			await db.WriteAsync(handler, ct).ConfigureAwait(false);
-		}
-
-		#endregion
-
-		#region IFdbDatabaseScopeProvider extensions...
-
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
-		/// <param name="provider">Provider of the database</param>
-		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
-		/// <param name="ct">Token used to cancel the operation</param>
-		/// <remarks>
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
-		/// You must wait for the Task to complete successfully before updating the global state of the application.
-		/// </remarks>
-		public static async Task<TResult> ReadAsync<TResult>(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler,
-			CancellationToken ct)
-		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.ReadAsync(handler, ct).ConfigureAwait(false);
-		}
-
-		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="provider">Provider of the database</param>
 		/// <param name="handler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
@@ -140,13 +101,13 @@ namespace FoundationDB.DependencyInjection
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task<TResult> ReadWriteAsync<TResult>(
+		public static async Task ReadWriteAsync(
 			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull, InstantHandle] Func<IFdbTransaction, Task<TResult>> handler,
+			[NotNull, InstantHandle] Func<IFdbTransaction, Task> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.ReadWriteAsync(handler, ct).ConfigureAwait(false);
+			await db.ReadWriteAsync(handler, ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
@@ -154,17 +115,16 @@ namespace FoundationDB.DependencyInjection
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
-		[ItemNotNull]
 		public static async Task<List<TResult>> QueryAsync<TResult>(
 			[NotNull] this IFdbDatabaseScopeProvider provider,
-			Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<TResult>> handler,
+			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<TResult>> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
 			return await db.QueryAsync(handler, ct).ConfigureAwait(false);
 		}
 
-		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="provider">Provider of the database</param>
 		/// <param name="handler">Idempotent handler that should only call write methods on the transaction, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>

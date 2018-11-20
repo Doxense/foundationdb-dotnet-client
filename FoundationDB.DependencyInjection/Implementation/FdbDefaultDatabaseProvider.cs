@@ -29,9 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;
 
 	internal sealed class FdbDefaultDatabaseProvider : IFdbDatabaseProvider
@@ -45,31 +47,35 @@ namespace FoundationDB.DependencyInjection
 
 		private TaskCompletionSource<IFdbDatabase> InitTask;
 
-		private ValueTask<IFdbDatabase> DbTask;
+		[NotNull]
+		private Task<IFdbDatabase> DbTask;
 
-		private CancellationTokenSource LifeTime { get; set; }
+		[NotNull]
+		private CancellationTokenSource LifeTime { get; } = new CancellationTokenSource();
 
 		private Exception Error { get; set;}
 
 		public FdbDefaultDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
+			: this(optionsAccessor.Value)
+		{ }
+
+		internal FdbDefaultDatabaseProvider(FdbDatabaseProviderOptions options)
 		{
-			this.Options = optionsAccessor.Value;
-			this.DbTask = new ValueTask<IFdbDatabase>(Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized.")));
+			this.Options = options;
+			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
 
-		public void Start(CancellationToken ct)
+		public void Start()
 		{
-			var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-			this.LifeTime = cts;
+			var tcs = new TaskCompletionSource<IFdbDatabase>();
+			this.DbTask = tcs.Task;
+			this.InitTask = tcs;
 			_ = Task.Run(async () =>
 			{
-				var tcs = new TaskCompletionSource<IFdbDatabase>();
-				this.InitTask = new TaskCompletionSource<IFdbDatabase>();
-				this.DbTask = new ValueTask<IFdbDatabase>(tcs.Task);
-
+				Fdb.Start(this.Options.ApiVersion);
 				try
 				{
-					var db = await Fdb.OpenAsync(this.Options.ConnectionOptions, cts.Token).ConfigureAwait(false);
+					var db = await Fdb.OpenAsync(this.Options.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
 					SetDatabase(db, null);
 				}
 				catch (Exception e)
@@ -77,13 +83,13 @@ namespace FoundationDB.DependencyInjection
 					SetDatabase(null, e); //TODO: garder l'erreur!
 				}
 
-			}, cts.Token);
+			}, this.LifeTime.Token);
 		}
 
 		public void Stop()
 		{
 			this.LifeTime?.Cancel();
-			Interlocked.Exchange(ref InitTask, null)?.TrySetCanceled();
+			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
 			SetDatabase(null, null);
 		}
 
@@ -91,25 +97,25 @@ namespace FoundationDB.DependencyInjection
 		{
 			this.Db = db;
 			this.Error = e;
-			var tcs = Interlocked.Exchange(ref InitTask, null);
+			var tcs = Interlocked.Exchange(ref this.InitTask, null);
 			if (db == null)
 			{
 				if (e != null)
 				{
 					tcs?.TrySetException(e);
-					this.DbTask = new ValueTask<IFdbDatabase>(Task.FromException<IFdbDatabase>(e));
+					this.DbTask = Task.FromException<IFdbDatabase>(e);
 				} 
 				else
 				{
 					tcs?.TrySetCanceled();
-					this.DbTask = new ValueTask<IFdbDatabase>(Task.FromException<IFdbDatabase>(new InvalidOperationException("There is not database available at this time.")));
+					this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("There is no database available at this time."));
 				}
 				this.IsAvailable = false;
 			}
 			else
 			{
 				tcs?.SetResult(db);
-				DbTask = new ValueTask<IFdbDatabase>(db);
+				this.DbTask = Task.FromResult(db);
 				this.IsAvailable = true;
 			}
 		}
@@ -118,17 +124,47 @@ namespace FoundationDB.DependencyInjection
 		{
 			this.IsAvailable = false;
 			this.Db?.Dispose();
-			this.Error = new ObjectDisposedException("Database has shut down");
-			this.DbTask = new ValueTask<IFdbDatabase>(Task.FromException<IFdbDatabase>(this.Error));
-			Interlocked.Exchange(ref InitTask, null)?.TrySetCanceled();
+			this.Error = new ObjectDisposedException("Database has been shut down.");
+			this.DbTask = Task.FromException<IFdbDatabase>(this.Error);
+			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
 		}
+
+		IFdbDatabaseScopeProvider IFdbDatabaseScopeProvider.Parent => null;
 
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
-			return this.DbTask;
+			var db = this.Db;
+			return db != null ? new ValueTask<IFdbDatabase>(db) : GetDatabaseRare(ct);
 		}
 
-		public IFdbDatabaseScopeProvider CreateScope(Func<IFdbDatabase, CancellationToken, Task> start)
+		private async ValueTask<IFdbDatabase> GetDatabaseRare(CancellationToken ct)
+		{
+			// make sure we ARE started
+			if (this.InitTask == null && this.Options.AutoStart)
+			{
+				lock (this)
+				{
+					if (this.InitTask == null)
+					{
+						Start();
+					}
+				}
+			}
+
+			var t = this.DbTask;
+			if (!t.IsCompleted && ct.CanBeCanceled)
+			{
+				//REVIEW: is there a faster way to do this? (we want to make sure not to leak tons of Task.Delay(...) that will linger on until the original ct is triggered
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+				{
+					await Task.WhenAny(t, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token)).ConfigureAwait(false);
+					ct.ThrowIfCancellationRequested();
+				}
+			}
+			return await this.DbTask.ConfigureAwait(false);
+		}
+
+		public IFdbDatabaseScopeProvider CreateScope(Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> start)
 		{
 			return new FdbDatabaseScopeProvider(this, start, this.LifeTime);
 		}

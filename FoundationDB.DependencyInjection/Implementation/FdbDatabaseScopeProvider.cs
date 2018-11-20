@@ -29,46 +29,82 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	internal sealed class FdbDatabaseScopeProvider : IFdbDatabaseScopeProvider
 	{
 
-		public FdbDatabaseScopeProvider(IFdbDatabaseProvider provider, Func<IFdbDatabase, CancellationToken, Task> handler, CancellationTokenSource lifetime)
+		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> handler, [NotNull] CancellationTokenSource lifetime)
 		{
-			this.Provider = provider;
+			Contract.NotNull(parent, nameof(parent));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(lifetime, nameof(lifetime));
+			this.Parent = parent;
 			this.Handler = handler;
-			this.Lifetime = lifetime;
-			this.DbTask = new Lazy<ValueTask<IFdbDatabase>>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
+			this.LifeTime = lifetime;
+			this.DbTask = new Lazy<Task<IFdbDatabase>>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
 		}
 
-		public IFdbDatabaseProvider Provider { get; }
+		[NotNull]
+		public IFdbDatabaseScopeProvider Parent { get; }
 
-		public Func<IFdbDatabase, CancellationToken, Task> Handler { get; }
+		public Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> Handler { get; }
 
-		private readonly Lazy<ValueTask<IFdbDatabase>> DbTask;
+		private readonly Lazy<Task<IFdbDatabase>> DbTask;
 
-		private CancellationTokenSource Lifetime { get; }
+		private IFdbDatabase Db { get; set; }
 
-		private async ValueTask<IFdbDatabase> InitAsync()
+		private CancellationTokenSource LifeTime { get; }
+
+		private async Task<IFdbDatabase> InitAsync()
 		{
-			var ct = this.Lifetime.Token;
-			var db = await this.Provider.GetDatabase(ct);
+			var ct = this.LifeTime.Token;
+			var db = await this.Parent.GetDatabase(ct).ConfigureAwait(false);
 			ct.ThrowIfCancellationRequested();
-			await this.Handler(db, ct);
+			db = await this.Handler(db, ct).ConfigureAwait(false);
+			this.Db = db;
 			return db;
 		}
 
+		public IFdbDatabaseScopeProvider CreateScope(Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> start)
+		{
+			return new FdbDatabaseScopeProvider(this, start, this.LifeTime);
+		}
+
+		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
+
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
-			return this.DbTask.Value;
+			//BUGBUG: what if the parent scope has been shut down?
+			var db = this.Db;
+			return db != null ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
+		{
+			var t = this.DbTask.Value;
+
+			if (!t.IsCompleted && ct.CanBeCanceled)
+			{
+				//REVIEW: is there a faster way to do this? (we want to make sure not to leak tons of Task.Delay(...) that will linger on until the original ct is triggered
+				using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+				{
+					await Task.WhenAny(t, Task.Delay(Timeout.InfiniteTimeSpan, cts.Token)).ConfigureAwait(false);
+					ct.ThrowIfCancellationRequested();
+				}
+			}
+			return await t.ConfigureAwait(false);
 		}
 
 		public void Dispose()
 		{
-			this.Lifetime?.Cancel();
+			this.LifeTime?.Cancel();
 		}
 	}
 }
