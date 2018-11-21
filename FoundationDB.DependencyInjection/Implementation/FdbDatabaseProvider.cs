@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
-	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -37,13 +36,14 @@ namespace FoundationDB.DependencyInjection
 	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;
 
-	internal sealed class FdbDatabaseProvider : IFdbDatabaseProvider
+	public sealed class FdbDatabaseProvider : IFdbDatabaseProvider
 	{
 
 		private IFdbDatabase Db { get; set; }
 
 		public bool IsAvailable { get; private set; }
 
+		[NotNull]
 		public FdbDatabaseProviderOptions Options { get; }
 
 		private TaskCompletionSource<IFdbDatabase> InitTask;
@@ -57,14 +57,15 @@ namespace FoundationDB.DependencyInjection
 		private Exception Error { get; set;}
 
 		[Pure, NotNull]
-		public static IFdbDatabaseProvider CreateProvider([NotNull] FdbDatabaseProviderOptions options)
+		public static IFdbDatabaseProvider Create([NotNull] FdbDatabaseProviderOptions options)
 		{
 			Contract.NotNull(options, nameof(options));
 			return new FdbDatabaseProvider(Microsoft.Extensions.Options.Options.Create(options));
 		}
 
-		public FdbDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
+		public FdbDatabaseProvider([NotNull] IOptions<FdbDatabaseProviderOptions> optionsAccessor)
 		{
+			Contract.NotNull(optionsAccessor, nameof(optionsAccessor));
 			this.Options = optionsAccessor.Value;
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
