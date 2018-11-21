@@ -339,7 +339,7 @@ namespace FdbShell
 						string cmd = txt.Substring(0, p);
 						string arg = txt.Substring(p + 1);
 
-						if (cmd == "cd")
+						if (cmd == "cd" || cmd == "rmdir")
 						{ // handle completion for directories
 
 							// txt: "cd foo" => prefix = "foo"

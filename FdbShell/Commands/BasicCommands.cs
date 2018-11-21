@@ -131,7 +131,10 @@ namespace FdbShell
 		{
 			if (log == null) log = Console.Out;
 
-			string layer = extras.Count > 0 ? extras.Get<string>(0) : null;
+			// "-r|--recursive" is used to allow removing an entire sub-tree
+			string[] args = extras.ToArray<string>();
+			bool recursive = args.Contains("-r", StringComparer.Ordinal) || args.Contains("--recursive", StringComparer.Ordinal);
+			bool force = args.Contains("-f", StringComparer.Ordinal) || args.Contains("--force", StringComparer.Ordinal);
 
 			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
 			if (folder == null)
@@ -141,14 +144,21 @@ namespace FdbShell
 			}
 
 			// are there any subdirectories ?
-			var subDirs = await folder.TryListAsync(db, ct);
-			if (subDirs != null && subDirs.Count > 0)
+			if (!recursive)
 			{
-				//TODO: "-r" flag ?
-				Program.Error(log, $"# Cannot remove /{string.Join("/", path)} because it still contains {subDirs.Count:N0} sub-directorie(s)");
+				var subDirs = await folder.TryListAsync(db, ct);
+				if (subDirs != null && subDirs.Count > 0)
+				{
+					//TODO: "-r" flag ?
+					Program.Error(log, $"# Cannot remove /{string.Join("/", path)} because it still contains {subDirs.Count:N0} sub-directorie(s)");
+					return;
+				}
 			}
 
-			//TODO: ask for confirmation?
+			if (!force)
+			{
+				//TODO: ask for confirmation?
+			}
 
 			await folder.RemoveAsync(db, ct);
 			Program.Success(log, $"Deleted directory /{string.Join("/", path)}");
