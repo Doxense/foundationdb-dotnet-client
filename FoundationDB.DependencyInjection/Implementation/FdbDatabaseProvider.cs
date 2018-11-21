@@ -32,11 +32,12 @@ namespace FoundationDB.DependencyInjection
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;
 
-	internal sealed class FdbDefaultDatabaseProvider : IFdbDatabaseProvider
+	internal sealed class FdbDatabaseProvider : IFdbDatabaseProvider
 	{
 
 		private IFdbDatabase Db { get; set; }
@@ -55,13 +56,16 @@ namespace FoundationDB.DependencyInjection
 
 		private Exception Error { get; set;}
 
-		public FdbDefaultDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
-			: this(optionsAccessor.Value)
-		{ }
-
-		internal FdbDefaultDatabaseProvider(FdbDatabaseProviderOptions options)
+		[Pure, NotNull]
+		public static IFdbDatabaseProvider CreateProvider([NotNull] FdbDatabaseProviderOptions options)
 		{
-			this.Options = options;
+			Contract.NotNull(options, nameof(options));
+			return new FdbDatabaseProvider(Microsoft.Extensions.Options.Options.Create(options));
+		}
+
+		public FdbDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
+		{
+			this.Options = optionsAccessor.Value;
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
 

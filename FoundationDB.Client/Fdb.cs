@@ -839,12 +839,5 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[Pure, NotNull]
-		public static IFdbDatabaseProvider CreateProvider([NotNull] FdbDatabaseProviderOptions options)
-		{
-			Contract.NotNull(options, nameof(options));
-			return new FdbDefaultDatabaseProvider(options);
-		}
-
 	}
 }

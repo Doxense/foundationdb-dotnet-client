@@ -35,14 +35,14 @@ namespace FoundationDB.DependencyInjection
 	{
 		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, int apiVersion)
 		{
-			services.AddSingleton<IFdbDatabaseProvider, FdbDefaultDatabaseProvider>();
+			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
 			services.Configure<FdbDatabaseProviderOptions>(c => c.ApiVersion = apiVersion);
 			return new FdbDefaultDatabaseProviderBuilder(services);
 		}
 
 		public static IServiceCollection AddFoundationDb(this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
 		{
-			services.AddSingleton<IFdbDatabaseProvider, FdbDefaultDatabaseProvider>();
+			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
 			services.Configure<FdbDatabaseProviderOptions>(c =>
 			{
 				c.ApiVersion = apiVersion;
