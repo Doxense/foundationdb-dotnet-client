@@ -72,6 +72,21 @@ namespace FoundationDB.DependencyInjection
 
 		public void Start()
 		{
+			if (this.InitTask == null)
+			{
+				lock (this)
+				{
+					if (this.InitTask == null)
+					{
+						StartCore();
+						Contract.Assert(this.InitTask != null);
+					}
+				}
+			}
+		}
+
+		private void StartCore()
+		{
 			var tcs = new TaskCompletionSource<IFdbDatabase>();
 			this.DbTask = tcs.Task;
 			this.InitTask = tcs;
@@ -102,7 +117,7 @@ namespace FoundationDB.DependencyInjection
 		{
 			this.Db = db;
 			this.Error = e;
-			var tcs = Interlocked.Exchange(ref this.InitTask, null);
+			var tcs = Volatile.Read(ref this.InitTask);
 			if (db == null)
 			{
 				if (e != null)
@@ -119,7 +134,14 @@ namespace FoundationDB.DependencyInjection
 			}
 			else
 			{
-				tcs?.SetResult(db);
+				if (tcs == null || !tcs.TrySetResult(db))
+				{
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					db.Dispose();
+					return;
+				}
 				this.DbTask = Task.FromResult(db);
 				this.IsAvailable = true;
 			}
@@ -144,16 +166,9 @@ namespace FoundationDB.DependencyInjection
 
 		private async ValueTask<IFdbDatabase> GetDatabaseRare(CancellationToken ct)
 		{
-			// make sure we ARE started
 			if (this.InitTask == null && this.Options.AutoStart)
-			{
-				lock (this)
-				{
-					if (this.InitTask == null)
-					{
-						Start();
-					}
-				}
+			{ // start is deferred
+				Start();
 			}
 
 			var t = this.DbTask;
