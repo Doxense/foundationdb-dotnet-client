@@ -31,8 +31,10 @@ namespace FoundationDB.Filters.Logging
 	using System;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
+	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 
 	/// <summary>Set of extension methods that add logging support on transactions</summary>
@@ -41,7 +43,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Apply the Logging Filter to this database instance</summary>
 		/// <param name="database">Original database instance</param>
-		/// <param name="handler">Handler that will be called everytime a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
+		/// <param name="handler">Handler that will be called every-time a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
 		/// <returns>Database filter, that will monitor all transactions initiated from it. Disposing this wrapper will NOT dispose the inner <paramref name="database"/> database.</returns>
 		[NotNull]
 		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
@@ -53,6 +55,19 @@ namespace FoundationDB.Filters.Logging
 			database = WithoutLogging(database);
 
 			return new FdbLoggedDatabase(database, false, false, handler, options);
+		}
+
+		/// <summary>Apply the Logging Filter to the database exposed by this provider</summary>
+		/// <param name="provider">Original database provider instance</param>
+		/// <param name="handler">Handler that will be called every-time a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
+		/// <returns>Provider that will that will monitor all transactions initiated from it.</returns>
+		[NotNull]
+		public static IFdbDatabaseScopeProvider Logged([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
+		{
+			Contract.NotNull(provider, nameof(provider));
+			Contract.NotNull(handler, nameof(handler));
+
+			return provider.CreateScope((db, ct) => !ct.IsCancellationRequested ? Task.FromResult<IFdbDatabase>(Logged(db, handler)) : Task.FromCanceled<IFdbDatabase>(ct));
 		}
 
 		/// <summary>Strip the logging behaviour of this database. Use this for boilerplate or test code that would pollute the logs otherwise.</summary>
