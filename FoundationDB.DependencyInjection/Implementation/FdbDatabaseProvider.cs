@@ -92,15 +92,15 @@ namespace FoundationDB.DependencyInjection
 			this.InitTask = tcs;
 			_ = Task.Run(async () =>
 			{
-				Fdb.Start(this.Options.ApiVersion);
 				try
 				{
+					Fdb.Start(this.Options.ApiVersion);
 					var db = await Fdb.OpenAsync(this.Options.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
 					SetDatabase(db, null);
 				}
 				catch (Exception e)
 				{
-					SetDatabase(null, e); //TODO: garder l'erreur!
+					SetDatabase(null, e);
 				}
 
 			}, this.LifeTime.Token);
@@ -184,9 +184,9 @@ namespace FoundationDB.DependencyInjection
 			return await this.DbTask.ConfigureAwait(false);
 		}
 
-		public IFdbDatabaseScopeProvider CreateScope(Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> start)
+		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start)
 		{
-			return new FdbDatabaseScopeProvider(this, start, this.LifeTime);
+			return new FdbDatabaseScopeProvider<TState>(this, start, this.LifeTime);
 		}
 
 	}

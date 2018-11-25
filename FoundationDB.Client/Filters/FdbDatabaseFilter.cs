@@ -169,17 +169,16 @@ namespace FoundationDB.Filters
 
 		#region ReadOnly...
 
-		[Obsolete("Please use ReadAsync<TResult>(..) instead.")]
-		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunReadAsync(this, handler, ct);
-		}
-
 		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, ct);
+		}
+
+		public Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
 		}
 
 		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
@@ -210,6 +209,12 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunWriteAsync(this, handler, ct);
 		}
 
+		public Task WriteAsync<TState>(TState state, Action<IFdbTransaction, TState> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
+		}
+
 		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> success, CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -234,6 +239,12 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunWriteAsync(this, handler, ct);
 		}
 
+		public Task WriteAsync<TState>(TState state, Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
+		}
+
 		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> success, CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -256,6 +267,12 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunWriteAsync(this, handler, ct);
 		}
 
+		public Task ReadWriteAsync<TState>(TState state, Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
+		}
+
 		public Task ReadWriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			ThrowIfDisposed();
@@ -272,6 +289,12 @@ namespace FoundationDB.Filters
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+		}
+
+		public Task<TResult> ReadWriteAsync<TState, TResult>(TState state, Func<IFdbTransaction, TState, Task<TResult>> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
 		}
 
 		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, Action<IFdbTransaction, TResult> onDone, CancellationToken ct)

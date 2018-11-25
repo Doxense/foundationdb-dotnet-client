@@ -67,7 +67,7 @@ namespace FoundationDB.Filters.Logging
 			Contract.NotNull(provider, nameof(provider));
 			Contract.NotNull(handler, nameof(handler));
 
-			return provider.CreateScope((db, ct) => !ct.IsCancellationRequested ? Task.FromResult<IFdbDatabase>(Logged(db, handler)) : Task.FromCanceled<IFdbDatabase>(ct));
+			return provider.CreateScope<object>((db, ct) => !ct.IsCancellationRequested ? Task.FromResult<(IFdbDatabase, object)>((Logged(db, handler), null)) : Task.FromCanceled<(IFdbDatabase, object)>(ct));
 		}
 
 		/// <summary>Strip the logging behaviour of this database. Use this for boilerplate or test code that would pollute the logs otherwise.</summary>
