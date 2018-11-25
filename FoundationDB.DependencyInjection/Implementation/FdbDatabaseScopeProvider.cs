@@ -36,10 +36,10 @@ namespace FoundationDB.DependencyInjection
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
-	internal sealed class FdbDatabaseScopeProvider : IFdbDatabaseScopeProvider
+	internal sealed class FdbDatabaseScopeProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> handler, [NotNull] CancellationTokenSource lifetime)
+		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, [NotNull] CancellationTokenSource lifetime)
 		{
 			Contract.NotNull(parent, nameof(parent));
 			Contract.NotNull(handler, nameof(handler));
@@ -47,33 +47,50 @@ namespace FoundationDB.DependencyInjection
 			this.Parent = parent;
 			this.Handler = handler;
 			this.LifeTime = lifetime;
-			this.DbTask = new Lazy<Task<IFdbDatabase>>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
+			this.DbTask = new Lazy<Task>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
 		}
 
 		[NotNull]
 		public IFdbDatabaseScopeProvider Parent { get; }
 
-		public Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> Handler { get; }
+		public Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> Handler { get; }
 
-		private readonly Lazy<Task<IFdbDatabase>> DbTask;
+		private readonly Lazy<Task> DbTask;
 
-		private IFdbDatabase Db { get; set; }
+		internal IFdbDatabase Db { get; private set; }
+
+		internal TState State { get; private set; }
+
+		internal Exception Error { get; private set; }
 
 		private CancellationTokenSource LifeTime { get; }
 
-		private async Task<IFdbDatabase> InitAsync()
+		private async Task InitAsync()
 		{
 			var ct = this.LifeTime.Token;
-			var db = await this.Parent.GetDatabase(ct).ConfigureAwait(false);
-			ct.ThrowIfCancellationRequested();
-			db = await this.Handler(db, ct).ConfigureAwait(false);
-			this.Db = db;
-			return db;
+			try
+			{
+				var db = await this.Parent.GetDatabase(ct).ConfigureAwait(false);
+				ct.ThrowIfCancellationRequested();
+				TState state;
+				(db, state) = await this.Handler(db, ct).ConfigureAwait(false);
+				Contract.Assert(db != null);
+				this.State = state;
+				this.Db = db;
+			}
+			catch (Exception e)
+			{
+				this.Error = e;
+				this.Db = null;
+				this.State = default;
+				throw;
+			}
 		}
 
-		public IFdbDatabaseScopeProvider CreateScope(Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> start)
+		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TNewState)>> start)
 		{
-			return new FdbDatabaseScopeProvider(this, start, this.LifeTime);
+			Contract.NotNull(start, nameof(start));
+			return new FdbDatabaseScopeProvider<TNewState>(this, start, this.LifeTime);
 		}
 
 		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
@@ -83,6 +100,13 @@ namespace FoundationDB.DependencyInjection
 			//BUGBUG: what if the parent scope has been shut down?
 			var db = this.Db;
 			return db != null ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
+		}
+
+		public TState GetState()
+		{
+			//REVIEW: do we need some sort of locking/volatile reads?
+			if (this.Db == null) throw new InvalidOperationException("The state can only be accessed when the database becomes available.");
+			return this.State;
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
@@ -99,7 +123,8 @@ namespace FoundationDB.DependencyInjection
 					ct.ThrowIfCancellationRequested();
 				}
 			}
-			return await t.ConfigureAwait(false);
+			await t.ConfigureAwait(false);
+			return this.Db;
 		}
 
 		public void Dispose()
