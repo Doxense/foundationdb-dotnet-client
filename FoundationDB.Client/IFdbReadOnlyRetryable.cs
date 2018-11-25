@@ -70,18 +70,17 @@ namespace FoundationDB.Client
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		[Obsolete("Please use ReadAsync<TResult>(..) instead.")]
-		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
-		//TODO: remove this method because it does not make any sense: It can only read, cannot have any side effect, and does not return anything (it can only throw)
+		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
+		/// <param name="state">State that will be passed backed to the <paramref name="handler"/></param>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
+		Task<TResult> ReadAsync<TState, TResult>(TState state, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct);
 
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
