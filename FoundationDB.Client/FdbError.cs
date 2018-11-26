@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 		/// <summary>Transaction does not have a valid commit version</summary>
 		TransactionInvalidVersion = 2020,
 		/// <summary>Transaction is read-only and therefore does not have a commit version</summary>
-		TransactionVersionReadOnly = 2021, //note: it has the same name as 2023 in the specs, but we have to change one of them here!
+		NoCommitVersion = 2021,
 		/// <summary>Environment variable network option could not be set</summary>
 		EnvironmentVariableNetworkOptionFailed = 2022,
 		/// <summary>Attempted to commit a transaction specified as read-only</summary>
