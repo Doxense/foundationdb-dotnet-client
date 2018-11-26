@@ -43,13 +43,13 @@ namespace FoundationDB.DependencyInjection
 		#region IFdbDatabaseScopeProvider extensions...
 
 		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider CreateScope([NotNull] IFdbDatabaseProvider provider, [NotNull] Func<IFdbDatabase, Task> init)
+		public static IFdbDatabaseScopeProvider CreateScope([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Func<IFdbDatabase, CancellationToken, Task> init)
 		{
 			Contract.NotNull(provider, nameof(provider));
 			Contract.NotNull(init, nameof(init));
 			return provider.CreateScope<object>(async (db, cancel) =>
 			{
-				await init(db).ConfigureAwait(false);
+				await init(db, cancel).ConfigureAwait(false);
 				return (db, null);
 			});
 		}
