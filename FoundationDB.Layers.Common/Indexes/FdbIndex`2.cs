@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Indexing
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
-		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
+		/// <remarks>This has no effect if <typeparamref name="TValue" /> is not a reference type</remarks>
 		public bool IndexNullValues { get; }
 
 		/// <summary>Insert a newly created entity to the index</summary>

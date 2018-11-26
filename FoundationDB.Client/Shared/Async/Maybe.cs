@@ -728,11 +728,11 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		}
 
 		/// <summary>Combine two lambdas into a single one</summary>
-		/// <typeparam name="TInput">Type of input of <see cref="f"/></typeparam>
-		/// <typeparam name="TIntermediate">Type of the output of <see cref="f"/> and input of <see cref="g"/></typeparam>
-		/// <typeparam name="TResult">Type of the result of <see cref="g"/></typeparam>
+		/// <typeparam name="TInput">Type of input of <paramref name="f"/></typeparam>
+		/// <typeparam name="TIntermediate">Type of the output of <paramref name="f"/> and input of <paramref name="g"/></typeparam>
+		/// <typeparam name="TResult">Type of the result of <paramref name="g"/></typeparam>
 		/// <param name="f">First function (that runs first)</param>
-		/// <param name="g">Second function (that runs on the result of <see cref="f"/></param>
+		/// <param name="g">Second function (that runs on the result of <paramref name="f"/></param>
 		/// <returns>Function h(x) = g(f(x))</returns>
 		[Pure, NotNull]
 		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>([NotNull] Func<TInput, Maybe<TIntermediate>> f, [NotNull] Func<TIntermediate, Maybe<TResult>> g)
@@ -741,11 +741,11 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		}
 
 		/// <summary>Combine two lambdas into a single one</summary>
-		/// <typeparam name="TInput">Type of input of <see cref="f"/></typeparam>
-		/// <typeparam name="TIntermediate">Type of the output of <see cref="f"/> and input of <see cref="g"/></typeparam>
-		/// <typeparam name="TResult">Type of the result of <see cref="g"/></typeparam>
+		/// <typeparam name="TInput">Type of input of <paramref name="f"/></typeparam>
+		/// <typeparam name="TIntermediate">Type of the output of <paramref name="f"/> and input of <paramref name="g"/></typeparam>
+		/// <typeparam name="TResult">Type of the result of <paramref name="g"/></typeparam>
 		/// <param name="f">First function (that runs first)</param>
-		/// <param name="g">Second function (that runs on the result of <see cref="f"/></param>
+		/// <param name="g">Second function (that runs on the result of <paramref name="f"/></param>
 		/// <returns>Function h(x) = g(f(x))</returns>
 		[Pure, NotNull]
 		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>([NotNull] Func<TInput, Maybe<TIntermediate>> f, [NotNull] Func<Maybe<TIntermediate>, Maybe<TResult>> g)

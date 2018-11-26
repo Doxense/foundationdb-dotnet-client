@@ -681,7 +681,7 @@ namespace FoundationDB.Layers.Directories
 
 		#region Metadata
 
-		/// <summary>Change the layer id of the directory at <param name="path"/></summary>
+		/// <summary>Change the layer id of the <paramref name="directory"/> at <paramref name="path"/></summary>
 		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectoryLayer directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, Slice newLayer, CancellationToken ct)
 		{
 			if (directory == null) throw new ArgumentNullException(nameof(directory));

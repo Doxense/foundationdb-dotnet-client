@@ -40,8 +40,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Threading.Tasks;
 	using Doxense.Serialization.Encoders;
 
-	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
-	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
+	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of numerical ids</summary>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
 	public class FdbCompressedBitmapIndex<TValue>
@@ -72,7 +71,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
-		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
+		/// <remarks>This has no effect if <typeparamref name="TValue" /> is not a reference type</remarks>
 		public bool IndexNullValues { get; }
 
 		/// <summary>Insert a newly created entity to the index</summary>

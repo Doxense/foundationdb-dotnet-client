@@ -144,6 +144,7 @@ namespace FoundationDB.Client
 		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
 		/// <param name="name">Name of the subdirectory to open</param>
+		/// <param name="ct">Cancellation token</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] string name, CancellationToken ct)
 		{
 			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, new [] { name }, Slice.Nil), ct);
@@ -154,6 +155,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="name">Name of the subdirectory to open</param>
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <param name="ct">Cancellation token</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] string name, Slice layer, CancellationToken ct)
 		{
 			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, new[] { name }, layer), ct);
@@ -163,6 +165,7 @@ namespace FoundationDB.Client
 		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
 		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="ct">Cancellation token</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
 			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, path, Slice.Nil), ct);
@@ -173,6 +176,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <param name="ct">Cancellation token</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
 			return this.Database.ReadAsync((tr) => this.Directory.OpenAsync(tr, path, layer), ct);
@@ -191,6 +195,7 @@ namespace FoundationDB.Client
 		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
 		/// <param name="name">Name of the subdirectory to open</param>
+		/// <param name="ct">Cancellation token</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] string name, CancellationToken ct)
 		{
@@ -202,6 +207,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="name">Name of the subdirectory to open</param>
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <param name="ct">Cancellation token</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] string name, Slice layer, CancellationToken ct)
 		{
@@ -212,6 +218,7 @@ namespace FoundationDB.Client
 		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
 		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="ct">Cancellation token</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IEnumerable<string> path, CancellationToken ct)
 		{
@@ -223,6 +230,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <param name="ct">Cancellation token</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken ct)
 		{
@@ -300,6 +308,7 @@ namespace FoundationDB.Client
 		/// <param name="name">Name of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
+		/// <param name="ct">Cancellation token</param>
 		public Task<FdbDirectorySubspace> RegisterAsync([NotNull] string name, Slice layer, Slice prefix, CancellationToken ct)
 		{
 			return this.Database.ReadWriteAsync((tr) => this.Directory.RegisterAsync(tr, new[] { name }, layer, prefix), ct);
@@ -309,6 +318,7 @@ namespace FoundationDB.Client
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
+		/// <param name="ct">Cancellation token</param>
 		public Task<FdbDirectorySubspace> RegisterAsync([NotNull] IEnumerable<string> path, Slice layer, Slice prefix, CancellationToken ct)
 		{
 			return this.Database.ReadWriteAsync((tr) => this.Directory.RegisterAsync(tr, path, layer, prefix), ct);

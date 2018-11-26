@@ -40,10 +40,10 @@ namespace FoundationDB.Filters.Logging
 	/// <summary>Set of extension methods that add logging support on transactions</summary>
 	public static class FdbLoggingExtensions
 	{
-
 		/// <summary>Apply the Logging Filter to this database instance</summary>
 		/// <param name="database">Original database instance</param>
 		/// <param name="handler">Handler that will be called every-time a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
+		/// <param name="options">Optional logging options</param>
 		/// <returns>Database filter, that will monitor all transactions initiated from it. Disposing this wrapper will NOT dispose the inner <paramref name="database"/> database.</returns>
 		[NotNull]
 		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
@@ -60,6 +60,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Apply the Logging Filter to the database exposed by this provider</summary>
 		/// <param name="provider">Original database provider instance</param>
 		/// <param name="handler">Handler that will be called every-time a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
+		/// <param name="options">Optional logging options</param>
 		/// <returns>Provider that will that will monitor all transactions initiated from it.</returns>
 		[NotNull]
 		public static IFdbDatabaseScopeProvider Logged([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
@@ -100,7 +101,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting <paramref name="message"/> when logging not enabled.
 		/// </remarks>
@@ -112,7 +113,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
@@ -125,7 +126,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see>instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
@@ -137,7 +138,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
@@ -149,7 +150,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Annotate a logged transaction</summary>
 		/// <remarks>
-		/// This method only applies to transactions created from a <see cref="Logged"/> database instance.
+		/// This method only applies to transactions created from a <see cref="FdbLoggedDatabase">logged database</see> instance.
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>

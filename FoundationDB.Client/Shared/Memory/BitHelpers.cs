@@ -138,7 +138,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
-		/// <returns>True if <see cref="x"/> is expressible as 2^i (i>=0)</returns>
+		/// <returns>True if <paramref name="x"/> is expressible as 2^i (i>=0)</returns>
 		/// <remarks>0 is NOT considered to be a power of 2</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(int x)
@@ -147,7 +147,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
-		/// <returns>True if <see cref="x"/> is expressible as 2^i (i>=0)</returns>
+		/// <returns>True if <paramref name="x"/> is expressible as 2^i (i>=0)</returns>
 		/// <remarks>0 is NOT considered to be a power of 2
 		/// This methods guarantees that IsPowerOfTwo(x) == (NextPowerOfTwo(x) == x)
 		/// </remarks>
@@ -158,7 +158,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
-		/// <returns>True if <see cref="x"/> is expressible as 2^i (i>=0)</returns>
+		/// <returns>True if <paramref name="x"/> is expressible as 2^i (i>=0)</returns>
 		/// <remarks>0 is NOT considered to be a power of 2</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(long x)
@@ -167,7 +167,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Test if a number is a power of 2</summary>
-		/// <returns>True if <see cref="x"/> is expressible as 2^i (i>=0)</returns>
+		/// <returns>True if <paramref name="x"/> is expressible as 2^i (i>=0)</returns>
 		/// <remarks>0 is NOT considered to be a power of 2</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsPowerOfTwo(ulong x)
@@ -186,7 +186,7 @@ namespace Doxense.Memory
 		/// <param name="alignment">Final size must be a multiple of this number</param>
 		/// <param name="minimum">Result cannot be less than this value</param>
 		/// <returns>Size rounded up to the next multiple of <paramref name="alignment"/>, or 0 if <paramref name="size"/> is negative</returns>
-		/// <remarks>For aligments that are powers of two, <see cref="AlignPowerOfTwo(int,int)"/> will be faster</remarks>
+		/// <remarks>For alignments that are powers of two, <see cref="AlignPowerOfTwo(int,int)"/> will be faster</remarks>
 		/// <exception cref="System.OverflowException">If the rounded size overflows over 2 GB</exception>
 		[Pure]
 		public static int Align(int size, [Positive] int alignment, int minimum = 0)
@@ -223,7 +223,7 @@ namespace Doxense.Memory
 		/// <param name="minimum">Result cannot be less than this value</param>
 		/// <returns>Size rounded up to the next multiple of <paramref name="alignment"/>.</returns>
 		/// <remarks>
-		/// For aligments that are powers of two, <see cref="AlignPowerOfTwo(uint,uint)"/> will be faster.
+		/// For alignments that are powers of two, <see cref="AlignPowerOfTwo(uint,uint)"/> will be faster.
 		/// </remarks>
 		/// <exception cref="System.OverflowException">If the rounded size overflows over 2 GB</exception>
 		[Pure]
@@ -257,14 +257,14 @@ namespace Doxense.Memory
 		/// <param name="alignment">Final size must be a multiple of this number</param>
 		/// <param name="minimum">Result cannot be less than this value</param>
 		/// <returns>Size rounded up to the next multiple of <paramref name="alignment"/>, or 0 if <paramref name="size"/> is negative</returns>
-		/// <remarks>For aligments that are powers of two, <see cref="AlignPowerOfTwo(long,long)"/> will be faster</remarks>
+		/// <remarks>For alignments that are powers of two, <see cref="AlignPowerOfTwo(long,long)"/> will be faster</remarks>
 		/// <exception cref="System.OverflowException">If the rounded size overflows over 2^63</exception>
 		[Pure]
 		public static long Align(long size, [Positive] long alignment, long minimum = 0)
 		{
 			//Contract.Requires(alignment > 0);
 			long x = Math.Max(size, minimum);
-			// we have to divide first and check the modulo, because adding (aligment+1) before could overflow at the wrong time
+			// we have to divide first and check the modulo, because adding (alignment+1) before could overflow at the wrong time
 			long y = x /alignment;
 			if (x % alignment != 0) ++y;
 			return checked(y * alignment);
@@ -294,7 +294,7 @@ namespace Doxense.Memory
 		/// <param name="minimum">Result cannot be less than this value</param>
 		/// <returns>Size rounded up to the next multiple of <paramref name="alignment"/>.</returns>
 		/// <remarks>
-		/// For aligments that are powers of two, <see cref="AlignPowerOfTwo(ulong,ulong)"/> will be faster.
+		/// For alignments that are powers of two, <see cref="AlignPowerOfTwo(ulong,ulong)"/> will be faster.
 		/// </remarks>
 		/// <exception cref="System.OverflowException">If the rounded size overflows over 2^63</exception>
 		[Pure]
@@ -302,7 +302,7 @@ namespace Doxense.Memory
 		{
 			//Contract.Requires(alignment > 0);
 			ulong x = Math.Max(size, minimum);
-			// we have to divide first and check the modulo, because adding (aligment+1) before could overflow at the wrong time
+			// we have to divide first and check the modulo, because adding (alignment+1) before could overflow at the wrong time
 			ulong y = x / alignment;
 			if (x % alignment != 0) ++y;
 			return checked(y * alignment);

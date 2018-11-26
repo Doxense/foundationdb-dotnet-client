@@ -102,7 +102,8 @@ namespace FoundationDB.Client
 		/// <param name="options">Options provided by the caller (can be null)</param>
 		/// <param name="limit">Default value for Limit if not provided</param>
 		/// <param name="targetBytes">Default TargetBytes for limit if not provided</param>
-		/// <param name="mode">Default value for StreamingMode if not provided</param>
+		/// <param name="mode">Default value for Streaming mode if not provided</param>
+		/// <param name="read">Default value for Read mode if not provided</param>
 		/// <param name="reverse">Default value for Reverse if not provided</param>
 		/// <returns>Options with all the values filled</returns>
 		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int? limit, int? targetBytes, FdbStreamingMode mode, FdbReadMode read, bool reverse)

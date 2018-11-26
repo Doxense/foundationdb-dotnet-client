@@ -139,7 +139,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Returns a substring of the current tuple</summary>
 		/// <param name="tuple">Current tuple</param>
 		/// <param name="offset">Offset from the start of the current tuple (negative value means from the end)</param>
-		/// <returns>Tuple that contains only the items past the first <param name="offset"/> items of the current tuple</returns>
+		/// <returns>Tuple that contains only the items past the first <paramref name="offset"/> items of the current tuple</returns>
 		[NotNull]
 		public static IVarTuple Substring([NotNull] this IVarTuple tuple, int offset)
 		{

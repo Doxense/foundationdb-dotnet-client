@@ -35,6 +35,7 @@ namespace FoundationDB.Layers.Interning.Tests
 	using NUnit.Framework;
 
 	[TestFixture]
+	[Obsolete]
 	public class StringInternFacts : FdbTest
 	{
 

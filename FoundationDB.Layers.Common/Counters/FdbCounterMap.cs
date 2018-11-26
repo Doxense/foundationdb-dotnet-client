@@ -119,6 +119,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Adds a value to a counter, and return its new value.</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
+		/// <param name="value">Value that will be added to the counter</param>
 		/// <returns>New value of the counter. Returns <paramref name="value"/> if the counter did not exist previously.</returns>
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> AddThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
@@ -153,6 +154,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Adds a value to a counter, but return its previous value.</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
+		/// <param name="value">Value that will be added to the counter</param>
 		/// <returns>Previous value of the counter. Returns 0 if the counter did not exist previously.</returns>
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
 		public async Task<long> ReadThenAddAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)

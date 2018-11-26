@@ -238,7 +238,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Flush the state and update the header</summary>
-		/// <param name="padding">Padding bits that were added to the last written word</param>
 		/// <returns>Slice contained the finished compressed bitmap</returns>
 		/// <remarks>You cannot write any more words after Packing, until <see cref="Reset"/> is called.</remarks>
 		public void Pack()

@@ -137,6 +137,7 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
 		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="options"></param>
 		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 		/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		[NotNull]
