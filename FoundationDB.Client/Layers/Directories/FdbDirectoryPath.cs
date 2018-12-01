@@ -96,11 +96,13 @@ namespace FoundationDB.Layers.Directories
 			return new FdbDirectoryPath(segments);
 		}
 
+#if NETCORE
 		[Pure]
 		public FdbDirectoryPath Concat(ReadOnlySpan<char> segment)
 		{
 			return Concat(segment.ToString());
 		}
+#endif
 
 		[Pure]
 		public FdbDirectoryPath Concat([NotNull, ItemNotNull] params string[] path)
@@ -160,11 +162,13 @@ namespace FoundationDB.Layers.Directories
 			return GetSegments().ToArray();
 		}
 
+#if NETCORE
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlySpan<string> AsSpan()
 		{
 			return GetSegments().AsSpan();
 		}
+#endif
 
 		public void CopyTo(string[] array, int offset)
 		{
@@ -185,11 +189,13 @@ namespace FoundationDB.Layers.Directories
 			return new FdbDirectoryPath(new [] { segment });
 		}
 
+#if NETCORE
 		[Pure]
 		public static FdbDirectoryPath Create(ReadOnlySpan<char> segment)
 		{
 			return Create(segment.ToString());
 		}
+#endif
 
 		/// <summary>Convert a tuple representing a path, into a string array</summary>
 		/// <param name="path">Tuple that should only contain strings</param>

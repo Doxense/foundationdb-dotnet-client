@@ -206,7 +206,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(null, trans, ParsePath(path), layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
@@ -221,7 +220,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(trans, null, ParsePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
 		}
@@ -236,7 +234,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(null, trans, ParsePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
@@ -249,7 +246,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(trans, null, ParsePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
 		}
@@ -262,7 +258,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(null, trans, ParsePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
@@ -276,7 +271,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer, Slice prefix)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(null, trans, ParsePath(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
@@ -290,7 +284,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> TryRegisterAsync([NotNull] IFdbTransaction trans, FdbDirectoryPath path, Slice layer, Slice prefix)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new ArgumentNullException(nameof(path));
 
 			return CreateOrOpenInternalAsync(null, trans, ParsePath(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
@@ -310,8 +303,8 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (oldPath.IsEmpty) throw new NotSupportedException("The root directory cannot be moved.");
-			if (newPath.IsEmpty) throw new NotSupportedException("The root directory cannot be replaced.");
+			if (oldPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be moved.");
+			if (newPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be replaced.");
 
 			var oldLocation = ParsePath(oldPath, nameof(oldPath));
 			var newLocation = ParsePath(newPath, "newPath");
@@ -330,8 +323,8 @@ namespace FoundationDB.Layers.Directories
 		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (oldPath.IsEmpty) throw new NotSupportedException("The root directory cannot be moved.");
-			if (newPath.IsEmpty) throw new NotSupportedException("The root directory cannot be replaced.");
+			if (oldPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be moved.");
+			if (newPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be replaced.");
 
 			var oldLocation = ParsePath(oldPath, "oldPath");
 			var newLocation = ParsePath(newPath, "newPath");
@@ -345,12 +338,12 @@ namespace FoundationDB.Layers.Directories
 
 		Task<FdbDirectorySubspace> IFdbDirectory.MoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
 		{
-			throw new NotSupportedException("The root directory cannot be moved.");
+			throw new InvalidOperationException("The root directory cannot be moved.");
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
 		{
-			throw new NotSupportedException("The root directory cannot be moved.");
+			throw new InvalidOperationException("The root directory cannot be moved.");
 		}
 
 		#endregion
@@ -365,7 +358,7 @@ namespace FoundationDB.Layers.Directories
 		public Task RemoveAsync(IFdbTransaction trans, FdbDirectoryPath path)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new NotSupportedException("Cannot remove a directory layer");
+			if (path.IsEmpty) throw new InvalidOperationException("Cannot remove a directory layer");
 
 			return RemoveInternalAsync(trans, ParsePath(path), throwIfMissing: true);
 		}
