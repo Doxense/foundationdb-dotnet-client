@@ -29,19 +29,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public static class FdbDatabaseProviderExtensions
 	{
 
-		#region IFdbDatabaseScopeProvider extensions...
-
+		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
+		/// <param name="provider">Parent provider</param>
+		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
+		/// <returns>New child scope.</returns>
 		[Pure, NotNull]
 		public static IFdbDatabaseScopeProvider CreateScope([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Func<IFdbDatabase, CancellationToken, Task> init)
 		{
@@ -54,6 +56,21 @@ namespace FoundationDB.DependencyInjection
 			});
 		}
 
+		/// <summary>Create a scope that will provider a directory subspace to all transactions</summary>
+		/// <param name="provider">Parent provider</param>
+		/// <param name="path">Path of the directory subspace that will be open (and created if necessary) for all the transactions started from this scope.</param>
+		/// <returns>New child scope.</returns>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateDirectoryScope([NotNull] this IFdbDatabaseScopeProvider provider, FdbDirectoryPath path)
+		{
+			return provider.CreateScope<FdbDirectorySubspace>(async (db, cancel) =>
+			{
+				var folder = await db.Directory.CreateOrOpenAsync(path, cancel);
+				return (db, folder);
+			});
+		}
+
+		/// <summary>Wait for the scope to become ready.</summary>
 		public static ValueTask EnsureIsReady([NotNull] this IFdbDatabaseScopeProvider provider, CancellationToken ct)
 		{
 			if (provider.IsAvailable)
@@ -213,8 +230,6 @@ namespace FoundationDB.DependencyInjection
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
 			await db.WriteAsync(provider.GetState(), handler, ct).ConfigureAwait(false);
 		}
-
-		#endregion
 
 	}
 }

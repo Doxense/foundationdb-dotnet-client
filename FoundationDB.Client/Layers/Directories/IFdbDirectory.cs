@@ -50,8 +50,7 @@ namespace FoundationDB.Layers.Directories
 		string FullName { get; }
 
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
-		[NotNull]
-		IReadOnlyList<string> Path { get; }
+		FdbDirectoryPath Path { get; }
 
 		/// <summary>Gets the layer id slice that was stored when this <code>Directory</code> was created.</summary>
 		Slice Layer { get; }
@@ -64,7 +63,7 @@ namespace FoundationDB.Layers.Directories
 		/// If the sub-directory does not exist, it is created (creating intermediate subdirectories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing sub-directory or set as the layer of a new sub-directory.
 		/// </summary>
-		Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default);
+		Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath subPath, Slice layer = default);
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
 		/// An exception is thrown if the sub-directory does not exist, or if a layer is specified and a different layer was specified when the sub-directory was created.
@@ -72,7 +71,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the sub-directory to open</param>
 		/// <param name="layer">Expected layer id for the sub-directory (optional)</param>
-		Task<FdbDirectorySubspace> OpenAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> path, Slice layer = default);
+		Task<FdbDirectorySubspace> OpenAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] FdbDirectoryPath path, Slice layer = default);
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
 		/// An exception is thrown if the sub-directory if a layer is specified and a different layer was specified when the sub-directory was created.
@@ -81,7 +80,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Relative path of the sub-directory to open</param>
 		/// <param name="layer">Expected layer id for the sub-directory (optional)</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
-		Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> path, Slice layer = default);
+		Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] FdbDirectoryPath path, Slice layer = default);
 
 		/// <summary>Creates a sub-directory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given sub-directory already exists.
@@ -89,7 +88,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the sub-directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the sub-directory and will be checked by future calls to open.</param>
-		Task<FdbDirectorySubspace> CreateAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default);
+		Task<FdbDirectorySubspace> CreateAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath subPath, Slice layer = default);
 
 		/// <summary>Creates a sub-directory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given sub-directory already exists.
@@ -97,14 +96,14 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the sub-directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the sub-directory and will be checked by future calls to open.</param>
-		Task<FdbDirectorySubspace> TryCreateAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer = default);
+		Task<FdbDirectorySubspace> TryCreateAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath subPath, Slice layer = default);
 
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="subPath"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		Task<FdbDirectorySubspace> RegisterAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> subPath, Slice layer, Slice prefix);
+		Task<FdbDirectorySubspace> RegisterAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath subPath, Slice layer, Slice prefix);
 
 		/// <summary>Moves the specified sub-directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -114,7 +113,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
 		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful.</returns>
-		Task<FdbDirectorySubspace> MoveAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> oldPath, [NotNull] IEnumerable<string> newPath);
+		Task<FdbDirectorySubspace> MoveAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath oldPath, [NotNull] FdbDirectoryPath newPath);
 
 		/// <summary>Attempts to move the specified sub-directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -124,7 +123,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
 		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
-		Task<FdbDirectorySubspace> TryMoveAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> oldPath, [NotNull, ItemNotNull] IEnumerable<string> newPath);
+		Task<FdbDirectorySubspace> TryMoveAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath oldPath, [NotNull, ItemNotNull] FdbDirectoryPath newPath);
 
 		/// <summary>Moves the current directory to <paramref name="newAbsolutePath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -133,7 +132,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
 		/// <returns>Returns the directory at its new location if successful.</returns>
-		Task<FdbDirectorySubspace> MoveToAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> newAbsolutePath);
+		Task<FdbDirectorySubspace> MoveToAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath newAbsolutePath);
 
 		/// <summary>Attempts to move the current directory to <paramref name="newAbsolutePath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -142,37 +141,37 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
-		Task<FdbDirectorySubspace> TryMoveToAsync([NotNull] IFdbTransaction trans, [NotNull, ItemNotNull] IEnumerable<string> newAbsolutePath);
+		Task<FdbDirectorySubspace> TryMoveToAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath newAbsolutePath);
 
 		/// <summary>Removes a directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove. Will remove the current directory if <paramref name="path"/> is null</param>
-		Task RemoveAsync([NotNull] IFdbTransaction trans, [ItemNotNull] IEnumerable<string> path = null);
+		Task RemoveAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath path = default);
 
 		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove. Will remove the current directory if <paramref name="path"/> is null</param>
-		Task<bool> TryRemoveAsync([NotNull] IFdbTransaction trans, [ItemNotNull] IEnumerable<string> path = null);
+		Task<bool> TryRemoveAsync([NotNull] IFdbTransaction trans, [ItemNotNull] FdbDirectoryPath path = default);
 
 		/// <summary>Checks if this directory exists</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to test</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		Task<bool> ExistsAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] IEnumerable<string> path = null);
+		Task<bool> ExistsAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] FdbDirectoryPath path = default);
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		Task<List<string>> ListAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] IEnumerable<string> path = null);
+		Task<List<string>> ListAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] FdbDirectoryPath path = default);
 
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		Task<List<string>> TryListAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] IEnumerable<string> path = null);
+		Task<List<string>> TryListAsync([NotNull] IFdbReadOnlyTransaction trans, [ItemNotNull] FdbDirectoryPath path = default);
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
 		/// <param name="layer">Expected layer id (if not empty)</param>
