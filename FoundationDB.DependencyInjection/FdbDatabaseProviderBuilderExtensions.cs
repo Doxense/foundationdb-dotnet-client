@@ -29,14 +29,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
+	[PublicAPI]
 	public static class FdbDatabaseProviderBuilderExtensions
 	{
 
-		public static IFdbDatabaseProviderBuilder WithApiVersion(this IFdbDatabaseProviderBuilder builder, int apiVersion)
+		[NotNull]
+		public static IFdbDatabaseProviderBuilder WithApiVersion([NotNull] this IFdbDatabaseProviderBuilder builder, int apiVersion)
 		{
+			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
 			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
 			{
 				c.ApiVersion = apiVersion;
@@ -44,8 +49,10 @@ namespace FoundationDB.DependencyInjection
 			return builder;
 		}
 
-		public static IFdbDatabaseProviderBuilder WithConnectionString(this IFdbDatabaseProviderBuilder builder, FdbConnectionOptions options)
+		[NotNull]
+		public static IFdbDatabaseProviderBuilder WithConnectionString([NotNull] this IFdbDatabaseProviderBuilder builder, [NotNull] FdbConnectionOptions options)
 		{
+			Contract.NotNull(options, nameof(options));
 			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
 			{
 				c.ConnectionOptions = options;
@@ -53,7 +60,8 @@ namespace FoundationDB.DependencyInjection
 			return builder;
 		}
 
-		public static IFdbDatabaseProviderBuilder WithClusterFile(this IFdbDatabaseProviderBuilder builder, string clusterFile)
+		[NotNull]
+		public static IFdbDatabaseProviderBuilder WithClusterFile([NotNull] this IFdbDatabaseProviderBuilder builder, [CanBeNull] string clusterFile)
 		{
 			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
 			{

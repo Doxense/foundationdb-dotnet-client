@@ -29,19 +29,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
+	[PublicAPI]
 	public static class FdbDatabaseServiceCollectionExtensions
 	{
-		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, int apiVersion)
+
+		[NotNull]
+		public static IFdbDatabaseProviderBuilder AddFoundationDb([NotNull] this IServiceCollection services, int apiVersion)
 		{
+			Contract.NotNull(services, nameof(services));
+			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
+
 			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
 			services.Configure<FdbDatabaseProviderOptions>(c => c.ApiVersion = apiVersion);
 			return new FdbDefaultDatabaseProviderBuilder(services);
 		}
 
-		public static IServiceCollection AddFoundationDb(this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
+		[NotNull]
+		public static IServiceCollection AddFoundationDb([NotNull] this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
 		{
+			Contract.NotNull(services, nameof(services));
+			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
+			Contract.NotNull(configure, nameof(configure));
+
 			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
 			services.Configure<FdbDatabaseProviderOptions>(c =>
 			{
