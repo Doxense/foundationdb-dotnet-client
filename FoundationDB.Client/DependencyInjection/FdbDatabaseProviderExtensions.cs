@@ -40,7 +40,9 @@ namespace FoundationDB.Client
 	public static class FdbDatabaseProviderExtensions
 	{
 
-		private static IFdbDatabaseScopeProvider AsDatabaseProvider([NotNull] IFdbDatabase db)
+		/// <summary>Convert this database instance into a <see cref="IFdbDatabaseScopeProvider">provider</see></summary>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider AsDatabaseProvider([NotNull] this IFdbDatabase db)
 		{
 			Contract.NotNull(db, nameof(db));
 			return db as IFdbDatabaseScopeProvider ?? new FdbDatabaseSingletonProvider<object>(db, null);
@@ -54,7 +56,7 @@ namespace FoundationDB.Client
 		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(this IFdbDatabase db, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init)
 		{
 			Contract.NotNull(init, nameof(init));
-			return AsDatabaseProvider(db).CreateScope(init);
+			return db.AsDatabaseProvider().CreateScope(init);
 		}
 
 		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
@@ -82,7 +84,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(init, nameof(init));
 
-			return AsDatabaseProvider(db).CreateScope<object>(async (database, cancel) =>
+			return db.AsDatabaseProvider().CreateScope<object>(async (database, cancel) =>
 			{
 				await init(database, cancel).ConfigureAwait(false);
 				return (db, null);
@@ -110,7 +112,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateDirectoryScope([NotNull] this IFdbDatabase db, FdbDirectoryPath path)
 		{
-			return AsDatabaseProvider(db).CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
+			return db.AsDatabaseProvider().CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
 			{
 				var folder = await database.Directory.CreateOrOpenAsync(path, cancel).ConfigureAwait(false);
 				return (database, folder);
