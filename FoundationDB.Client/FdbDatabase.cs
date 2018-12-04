@@ -40,12 +40,13 @@ namespace FoundationDB.Client
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
+	using FoundationDB.DependencyInjection;
 	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
 	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
-	public class FdbDatabase : IFdbDatabase
+	public class FdbDatabase : IFdbDatabase, IFdbDatabaseProvider
 	{
 		#region Private Fields...
 
@@ -780,6 +781,35 @@ namespace FoundationDB.Client
 					}
 				}
 			}
+		}
+
+		#endregion
+
+		#region IFdbDatabaseProvider...
+
+		IFdbDatabaseScopeProvider IFdbDatabaseScopeProvider.Parent { get; }
+
+		ValueTask<IFdbDatabase> IFdbDatabaseScopeProvider.GetDatabase(CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+			return new ValueTask<IFdbDatabase>(this);
+		}
+
+		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start)
+		{
+			throw new NotImplementedException();
+		}
+
+		bool IFdbDatabaseScopeProvider.IsAvailable => true;
+
+		void IFdbDatabaseProvider.Start()
+		{
+			//NOP
+		}
+
+		void IFdbDatabaseProvider.Stop()
+		{
+			//NOP
 		}
 
 		#endregion

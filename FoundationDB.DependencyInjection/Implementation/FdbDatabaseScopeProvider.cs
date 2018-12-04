@@ -50,9 +50,19 @@ namespace FoundationDB.DependencyInjection
 			this.DbTask = new Lazy<Task>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
 		}
 
+		[Pure, NotNull]
+		public static FdbDatabaseScopeProvider<TState> Create(
+			[NotNull] IFdbDatabaseScopeProvider parent,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler,
+			CancellationToken lifetime)
+		{
+			return new FdbDatabaseScopeProvider<TState>(parent, handler, CancellationTokenSource.CreateLinkedTokenSource(lifetime));
+		}
+
 		[NotNull]
 		public IFdbDatabaseScopeProvider Parent { get; }
 
+		[NotNull]
 		public Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> Handler { get; }
 
 		private readonly Lazy<Task> DbTask;
