@@ -40,7 +40,6 @@ namespace FoundationDB.Client
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
-	using FoundationDB.DependencyInjection;
 	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>

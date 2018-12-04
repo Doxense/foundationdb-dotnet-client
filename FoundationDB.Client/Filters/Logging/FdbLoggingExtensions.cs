@@ -34,7 +34,6 @@ namespace FoundationDB.Filters.Logging
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 
 	/// <summary>Set of extension methods that add logging support on transactions</summary>

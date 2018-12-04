@@ -26,12 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.DependencyInjection
+namespace FoundationDB.Client
 {
 	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Provides access to a FoundationDB database instance</summary>

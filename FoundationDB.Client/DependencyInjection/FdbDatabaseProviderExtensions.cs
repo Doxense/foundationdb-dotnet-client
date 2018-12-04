@@ -26,13 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.DependencyInjection
+namespace FoundationDB.Client
 {
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
+	using FoundationDB.DependencyInjection;
 	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
