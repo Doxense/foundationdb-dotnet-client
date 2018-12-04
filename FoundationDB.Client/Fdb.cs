@@ -839,5 +839,55 @@ namespace FoundationDB.Client
 			}
 		}
 
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider CreateScope(
+			[NotNull] IFdbDatabaseScopeProvider parent,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> handler,
+			CancellationToken lifetime)
+		{
+			Contract.NotNull(parent, nameof(parent));
+			Contract.NotNull(handler, nameof(handler));
+			return new FdbDatabaseScopeProvider<object>(
+				parent, 
+				async (db, ct) =>
+				{
+					var res = await handler(db, ct).ConfigureAwait(false);
+					return (db, res);
+				}, 
+				CancellationTokenSource.CreateLinkedTokenSource(lifetime)
+			);
+		}
+
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(
+			[NotNull] IFdbDatabaseScopeProvider parent,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler,
+			CancellationToken lifetime)
+		{
+			Contract.NotNull(parent, nameof(parent));
+			Contract.NotNull(handler, nameof(handler));
+			return new FdbDatabaseScopeProvider<TState>(parent, handler, CancellationTokenSource.CreateLinkedTokenSource(lifetime));
+		}
+
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(
+			[NotNull] IFdbDatabaseScopeProvider parent,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task<TState>> handler,
+			CancellationToken lifetime)
+		{
+			Contract.NotNull(parent, nameof(parent));
+			Contract.NotNull(handler, nameof(handler));
+			return new FdbDatabaseScopeProvider<TState>(
+				parent,
+				async (db, ct) =>
+				{
+					var res = await handler(db, ct).ConfigureAwait(false);
+					return (db, res);
+				},
+				CancellationTokenSource.CreateLinkedTokenSource(lifetime)
+			);
+		}
+
 	}
+
 }

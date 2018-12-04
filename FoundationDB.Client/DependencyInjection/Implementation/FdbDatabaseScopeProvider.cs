@@ -36,27 +36,18 @@ namespace FoundationDB.DependencyInjection
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
+	/// <summary>Default implementation of a child database scope provider</summary>
+	/// <typeparam name="TState">Type of the State created by the init handler of this scope</typeparam>
 	internal sealed class FdbDatabaseScopeProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
 		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, [NotNull] CancellationTokenSource lifetime)
 		{
-			Contract.NotNull(parent, nameof(parent));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(lifetime, nameof(lifetime));
+			Contract.Requires(parent != null && handler != null && lifetime != null);
 			this.Parent = parent;
 			this.Handler = handler;
 			this.LifeTime = lifetime;
 			this.DbTask = new Lazy<Task>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
-		}
-
-		[Pure, NotNull]
-		public static FdbDatabaseScopeProvider<TState> Create(
-			[NotNull] IFdbDatabaseScopeProvider parent,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler,
-			CancellationToken lifetime)
-		{
-			return new FdbDatabaseScopeProvider<TState>(parent, handler, CancellationTokenSource.CreateLinkedTokenSource(lifetime));
 		}
 
 		[NotNull]
@@ -141,59 +132,6 @@ namespace FoundationDB.DependencyInjection
 		{
 			this.LifeTime?.Cancel();
 		}
-	}
-
-	internal sealed class FdbDatabaseSingletonProvider<TState> : IFdbDatabaseScopeProvider<TState>
-	{
-
-		public FdbDatabaseSingletonProvider([NotNull] IFdbDatabase db, TState state)
-		{
-			this.Db = db;
-			this.State = state;
-		}
-
-		public IFdbDatabase Db { get; private set; }
-
-		public TState State { get; private set; }
-
-		private bool m_disposed;
-
-		public TState GetState()
-		{
-			return this.State;
-		}
-
-		public void Dispose()
-		{
-			lock (this)
-			{
-				if (!m_disposed)
-				{
-					m_disposed = true;
-					this.State = default;
-					this.Db = null;
-				}
-			}
-		}
-
-		public IFdbDatabaseScopeProvider Parent => null;
-
-		public bool IsAvailable => !Volatile.Read(ref m_disposed);
-
-		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct)
-		{
-			lock (this)
-			{
-				if (m_disposed) throw ThrowHelper.ObjectDisposedException(this);
-				return new ValueTask<IFdbDatabase>(this.Db);
-			}
-		}
-
-		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TNewState State)>> start)
-		{
-			return FdbDatabaseScopeProvider<TNewState>.Create(this, start, this.Db.Cancellation);
-		}
-
 	}
 
 }
