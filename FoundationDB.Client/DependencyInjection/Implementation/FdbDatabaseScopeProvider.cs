@@ -41,12 +41,14 @@ namespace FoundationDB.DependencyInjection
 	internal sealed class FdbDatabaseScopeProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, [NotNull] CancellationTokenSource lifetime)
+		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, CancellationToken lifetime = default)
 		{
-			Contract.Requires(parent != null && handler != null && lifetime != null);
+			Contract.Requires(parent != null && handler != null);
 			this.Parent = parent;
 			this.Handler = handler;
-			this.LifeTime = lifetime;
+			this.LifeTime = lifetime == default || lifetime == parent.Cancellation
+				? CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation)
+				: CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation, lifetime);
 			this.DbTask = new Lazy<Task>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
 		}
 
@@ -65,6 +67,8 @@ namespace FoundationDB.DependencyInjection
 		internal Exception Error { get; private set; }
 
 		private CancellationTokenSource LifeTime { get; }
+
+		public CancellationToken Cancellation => this.LifeTime.Token;
 
 		private async Task InitAsync()
 		{
@@ -88,10 +92,11 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
-		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TNewState)>> start)
+		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TNewState)>> start, CancellationToken lifetime = default)
 		{
 			Contract.NotNull(start, nameof(start));
-			return new FdbDatabaseScopeProvider<TNewState>(this, start, this.LifeTime);
+			//REVIEW: should we instantly failed if lifetime is already disposed?
+			return new FdbDatabaseScopeProvider<TNewState>(this, start, lifetime);
 		}
 
 		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
@@ -100,7 +105,7 @@ namespace FoundationDB.DependencyInjection
 		{
 			//BUGBUG: what if the parent scope has been shut down?
 			var db = this.Db;
-			return db != null ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
+			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
 		}
 
 		public TState GetState()
@@ -113,6 +118,7 @@ namespace FoundationDB.DependencyInjection
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
 		{
+			if (this.LifeTime.IsCancellationRequested) throw ThrowHelper.ObjectDisposedException(this);
 			var t = this.DbTask.Value;
 
 			if (!t.IsCompleted && ct.CanBeCanceled)
@@ -130,7 +136,10 @@ namespace FoundationDB.DependencyInjection
 
 		public void Dispose()
 		{
-			this.LifeTime?.Cancel();
+			using (this.LifeTime)
+			{
+				this.LifeTime.Cancel();
+			}
 		}
 	}
 

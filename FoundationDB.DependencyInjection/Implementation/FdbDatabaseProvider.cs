@@ -158,6 +158,8 @@ namespace FoundationDB.DependencyInjection
 
 		IFdbDatabaseScopeProvider IFdbDatabaseScopeProvider.Parent => null;
 
+		public CancellationToken Cancellation => this.LifeTime.Token;
+
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
 			var db = this.Db;
@@ -184,9 +186,9 @@ namespace FoundationDB.DependencyInjection
 			return await this.DbTask.ConfigureAwait(false);
 		}
 
-		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start)
+		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)
 		{
-			return new FdbDatabaseScopeProvider<TState>(this, start, this.LifeTime);
+			return new FdbDatabaseScopeProvider<TState>(this, start, lifetime);
 		}
 
 	}

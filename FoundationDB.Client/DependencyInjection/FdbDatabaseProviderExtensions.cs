@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -44,79 +45,85 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbDatabaseScopeProvider AsDatabaseProvider([NotNull] this IFdbDatabase db)
 		{
-			Contract.NotNull(db, nameof(db));
-			return db as IFdbDatabaseScopeProvider ?? new FdbDatabaseSingletonProvider<object>(db, null);
+			return Fdb.CreateRootScope(db);
 		}
 
 		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
 		/// <param name="db">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
-		/// <returns>New child scope.</returns>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(this IFdbDatabase db, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init)
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbDatabaseScopeProvider<TState> CreateRootScope<TState>(
+			[NotNull] this IFdbDatabase db,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init,
+			CancellationToken lifetime = default
+		)
 		{
-			Contract.NotNull(init, nameof(init));
-			return db.AsDatabaseProvider().CreateScope(init);
+			return Fdb.CreateRootScope(db, init, lifetime);
 		}
 
 		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
 		/// <param name="provider">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
-		/// <returns>New child scope.</returns>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider CreateScope([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Func<IFdbDatabase, CancellationToken, Task> init)
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbDatabaseScopeProvider CreateScope(
+			[NotNull] this IFdbDatabaseScopeProvider provider,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			CancellationToken lifetime = default
+		)
 		{
-			Contract.NotNull(provider, nameof(provider));
-			Contract.NotNull(init, nameof(init));
-			return provider.CreateScope<object>(async (db, cancel) =>
-			{
-				await init(db, cancel).ConfigureAwait(false);
-				return (db, null);
-			});
+			return Fdb.CreateScope(provider, init, lifetime);
 		}
 
 		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
 		/// <param name="db">Parent database</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
-		/// <returns>New child scope.</returns>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider CreateScope([NotNull] this IFdbDatabase db, [NotNull] Func<IFdbDatabase, CancellationToken, Task> init)
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbDatabaseScopeProvider CreateRootScope(
+			[NotNull] this IFdbDatabase db,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			CancellationToken lifetime = default
+		)
 		{
-			Contract.NotNull(init, nameof(init));
-
-			return db.AsDatabaseProvider().CreateScope<object>(async (database, cancel) =>
-			{
-				await init(database, cancel).ConfigureAwait(false);
-				return (db, null);
-			});
+			return Fdb.CreateRootScope(db, init, lifetime);
 		}
 
 		/// <summary>Create a scope that will provider a directory subspace to all transactions</summary>
 		/// <param name="provider">Parent provider</param>
 		/// <param name="path">Path of the directory subspace that will be open (and created if necessary) for all the transactions started from this scope.</param>
-		/// <returns>New child scope.</returns>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
 		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateDirectoryScope([NotNull] this IFdbDatabaseScopeProvider provider, FdbDirectoryPath path)
+		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateDirectoryScope(
+			[NotNull] this IFdbDatabaseScopeProvider provider,
+			FdbDirectoryPath path,
+			CancellationToken lifetime = default
+		)
 		{
 			return provider.CreateScope<FdbDirectorySubspace>(async (db, cancel) =>
 			{
 				var folder = await db.Directory.CreateOrOpenAsync(path, cancel).ConfigureAwait(false);
 				return (db, folder);
-			});
+			}, lifetime);
 		}
 
 		/// <summary>Create a scope that will provider a directory subspace to all transactions</summary>
 		/// <param name="db">Parent database</param>
 		/// <param name="path">Path of the directory subspace that will be open (and created if necessary) for all the transactions started from this scope.</param>
-		/// <returns>New child scope.</returns>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
 		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateDirectoryScope([NotNull] this IFdbDatabase db, FdbDirectoryPath path)
+		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateRootDirectoryScope(
+			[NotNull] this IFdbDatabase db,
+			FdbDirectoryPath path,
+			CancellationToken lifetime = default
+		)
 		{
-			return db.AsDatabaseProvider().CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
+			return Fdb.CreateRootScope(db).CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
 			{
 				var folder = await database.Directory.CreateOrOpenAsync(path, cancel).ConfigureAwait(false);
 				return (database, folder);
-			});
+			}, lifetime);
 		}
 
 		/// <summary>Wait for the scope to become ready.</summary>

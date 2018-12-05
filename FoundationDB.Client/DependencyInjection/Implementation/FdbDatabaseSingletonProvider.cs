@@ -1,7 +1,14 @@
-﻿using System;
+﻿#region Copyright Doxense 2017-2018
+//
+// All rights are reserved. Reproduction or transmission in whole or in part, in
+// any form or by any means, electronic, mechanical or otherwise, is prohibited
+// without the prior written consent of the copyright owner.
+//
+#endregion
 
 namespace FoundationDB.DependencyInjection
 {
+	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -13,15 +20,19 @@ namespace FoundationDB.DependencyInjection
 	internal sealed class FdbDatabaseSingletonProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseSingletonProvider([NotNull] IFdbDatabase db, TState state)
+		public FdbDatabaseSingletonProvider([NotNull] IFdbDatabase db, [CanBeNull] TState state, [NotNull] CancellationTokenSource lifetime)
 		{
+			Contract.Requires(db != null && lifetime != null);
 			this.Db = db;
 			this.State = state;
+			this.Lifetime = lifetime;
 		}
 
 		public IFdbDatabase Db { get; private set; }
 
 		public TState State { get; private set; }
+
+		private CancellationTokenSource Lifetime { get; }
 
 		private bool m_disposed;
 
@@ -37,6 +48,7 @@ namespace FoundationDB.DependencyInjection
 				if (!m_disposed)
 				{
 					m_disposed = true;
+					this.Lifetime.Cancel();
 					this.State = default;
 					this.Db = null;
 				}
@@ -47,6 +59,8 @@ namespace FoundationDB.DependencyInjection
 
 		public bool IsAvailable => !Volatile.Read(ref m_disposed);
 
+		public CancellationToken Cancellation => this.Lifetime.Token;
+
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct)
 		{
 			lock (this)
@@ -56,10 +70,12 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
-		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TNewState State)>> start)
+		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TNewState State)>> start, CancellationToken lifetime = default)
 		{
-			return Fdb.CreateScope<TNewState>(this, start, this.Db.Cancellation);
+			if (m_disposed) throw ThrowHelper.ObjectDisposedException(this);
+			return new FdbDatabaseScopeProvider<TNewState>(this, start, lifetime);
 		}
 
 	}
+
 }

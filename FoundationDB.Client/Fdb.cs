@@ -839,11 +839,70 @@ namespace FoundationDB.Client
 			}
 		}
 
+		#region Scopes & Providers...
+
+		/// <summary>Create a root <see cref="IFdbDatabaseScopeProvider">scope provider</see> that will use the provided database instance</summary>
+		/// <param name="db">Database instance that will be exposed</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider CreateRootScope([NotNull] IFdbDatabase db, CancellationToken lifetime = default)
+		{
+			Contract.NotNull(db, nameof(db));
+
+			if (db is IFdbDatabaseProvider provider && (lifetime == default || lifetime == db.Cancellation))
+			{ // already a provider, and can reuse the same cancellation token
+				return provider;
+			}
+
+			return new FdbDatabaseSingletonProvider<object>(db, null, CancellationTokenSource.CreateLinkedTokenSource(lifetime, db.Cancellation));
+		}
+
+		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
+		/// <param name="db">Parent provider</param>
+		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider<TState> CreateRootScope<TState>(
+			[NotNull] IFdbDatabase db,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init,
+			CancellationToken lifetime = default
+		)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(init, nameof(init));
+			return CreateRootScope(db).CreateScope(init, lifetime);
+		}
+
+		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
+		/// <param name="db">Parent database</param>
+		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider CreateRootScope(
+			[NotNull] IFdbDatabase db, 
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			CancellationToken lifetime = default)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(init, nameof(init));
+
+			return CreateRootScope(db).CreateScope<object>(async (database, cancel) =>
+			{
+				await init(database, cancel).ConfigureAwait(false);
+				return (db, null);
+			}, lifetime);
+		}
+
+		/// <summary>Create a scope provider that will run some initialization logic before transactions are allowed to run</summary>
+		/// <param name="parent">Parent scope that will provide a database instance to this scope</param>
+		/// <param name="handler">Handler that will be called once the parent provider becomes ready, and before any transactions started from this scope</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
 		[Pure, NotNull]
 		public static IFdbDatabaseScopeProvider CreateScope(
 			[NotNull] IFdbDatabaseScopeProvider parent,
 			[NotNull] Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> handler,
-			CancellationToken lifetime)
+			CancellationToken lifetime = default
+		)
 		{
 			Contract.NotNull(parent, nameof(parent));
 			Contract.NotNull(handler, nameof(handler));
@@ -853,27 +912,38 @@ namespace FoundationDB.Client
 				{
 					var res = await handler(db, ct).ConfigureAwait(false);
 					return (db, res);
-				}, 
-				CancellationTokenSource.CreateLinkedTokenSource(lifetime)
+				},
+				lifetime
 			);
 		}
 
+		/// <summary>Create a scope provider that will run some initialization logic before transactions are allowed to run</summary>
+		/// <param name="parent">Parent scope that will provide a database instance to this scope</param>
+		/// <param name="handler">Handler that will be called once the parent provider becomes ready, and before any transactions started from this scope</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
 		[Pure, NotNull]
 		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(
 			[NotNull] IFdbDatabaseScopeProvider parent,
 			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler,
-			CancellationToken lifetime)
+			CancellationToken lifetime = default
+
+		)
 		{
 			Contract.NotNull(parent, nameof(parent));
 			Contract.NotNull(handler, nameof(handler));
-			return new FdbDatabaseScopeProvider<TState>(parent, handler, CancellationTokenSource.CreateLinkedTokenSource(lifetime));
+			return new FdbDatabaseScopeProvider<TState>(parent, handler, lifetime);
 		}
 
+		/// <summary>Create a scope provider that will run some initialization logic before transactions are allowed to run</summary>
+		/// <param name="parent">Parent scope that will provide a database instance to this scope</param>
+		/// <param name="handler">Handler that will be called once the parent provider becomes ready, and before any transactions started from this scope</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
 		[Pure, NotNull]
 		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(
 			[NotNull] IFdbDatabaseScopeProvider parent,
 			[NotNull] Func<IFdbDatabase, CancellationToken, Task<TState>> handler,
-			CancellationToken lifetime)
+			CancellationToken lifetime = default
+		)
 		{
 			Contract.NotNull(parent, nameof(parent));
 			Contract.NotNull(handler, nameof(handler));
@@ -884,9 +954,52 @@ namespace FoundationDB.Client
 					var res = await handler(db, ct).ConfigureAwait(false);
 					return (db, res);
 				},
-				CancellationTokenSource.CreateLinkedTokenSource(lifetime)
+				lifetime
 			);
 		}
+
+		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
+		/// <param name="provider">Parent provider</param>
+		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider CreateScope(
+			[NotNull] IFdbDatabaseScopeProvider provider,
+			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			CancellationToken lifetime = default
+		)
+		{
+			Contract.NotNull(provider, nameof(provider));
+			Contract.NotNull(init, nameof(init));
+			return provider.CreateScope<object>(async (db, cancel) =>
+			{
+				await init(db, cancel).ConfigureAwait(false);
+				return (db, null);
+			}, lifetime);
+		}
+
+		/// <summary>Create a poisoned <see cref="IFdbDatabaseScopeProvider{TState}">database provider</see> that will always throw the same error back to the caller</summary>
+		/// <typeparam name="TState">Unused in this case</typeparam>
+		/// <param name="error">Exception that will be thrown every time someone attempts to use this scope (or a child scope)</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider<TState> CreateFailedScope<TState>([NotNull] Exception error, CancellationToken lifetime = default)
+		{
+			Contract.NotNull(error, nameof(error));
+			return new FdbDatabaseTombstoneProvider<TState>(null, error, lifetime);
+		}
+
+		/// <summary>Create a poisoned <see cref="IFdbDatabaseScopeProvider">database provider</see> that will always throw the same error back to the caller</summary>
+		/// <param name="error">Exception that will be thrown every time someone attempts to use this scope (or a child scope)</param>
+		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		[Pure, NotNull]
+		public static IFdbDatabaseScopeProvider CreateFailedScope([NotNull] Exception error, CancellationToken lifetime = default)
+		{
+			Contract.NotNull(error, nameof(error));
+			return new FdbDatabaseTombstoneProvider<object>(null, error, lifetime);
+		}
+
+		#endregion
 
 	}
 

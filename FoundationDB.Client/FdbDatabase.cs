@@ -40,6 +40,7 @@ namespace FoundationDB.Client
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
+	using FoundationDB.DependencyInjection;
 	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>
@@ -794,9 +795,10 @@ namespace FoundationDB.Client
 			return new ValueTask<IFdbDatabase>(this);
 		}
 
-		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start)
+		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)
 		{
-			throw new NotImplementedException();
+			Contract.NotNull(start, nameof(start));
+			return new FdbDatabaseScopeProvider<TState>(this, start, lifetime);
 		}
 
 		bool IFdbDatabaseScopeProvider.IsAvailable => true;
