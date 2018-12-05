@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 		{
 			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
 			// => for now, we have to decode the whole tuple, and throw all items except the last one!
-			return this.Encoder.DecodeKey(packedKey).Item4;
+			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey)).Item4;
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
@@ -310,7 +310,7 @@ namespace FoundationDB.Client
 		{
 			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
 			// => for now, we have to decode the whole tuple, and throw all items except the last one!
-			last = this.Encoder.DecodeKey(packedKey).Item4;
+			last = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey)).Item4;
 		}
 
 		#endregion

@@ -261,14 +261,14 @@ namespace FoundationDB.Client
 		[Pure]
 		public T1 DecodeFirst(Slice packedKey)
 		{
-			return this.Encoder.DecodeKeyParts(1, packedKey).Item1;
+			return this.Encoder.DecodeKeyParts(1, this.Parent.ExtractKey(packedKey)).Item1;
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
 		[Pure]
 		public void DecodePartial(Slice packedKey, out T1 item1) //REVIEW: DecodeFirst?
 		{
-			item1 = this.Encoder.DecodeKeyParts(1, packedKey).Item1;
+			item1 = this.Encoder.DecodeKeyParts(1, this.Parent.ExtractKey(packedKey)).Item1;
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
@@ -276,7 +276,7 @@ namespace FoundationDB.Client
 		{
 			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
 			// => for now, we have to decode the whole tuple, and throw all items except the last one!
-			return this.Encoder.DecodeKey(packedKey).Item2;
+			return this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey)).Item2;
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
@@ -284,7 +284,7 @@ namespace FoundationDB.Client
 		{
 			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
 			// => for now, we have to decode the whole tuple, and throw all items except the last one!
-			last = this.Encoder.DecodeKey(packedKey).Item2;
+			last = this.Encoder.DecodeKey(this.Parent.ExtractKey(packedKey)).Item2;
 		}
 
 		#endregion
