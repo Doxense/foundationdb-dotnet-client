@@ -243,7 +243,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.Parent.OpenWriter(16);
 			var tuple = (item1, item2, default(T3), default(T4));
-			this.Encoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
+			this.Encoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
 			return sw.ToSlice();
 		}
 
