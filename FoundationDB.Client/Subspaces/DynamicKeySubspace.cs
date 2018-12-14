@@ -122,6 +122,32 @@ namespace FoundationDB.Client
 			return sw.ToSlice();
 		}
 
+		/// <summary>Encode a batch of tuples</summary>
+		[Pure, NotNull]
+		public Slice[] PackMany<TTuple>(IEnumerable<TTuple> items)
+			where TTuple : IVarTuple
+		{
+			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
+				this.Parent.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a batch of tuples extracted from each elements</summary>
+		[Pure, NotNull]
+		public Slice[] PackMany<TSource, TTuple>(IEnumerable<TSource> items, Func<TSource, TTuple> selector)
+			where TTuple : IVarTuple
+		{
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
+				this.Parent.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
+				this.Encoder
+			);
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice Pack<T1>(ValueTuple<T1> items)
 		{
@@ -287,6 +313,7 @@ namespace FoundationDB.Client
 		#region Encode...
 
 		/// <summary>Encode a key which is composed of a single element</summary>
+		[Pure]
 		public Slice Encode<T1>(T1 item1)
 		{
 			var sw = this.Parent.OpenWriter();
@@ -295,6 +322,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
+		[Pure, NotNull]
 		public Slice[] EncodeMany<T>(IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
@@ -306,6 +334,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>
+		[Pure, NotNull]
 		public Slice[] EncodeMany<TSource, T>(IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
