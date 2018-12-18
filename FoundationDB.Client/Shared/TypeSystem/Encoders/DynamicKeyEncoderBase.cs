@@ -129,7 +129,8 @@ namespace FoundationDB.Client
 			return UnpackKey(packed).As<T1, T2, T3, T4, T5, T6>();
 		}
 
-		public virtual (Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items)
+		public virtual (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple items)
+			where TTuple : IVarTuple
 		{
 			var writer = new SliceWriter(prefix, 16);
 			PackKey(ref writer, items);

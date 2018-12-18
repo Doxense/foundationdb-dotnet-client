@@ -186,9 +186,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.ToRange(prefix);
 		}
 
-		public (Slice Begin, Slice End) ToRange(Slice prefix, IVarTuple items)
+		public (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, TTuple items)
+			where TTuple : IVarTuple
 		{
-			return TuPack.ToPrefixedKeyRange(prefix, items);
+			return TuPack.ToRange(prefix, items);
 		}
 
 		public (Slice Begin, Slice End) ToKeyRange<T1>(Slice prefix, T1 item1)
