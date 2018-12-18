@@ -44,7 +44,7 @@ namespace Doxense.Collections.Tuples
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public readonly struct STuple : IVarTuple
+	public readonly struct STuple : IVarTuple, ITupleSerializable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -119,6 +119,11 @@ namespace Doxense.Collections.Tuples
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
 			return 0;
+		}
+
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		{
+			//NOP
 		}
 
 		#endregion

@@ -35,7 +35,6 @@ namespace Doxense.Collections.Tuples.Tests
 	using System.Linq;
 	using System.Net;
 	using Doxense.Collections.Tuples.Encoding;
-	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 
@@ -48,7 +47,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Serialize_Bytes()
 		{
-			// Byte arrays are stored with prefix '01' followed by the bytes, and terminated by '00'. All occurences of '00' in the byte array are escaped with '00 FF'
+			// Byte arrays are stored with prefix '01' followed by the bytes, and terminated by '00'. All occurrences of '00' in the byte array are escaped with '00 FF'
 			// - Best case:  packed_size = 2 + array_len
 			// - Worst case: packed_size = 2 + array_len * 2
 
@@ -96,7 +95,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Serialize_Unicode_Strings()
 		{
-			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurences of '00' in the UTF8 bytes are escaped with '00 FF'
+			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurrences of '00' in the UTF8 bytes are escaped with '00 FF'
 
 			// simple string
 			Assert.That(TuPack.EncodeKey("hello world").ToString(), Is.EqualTo("<02>hello world<00>"));
@@ -1023,6 +1022,10 @@ namespace Doxense.Collections.Tuples.Tests
 			// key would be "(..., value, id)"
 
 			Verify(
+				STuple.Empty,
+				""
+			);
+			Verify(
 				STuple.Create(42, value, docId),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
@@ -1048,11 +1051,16 @@ namespace Doxense.Collections.Tuples.Tests
 			// corner cases
 			Verify(
 				STuple.Create(STuple.Empty),
-				"05 00" // empty tumple should have header and footer
+				"05 00" // empty tuple should have header and footer
 			);
 			Verify(
 				STuple.Create(STuple.Empty, default(string)),
 				"05 00 00" // outer null should not be escaped
+			);
+			// corner cases
+			Verify(
+				STuple.Create(STuple.Create(STuple.Empty, STuple.Empty), STuple.Empty),
+				"05 05 00 05 00 00 05 00"
 			);
 			Verify(
 				STuple.Create(STuple.Create(default(string)), default(string)),
@@ -1120,6 +1128,13 @@ namespace Doxense.Collections.Tuples.Tests
 			{
 				var t = TuPack.DecodeKey<(int, (int, int, int), string, bool)>(packed);
 				Assert.That(t, Is.EqualTo((42, (2014, 11, 6), "Hello", true)));
+			}
+
+			// empty tuples
+			{
+				Assert.That(TuPack.Unpack(Slice.Empty), Is.EqualTo(STuple.Empty), "()");
+				Assert.That(TuPack.Unpack(Slice.Unescape("<05><00>")), Is.EqualTo(STuple.Create(STuple.Empty)), "((),)");
+				Assert.That(TuPack.Unpack(Slice.Unescape("<05><05><00><05><00><00><05><00>")), Is.EqualTo(STuple.Create(STuple.Create(STuple.Empty, STuple.Empty), STuple.Empty)), "(((),()),())");
 			}
 
 			// (null,)
@@ -2185,7 +2200,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_ToRange()
 		{
-			KeyRange range;
+			(Slice Begin, Slice End) range;
 
 			// ToRange() should add 0x00 and 0xFF to the packed representations of the tuples
 			// note: we cannot increment the key to get the End key, because it conflicts with the Tuple Binary Encoding itself
@@ -2234,7 +2249,7 @@ namespace Doxense.Collections.Tuples.Tests
 		public void Test_TuplePack_ToRange_With_Prefix()
 		{
 			Slice prefix = Slice.FromString("ABC");
-			KeyRange range;
+			(Slice Begin, Slice End) range;
 
 			range = TuPack.ToRange(prefix, STuple.Create("Hello"));
 			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><00>"));

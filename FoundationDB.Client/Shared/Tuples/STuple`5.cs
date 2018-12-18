@@ -36,6 +36,7 @@ namespace Doxense.Collections.Tuples
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -48,7 +49,7 @@ namespace Doxense.Collections.Tuples
 	/// <typeparam name="T5">Type of the 5th item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1, T2, T3, T4, T5> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5>>, IEquatable<(T1, T2, T3, T4, T5)>
+	public readonly struct STuple<T1, T2, T3, T4, T5> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4, T5>>, IEquatable<(T1, T2, T3, T4, T5)>, ITupleSerializable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -196,6 +197,15 @@ namespace Doxense.Collections.Tuples
 		public TItem With<TItem>([NotNull] Func<T1, T2, T3, T4, T5, TItem> lambda)
 		{
 			return lambda(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5);
+		}
+
+		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		{
+			TuplePackers.SerializeTo<T1>(ref writer, this.Item1);
+			TuplePackers.SerializeTo<T2>(ref writer, this.Item2);
+			TuplePackers.SerializeTo<T3>(ref writer, this.Item3);
+			TuplePackers.SerializeTo<T4>(ref writer, this.Item4);
+			TuplePackers.SerializeTo<T5>(ref writer, this.Item5);
 		}
 
 		public IEnumerator<object> GetEnumerator()
