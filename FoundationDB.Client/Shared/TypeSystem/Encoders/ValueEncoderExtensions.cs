@@ -38,15 +38,16 @@ namespace Doxense.Serialization.Encoders
 
 	public static class ValueEncoderExtensions
 	{
+		#region Encoding...
 
-		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Encode a array of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
 		[NotNull]
-		public static Slice[] EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params T[] values)
+		public static TStorage[] EncodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] params TValue[] values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
 
-			var slices = new Slice[values.Length];
+			var slices = new TStorage[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
 				slices[i] = encoder.EncodeValue(values[i]);
@@ -55,76 +56,251 @@ namespace Doxense.Serialization.Encoders
 			return slices;
 		}
 
-		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static IEnumerable<Slice> EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
+		/// <summary>Encode the values of a sequence of Key/Value pairs into a list of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
+		[NotNull, LinqTunnel]
+		public static List<TStorage> EncodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TValue> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
 
-			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
-
-			if (values is T[] array)
-			{ // optimized path for arrays
-				return EncodeValues<T>(encoder, array);
-			}
-
-			if (values is ICollection<T> coll)
-			{ // optimized path when we know the count
-				var slices = new List<Slice>(coll.Count);
-				foreach (var value in coll)
+			if (values is ICollection<TValue> coll)
+			{
+				var res = new List<TStorage>(coll.Count);
+				foreach (var value in values)
 				{
-					slices.Add(encoder.EncodeValue(value));
+					res.Add(encoder.EncodeValue(value));
 				}
-				return slices;
+				return res;
 			}
 
-			return values.Select(value => encoder.EncodeValue(value));
+			return values.Select(encoder.EncodeValue).ToList();
 		}
 
-		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Encode a sequence of <paramref name="items"/> into a list of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
 		[NotNull]
-		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params Slice[] slices)
+		public static List<TStorage> EncodeValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TElement> items, [NotNull, InstantHandle] Func<TElement, TValue> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(selector, nameof(selector));
 
-			var values = new T[slices.Length];
-			for (int i = 0; i < slices.Length; i++)
+			if (items is ICollection<TElement> coll)
 			{
-				values[i] = encoder.DecodeValue(slices[i]);
+				var res = new List<TStorage>(coll.Count);
+				foreach (var item in items)
+				{
+					res.Add(encoder.EncodeValue(selector(item)));
+				}
+				return res;
 			}
 
-			return values;
+			return items.Select(item => encoder.EncodeValue(selector(item))).ToList();
 		}
 
-		/// <summary>Convert the values of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
+		/// <summary>Transform a sequence of <typeparamref name="TValue"/> into a sequence of <typeparamref name="TStorage"/></summary>
+		[NotNull, LinqTunnel]
+		public static IEnumerable<TStorage> SelectValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TValue> values)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
+
+			return values.Select(encoder.EncodeValue);
+		}
+
+		/// <summary>Transform the values a sequence of Key/Value pairs into a sequence of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
+		[NotNull, LinqTunnel]
+		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TAny>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<KeyValuePair<TAny, TValue>> items)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
 
-			var values = new T[items.Length];
-			for (int i = 0; i < items.Length; i++)
-			{
-				values[i] = encoder.DecodeValue(items[i].Value);
-			}
-
-			return values;
+			return items.Select(item => encoder.EncodeValue(item.Value));
 		}
 
-		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static IEnumerable<T> DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
+		/// <summary>Transform a sequence of <paramref name="items"/> into a sequence of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
+		[NotNull, LinqTunnel]
+		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TValue> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(selector, nameof(selector));
 
-			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
-
-			return slices.Select(slice => encoder.DecodeValue(slice));
+			return items.Select(item => encoder.EncodeValue(selector(item)));
 		}
+
+		#endregion
+
+		#region Decoding...
+
+		/// <summary>Decode an array of <typeparamref name="TStorage"/> into an arror of <typeparamref name="TValue"/></summary>
+		[NotNull]
+		public static TValue[] DecodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] params TStorage[] values)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
+
+			var res = new TValue[values.Length];
+			for (int i = 0; i < res.Length; i++)
+			{
+				res[i] = encoder.DecodeValue(values[i]);
+			}
+			return res;
+		}
+
+		/// <summary>Decode the values from a sequence of Key/Value pairs into a list of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
+		[NotNull]
+		public static TValue[] DecodeValues<TValue, TStorage, TAny>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<KeyValuePair<TAny, TStorage>> items)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(items, nameof(items));
+
+			switch (items)
+			{
+				case KeyValuePair<TAny, TStorage>[] array:
+				{
+					var res = new TValue[array.Length];
+					for(int i = 0; i < res.Length; i++)
+					{
+						res[i] = encoder.DecodeValue(array[i].Value);
+					}
+					return res;
+				}
+				case ICollection<KeyValuePair<TAny, TStorage>> coll:
+				{
+					var res = new TValue[coll.Count];
+					int i = 0;
+					foreach (var item in items)
+					{
+						res[i++] = encoder.DecodeValue(item.Value);
+					}
+					if (i != res.Length) throw new InvalidOperationException();
+					return res;
+				}
+				default:
+				{
+					var res = new List<TValue>();
+					foreach (var item in items)
+					{
+						res.Add(encoder.DecodeValue(item.Value));
+					}
+					return res.ToArray();
+				}
+			}
+		}
+
+		/// <summary>Decode a sequence of <typeparamref name="TStorage"/> into a list of <typeparamref name="TValue"/></summary>
+		[NotNull]
+		public static TValue[] DecodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TStorage> values)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
+
+			switch (values)
+			{
+				case TStorage[] arr:
+				{
+					var res = new TValue[arr.Length];
+					for (int i = 0; i < res.Length; i++)
+					{
+						res[i] = encoder.DecodeValue(arr[i]);
+					}
+					return res;
+				}
+				case ICollection<TStorage> coll:
+				{
+					var res = new TValue[coll.Count];
+					int i = 0;
+					foreach (var value in values)
+					{
+						res[i++] = encoder.DecodeValue(value);
+					}
+					if (i != res.Length) throw new InvalidOperationException();
+					return res;
+				}
+				default:
+				{
+					var res = new List<TValue>();
+					foreach (var value in values)
+					{
+						res.Add(encoder.DecodeValue(value));
+					}
+					return res.ToArray();
+				}
+			}
+		}
+
+		/// <summary>Decode a sequence of <paramref name="items"/> into a list of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
+		[NotNull]
+		public static TValue[] DecodeValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TElement> items, [NotNull, InstantHandle] Func<TElement, TStorage> selector)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(items, nameof(items));
+
+			switch (items)
+			{
+				case TElement[] arr:
+				{
+					var res = new TValue[arr.Length];
+					for (int i = 0; i < res.Length; i++)
+					{
+						res[i] = encoder.DecodeValue(selector(arr[i]));
+					}
+					return res;
+				}
+				case ICollection<TElement> coll:
+				{
+					var res = new TValue[coll.Count];
+					int i = 0;
+					foreach (var item in items)
+					{
+						res[i++] = encoder.DecodeValue(selector(item));
+					}
+					if (i != res.Length) throw new InvalidOperationException();
+					return res;
+				}
+				default:
+				{
+					var res = new List<TValue>();
+					foreach (var item in items)
+					{
+						res.Add(encoder.DecodeValue(selector(item)));
+					}
+					return res.ToArray();
+				}
+			}
+		}
+
+		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="TValue"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		[NotNull, LinqTunnel]
+		public static IEnumerable<TValue> SelectValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TStorage> values)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(values, nameof(values));
+
+			return values.Select(encoder.DecodeValue);
+		}
+
+		/// <summary>Transform the values from a sequence of Key/Value pairs, into another sequence of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
+		[NotNull, LinqTunnel]
+		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TAny>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<KeyValuePair<TAny, TStorage>> items)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(items, nameof(items));
+
+			return items.Select(item => encoder.DecodeValue(item.Value));
+		}
+
+		/// <summary>Transform a sequence of <paramref name="items"/> into another sequence of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
+		[NotNull, LinqTunnel]
+		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TStorage> selector)
+		{
+			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(items, nameof(items));
+
+			return items.Select(x => encoder.DecodeValue(selector(x)));
+		}
+
+		#endregion
 
 	}
 

@@ -54,6 +54,8 @@ namespace Doxense.Serialization.Encoders
 	public interface IValueEncoder<TValue> : IValueEncoder<TValue, Slice>
 	{
 		// no methods
+
+		//TODO: add custom "EncodeValueTo(ref SliceWriter)" and "DecodeValueFrom(ref SliceReader)" ?
 	}
 
 }
