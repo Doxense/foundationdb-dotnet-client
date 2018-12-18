@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples
 		// - Unless specified otherwise, end offsets are usually EXCLUDED.
 		// - Appending to a tuple returns a new tuple (does not mutate the previous)
 		// - Getting the substring of a tuple return a new tuple that tries to reuse the objects of the parent tuple
-		// - There are no guarantees that two different tuples containning the "same" values return the same HashCode, meaning that it should not be used as keys in a Dictionary
+		// - There are no guarantees that two different tuples containing the "same" values return the same HashCode, meaning that it should not be used as keys in a Dictionary
 
 		// Performance notes:
 		// - Accessing the Count and Last item should be fast, if possible in O(1)
@@ -65,7 +65,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Return a section of the tuple</summary>
 		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
-		/// <returns>Tuple that include all items in the current tuple whose offset are greather than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
+		/// <returns>Tuple that include all items in the current tuple whose offset are greater than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
 		IVarTuple this[int? fromIncluded, int? toExcluded] { [NotNull, Pure] get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
@@ -98,7 +98,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
 		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
-		/// <param name="offset">Offset at wich to start copying items</param>
+		/// <param name="offset">Offset at which to start copying items</param>
 		/// <example>
 		/// var tmp = new object[3];
 		/// ("Hello", "World", 123,).CopyTo(tmp, 0);

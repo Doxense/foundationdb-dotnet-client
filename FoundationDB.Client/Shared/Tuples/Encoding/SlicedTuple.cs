@@ -34,6 +34,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
+	using JetBrains.Annotations;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public sealed class SlicedTuple : IVarTuple, ITupleSerializable
@@ -51,7 +52,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private int? m_hashCode;
 
-		public SlicedTuple(Slice[] slices, int offset, int count)
+		public SlicedTuple([NotNull] Slice[] slices, int offset, int count)
 		{
 			Contract.Requires(slices != null && offset >= 0 && count >= 0);
 			Contract.Requires(offset + count <= slices.Length);
@@ -65,6 +66,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			PackTo(ref writer);
 		}
+
 		internal void PackTo(ref TupleWriter writer)
 		{
 			var slices = m_slices;

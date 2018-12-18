@@ -55,7 +55,7 @@ namespace Doxense.Collections.Tuples
 		public readonly T1 Item1;
 		/// <summary>Second element of the triplet</summary>
 		public readonly T2 Item2;
-		/// <summary>Third and last elemnt of the triplet</summary>
+		/// <summary>Third and last element of the triplet</summary>
 		public readonly T3 Item3;
 
 		[DebuggerStepThrough]
@@ -152,7 +152,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
-		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IVarTuple Concat(IVarTuple tuple)
 		{
@@ -303,7 +303,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
-		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
 		public STuple<T1, T2, T3, T4> Concat<T4>(ValueTuple<T4> tuple)
 		{
@@ -312,7 +312,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
-		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5> Concat<T4, T5>(ValueTuple<T4, T5> tuple)
 		{
@@ -321,7 +321,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
-		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6> Concat<T4, T5, T6>((T4, T5, T6) tuple)
 		{

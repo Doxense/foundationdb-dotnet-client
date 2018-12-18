@@ -164,7 +164,7 @@ namespace Doxense.Collections.Tuples
 			/// <remarks>If negative, comparison starts from the end.</remarks>
 			public int Offset { get; }
 
-			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
+			/// <summary>Comparer for the first element (at position <see cref="Offset"/>)</summary>
 			public IComparer<T1> Comparer { get; }
 
 			/// <summary>Compare a single item in both tuples</summary>
@@ -240,10 +240,10 @@ namespace Doxense.Collections.Tuples
 			/// <remarks>If negative, comparison starts from the end.</remarks>
 			public int Offset { get; }
 
-			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
+			/// <summary>Comparer for the first element (at position <see cref="Offset"/>)</summary>
 			public IComparer<T1> Comparer1 { get; }
 
-			/// <summary>Comparer for the second element (at possition <see cref="Offset"/> + 1)</summary>
+			/// <summary>Comparer for the second element (at position <see cref="Offset"/> + 1)</summary>
 			public IComparer<T2> Comparer2 { get; }
 
 			/// <summary>Compare up to two items in both tuples</summary>
@@ -299,7 +299,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Comparer that compares tuples with at least 3 items</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
-		/// <typeparam name="T3">Type of the thrid item</typeparam>
+		/// <typeparam name="T3">Type of the third item</typeparam>
 		[PublicAPI]
 		public sealed class CompositeComparer<T1, T2, T3> : IComparer<IVarTuple>, IComparer<STuple<T1, T2, T3>>, IComparer<(T1, T2, T3)>
 		{
@@ -320,7 +320,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="offset">Offset in the tuples of the first element to compare (can be negative)</param>
 			/// <param name="comparer1">Comparer for the first element type</param>
 			/// <param name="comparer2">Comparer for the second element type</param>
-			/// <param name="comparer3">Comparer for the thrid element type</param>
+			/// <param name="comparer3">Comparer for the third element type</param>
 			public CompositeComparer(int offset, IComparer<T1> comparer1, IComparer<T2> comparer2, IComparer<T3> comparer3)
 			{
 				this.Offset = offset;
@@ -333,13 +333,13 @@ namespace Doxense.Collections.Tuples
 			/// <remarks>If negative, comparison starts from the end.</remarks>
 			public int Offset { get; }
 
-			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
+			/// <summary>Comparer for the first element (at position <see cref="Offset"/>)</summary>
 			public IComparer<T1> Comparer1 { get; }
 
-			/// <summary>Comparer for the second element (at possition <see cref="Offset"/> + 1)</summary>
+			/// <summary>Comparer for the second element (at position <see cref="Offset"/> + 1)</summary>
 			public IComparer<T2> Comparer2 { get; }
 
-			/// <summary>Comparer for the third element (at possition <see cref="Offset"/> + 2)</summary>
+			/// <summary>Comparer for the third element (at position <see cref="Offset"/> + 2)</summary>
 			public IComparer<T3> Comparer3 { get; }
 
 			/// <summary>Compare up to three items in both tuples</summary>

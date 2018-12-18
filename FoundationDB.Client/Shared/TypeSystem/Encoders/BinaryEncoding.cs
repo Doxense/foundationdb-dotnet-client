@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	public sealed class BinaryEncoding : IValueEncoding,

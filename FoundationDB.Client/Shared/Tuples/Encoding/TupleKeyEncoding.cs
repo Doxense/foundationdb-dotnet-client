@@ -78,6 +78,8 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#endregion
 
+		#region Values...
+
 		IValueEncoder<TValue, TStorage> IValueEncoding.GetValueEncoder<TValue, TStorage>()
 		{
 			if (typeof(TStorage) != typeof(Slice)) throw new NotSupportedException($"Tuple Encoding does not support {typeof(TStorage).Name} as a storage type.");
@@ -88,6 +90,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			return TupleEncoder.Encoder<TValue>.Default;
 		}
+
+		#endregion
 
 	}
 }

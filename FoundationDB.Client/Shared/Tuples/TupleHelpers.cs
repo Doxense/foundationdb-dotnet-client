@@ -160,7 +160,7 @@ namespace Doxense.Collections.Tuples
 		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static T FailIndexOutOfRange<T>(int index, int count)
 		{
-			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple's range (0..{count - 1})");
+			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
 		public static bool Equals(IVarTuple left, object other, [NotNull] IEqualityComparer comparer)

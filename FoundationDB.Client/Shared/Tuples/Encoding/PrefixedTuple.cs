@@ -36,7 +36,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
 
-	/// <summary>Tuple that has a fixed abitrary binary prefix</summary>
+	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	public sealed class PrefixedTuple : IVarTuple, ITupleSerializable

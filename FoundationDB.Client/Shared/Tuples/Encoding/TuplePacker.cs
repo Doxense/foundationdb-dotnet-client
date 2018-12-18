@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Value that will be serialized</param>
 		/// <remarks>
-		/// The buffer does not need to be preallocated.
+		/// The buffer does not need to be pre-allocated.
 		/// This method supports embedded tuples.
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -66,7 +66,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Value that will be serialized</param>
 		/// <remarks>
-		/// The buffer does not need to be preallocated.
+		/// The buffer does not need to be pre-allocated.
 		/// This method DOES NOT support embedded tupels, and assumes that we are serializing a top-level Tuple!
 		/// If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!
 		/// </remarks>

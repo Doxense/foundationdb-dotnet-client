@@ -908,7 +908,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
-		/// <example>TuPack.ToRange(Slice.FromInt32(42), Stuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
+		/// <example>TuPack.ToRange(Slice.FromInt32(42), STuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<TTuple>(Slice prefix, [NotNull] TTuple tuple)
@@ -1014,7 +1014,7 @@ namespace Doxense.Collections.Tuples
 
 		#region Unpacking...
 
-		/// <summary>Unpack a tuple from a serialied key blob</summary>
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
@@ -1040,7 +1040,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T">Type of the first value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		[Pure]
 		public static T DecodeFirst<T>(Slice packedKey)
@@ -1055,7 +1055,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		[Pure]
 		public static T DecodeLast<T>(Slice packedKey)
@@ -1131,8 +1131,8 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Unpack the next item in the tuple, and advance the cursor</summary>
 		/// <typeparam name="T">Type of the next value in the tuple</typeparam>
-		/// <param name="input">Reader positionned at the start of the next item to read</param>
-		/// <param name="value">If decoding succeedsd, receives the decoded value.</param>
+		/// <param name="input">Reader positioned at the start of the next item to read</param>
+		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
 		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
 		public static bool DecodeNext<T>(ref TupleReader input, out T value)
 		{

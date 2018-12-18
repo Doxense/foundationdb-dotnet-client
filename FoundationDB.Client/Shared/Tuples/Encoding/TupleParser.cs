@@ -34,7 +34,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
@@ -985,7 +984,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				bits = ~bits;
 			}
 			else
-			{ // postive
+			{ // positive
 				bits ^= 0x80000000U;
 			}
 
@@ -1016,7 +1015,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				bits = ~bits;
 			}
 			else
-			{ // postive
+			{ // positive
 				bits ^= 0x8000000000000000UL;
 			}
 
@@ -1103,7 +1102,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		#region Parsing...
 
 		/// <summary>Decode the next token from a packed tuple</summary>
-		/// <param name="reader">Parser from wich to read the next token</param>
+		/// <param name="reader">Parser from which to read the next token</param>
 		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
 		public static Slice ParseNext(ref TupleReader reader)
 		{
@@ -1273,7 +1272,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Visit the different tokens of a packed tuple</summary>
-		/// <param name="reader">Reader positionned at the start of a packed tuple</param>
+		/// <param name="reader">Reader positioned at the start of a packed tuple</param>
 		/// <param name="visitor">Lambda called for each segment of a tuple. Returns true to continue parsing, or false to stop</param>
 		/// <returns>Number of tokens that have been visited until either <paramref name="visitor"/> returned false, or <paramref name="reader"/> reached the end.</returns>
 		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, TupleSegmentType, T> visitor)

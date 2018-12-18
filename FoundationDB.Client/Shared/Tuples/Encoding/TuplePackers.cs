@@ -39,7 +39,6 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
@@ -545,7 +544,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Guid value)
 		{
-			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty bytestring) ?
+			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty byte string) ?
 			// => could spare 17 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
 			TupleParser.WriteGuid(ref writer, in value);
 		}
@@ -631,7 +630,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			TupleParser.WriteUserType(ref writer, value);
 		}
 
-		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
+		/// <summary>Writes an IP Address as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
 		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value)
 		{
 			TupleParser.WriteBytes(ref writer, value?.GetAddressBytes());
@@ -939,7 +938,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Deserialize a packed element into an object by choosing the most appropriate type at runtime</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>Decoded element, in the type that is the best fit.</returns>
-		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large intergers as Int64 or even UInt64.</remarks>
+		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large integers as Int64 or even UInt64.</remarks>
 		[CanBeNull]
 		public static object DeserializeBoxed(Slice slice)
 		{
@@ -1939,7 +1938,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Unpack a tuple from a buffer</summary>
-		/// <param name="reader">Reader positionned on the start of the packed representation of a tuple with zero or more elements</param>
+		/// <param name="reader">Reader positioned on the start of the packed representation of a tuple with zero or more elements</param>
 		/// <returns>Decoded tuple</returns>
 		internal static SlicedTuple Unpack(ref TupleReader reader)
 		{

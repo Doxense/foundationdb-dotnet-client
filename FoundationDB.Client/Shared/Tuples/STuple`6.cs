@@ -161,7 +161,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
-		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IVarTuple Concat(IVarTuple tuple)
 		{
