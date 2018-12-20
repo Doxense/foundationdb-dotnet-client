@@ -36,17 +36,19 @@ namespace FoundationDB.Samples.Benchmarks
 		/// </summary>
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
-			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Benchmarks", "LeakTest" }, ct: ct);
-
-			// clear all previous values
-			await db.ClearRangeAsync(this.Subspace, ct);
-
-			// insert all the classes
-			await db.WriteAsync((tr) =>
+			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
-				tr.Set(this.Subspace.GetPrefix() + FdbKey.MinValue, Slice.FromString("BEGIN"));
-				tr.Set(this.Subspace.GetPrefix() + FdbKey.MaxValue, Slice.FromString("END"));
+				// open the folder where we will store everything
+				var subspace = await db.Directory.CreateOrOpenAsync(tr, new [] { "Benchmarks", "LeakTest" });
+
+				// clear all previous values
+				await db.ClearRangeAsync(subspace, ct);
+
+				// insert all the classes
+				tr.Set(subspace.GetPrefix() + FdbKey.MinValue, Slice.FromString("BEGIN"));
+				tr.Set(subspace.GetPrefix() + FdbKey.MaxValue, Slice.FromString("END"));
+
+				return subspace;
 			}, ct);
 		}
 

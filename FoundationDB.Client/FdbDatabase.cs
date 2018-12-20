@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		private int m_defaultMaxRetryDelay;
 
 		/// <summary>Instance of the DirectoryLayer used by this database (lazy initialized)</summary>
-		private FdbDatabasePartition m_directory;
+		private IFdbDirectory m_directory;
 
 		#endregion
 
@@ -155,7 +155,7 @@ namespace FoundationDB.Client
 		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Root directory of this database instance</summary>
-		public FdbDatabasePartition Directory
+		public IFdbDirectory Directory
 		{
 			get
 			{
@@ -175,10 +175,9 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>When overriden in a derived class, gets a database partition that wraps the root directory of this database instance</summary>
-		protected virtual FdbDatabasePartition GetRootDirectory()
+		protected virtual IFdbDirectory GetRootDirectory()
 		{
-			var dl = FdbDirectoryLayer.Create(m_globalSpaceCopy);
-			return new FdbDatabasePartition(this, dl);
+			return FdbDirectoryLayer.Create(m_globalSpaceCopy);
 		}
 
 		#endregion
@@ -548,7 +547,7 @@ namespace FoundationDB.Client
 				m_readOnly = readOnly;
 				m_globalSpace = subspace.Copy(TuPack.Encoding);
 				m_globalSpaceCopy = subspace.Copy(TuPack.Encoding); // keep another copy
-				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
+				m_directory = directory;
 			}
 		}
 

@@ -36,6 +36,7 @@ namespace FoundationDB.Filters
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	/// <summary>Base class for simple database filters</summary>
@@ -57,7 +58,7 @@ namespace FoundationDB.Filters
 		protected bool m_disposed;
 
 		/// <summary>Wrapper for the inner db's Directory property</summary>
-		protected FdbDatabasePartition m_directory;
+		protected IFdbDirectory m_directory;
 
 		#endregion
 
@@ -100,13 +101,13 @@ namespace FoundationDB.Filters
 		public virtual IDynamicKeySubspace GlobalSpace => m_database.GlobalSpace;
 
 		/// <summary>Directory partition of this database instance</summary>
-		public virtual FdbDatabasePartition Directory
+		public virtual IFdbDirectory Directory
 		{
 			get
 			{
-				if (m_directory == null || !object.ReferenceEquals(m_directory.Directory, m_database.Directory))
+				if (m_directory == null || !object.ReferenceEquals(m_directory, m_database.Directory))
 				{
-					m_directory = new FdbDatabasePartition(this, m_database.Directory);
+					m_directory = m_database.Directory;
 				}
 				return m_directory;
 			}

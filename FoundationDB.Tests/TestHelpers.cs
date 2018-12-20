@@ -82,11 +82,14 @@ namespace FoundationDB.Client.Tests
 			// do not log
 			db = db.WithoutLogging();
 
-			// remove previous
-			await db.Directory.TryRemoveAsync(path, ct);
+			var subspace = await db.ReadWriteAsync(async tr =>
+			{
+				// remove previous
+				await db.Directory.TryRemoveAsync(tr, path);
+				// create new
+				return await db.Directory.CreateAsync(tr, path);
+			}, ct);
 
-			// create new
-			var subspace = await db.Directory.CreateAsync(path, ct);
 			Assert.That(subspace, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True);
 			return subspace;

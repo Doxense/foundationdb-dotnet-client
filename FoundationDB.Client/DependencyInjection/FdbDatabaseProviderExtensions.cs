@@ -103,7 +103,7 @@ namespace FoundationDB.Client
 		{
 			return provider.CreateScope<FdbDirectorySubspace>(async (db, cancel) =>
 			{
-				var folder = await db.Directory.CreateOrOpenAsync(path, cancel).ConfigureAwait(false);
+				var folder = await db.Directory.CreateOrOpenAsync(db, path, cancel).ConfigureAwait(false);
 				return (db, folder);
 			}, lifetime);
 		}
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 		{
 			return Fdb.CreateRootScope(db).CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
 			{
-				var folder = await database.Directory.CreateOrOpenAsync(path, cancel).ConfigureAwait(false);
+				var folder = await database.Directory.CreateOrOpenAsync(database, path, cancel).ConfigureAwait(false);
 				return (database, folder);
 			}, lifetime);
 		}

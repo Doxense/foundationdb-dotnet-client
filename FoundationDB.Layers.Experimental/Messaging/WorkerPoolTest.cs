@@ -14,7 +14,7 @@ namespace FoundationDB.Layers.Messaging
 	public class WorkerPoolTest
 	{
 
-		public void Main()
+		public async Task Main()
 		{
 
 			ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
@@ -26,10 +26,14 @@ namespace FoundationDB.Layers.Messaging
 				var options = new FdbConnectionOptions();
 				//TODO: change options using the command line arguments?
 
-				using (var db = Fdb.OpenAsync(options, cts.Token).GetAwaiter().GetResult())
+				using (var db = await Fdb.OpenAsync(options, cts.Token))
 				{
-					var location = db.Directory.CreateOrOpenAsync(new [] { "T", "WorkerPool" }, cts.Token).GetAwaiter().GetResult();
-					db.ClearRangeAsync(location, cts.Token).GetAwaiter().GetResult();
+					var location = await db.ReadWriteAsync(async tr =>
+					{
+						var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "T", "WorkerPool" });
+						tr.ClearRange(subspace);
+						return subspace;
+					}, cts.Token);
 
 					// failsafe: remove this when not debugging problems !
 					cts.CancelAfter(TimeSpan.FromSeconds(60));
@@ -38,7 +42,7 @@ namespace FoundationDB.Layers.Messaging
 					const int K = 2; // publishers
 					const int W = 2; // workers
 
-					RunAsync(db, location, cts.Token, () => cts.Cancel(), N, K, W).GetAwaiter().GetResult();
+					await RunAsync(db, location, cts.Token, () => cts.Cancel(), N, K, W);
 				}
 			}
 			catch (TaskCanceledException)

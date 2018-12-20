@@ -72,9 +72,12 @@ namespace FdbBurner
 		private static async Task BurnerThread(IFdbDatabase db, CancellationToken ct)
 		{
 
-			var folder = await db.Directory.CreateOrOpenAsync(new[] { "Benchmarks", "Burner", "Sequential" }, ct);
-
-			await db.WriteAsync((tr) => tr.ClearRange(folder), ct);
+			var folder = await db.ReadWriteAsync(async tr =>
+			{
+				var x = await db.Directory.CreateOrOpenAsync(tr, new[] { "Benchmarks", "Burner", "Sequential" });
+				tr.ClearRange(x);
+				return x;
+			}, ct);
 
 			long pos = 0;
 

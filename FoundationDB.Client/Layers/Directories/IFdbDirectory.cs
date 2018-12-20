@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Directories
+namespace FoundationDB.Layers.Directories //TODO: => FoundationDB.Client ?
 {
 	using FoundationDB.Client;
 	using JetBrains.Annotations;

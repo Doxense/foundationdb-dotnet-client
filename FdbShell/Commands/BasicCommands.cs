@@ -30,7 +30,7 @@ namespace FdbShell
 		{
 			if (path != null && path.Length > 0)
 			{
-				return await db.Directory.TryOpenAsync(path, ct: ct);
+				return await db.Directory.TryOpenAsync(db, path, ct: ct);
 			}
 			else
 			{
@@ -107,14 +107,14 @@ namespace FdbShell
 
 			log.WriteLine($"# Creating directory {String.Join("/", path)} with layer '{layer}'");
 
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
 			if (folder != null)
 			{
 				log.WriteLine($"- Directory {string.Join("/", path)} already exists!");
 				return;
 			}
 
-			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), ct: ct);
+			folder = await db.Directory.TryCreateAsync(db, path, Slice.FromString(layer), ct: ct);
 			log.WriteLine($"- Created under {FdbKey.Dump(folder.GetPrefix())} [{folder.GetPrefix().ToHexaString(' ')}]");
 
 			// look if there is already stuff under there
@@ -136,52 +136,58 @@ namespace FdbShell
 			bool recursive = args.Contains("-r", StringComparer.Ordinal) || args.Contains("--recursive", StringComparer.Ordinal);
 			bool force = args.Contains("-f", StringComparer.Ordinal) || args.Contains("--force", StringComparer.Ordinal);
 
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
-			if (folder == null)
+			await db.ReadWriteAsync(async tr =>
 			{
-				Program.Error(log, $"# Directory /{string.Join("/", path)} does not exist");
-				return;
-			}
-
-			// are there any subdirectories ?
-			if (!recursive)
-			{
-				var subDirs = await folder.TryListAsync(db, ct);
-				if (subDirs != null && subDirs.Count > 0)
+				var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
+				if (folder == null)
 				{
-					//TODO: "-r" flag ?
-					Program.Error(log, $"# Cannot remove /{string.Join("/", path)} because it still contains {subDirs.Count:N0} sub-directorie(s)");
+					Program.Error(log, $"# Directory /{string.Join("/", path)} does not exist");
 					return;
 				}
-			}
 
-			if (!force)
-			{
-				//TODO: ask for confirmation?
-			}
+				// are there any subdirectories ?
+				if (!recursive)
+				{
+					var subDirs = await folder.TryListAsync(tr);
+					if (subDirs != null && subDirs.Count > 0)
+					{
+						//TODO: "-r" flag ?
+						Program.Error(log, $"# Cannot remove /{string.Join("/", path)} because it still contains {subDirs.Count:N0} sub-directorie(s)");
+						return;
+					}
+				}
 
-			await folder.RemoveAsync(db, ct);
+				if (!force)
+				{
+					//TODO: ask for confirmation?
+				}
+
+				await folder.RemoveAsync(tr);
+			}, ct);
 			Program.Success(log, $"Deleted directory /{string.Join("/", path)}");
 		}
 
 		/// <summary>Move/Rename a directory</summary>
 		public static async Task MoveDirectory(string[] srcPath, string[] dstPath, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			var folder = await db.Directory.TryOpenAsync(srcPath, ct: ct);
-			if (folder == null)
+			await db.ReadWriteAsync(async tr =>
 			{
-				Program.Error(log, $"# Source directory /{string.Join("/", srcPath)} does not exist!");
-				return;
-			}
+				var folder = await db.Directory.TryOpenAsync(tr, srcPath);
+				if (folder == null)
+				{
+					Program.Error(log, $"# Source directory /{string.Join("/", srcPath)} does not exist!");
+					return;
+				}
 
-			folder = await db.Directory.TryOpenAsync(dstPath, ct: ct);
-			if (folder != null)
-			{
-				Program.Error(log, $"# Destination directory /{string.Join("/", dstPath)} already exists!");
-				return;
-			}
+				folder = await db.Directory.TryOpenAsync(tr, dstPath);
+				if (folder != null)
+				{
+					Program.Error(log, $"# Destination directory /{string.Join("/", dstPath)} already exists!");
+					return;
+				}
 
-			await db.Directory.MoveAsync(srcPath, dstPath, ct);
+				await db.Directory.MoveAsync(tr, srcPath, dstPath);
+			}, ct);
 			Program.Success(log, $"Moved /{string.Join("/", srcPath)} to {string.Join("/", dstPath)}");
 		}
 
@@ -190,16 +196,16 @@ namespace FdbShell
 			var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct);
 			if (dir == null)
 			{
-				Program.Error(log, $"# Directory {String.Join("/", path)} does not exist anymore");
+				Program.Error(log, $"# Directory {string.Join("/", path)} does not exist anymore");
 			}
 			else
 			{
 				if (dir.Layer == FdbDirectoryPartition.LayerId)
-					log.WriteLine($"# Directory {String.Join("/", path)} is a partition");
+					log.WriteLine($"# Directory {string.Join("/", path)} is a partition");
 				else if (dir.Layer.IsPresent)
-					log.WriteLine($"# Directory {String.Join("/", path)} has layer {dir.Layer:P}");
+					log.WriteLine($"# Directory {string.Join("/", path)} has layer {dir.Layer:P}");
 				else
-					log.WriteLine($"# Directory {String.Join("/", path)} does not have a layer defined");
+					log.WriteLine($"# Directory {string.Join("/", path)} does not have a layer defined");
 			}
 		}
 
@@ -232,7 +238,7 @@ namespace FdbShell
 				return;
 			}
 
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
 			if (folder == null)
 			{
 				Program.Error(log, "The directory does not exist anymore");
@@ -250,7 +256,6 @@ namespace FdbShell
 			Program.Comment(log, "# Reading key: " + k.ToString("K"));
 
 			Slice v = await db.ReadWriteAsync(tr =>tr.GetAsync(k), ct);
-
 
 			if (v.IsNull)
 			{
@@ -353,7 +358,7 @@ namespace FdbShell
 				return;
 			}
 
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
 			if (folder == null)
 			{
 				Program.Error(log, "The directory does not exist anymore");
@@ -417,7 +422,7 @@ namespace FdbShell
 				return;
 			}
 
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
 			if (folder == null)
 			{
 				Program.Error(log, "The directory does not exist anymore");
@@ -518,7 +523,7 @@ namespace FdbShell
 			}
 
 			// look if there is something under there
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
 			if (folder != null)
 			{
 				if (folder.Layer == FdbDirectoryPartition.LayerId)
@@ -557,7 +562,7 @@ namespace FdbShell
 		public static async Task Dump(string[] path, string output, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			// look if there is something under there
-			var folder = await db.Directory.TryOpenAsync(path, ct: ct);
+			var folder = await db.Directory.TryOpenAsync(db, path, ct: ct);
 			if (folder == null)
 			{
 				Program.Comment(log, $"# Directory {String.Join("/", path)} does not exist");
@@ -611,7 +616,7 @@ namespace FdbShell
 			Program.Comment(log, $"# Tree of {String.Join("/", path)}:");
 
 			FdbDirectorySubspace root = null;
-			if (path.Length > 0) root = await db.Directory.TryOpenAsync(path, ct: ct);
+			if (path.Length > 0) root = await db.Directory.TryOpenAsync(db, path, ct: ct);
 
 			await TreeDirectoryWalk(root, new List<bool>(), db, log, ct);
 

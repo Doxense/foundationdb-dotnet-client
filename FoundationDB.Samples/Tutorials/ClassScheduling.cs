@@ -53,20 +53,21 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Tutorials", "ClassScheduling" }, ct: ct);
-
-			// clear all previous values
-			await db.ClearRangeAsync(this.Subspace, ct);
-			// insert all the classes
-			await db.WriteAsync((tr) =>
+			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
+				var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "Tutorials", "ClassScheduling" });
+
+				// clear all previous values
+				tr.ClearRange(subspace);
+
+				// insert all the classes
 				foreach (var c in this.ClassNames)
 				{
 					tr.Set(ClassKey(c), Slice.FromStringAscii("100"));
 				}
+
+				return subspace;
 			}, ct);
-
-
 		}
 
 		/// <summary>

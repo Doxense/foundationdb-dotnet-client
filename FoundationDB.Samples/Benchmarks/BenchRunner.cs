@@ -51,8 +51,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Directory.CreateOrOpenAsync("Benchmarks", ct: ct);
-
+			this.Subspace = await db.ReadWriteAsync(tr => db.Directory.CreateOrOpenAsync(tr, "Benchmarks"), ct);
 		}
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)

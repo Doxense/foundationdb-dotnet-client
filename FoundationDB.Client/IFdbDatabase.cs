@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
+	using FoundationDB.Layers.Directories;
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]
@@ -55,7 +56,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Directory partition of this database instance</summary>
 		[NotNull]
-		FdbDatabasePartition Directory { get; }
+		IFdbDirectory Directory { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
