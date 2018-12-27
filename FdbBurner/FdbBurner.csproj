@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net461;net471</TargetFrameworks>
+		<TargetFrameworks>net461;net472</TargetFrameworks>
 		<ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

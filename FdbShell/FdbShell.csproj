@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.1;net461;net471</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.2;net461;net472</TargetFrameworks>
     <ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
     <RestorePackages>true</RestorePackages>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -19,7 +19,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -35,6 +35,11 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ILRepack.MSBuild.Task" Version="1.0.9" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
