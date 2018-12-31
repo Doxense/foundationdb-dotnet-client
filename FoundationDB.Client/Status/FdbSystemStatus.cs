@@ -123,36 +123,98 @@ namespace FoundationDB.Client.Status
 	}
 
 	/// <summary>Measured quantity that changes over time</summary>
-	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Roughness={Roughness}")]
-	public readonly struct LoadCounter
+	[DebuggerDisplay("Hz={Hz}")]
+	public class RateCounter : MetricsBase
 	{
-		/// <summary>Absolute value, since the start (ex: "UNIT")</summary>
-		public readonly long Counter;
+
+		internal RateCounter(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.Hz = GetDouble("hz") ?? 0;
+		}
+
 		/// <summary>Rate of change, per seconds, since the last snapshot ("UNIT per seconds")</summary>
-		public readonly double Hz;
-		//REVIEW: what is this ?
-		public readonly double Roughness;
-
-		public LoadCounter(long counter, double hz, double roughness)
-		{
-			this.Counter = counter;
-			this.Hz = hz;
-			this.Roughness = roughness;
-		}
-
-		internal static LoadCounter From(Dictionary<string, object> data, string field)
-		{
-			var obj = TinyJsonParser.GetMapField(data, field);
-			return new LoadCounter(
-				(long)(TinyJsonParser.GetNumberField(obj, "counter") ?? 0),
-				TinyJsonParser.GetNumberField(obj, "hz") ?? 0,
-				TinyJsonParser.GetNumberField(obj, "roughness") ?? 0
-			);
-		}
+		public double Hz { get; }
 
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}, Roughness={2:N2}", this.Counter, this.Hz, this.Roughness);
+			return string.Format(CultureInfo.InvariantCulture, "Hz={0:N1}", this.Hz);
+		}
+	}
+
+	[DebuggerDisplay("Counter={Counter}, Hz={Hz}")]
+	public class LoadCounter : RateCounter
+	{
+		internal LoadCounter(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.Counter = GetInt64("counter") ?? 0;
+		}
+
+		/// <summary>Absolute value, since the start (ex: "UNIT")</summary>
+		public long Counter { get; }
+
+		public override string ToString()
+		{
+			return string.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}", this.Counter, this.Hz);
+		}
+
+	}
+
+	/// <summary>Measured quantity that changes over time</summary>
+	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Roughness={Roughness}")]
+	public sealed class RoughnessCounter : LoadCounter
+	{
+
+		internal RoughnessCounter(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.Roughness = GetDouble("roughness") ?? 0;
+		}
+
+		public double Roughness { get; }
+
+		public override string ToString()
+		{
+			return string.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}, Roughness={2:N2}", this.Counter, this.Hz, this.Roughness);
+		}
+	}
+
+	/// <summary>Measured quantity that changes over time</summary>
+	[DebuggerDisplay("Counter={Counter}, Hz={Hz}, Sectors={Sectors}")]
+	public sealed class DiskCounter : LoadCounter
+	{
+
+		internal DiskCounter(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.Sectors = GetInt64("sectors") ?? 0;
+		}
+		public long Sectors { get; }
+
+		public override string ToString()
+		{
+			return string.Format(CultureInfo.InvariantCulture, "Counter={0:N0}, Hz={1:N1}, Sectors={2:N0}", this.Counter, this.Hz, this.Sectors);
+		}
+	}
+
+	[DebuggerDisplay("Seconds={Seconds}, Versions={Versions}")]
+	public sealed class LagCounter : MetricsBase
+	{
+		internal LagCounter(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.Seconds = GetDouble("seconds") ?? 0;
+			this.Versions = GetInt64("versions") ?? 0;
+		}
+
+		public double Seconds { get; }
+
+		public long Versions { get; }
+
+		public override string ToString()
+		{
+			return string.Format(CultureInfo.InvariantCulture, "Seconds={0:N3}, Versions={1:N0}", this.Seconds, this.Versions);
 		}
 	}
 
@@ -289,12 +351,23 @@ namespace FoundationDB.Client.Status
 		private LatencyMetrics m_latency;
 		private QosMetrics m_qos;
 		private WorkloadMetrics m_workload;
+		private ClusterClientsMetrics m_clients;
 		private Dictionary<string, ProcessStatus> m_processes;
 		private Dictionary<string, MachineStatus> m_machines;
 
 		/// <summary>Unix time of the cluster controller</summary>
 		/// <remarks>Number of seconds since the Unix epoch (1970-01-01Z)</remarks>
 		public long ClusterControllerTimestamp => GetInt64("cluster_controller_timestamp") ?? 0;
+
+		public string ConnectionString => GetString("connection_string");
+
+		public bool DatabaseAvailable => GetBoolean("database_available") ?? false;
+
+		public bool DatabaseLocked => GetBoolean("database_locked") ?? false;
+
+		public bool FullReplication => GetBoolean("full_replication") ?? false;
+
+		public long Generation => GetInt64("generation") ?? 0;
 
 		/// <summary>License string of the cluster</summary>
 		[NotNull]
@@ -319,6 +392,8 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Workload metrics</summary>
 		public WorkloadMetrics Workload => m_workload ?? (m_workload = new WorkloadMetrics(GetMap("workload")));
+
+		public ClusterClientsMetrics Clients => m_clients ?? (m_clients = new ClusterClientsMetrics(GetMap("clients")));
 
 		/// <summary>List of the processes that are currently active in the cluster</summary>
 		public IReadOnlyDictionary<string, ProcessStatus> Processes
@@ -501,12 +576,12 @@ namespace FoundationDB.Client.Status
 		internal WorkloadBytesMetrics(Dictionary<string, object> data)
 			: base(data)
 		{
-			this.Written = LoadCounter.From(data, "written");
+			this.Written = new RoughnessCounter(GetMap("written"));
 		}
 
 		/// <summary>Bytes written</summary>
 		//REVIEW: this looks like the size of writes in transactions, NOT the number of bytes written to the disk!
-		public LoadCounter Written { get; }
+		public RoughnessCounter Written { get; }
 
 	}
 
@@ -516,15 +591,18 @@ namespace FoundationDB.Client.Status
 		internal WorkloadOperationsMetrics(Dictionary<string, object> data)
 			: base(data)
 		{
-			this.Reads = LoadCounter.From(data, "reads");
-			this.Writes = LoadCounter.From(data, "writes");
+			this.Reads = new RoughnessCounter(GetMap("reads"));
+			this.Writes = new RoughnessCounter(GetMap("writes"));
+			this.ReadRequests = new RoughnessCounter(GetMap("read_requests"));
 		}
 
 		/// <summary>Details about read operations</summary>
-		public LoadCounter Reads { get; }
+		public RoughnessCounter Reads { get; }
 
 		/// <summary>Details about write operations</summary>
-		public LoadCounter Writes { get; }
+		public RoughnessCounter Writes { get; }
+
+		public RoughnessCounter ReadRequests { get; }
 	}
 
 	/// <summary>Transaction workload of a FoundationDB cluster</summary>
@@ -533,16 +611,29 @@ namespace FoundationDB.Client.Status
 		internal WorkloadTransactionsMetrics(Dictionary<string, object> data)
 			: base(data)
 		{
-			this.Committed = LoadCounter.From(data, "committed");
-			this.Conflicted = LoadCounter.From(data, "conflicted");
-			this.Started = LoadCounter.From(data, "started");
+			this.Committed = new RoughnessCounter(GetMap("committed"));
+			this.Conflicted = new RoughnessCounter(GetMap("conflicted"));
+			this.Started = new RoughnessCounter(GetMap("started"));
 		}
 
-		public LoadCounter Committed { get; }
+		public RoughnessCounter Committed { get; }
 
-		public LoadCounter Conflicted { get; }
+		public RoughnessCounter Conflicted { get; }
 
-		public LoadCounter Started { get; }
+		public RoughnessCounter Started { get; }
+	}
+
+	public sealed class ClusterClientsMetrics : MetricsBase
+	{
+		internal ClusterClientsMetrics(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.Count = (int) (GetInt64("count") ?? 0);
+		}
+
+		public int Count { get; }
+
+		//TODO: "supported_versions"
 	}
 
 	#endregion
@@ -566,54 +657,74 @@ namespace FoundationDB.Client.Status
 		private ProcessCpuMetrics m_cpu;
 		private ProcessDiskMetrics m_disk;
 		private ProcessMemoryMetrics m_memory;
-		private (string Id, string Role)[] m_roles;
+		private LocalityConfiguration m_locality;
+		private ProcessRoleMetrics[] m_roles;
 
 		/// <summary>Unique identifier for this process.</summary>
-		//TODO: is it stable accross reboots? what are the conditions for a process to change its ID ?
+		//TODO: is it stable across reboots? what are the conditions for a process to change its ID ?
 		[NotNull]
 		public string Id { get; }
 
 		/// <summary>Identifier of the machine that is hosting this process</summary>
 		/// <remarks>All processes that have the same MachineId are running on the same (physical) machine.</remarks>
 		[NotNull]
-		public string MachineId => m_machineId ?? (m_machineId = GetString("machine_id") ?? String.Empty);
+		public string MachineId => m_machineId ?? (m_machineId = GetString("machine_id") ?? string.Empty);
 
 		/// <summary>Version of this process</summary>
 		/// <example>"3.0.4"</example>
 		[NotNull]
-		public string Version => GetString("version") ?? String.Empty;
+		public string Version => GetString("version") ?? string.Empty;
+
+		public TimeSpan Uptime => TimeSpan.FromSeconds(GetDouble("uptime_seconds") ?? 0);
 
 		/// <summary>Address and port of this process, with syntax "IP_ADDRESS:port"</summary>
 		/// <example>"10.1.2.34:4500"</example>
 		[NotNull]
-		public string Address => m_address ?? (m_address = GetString("address") ?? String.Empty);
+		public string Address => m_address ?? (m_address = GetString("address") ?? string.Empty);
+
+		[NotNull]
+		public string ClassSource => GetString("class_source") ?? string.Empty;
+
+		[NotNull]
+		public string ClassType => GetString("class_type") ?? string.Empty;
 
 		/// <summary>Command line that was used to start this process</summary>
 		[NotNull]
-		public string CommandLine => GetString("command_line") ?? String.Empty;
+		public string CommandLine => GetString("command_line") ?? string.Empty;
 
 		/// <summary>If true, this process is currently excluded from the cluster</summary>
 		public bool Excluded => GetBoolean("excluded") ?? false;
+
+		[NotNull]
+		public string FaultDomain => GetString("fault_domain") ?? string.Empty;
 
 		/// <summary>List of messages that are currently published by this process</summary>
 		[NotNull]
 		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
 
 		/// <summary>Network performance counters</summary>
+		[NotNull]
 		public ProcessNetworkMetrics Network => m_network ?? (m_network = new ProcessNetworkMetrics(GetMap("network")));
 
 		/// <summary>CPU performance counters</summary>
+		[NotNull]
 		public ProcessCpuMetrics Cpu => m_cpu ?? (m_cpu = new ProcessCpuMetrics(GetMap("cpu")));
 
 		/// <summary>Disk performance counters</summary>
+		[NotNull]
 		public ProcessDiskMetrics Disk => m_disk ?? (m_disk = new ProcessDiskMetrics(GetMap("disk")));
 
 		/// <summary>Memory performance counters</summary>
+		[NotNull]
 		public ProcessMemoryMetrics Memory => m_memory ?? (m_memory = new ProcessMemoryMetrics(GetMap("memory")));
+
+		[NotNull]
+		public LocalityConfiguration Locality => m_locality ?? (m_locality = new LocalityConfiguration(GetMap("locality")));
 
 		/// <summary>List of the roles assumed by this process</summary>
 		/// <remarks>The key is the unique role ID in the cluster, and the value is the type of the role itself</remarks>
-		public (string Id, string Role)[] Roles
+		[NotNull, ItemNotNull]
+		public ProcessRoleMetrics[] Roles
 		{
 			get
 			{
@@ -622,17 +733,164 @@ namespace FoundationDB.Client.Status
 					//REVIEW: should we have (K=id, V=role) or (K=role, V=id) ?
 
 					var arr = GetArray("roles");
-					var res = new (string, string)[arr.Count];
+					var res = new ProcessRoleMetrics[arr.Count];
 					for (int i = 0; i < res.Length; i++)
 					{
-						var obj = (Dictionary<string, object>)arr[i];
-						res[i] = TinyJsonParser.GetStringPair(obj, "id", "role");
+						res[i] = ProcessRoleMetrics.Create((Dictionary<string, object>) arr[i]);
 					}
 					m_roles = res;
 				}
 				return m_roles;
 			}
 		}
+
+	}
+
+	public class ProcessRoleMetrics : MetricsBase
+	{
+		internal ProcessRoleMetrics(Dictionary<string, object> data, string role)
+			: base(data)
+		{
+			this.Role = role;
+			this.Id = GetString("id") ?? string.Empty;
+		}
+
+		public string Id { get; }
+
+		public string Role { get; }
+
+		//TODO: values will vary depending on the "Role" !
+
+		[NotNull]
+		public static ProcessRoleMetrics Create(Dictionary<string, object> data)
+		{
+			string role = TinyJsonParser.GetStringField(data, "role");
+			ProcessRoleMetrics pm;
+			switch (role)
+			{
+				case "master":
+					return new MasterRoleMetrics(data);
+				case "proxy":
+					return new ProxyRoleMetrics(data);
+				case "resolver":
+					return new ResolverRoleMetrics(data);
+				case "cluster_controller":
+					return new ClusterControllerRoleMetrics(data);
+				case "log":
+					return new LogRoleMetrics(data);
+				case "storage":
+					return new StorageRoleMetrics(data);
+				default:
+					return new ProcessRoleMetrics(data, role);
+			}
+		}
+	}
+
+	public sealed class ProxyRoleMetrics : ProcessRoleMetrics
+	{
+		public ProxyRoleMetrics(Dictionary<string, object> data)
+			: base(data, "proxy")
+		{ }
+	}
+
+	public sealed class MasterRoleMetrics : ProcessRoleMetrics
+	{
+		public MasterRoleMetrics(Dictionary<string, object> data)
+			: base(data, "master")
+		{ }
+	}
+
+	public sealed class ResolverRoleMetrics : ProcessRoleMetrics
+	{
+		public ResolverRoleMetrics(Dictionary<string, object> data)
+			: base(data, "resolver")
+		{ }
+	}
+
+	public sealed class ClusterControllerRoleMetrics : ProcessRoleMetrics
+	{
+		public ClusterControllerRoleMetrics(Dictionary<string, object> data)
+			: base(data, "cluster_controller")
+		{ }
+	}
+
+	public abstract class DiskBasedRoleMetrics : ProcessRoleMetrics
+	{
+		protected DiskBasedRoleMetrics(Dictionary<string, object> data, string role)
+			: base(data, role)
+		{
+			this.DurableBytes = new RoughnessCounter(GetMap("durable_bytes"));
+			this.InputBytes = new RoughnessCounter(GetMap("input_bytes"));
+		}
+
+		public long DataVersion => GetInt64("data_version") ?? 0;
+
+		public RoughnessCounter DurableBytes { get; }
+
+		public RoughnessCounter InputBytes { get; }
+
+		public long KVStoreAvailableBytes => GetInt64("kvstore_available_bytes") ?? 0;
+
+		public long KVStoreFreeBytes => GetInt64("kvstore_free_bytes") ?? 0;
+
+		public long KVStoreTotalBytes => GetInt64("kvstore_total_bytes") ?? 0;
+
+		public long KVStoreUsedBytes => GetInt64("kvstore_used_bytes") ?? 0;
+
+	}
+
+	public sealed class StorageRoleMetrics : DiskBasedRoleMetrics
+	{
+		internal StorageRoleMetrics(Dictionary<string, object> data)
+			: base(data, "storage")
+		{
+			this.BytesQueried = new RoughnessCounter(GetMap("bytes_queried"));
+			this.FinishedQueries = new RoughnessCounter(GetMap("finished_queries"));
+			this.KeysQueried = new RoughnessCounter(GetMap("keys_queried"));
+			this.MutationBytes = new RoughnessCounter(GetMap("mutation_bytes"));
+			this.Mutations = new RoughnessCounter(GetMap("mutations"));
+			this.TotalQueries = new RoughnessCounter(GetMap("total_queries"));
+			this.DataLag = new LagCounter(GetMap("data_lag"));
+			this.DurabilityLag = new LagCounter(GetMap("durability_lag"));
+		}
+
+		public int QueryQueueMax => (int) (GetInt64("query_queue_max") ?? 0);
+
+		public long StoredBytes => GetInt64("stored_bytes") ?? 0;
+
+		public RoughnessCounter BytesQueried { get; }
+
+		public RoughnessCounter FinishedQueries { get; }
+
+		public RoughnessCounter KeysQueried { get; }
+
+		public RoughnessCounter MutationBytes { get; }
+
+		public RoughnessCounter Mutations { get; }
+
+		public RoughnessCounter TotalQueries { get; }
+
+		public LagCounter DataLag { get; }
+
+		public long DurableVersion => GetInt64("durable_version") ?? 0;
+
+		public LagCounter DurabilityLag { get; }
+
+	}
+
+	public sealed class LogRoleMetrics : DiskBasedRoleMetrics
+	{
+		internal LogRoleMetrics(Dictionary<string, object> data)
+			: base(data, "log")
+		{ }
+
+		public long QueueDiskAvailableBytes => GetInt64("queue_disk_available_bytes") ?? 0;
+
+		public long QueueDiskFreeBytes => GetInt64("queue_disk_free_bytes") ?? 0;
+
+		public long QueueDiskTotalBytes => GetInt64("queue_disk_total_bytes") ?? 0;
+
+		public long QueueDiskUsedBytes => GetInt64("queue_disk_used_bytes") ?? 0;
 
 	}
 
@@ -655,7 +913,17 @@ namespace FoundationDB.Client.Status
 
 		public long AvailableBytes => GetInt64("available_bytes") ?? 0;
 
+		/// <summary>Memory allocated by the process</summary>
 		public long UsedBytes => GetInt64("used_bytes") ?? 0;
+		// On linux, this is the VmSize as reported by /proc/[pid]/statm
+		// On Window, this is PPROCESS_MEMORY_COUNTERS.PagefileUsage
+
+		/// <summary>Memory that has been allocated but is currently unused</summary>
+		public long UnusedAllocatedMemory => GetInt64("unused_allocated_memory") ?? 0;
+		//note: this is currently the sum of all unused memory in the various slab allocators
+
+		public long LimitBytes => GetInt64("limit_bytes") ?? 0;
+
 	}
 
 	/// <summary>CPU performane counters for a FoundationDB process</summary>
@@ -668,29 +936,58 @@ namespace FoundationDB.Client.Status
 		public double UsageCores => GetDouble("usage_cores") ?? 0;
 	}
 
-	/// <summary>Disk performane counters for a FoundationDB process</summary>
+	/// <summary>Disk performance counters for a FoundationDB process</summary>
+	[DebuggerDisplay("Busy={Busy}, Free={FreeBytes}/{TotalBytes}, Reads={Reads.Hz}, Writes={Writes.Hz}")]
 	public sealed class ProcessDiskMetrics : MetricsBase
 	{
+
 		internal ProcessDiskMetrics(Dictionary<string, object> data)
 			: base(data)
-		{ }
+		{
+			this.Busy = GetDouble("busy") ?? 0;
+			this.FreeBytes = GetInt64("free_bytes") ?? 0;
+			this.TotalBytes = GetInt64("total_bytes") ?? 0;
+			this.Reads = new DiskCounter(GetMap("reads"));
+			this.Writes = new DiskCounter(GetMap("writes"));
+		}
 
-		public double Busy => GetDouble("busy") ?? 0;
+		public double Busy { get; }
+
+		public long FreeBytes { get; }
+
+		public long TotalBytes { get; }
+
+		public DiskCounter Reads { get; }
+
+		public DiskCounter Writes { get; }
+
 	}
 
-	/// <summary>Network performane counters for a FoundationDB process or machine</summary>
+	/// <summary>Network performance counters for a FoundationDB process or machine</summary>
 	public sealed class ProcessNetworkMetrics : MetricsBase
 	{
 		internal ProcessNetworkMetrics(Dictionary<string, object> data)
 			: base(data)
 		{
-			this.MegabitsReceived = LoadCounter.From(data, "megabits_received");
-			this.MegabitsSent = LoadCounter.From(data, "megabits_sent");
+			this.CurrentConnections = (int) (GetInt64("current_connections") ?? 0);
+			this.MegabitsReceived = new RateCounter(GetMap("megabits_received"));
+			this.MegabitsSent = new RateCounter(GetMap("megabits_sent"));
+			this.ConnectionErrors = new RateCounter(GetMap("connection_errors"));
+			this.ConnectionsClosed = new RateCounter(GetMap("connections_closed"));
+			this.ConnectionsEstablished = new RateCounter(GetMap("connections_established"));
 		}
 
-		public LoadCounter MegabitsReceived { get; }
+		public RateCounter MegabitsReceived { get; }
 
-		public LoadCounter MegabitsSent { get; }
+		public RateCounter MegabitsSent { get; }
+
+		public int CurrentConnections { get; }
+
+		public RateCounter ConnectionErrors { get; }
+
+		public RateCounter ConnectionsClosed { get; }
+
+		public RateCounter ConnectionsEstablished { get; }
 
 	}
 
@@ -711,21 +1008,22 @@ namespace FoundationDB.Client.Status
 		private MachineNetworkMetrics m_network;
 		private MachineCpuMetrics m_cpu;
 		private MachineMemoryMetrics m_memory;
+		private LocalityConfiguration m_locality;
 
 		/// <summary>Unique identifier for this machine.</summary>
-		//TODO: is it stable accross reboots? what are the conditions for a process to change its ID ?
+		//TODO: is it stable across reboots? what are the conditions for a process to change its ID ?
 		[NotNull]
 		public string Id { get; }
 
 		/// <summary>Identifier of the data center that is hosting this machine</summary>
 		/// <remarks>All machines that have the same DataCenterId are probably running on the same (physical) network.</remarks>
 		[NotNull]
-		public string DataCenterId => GetString("datacenter_id") ?? String.Empty;
+		public string DataCenterId => GetString("datacenter_id") ?? string.Empty;
 
 		/// <summary>Address of this machine</summary>
 		/// <example>"10.1.2.34"</example>
 		[NotNull]
-		public string Address => m_address ?? (m_address = GetString("address") ?? String.Empty);
+		public string Address => m_address ?? (m_address = GetString("address") ?? string.Empty);
 
 		/// <summary>If true, this process is currently excluded from the cluster</summary>
 		public bool Excluded => GetBoolean("excluded") ?? false;
@@ -738,6 +1036,10 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Memory performance counters</summary>
 		public MachineMemoryMetrics Memory => m_memory ?? (m_memory = new MachineMemoryMetrics(GetMap("memory")));
+
+		public LocalityConfiguration Locality => m_locality ?? (m_locality = new LocalityConfiguration(GetMap("locality")));
+
+		public int ContributingWorkers => (int) (GetInt64("contributing_workers") ?? 0);
 	}
 
 	/// <summary>Memory performane counters for machine hosting one or more FoundationDB processes</summary>
@@ -778,16 +1080,34 @@ namespace FoundationDB.Client.Status
 		internal MachineNetworkMetrics(Dictionary<string, object> data)
 			: base(data)
 		{
-			this.MegabitsReceived = LoadCounter.From(data, "megabits_received");
-			this.MegabitsSent = LoadCounter.From(data, "megabits_sent");
-			this.TcpSegmentsRetransmitted = LoadCounter.From(data, "tcp_segments_retransmitted");
+			this.MegabitsReceived = new RateCounter(GetMap("megabits_received"));
+			this.MegabitsSent = new RateCounter(GetMap("megabits_sent"));
+			this.TcpSegmentsRetransmitted = new RateCounter(GetMap("tcp_segments_retransmitted"));
 		}
 
-		public LoadCounter MegabitsReceived { get; }
+		public RateCounter MegabitsReceived { get; }
 
-		public LoadCounter MegabitsSent { get; }
+		public RateCounter MegabitsSent { get; }
 
-		public LoadCounter TcpSegmentsRetransmitted { get; }
+		public RateCounter TcpSegmentsRetransmitted { get; }
+
+	}
+
+	public sealed class LocalityConfiguration : MetricsBase
+	{
+		internal LocalityConfiguration(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.MachineId = GetString("machineid");
+			this.ProcessId = GetString("processid");
+			this.ZoneId = GetString("zoneid");
+		}
+
+		public string MachineId { get; }
+
+		public string ProcessId { get; }
+
+		public string ZoneId { get; }
 
 	}
 
