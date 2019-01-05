@@ -31,6 +31,7 @@ $tf*/
 packages/
 *.ide/
 .vs/
+.vscode/
 
 fdb_c.dll
 
