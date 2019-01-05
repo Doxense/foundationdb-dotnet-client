@@ -36,6 +36,7 @@ namespace FdbTop
 	using System.Globalization;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -51,13 +52,15 @@ namespace FdbTop
 		private const int DEFAULT_WIDTH = 160;
 		private const int DEFAULT_HEIGHT = 60;
 
+		private static bool CanConsoleTitle;
+
 		public static void Main(string[] args)
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
 
+			//note: .NET Core may or may not be able to change the size of the console depending on the platform!
 			try
 			{
-				//note: .NET Core may or may not be able to change the size of the console depending on the platform!
 				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
 				{
 					Console.WindowWidth = DEFAULT_WIDTH;
@@ -85,10 +88,20 @@ namespace FdbTop
 				}
 			}
 
+			try
+			{
+				_ = Console.Title;
+				CanConsoleTitle = true;
+			}
+			catch (Exception)
+			{
+				CanConsoleTitle = false;
+			}
+
 			ScreenHeight = Console.WindowHeight;
 			ScreenWidth = Console.WindowWidth;
 
-			string title = Console.Title;
+			string title = GetTitle();
 			try
 			{
 				// default settings
@@ -101,7 +114,7 @@ namespace FdbTop
 					Options.ClusterFile = args[0];
 				}
 
-				Console.Title = "fdbtop";
+				SetTitle("fdbtop");
 
 				Fdb.Start(Fdb.GetMaxSafeApiVersion(200, Fdb.GetDefaultApiVersion()));
 				using (var go = new CancellationTokenSource())
@@ -118,7 +131,7 @@ namespace FdbTop
 			}
 			finally
 			{
-				Console.Title = title;
+				SetTitle(title);
 				Console.CursorVisible = true;
 				Fdb.Stop();
 			}
@@ -150,6 +163,8 @@ namespace FdbTop
 
 				Task<FdbSystemStatus> taskStatus = null;
 				FdbSystemStatus status = null;
+
+				Program.Screen = new FrameBuffer(Console.WindowWidth, Console.WindowHeight);
 
 				using (var db = await Fdb.OpenAsync(Options, cancel))
 				{
@@ -282,6 +297,13 @@ namespace FdbTop
 
 						if (now >= next)
 						{
+							int ww = Console.WindowWidth;
+							int hh = Console.WindowHeight;
+							if (ww != Screen.Width || hh != Program.ScreenHeight)
+							{
+								Screen = new FrameBuffer(ww, hh);
+								Program.Screen.Clear(ConsoleColor.Gray, ConsoleColor.Black);
+							}
 
 							if (taskStatus.IsCompleted)
 							{
@@ -370,6 +392,7 @@ namespace FdbTop
 							}
 							repaint = false;
 							updated = false;
+							Screen.Paint();
 						}
 
 						await Task.Delay(100, cancel);
@@ -470,22 +493,257 @@ namespace FdbTop
 			return TeraBytes(x).ToString("N1", CultureInfo.InvariantCulture) + " TB";
 		}
 
+		[StructLayout(LayoutKind.Sequential, Pack = 0)]
+		private struct Texel
+		{
+			public int Value;
+
+			public char Text
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => (char) (this.Value & 0xFFFF);
+			}
+
+			public ConsoleColor ForegrounColor
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => (ConsoleColor) ((this.Value >> 16) & 0xFF);
+			}
+
+			public ConsoleColor BackgroundColor
+			{
+				[MethodImpl(MethodImplOptions.AggressiveInlining)]
+				get => (ConsoleColor) ((this.Value >> 24) & 0xFF);
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void Set(char text, ConsoleColor foreground, ConsoleColor background)
+			{
+				this.Value = (int) text | (((int) foreground) << 16) | (((int) background) << 24);
+			}
+
+			public override string ToString()
+			{
+				return $"'{this.Text}' [{this.ForegrounColor}]";
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static int GetRawValue(char text, ConsoleColor foreground, ConsoleColor background)
+			{
+				return (int) text | (((int) foreground) << 16) | (((int) background) << 24);
+			}
+		}
+
+		private sealed class FrameBuffer
+		{
+			public int Width { get; private set; }
+
+			public int Height { get; private set; }
+
+			public int Stride { get; private set; }
+
+			public Texel[] Visible { get; private set; }
+
+			public Texel[] Current { get; private set; }
+
+			public FrameBuffer(int width, int height)
+			{
+				this.Width = width;
+				this.Height = height;
+				int stride = width;
+				this.Stride = stride;
+				this.Current = new Texel[stride * height];
+				this.Visible = new Texel[stride * height];
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Contains(int x, int y)
+			{
+				return ((uint) x < this.Width) & ((uint) y < this.Height);
+			}
+
+			public void Set(int x, int y, char value, ConsoleColor foreground, ConsoleColor background)
+			{
+				if (Contains(x, y))
+				{
+					this.Current[y * this.Stride + x].Set(value, foreground, background);
+				}
+			}
+
+			public bool Mask(ref int x, int y, ref int offset, ref int count)
+			{
+				if ((uint) y >= this.Height)
+				{ // completely off screen
+					offset = 0;
+					return false;
+				}
+
+				if (x < 0)
+				{ // truncate left
+					offset = checked(offset - x);
+					count = checked(count + x);
+					x = 0;
+				}
+
+				if (x + count > this.Width)
+				{ // truncate right
+					count = checked(this.Width - x);
+				}
+
+				return count > 0;
+			}
+
+			public void Write(int x, int y, string text, ConsoleColor color, ConsoleColor background)
+			{
+				int count = text.Length;
+				int index = 0;
+				if (!Mask(ref x, y, ref index, ref count))
+				{ // not visible
+					return;
+				}
+
+				var buffer = this.Current;
+				unsafe
+				{
+					int offset = (y * this.Stride) + x;
+					//Debug.WriteLine($"x:{x}, y:{y}, off={offset}; index={index}; count={count}; text='{text}'");
+					fixed (Texel* ptr = &buffer[offset])
+					{
+						for (int i = 0; i < count; i++)
+						{
+							ptr[i].Set(text[index + i], color, background);
+						}
+					}
+				}
+			}
+
+			public void Clear(int x, int y, int count, ConsoleColor color, ConsoleColor background)
+			{
+				int _ = 0;
+				if (!Mask(ref x, y, ref _, ref count))
+				{ // not visible
+					return;
+				}
+
+				var buffer = this.Current;
+				int raw = Texel.GetRawValue(' ', color, background);
+				unsafe
+				{
+					fixed (Texel* ptr = &buffer[y * this.Stride + x])
+					{
+						for (int i = 0; i < count; i++)
+						{
+							ptr[i].Value = raw;
+						}
+					}
+				}
+
+			}
+
+			public void Clear(ConsoleColor color, ConsoleColor background)
+			{
+				var buffer = this.Current;
+				int raw = Texel.GetRawValue(' ', color, background);
+				for (int i = 0; i < buffer.Length; i++)
+				{
+					buffer[i].Value = raw;
+				}
+			}
+
+			public void Paint()
+			{
+				var col = ConsoleColor.White;
+				var bgnd = ConsoleColor.Black;
+				Console.ForegroundColor = col;
+				Console.BackgroundColor = bgnd;
+				unsafe
+				{
+					fixed (Texel* visible = &this.Visible[0])
+					fixed (Texel* current = &this.Current[0])
+					{
+						for (int y = 0; y < this.Height; y++)
+						{
+							Texel* rowVisible = visible + (y * this.Stride);
+							Texel* rowCurrent = current + (y * this.Stride);
+
+							bool prev = true;
+							for (int x = 0; x < this.Width; x++)
+							{
+								bool same = rowVisible[x].Value == rowCurrent[x].Value;
+								if (same)
+								{ // character is same as before
+									prev = true;
+									continue;
+								}
+
+								if (prev)
+								{ // start of new "different" run
+									Console.SetCursorPosition(x, y);
+									prev = false;
+								}
+								var newCol = rowCurrent[x].ForegrounColor;
+								if (col != newCol)
+								{ // new color
+									Console.ForegroundColor = newCol;
+									col = newCol;
+								}
+
+								newCol = rowCurrent[x].BackgroundColor;
+								if (bgnd != newCol)
+								{ // new background
+									Console.BackgroundColor = newCol;
+									bgnd = newCol;
+								}
+
+								Console.Write(rowCurrent[x].Text);
+							}
+						}
+					}
+				}
+
+				// swap buffers
+				Array.Copy(this.Current, 0, this.Visible, 0, this.Current.Length);
+			}
+
+		}
+
+		private static FrameBuffer Screen;
+
+		private static ConsoleColor CurrentColor = ConsoleColor.White;
+		private static ConsoleColor CurrentBackground = ConsoleColor.Black;
+
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static void SetColor(ConsoleColor color)
 		{
-			Console.ForegroundColor = color;
+			CurrentColor = color;
+		}
+
+		private static void SetBackground(ConsoleColor color)
+		{
+			CurrentBackground = color;
+		}
+
+		private static void SetTitle(string title)
+		{
+			if (CanConsoleTitle)
+			{
+				Console.Title = title;
+			}
+		}
+
+		private static string GetTitle()
+		{
+			return CanConsoleTitle ? Console.Title : string.Empty;
 		}
 
 		private static void WriteAt(int x, int y, string msg)
 		{
-			Console.SetCursorPosition(x, y);
-			Console.Write(msg);
+			Screen.Write(x, y, msg, Program.CurrentColor, CurrentBackground);
 		}
 
 		private static void WriteAt(int x, int y, string fmt, params object[] args)
 		{
-			Console.SetCursorPosition(x, y);
-			Console.Write(String.Format(CultureInfo.InvariantCulture, fmt, args));
+			Screen.Write(x, y, string.Format(CultureInfo.InvariantCulture, fmt, args), CurrentColor, CurrentBackground);
 		}
 
 		private static double GetMax(RingBuffer<HistoryMetric> metrics, Func<HistoryMetric, double> selector)
@@ -534,7 +792,10 @@ namespace FdbTop
 
 		private static void RepaintTopBar(string screen)
 		{
-			Console.Clear();
+			SetColor(ConsoleColor.White);
+			SetBackground(ConsoleColor.Black);
+			Screen.Clear(Program.CurrentColor, Program.CurrentBackground);
+
 			SetColor(ConsoleColor.DarkGray);
 			WriteAt(TOP_COL0, TOP_ROW0, "Reads  : {0,8} Hz", "");
 			WriteAt(TOP_COL0, TOP_ROW1, "Writes : {0,8} Hz", "");
@@ -558,7 +819,7 @@ namespace FdbTop
 
 			// Bottom
 
-			Console.BackgroundColor = ConsoleColor.DarkCyan;
+			SetBackground(ConsoleColor.DarkCyan);
 			WriteAt(0, ScreenHeight - 1, new string(' ', ScreenWidth - 1));
 			SetColor(screen == "metrics" ? ConsoleColor.White : ConsoleColor.Black);
 			WriteAt(0, ScreenHeight - 1, " [M]etrics ");
@@ -570,7 +831,7 @@ namespace FdbTop
 			WriteAt(38, ScreenHeight - 1, " [P]rocesses ");
 			SetColor(screen == "roles" ? ConsoleColor.White : ConsoleColor.Black);
 			WriteAt(51, ScreenHeight - 1, " [R]roles ");
-			Console.BackgroundColor = ConsoleColor.Black;
+			SetBackground(ConsoleColor.Black);
 		}
 
 		private static void UpdateTopBar(FdbSystemStatus status, HistoryMetric current)
@@ -660,7 +921,7 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = $"fdbtop - {CurrentCoordinators?.Description} - Metrics";
+				SetTitle($"fdbtop - {CurrentCoordinators?.Description} - Metrics");
 				RepaintTopBar("metrics");
 
 				SetColor(ConsoleColor.DarkCyan);
@@ -741,7 +1002,7 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = $"fdbtop - {CurrentCoordinators?.Description} - Latency";
+				SetTitle($"fdbtop - {CurrentCoordinators?.Description} - Latency");
 				RepaintTopBar("latency");
 
 				SetColor(ConsoleColor.DarkCyan);
@@ -821,7 +1082,7 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = $"fdbtop - {CurrentCoordinators?.Description} - Transactions";
+				SetTitle($"fdbtop - {CurrentCoordinators?.Description} - Transactions");
 				RepaintTopBar("transactions");
 
 				SetColor(ConsoleColor.DarkCyan);
@@ -1024,7 +1285,7 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = $"fdbtop - {CurrentCoordinators?.Description} - Processes";
+				SetTitle($"fdbtop - {CurrentCoordinators?.Description} - Processes");
 				RepaintTopBar("processes");
 				SetColor(ConsoleColor.DarkCyan);
 				WriteAt(COL_HOST, 5, "Address (port)");
@@ -1315,7 +1576,7 @@ namespace FdbTop
 
 			if (repaint)
 			{
-				Console.Title = $"fdbtop - {CurrentCoordinators?.Description} - Roles";
+				SetTitle($"fdbtop - {CurrentCoordinators?.Description} - Roles");
 				RepaintTopBar("roles");
 
 				LastProcessYMax = 0;
@@ -1550,7 +1811,7 @@ namespace FdbTop
 		{
 			if (repaint)
 			{
-				Console.Title = $"fdbtop - {CurrentCoordinators?.Description} - Help";
+				SetTitle($"fdbtop - {CurrentCoordinators?.Description} - Help");
 				RepaintTopBar("help");
 			}
 
