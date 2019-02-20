@@ -3,10 +3,10 @@
     <VersionPrefix>5.2.1</VersionPrefix>
     <VersionSuffix>preview</VersionSuffix>
     <Authors>Doxense</Authors>
-    <PackageLicenseUrl>http://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>
-    <PackageProjectUrl>http://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
-    <PackageIconUrl>http://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
-    <RepositoryUrl>http://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
-    <Copyright>Copyright 2013-2018 Doxense SAS</Copyright>
+    <PackageLicenseUrl>https://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
+    <PackageIconUrl>https://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
+    <RepositoryUrl>https://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
+    <Copyright>Copyright 2013-2019 Doxense SAS</Copyright>
   </PropertyGroup>
 </Project>
