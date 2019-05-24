@@ -41,7 +41,6 @@ namespace FoundationDB.Client.Tests
 	internal static class TestHelpers
 	{
 		public const string TestClusterFile = null;
-		public const string TestDbName = "DB";
 		public static readonly Slice TestGlobalPrefix = Slice.FromByte('T');
 		public static readonly string[] TestPartition = { "Tests", Environment.MachineName };
 		public const int DefaultTimeout = 15_000;
@@ -54,7 +53,6 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				DbName = TestDbName,
 				GlobalSpace = KeySubspace.FromKey(TestGlobalPrefix),
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
@@ -67,7 +65,6 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				DbName = TestDbName,
 				PartitionPath = TestPartition,
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
@@ -124,7 +121,7 @@ namespace FoundationDB.Client.Tests
 					string keyDump = null;
 					try
 					{
-						// attemps decoding it as a tuple
+						// attempts decoding it as a tuple
 						keyDump = TuPack.Unpack(key).ToString();
 					}
 					catch (Exception)

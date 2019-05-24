@@ -486,7 +486,6 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestHelpers.TestClusterFile,
-				DbName = TestHelpers.TestDbName,
 				ReadOnly = true,
 			};
 			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
@@ -1570,7 +1569,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("c"));
 					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
 
-					// mutate (not yet comitted)
+					// mutate (not yet committed)
 					tr.Set(A, Slice.FromString("aa"));
 					tr.Set(C, Slice.FromString("cc"));
 					await db.WriteAsync((tr2) =>
@@ -2167,7 +2166,6 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestHelpers.TestClusterFile,
-				DbName = TestHelpers.TestDbName
 			};
 			using (var db = await Fdb.OpenAsync(options, this.Cancellation))
 			{

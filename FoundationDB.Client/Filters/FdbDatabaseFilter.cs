@@ -90,9 +90,8 @@ namespace FoundationDB.Filters
 		/// <summary>Name of the database</summary>
 		public string Name => m_database.Name;
 
-		/// <summary>Cluster of the database</summary>
-		public virtual IFdbCluster Cluster => m_database.Cluster;
-		//REVIEW: do we need a Cluster Filter ?
+		/// <summary>Path to the cluster file used to connect to the database</summary>
+		public string ClusterFile => m_database.ClusterFile;
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		public CancellationToken Cancellation => m_database.Cancellation;

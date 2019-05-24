@@ -35,7 +35,11 @@ namespace FoundationDB.Client.Core
 	[PublicAPI]
 	public interface IFdbDatabaseHandler : IDisposable
 	{
+
+		string ClusterFile { get; }
+
 		bool IsInvalid { get; }
+
 		bool IsClosed { get; }
 
 		void SetOption(FdbDatabaseOption option, Slice data);

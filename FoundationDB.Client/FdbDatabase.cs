@@ -45,22 +45,13 @@ namespace FoundationDB.Client
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
-	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
+	[DebuggerDisplay("GlobalSpace={m_globalSpace}")]
 	public class FdbDatabase : IFdbDatabase, IFdbDatabaseProvider
 	{
 		#region Private Fields...
 
-		/// <summary>Parent cluster that owns the database.</summary>
-		private readonly IFdbCluster m_cluster;
-
 		/// <summary>Underlying handler for this database (native, dummy, memory, ...)</summary>
 		private readonly IFdbDatabaseHandler m_handler;
-
-		/// <summary>Name of the database (note: value it is the value that was passed to Connect(...) since we don't have any API to read the name from an FDB_DATABASE* handle)</summary>
-		private readonly string m_name;
-
-		/// <summary>If true, the cluster instance will be disposed at the same time as the current db instance.</summary>
-		private readonly bool m_ownsCluster;
 
 		/// <summary>If true, the database will only allow read-only transactions.</summary>
 		private bool m_readOnly;
@@ -100,51 +91,39 @@ namespace FoundationDB.Client
 		#region Constructors...
 
 		/// <summary>Create a new database instance</summary>
-		/// <param name="cluster">Parent cluster</param>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
-		/// <param name="name">Name of the database</param>
 		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		protected FdbDatabase(IFdbDatabaseHandler handler, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly)
 		{
-			Contract.Requires(cluster != null && handler != null && name != null && contentSubspace != null);
+			Contract.Requires(handler != null && contentSubspace != null);
 
-			m_cluster = cluster;
 			m_handler = handler;
-			m_name = name;
 			m_readOnly = readOnly;
-			m_ownsCluster = ownsCluster;
 			ChangeRoot(contentSubspace, directory, readOnly);
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
-		/// <param name="cluster">Parent cluster</param>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
-		/// <param name="name">Name of the database</param>
 		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public static FdbDatabase Create([NotNull] IFdbCluster cluster, [NotNull] IFdbDatabaseHandler handler, string name, [NotNull] IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] IKeySubspace contentSubspace, [CanBeNull] IFdbDirectory directory, bool readOnly)
 		{
-			Contract.NotNull(cluster, nameof(cluster));
 			Contract.NotNull(handler, nameof(handler));
 			Contract.NotNull(contentSubspace, nameof(contentSubspace));
 
-			return new FdbDatabase(cluster, handler, name, contentSubspace, directory, readOnly, ownsCluster);
+			return new FdbDatabase(handler, contentSubspace, directory, readOnly);
 		}
 
 		#endregion
 
 		#region Public Properties...
 
-		/// <summary>Cluster where the database is located</summary>
-		public IFdbCluster Cluster => m_cluster;
+		string IFdbDatabase.Name => "DB";
 
-		/// <summary>Name of the database</summary>
-		public string Name => m_name;
+		public string ClusterFile => m_handler.ClusterFile;
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -769,14 +748,13 @@ namespace FoundationDB.Client
 					{
 						if (m_handler != null)
 						{
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", $"Disposing database {m_name} handler");
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", $"Disposing database handler");
 							try { m_handler.Dispose(); }
 							catch (Exception e)
 							{
 								if (Logging.On) Logging.Exception(this, "Dispose", e);
 							}
 						}
-						if (m_ownsCluster) m_cluster.Dispose();
 					}
 				}
 			}

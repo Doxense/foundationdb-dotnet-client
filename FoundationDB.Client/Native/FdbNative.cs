@@ -108,6 +108,9 @@ namespace FoundationDB.Client.Native
 
 			// Database
 
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string clusterFilePath, out DatabaseHandle database);
+
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_database_destroy(IntPtr database);
 
@@ -495,6 +498,18 @@ namespace FoundationDB.Client.Native
 		#endregion
 
 		#region Databases...
+
+		public static FdbError CreateDatabase(string path, out DatabaseHandle database)
+		{
+			var err = NativeMethods.fdb_create_database(path, out database);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_create_database(" + path + ") => err=" + err);
+#endif
+
+			//TODO: check if err == Success ?
+			return err;
+		}
+
 
 		public static FdbError FutureGetDatabase(FutureHandle future, out DatabaseHandle database)
 		{

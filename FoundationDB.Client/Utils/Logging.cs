@@ -295,7 +295,7 @@ namespace FoundationDB.Client
 
 			if (obj is IFdbDatabase db)
 			{
-				return "FdbDatabase('" + db.Name + "')" + suffix;
+				return "FdbDatabase" + suffix;
 			}
 
 			if (obj is Type type)

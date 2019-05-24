@@ -41,6 +41,7 @@ namespace FoundationDB.Client
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
+	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB binding</summary>
@@ -482,49 +483,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Cluster...
-
-		/// <summary>Opens a connection to an existing FoundationDB cluster using the default cluster file</summary>
-		/// <param name="ct">Token used to abort the operation</param>
-		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		[ItemNotNull]
-		public static Task<IFdbCluster> CreateClusterAsync(CancellationToken ct)
-		{
-			return CreateClusterAsync(null, ct);
-		}
-
-		/// <summary>Opens a connection to an existing FDB Cluster</summary>
-		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
-		/// <param name="ct">Token used to abort the operation</param>
-		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		[ItemNotNull]
-		public static async Task<IFdbCluster> CreateClusterAsync(string clusterFile, CancellationToken ct)
-		{
-			return await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
-		}
+		#region Database...
 
 		[ItemNotNull]
-		private static async Task<FdbCluster> CreateClusterInternalAsync([CanBeNull] string clusterFile, CancellationToken ct)
+		private static FdbDatabase CreateDatabaseInternal([CanBeNull] string clusterFile, IKeySubspace globalSpace, bool readOnly)
 		{
 			EnsureIsStarted();
 
 			// "" should also be considered to mean "default cluster file"
 			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "CreateClusterAsync", clusterFile == null ? "Connecting to default cluster..." : $"Connecting to cluster using '{clusterFile}' ...");
-
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (Logging.On) Logging.Info(typeof(Fdb), "CreateDatabase", clusterFile == null ? "Connecting to default database..." : $"Connecting to database using '{clusterFile}' ...");
 
 			//TODO: check the path ? (exists, readable, ...)
 
 			//TODO: have a way to configure the default IFdbClusterHandler !
-			var handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, ct).ConfigureAwait(false);
-			return new FdbCluster(handler, clusterFile);
+			var handler = FdbNativeDatabase.CreateDatabase(clusterFile);
+			return FdbDatabase.Create(handler, globalSpace, null, readOnly);
 		}
-
-		#endregion
-
-		#region Database...
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file.</summary>
 		/// <param name="ct">Token used to abort the operation</param>
@@ -535,65 +511,6 @@ namespace FoundationDB.Client
 		public static Task<IFdbDatabase> OpenAsync(CancellationToken ct = default)
 		{
 			return OpenInternalAsync(new FdbConnectionOptions(), ct);
-		}
-
-		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file, and with the specified global subspace</summary>
-		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
-		/// <param name="ct">Token used to abort the operation</param>
-		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull, Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
-		public static Task<IFdbDatabase> OpenAsync([CanBeNull] IKeySubspace globalSpace, CancellationToken ct = default)
-		{
-			var options = new FdbConnectionOptions
-			{
-				GlobalSpace = globalSpace,
-			};
-			return OpenInternalAsync(options, ct);
-		}
-
-		/// <summary>Create a new connection with a database on the specified cluster</summary>
-		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
-		/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
-		/// <param name="ct">Cancellation Token</param>
-		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of 1.0, the only supported database name is "DB"</remarks>
-		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull, Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
-		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, CancellationToken ct = default)
-		{
-			var options = new FdbConnectionOptions
-			{
-				ClusterFile = clusterFile,
-				DbName = dbName,
-			};
-			return OpenInternalAsync(options, ct);
-		}
-
-		/// <summary>Create a new connection with a database on the specified cluster</summary>
-		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
-		/// <param name="dbName">Name of the database. Must be 'DB'</param>
-		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
-		/// <param name="readOnly">If true, the database instance will only allow read operations</param>
-		/// <param name="ct">Token used to abort the operation</param>
-		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
-		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull, Obsolete("Use " + nameof(Fdb.OpenAsync) + "(" + nameof(FdbConnectionOptions) + ", ...) instead")]
-		public static Task<IFdbDatabase> OpenAsync([CanBeNull] string clusterFile, [CanBeNull] string dbName, [CanBeNull] IKeySubspace globalSpace, bool readOnly = false, CancellationToken ct = default)
-		{
-			var options = new FdbConnectionOptions
-			{
-				ClusterFile = clusterFile,
-				DbName = dbName,
-				GlobalSpace = globalSpace,
-				ReadOnly = readOnly
-			};
-			return OpenInternalAsync(options, ct);
 		}
 
 		/// <summary>Create a new connection with a database using the specified options</summary>
@@ -617,22 +534,19 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 
 			string clusterFile = options.ClusterFile;
-			string dbName = options.DbName ?? FdbConnectionOptions.DefaultDbName;
 			bool readOnly = options.ReadOnly;
 			IKeySubspace globalSpace = options.GlobalSpace ?? KeySubspace.Empty;
 			string[] partitionPath = options.PartitionPath?.ToArray();
 			bool hasPartition = partitionPath != null && partitionPath.Length > 0;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database '{dbName}' using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
+			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
 
-			FdbCluster cluster = null;
 			FdbDatabase db = null;
 			bool success = false;
 			try
 			{
-				cluster = await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
-				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: !hasPartition && readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
+				// Starting from 6.1, we can directly instantiate a database instance
+				db = CreateDatabaseInternal(clusterFile, globalSpace, !hasPartition && readOnly);
 
 				// set the default options
 				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
@@ -655,7 +569,6 @@ namespace FoundationDB.Client
 				{
 					// cleanup the cluster if something went wrong
 					db?.Dispose();
-					cluster?.Dispose();
 				}
 			}
 		}

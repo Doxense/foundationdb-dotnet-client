@@ -44,60 +44,28 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Open_Database()
 		{
-			//README: if your default cluster is remote, you need to be connected to the netword, or it will fail.
-
-			// the hard way
-			using (var cluster = await Fdb.CreateClusterAsync(null, this.Cancellation))
-			{
-				Assert.That(cluster, Is.Not.Null);
-				Assert.That(cluster.Path, Is.Null);
-
-				using (var db = await cluster.OpenDatabaseAsync("DB", KeySubspace.Empty, false, this.Cancellation))
-				{
-					Assert.That(db, Is.Not.Null, "Should return a valid object");
-					Assert.That(db.Name, Is.EqualTo("DB"), "FdbDatabase.Name should match");
-					Assert.That(db.Cluster, Is.SameAs(cluster), "FdbDatabase.Cluster should point to the parent cluster");
-				}
-			}
+			//README: if your default cluster is remote, you need to be connected to the network, or it will fail.
 
 			// the easy way
 			using(var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
-				Assert.That(db.Name, Is.EqualTo("DB"));
-				Assert.That(db.Cluster, Is.Not.Null);
-				Assert.That(db.Cluster.Path, Is.Null);
+				Assert.That(db.ClusterFile, Is.Null, ".ClusterFile");
+				Assert.That(db.Name, Is.EqualTo("DB"), ".Name"); //note: should probably be removed?
+				Assert.That(db.GlobalSpace, Is.Not.Null, ".GlobalSpace");
+				Assert.That(db.Directory, Is.Not.Null, ".Directory");
+				Assert.That(db.IsReadOnly, Is.False, ".IsReadOnly");
 			}
 		}
 
 		[Test]
-		public async Task Test_Open_Database_With_Cancelled_Token_Should_Fail()
+		public void Test_Open_Database_With_Cancelled_Token_Should_Fail()
 		{
 			using (var cts = new CancellationTokenSource())
 			{
-				using (var cluster = await Fdb.CreateClusterAsync(cts.Token))
-				{
-					cts.Cancel();
-					Assert.That(async () => await cluster.OpenDatabaseAsync("DB", KeySubspace.Empty, false, cts.Token), Throws.InstanceOf<OperationCanceledException>());
-				}
+				cts.Cancel();
+				Assert.That(async () => await Fdb.OpenAsync(cts.Token), Throws.InstanceOf<OperationCanceledException>());
 			}
-		}
-
-		[Test]
-		public async Task Test_Open_Database_With_Invalid_Name_Should_Fail()
-		{
-			// As of 1.0, the only accepted database name is "DB".
-			// Any other name should fail with "InvalidDatabaseName"
-			// note: Don't forget to update this test if in the future if the API allows for other names !
-
-			// manually
-			using (var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
-			{
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", KeySubspace.Empty, false, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
-			}
-
-			// using Fdb.OpenAsync
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { DbName = "SomeOtherName" }, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 		}
 
 		[Test]
@@ -106,15 +74,12 @@ namespace FoundationDB.Client.Tests
 			// Missing/Invalid cluster files should fail with "NoClusterFileFound"
 
 			// file not found
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@".\file_not_found.cluster", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @".\file_not_found.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
 
 			// unreachable path
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"C:\..\..\fdb.cluster", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"C:\..\..\fdb.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 
 			// malformed path
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"FOO:\invalid$path!/fdb.cluster", this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = @"FOO:\invalid$path!/fdb.cluster" }, this.Cancellation), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 		}
 
@@ -132,7 +97,6 @@ namespace FoundationDB.Client.Tests
 				rnd.NextBytes(bytes);
 				System.IO.File.WriteAllBytes(path, bytes);
 
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(path, this.Cancellation), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
 				await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(new FdbConnectionOptions { ClusterFile = path }, this.Cancellation), FdbError.ConnectionStringInvalid, "Should fail if file is corrupted");
 			}
 			finally
@@ -150,8 +114,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null, "Should return a valid database");
-				Assert.That(db.Cluster, Is.Not.Null, "FdbDatabase should have its own Cluster instance");
-				Assert.That(db.Cluster.Path, Is.Null, "Cluster path should be null (default)");
+				Assert.That(db.ClusterFile, Is.Null, "Cluster path should be null (default)");
 			}
 		}
 
@@ -163,8 +126,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				Assert.That(db, Is.Not.Null, "Should return a valid database");
-				Assert.That(db.Cluster, Is.Not.Null, "FdbDatabase should have its own Cluster instance");
-				Assert.That(db.Cluster.Path, Is.Null, "Cluster path should be null (default)");
+				Assert.That(db.ClusterFile, Is.Null, "Cluster path should be null (default)");
 			}
 		}
 
@@ -326,7 +288,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			{
 
-				//TODO: how can we test that it is successfull ?
+				//TODO: how can we test that it is successful ?
 
 				db.SetLocationCacheSize(1000);
 				db.SetLocationCacheSize(0); // does this disable location cache ?
@@ -345,7 +307,6 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				Assert.That(db, Is.Not.Null);
-				Assert.That(db.Name, Is.EqualTo(TestHelpers.TestDbName));
 
 				var directory = db.Directory;
 				Assert.That(directory, Is.Not.Null);
@@ -408,7 +369,7 @@ namespace FoundationDB.Client.Tests
 				ClusterFile = "X:\\some\\path\\to\\fdb.cluster",
 				PartitionPath = new[] { "Hello", "World" },
 			};
-			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; db=DB; partition=/Hello/World"));
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; partition=/Hello/World"));
 
 			options = new FdbConnectionOptions
 			{
@@ -419,16 +380,15 @@ namespace FoundationDB.Client.Tests
 				DataCenterId = "AC/DC",
 				MachineId = "Marble Machine X"
 			};
-			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; db=DB; readonly; timeout=42.5; retry_limit=123; dc_id=AC/DC; machine_id=""Marble Machine X"""));
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; readonly; timeout=42.5; retry_limit=123; dc_id=AC/DC; machine_id=""Marble Machine X"""));
 
 			options = new FdbConnectionOptions
 			{
 				ClusterFile = "/etc/foundationdb/fdb.cluster",
-				DbName = "Steins;DB",
 				MachineId = "James \"The Machine\" Wade",
 				DefaultTimeout = TimeSpan.FromTicks((long) (Math.PI * TimeSpan.TicksPerSecond)),
 			};
-			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=/etc/foundationdb/fdb.cluster; db=""Steins;DB""; timeout=3.1415926; machine_id=""James \""The Machine\"" Wade"""));
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=/etc/foundationdb/fdb.cluster; timeout=3.1415926; machine_id=""James \""The Machine\"" Wade"""));
 		}
 
 	}

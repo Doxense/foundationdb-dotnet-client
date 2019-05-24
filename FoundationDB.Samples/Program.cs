@@ -127,7 +127,6 @@ namespace FoundationDB.Samples
 			bool stop = false;
 
 			string clusterFile = null;
-			var dbName = "DB";
 			var partition = new string[0];
 
 			int pStart = 0;
@@ -178,7 +177,6 @@ namespace FoundationDB.Samples
 				var options = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
-					DbName = dbName,
 					PartitionPath = partition,
 				};
 				Db = Fdb.OpenAsync(options, go.Token).GetAwaiter().GetResult();
@@ -193,7 +191,7 @@ namespace FoundationDB.Samples
 
 					Console.WriteLine();
 					Console.WriteLine("FoundationDB Samples menu:");
-					Console.WriteLine("\t1\tRun Class Schedudling sample");
+					Console.WriteLine("\t1\tRun Class Scheduling sample");
 					Console.WriteLine("\tL\tRun Leak test");
 					Console.WriteLine("\tbench\tRun synthetic benchmarks");
 					Console.WriteLine("\tgc\tTrigger a .NET garbage collection");

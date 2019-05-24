@@ -42,15 +42,19 @@ namespace FoundationDB.Client.Native
 		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
 		private readonly DatabaseHandle m_handle;
 
+		/// <summary>Path to the cluster file</summary>
+		private readonly string m_clusterFile;
+
 #if CAPTURE_STACKTRACES
 		private readonly StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeDatabase(DatabaseHandle handle)
+		public FdbNativeDatabase(DatabaseHandle handle, string clusterFile)
 		{
-			if (handle == null) throw new ArgumentNullException("handle");
+			if (handle == null) throw new ArgumentNullException(nameof(handle));
 
 			m_handle = handle;
+			m_clusterFile = clusterFile;
 #if CAPTURE_STACKTRACES
 			m_stackTrace = new StackTrace();
 #endif
@@ -69,10 +73,21 @@ namespace FoundationDB.Client.Native
 			Dispose(false);
 		}
 
+		public static IFdbDatabaseHandler CreateDatabase(string clusterFile)
+		{
+			var err = FdbNative.CreateDatabase(clusterFile, out var handle);
+			if (err != FdbError.Success)
+			{
+				throw Fdb.MapToException(err);
+			}
+			return new FdbNativeDatabase(handle, clusterFile);
+		}
 
-		public bool IsInvalid { get { return m_handle.IsInvalid; } }
+		public string ClusterFile => m_clusterFile;
 
-		public bool IsClosed { get { return m_handle.IsClosed; } }
+		public bool IsInvalid => m_handle.IsInvalid;
+
+		public bool IsClosed => m_handle.IsClosed;
 
 		public void SetOption(FdbDatabaseOption option, Slice data)
 		{

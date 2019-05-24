@@ -193,7 +193,6 @@ namespace FdbShell
 			#region Options Parsing...
 
 			string clusterFile = null;
-			var dbName = "DB";
 			var partition = new string[0];
 			bool showHelp = false;
 			int timeout = 30;
@@ -262,7 +261,6 @@ namespace FdbShell
 				var cnxOptions = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
-					DbName = dbName,
 					PartitionPath = partition
 				};
 				Db = await ChangeDatabase(cnxOptions, cancel);
@@ -697,7 +695,6 @@ namespace FdbShell
 									var options = new FdbConnectionOptions
 									{
 										ClusterFile = clusterFile,
-										DbName = dbName,
 										PartitionPath = newPartition
 									};
 									newDb = await ChangeDatabase(options, cancel);

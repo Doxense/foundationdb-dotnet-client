@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 #if DEBUG
 					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the global namespace {db.GlobalSpace} of database '{db.Name}'"
 #else
-					$"An attempt was made to use a key that is outside of the global namespace {db.GlobalSpace} of database '{db.Name}'"
+					$"An attempt was made to use a key that is outside of the global namespace {db.GlobalSpace}"
 #endif
 				);
 			}
@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 			internal static Exception FailedToRegisterTransactionOnDatabase(IFdbTransaction transaction, FdbDatabase db)
 			{
 				Contract.Requires(transaction != null && db != null);
-				return new InvalidOperationException($"Failed to register transaction #{transaction.Id} with this instance of database {db.Name}");
+				return new InvalidOperationException($"Failed to register transaction #{transaction.Id}");
 			}
 
 			internal static Exception CannotIncrementKey()

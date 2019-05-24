@@ -39,7 +39,8 @@ namespace FoundationDB.Client
 	public sealed class FdbConnectionOptions
 	{
 		//REVIEW: rename this to "FdbConnectionString"? (so that it feels more like ADO.NET?)
-
+		
+		[Obsolete("This value should not be used anymore.")]
 		public const string DefaultDbName = "DB";
 
 		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
@@ -48,6 +49,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Default database name</summary>
 		/// <remarks>Only "DB" is supported for now</remarks>
+		[Obsolete("This property should not be used anymore, and its value will be ignored.")]
 		public string DbName { get; set; } = DefaultDbName;
 
 		/// <summary>If true, opens a read-only view of the database</summary>
@@ -87,7 +89,6 @@ namespace FoundationDB.Client
 		{
 			var sb = new StringBuilder();
 			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
-			AddKeyValue(sb, "db", this.DbName);
 			if (this.PartitionPath != null) AddKeyValue(sb, "partition", "/" + string.Join("/", this.PartitionPath));
 			//REVIEW: cannot serialize subspace into a string ! :(
 			if (this.ReadOnly) AddKeyword(sb, "readonly");

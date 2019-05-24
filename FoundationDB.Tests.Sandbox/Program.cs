@@ -45,7 +45,6 @@ namespace FoundationDB.Tests.Sandbox
 		private static int N;
 		private static string NATIVE_PATH;
 		private static string CLUSTER_FILE;
-		private static string DB_NAME;
 		private static bool WARNING;
 		private static string SUBSPACE;
 
@@ -54,7 +53,6 @@ namespace FoundationDB.Tests.Sandbox
 			N = 10 * 1000;
 			NATIVE_PATH = null; // set this to the path of the 'bin' folder in your fdb install, like @"C:\Program Files\foundationdb\bin"
 			CLUSTER_FILE = null; // set this to the path to your custom fluster file
-			DB_NAME = "DB";
 			SUBSPACE = "Sandbox";
 			WARNING = true;
 
@@ -73,11 +71,6 @@ namespace FoundationDB.Tests.Sandbox
 
 					switch (cmd.ToLowerInvariant())
 					{
-						case "db":
-						{
-							DB_NAME = param;
-							break;
-						}
 						case "cluster":
 						{
 							CLUSTER_FILE = param;
@@ -173,72 +166,72 @@ namespace FoundationDB.Tests.Sandbox
 				Fdb.Start(Fdb.GetDefaultApiVersion());
 				Console.WriteLine("> Up and running");
 
+				var settings = new FdbConnectionOptions()
+				{
+					ClusterFile = CLUSTER_FILE,
+					GlobalSpace = KeySubspace.FromKey(Slice.FromByte(253)),
+				};
+
 				Console.WriteLine("Connecting to local cluster...");
-				using (var cluster = await Fdb.CreateClusterAsync(CLUSTER_FILE, ct))
+				using (var db = await Fdb.OpenAsync(settings, ct))
 				{
 					Console.WriteLine("> Connected!");
 
-					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, KeySubspace.FromKey(Slice.FromByte(253)), false, ct))
+					// get coordinators
+					var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
+					Console.WriteLine("Coordinators: " + cf.ToString());
+
+					// clear everything
+					using (var tr = db.BeginTransaction(ct))
 					{
-						Console.WriteLine("> Connected to db '{0}'", db.Name);
-
-						// get coordinators
-						var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
-						Console.WriteLine("Coordinators: " + cf.ToString());
-
-						// clear everything
-						using (var tr = db.BeginTransaction(ct))
-						{
-							Console.WriteLine("Clearing subspace " + db.GlobalSpace + " ...");
-							tr.ClearRange(db.GlobalSpace);
-							await tr.CommitAsync();
-							Console.WriteLine("> Database cleared");
-						}
-
-						Console.WriteLine();
-
-						await TestSimpleTransactionAsync(db, ct);
-
-						await BenchInsertSmallKeysAsync(db, N, 16, ct); // some guid
-						await BenchInsertSmallKeysAsync(db, N, 60 * 4, ct); // one Int32 per minutes, over an hour
-						await BenchInsertSmallKeysAsync(db, N, 512, ct); // small JSON payload
-						await BenchInsertSmallKeysAsync(db, N / 5, 4096, ct); // typical small cunk size
-						await BenchInsertSmallKeysAsync(db, N / 100, 65536, ct); // typical medium chunk size
-						await BenchInsertSmallKeysAsync(db, 20, 100_000, ct); // Maximum value size (as of beta 1)
-
-						// insert keys in parrallel
-						await BenchConcurrentInsert(db, 1,    100, 512, ct);
-						await BenchConcurrentInsert(db, 1,  1_000, 512, ct);
-						await BenchConcurrentInsert(db, 1, 10_000, 512, ct);
-
-						await BenchConcurrentInsert(db, 1, N, 16, ct);
-						await BenchConcurrentInsert(db, 2, N, 16, ct);
-						await BenchConcurrentInsert(db, 4, N, 16, ct);
-						await BenchConcurrentInsert(db, 8, N, 16, ct);
-						await BenchConcurrentInsert(db, 16, N, 16, ct);
-
-						await BenchSerialWriteAsync(db, N, ct);
-						await BenchSerialReadAsync(db, N, ct);
-						await BenchConcurrentReadAsync(db, N, ct);
-
-						await BenchClearAsync(db, N, ct);
-
-						await BenchUpdateSameKeyLotsOfTimesAsync(db, 1000, ct);
-
-						await BenchUpdateLotsOfKeysAsync(db, 1000, ct);
-
-						await BenchBulkInsertThenBulkReadAsync(db,   100_000,  50, 128, ct);
-						await BenchBulkInsertThenBulkReadAsync(db,   100_000, 128,  50, ct);
-						await BenchBulkInsertThenBulkReadAsync(db, 1_000_000,  50, 128, ct);
-
-						await BenchMergeSortAsync(db,   100,     3,  20, ct);
-						await BenchMergeSortAsync(db, 1_000,    10, 100, ct);
-						await BenchMergeSortAsync(db,   100,   100, 100, ct);
-						await BenchMergeSortAsync(db,   100, 1_000, 100, ct);
-
-						Console.WriteLine("time to say goodbye...");
+						Console.WriteLine("Clearing subspace " + db.GlobalSpace + " ...");
+						tr.ClearRange(db.GlobalSpace);
+						await tr.CommitAsync();
+						Console.WriteLine("> Database cleared");
 					}
+
+					Console.WriteLine();
+
+					await TestSimpleTransactionAsync(db, ct);
+
+					await BenchInsertSmallKeysAsync(db, N, 16, ct); // some guid
+					await BenchInsertSmallKeysAsync(db, N, 60 * 4, ct); // one Int32 per minutes, over an hour
+					await BenchInsertSmallKeysAsync(db, N, 512, ct); // small JSON payload
+					await BenchInsertSmallKeysAsync(db, N / 5, 4096, ct); // typical small cunk size
+					await BenchInsertSmallKeysAsync(db, N / 100, 65536, ct); // typical medium chunk size
+					await BenchInsertSmallKeysAsync(db, 20, 100_000, ct); // Maximum value size (as of beta 1)
+
+					// insert keys in parrallel
+					await BenchConcurrentInsert(db, 1,    100, 512, ct);
+					await BenchConcurrentInsert(db, 1,  1_000, 512, ct);
+					await BenchConcurrentInsert(db, 1, 10_000, 512, ct);
+
+					await BenchConcurrentInsert(db, 1, N, 16, ct);
+					await BenchConcurrentInsert(db, 2, N, 16, ct);
+					await BenchConcurrentInsert(db, 4, N, 16, ct);
+					await BenchConcurrentInsert(db, 8, N, 16, ct);
+					await BenchConcurrentInsert(db, 16, N, 16, ct);
+
+					await BenchSerialWriteAsync(db, N, ct);
+					await BenchSerialReadAsync(db, N, ct);
+					await BenchConcurrentReadAsync(db, N, ct);
+
+					await BenchClearAsync(db, N, ct);
+
+					await BenchUpdateSameKeyLotsOfTimesAsync(db, 1000, ct);
+
+					await BenchUpdateLotsOfKeysAsync(db, 1000, ct);
+
+					await BenchBulkInsertThenBulkReadAsync(db,   100_000,  50, 128, ct);
+					await BenchBulkInsertThenBulkReadAsync(db,   100_000, 128,  50, ct);
+					await BenchBulkInsertThenBulkReadAsync(db, 1_000_000,  50, 128, ct);
+
+					await BenchMergeSortAsync(db,   100,     3,  20, ct);
+					await BenchMergeSortAsync(db, 1_000,    10, 100, ct);
+					await BenchMergeSortAsync(db,   100,   100, 100, ct);
+					await BenchMergeSortAsync(db,   100, 1_000, 100, ct);
+
+					Console.WriteLine("time to say goodbye...");
 				}
 			}
 			finally
