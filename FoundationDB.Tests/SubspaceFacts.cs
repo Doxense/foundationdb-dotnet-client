@@ -71,7 +71,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// if we encode a tuple from this subspace, it should keep the binary prefix when converted to a key
 			var k = subspace.Keys.Pack(("world", 123, false));
-			Assert.That(k.ToString(), Is.EqualTo("*<FF><00><7F><02>world<00><15>{<14>"));
+			Assert.That(k.ToString(), Is.EqualTo("*<FF><00><7F><02>world<00><15>{&"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
 			var t2 = subspace.Keys.Unpack(k);
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// even though the subspace prefix is a tuple, appending to it will only return the new items
 			var k = subspace.Keys.Pack(("world", 123, false));
-			Assert.That(k.ToString(), Is.EqualTo("<02>hello<00><02>world<00><15>{<14>"));
+			Assert.That(k.ToString(), Is.EqualTo("<02>hello<00><02>world<00><15>{&"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
 			var t2 = subspace.Keys.Unpack(k);
