@@ -30,7 +30,6 @@ namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using NUnit.Framework;
 	using System;

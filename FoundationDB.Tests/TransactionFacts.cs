@@ -914,6 +914,50 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_AtomicCompareAndClear()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = db.Partition.ByKey("test", "atomic");
+
+				// setup
+				await db.ClearRangeAsync(location, this.Cancellation);
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(location.Keys.Encode("AAA"), Slice.FromFixed32(0));
+					tr.Set(location.Keys.Encode("BBB"), Slice.FromFixed32(1));
+					tr.Set(location.Keys.Encode("CCC"), Slice.FromFixed32(42));
+					tr.Set(location.Keys.Encode("DDD"), Slice.FromFixed64(0));
+					tr.Set(location.Keys.Encode("EEE"), Slice.FromFixed64(1));
+					//FFF does not exist
+				}, this.Cancellation);
+
+				// execute
+				await db.WriteAsync((tr) =>
+				{
+					tr.AtomicCompareAndClear(location.Keys.Encode("AAA"), Slice.FromFixed32(0));  // should be cleared
+					tr.AtomicCompareAndClear(location.Keys.Encode("BBB"), Slice.FromFixed32(0));  // should not be touched
+					tr.AtomicCompareAndClear(location.Keys.Encode("CCC"), Slice.FromFixed32(42)); // should be cleared
+					tr.AtomicCompareAndClear(location.Keys.Encode("DDD"), Slice.FromFixed64(0));  // should be cleared
+					tr.AtomicCompareAndClear(location.Keys.Encode("EEE"), Slice.FromFixed64(0));  // should not be touched
+					tr.AtomicCompareAndClear(location.Keys.Encode("FFF"), Slice.FromFixed64(42)); // should not be created
+				}, this.Cancellation);
+
+				// check
+				_ = await db.ReadAsync(async (tr) =>
+				{
+					Assert.That((await tr.GetAsync(location.Keys.Encode("AAA"))), Is.EqualTo(Slice.Nil));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("BBB"))).ToHexaString(' '), Is.EqualTo("01 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("CCC"))), Is.EqualTo(Slice.Nil));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("DDD"))), Is.EqualTo(Slice.Nil));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("EEE"))).ToHexaString(' '), Is.EqualTo("01 00 00 00 00 00 00 00"));
+					Assert.That((await tr.GetAsync(location.Keys.Encode("FFF"))), Is.EqualTo(Slice.Nil));
+					return 123;
+				}, this.Cancellation);
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_AppendIfFits()
 		{
 			using (var db = await OpenTestPartitionAsync())

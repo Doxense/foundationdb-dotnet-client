@@ -370,11 +370,44 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
 
+		/// <summary>Modify the database snapshot represented by this transaction to clear the value of <paramref name="key"/> only if it is equal to <paramref name="comparand"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be cleared.</param>
+		/// <param name="comparand">Value that the key must have, in order to be cleared.</param>
+		/// <remarks>
+		/// If the <paramref name="key"/> does not exist, or has a different value than <paramref name="comparand"/> then no changes will be performed.
+		/// This method requires API version 610 or greater.
+		/// </remarks>
+		public static void AtomicCompareAndClear([NotNull] this IFdbTransaction trans, Slice key, Slice comparand)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, comparand, FdbMutationType.CompareAndClear);
+		}
+
 		/// <summary>Cached 0 (32-bits)</summary>
 		private static readonly Slice Zero32 = Slice.FromFixed32(0);
 
 		/// <summary>Cached 0 (64-bits)</summary>
 		private static readonly Slice Zero64 = Slice.FromFixed64(0);
+
+		/// <summary>Atomically clear the key only if its value is equal to 4 consecutive zero bytes.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static void AtomicClearIfZero32(this IFdbTransaction trans, Slice key)
+		{
+			trans.Atomic(key, Zero32, FdbMutationType.CompareAndClear);
+		}
+
+		/// <summary>Atomically clear the key only if its value is equal to 8 consecutive zero bytes.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static void AtomicClearIfZero64(this IFdbTransaction trans, Slice key)
+		{
+			trans.Atomic(key, Zero64, FdbMutationType.CompareAndClear);
+		}
 
 		/// <summary>Cached +1 (32-bits)</summary>
 		private static readonly Slice PlusOne32 = Slice.FromFixed32(1);
@@ -408,6 +441,22 @@ namespace FoundationDB.Client
 			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
 		}
 
+		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key, bool clearIfZero)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
+			if (clearIfZero)
+			{
+				trans.Atomic(key, Zero32, FdbMutationType.CompareAndClear);
+			}
+		}
+
 		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
@@ -426,6 +475,22 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans, nameof(trans));
 
 			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key, bool clearIfZero)
+		{
+			Contract.NotNull(trans, nameof(trans));
+
+			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
+			if (clearIfZero)
+			{
+				trans.Atomic(key, Zero64, FdbMutationType.CompareAndClear);
+			}
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>

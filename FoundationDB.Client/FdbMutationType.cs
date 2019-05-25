@@ -124,11 +124,20 @@ namespace FoundationDB.Client
 		/// WARNING: prior to API version 520, the versionstamp was always placed at the beginning of the parameter rather than computing an offset.</summary>
 		VersionStampedValue = 15,
 
-		//TODO: xml comments
+		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise the smaller of the two values is then stored in the database.</summary>
 		ByteMin = 16,
 
-		//TODO: xml comments
+		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise the larger of the two values is then stored in the database.</summary>
 		ByteMax = 17,
+
+		//TODO: xml comments
+		MinV2 = 18,
+
+		//TODO: xml comments
+		AndV2 = 19,
+
+		/// <summary>Performs an atomic compare and clear operation. If the existing value in the database is equal to the given value, then given key is cleared.</summary>
+		CompareAndClear = 20,
 
 	}
 

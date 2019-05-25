@@ -497,63 +497,97 @@ namespace FoundationDB.Client
 				}
 			}
 
-			if (mutation == FdbMutationType.Add || mutation == FdbMutationType.BitAnd || mutation == FdbMutationType.BitOr || mutation == FdbMutationType.BitXor )
-			{ // these mutations are available since v200
-				return;
-			}
-
-			if (mutation == FdbMutationType.Max || mutation == FdbMutationType.Min)
-			{ // these mutations are available since v300
-				if (selectedApiVersion < 300)
-				{
-					if (Fdb.GetMaxApiVersion() >= 300)
-					{
-						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from API level 300. You need to select API level 300 or more at the start of your process.");
-					}
-					else
-					{
-						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 3.x. You need to update the version of the client, and select API level 300 or more at the start of your process..");
-					}
-				}
-				// ok!
-				return;
-			}
-
-			if (mutation == FdbMutationType.VersionStampedKey || mutation == FdbMutationType.VersionStampedValue)
+			switch (mutation)
 			{
-				if (selectedApiVersion < 400)
-				{
-					if (Fdb.GetMaxApiVersion() >= 400)
-					{
-						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations for VersionStamps are only supported starting from API level 400. You need to select API level 400 or more at the start of your process.");
-					}
-					else
-					{
-						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 4.x. You need to update the version of the client, and select API level 400 or more at the start of your process..");
-					}
-				}
-				// ok!
-				return;
-			}
-			if (mutation == FdbMutationType.AppendIfFits)
-			{
-				if (selectedApiVersion < 520)
-				{
-					if (Fdb.GetMaxApiVersion() >= 520)
-					{
-						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from API level 520. You need to select API level 520 or more at the start of your process.");
-					}
-					else
-					{
-						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from client version 5.2. You need to update the version of the client, and select API level 520 or more at the start of your process..");
-					}
-				}
-				// ok!
-				return;
-			}
 
-			// this could be a new mutation type, or an invalid value.
-			throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
+				case FdbMutationType.Add:
+				case FdbMutationType.BitAnd:
+				case FdbMutationType.BitOr:
+				case FdbMutationType.BitXor:
+				{ // these mutations are available since v200
+					return;
+				}
+
+				case FdbMutationType.Max:
+				case FdbMutationType.Min:
+				{ // these mutations are available since v300
+					if (selectedApiVersion < 300)
+					{
+						if (Fdb.GetMaxApiVersion() >= 300)
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from API level 300. You need to select API level 300 or more at the start of your process.");
+						}
+						else
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 3.x. You need to update the version of the client, and select API level 300 or more at the start of your process..");
+						}
+					}
+
+					// ok!
+					return;
+				}
+
+				case FdbMutationType.VersionStampedKey:
+				case FdbMutationType.VersionStampedValue:
+				{
+					if (selectedApiVersion < 400)
+					{
+						if (Fdb.GetMaxApiVersion() >= 400)
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations for VersionStamps are only supported starting from API level 400. You need to select API level 400 or more at the start of your process.");
+						}
+						else
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 4.x. You need to update the version of the client, and select API level 400 or more at the start of your process..");
+						}
+					}
+
+					// ok!
+					return;
+				}
+
+				case FdbMutationType.AppendIfFits:
+				{
+					if (selectedApiVersion < 520)
+					{
+						if (Fdb.GetMaxApiVersion() >= 520)
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from API level 520. You need to select API level 520 or more at the start of your process.");
+						}
+						else
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from client version 5.2. You need to update the version of the client, and select API level 520 or more at the start of your process..");
+						}
+					}
+
+					// ok!
+					return;
+				}
+
+				case FdbMutationType.CompareAndClear:
+				{
+					if (selectedApiVersion < 610)
+					{
+						if (Fdb.GetMaxApiVersion() >= 610)
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic CompareAndClear is only supported starting from API level 610. You need to select API level 610 or more at the start of your process.");
+						}
+						else
+						{
+							throw new FdbException(FdbError.InvalidMutationType, "Atomic CompareAndClear is only supported starting from client version 6.1. You need to update the version of the client, and select API level 610 or more at the start of your process..");
+						}
+					}
+
+					// ok!
+					return;
+				}
+
+				default:
+				{
+					// this could be a new mutation type, or an invalid value.
+					throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
+				}
+			}
 		}
 
 		/// <inheritdoc />

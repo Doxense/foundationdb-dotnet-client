@@ -383,6 +383,17 @@ namespace FoundationDB.Client
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Add), ct);
 		}
 
+		/// <summary>Atomically compare and optionally clear the value of a single key in the database, using a dedicated transaction.</summary>
+		/// <remarks>
+		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
+		/// </remarks>
+		public static Task AtomicCompareAndClear([NotNull] this IFdbRetryable db, Slice key, Slice comparand, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			return db.WriteAsync((tr) => tr.Atomic(key, comparand, FdbMutationType.CompareAndClear), ct);
+		}
+
 		/// <summary>Atomically perform a bitwise AND to the value of a single key in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
