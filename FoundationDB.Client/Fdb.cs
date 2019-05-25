@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,6 @@ namespace FoundationDB.Client
 	using SystemIO = System.IO;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB binding</summary>
@@ -67,7 +66,7 @@ namespace FoundationDB.Client
 		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
 
 		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
-		internal const int DefaultApiVersion = 600; // v6.0.x
+		internal const int DefaultApiVersion = 610; // v6.1.x
 		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
