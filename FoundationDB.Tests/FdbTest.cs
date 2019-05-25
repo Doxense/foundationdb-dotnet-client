@@ -62,7 +62,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Fdb.Start(version);
 			}
-			else if (OverrideApiVersion != Fdb.ApiVersion)
+			else if (OverrideApiVersion != 0 && OverrideApiVersion != Fdb.ApiVersion)
 			{
 				//note: cannot change API version on the fly! :(
 				Assume.That(Fdb.ApiVersion, Is.EqualTo(OverrideApiVersion), "The API version selected is not what this test is expecting!");

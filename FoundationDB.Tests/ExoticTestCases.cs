@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		// => THEY ARE NOT TESTING THE DATABASE ITSELF, ONLY USED AS TOOLS TO OBSERVE THE CHANGES TO THE DATABASE!
 
 		[Test]
-		public async void Test_Case_1()
+		public async Task Test_Case_1()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -60,7 +60,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_2()
+		public async Task Test_Case_2()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -79,7 +79,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_3()
+		public async Task Test_Case_3()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -96,7 +96,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_4()
+		public async Task Test_Case_4()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -130,7 +130,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_5()
+		public async Task Test_Case_5()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -150,7 +150,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_6()
+		public async Task Test_Case_6()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -176,7 +176,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_6b()
+		public async Task Test_Case_6b()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -218,7 +218,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_7()
+		public async Task Test_Case_7()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -298,7 +298,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_8()
+		public async Task Test_Case_8()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -328,7 +328,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_9()
+		public async Task Test_Case_9()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -369,7 +369,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_10()
+		public async Task Test_Case_10()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -406,7 +406,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_11()
+		public async Task Test_Case_11()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -460,7 +460,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_12()
+		public async Task Test_Case_12()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -495,7 +495,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_13()
+		public async Task Test_Case_13()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -538,7 +538,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_14()
+		public async Task Test_Case_14()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -577,7 +577,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_15()
+		public async Task Test_Case_15()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
@@ -613,7 +613,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		}
 
 		[Test]
-		public async void Test_Case_16()
+		public async Task Test_Case_16()
 		{
 
 			using (var zedb = await OpenTestDatabaseAsync())
@@ -706,7 +706,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 		[Test][Ignore("This test requires the database to be stopped!")]
-		public async void Test_Case_17()
+		public async Task Test_Case_17()
 		{
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
