@@ -2529,6 +2529,30 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Metadata_Version()
+		{
+			//note: this test may be vulnerable to exterior changes to the database!
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var version1 = await Fdb.System.GetMetadataVersionAsync(db, this.Cancellation);
+				Log("Version1: " + version1.ToString());
+
+				var version2 = await db.ReadAsync(tr => tr.GetMetadataVersionAsync(), this.Cancellation);
+				Log("Version2: " + version2.ToString());
+
+				Assert.That(version2, Is.EqualTo(version1), "Metadata version should be stable");
+				// if it fails randomly here, maybe due to another process interfering with us!
+
+				Log("Changing version...");
+				await db.WriteAsync(tr => tr.TouchMetadataVersion(), this.Cancellation);
+
+				var version3 = await Fdb.System.GetMetadataVersionAsync(db, this.Cancellation);
+				Log("Version3: " + version3.ToString());
+				Assert.That(version3, Is.Not.EqualTo(version2), "Metadata version should have changed");
+			}
+		}
+
 		[Test, Category("LongRunning")]
 		public async Task Test_BadPractice_Future_Fuzzer()
 		{

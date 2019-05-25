@@ -55,6 +55,12 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF\x00"</summary>
 			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
+			/// <summary>"\xFF/metadataVersion"</summary>
+			public static readonly Slice MetadataVersion = Slice.FromByteString("\xff/metadataVersion");
+
+			/// <summary>Placeholder value used when updating the metadataVersion key (80-bit version stamp + 32 bit offset)</summary>
+			internal static readonly Slice MetadataVersionValue = Slice.Create(14);
+
 			/// <summary>"\xFF/backupDataFormat"</summary>
 			public static readonly Slice BackupDataFormat = Slice.FromByteString("\xFF/backupDataFormat");
 
@@ -126,6 +132,18 @@ namespace FoundationDB.Client
 			}
 
 			#endregion
+
+			/// <summary>Return the current value of the metadata version of the database.</summary>
+			/// <remarks>
+			/// Please note that by the time the value has been read, it may have already changed in the database!
+			/// It is highly recommended to read the key as part as the same transaction that would read or update any metadata.
+			/// </remarks>
+			public static Task<Slice> GetMetadataVersionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			{
+				Contract.NotNull(db, nameof(db));
+
+				return db.ReadAsync(tr => tr.GetAsync(System.MetadataVersion), ct);
+			}
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>

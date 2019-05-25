@@ -188,7 +188,7 @@ namespace FoundationDB.Client
 
 		#region Get...
 
-		/// <summary>Reads and decode a value from the database snapshot represented by by the current transaction.</summary>
+		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -204,6 +204,29 @@ namespace FoundationDB.Client
 			Contract.NotNull(encoder, nameof(encoder));
 
 			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false));
+		}
+
+		/// <summary>Read the metadata version from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <returns>
+		/// Value of the <c>'\xff/metadataVersion'</c> key in the database.
+		/// May return <see cref="Slice.Nil"/> for uninitialized database or until the very first write to the metadata version key.
+		/// </returns>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static Task<Slice> GetMetadataVersionAsync([NotNull] this IFdbReadOnlyTransaction trans)
+		{
+			return trans.GetAsync(Fdb.System.MetadataVersion);
+		}
+
+		/// <summary>Bump the metadata version of the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <remarks>
+		/// The value of the <c>'\xff/metadataVersion'</c> key will be updated to a value higher than any previous value.
+		/// This method requires API version 610 or greater.
+		/// </remarks>
+		public static void TouchMetadataVersion(this IFdbTransaction trans)
+		{
+			trans.Atomic(Fdb.System.MetadataVersion, Fdb.System.MetadataVersionValue, FdbMutationType.VersionStampedValue);
 		}
 
 		#endregion
