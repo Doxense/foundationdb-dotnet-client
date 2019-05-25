@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,6 @@ namespace FoundationDB.Client.Tests
 	{
 
 		[Test]
-
 		public async Task Test_Can_Create_And_Dispose_Transactions()
 		{
 			using (var db = await OpenTestDatabaseAsync())
@@ -107,7 +106,7 @@ namespace FoundationDB.Client.Tests
 					// reading should not fail
 					await tr.GetAsync(db.Keys.Encode("Hello"));
 
-					// any attempt to recast into a writeable transaction should fail!
+					// any attempt to recast into a writable transaction should fail!
 					var tr2 = (IFdbTransaction)tr;
 					Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
 					var location = db.Partition.ByKey("ReadOnly");
@@ -308,7 +307,7 @@ namespace FoundationDB.Client.Tests
 					var t = tr.CommitAsync();
 
 					// but almost immediately cancel the token source
-					await Task.Delay(1);
+					await Task.Delay(1, this.Cancellation);
 
 					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					cts.Cancel();
@@ -358,7 +357,7 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 
 					writeVersion = tr.GetCommittedVersion();
-					Assert.That(writeVersion, Is.GreaterThan(0), "Commited version of non-empty transaction should be > 0");
+					Assert.That(writeVersion, Is.GreaterThan(0), "Committed version of non-empty transaction should be > 0");
 				}
 
 				// read them back
@@ -671,7 +670,7 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(key);
 				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
 
-				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0} {1} 0x{2} = 0x{3}", x.ToString("X8"), type.ToString(), y.ToString("X8"), expected.ToString("X8"));
+				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0:X8} {1} 0x{2:X8} = 0x{3:X8}", x, type, y, expected);
 			}
 		}
 
@@ -1004,7 +1003,7 @@ namespace FoundationDB.Client.Tests
 
 					var _ = await tr.GetAsync(db.Keys.Encode("foo"));
 
-					// until the transction commits, the committed version will stay -1
+					// until the transaction commits, the committed version will stay -1
 					ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Committed version after a single read");
 
@@ -1013,7 +1012,7 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 
 					ver = tr.GetCommittedVersion();
-					Assert.That(ver, Is.EqualTo(-1), "Read-only comiitted transaction have a committed version of -1");
+					Assert.That(ver, Is.EqualTo(-1), "Read-only committed transaction have a committed version of -1");
 				}
 			}
 		}
@@ -1035,7 +1034,7 @@ namespace FoundationDB.Client.Tests
 
 					tr.Set(db.Keys.Encode("foo"), Slice.FromString("bar"));
 
-					// until the transction commits, the committed version should still be -1
+					// until the transaction commits, the committed version should still be -1
 					ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Committed version after a single write");
 
@@ -1064,7 +1063,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(db.Keys.Encode("foo"), Slice.FromString("bar"));
 					await tr.CommitAsync();
 					long cv1 = tr.GetCommittedVersion();
-					Log("COMMIT: {0} / {1}", rv1, cv1);
+					Log($"COMMIT: {rv1} / {cv1}");
 					Assert.That(cv1, Is.GreaterThanOrEqualTo(rv1), "Committed version of write transaction should be >= the read version");
 
 					// reset the transaction
@@ -1072,15 +1071,15 @@ namespace FoundationDB.Client.Tests
 
 					long rv2 = await tr.GetReadVersionAsync();
 					long cv2 = tr.GetCommittedVersion();
-					Log("RESET: {0} / {1}", rv2, cv2);
-					//Note: the current fdb_c client does not revert the commited version to -1 ... ?
+					Log($"RESET: {rv2} / {cv2}");
+					//Note: the current fdb_c client does not revert the committed version to -1 ... ?
 					//Assert.That(cv2, Is.EqualTo(-1), "Committed version should go back to -1 after reset");
 
 					// read-only + commit
 					await tr.GetAsync(db.Keys.Encode("foo"));
 					await tr.CommitAsync();
 					cv2 = tr.GetCommittedVersion();
-					Log("COMMIT2: {0} / {1}", rv2, cv2);
+					Log($"COMMIT2: {rv2} / {cv2}");
 					Assert.That(cv2, Is.EqualTo(-1), "Committed version of read-only transaction should be -1 even the transaction was previously used to write something");
 
 				}
@@ -1268,7 +1267,7 @@ namespace FoundationDB.Client.Tests
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetKey(fGE{0}) in TR1");
 				}
 
-				// if the other transaction insert something AFTER 50, our key selector would have stil returned the same result, and we would have any conflict
+				// if the other transaction insert something AFTER 50, our key selector would have still returned the same result, and we would have any conflict
 
 				await db.WriteAsync((tr) =>
 				{
@@ -1503,7 +1502,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That((await tr.Snapshot.GetAsync(C)).ToStringUtf8(), Is.EqualTo("c"));
 					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
 
-					// mutate (not yet comitted)
+					// mutate (not yet committed)
 					tr.Set(A, Slice.FromString("aa"));
 					tr.Set(C, Slice.FromString("cc"));
 					await db.WriteAsync((tr2) =>
@@ -1672,7 +1671,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Partition.ByKey("test");
 
-				long commitedVersion;
+				long committedVersion;
 
 				// create first version
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1681,7 +1680,7 @@ namespace FoundationDB.Client.Tests
 					await tr1.CommitAsync();
 
 					// get this version
-					commitedVersion = tr1.GetCommittedVersion();
+					committedVersion = tr1.GetCommittedVersion();
 				}
 
 				// mutate in another transaction
@@ -1691,13 +1690,13 @@ namespace FoundationDB.Client.Tests
 					await tr2.CommitAsync();
 				}
 
-				// read the value with TR1's commited version
+				// read the value with TR1's committed version
 				using (var tr3 = db.BeginTransaction(this.Cancellation))
 				{
-					tr3.SetReadVersion(commitedVersion);
+					tr3.SetReadVersion(committedVersion);
 
 					long ver = await tr3.GetReadVersionAsync();
-					Assert.That(ver, Is.EqualTo(commitedVersion), "GetReadVersion should return the same value as SetReadVersion!");
+					Assert.That(ver, Is.EqualTo(committedVersion), "GetReadVersion should return the same value as SetReadVersion!");
 
 					var bytes = await tr3.GetAsync(location.Keys.Encode("concurrent"));
 
@@ -1822,7 +1821,7 @@ namespace FoundationDB.Client.Tests
 				var t = db.ReadAsync<int>((tr) =>
 				{
 					++counter;
-					Log("Called {0} time(s)", counter);
+					Log($"Called {counter} time(s)");
 					if (counter > 4)
 					{
 						go.Cancel();
@@ -2080,7 +2079,7 @@ namespace FoundationDB.Client.Tests
 				await db.SetAsync(key, Slice.FromString("initial value"), this.Cancellation);
 
 				//note: it is difficult to verify something "that should never happen"
-				// let's say that 1sec is a good approximation of an inifinite time
+				// let's say that 1sec is a good approximation of an infinite time
 				Log("Watch should not fire");
 				await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
 				Assert.That(w.IsAlive, Is.True, "Watch should still be active");
@@ -2125,7 +2124,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var addresses = await tr.GetAddressesForKeyAsync(key1);
 					Assert.That(addresses, Is.Not.Null);
-					Debug.WriteLine(key1.ToString() + " is stored at: " + String.Join(", ", addresses));
+					Debug.WriteLine($"{key1} is stored at: {string.Join(", ", addresses)}");
 					Assert.That(addresses.Length, Is.GreaterThan(0));
 					Assert.That(addresses[0], Is.Not.Null.Or.Empty);
 
@@ -2145,7 +2144,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var addresses = await tr.GetAddressesForKeyAsync(key404);
 					Assert.That(addresses, Is.Not.Null);
-					Debug.WriteLine(key404.ToString() + " would be stored at: " + String.Join(", ", addresses));
+					Debug.WriteLine($"{key404} would be stored at: {string.Join(", ", addresses)}");
 
 					// the API still return a list of addresses, probably of servers that would store this value if you would call Set(...)
 
@@ -2188,10 +2187,10 @@ namespace FoundationDB.Client.Tests
 						// the datacenter id seems to be at offset 40
 						var dataCenterId = key.Value.Substring(40, 16).ToHexaString();
 
-						Log("- {0:X} : ({1}) {2:P}", key.Key, key.Value.Count, key.Value);
-						Log("  > node       = {0}", nodeId);
-						Log("  > machine    = {0}", machineId);
-						Log("  > datacenter = {0}", dataCenterId);
+						Log($"- {key.Key:X} : ({key.Value.Count}) {key.Value:P}");
+						Log($"  > node       = {nodeId}");
+						Log($"  > machine    = {machineId}");
+						Log($"  > datacenter = {dataCenterId}");
 					}
 					Log();
 
@@ -2199,7 +2198,7 @@ namespace FoundationDB.Client.Tests
 					var shards = await tr.GetRange(Fdb.System.KeyServers, Fdb.System.KeyServers + Fdb.System.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.System.KeyServers.Count), kvp.Value))
 						.ToListAsync();
-					Log("Key Servers: {0} shard(s)", shards.Count);
+					Log($"Key Servers: {shards.Count} shard(s)");
 
 					HashSet<string> distinctNodes = new HashSet<string>(StringComparer.Ordinal);
 					int replicationFactor = 0;
@@ -2228,13 +2227,13 @@ namespace FoundationDB.Client.Tests
 						//Log("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
 					Log();
-					Log("Distinct nodes: {0}", distinctNodes.Count);
+					Log($"Distinct nodes: {distinctNodes.Count}");
 					foreach(var machine in distinctNodes)
 					{
 						Log("- " + machine);
 					}
 					Log();
-					Log("Cluster topology: {0} process(es) with {1} replication", distinctNodes.Count, replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString());
+					Log($"Cluster topology: {distinctNodes.Count} process(es) with {(replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString())} replication");
 				}
 			}
 		}
@@ -2289,7 +2288,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_VersionStamps_Share_The_Same_Token_Per_Transaction_Attempt()
 		{
-			// Veryify that we can set versionstamped keys inside a transaction
+			// Verify that we can set version-stamped keys inside a transaction
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -2302,7 +2301,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(x.HasUserVersion, Is.False);
 					Assert.That(x.UserVersion, Is.Zero);
 					Assert.That(x.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
-					Assert.That(x.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
+					Assert.That(x.TransactionOrder >> 12, Is.EqualTo(0xF), "Highest 4 bits of Transaction Order should be set to 1");
 
 					// should return a 96-bit incomplete stamp, using a the same random token and user version 0
 					var x0 = tr.CreateVersionStamp(0);
@@ -2344,7 +2343,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(y.HasUserVersion, Is.False);
 					Assert.That(y.UserVersion, Is.Zero);
 					Assert.That(y.TransactionVersion >> 56, Is.EqualTo(0xFF), "Highest 8 bit of Transaction Version should be set to 1");
-					Assert.That(y.TransactionOrder >> 12, Is.EqualTo(0xF), "Hight 4 bits of Transaction Order should be set to 1");
+					Assert.That(y.TransactionOrder >> 12, Is.EqualTo(0xF), "Highest 4 bits of Transaction Order should be set to 1");
 
 					var y42 = tr.CreateVersionStamp(42);
 					Log($"> y42: {y42.ToSlice():X} => {y42}");
@@ -2360,7 +2359,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_VersionStamp_Operations()
 		{
-			// Veryify that we can set versionstamped keys inside a transaction
+			// Verify that we can set version-stamped keys inside a transaction
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -2399,7 +2398,7 @@ namespace FoundationDB.Client.Tests
 					var vsTask = tr.GetVersionStampAsync();
 
 					await tr.CommitAsync();
-					Log(tr.GetCommittedVersion());
+					Dump(tr.GetCommittedVersion());
 
 					// need to be resolved AFTER the commit
 					vsActual = await vsTask;
@@ -2502,7 +2501,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random();
 				int seed = rnd.Next();
-				Log("Using random seeed {0}", seed);
+				Log($"Using random seed {seed}");
 				rnd = new Random(seed);
 
 				await db.WriteAsync((tr) =>
@@ -2514,11 +2513,11 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				var start = DateTime.UtcNow;
-				Log("This test will run for {0} seconds", DURATION_SEC);
+				Log($"This test will run for {DURATION_SEC} seconds");
 
 				int time = 0;
 
-				List<IFdbTransaction> m_alive = new List<IFdbTransaction>();
+				var alive = new List<IFdbTransaction>();
 				var sb = new StringBuilder();
 				while (DateTime.UtcNow - start < TimeSpan.FromSeconds(DURATION_SEC))
 				{
@@ -2528,35 +2527,35 @@ namespace FoundationDB.Client.Tests
 						{ // start a new transaction
 							sb.Append('T');
 							var tr = db.BeginTransaction(FdbTransactionMode.Default, this.Cancellation);
-							m_alive.Add(tr);
+							alive.Add(tr);
 							break;
 						}
 						case 1:
 						{ // drop a random transaction
-							if (m_alive.Count == 0) continue;
+							if (alive.Count == 0) continue;
 							sb.Append('L');
-							int p = rnd.Next(m_alive.Count);
+							int p = rnd.Next(alive.Count);
 
-							m_alive.RemoveAt(p);
+							alive.RemoveAt(p);
 							//no dispose
 							break;
 						}
 						case 2:
 						{ // dispose a random transaction
-							if (m_alive.Count == 0) continue;
+							if (alive.Count == 0) continue;
 							sb.Append('D');
-							int p = rnd.Next(m_alive.Count);
+							int p = rnd.Next(alive.Count);
 
-							var tr = m_alive[p];
+							var tr = alive[p];
 							tr.Dispose();
-							m_alive.RemoveAt(p);
+							alive.RemoveAt(p);
 							break;
 						}
 						case 3:
 						{ // GC!
 							sb.Append('C');
 							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
-							m_alive.Add(tr);
+							alive.Add(tr);
 							_ = await tr.GetReadVersionAsync();
 							break;
 						}
@@ -2566,9 +2565,9 @@ namespace FoundationDB.Client.Tests
 						case 6:
 						{ // read a random value from a random transaction
 							sb.Append('G');
-							if (m_alive.Count == 0) break;
-							int p = rnd.Next(m_alive.Count);
-							var tr = m_alive[p];
+							if (alive.Count == 0) break;
+							int p = rnd.Next(alive.Count);
+							var tr = alive[p];
 
 							int x = rnd.Next(R);
 							try
@@ -2586,9 +2585,9 @@ namespace FoundationDB.Client.Tests
 						case 9:
 						{ // read a random value, but drop the task
 							sb.Append('g');
-							if (m_alive.Count == 0) break;
-							int p = rnd.Next(m_alive.Count);
-							var tr = m_alive[p];
+							if (alive.Count == 0) break;
+							int p = rnd.Next(alive.Count);
+							var tr = alive[p];
 
 							int x = rnd.Next(R);
 							_ = tr.GetAsync(location.Keys.Encode(x)).ContinueWith((_) => sb.Append('!') /*BUGBUG: locking ?*/, TaskContinuationOptions.NotOnRanToCompletion);
@@ -2600,7 +2599,7 @@ namespace FoundationDB.Client.Tests
 					if ((time++) % 80 == 0)
 					{
 						Log(sb.ToString());
-						Log("State: {0}", m_alive.Count);
+						Log($"State: {alive.Count}");
 						sb.Clear();
 						sb.Append('C');
 						GC.Collect();

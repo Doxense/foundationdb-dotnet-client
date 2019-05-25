@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@ namespace FoundationDB.Layers.Tuples.Tests
 {
 	using System;
 	using Doxense.Collections.Tuples;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
@@ -169,7 +168,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			key = grandChild[Slice.FromFixed32(0x01020304)];
 			Assert.That(key.ToString(), Is.EqualTo("<FE>hello<04><03><02><01>"));
 
-			// cornercase
+			// corner case
 			Assert.That(child.Partition[Slice.Empty].GetPrefix(), Is.EqualTo(child.GetPrefix()));
 		}
 

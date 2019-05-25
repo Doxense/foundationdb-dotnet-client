@@ -158,7 +158,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		private static async Task RunMultiClientTest(IFdbDatabase db, KeySubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
 		{
-			Log("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
+			Log($"Starting {desc} test with {K} threads and {NUM} iterations");
 
 			var queue = new FdbQueue<string>(location, highContention);
 			await db.WriteAsync((tr) => queue.Clear(tr), ct);
@@ -259,8 +259,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				}
 
 				sw.Stop();
-				Log("> Finished {0} test in {1} seconds", desc, sw.Elapsed.TotalSeconds);
-				Log("> Pushed {0}, Popped {1} and Stalled {2}", pushCount, popCount, stalls);
+				Log($"> Finished {desc} test in {sw.Elapsed.TotalSeconds} seconds");
+				Log($"> Pushed {pushCount}, Popped {popCount} and Stalled {stalls}");
 
 				var pushedItems = pushTreads.SelectMany(t => t.Result).ToList();
 				var poppedItems = popThreads.SelectMany(t => t.Result).ToList();

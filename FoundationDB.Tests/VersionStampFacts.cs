@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ namespace FoundationDB.Client.Tests
 		{
 			{ // 80-bits (no user version)
 				var vs = VersionStamp.Incomplete();
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.IsIncomplete, Is.True);
@@ -55,7 +55,7 @@ namespace FoundationDB.Client.Tests
 
 			{ // 96-bits, default user version
 				var vs = VersionStamp.Incomplete(0);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.IsIncomplete, Is.True);
@@ -69,7 +69,7 @@ namespace FoundationDB.Client.Tests
 
 			{ // 96 bits, custom user version
 				var vs = VersionStamp.Incomplete(123);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -81,7 +81,7 @@ namespace FoundationDB.Client.Tests
 
 			{ // 96 bits, large user version
 				var vs = VersionStamp.Incomplete(12345);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(ulong.MaxValue));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(ushort.MaxValue));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -124,7 +124,7 @@ namespace FoundationDB.Client.Tests
 		{
 			{ // 80-bits, no user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 123);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(123));
 				Assert.That(vs.HasUserVersion, Is.False);
@@ -136,7 +136,7 @@ namespace FoundationDB.Client.Tests
 
 			{ // 96 bits, default user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 0);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(123));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -148,7 +148,7 @@ namespace FoundationDB.Client.Tests
 
 			{ // custom user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(123));
 				Assert.That(vs.HasUserVersion, Is.True);
@@ -160,7 +160,7 @@ namespace FoundationDB.Client.Tests
 
 			{ // two bytes user version
 				var vs = VersionStamp.Complete(0x0123456789ABCDEFUL, 12345, 6789);
-				Log(vs);
+				Dump(vs);
 				Assert.That(vs.TransactionVersion, Is.EqualTo(0x0123456789ABCDEFUL));
 				Assert.That(vs.TransactionOrder, Is.EqualTo(12345));
 				Assert.That(vs.UserVersion, Is.EqualTo(6789));

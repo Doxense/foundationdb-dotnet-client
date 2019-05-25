@@ -182,7 +182,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(coordinators.Coordinators[0].Port, Is.GreaterThanOrEqualTo(4500).And.LessThanOrEqualTo(4510)); //HACKHACK: may not work everywhere !
 
 				//TODO: how can we check that it is correct?
-				Log("Coordinators: {0}", coordinators);
+				Log($"Coordinators: {coordinators}");
 			}
 		}
 
@@ -192,7 +192,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				string mode = await Fdb.System.GetStorageEngineModeAsync(db, this.Cancellation);
-				Log("Storage engine: {0}", mode);
+				Log($"Storage engine: {mode}");
 				Assert.That(mode, Is.Not.Null);
 				Assert.That(mode, Is.EqualTo("ssd").Or.EqualTo("memory").Or.EqualTo("ssd-2"));
 

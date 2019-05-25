@@ -677,7 +677,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// using the instance method that returns a STuple<T1, T2, T3>
 			IVarTuple z = x.Append(y);
-			Log(z);
+			Dump(z);
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z.Count, Is.EqualTo(3));
 			Assert.That(z[0], Is.EqualTo("A"));
@@ -691,7 +691,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// casted down to the interface ITuple
 			z = ((IVarTuple)x).Append((IVarTuple)y);
-			Log(z);
+			Dump(z);
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z.Count, Is.EqualTo(3));
 			Assert.That(z[0], Is.EqualTo("A"));
@@ -708,7 +708,7 @@ namespace Doxense.Collections.Tuples.Tests
 			IVarTuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
 			const string ID = "Doc123";
 			z = subspace.Append(value, ID);
-			Log(z);
+			Dump(z);
 			Assert.That(z.Count, Is.EqualTo(4));
 		}
 

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -381,27 +381,27 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_KeyRange_Intersects()
 		{
-			Func<byte, byte, KeyRange> range = (x, y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+			KeyRange MakeRange(byte x, byte y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
 
 			#region Not Intersecting...
 
 			// [0, 1) [2, 3)
 			// #X
 			//   #X
-			Assert.That(range(0, 1).Intersects(range(2, 3)), Is.False);
+			Assert.That(MakeRange(0, 1).Intersects(MakeRange(2, 3)), Is.False);
 			// [2, 3) [0, 1)
 			//   #X
 			// #X
-			Assert.That(range(2, 3).Intersects(range(0, 1)), Is.False);
+			Assert.That(MakeRange(2, 3).Intersects(MakeRange(0, 1)), Is.False);
 
 			// [0, 1) [1, 2)
 			// #X
 			//  #X
-			Assert.That(range(0, 1).Intersects(range(1, 2)), Is.False);
+			Assert.That(MakeRange(0, 1).Intersects(MakeRange(1, 2)), Is.False);
 			// [1, 2) [0, 1)
 			//  #X
 			// #X
-			Assert.That(range(1, 2).Intersects(range(0, 1)), Is.False);
+			Assert.That(MakeRange(1, 2).Intersects(MakeRange(0, 1)), Is.False);
 
 			#endregion
 
@@ -410,29 +410,29 @@ namespace FoundationDB.Client.Tests
 			// [0, 2) [1, 3)
 			// ##X
 			//  ##X
-			Assert.That(range(0, 2).Intersects(range(1, 3)), Is.True);
+			Assert.That(MakeRange(0, 2).Intersects(MakeRange(1, 3)), Is.True);
 			// [1, 3) [0, 2)
 			//  ##X
 			// ##X
-			Assert.That(range(1, 3).Intersects(range(0, 2)), Is.True);
+			Assert.That(MakeRange(1, 3).Intersects(MakeRange(0, 2)), Is.True);
 
 			// [0, 1) [0, 2)
 			// #X
 			// ##X
-			Assert.That(range(0, 1).Intersects(range(0, 2)), Is.True);
+			Assert.That(MakeRange(0, 1).Intersects(MakeRange(0, 2)), Is.True);
 			// [0, 2) [0, 1)
 			// ##X
 			// #X
-			Assert.That(range(0, 2).Intersects(range(0, 1)), Is.True);
+			Assert.That(MakeRange(0, 2).Intersects(MakeRange(0, 1)), Is.True);
 
 			// [0, 2) [1, 2)
 			// ##X
 			//  #X
-			Assert.That(range(0, 2).Intersects(range(1, 2)), Is.True);
+			Assert.That(MakeRange(0, 2).Intersects(MakeRange(1, 2)), Is.True);
 			// [1, 2) [0, 2)
 			//  #X
 			// ##X
-			Assert.That(range(1, 2).Intersects(range(0, 2)), Is.True);
+			Assert.That(MakeRange(1, 2).Intersects(MakeRange(0, 2)), Is.True);
 
 			#endregion
 
@@ -441,18 +441,18 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_KeyRange_Disjoint()
 		{
-			Func<byte, byte, KeyRange> range = (x, y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+			KeyRange MakeRange(byte x, byte y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
 
 			#region Disjoint...
 
 			// [0, 1) [2, 3)
 			// #X
 			//   #X
-			Assert.That(range(0, 1).Disjoint(range(2, 3)), Is.True);
+			Assert.That(MakeRange(0, 1).Disjoint(MakeRange(2, 3)), Is.True);
 			// [2, 3) [0, 1)
 			//   #X
 			// #X
-			Assert.That(range(2, 3).Disjoint(range(0, 1)), Is.True);
+			Assert.That(MakeRange(2, 3).Disjoint(MakeRange(0, 1)), Is.True);
 
 			#endregion
 
@@ -461,38 +461,38 @@ namespace FoundationDB.Client.Tests
 			// [0, 1) [1, 2)
 			// #X
 			//  #X
-			Assert.That(range(0, 1).Disjoint(range(1, 2)), Is.False);
+			Assert.That(MakeRange(0, 1).Disjoint(MakeRange(1, 2)), Is.False);
 			// [1, 2) [0, 1)
 			//  #X
 			// #X
-			Assert.That(range(1, 2).Disjoint(range(0, 1)), Is.False);
+			Assert.That(MakeRange(1, 2).Disjoint(MakeRange(0, 1)), Is.False);
 
 			// [0, 2) [1, 3)
 			// ##X
 			//  ##X
-			Assert.That(range(0, 2).Disjoint(range(1, 3)), Is.False);
+			Assert.That(MakeRange(0, 2).Disjoint(MakeRange(1, 3)), Is.False);
 			// [1, 3) [0, 2)
 			//  ##X
 			// ##X
-			Assert.That(range(1, 3).Disjoint(range(0, 2)), Is.False);
+			Assert.That(MakeRange(1, 3).Disjoint(MakeRange(0, 2)), Is.False);
 
 			// [0, 1) [0, 2)
 			// #X
 			// ##X
-			Assert.That(range(0, 1).Disjoint(range(0, 2)), Is.False);
+			Assert.That(MakeRange(0, 1).Disjoint(MakeRange(0, 2)), Is.False);
 			// [0, 2) [0, 1)
 			// ##X
 			// #X
-			Assert.That(range(0, 2).Disjoint(range(0, 1)), Is.False);
+			Assert.That(MakeRange(0, 2).Disjoint(MakeRange(0, 1)), Is.False);
 
 			// [0, 2) [1, 2)
 			// ##X
 			//  #X
-			Assert.That(range(0, 2).Disjoint(range(1, 2)), Is.False);
+			Assert.That(MakeRange(0, 2).Disjoint(MakeRange(1, 2)), Is.False);
 			// [1, 2) [0, 2)
 			//  #X
 			// ##X
-			Assert.That(range(1, 2).Disjoint(range(0, 2)), Is.False);
+			Assert.That(MakeRange(1, 2).Disjoint(MakeRange(0, 2)), Is.False);
 
 			#endregion
 

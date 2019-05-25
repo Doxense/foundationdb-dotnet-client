@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Layers.Directories;
+	using JetBrains.Annotations;
 	using NUnit.Framework;
 
 	/// <summary>Base class for all FoundationDB tests</summary>
@@ -77,7 +78,7 @@ namespace FoundationDB.Client.Tests
 				m_ct = CancellationToken.None;
 			}
 
-			//note: some test runners fail with a nulref in the Test.FullName property ...
+			//note: some test runners fail with a null-ref in the Test.FullName property ...
 			string fullName;
 			try
 			{
@@ -182,11 +183,11 @@ namespace FoundationDB.Client.Tests
 		[DebuggerStepThrough]
 		public static void Log()
 		{
-			Log(String.Empty);
+			Log(string.Empty);
 		}
 
 		[DebuggerStepThrough]
-		public static void Log(object item)
+		public static void Dump(object item)
 		{
 			if (item == null)
 			{
@@ -194,26 +195,8 @@ namespace FoundationDB.Client.Tests
 			}
 			else
 			{
-				Log(String.Format(CultureInfo.InvariantCulture, "[{0}] {1}", item.GetType().Name, item));
+				Log(string.Format(CultureInfo.InvariantCulture, "[{0}] {1}", item.GetType().Name, item));
 			}
-		}
-
-		[DebuggerStepThrough]
-		public static void Log(string format, object arg0)
-		{
-			Log(String.Format(CultureInfo.InvariantCulture, format, arg0));
-		}
-
-		[DebuggerStepThrough]
-		public static void Log(string format, object arg0, object arg1)
-		{
-			Log(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
-		}
-
-		[DebuggerStepThrough]
-		public static void Log(string format, params object[] args)
-		{
-			Log(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		#endregion

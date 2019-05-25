@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ namespace FoundationDB.Client.Tests
 					.ToArray();
 
 				// insert all values (batched)
-				Log("Inserting {0:N0} keys...", N);
+				Log($"Inserting {N:N0} keys...");
 				var insert = Stopwatch.StartNew();
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -90,7 +90,7 @@ namespace FoundationDB.Client.Tests
 				}
 				insert.Stop();
 
-				Log("> Committed {0:N0} keys in {1:N1} ms", N, insert.Elapsed.TotalMilliseconds);
+				Log($"> Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
 
 				// Read All
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -157,7 +157,7 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "Range");
 
 				// insert all values (batched)
-				Log("Inserting {0:N0} keys...", N);
+				Log($"Inserting {N:N0} keys...");
 				var insert = Stopwatch.StartNew();
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -171,7 +171,7 @@ namespace FoundationDB.Client.Tests
 				}
 				insert.Stop();
 
-				Log("Committed {0:N0} keys in {1:N1} ms", N, insert.Elapsed.TotalMilliseconds);
+				Log($"Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
 
 				// GetRange values
 
@@ -191,7 +191,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(query.Range.Begin, Is.EqualTo(query.Begin));
 					Assert.That(query.Range.End, Is.EqualTo(query.End));
 
-					Log("Getting range {0} ...", query.Range);
+					Log($"Getting range {query.Range} ...");
 
 					var ts = Stopwatch.StartNew();
 					var items = await query.ToListAsync();
@@ -199,7 +199,7 @@ namespace FoundationDB.Client.Tests
 
 					Assert.That(items, Is.Not.Null);
 					Assert.That(items.Count, Is.EqualTo(N));
-					Log("Took {0:N1} ms to get {1:N0} results", ts.Elapsed.TotalMilliseconds, items.Count);
+					Log($"Took {ts.Elapsed.TotalMilliseconds:N1} ms to get {items.Count:N0} results");
 
 					for (int i = 0; i < N; i++)
 					{
@@ -208,7 +208,7 @@ namespace FoundationDB.Client.Tests
 						// key should be a tuple in the correct order
 						var key = location.Keys.Unpack(kvp.Key);
 
-						if (i % 128 == 0) Log("... {0} = {1}", key, kvp.Value);
+						if (i % 128 == 0) Log($"... {key} = {kvp.Value}");
 
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
@@ -879,7 +879,7 @@ namespace FoundationDB.Client.Tests
 						.GetRange(location.Keys.Encode(10), location.Keys.Encode(20)) // 10 -> 19
 						.Take(20) // 10 -> 19 (limit 20)
 						.Reverse(); // 19 -> 10 (limit 20)
-					Log("query: {0}", query);
+					Log($"query: {query}");
 
 					// set a limit that overflows, and then reverse from it
 					var res = await query.ToListAsync();
@@ -893,7 +893,7 @@ namespace FoundationDB.Client.Tests
 						.Reverse() // 19 -> 10
 						.Take(20)  // 19 -> 10 (limit 20)
 						.Reverse(); // 10 -> 19 (limit 20)
-					Log("query: {0}", query);
+					Log($"query: {query}");
 
 					var res = await query.ToListAsync();
 					Assert.That(res.Count, Is.EqualTo(10));
@@ -1006,7 +1006,7 @@ namespace FoundationDB.Client.Tests
 				IEnumerable<int> xs = series[0];
 				for (int i = 1; i < K; i++) xs = xs.Intersect(series[i]);
 				var expected = xs.ToArray();
-				Log("Expected: {0}", String.Join(", ", expected));
+				Log($"Expected: {string.Join(", ", expected)}");
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
@@ -1078,7 +1078,7 @@ namespace FoundationDB.Client.Tests
 				IEnumerable<int> xs = series[0];
 				for (int i = 1; i < K; i++) xs = xs.Except(series[i]);
 				var expected = xs.ToArray();
-				Log("Expected: {0}", string.Join(", ", expected));
+				Log($"Expected: {string.Join(", ", expected)}");
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
@@ -1144,7 +1144,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					// problem: Except() still returns the original (Slice,Slice) pairs from the first range,
-					// meaning that we still need to unpack agin the key (this time knowing the location)
+					// meaning that we still need to unpack again the key (this time knowing the location)
 					return query.Select(kv => locItems.Keys.Decode(kv.Key));
 				}, this.Cancellation);
 

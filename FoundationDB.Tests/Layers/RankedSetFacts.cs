@@ -65,7 +65,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, TuPack.EncodeKey(rnd.Next())), this.Cancellation);
 				}
 				sw.Stop();
-				Log("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
+				Log($"\rDone in {sw.Elapsed.TotalSeconds:N3} sec");
 
 				Log(await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation));
 			}

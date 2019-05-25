@@ -1243,16 +1243,16 @@ namespace Doxense.Collections.Tuples.Tests
 				int dint = x.CompareTo(y);
 				int dtup = t1.CompareTo(t2);
 
-				if (dtup == 0) Assert.Fail("Tuples for x={0} and y={1} should not have the same packed value", x, y);
+				if (dtup == 0) Assert.Fail($"Tuples for x={x} and y={y} should not have the same packed value");
 
 				// compare signs
 				if (Math.Sign(dint) != Math.Sign(dtup))
 				{
-					Assert.Fail("Tuples for x={0} and y={1} are not sorted properly ({2} / {3}): t(x)='{4}' and t(y)='{5}'", x, y, dint, dtup, t1.ToString(), t2.ToString());
+					Assert.Fail($"Tuples for x={x} and y={y} are not sorted properly ({dint} / {dtup}): t(x)='{t1.ToString()}' and t(y)='{t2.ToString()}'");
 				}
 			}
 			sw.Stop();
-			Log("Checked {0:N0} tuples in {1:N1} ms", N, sw.ElapsedMilliseconds);
+			Log($"Checked {N:N0} tuples in {sw.ElapsedMilliseconds:N1} ms");
 
 		}
 
@@ -1926,26 +1926,26 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 
 			var packed = TuPack.EncodeKey("hello world");
-			Log(packed);
+			Dump(packed);
 
 			var tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
-			Log(tuple);
+			Dump(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 
 			packed = TuPack.EncodeKey("hello world", 123);
-			Log(packed);
+			Dump(packed);
 
 			tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
-			Log(tuple);
+			Dump(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(2));
 			Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tuple.Get<int>(1), Is.EqualTo(123));
 
 			packed = TuPack.EncodeKey(1, 256, 257, 65536, int.MaxValue, long.MaxValue);
-			Log(packed);
+			Dump(packed);
 
 			tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
@@ -1958,12 +1958,12 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MaxValue));
 
 			packed = TuPack.EncodeKey(-1, -256, -257, -65536, int.MinValue, long.MinValue);
-			Log(packed);
+			Dump(packed);
 
 			tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
 			Assert.That(tuple, Is.InstanceOf<SlicedTuple>());
-			Log(tuple);
+			Dump(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(6));
 			Assert.That(tuple.Get<int>(0), Is.EqualTo(-1));
 			Assert.That(tuple.Get<int>(1), Is.EqualTo(-256));

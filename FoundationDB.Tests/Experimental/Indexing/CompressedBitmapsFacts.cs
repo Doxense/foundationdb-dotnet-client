@@ -72,8 +72,8 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		{
 			var bmpBuilder = builder.ToBitmap();
 			var bmpWitness = witness.ToBitmap();
-			Log("> B: {0,12} ({1,3}) {2}", bmpBuilder.Bounds, bmpBuilder.CountBits(), bmpBuilder.ToSlice().ToHexaString());
-			Log("> W: {0,12} ({1,3}) {2}", bmpWitness.Bounds, bmpWitness.CountBits(), bmpWitness.ToSlice().ToHexaString());
+			Log($"> B: {bmpBuilder.Bounds,12} ({bmpBuilder.CountBits(),3}) {bmpBuilder.ToSlice().ToHexaString()}");
+			Log($"> W: {bmpWitness.Bounds,12} ({bmpWitness.CountBits(),3}) {bmpWitness.ToSlice().ToHexaString()}");
 			var rawBuilder = builder.ToBooleanArray();
 			var rawWitness = witness.ToBooleanArray();
 			Log("> B: " + bmpBuilder.Dump());
@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		private static bool SetBitAndVerify(CompressedBitmapBuilder builder, SuperSlowUncompressedBitmap witness, int offset)
 		{
 			Log();
-			Log("Set({0}):", offset);
+			Log($"Set({offset}):");
 			bool actual = builder.Set(offset);
 			bool expected = witness.Set(offset);
 			Assert.That(actual, Is.EqualTo(expected), "Set({0})", offset);
@@ -102,7 +102,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		private static bool ClearBitAndVerify(CompressedBitmapBuilder builder, SuperSlowUncompressedBitmap witness, int offset)
 		{
 			Log();
-			Log("Clear({0}):", offset);
+			Log($"Clear({offset}):");
 			bool actual = builder.Clear(offset);
 			bool expected = witness.Clear(offset);
 			Assert.That(actual, Is.EqualTo(expected), "Clear({0})", offset);
@@ -234,8 +234,8 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				// pack back to bitmap
 				bmp = builder.ToBitmap();
 				Log();
-				Log("> Result of gen #{0}: {1}", k, bmp.Dump());
-				Log("> " + bmp.ToSlice().ToHexaString());
+				Log($"> Result of gen #{k}: {bmp.Dump()}");
+				Log($"> {bmp.ToSlice().ToHexaString()}");
 				Log();
 			}
 		}
@@ -245,84 +245,94 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		{
 			var rnd = new Random();
 
-			Func<Slice, Slice> compress = (input) =>
+			Slice Compress(Slice input)
 			{
-				Log("IN  [{0}] => {1}", input.Count, input);
+				Log($"IN  [{input.Count}] => {input}");
 
 				var writer = new CompressedBitmapWriter();
 				int r = WordAlignHybridEncoder.CompressTo(input, writer);
 
 				Slice compressed = writer.GetBuffer();
-				Log("OUT [{0}] => {1} [r={2}]", compressed.Count, compressed, r);
+				Log($"OUT [{compressed.Count}] => {compressed} [r={r}]");
 				var sb = new StringBuilder();
 				Log(WordAlignHybridEncoder.DumpCompressed(compressed).ToString());
 				Log();
 				return compressed;
-			};
+			}
 
-			compress(Slice.FromString("This is a test of the emergency broadcast system"));
+			Compress(Slice.FromString("This is a test of the emergency broadcast system"));
 
 			// all zeroes (multiple of 31 bits)
-			compress(Slice.Repeat(0, 62));
+			Compress(Slice.Repeat(0, 62));
 			// all zeroes (with padding)
-			compress(Slice.Repeat(0, 42));
+			Compress(Slice.Repeat(0, 42));
 
 			// all ones (multiple of 31 bits)
-			compress(Slice.Repeat(255, 62));
+			Compress(Slice.Repeat(255, 62));
 			// all ones (with padding)
-			compress(Slice.Repeat(255, 42));
+			Compress(Slice.Repeat(255, 42));
 
 			// random stuff (multiple of 31 bits)
-			compress(Slice.Random(rnd, 42));
+			Compress(Slice.Random(rnd, 42));
 			// random stuff (with padding)
-			compress(Slice.Random(rnd, 42));
+			Compress(Slice.Random(rnd, 42));
 
 			// mostly zeroes
-			Action<byte[], int> setBit = (b, p) => { b[p >> 3] |= (byte)(1 << (p & 7)); };
-			Func<int, byte[]> mostlyZeroes = (count) =>
+			void SetBit(byte[] b, int p)
+			{
+				b[p >> 3] |= (byte) (1 << (p & 7));
+			}
+
+			byte[] MostlyZeroes(int count)
 			{
 				var buf = new byte[1024];
 				for (int i = 0; i < count; i++)
 				{
-					setBit(buf, rnd.Next(buf.Length * 8));
+					SetBit(buf, rnd.Next(buf.Length * 8));
 				}
+
 				Log("Mostly zeroes: " + count);
 				return buf;
-			};
+			}
 
-			compress(mostlyZeroes(1).AsSlice());
-			compress(mostlyZeroes(10).AsSlice());
-			compress(mostlyZeroes(42).AsSlice());
-			compress(mostlyZeroes(100).AsSlice());
+			Compress(MostlyZeroes(1).AsSlice());
+			Compress(MostlyZeroes(10).AsSlice());
+			Compress(MostlyZeroes(42).AsSlice());
+			Compress(MostlyZeroes(100).AsSlice());
 
 
 			// mostly ones
-			Action<byte[], int> clearBit = (b, p) => { b[p >> 3] &= (byte)~(1 << (p & 7)); };
-			Func<int, byte[]> mostlyOnes = (count) =>
+			void ClearBit(byte[] b, int p)
+			{
+				b[p >> 3] &= (byte) ~(1 << (p & 7));
+			}
+
+			byte[] MostlyOnes(int count)
 			{
 				var buf = new byte[1024];
 				for (int i = 0; i < buf.Length; i++) buf[i] = 0xFF;
 				for (int i = 0; i < 10; i++)
 				{
-					clearBit(buf, rnd.Next(buf.Length * 8));
+					ClearBit(buf, rnd.Next(buf.Length * 8));
 				}
+
 				Log("Mostly ones: " + count);
 				return buf;
-			};
+			}
 
-			compress(mostlyOnes(1).AsSlice());
-			compress(mostlyOnes(10).AsSlice());
-			compress(mostlyOnes(42).AsSlice());
-			compress(mostlyOnes(100).AsSlice());
+			Compress(MostlyOnes(1).AsSlice());
+			Compress(MostlyOnes(10).AsSlice());
+			Compress(MostlyOnes(42).AsSlice());
+			Compress(MostlyOnes(100).AsSlice());
 
 			// progressive
-			Func<byte[], int, bool> testBit = (b, p) => (b[p >> 3] & (1 << (p & 7))) != 0;
+			bool TestBit(byte[] b, int p) => (b[p >> 3] & (1 << (p & 7))) != 0;
 
 			const int VALUES = 8192;
 			var buffer = new byte[VALUES / 8];
 			var output = new CompressedBitmapWriter();
 			WordAlignHybridEncoder.CompressTo(buffer.AsSlice(), output);
-			Log("{0}\t{1}\t1024", 0, output.Length);
+			Log($"{0}\t{output.Length}\t1024");
 			for (int i = 0; i < VALUES / 8; i++)
 			{
 				int p;
@@ -330,13 +340,13 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				{
 					p = rnd.Next(VALUES);
 				}
-				while (testBit(buffer, p));
+				while (TestBit(buffer, p));
 
-				setBit(buffer, p);
+				SetBit(buffer, p);
 
 				output.Reset();
 				WordAlignHybridEncoder.CompressTo(buffer.AsSlice(), output);
-				Log("{0}\t{1}\t1024", 1.0d * (i + 1) / VALUES, output.Length);
+				Log($"{1.0d * (i + 1) / VALUES}\t{output.Length}\t1024");
 			}
 
 		}
@@ -428,7 +438,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			long totalLegacy = 0;
 			int[] map = new int[100];
 			double r = (double)(map.Length - 1) / total;
-			Log("__{0}__", label);
+			Log($"__{label}__");
 			Log("| Indexed Value           |  Count | Total % | Words |  Lit%  | 1-Bits |  Word% |   Bitmap | ratio % |   Legacy  | ratio % |" + (heatMaps ? " HeatMap |" : ""));
 			Log("|:------------------------|-------:|--------:|------:|-------:|-------:|-------:|---------:|--------:|----------:|--------:|" + (heatMaps ? ":-----------------------------------------------------------------------|" : ""));
 			foreach (var kv in index.Values.OrderBy((kv) => orderBy(kv.Key, index.Count(kv.Key)), comparer))
@@ -482,10 +492,10 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			var results = new List<Character>();
 			foreach (var docId in bitmap.GetView())
 			{
-				Assert.That(characters.TryGetValue(docId, out Character charac), Is.True);
+				Assert.That(characters.TryGetValue(docId, out Character character), Is.True);
 
-				results.Add(charac);
-				Log("- {0}: {1} {2}{3}", docId, charac.Name, charac.Gender == "Male" ? "\u2642" : charac.Gender == "Female" ? "\u2640" : charac.Gender, charac.Dead ? " (\u271D)" : "");
+				results.Add(character);
+				Log($"- {docId}: {character.Name} {(character.Gender == "Male" ? "\u2642" : character.Gender == "Female" ? "\u2640" : character.Gender)}{(character.Dead ? " (\u271D)" : "")}");
 			}
 			return results;
 		}
@@ -546,7 +556,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			Log("indexByGender.Lookup('Female')");
 			CompressedBitmap females = indexByGender.Lookup("Female");
 			Assert.That(females, Is.Not.Null);
-			Log("=> {0}", females.Dump());
+			Log($"=> {females.Dump()}");
 			DumpIndexQueryResult(database, females);
 
 			// R.I.P
@@ -554,14 +564,14 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			Log("indexOfTheDead.Lookup(dead: true)");
 			CompressedBitmap deadPeople = indexOfTheDead.Lookup(true);
 			Assert.That(deadPeople, Is.Not.Null);
-			Log("=> {0}", deadPeople.Dump());
+			Log($"=> {deadPeople.Dump()}");
 			DumpIndexQueryResult(database, deadPeople);
 
 			// combination of both
 			Log();
 			Log("indexByGender.Lookup('Female') AND indexOfTheDead.Lookup(dead: true)");
 			var julia = WordAlignHybridEncoder.And(females, deadPeople);
-			Log("=> {0}", julia.Dump());
+			Log($"=> {julia.Dump()}");
 			DumpIndexQueryResult(database, julia);
 
 			// the crew
@@ -577,7 +587,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 					crew = WordAlignHybridEncoder.Or(crew, bmp);
 			}
 			crew = crew ?? CompressedBitmap.Empty;
-			Log("=> {0}", crew.Dump());
+			Log($"=> {crew.Dump()}");
 			DumpIndexQueryResult(database, crew);
 
 		}
@@ -693,7 +703,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			const int N = 10 * 1000;
 			{
 				Log("=================================================================================================================================================================================================================================");
-				Log("N = {0:N0}", N);
+				Log($"N = {N:N0}");
 				Log("=================================================================================================================================================================================================================================");
 
 				rnd = new Random(123456);
@@ -779,7 +789,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			#region create a non uniform random distribution for the users
 
 			// step1: create a semi random distribution for the values
-			Log("Creating Probability Distribution Function for {0:N0} users...", K);
+			Log($"Creating Probability Distribution Function for {K:N0} users...");
 			var pk = new double[K];
 			// step1: each gets a random score
 			for (int i = 0; i < pk.Length; i++)
@@ -824,15 +834,15 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			int p50 = Array.BinarySearch(pk, 0.50 * sum); p50 = p50 < 0 ? ~p50 : p50;
 			int p75 = Array.BinarySearch(pk, 0.75 * sum); p75 = p75 < 0 ? ~p75 : p75;
 			int p95 = Array.BinarySearch(pk, 0.95 * sum); p95 = p95 < 0 ? ~p95 : p95;
-			Log("> PDF: P25={0:G2} %, P50={1:G2} %, P75={2:G2} %, P95={3:G2} %", 100.0 * p25 / K, 100.0 * p50 / K, 100.0 * p75 / K, 100.0 * p95 / K);
+			Log($"> PDF: P25={100.0 * p25 / K:G2} %, P50={100.0 * p50 / K:G2} %, P75={100.0 * p75 / K:G2} %, P95={100.0 * p95 / K:G2} %");
 
 			#endregion
 
 			#region Create the random event dataset...
 
-			// a user will be selected randomnly, and will be able to produce a random number of consecutive events, until we reach the desired amount of events
+			// a user will be selected randomly, and will be able to produce a random number of consecutive events, until we reach the desired amount of events
 
-			Log("Creating dataset for {0:N0} documents...", N);
+			Log($"Creating dataset for {N:N0} documents...");
 			var dataSet = new int[N];
 			//int j = 0;
 			//for (int i = 0; i < N; i++)
@@ -871,12 +881,12 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				.GroupBy(x => x).Select(g => new { Value = g.Key, Count = g.Count() })
 				.OrderByDescending(x => x.Count)
 				.ToList();
-			Log("> Found {0:N0} unique values", controlStats.Count);
+			Log($"> Found {controlStats.Count:N0} unique values");
 
 			#endregion
 
 			// create pseudo-index
-			Log("Indexing {0:N0} documents...", N);
+			Log($"Indexing {N:N0} documents...");
 			var sw = Stopwatch.StartNew();
 			var index = new Dictionary<int, CompressedBitmapBuilder>(K);
 			for (int id = 0; id < dataSet.Length; id++)
@@ -891,7 +901,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				builder.Set(id);
 			}
 			sw.Stop();
-			Log("> Found {0:N0} unique values in {1:N1} sec", index.Count, sw.Elapsed.TotalSeconds);
+			Log($"> Found {index.Count:N0} unique values in {sw.Elapsed.TotalSeconds:N1} sec");
 
 			// verify the counts
 			Log("Verifying index results...");
@@ -913,7 +923,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			}
 			Assert.That(index.Count, Is.EqualTo(controlStats.Count), "Some values have not been indexed properly");
 			Log("> success!");
-			Log("Total index size for {0:N0} documents and {1:N0} values is {2:N0} bytes", N, K, totalBitmapSize);
+			Log($"Total index size for {N:N0} documents and {K:N0} values is {totalBitmapSize:N0} bytes");
 
 			Log();
 			Log("Dumping results:");

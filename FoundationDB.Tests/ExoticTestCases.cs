@@ -285,7 +285,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 							for (int j = 0; j < cmds.Length; j++)
 							{
 								Slice key = subspace.Keys.Encode(cmds[i].Op + "_" + cmds[j].Op);
-								Log("{0};{1} = {2}", i, j, key);
+								Log($"{i};{j} = {key}");
 								apply(tr, cmds[i].Op, key, cmds[i].Left);
 								apply(tr, cmds[j].Op, key, cmds[j].Right);
 							}
@@ -320,7 +320,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 						using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 						{
 							var res = await tr.GetAsync(subspace.Keys.Encode("K" + i.ToString("D4")));
-							Log(res);
+							Dump(res);
 						}
 					}
 				}

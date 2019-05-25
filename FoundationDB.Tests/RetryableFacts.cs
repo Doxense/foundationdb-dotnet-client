@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using NUnit.Framework;
 
 	[TestFixture]
-	public class TransactionalFacts : FdbTest
+	public class RetryableFacts : FdbTest
 	{
 		[Test]
 		public async Task Test_ReadAsync_Should_Normally_Execute_Only_Once()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -73,7 +71,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactionals_Rethrow_Regular_Exceptions()
+		public async Task Test_Retryable_Rethrows_Regular_Exceptions()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -94,7 +92,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactionals_Retries_On_Transient_Errors()
+		public async Task Test_Retryable_Retries_On_Transient_Errors()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -140,7 +138,7 @@ namespace FoundationDB.Client.Tests
 
 		[Test][Category("LongRunning")]
 		[Ignore("This tests a bug in an old version (v2.0.7) and takes a long time to run!")]
-		public async Task Test_Transactionals_Retries_Do_Not_Leak_When_Reading_Too_Much()
+		public async Task Test_Retryable_Retries_Do_Not_Leak_When_Reading_Too_Much()
 		{
 			// we have a transaction that tries to read too much data, and will always take more than 5 seconds to execute
 			// => in versions of fdb_c.dll up to 2.0.7, this leaks memory because the internal cache is not cleared after each reset.
@@ -153,7 +151,7 @@ namespace FoundationDB.Client.Tests
 				db.DefaultRetryLimit = 10;
 				// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
 
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 
 				// insert a good amount of test data
 
@@ -164,7 +162,7 @@ namespace FoundationDB.Client.Tests
 				sw.Stop();
 				Log("> done in " + sw.Elapsed);
 
-				using (var timer = new System.Threading.Timer((_) => { Log("WorkingSet: {0:N0}, Managed: {1:N0}", Environment.WorkingSet, GC.GetTotalMemory(false)); }, null, 1000, 1000))
+				using (var timer = new System.Threading.Timer((_) => { Log($"WorkingSet: {Environment.WorkingSet:N0}, Managed: {GC.GetTotalMemory(false):N0}"); }, null, 1000, 1000))
 				{
 					try
 					{
@@ -202,7 +200,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactionals_Should_Not_Execute_If_Already_Canceled()
+		public async Task Test_Retryable_Should_Not_Execute_If_Already_Canceled()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -230,11 +228,11 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactionals_ReadOnly_Should_Deny_Write_Attempts()
+		public async Task Test_Retryable_ReadOnly_Should_Deny_Write_Attempts()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 
 				var t = db.ReadAsync((IFdbReadOnlyTransaction tr) =>
 				{
@@ -257,13 +255,13 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_ReadOnly_Transactionals_Do_Not_See_Changes_From_Other_Transactions()
+		public async Task Test_ReadOnly_Retryable_Do_Not_See_Changes_From_Other_Transactions()
 		{
-			// A read-only transaction will never see changes that have been committed after its read-version, wheter it uses Snapshot reads or not.
+			// A read-only transaction will never see changes that have been committed after its read-version, whether it uses Snapshot reads or not.
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 
 				// setup the keys from 0 to 9
 				await db.WriteAsync((tr) =>
@@ -314,11 +312,11 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactionals_Execute_Success_Handler_Only_Once()
+		public async Task Test_Retryable_Execute_Success_Handler_Only_Once()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -340,21 +338,21 @@ namespace FoundationDB.Client.Tests
 					{
 						called++;
 						Assert.That(tr.Context.Retries == 1, "Transaction should only have retried once!");
-						Assert.That(res.ToUnicode(), Is.EqualTo(secret), "Argument passed to sucess callback does not match expected value.");
+						Assert.That(res.ToUnicode(), Is.EqualTo(secret), "Argument passed to success callback does not match expected value.");
 					},
 					this.Cancellation);
 
 				Assert.That(called, Is.EqualTo(1), "Success callback should only have been called once");
-				Assert.That(result.ToUnicode(), Is.EqualTo(secret), "Result does not match excpected value.");
+				Assert.That(result.ToUnicode(), Is.EqualTo(secret), "Result does not match expected value.");
 			}
 		}
 
 		[Test]
-		public async Task Test_Transactionals_Never_Execute_Success_Handler_If_Failed()
+		public async Task Test_Retryable_Never_Execute_Success_Handler_If_Failed()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -383,13 +381,13 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactionals_Mutating_Transaction_In_Success_Handler_Should_Fail()
+		public async Task Test_Retryable_Mutating_Transaction_In_Success_Handler_Should_Fail()
 		{
 			// Verify that attempting to keep using the transaction instance in the success handler will throw and InvalidOperationException
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 				var key = location.Keys.Encode("Hello");
 
 				// Cannot set a key after commit
@@ -454,12 +452,12 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transactional_GetVersionStamp_Pattern()
+		public async Task Test_Retryable_GetVersionStamp_Pattern()
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
 
-				var location = await GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Retryable");
 				var key = location.Keys.Encode("Hello");
 
 				// Cannot get version stamp after commit

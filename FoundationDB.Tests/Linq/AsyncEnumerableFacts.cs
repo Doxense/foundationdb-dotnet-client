@@ -1241,28 +1241,28 @@ namespace FoundationDB.Linq.Tests
 
 			Func<int, (int Value, int Called)> record = (x) => (x, Volatile.Read(ref called));
 
-			// without prefetching, the number of calls should match for the producer and the consumer
+			// without pre-fetching, the number of calls should match for the producer and the consumer
 			called = 0;
 			sw.Restart();
 			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
-			Log("P0: {0}", String.Join(", ", withoutPrefetching));
+			Log($"P0: {string.Join(", ", withoutPrefetching)}");
 			Assert.That(withoutPrefetching.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withoutPrefetching.Select(x => x.Called), Is.EqualTo(Enumerable.Range(1, 10)));
 
-			// with prefetching, the consumer should always have one item in advance
+			// with pre-fetching, the consumer should always have one item in advance
 			called = 0;
 			sw.Restart();
 			var withPrefetching1 = await source.Prefetch().Select(record).ToListAsync(this.Cancellation);
-			Log("P1: {0}", String.Join(", ", withPrefetching1));
+			Log($"P1: {string.Join(", ", withPrefetching1)}");
 			Assert.That(withPrefetching1.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withPrefetching1.Select(x => x.Called), Is.EqualTo(Enumerable.Range(2, 10)));
 
-			// prefetching more than 1 item on a consumer that is not buffered should not change the picture (since we can only read one ahead anyway)
+			// pre-fetching more than 1 item on a consumer that is not buffered should not change the picture (since we can only read one ahead anyway)
 			//REVIEW: maybe we should change the implementation of the operator so that it still prefetch items in the background if the rest of the query is lagging a bit?
 			called = 0;
 			sw.Restart();
 			var withPrefetching2 = await source.Prefetch(2).Select(record).ToListAsync(this.Cancellation);
-			Log("P2: {0}", String.Join(", ", withPrefetching2));
+			Log($"P2: {string.Join(", ", withPrefetching2)}");
 			Assert.That(withPrefetching2.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withPrefetching2.Select(x => x.Called), Is.EqualTo(Enumerable.Range(2, 10)));
 		}
@@ -1291,31 +1291,31 @@ namespace FoundationDB.Linq.Tests
 				return res;
 			};
 
-			// without prefetching, the number of calls should match for the producer and the consumer
+			// without pre-fetching, the number of calls should match for the producer and the consumer
 			called = 0;
 			sw.Restart();
 			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
-			Log("P0: {0}", String.Join(", ", withoutPrefetching));
+			Log($"P0: {string.Join(", ", withoutPrefetching)}");
 			Assert.That(withoutPrefetching.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
 
-			// with prefetching K, the consumer should always have K items in advance
+			// with pre-fetching K, the consumer should always have K items in advance
 			//REVIEW: maybe we should change the implementation of the operator so that it still prefetch items in the background if the rest of the query is lagging a bit?
 			for (int K = 1; K <= 4; K++)
 			{
 				called = 0;
 				sw.Restart();
 				var withPrefetchingK = await source.Prefetch(K).Select(record).ToListAsync(this.Cancellation);
-				Log("P{0}: {1}", K, String.Join(", ", withPrefetchingK));
+				Log($"P{K}: {String.Join(", ", withPrefetchingK)}");
 				Assert.That(withPrefetchingK.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 				Assert.That(withPrefetchingK[0].Item2, Is.EqualTo(K + 1), "Generator must have {0} call(s) in advance!", K);
 				Assert.That(withPrefetchingK.Select(x => x.Item2), Is.All.LessThanOrEqualTo(11));
 			}
 
-			// if prefecthing more than the period of the producer, we should not have any perf gain
+			// if pre-fetching more than the period of the producer, we should not have any perf gain
 			called = 0;
 			sw.Restart();
 			var withPrefetching5 = await source.Prefetch(5).Select(record).ToListAsync(this.Cancellation);
-			Log("P5: {0}", String.Join(", ", withPrefetching5));
+			Log($"P5: {string.Join(", ", withPrefetching5)}");
 			Assert.That(withPrefetching5.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
 			Assert.That(withPrefetching5[0].Item2, Is.EqualTo(5), "Generator must have only 4 calls in advance because it only produces 4 items at a time!");
 			Assert.That(withPrefetching5.Select(x => x.Item2), Is.All.LessThanOrEqualTo(11));

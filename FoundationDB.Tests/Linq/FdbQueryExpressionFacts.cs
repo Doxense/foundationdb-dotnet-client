@@ -55,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				ExpressionType.Equal,
 				Expression.Constant("world")
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Index, Is.SameAs(FooBarIndex)); //TODO: .Index.Index does not look very nice
@@ -77,7 +77,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				FooBarIndex,
 				(bar) => bar == "world"
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Index, Is.SameAs(FooBarIndex)); //TODO: .Index.Index does not look very nice
@@ -98,7 +98,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			var expr = FdbQueryExpressions.Range(
 				KeySelectorPair.Create(TuPack.ToKeyRange("Foo"))
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
@@ -126,7 +126,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				expr1,
 				expr2
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Terms, Is.Not.Null);
@@ -156,7 +156,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				expr1,
 				expr2
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Terms, Is.Not.Null);
@@ -177,7 +177,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				FdbQueryExpressions.RangeStartsWith(TuPack.EncodeKey("Hello", "World")),
 				(kvp) => kvp.Value.ToUnicode()
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
@@ -196,7 +196,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				FdbQueryExpressions.RangeStartsWith(TuPack.EncodeKey("Hello", "World")),
 				(kvp) => kvp.Value.ToInt32() % 2 == 0
 			);
-			Log(expr);
+			Dump(expr);
 
 			Assert.That(expr, Is.Not.Null);
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
