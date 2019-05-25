@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <VersionPrefix>5.2.1</VersionPrefix>
+    <VersionPrefix>6.1.0</VersionPrefix>
     <VersionSuffix>preview</VersionSuffix>
     <Authors>Doxense</Authors>
     <PackageLicenseUrl>https://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>

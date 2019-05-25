@@ -14,7 +14,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3A8-BFC1-4A57-8062-83071A1D41F7}"
 	ProjectSection(SolutionItems) = preProject
 		Common\foundationdb-net-client.snk = Common\foundationdb-net-client.snk
-		VersionInfo.cs = VersionInfo.cs
+		Common\VersionInfo.props = Common\VersionInfo.props
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Linq.Providers", "FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj", "{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}"
