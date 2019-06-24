@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
+			private Doxense.Linq.IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;

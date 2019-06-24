@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 		#region MergeSort (x OR y)
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> MergeSort<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> MergeSort<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Union<TKey, TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Union<TKey, TResult>([NotNull] IEnumerable<Doxense.Linq.IAsyncEnumerable<TResult>> sources, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Union<TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Union<TResult>([NotNull] IEnumerable<Doxense.Linq.IAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			return new MergeSortAsyncIterator<TResult, TResult, TResult>(
@@ -111,7 +111,7 @@ namespace FoundationDB.Client
 		#region Intersect (x AND y)
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -144,7 +144,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this Doxense.Linq.IAsyncEnumerable<TResult> first, [NotNull] Doxense.Linq.IAsyncEnumerable<TResult> second, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));
@@ -158,7 +158,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Intersect<TResult>([NotNull] this Doxense.Linq.IAsyncEnumerable<TResult> first, [NotNull] Doxense.Linq.IAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));
@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] IEnumerable<Doxense.Linq.IAsyncEnumerable<TResult>> sources, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -186,7 +186,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Intersect<TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Intersect<TResult>([NotNull] IEnumerable<Doxense.Linq.IAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			return new IntersectAsyncIterator<TResult, TResult, TResult>(
@@ -210,7 +210,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -235,7 +235,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(ranges, nameof(ranges));
 			return Except<TKey>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, keyComparer);
@@ -251,7 +251,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -275,7 +275,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(ranges, nameof(ranges));
 			return Except<TKey, TResult>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, resultSelector, keyComparer);
@@ -290,7 +290,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare keys</param>
 		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this Doxense.Linq.IAsyncEnumerable<TResult> first, [NotNull] Doxense.Linq.IAsyncEnumerable<TResult> second, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));
@@ -311,7 +311,7 @@ namespace FoundationDB.Client
 		/// <param name="comparer">Instance used to compare elements</param>
 		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Except<TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
+		public static Doxense.Linq.IAsyncEnumerable<TResult> Except<TResult>([NotNull] this Doxense.Linq.IAsyncEnumerable<TResult> first, [NotNull] Doxense.Linq.IAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));

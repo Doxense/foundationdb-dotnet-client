@@ -137,6 +137,7 @@ namespace FoundationDB.Client
 			/// <remarks>
 			/// Please note that by the time the value has been read, it may have already changed in the database!
 			/// It is highly recommended to read the key as part as the same transaction that would read or update any metadata.
+			/// This method requires API version 610 or greater.
 			/// </remarks>
 			public static Task<Slice> GetMetadataVersionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{

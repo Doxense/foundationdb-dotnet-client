@@ -48,7 +48,7 @@ namespace Doxense.Linq
 	}
 
 	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
-	public interface IConfigurableAsyncEnumerable<out T> : IAsyncEnumerable<T>
+	public interface IConfigurableAsyncEnumerable<out T> : Doxense.Linq.IAsyncEnumerable<T>
 	{
 
 		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
@@ -56,7 +56,7 @@ namespace Doxense.Linq
 		/// <param name="hint">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		[NotNull]
-		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint);
+		Doxense.Linq.IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint);
 	}
 
 }

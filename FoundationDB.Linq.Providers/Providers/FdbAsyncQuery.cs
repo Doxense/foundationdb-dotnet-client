@@ -181,7 +181,7 @@ namespace FoundationDB.Linq.Providers
 		#region Sequence...
 
 		[NotNull]
-		private Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> CompileSequence([NotNull] FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<T>> CompileSequence([NotNull] FdbQueryExpression expression)
 		{
 #if false
 			//TODO: caching !
@@ -198,7 +198,7 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		[NotNull]
-		internal static IAsyncEnumerator<T> GetEnumerator([NotNull] FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
+		internal static Doxense.Linq.IAsyncEnumerator<T> GetEnumerator([NotNull] FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
 		{
 			var generator = sequence.CompileSequence(sequence.Expression);
 
@@ -213,7 +213,7 @@ namespace FoundationDB.Linq.Providers
 			var ct = CancellationToken.None;
 
 			IFdbTransaction trans = null;
-			IAsyncEnumerator<T> iterator = null;
+			Doxense.Linq.IAsyncEnumerator<T> iterator = null;
 			bool success = true;
 			try
 			{
@@ -239,13 +239,13 @@ namespace FoundationDB.Linq.Providers
 			}
 		}
 
-		private sealed class TransactionIterator : IAsyncEnumerator<T>
+		private sealed class TransactionIterator : Doxense.Linq.IAsyncEnumerator<T>
 		{
-			private readonly IAsyncEnumerator<T> m_iterator;
+			private readonly Doxense.Linq.IAsyncEnumerator<T> m_iterator;
 			private readonly IFdbTransaction m_transaction;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public TransactionIterator(IFdbTransaction transaction, IAsyncEnumerator<T> iterator)
+			public TransactionIterator(IFdbTransaction transaction, Doxense.Linq.IAsyncEnumerator<T> iterator)
 			{
 				m_transaction = transaction;
 				m_iterator = iterator;

@@ -59,7 +59,7 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="prefetchCount">Maximum size of a batch to return down the line</param>
-		public PrefetchingAsyncIterator(IAsyncEnumerable<TInput> source, int prefetchCount)
+		public PrefetchingAsyncIterator(Doxense.Linq.IAsyncEnumerable<TInput> source, int prefetchCount)
 			: base(source)
 		{
 			Contract.Requires(prefetchCount > 0);
@@ -71,7 +71,7 @@ namespace Doxense.Linq.Async.Iterators
 			return new PrefetchingAsyncIterator<TInput>(m_source, m_prefetchCount);
 		}
 
-		protected override void OnStarted(IAsyncEnumerator<TInput> iterator)
+		protected override void OnStarted(Doxense.Linq.IAsyncEnumerator<TInput> iterator)
 		{
 			// pre-allocate the buffer with the number of slot we expect to use
 			m_buffer = new Queue<TInput>(m_prefetchCount);

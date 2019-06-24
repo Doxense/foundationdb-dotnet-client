@@ -54,7 +54,7 @@ namespace Doxense.Linq.Async.Iterators
 		private int? m_skipped;
 
 		public WhereSelectAsyncIterator(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
 			AsyncFilterExpression<TSource> filter,
 			AsyncTransformExpression<TSource, TResult> transform,
 			int? limit,

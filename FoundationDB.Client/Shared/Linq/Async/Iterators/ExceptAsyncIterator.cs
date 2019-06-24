@@ -39,7 +39,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TResult">Type of the elements of resulting async sequence</typeparam>
 	public sealed class ExceptAsyncIterator<TSource, TKey, TResult> : MergeAsyncIterator<TSource, TKey, TResult>
 	{
-		public ExceptAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+		public ExceptAsyncIterator(IEnumerable<Doxense.Linq.IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 

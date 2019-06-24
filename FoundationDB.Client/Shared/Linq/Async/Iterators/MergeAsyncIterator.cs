@@ -50,7 +50,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		// The order of the extracted keys MUST be the same as the order of the binary keys ! This algorithm will NOT work if extracted keys are not in the same order as there binary representation !
 
-		protected IEnumerable<IAsyncEnumerable<TSource>> m_sources;
+		protected IEnumerable<Doxense.Linq.IAsyncEnumerable<TSource>> m_sources;
 		protected Func<TSource, TKey> m_keySelector;
 		protected IComparer<TKey> m_keyComparer;
 		protected Func<TSource, TResult> m_resultSelector;
@@ -62,13 +62,13 @@ namespace Doxense.Linq.Async.Iterators
 		protected struct IteratorState
 		{
 			public bool Active;
-			public IAsyncEnumerator<TSource> Iterator;
+			public Doxense.Linq.IAsyncEnumerator<TSource> Iterator;
 			public ValueTask<bool> Next;
 			public bool HasCurrent;
 			public TKey Current;
 		}
 
-		protected MergeAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+		protected MergeAsyncIterator(IEnumerable<Doxense.Linq.IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 		{
 			Contract.Requires(sources != null && (limit == null || limit >= 0) && keySelector != null && resultSelector != null);
 			m_sources = sources;

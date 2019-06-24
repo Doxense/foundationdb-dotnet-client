@@ -101,7 +101,7 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="maxWindowSize">Maximum size of a batch to return down the line</param>
-		public WindowingAsyncIterator(IAsyncEnumerable<TInput> source, int maxWindowSize)
+		public WindowingAsyncIterator(Doxense.Linq.IAsyncEnumerable<TInput> source, int maxWindowSize)
 			: base(source)
 		{
 			Contract.Requires(maxWindowSize > 0);
@@ -113,7 +113,7 @@ namespace Doxense.Linq.Async.Iterators
 			return new WindowingAsyncIterator<TInput>(m_source, m_maxWindowSize);
 		}
 
-		protected override void OnStarted(IAsyncEnumerator<TInput> iterator)
+		protected override void OnStarted(Doxense.Linq.IAsyncEnumerator<TInput> iterator)
 		{
 			// pre-allocate the inner buffer, if it is not too big
 			m_buffer = new List<TInput>(Math.Min(m_maxWindowSize, 1024));

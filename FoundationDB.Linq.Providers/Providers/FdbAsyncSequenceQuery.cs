@@ -53,7 +53,7 @@ namespace FoundationDB.Linq.Providers
 		public Type ElementType { get { return typeof(T); } }
 
 		/// <summary>Return an async sequence that will return the results of this query</summary>
-		public IAsyncEnumerable<T> ToEnumerable(AsyncIterationHint mode = AsyncIterationHint.Default)
+		public Doxense.Linq.IAsyncEnumerable<T> ToEnumerable(AsyncIterationHint mode = AsyncIterationHint.Default)
 		{
 			return AsyncEnumerable.Create((_, __) => GetEnumerator(this, mode));
 		}

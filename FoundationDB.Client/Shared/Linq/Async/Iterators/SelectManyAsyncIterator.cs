@@ -45,7 +45,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
 		private IEnumerator<TResult> m_batch;
 
-		public SelectManyAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
+		public SelectManyAsyncIterator([NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 			: base(source)
 		{
 			// Must have at least one, but not both
@@ -131,7 +131,7 @@ namespace Doxense.Linq.Async.Iterators
 		private IEnumerator<TCollection> m_batch;
 
 		public SelectManyAsyncIterator(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
 			AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
 			[NotNull] Func<TSource, TCollection, TResult> resultSelector
 		)

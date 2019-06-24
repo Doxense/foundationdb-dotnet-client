@@ -948,7 +948,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns the list of names and nodes of all children of the specified node</summary>
 		[NotNull]
-		private IAsyncEnumerable<KeyValuePair<string, IDynamicKeySubspace>> SubdirNamesAndNodes([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IDynamicKeySubspace node)
+		private Doxense.Linq.IAsyncEnumerable<KeyValuePair<string, IDynamicKeySubspace>> SubdirNamesAndNodes([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IDynamicKeySubspace node)
 		{
 			Contract.Requires(tr != null && node != null);
 

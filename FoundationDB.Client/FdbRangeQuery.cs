@@ -270,12 +270,12 @@ namespace FoundationDB.Client
 
 		#region Pseudo-LINQ
 
-		public IAsyncEnumerator<T> GetAsyncEnumerator()
+		public Doxense.Linq.IAsyncEnumerator<T> GetAsyncEnumerator()
 		{
 			return this.GetAsyncEnumerator(this.Transaction.Cancellation, AsyncIterationHint.Default);
 		}
 
-		public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint)
+		public Doxense.Linq.IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint)
 		{
 			return new ResultIterator(this, this.Transaction, this.Transform).GetAsyncEnumerator(ct, hint);
 		}
@@ -348,7 +348,7 @@ namespace FoundationDB.Client
 		/// <summary>Filters the range results based on a predicate.</summary>
 		/// <remarks>Caution: filtering occurs on the client side !</remarks>
 		[Pure, NotNull]
-		public IAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
+		public Doxense.Linq.IAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
 		{
 			return AsyncEnumerable.Where(this, predicate);
 		}

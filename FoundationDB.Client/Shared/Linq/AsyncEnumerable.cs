@@ -490,7 +490,7 @@ namespace Doxense.Linq
 		#region Distinct...
 
 		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Distinct<TSource>([NotNull] this IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
+		public static IAsyncEnumerable<TSource> Distinct<TSource>([NotNull] this Doxense.Linq.IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			comparer = comparer ?? EqualityComparer<TSource>.Default;

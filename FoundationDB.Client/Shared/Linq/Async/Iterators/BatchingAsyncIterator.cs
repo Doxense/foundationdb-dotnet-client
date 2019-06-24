@@ -55,7 +55,7 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="batchSize">Maximum size of a batch to return down the line</param>
-		public BatchingAsyncIterator(IAsyncEnumerable<TInput> source, int batchSize)
+		public BatchingAsyncIterator(Doxense.Linq.IAsyncEnumerable<TInput> source, int batchSize)
 			: base(source)
 		{
 			Contract.Requires(batchSize > 0);
@@ -69,7 +69,7 @@ namespace Doxense.Linq.Async.Iterators
 			return new BatchingAsyncIterator<TInput>(m_source, m_batchSize);
 		}
 
-		protected override void OnStarted(IAsyncEnumerator<TInput> iterator)
+		protected override void OnStarted(Doxense.Linq.IAsyncEnumerator<TInput> iterator)
 		{
 			// pre-allocate the inner buffer, if it is not too big
 			m_buffer = new List<TInput>(Math.Min(m_batchSize, 1024));

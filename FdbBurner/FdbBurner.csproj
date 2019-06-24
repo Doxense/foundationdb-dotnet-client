@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net461;net472</TargetFrameworks>
+		<TargetFrameworks>net461;net472;netcoreapp3.0</TargetFrameworks>
 		<ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
 		<RestorePackages>true</RestorePackages>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -35,6 +35,10 @@
 		<WarningLevel>4</WarningLevel>
 		<Prefer32Bit>false</Prefer32Bit>
 	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.0'">
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version=" 4.6.0-preview4.19164.7" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />

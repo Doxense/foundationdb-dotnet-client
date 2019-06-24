@@ -45,7 +45,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly IEqualityComparer<TSource> m_comparer;
 		private HashSet<TSource> m_set;
 
-		public DistinctAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
+		public DistinctAsyncIterator([NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
 			: base(source)
 		{
 			Contract.Requires(comparer != null);

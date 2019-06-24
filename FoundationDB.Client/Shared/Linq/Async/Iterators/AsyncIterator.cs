@@ -41,7 +41,7 @@ namespace Doxense.Linq.Async.Iterators
 
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	public abstract class AsyncIterator<TResult> : IConfigurableAsyncEnumerable<TResult>, IAsyncEnumerator<TResult>
+	public abstract class AsyncIterator<TResult> : IConfigurableAsyncEnumerable<TResult>, Doxense.Linq.IAsyncEnumerator<TResult>
 	{
 		//REVIEW: we could need an IAsyncIterator<T> interface that holds all the Select(),Where(),Take(),... so that it can be used by AsyncEnumerable to either call them directly (if the query supports it) or use a generic implementation
 		// => this would be implemented by AsyncIterator<T> as well as FdbRangeQuery<T> (and ony other 'self optimizing' class)
@@ -60,9 +60,9 @@ namespace Doxense.Linq.Async.Iterators
 		#region IAsyncEnumerable<TResult>...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+		public Doxense.Linq.IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
+		public Doxense.Linq.IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
 			ct.ThrowIfCancellationRequested();
 
