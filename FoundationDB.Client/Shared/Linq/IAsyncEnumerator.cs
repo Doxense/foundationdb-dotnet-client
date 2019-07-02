@@ -28,17 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if !USE_SHARED_FRAMEWORK
 
-namespace Doxense.Linq
+#if !NETCOREAPP
+
+namespace System.Collections.Generic
 {
 	using System;
 	using System.Threading.Tasks;
 
-	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
-	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
+	// note: these interfaces were introduced in .NET Core 3.0 and have to be emulated for older frameworks
 
 	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerator{T}"/> interface, allowing elements to be retrieved asynchronously.</summary>
 	/// <typeparam name="T">Element type.</typeparam>
-	public interface IAsyncEnumerator<out T> : IDisposable
+	public interface IAsyncEnumerator<out T> : IAsyncDisposable
 	{
 		/// <summary>Advances the enumerator to the next element in the sequence, returning the result asynchronously.</summary>
 		/// <returns>
@@ -52,5 +53,18 @@ namespace Doxense.Linq
 	}
 
 }
+
+namespace System
+{
+	using System.Threading.Tasks;
+
+	public interface IAsyncDisposable
+	{
+		ValueTask DisposeAsync();
+	}
+
+}
+
+#endif
 
 #endif

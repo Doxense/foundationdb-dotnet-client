@@ -55,8 +55,8 @@ namespace Doxense.Linq
 		/// <returns>New async sequence</returns>
 		internal static AsyncSequence<TSource, TResult> Create<TSource, TResult>(
 			IAsyncEnumerable<TSource> source,
-			Func<Doxense.Linq.IAsyncEnumerator<TSource>,
-			Doxense.Linq.IAsyncEnumerator<TResult>> factory)
+			Func<IAsyncEnumerator<TSource>,
+				IAsyncEnumerator<TResult>> factory)
 		{
 			return new AsyncSequence<TSource, TResult>(source, factory);
 		}
@@ -69,14 +69,14 @@ namespace Doxense.Linq
 		/// <returns>New async sequence</returns>
 		internal static EnumerableSequence<TSource, TResult> Create<TSource, TResult>(
 			IEnumerable<TSource> source,
-			Func<IEnumerator<TSource>, CancellationToken, Doxense.Linq.IAsyncEnumerator<TResult>> factory)
+			Func<IEnumerator<TSource>, CancellationToken, IAsyncEnumerator<TResult>> factory)
 		{
 			return new EnumerableSequence<TSource, TResult>(source, factory);
 		}
 
 		/// <summary>Create a new async sequence from a factory method</summary>
 		public static IAsyncEnumerable<TResult> Create<TResult>(
-			Func<object, CancellationToken, Doxense.Linq.IAsyncEnumerator<TResult>> factory,
+			Func<object, CancellationToken, IAsyncEnumerator<TResult>> factory,
 			object state = null)
 		{
 			return new AnonymousIterable<TResult>(factory, state);
@@ -85,22 +85,22 @@ namespace Doxense.Linq
 		internal sealed class AnonymousIterable<T> : IAsyncEnumerable<T>
 		{
 
-			private readonly Func<object, CancellationToken, Doxense.Linq.IAsyncEnumerator<T>> m_factory;
+			private readonly Func<object, CancellationToken, IAsyncEnumerator<T>> m_factory;
 			private readonly object m_state;
 
-			public AnonymousIterable(Func<object, CancellationToken, Doxense.Linq.IAsyncEnumerator<T>> factory, object state)
+			public AnonymousIterable(Func<object, CancellationToken, IAsyncEnumerator<T>> factory, object state)
 			{
 				Contract.Requires(factory != null);
 				m_factory = factory;
 				m_state = state;
 			}
 
-			public Doxense.Linq.IAsyncEnumerator<T> GetAsyncEnumerator()
+			public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct)
 			{
-				return m_factory(m_state, CancellationToken.None);
+				return m_factory(m_state, ct);
 			}
 
-			public Doxense.Linq.IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint _)
+			public IAsyncEnumerator<T> GetEnumerator(CancellationToken ct, AsyncIterationHint _)
 			{
 				ct.ThrowIfCancellationRequested();
 				return m_factory(m_state, ct);
@@ -113,7 +113,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			[NotNull] AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 		{
 			return new SelectManyAsyncIterator<TSource, TResult>(source, selector);
@@ -121,7 +121,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			[NotNull] AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
 			[NotNull] Func<TSource, TCollection, TResult> resultSelector)
 		{
@@ -134,7 +134,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			[NotNull] AsyncTransformExpression<TSource, TResult> selector,
 			int? limit = null, int?
 			offset = null)
@@ -144,7 +144,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static WhereAsyncIterator<TResult> Filter<TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TResult> source,
+			[NotNull] IAsyncEnumerable<TResult> source,
 			[NotNull] AsyncFilterExpression<TResult> filter)
 		{
 			return new WhereAsyncIterator<TResult>(source, filter);
@@ -152,7 +152,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static WhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TResult> source,
+			[NotNull] IAsyncEnumerable<TResult> source,
 			int offset)
 		{
 			return new WhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.CachedTasks<TResult>.Identity), limit: null, offset: offset);
@@ -160,7 +160,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static WhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TResult> source,
+			[NotNull] IAsyncEnumerable<TResult> source,
 			int limit)
 		{
 			return new WhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.CachedTasks<TResult>.Identity), limit: limit, offset: null);
@@ -168,7 +168,7 @@ namespace Doxense.Linq
 
 		[NotNull]
 		internal static TakeWhileAsyncIterator<TResult> Limit<TResult>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TResult> source,
+			[NotNull] IAsyncEnumerable<TResult> source,
 			[NotNull] Func<TResult, bool> condition)
 		{
 			return new TakeWhileAsyncIterator<TResult>(source, condition);
@@ -186,7 +186,7 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			[NotNull, InstantHandle] Action<TSource> action,
 			CancellationToken ct)
@@ -197,7 +197,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -218,7 +218,7 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed successfully</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			[NotNull] Func<TSource, bool> action,
 			CancellationToken ct)
@@ -229,7 +229,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -253,7 +253,7 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			[NotNull] Func<TSource, CancellationToken, Task> action,
 			CancellationToken ct)
@@ -261,7 +261,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -282,7 +282,7 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
 			[NotNull] Func<TSource, Task> action,
 			CancellationToken ct)
@@ -290,7 +290,7 @@ namespace Doxense.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator())
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
@@ -312,14 +312,14 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Value of the first element of the <param ref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		public static async Task<TSource> Head<TSource>(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			bool single,
 			bool orDefault,
 			CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator())
+			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator(ct))
 			{
 				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 

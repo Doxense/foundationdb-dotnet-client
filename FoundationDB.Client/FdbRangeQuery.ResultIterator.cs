@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private Doxense.Linq.IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
+			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;
@@ -87,22 +87,22 @@ namespace FoundationDB.Client
 				return new ResultIterator(m_query, m_transaction, m_resultTransform);
 			}
 
-			protected override Task<bool> OnFirstAsync()
+			protected override ValueTask<bool> OnFirstAsync()
 			{
 				// on first call, setup the page iterator
 				if (m_chunkIterator == null)
 				{
 					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetAsyncEnumerator(m_ct, m_mode);
 				}
-				return TaskHelpers.True;
+				return new ValueTask<bool>(true);
 			}
 
-			protected override Task<bool> OnNextAsync()
+			protected override ValueTask<bool> OnNextAsync()
 			{
 				if (m_itemsRemainingInChunk > 0)
 				{ // we need can get another one from the batch
 
-					return TaskHelpers.FromResult(ProcessNextItem());
+					return new ValueTask<bool>(ProcessNextItem());
 				}
 
 				if (m_outOfChunks)
@@ -110,7 +110,7 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_ITERATOR
 					Debug.WriteLine("No more items and it was the last batch");
 #endif
-					return TaskHelpers.False;
+					return new ValueTask<bool>(false);
 				}
 
 				// slower path, we need to actually read the first batch...
@@ -119,7 +119,7 @@ namespace FoundationDB.Client
 				return ReadAnotherBatchAsync();
 			}
 
-			private async Task<bool> ReadAnotherBatchAsync()
+			private async ValueTask<bool> ReadAnotherBatchAsync()
 			{
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
@@ -155,7 +155,7 @@ namespace FoundationDB.Client
 				Debug.WriteLine("No more chunks from page iterator");
 #endif
 				m_outOfChunks = true;
-				return Completed();
+				return await Completed();
 			}
 
 			private bool ProcessNextItem()
@@ -191,11 +191,11 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			protected override void Cleanup()
+			protected override async ValueTask Cleanup()
 			{
 				try
 				{
-					m_chunkIterator?.Dispose();
+					if (m_chunkIterator != null) await m_chunkIterator.DisposeAsync();
 				}
 				finally
 				{

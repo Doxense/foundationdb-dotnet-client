@@ -81,7 +81,7 @@ namespace Doxense.Linq
 				return m_parent.GetEnumerableSorter(sorter);
 			}
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
 
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{
@@ -90,12 +90,13 @@ namespace Doxense.Linq
 				var enumerator = default(IAsyncEnumerator<TSource>);
 				try
 				{
-					enumerator = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator();
+					enumerator = m_source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : m_source.GetAsyncEnumerator(ct);
 					return new OrderedEnumerator<TSource>(enumerator, sorter, ct);
 				}
 				catch (Exception)
 				{
-					enumerator?.Dispose();
+					//BUGBUG: we are forced to block on DisposeAsync() :(
+					enumerator?.DisposeAsync().GetAwaiter().GetResult();
 					throw;
 				}
 			}
@@ -138,7 +139,7 @@ namespace Doxense.Linq
 		internal sealed class OrderedEnumerator<TSource> : IAsyncEnumerator<TSource>
 		{
 			// This iterator must first before EVERY items of the source in memory, before being able to sort them.
-			// The first MoveNext() will return only once the inner sequence has finished (succesfully), which can take some time!
+			// The first MoveNext() will return only once the inner sequence has finished (successfully), which can take some time!
 			// Ordering is done in-memory using QuickSort
 
 			private readonly IAsyncEnumerator<TSource> m_inner;
@@ -188,7 +189,7 @@ namespace Doxense.Linq
 				m_items = buffer.GetBuffer();
 				m_map = m_sorter.Sort(m_items, buffer.Count);
 
-				// and only then we can start outputing the first value
+				// and only then we can start outputting the first value
 				// (after that, all MoveNext operations will be non-async
 				Publish(0);
 				return true;
@@ -225,7 +226,7 @@ namespace Doxense.Linq
 
 			private void Completed()
 			{
-				m_current = default(TSource);
+				m_current = default;
 				m_offset = -1;
 				m_items = null;
 				m_map = null;
@@ -234,9 +235,10 @@ namespace Doxense.Linq
 
 			public TSource Current => m_current;
 
-			public void Dispose()
+			public ValueTask DisposeAsync()
 			{
 				Completed();
+				return default;
 			}
 		}
 

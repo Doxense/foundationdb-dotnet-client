@@ -1342,7 +1342,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
 		[ItemNotNull]
-		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<T>> handler, CancellationToken ct)
+		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));

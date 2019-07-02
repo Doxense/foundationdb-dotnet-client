@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq.Async
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -50,7 +51,7 @@ namespace Doxense.Linq.Async
 			this.Factory = factory;
 		}
 
-		public IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
 
 		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
@@ -58,7 +59,7 @@ namespace Doxense.Linq.Async
 			IAsyncEnumerator<TSource> inner = null;
 			try
 			{
-				inner = this.Source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : this.Source.GetAsyncEnumerator();
+				inner = this.Source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : this.Source.GetAsyncEnumerator(ct);
 				Contract.Requires(inner != null, "The underlying async sequence returned an empty enumerator");
 
 				var outer = this.Factory(inner);
@@ -69,7 +70,8 @@ namespace Doxense.Linq.Async
 			catch (Exception)
 			{
 				//make sure that the inner iterator gets disposed if something went wrong
-				inner?.Dispose();
+				//BUGBUG: we have to block on the async disposable :(
+				inner?.DisposeAsync().GetAwaiter().GetResult();
 				throw;
 			}
 		}

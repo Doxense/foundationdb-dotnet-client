@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			protected override async Task<bool> OnFirstAsync()
+			protected override async ValueTask<bool> OnFirstAsync()
 			{
 				this.RemainingCount = this.Query.Limit;
 				this.RemainingSize = this.Query.TargetBytes;
@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			protected override Task<bool> OnNextAsync()
+			protected override ValueTask<bool> OnNextAsync()
 			{
 				// Make sure that we are not called while the previous fetch is still running
 				if (this.PendingReadTask != null && !this.PendingReadTask.IsCompleted)
@@ -150,11 +150,11 @@ namespace FoundationDB.Client
 
 				if (this.AtEnd)
 				{ // we already read the last batch !
-					return TaskHelpers.FromResult(Completed());
+					return Completed();
 				}
 
 				// slower path, we need to actually read the first batch...
-				return FetchNextPageAsync();
+				return new ValueTask<bool>(FetchNextPageAsync());
 			}
 
 			/// <summary>Asynchronously fetch a new page of results</summary>
@@ -211,7 +211,7 @@ namespace FoundationDB.Client
 					tr = tr.Snapshot;
 				}
 
-				//BUGBUG: mix the custom cancellation token with the transaction, if it is diffent !
+				//BUGBUG: mix the custom cancellation token with the transaction, if it is different !
 				var task = tr
 					.GetRangeAsync(this.Begin, this.End, options, this.Iteration)
 					.Then((result) =>
@@ -242,10 +242,11 @@ namespace FoundationDB.Client
 #endif
 						if (!result.IsEmpty && this.Transaction != null)
 						{
-							return Publish(result.Items);
+							return Task.FromResult(Publish(result.Items));
 						}
-						return Completed();
-					});
+						return Completed().AsTask();
+					})
+					.Unwrap();
 
 				// keep track of this operation
 				this.PendingReadTask = task;
@@ -254,7 +255,7 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			protected override void Cleanup()
+			protected override ValueTask Cleanup()
 			{
 				//TODO: should we wait/cancel any pending read task ?
 				this.Chunk = null;
@@ -264,6 +265,7 @@ namespace FoundationDB.Client
 				this.RemainingSize = null;
 				this.Iteration = -1;
 				this.PendingReadTask = null;
+				return default;
 			}
 		}
 

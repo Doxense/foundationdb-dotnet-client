@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Directories
 			return new FdbDirectoryPath(segments);
 		}
 
-#if NETCORE
+#if NETCOREAPP
 		[Pure]
 		public FdbDirectoryPath Concat(ReadOnlySpan<char> segment)
 		{
@@ -162,14 +162,13 @@ namespace FoundationDB.Layers.Directories
 			return GetSegments().ToArray();
 		}
 
-#if NETCORE
+#if NETCOREAPP
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ReadOnlySpan<string> AsSpan()
 		{
 			return GetSegments().AsSpan();
 		}
 #endif
-
 		public void CopyTo(string[] array, int offset)
 		{
 			GetSegments().CopyTo(array, offset);
@@ -189,7 +188,7 @@ namespace FoundationDB.Layers.Directories
 			return new FdbDirectoryPath(new [] { segment });
 		}
 
-#if NETCORE
+#if NETCOREAPP
 		[Pure]
 		public static FdbDirectoryPath Create(ReadOnlySpan<char> segment)
 		{

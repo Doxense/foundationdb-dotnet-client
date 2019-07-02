@@ -90,7 +90,7 @@ namespace Doxense.Linq
 				}
 			}
 
-			public void Dispose()
+			public ValueTask DisposeAsync()
 			{
 				m_iterator?.Dispose();
 				m_iterator = null;
@@ -98,6 +98,7 @@ namespace Doxense.Linq
 				m_disposed = true;
 				m_current = default;
 				m_ct = default;
+				return default;
 			}
 
 		}

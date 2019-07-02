@@ -54,7 +54,7 @@ namespace Doxense.Linq.Async.Iterators
 		private int? m_skipped;
 
 		public WhereSelectAsyncIterator(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			AsyncFilterExpression<TSource> filter,
 			AsyncTransformExpression<TSource, TResult> transform,
 			int? limit,
@@ -76,25 +76,25 @@ namespace Doxense.Linq.Async.Iterators
 			return new WhereSelectAsyncIterator<TSource, TResult>(m_source, m_filter, m_transform, m_limit, m_offset);
 		}
 
-		protected override Task<bool> OnFirstAsync()
+		protected override ValueTask<bool> OnFirstAsync()
 		{
 			m_remaining = m_limit;
 			m_skipped = m_offset;
 			return base.OnFirstAsync();
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			if (m_remaining != null && m_remaining.Value <= 0)
 			{ // reached limit!
-				return Completed();
+				return await Completed();
 			}
 
 			while (!m_ct.IsCancellationRequested)
 			{
 				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
-					return Completed();
+					return await Completed();
 				}
 				if (m_ct.IsCancellationRequested) break;
 
@@ -154,7 +154,7 @@ namespace Doxense.Linq.Async.Iterators
 				#endregion
 			}
 
-			return Canceled();
+			return await Canceled();
 		}
 
 		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
@@ -316,7 +316,7 @@ namespace Doxense.Linq.Async.Iterators
 			int? remaining = m_limit;
 			int? skipped = m_offset;
 
-			using (var iterator = StartInner(ct))
+			await using(var iterator = StartInner(ct))
 			{
 				while (remaining == null || remaining.Value > 0)
 				{
@@ -349,7 +349,7 @@ namespace Doxense.Linq.Async.Iterators
 							skipped = skipped.Value - 1;
 							continue;
 						}
-						// we can now start outputing results...
+						// we can now start outputting results...
 						skipped = null;
 					}
 
@@ -383,7 +383,7 @@ namespace Doxense.Linq.Async.Iterators
 			int? remaining = m_limit;
 			int? skipped = m_offset;
 
-			using (var iterator = StartInner(ct))
+			await using (var iterator = StartInner(ct))
 			{
 				while (remaining == null || remaining.Value > 0)
 				{

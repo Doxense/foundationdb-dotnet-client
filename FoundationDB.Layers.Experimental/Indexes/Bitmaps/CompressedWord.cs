@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Value of the 31-bit uncompressed word</summary>
 		/// <remarks>This word is repeated <see cref="WordCount"/> times in the in the uncompressed bitmap.</remarks>
-		public int WordValue
+		public uint WordValue
 		{
 			get
 			{
@@ -69,15 +69,15 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{
 					default:
 					{ // 0X
-						return (int)(w & WordAlignHybridEncoder.LITERAL_MASK);
+						return w & WordAlignHybridEncoder.LITERAL_MASK;
 					}
 					case 2:
 					{ // 00
-						return (int)ALL_ZEROES;
+						return ALL_ZEROES;
 					}
 					case 3:
 					{ // 10
-						return (int)ALL_ONES;
+						return ALL_ONES;
 					}
 				}
 			}
@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <remarks>Return 0 for 1-bit fillers, and -1 for 0-bit fillers</remarks>
 		public int GetLowestBit()
 		{
-			int w = this.WordValue;
+			uint w = this.WordValue;
 			if (w != ALL_ZEROES)
 			{
 				//TODO: use a fast bit tricks algorithm here
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <remarks>Return 31 for 1-bit fillers, and -1 for 0-bit fillers</remarks>
 		public int GetHighestBit()
 		{
-			int w = this.WordValue;
+			uint w = this.WordValue;
 			if (w != ALL_ZEROES)
 			{
 				//TODO: use a fast bit tricks algorithm here

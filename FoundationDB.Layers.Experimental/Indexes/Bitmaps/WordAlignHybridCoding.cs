@@ -507,7 +507,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		[NotNull]
 		internal static CompressedBitmap CompressedBinaryExpression([NotNull] CompressedBitmap left, [NotNull] CompressedBitmap right, LogicalOperation op)
 		{
-			Contract.Requires(left != null && right != null && op != LogicalOperation.And && Enum.IsDefined(typeof(LogicalOperation), op));
+			Contract.Requires(left != null && right != null && /*op != LogicalOperation.And &&*/ Enum.IsDefined(typeof(LogicalOperation), op));
 
 			var writer = new CompressedBitmapWriter();
 			using (var liter = left.GetEnumerator())
@@ -516,8 +516,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				int ln = 0; // remaining count of current word in left
 				int rn = 0; // remaining count of current word in right
 
-				int lw = 0; // value of current word in left (if ln > 0)
-				int rw = 0; // value of current word in right (if rn > 0)
+				uint lw = 0; // value of current word in left (if ln > 0)
+				uint rw = 0; // value of current word in right (if rn > 0)
 
 				const int DONE = -1;
 
@@ -558,12 +558,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 					if (ln == DONE)
 					{ // copy right
-						writer.Write((uint)rw, rn);
+						writer.Write((uint) rw, rn);
 						rn = 0;
 					}
 					else if (rn == DONE)
 					{ // copy left
-						writer.Write((uint)lw, ln);
+						writer.Write((uint) lw, ln);
 						ln = 0;
 					}
 					else
@@ -572,11 +572,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 						switch (op)
 						{
 							case LogicalOperation.And:		writer.Write((uint)(lw & rw), n); break;
-							case LogicalOperation.AndNot:	writer.Write((uint)(lw & ~rw), n); break;
+							case LogicalOperation.AndNot:	writer.Write((uint)(lw & (~rw & LITERAL_MASK)), n); break;
 							case LogicalOperation.Or:		writer.Write((uint)(lw | rw), n); break;
-							case LogicalOperation.OrNot:	writer.Write((uint)(lw | ~rw), n); break;
+							case LogicalOperation.OrNot:	writer.Write((uint)(lw | (~rw & LITERAL_MASK)), n); break;
 							case LogicalOperation.Xor:		writer.Write((uint)(lw ^ rw), n); break;
-							case LogicalOperation.XorNot:	writer.Write((uint)(lw ^ ~rw), n); break;
+							case LogicalOperation.XorNot:	writer.Write((uint)(lw ^ (~rw & LITERAL_MASK)), n); break;
 							default: throw new InvalidOperationException();
 						}
 						ln -= n;

@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;

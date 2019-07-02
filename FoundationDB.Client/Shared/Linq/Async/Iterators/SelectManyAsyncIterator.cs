@@ -45,7 +45,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
 		private IEnumerator<TResult> m_batch;
 
-		public SelectManyAsyncIterator([NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
+		public SelectManyAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 			: base(source)
 		{
 			// Must have at least one, but not both
@@ -59,7 +59,7 @@ namespace Doxense.Linq.Async.Iterators
 			return new SelectManyAsyncIterator<TSource, TResult>(m_source, m_selector);
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
@@ -72,7 +72,7 @@ namespace Doxense.Linq.Async.Iterators
 
 					if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
-						return Completed();
+						return await Completed();
 					}
 
 					if (m_ct.IsCancellationRequested) break;
@@ -102,10 +102,10 @@ namespace Doxense.Linq.Async.Iterators
 				return Publish(m_batch.Current);
 			}
 
-			return Canceled();
+			return await Canceled();
 		}
 
-		protected override void Cleanup()
+		protected override async ValueTask Cleanup()
 		{
 			try
 			{
@@ -114,7 +114,7 @@ namespace Doxense.Linq.Async.Iterators
 			finally
 			{
 				m_batch = null;
-				base.Cleanup();
+				await base.Cleanup();
 			}
 		}
 	}
@@ -131,7 +131,7 @@ namespace Doxense.Linq.Async.Iterators
 		private IEnumerator<TCollection> m_batch;
 
 		public SelectManyAsyncIterator(
-			[NotNull] Doxense.Linq.IAsyncEnumerable<TSource> source,
+			[NotNull] IAsyncEnumerable<TSource> source,
 			AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
 			[NotNull] Func<TSource, TCollection, TResult> resultSelector
 		)
@@ -148,7 +148,7 @@ namespace Doxense.Linq.Async.Iterators
 			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_resultSelector);
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
@@ -161,7 +161,7 @@ namespace Doxense.Linq.Async.Iterators
 
 					if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
-						return Completed();
+						return await Completed();
 					}
 
 					if (m_ct.IsCancellationRequested) break;
@@ -195,10 +195,10 @@ namespace Doxense.Linq.Async.Iterators
 				return Publish(m_resultSelector(m_sourceCurrent, batch.Current));
 			}
 
-			return Canceled();
+			return await Canceled();
 		}
 
-		protected override void Cleanup()
+		protected override async ValueTask Cleanup()
 		{
 			try
 			{ // cleanup any pending batch
@@ -207,7 +207,7 @@ namespace Doxense.Linq.Async.Iterators
 			finally
 			{
 				m_batch = null;
-				base.Cleanup();
+				await base.Cleanup();
 			}
 		}
 

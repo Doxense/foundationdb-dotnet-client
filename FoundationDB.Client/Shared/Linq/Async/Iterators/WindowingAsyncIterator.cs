@@ -101,7 +101,7 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="maxWindowSize">Maximum size of a batch to return down the line</param>
-		public WindowingAsyncIterator(Doxense.Linq.IAsyncEnumerable<TInput> source, int maxWindowSize)
+		public WindowingAsyncIterator(IAsyncEnumerable<TInput> source, int maxWindowSize)
 			: base(source)
 		{
 			Contract.Requires(maxWindowSize > 0);
@@ -113,13 +113,13 @@ namespace Doxense.Linq.Async.Iterators
 			return new WindowingAsyncIterator<TInput>(m_source, m_maxWindowSize);
 		}
 
-		protected override void OnStarted(Doxense.Linq.IAsyncEnumerator<TInput> iterator)
+		protected override void OnStarted(IAsyncEnumerator<TInput> iterator)
 		{
 			// pre-allocate the inner buffer, if it is not too big
 			m_buffer = new List<TInput>(Math.Min(m_maxWindowSize, 1024));
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our buffer
 
@@ -129,7 +129,7 @@ namespace Doxense.Linq.Async.Iterators
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)
 			{ // read the next item from the inner iterator
-				if (m_innerHasCompleted) return Completed();
+				if (m_innerHasCompleted) return await Completed();
 				ft = iterator.MoveNextAsync().AsTask();
 			}
 
@@ -167,7 +167,7 @@ namespace Doxense.Linq.Async.Iterators
 				if (buffer.Count == 0)
 				{ // that was the last batch!
 					//Console.WriteLine("# we got nothing ! :(");
-					return Completed();
+					return await Completed();
 				}
 			}
 
