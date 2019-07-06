@@ -40,7 +40,7 @@ namespace Doxense.Linq
 	{
 
 		/// <summary>An empty sequence</summary>
-		private sealed class EmptySequence<TSource> : IAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
+		private sealed class EmptySequence<TSource> : IConfigurableAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
 		{
 			public static readonly EmptySequence<TSource> Default = new EmptySequence<TSource>();
 
@@ -49,10 +49,9 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct) => this;
 
-			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync()
-			{
-				return new ValueTask<bool>(false);
-			}
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint) => this;
+
+			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync() => new ValueTask<bool>(false);
 
 			TSource IAsyncEnumerator<TSource>.Current => default;
 

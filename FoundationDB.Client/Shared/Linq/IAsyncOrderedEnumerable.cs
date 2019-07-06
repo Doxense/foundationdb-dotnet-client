@@ -28,10 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if !USE_SHARED_FRAMEWORK
 
-namespace Doxense.Linq
+namespace System.Collections.Generic
 {
 	using System;
-	using System.Collections.Generic;
 	using JetBrains.Annotations;
 
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
@@ -43,6 +42,7 @@ namespace Doxense.Linq
 	{
 		[NotNull, LinqTunnel]
 		IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending);
+
 	}
 
 }

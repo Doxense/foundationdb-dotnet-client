@@ -36,7 +36,6 @@ namespace Doxense.Linq
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Iterators;
-	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	public static partial class AsyncEnumerable
