@@ -245,8 +245,7 @@ namespace FoundationDB.Client
 							return Task.FromResult(Publish(result.Items));
 						}
 						return Completed().AsTask();
-					})
-					.Unwrap();
+					});
 
 				// keep track of this operation
 				this.PendingReadTask = task;

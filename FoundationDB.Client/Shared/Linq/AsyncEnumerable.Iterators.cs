@@ -56,7 +56,7 @@ namespace Doxense.Linq
 		internal static AsyncSequence<TSource, TResult> Create<TSource, TResult>(
 			IAsyncEnumerable<TSource> source,
 			Func<IAsyncEnumerator<TSource>,
-				IAsyncEnumerator<TResult>> factory)
+			IAsyncEnumerator<TResult>> factory)
 		{
 			return new AsyncSequence<TSource, TResult>(source, factory);
 		}
