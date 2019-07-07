@@ -28,14 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if !USE_SHARED_FRAMEWORK
 
-namespace Doxense.Linq
+#if !NETCOREAPP && !NETSTANDARD2_1
+
+namespace System.Collections.Generic
 {
 	using System;
 	using System.Threading;
 	using JetBrains.Annotations;
 
-	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
-	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
+	// note: these interfaces were introduced in .NET Core 3.0 and have to be emulated for older frameworks
 
 	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
 	/// <typeparam name="T">Element type.</typeparam>
@@ -44,11 +45,22 @@ namespace Doxense.Linq
 		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		[NotNull]
-		IAsyncEnumerator<T> GetAsyncEnumerator();
+		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct);
 	}
 
+}
+
+#endif
+
+namespace Doxense.Linq
+{
+	using System;
+	using System.Threading;
+	using System.Collections.Generic;
+	using JetBrains.Annotations;
+
 	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
-	public interface IConfigurableAsyncEnumerable<out T> : Doxense.Linq.IAsyncEnumerable<T>
+	public interface IConfigurableAsyncEnumerable<out T> : IAsyncEnumerable<T>
 	{
 
 		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
@@ -56,7 +68,7 @@ namespace Doxense.Linq
 		/// <param name="hint">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		[NotNull]
-		Doxense.Linq.IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint);
+		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint);
 	}
 
 }

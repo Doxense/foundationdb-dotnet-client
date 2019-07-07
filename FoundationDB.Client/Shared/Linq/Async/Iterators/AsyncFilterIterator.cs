@@ -31,10 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 	using JetBrains.Annotations;
 
 	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncIterator<TResult>
@@ -66,18 +66,18 @@ namespace Doxense.Linq.Async.Iterators
 				return configurable.GetAsyncEnumerator(m_ct, mode);
 			}
 
-			return m_source.GetAsyncEnumerator();
+			return m_source.GetAsyncEnumerator(m_ct);
 		}
 
-		protected void MarkInnerAsCompleted()
+		protected ValueTask MarkInnerAsCompleted()
 		{
 			m_innerHasCompleted = true;
 
-			// we don't need the inerator, so we can dispose of it immediately
-			Interlocked.Exchange(ref m_iterator, null)?.Dispose();
+			// we don't need the iterator, so we can dispose of it immediately
+			return Interlocked.Exchange(ref m_iterator, null)?.DisposeAsync() ?? default;
 		}
 
-		protected override Task<bool> OnFirstAsync()
+		protected override async ValueTask<bool> OnFirstAsync()
 		{
 			// on the first call to MoveNext, we have to hook up with the source iterator
 
@@ -85,16 +85,16 @@ namespace Doxense.Linq.Async.Iterators
 			try
 			{
 				iterator = StartInner(m_ct);
-				if (iterator == null) return TaskHelpers.False;
+				if (iterator == null) return false;
 				OnStarted(iterator);
-				return TaskHelpers.True;
+				return true;
 			}
 			catch (Exception)
 			{
 				// whatever happens, make sure that we released the iterator...
 				if (iterator != null)
 				{
-					iterator.Dispose();
+					await iterator.DisposeAsync();
 					iterator = null;
 				}
 				throw;
@@ -115,7 +115,7 @@ namespace Doxense.Linq.Async.Iterators
 			// override this to add custom stopping logic once the iterator has completed (for whatever reason)
 		}
 
-		protected override void Cleanup()
+		protected override async ValueTask Cleanup()
 		{
 			try
 			{
@@ -123,7 +123,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			finally
 			{
-				MarkInnerAsCompleted();
+				await MarkInnerAsCompleted();
 			}
 		}
 

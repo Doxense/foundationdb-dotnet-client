@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -39,24 +40,22 @@ namespace Doxense.Linq
 	{
 
 		/// <summary>An empty sequence</summary>
-		private sealed class EmptySequence<TSource> : IAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
+		private sealed class EmptySequence<TSource> : IConfigurableAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
 		{
 			public static readonly EmptySequence<TSource> Default = new EmptySequence<TSource>();
 
 			private EmptySequence()
 			{ }
 
-			public IAsyncEnumerator<TSource> GetAsyncEnumerator() => this;
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct) => this;
 
-			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync()
-			{
-				return new ValueTask<bool>(false);
-			}
+			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint hint) => this;
 
-			TSource IAsyncEnumerator<TSource>.Current => default(TSource);
+			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync() => new ValueTask<bool>(false);
 
-			void IDisposable.Dispose()
-			{ }
+			TSource IAsyncEnumerator<TSource>.Current => default;
+
+			ValueTask IAsyncDisposable.DisposeAsync() => default;
 
 		}
 
@@ -83,7 +82,7 @@ namespace Doxense.Linq
 				: this((Delegate)lambda)
 			{ }
 
-			public IAsyncEnumerator<TElement> GetAsyncEnumerator() => new Enumerator(m_lambda, CancellationToken.None);
+			public IAsyncEnumerator<TElement> GetAsyncEnumerator(CancellationToken ct) => new Enumerator(m_lambda, ct);
 
 			public IAsyncEnumerator<TElement> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 			{
@@ -141,10 +140,11 @@ namespace Doxense.Linq
 
 				public TElement Current => m_current;
 
-				public void Dispose()
+				public ValueTask DisposeAsync()
 				{
 					m_called = true;
-					m_current = default(TElement);
+					m_current = default;
+					return default;
 				}
 			}
 		}

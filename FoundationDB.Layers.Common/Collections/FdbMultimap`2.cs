@@ -156,7 +156,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="key"></param>
 		/// <returns></returns>
 		[NotNull]
-		public Doxense.Linq.IAsyncEnumerable<TValue> Get([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+		public IAsyncEnumerable<TValue> Get([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -190,7 +190,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="key"></param>
 		/// <returns></returns>
 		[NotNull]
-		public Doxense.Linq.IAsyncEnumerable<(TValue Value, long Count)> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+		public IAsyncEnumerable<(TValue Value, long Count)> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
 		{
 			var range = KeyRange.StartsWith(this.Subspace.Keys.EncodePartial(key));
 

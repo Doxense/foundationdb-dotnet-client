@@ -181,7 +181,7 @@ namespace FoundationDB.Linq.Providers
 		#region Sequence...
 
 		[NotNull]
-		private Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<T>> CompileSequence([NotNull] FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> CompileSequence([NotNull] FdbQueryExpression expression)
 		{
 #if false
 			//TODO: caching !
@@ -198,7 +198,7 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		[NotNull]
-		internal static Doxense.Linq.IAsyncEnumerator<T> GetEnumerator([NotNull] FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
+		internal static IAsyncEnumerator<T> GetEnumerator([NotNull] FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
 		{
 			var generator = sequence.CompileSequence(sequence.Expression);
 
@@ -206,21 +206,21 @@ namespace FoundationDB.Linq.Providers
 			{
 				var source = generator(sequence.Transaction);
 				Contract.Assert(source != null);
-				return source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(sequence.Transaction.Cancellation, mode) : source.GetAsyncEnumerator();
+				return source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(sequence.Transaction.Cancellation, mode) : source.GetAsyncEnumerator(sequence.Transaction.Cancellation);
 			}
 
 			//BUGBUG: how do we get a CancellationToken without a transaction?
 			var ct = CancellationToken.None;
 
 			IFdbTransaction trans = null;
-			Doxense.Linq.IAsyncEnumerator<T> iterator = null;
+			IAsyncEnumerator<T> iterator = null;
 			bool success = true;
 			try
 			{
 				trans = sequence.Database.BeginTransaction(ct);
 				var source = generator(trans);
 				Contract.Assert(source != null);
-				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator();
+				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct);
 
 				return new TransactionIterator(trans, iterator);
 			}
@@ -233,19 +233,20 @@ namespace FoundationDB.Linq.Providers
 			{
 				if (!success)
 				{
-					iterator?.Dispose();
+					//BUGBUG: we have to block on the async disposable :(
+					iterator?.DisposeAsync().GetAwaiter().GetResult();
 					trans?.Dispose();
 				}
 			}
 		}
 
-		private sealed class TransactionIterator : Doxense.Linq.IAsyncEnumerator<T>
+		private sealed class TransactionIterator : IAsyncEnumerator<T>
 		{
-			private readonly Doxense.Linq.IAsyncEnumerator<T> m_iterator;
+			private readonly IAsyncEnumerator<T> m_iterator;
 			private readonly IFdbTransaction m_transaction;
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public TransactionIterator(IFdbTransaction transaction, Doxense.Linq.IAsyncEnumerator<T> iterator)
+			public TransactionIterator(IFdbTransaction transaction, IAsyncEnumerator<T> iterator)
 			{
 				m_transaction = transaction;
 				m_iterator = iterator;
@@ -259,11 +260,11 @@ namespace FoundationDB.Linq.Providers
 
 			public T Current => m_iterator.Current;
 
-			public void Dispose()
+			public async ValueTask DisposeAsync()
 			{
 				try
 				{
-					m_iterator.Dispose();
+					await m_iterator.DisposeAsync();
 				}
 				finally
 				{

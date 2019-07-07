@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
@@ -54,13 +55,13 @@ namespace Doxense.Linq.Async.Iterators
 			return new ObserverAsyncIterator<TSource>(m_source, m_observer);
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			while (!m_ct.IsCancellationRequested)
 			{
 				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
-					return Completed();
+					return await Completed();
 				}
 
 				if (m_ct.IsCancellationRequested) break;
@@ -78,7 +79,7 @@ namespace Doxense.Linq.Async.Iterators
 				return Publish(current);
 			}
 
-			return Canceled();
+			return await Canceled();
 		}
 	}
 

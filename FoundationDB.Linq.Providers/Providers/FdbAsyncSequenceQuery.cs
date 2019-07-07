@@ -32,6 +32,7 @@ namespace FoundationDB.Linq.Providers
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Expressions;
 	using System;
+	using System.Collections.Generic;
 	using Doxense.Linq;
 
 	/// <summary>Async LINQ query that returns an async sequence of items</summary>
@@ -53,7 +54,7 @@ namespace FoundationDB.Linq.Providers
 		public Type ElementType { get { return typeof(T); } }
 
 		/// <summary>Return an async sequence that will return the results of this query</summary>
-		public Doxense.Linq.IAsyncEnumerable<T> ToEnumerable(AsyncIterationHint mode = AsyncIterationHint.Default)
+		public IAsyncEnumerable<T> ToEnumerable(AsyncIterationHint mode = AsyncIterationHint.Default)
 		{
 			return AsyncEnumerable.Create((_, __) => GetEnumerator(this, mode));
 		}

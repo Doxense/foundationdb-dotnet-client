@@ -39,7 +39,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TResult">Type of the elements of resulting async sequence</typeparam>
 	public sealed class IntersectAsyncIterator<TSource, TKey, TResult> : MergeAsyncIterator<TSource, TKey, TResult>
 	{
-		public IntersectAsyncIterator(IEnumerable<Doxense.Linq.IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+		public IntersectAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 

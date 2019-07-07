@@ -362,7 +362,7 @@ namespace FoundationDB.Client.Tests
 		public void Test_Can_Serialize_Connection_Options()
 		{
 			var options = new FdbConnectionOptions();
-			Assert.That(options.ToString(), Is.EqualTo("cluster_file=default; db=DB"));
+			Assert.That(options.ToString(), Is.EqualTo("cluster_file=default"));
 
 			options = new FdbConnectionOptions
 			{

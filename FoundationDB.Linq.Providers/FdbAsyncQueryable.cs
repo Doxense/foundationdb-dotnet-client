@@ -144,7 +144,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns an async sequence that would return the results of this query as they arrive.</summary>
-		public static Doxense.Linq.IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
+		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
 		{
 			if (query == null) throw new ArgumentNullException(nameof(query));
 

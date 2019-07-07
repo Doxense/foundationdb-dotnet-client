@@ -70,7 +70,7 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		[NotNull]
-		public override Expression<Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
@@ -81,7 +81,7 @@ namespace FoundationDB.Linq.Expressions
 				Expression.Constant(this.Options, typeof(FdbRangeOptions))
 			);
 
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, Doxense.Linq.IAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
 				body,
 				prmTrans
 			);

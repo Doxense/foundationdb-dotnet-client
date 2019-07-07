@@ -41,7 +41,7 @@ namespace Doxense.Linq.Async.Iterators
 
 	/// <summary>Base class for all async iterators</summary>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	public abstract class AsyncIterator<TResult> : IConfigurableAsyncEnumerable<TResult>, Doxense.Linq.IAsyncEnumerator<TResult>
+	public abstract class AsyncIterator<TResult> : IConfigurableAsyncEnumerable<TResult>, IAsyncEnumerator<TResult>
 	{
 		//REVIEW: we could need an IAsyncIterator<T> interface that holds all the Select(),Where(),Take(),... so that it can be used by AsyncEnumerable to either call them directly (if the query supports it) or use a generic implementation
 		// => this would be implemented by AsyncIterator<T> as well as FdbRangeQuery<T> (and ony other 'self optimizing' class)
@@ -60,9 +60,9 @@ namespace Doxense.Linq.Async.Iterators
 		#region IAsyncEnumerable<TResult>...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Doxense.Linq.IAsyncEnumerator<TResult> GetAsyncEnumerator() => GetAsyncEnumerator(CancellationToken.None, AsyncIterationHint.Default);
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
 
-		public Doxense.Linq.IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
+		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -112,7 +112,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (m_ct.IsCancellationRequested)
 			{
-				return Canceled();
+				return await Canceled();
 			}
 
 			try
@@ -121,7 +121,7 @@ namespace Doxense.Linq.Async.Iterators
 				{
 					if (!await OnFirstAsync().ConfigureAwait(false))
 					{ // did not start at all ?
-						return Completed();
+						return await Completed();
 					}
 
 					if (Interlocked.CompareExchange(ref m_state, STATE_ITERATING, STATE_INIT) != STATE_INIT)
@@ -134,7 +134,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			catch (Exception)
 			{
-				MarkAsFailed();
+				await MarkAsFailed();
 				throw;
 			}
 		}
@@ -244,9 +244,9 @@ namespace Doxense.Linq.Async.Iterators
 
 		#region Iterator Impl...
 
-		protected abstract Task<bool> OnFirstAsync();
+		protected abstract ValueTask<bool> OnFirstAsync();
 
-		protected abstract Task<bool> OnNextAsync();
+		protected abstract ValueTask<bool> OnNextAsync();
 
 		protected bool Publish(TResult current)
 		{
@@ -258,7 +258,7 @@ namespace Doxense.Linq.Async.Iterators
 			return false;
 		}
 
-		protected bool Completed()
+		protected async ValueTask<bool> Completed()
 		{
 			if (Volatile.Read(ref m_state) == STATE_INIT)
 			{ // nothing should have been done by the iterator..
@@ -266,22 +266,22 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			else if (Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_ITERATING) == STATE_ITERATING)
 			{ // the iterator has done at least something, so we can clean it up
-				Cleanup();
+				await Cleanup();
 			}
 			return false;
 		}
 
 		/// <summary>Mark the current iterator as failed, and clean up the state</summary>
-		protected void MarkAsFailed()
+		protected ValueTask MarkAsFailed()
 		{
 			//TODO: store the state "failed" somewhere?
-			Dispose();
+			return DisposeAsync();
 		}
 
-		protected bool Canceled()
+		protected async ValueTask<bool> Canceled()
 		{
 			//TODO: store the state "canceled" somewhere?
-			Dispose();
+			await DisposeAsync();
 			m_ct.ThrowIfCancellationRequested(); // should throw here!
 			return false; //note: should not be reached
 		}
@@ -291,7 +291,7 @@ namespace Doxense.Linq.Async.Iterators
 			switch (Volatile.Read(ref m_state))
 			{
 				case STATE_SEQ:
-					throw new InvalidOperationException("The async iterator should have been initiliazed with a call to GetEnumerator()");
+					throw new InvalidOperationException("The async iterator should have been initialized with a call to GetEnumerator()");
 
 				case STATE_ITERATING:
 					break;
@@ -306,29 +306,23 @@ namespace Doxense.Linq.Async.Iterators
 			}
 		}
 
-		protected abstract void Cleanup();
+		protected abstract ValueTask Cleanup();
 
 		#endregion
 
-		#region IDisposable...
+		#region IAsyncDisposable...
 
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		protected virtual void Dispose(bool disposing)
+		public virtual async ValueTask DisposeAsync()
 		{
 			if (Interlocked.Exchange(ref m_state, STATE_DISPOSED) != STATE_DISPOSED)
 			{
 				try
 				{
-					Cleanup();
+					await Cleanup();
 				}
 				finally
 				{
-					m_current = default(TResult);
+					m_current = default;
 				}
 			}
 		}

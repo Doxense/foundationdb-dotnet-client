@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq.Async.Iterators
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -85,7 +86,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			return new ParallelSelectAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_options);
 		}
-		protected override async Task<bool> OnFirstAsync()
+		protected override async ValueTask<bool> OnFirstAsync()
 		{
 			if (!await base.OnFirstAsync())
 			{
@@ -119,7 +120,7 @@ namespace Doxense.Linq.Async.Iterators
 			return true;
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			try
 			{
@@ -138,14 +139,14 @@ namespace Doxense.Linq.Async.Iterators
 						LogDebug("[OnNextAsync] received failure");
 						// we want to make sure that the exception callstack is as clean as possible,
 						// so we rely on Maybe<T>.ThrowIfFailed() to do the correct thing!
-						MarkAsFailed();
+						await MarkAsFailed();
 						next.ThrowForNonSuccess();
 						return false;
 					}
 					else
 					{
 						LogDebug("[OnNextAsync] received completion");
-						return Completed();
+						return await Completed();
 					}
 				}
 				LogDebug("[OnNextAsync] received value " + next.Value);
@@ -166,18 +167,12 @@ namespace Doxense.Linq.Async.Iterators
 #endif
 		}
 
-		protected override void Dispose(bool disposing)
+		public override ValueTask DisposeAsync()
 		{
-			try
-			{
-				m_cts.SafeCancelAndDispose();
-				//TODO: cancel the pump and queue ?
-				//TODO: wait for m_pumpTask to complete ??
-			}
-			finally
-			{
-				base.Dispose(disposing);
-			}
+			m_cts.SafeCancelAndDispose();
+			//TODO: cancel the pump and queue ?
+			//TODO: wait for m_pumpTask to complete ??
+			return base.DisposeAsync();
 		}
 
 		[Conditional("FULL_DEBUG")]

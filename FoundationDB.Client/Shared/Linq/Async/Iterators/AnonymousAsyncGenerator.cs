@@ -76,13 +76,13 @@ namespace Doxense.Linq.Async.Iterators
 			return new AnonymousAsyncGenerator<TOutput>(m_generator);
 		}
 
-		protected override Task<bool> OnFirstAsync()
+		protected override ValueTask<bool> OnFirstAsync()
 		{
 			m_index = 0;
-			return TaskHelpers.True;
+			return new ValueTask<bool>(true);
 		}
 
-		protected override async Task<bool> OnNextAsync()
+		protected override async ValueTask<bool> OnNextAsync()
 		{
 			m_ct.ThrowIfCancellationRequested();
 			if (m_index < 0) return false;
@@ -103,14 +103,15 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			if (res.Failed) res.ThrowForNonSuccess();
-			if (res.IsEmpty) return Completed();
+			if (res.IsEmpty) return await Completed();
 			m_index = checked(index + 1);
 			return Publish(res.Value);
 		}
 
-		protected override void Cleanup()
+		protected override ValueTask Cleanup()
 		{
 			m_index = -1;
+			return default;
 		}
 	}
 }

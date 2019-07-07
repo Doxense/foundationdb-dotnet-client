@@ -59,7 +59,7 @@ namespace Doxense.Linq.Async.Iterators
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="prefetchCount">Maximum size of a batch to return down the line</param>
-		public PrefetchingAsyncIterator(Doxense.Linq.IAsyncEnumerable<TInput> source, int prefetchCount)
+		public PrefetchingAsyncIterator(IAsyncEnumerable<TInput> source, int prefetchCount)
 			: base(source)
 		{
 			Contract.Requires(prefetchCount > 0);
@@ -71,13 +71,13 @@ namespace Doxense.Linq.Async.Iterators
 			return new PrefetchingAsyncIterator<TInput>(m_source, m_prefetchCount);
 		}
 
-		protected override void OnStarted(Doxense.Linq.IAsyncEnumerator<TInput> iterator)
+		protected override void OnStarted(IAsyncEnumerator<TInput> iterator)
 		{
 			// pre-allocate the buffer with the number of slot we expect to use
 			m_buffer = new Queue<TInput>(m_prefetchCount);
 		}
 
-		protected override Task<bool> OnNextAsync()
+		protected override ValueTask<bool> OnNextAsync()
 		{
 			var buffer = m_buffer;
 			if (buffer != null && buffer.Count > 0)
@@ -85,21 +85,21 @@ namespace Doxense.Linq.Async.Iterators
 				var nextTask = m_nextTask;
 				if (nextTask == null || !m_nextTask.IsCompleted)
 				{
-					return TaskHelpers.FromResult(Publish(buffer.Dequeue()));
+					return new ValueTask<bool>(Publish(buffer.Dequeue()));
 				}
 			}
 
 			return PrefetchNextItemsAsync();
 		}
 
-		protected virtual async Task<bool> PrefetchNextItemsAsync()
+		protected virtual async ValueTask<bool> PrefetchNextItemsAsync()
 		{
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our prefetch buffer, then returns the first item in the buffer.
 
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)
 			{ // read the next item from the inner iterator
-				if (m_innerHasCompleted) return Completed();
+				if (m_innerHasCompleted) return await Completed();
 				ft = m_iterator.MoveNextAsync().AsTask();
 			}
 
@@ -129,10 +129,10 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (!hasMore)
 			{
-				MarkInnerAsCompleted();
+				await MarkInnerAsCompleted();
 				if (m_buffer == null || m_buffer.Count == 0)
 				{ // that was the last batch!
-					return Completed();
+					return await Completed();
 				}
 			}
 
