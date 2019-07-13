@@ -56,11 +56,16 @@ namespace FoundationDB.Layers.Interning.Tests
 				// insert a bunch of strings
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(dataSpace.Keys.Encode("a"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Keys.Encode("b"), await stringTable.InternAsync(tr, "dog"));
-					tr.Set(dataSpace.Keys.Encode("c"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Keys.Encode("d"), await stringTable.InternAsync(tr, "cat"));
-					tr.Set(dataSpace.Keys.Encode("e"), await stringTable.InternAsync(tr, "cat"));
+					var va = await stringTable.InternAsync(tr, "testing 123456789");
+					var vb = await stringTable.InternAsync(tr, "dog");
+					var vc = await stringTable.InternAsync(tr, "testing 123456789");
+					var vd = await stringTable.InternAsync(tr, "cat");
+					var ve = await stringTable.InternAsync(tr, "cat");
+					tr.Set(dataSpace.Keys.Encode("a"), va);
+					tr.Set(dataSpace.Keys.Encode("b"), vb);
+					tr.Set(dataSpace.Keys.Encode("c"), vc);
+					tr.Set(dataSpace.Keys.Encode("d"), vd);
+					tr.Set(dataSpace.Keys.Encode("e"), ve);
 
 					await tr.CommitAsync();
 				}

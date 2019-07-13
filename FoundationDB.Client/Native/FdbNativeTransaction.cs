@@ -160,7 +160,7 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
-		public Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken ct)
+		public Task<Slice> GetAsync(in ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
@@ -339,39 +339,39 @@ namespace FoundationDB.Client.Native
 
 		#region Writing...
 
-		public void Set(Slice key, Slice value)
+		public void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
 		{
 			FdbNative.TransactionSet(m_handle, key, value);
 
 			// There is a 28-byte overhead pet Set(..) in a transaction
 			// cf http://community.foundationdb.com/questions/547/transaction-size-limit
-			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count + 28);
+			Interlocked.Add(ref m_payloadBytes, key.Length + value.Length + 28);
 		}
 
-		public void Atomic(Slice key, Slice param, FdbMutationType type)
+		public void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType type)
 		{
 			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);
 
 			//TODO: what is the overhead for atomic operations?
-			Interlocked.Add(ref m_payloadBytes, key.Count + param.Count);
+			Interlocked.Add(ref m_payloadBytes, key.Length + param.Length);
 
 		}
 
-		public void Clear(Slice key)
+		public void Clear(in ReadOnlySpan<byte> key)
 		{
 			FdbNative.TransactionClear(m_handle, key);
 			// The key is converted to range [key, key.'\0'), and there is an overhead of 28-byte per operation
-			Interlocked.Add(ref m_payloadBytes, (key.Count * 2) + 28 + 1);
+			Interlocked.Add(ref m_payloadBytes, (key.Length * 2) + 28 + 1);
 		}
 
-		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
+		public void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
 		{
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
 			// There is an overhead of 28-byte per operation
-			Interlocked.Add(ref m_payloadBytes, beginKeyInclusive.Count + endKeyExclusive.Count + 28);
+			Interlocked.Add(ref m_payloadBytes, beginKeyInclusive.Length + endKeyExclusive.Length + 28);
 		}
 
-		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		public void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			FdbError err = FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
 			Fdb.DieOnError(err);
@@ -391,7 +391,7 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
-		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken ct)
+		public Task<string[]> GetAddressesForKeyAsync(in ReadOnlySpan<byte> key, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
 			return FdbFuture.CreateTaskFromHandle(

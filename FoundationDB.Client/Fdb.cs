@@ -713,7 +713,7 @@ namespace FoundationDB.Client
 		{
 			unsafe
 			{
-				var data = FdbNative.ToNativeString(value, nullTerminated: false);
+				var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
 				fixed (byte* ptr = data)
 				{
 					return FdbNative.NetworkSetOption(option, ptr, data.Count);

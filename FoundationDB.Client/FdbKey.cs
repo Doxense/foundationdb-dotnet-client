@@ -360,6 +360,112 @@ namespace FoundationDB.Client
 			return Slice.Dump(key);
 		}
 
+		/// <summary>Produce a user-friendly version of the slice</summary>
+		/// <param name="key">Random binary key</param>
+		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
+		[NotNull]
+		public static string Dump(in ReadOnlySpan<byte> key)
+		{
+			return PrettyPrint(key, PrettyPrintMode.Single);
+		}
+
+		/// <summary>Produce a user-friendly version of the slice</summary>
+		/// <param name="key">Random binary key</param>
+		/// <param name="mode">Defines if the key is standalone, or is the begin or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
+		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
+		[DebuggerNonUserCode]
+		[NotNull]
+		public static string PrettyPrint(in ReadOnlySpan<byte> key, PrettyPrintMode mode)
+		{
+			if (key.Length > 1)
+			{
+				byte c = key[0];
+				//OPTIMIZE: maybe we need a lookup table
+				if (c <= 28 || c == 32 || c == 33 || c == 48 || c == 49 || c >= 254)
+				{ // it could be a tuple...
+					try
+					{
+						IVarTuple tuple = null;
+						string suffix = null;
+						bool skip = false;
+
+						try
+						{
+							switch (mode)
+							{
+								case PrettyPrintMode.End:
+								{ // the last byte will either be FF, or incremented
+									// for tuples, the really bad cases are for byte[]/strings (which normally end with 00)
+									// => pack(("string",))+\xFF => <02>string<00><FF>
+									// => string(("string",)) => <02>string<01>
+									switch (key[key.Length - 1])
+									{
+										case 0xFF:
+										{
+											//***README*** if you break under here, see README in the last catch() block
+											tuple = TuPack.Unpack(key.Slice(0, key.Length - 1));
+											suffix = ".<FF>";
+											break;
+										}
+										case 0x01:
+										{
+											//TODO: HACKHACK: until we find another solution, we have to make a copy :(
+											var tmp = key.ToArray();
+											tmp[tmp.Length - 1] = 0;
+											//***README*** if you break under here, see README in the last catch() block
+											tuple = TuPack.Unpack(tmp.AsSlice());
+											suffix = " + 1";
+											break;
+										}
+									}
+									break;
+								}
+								case PrettyPrintMode.Begin:
+								{ // the last byte will usually be 00
+
+									// We can't really know if the tuple ended with NULL (serialized to <00>) or if a <00> was added,
+									// but since the ToRange() on tuples add a <00> we can bet on the fact that it is not part of the tuple itself.
+									// except maybe if we have "00 FF 00" which would be the expected form of a string that ends with a <00>
+
+									if (key.Length > 2 && key[-1] == 0 && key[-2] != 0xFF)
+									{
+										//***README*** if you break under here, see README in the last catch() block
+										tuple = TuPack.Unpack(key.Slice(0, key.Length - 1));
+										suffix = ".<00>";
+									}
+									break;
+								}
+							}
+						}
+						catch (Exception e)
+						{
+							suffix = null;
+							skip = !(e is FormatException || e is ArgumentOutOfRangeException);
+						}
+
+						if (tuple == null && !skip)
+						{ // attempt a regular decoding
+							//***README*** if you break under here, see README in the last catch() block
+							tuple = TuPack.Unpack(key);
+						}
+
+						if (tuple != null) return tuple.ToString() + suffix;
+					}
+					catch (Exception)
+					{
+						//README: If Visual Studio is breaking inside some Tuple parsing method somewhere inside this try/catch,
+						// this is because your debugger is configured to automatically break on thrown exceptions of type FormatException, ArgumentException, or InvalidOperation.
+						// Unfortunately, there isn't much you can do except unchecking "break when this exception type is thrown". If you know a way to disable locally this behaviour, please fix this!
+						// => only other option would be to redesign the parsing of tuples as a TryParseXXX() that does not throw, OR to have a VerifyTuple() methods that only checks for validity....
+					}
+				}
+			}
+
+			return Slice.Dump(key);
+		}
+
 		public enum PrettyPrintMode
 		{
 			Single = 0,

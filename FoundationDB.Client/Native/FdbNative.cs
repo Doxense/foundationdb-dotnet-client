@@ -329,7 +329,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="value">String to convert (or null)</param>
 		/// <param name="nullTerminated">If true, adds a terminating \0 at the end (C-style strings)</param>
 		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
-		public static Slice ToNativeString(string value, bool nullTerminated)
+		public static Slice ToNativeString(in ReadOnlySpan<char> value, bool nullTerminated)
 		{
 			if (value == null) return Slice.Nil;
 			if (value.Length == 0) return Slice.Empty;
@@ -338,11 +338,16 @@ namespace FoundationDB.Client.Native
 			if (nullTerminated)
 			{ // NULL terminated ANSI string
 				result = new byte[value.Length + 1];
-				Encoding.Default.GetBytes(value, 0, value.Length, result, 0);
 			}
 			else
 			{
-				result = Encoding.Default.GetBytes(value);
+				result = new byte[value.Length];
+			}
+
+			fixed (char* inp = value)
+			fixed (byte* outp = &result[0])
+			{
+				Encoding.Default.GetBytes(inp, value.Length, outp, result.Length);
 			}
 			return Slice.CreateUnsafe(result, 0, result.Length);
 		}
@@ -665,16 +670,12 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_future_get_version(future, out version);
 		}
 
-		public static FutureHandle TransactionGet(TransactionHandle transaction, Slice key, bool snapshot)
+		public static FutureHandle TransactionGet(TransactionHandle transaction, in ReadOnlySpan<byte> key, bool snapshot)
 		{
-			if (key.IsNull) throw new ArgumentException("Key cannot be null", nameof(key));
-
 			// the empty key is allowed !
-			if (key.Count == 0) key = Slice.Empty;
-
 			fixed (byte* ptrKey = key)
 			{
-				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey, key.Count, snapshot);
+				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey, key.Length, snapshot);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.Handle.ToString("x"));
@@ -716,13 +717,13 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, Slice key)
+		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, in ReadOnlySpan<byte> key)
 		{
-			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", nameof(key));
+			if (key.Length == 0) throw new ArgumentException("Key cannot be null or empty", nameof(key));
 
 			fixed (byte* ptrKey = key)
 			{
-				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey, key.Count);
+				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey, key.Length);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
@@ -1055,7 +1056,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static void TransactionSet(TransactionHandle transaction, Slice key, Slice value)
+		public static void TransactionSet(TransactionHandle transaction, in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
 		{
 			fixed (byte* pKey = key)
 			fixed (byte* pValue = value)
@@ -1063,11 +1064,11 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', value: '" + FdbKey.Dump(value) + "')");
 #endif
-				NativeMethods.fdb_transaction_set(transaction, pKey, key.Count, pValue, value.Count);
+				NativeMethods.fdb_transaction_set(transaction, pKey, key.Length, pValue, value.Length);
 			}
 		}
 
-		public static void TransactionAtomicOperation(TransactionHandle transaction, Slice key, Slice param, FdbMutationType operationType)
+		public static void TransactionAtomicOperation(TransactionHandle transaction, in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType operationType)
 		{
 			fixed (byte* pKey = key)
 			fixed (byte* pParam = param)
@@ -1075,22 +1076,22 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_atomic_op(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', param: '" + FdbKey.Dump(param) + "', " + operationType.ToString() + ")");
 #endif
-				NativeMethods.fdb_transaction_atomic_op(transaction, pKey, key.Count, pParam, param.Count, operationType);
+				NativeMethods.fdb_transaction_atomic_op(transaction, pKey, key.Length, pParam, param.Length, operationType);
 			}
 		}
 
-		public static void TransactionClear(TransactionHandle transaction, Slice key)
+		public static void TransactionClear(TransactionHandle transaction, in ReadOnlySpan<byte> key)
 		{
 			fixed (byte* pKey = key)
 			{
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "')");
 #endif
-				NativeMethods.fdb_transaction_clear(transaction, pKey, key.Count);
+				NativeMethods.fdb_transaction_clear(transaction, pKey, key.Length);
 			}
 		}
 
-		public static void TransactionClearRange(TransactionHandle transaction, Slice beginKey, Slice endKey)
+		public static void TransactionClearRange(TransactionHandle transaction, in ReadOnlySpan<byte> beginKey, in ReadOnlySpan<byte> endKey)
 		{
 			fixed (byte* pBeginKey = beginKey)
 			fixed (byte* pEndKey = endKey)
@@ -1098,11 +1099,11 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_clear_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "')");
 #endif
-				NativeMethods.fdb_transaction_clear_range(transaction, pBeginKey, beginKey.Count, pEndKey, endKey.Count);
+				NativeMethods.fdb_transaction_clear_range(transaction, pBeginKey, beginKey.Length, pEndKey, endKey.Length);
 			}
 		}
 
-		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, Slice beginKey, Slice endKey, FdbConflictRangeType type)
+		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, in ReadOnlySpan<byte> beginKey, in ReadOnlySpan<byte> endKey, FdbConflictRangeType type)
 		{
 			fixed (byte* pBeginKey = beginKey)
 			fixed (byte* pEndKey = endKey)
@@ -1110,7 +1111,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_add_conflict_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "', " + type.ToString() + ")");
 #endif
-				return NativeMethods.fdb_transaction_add_conflict_range(transaction, pBeginKey, beginKey.Count, pEndKey, endKey.Count, type);
+				return NativeMethods.fdb_transaction_add_conflict_range(transaction, pBeginKey, beginKey.Length, pEndKey, endKey.Length, type);
 			}
 		}
 

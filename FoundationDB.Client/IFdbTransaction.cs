@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
-		void Set(Slice key, Slice value);
+		void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value);
 
 		/// <summary>
 		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
@@ -67,13 +67,13 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
 		/// <param name="mutation">Type of mutation that should be performed on the key</param>
-		void Atomic(Slice key, Slice param, FdbMutationType mutation);
+		void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation);
 
 		/// <summary>
 		/// Modify the database snapshot represented by this transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
 		/// </summary>
 		/// <param name="key">Name of the key to be removed from the database.</param>
-		void Clear(Slice key);
+		void Clear(in ReadOnlySpan<byte> key);
 
 		/// <summary>
 		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the range to clear.</param>
 		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
-		void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive);
+		void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive);
 
 		/// <summary>
 		/// Adds a conflict range to a transaction without performing the associated read or write.
@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
 		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
 		/// <param name="type">One of the <see cref="FdbConflictRangeType"/> values indicating what type of conflict range is being set.</param>
-		void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type);
+		void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type);
 
 		/// <summary>
 		/// Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 

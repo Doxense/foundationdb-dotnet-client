@@ -31,6 +31,7 @@ namespace Doxense.Collections.Tuples
 	using System;
 	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Memory;
@@ -1025,6 +1026,21 @@ namespace Doxense.Collections.Tuples
 			if (packedKey.Count == 0) return STuple.Empty;
 
 			return TuplePackers.Unpack(packedKey, embedded: false);
+		}
+
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
+		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
+		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
+		[Pure, NotNull]
+		public static IVarTuple Unpack(in ReadOnlySpan<byte> packedKey)
+		{
+			if (packedKey.Length == 0) return STuple.Empty;
+
+			//TODO: HACKHACK: until we rewrite the tuple parser to use spans, we _have_ to copy it to a temp location :(
+			var tmp = Slice.Copy(packedKey);
+
+			return TuplePackers.Unpack(tmp, embedded: false);
 		}
 
 		/// <summary>Unpack a tuple from a binary representation</summary>

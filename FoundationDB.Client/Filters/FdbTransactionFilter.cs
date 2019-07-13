@@ -118,10 +118,10 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<Slice> GetAsync(Slice key)
+		public virtual Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetAsync(key);
+			return m_transaction.GetAsync(in key);
 		}
 
 		/// <inheritdoc />
@@ -190,38 +190,38 @@ namespace FoundationDB.Filters
 		public virtual int Size => m_transaction.Size;
 
 		/// <inheritdoc />
-		public virtual void Set(Slice key, Slice value)
+		public virtual void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
 		{
 			ThrowIfDisposed();
 			m_transaction.Set(key, value);
 		}
 
 		/// <inheritdoc />
-		public virtual void Atomic(Slice key, Slice param, FdbMutationType mutation)
+		public virtual void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
 			ThrowIfDisposed();
-			m_transaction.Atomic(key, param, mutation);
+			m_transaction.Atomic(in key, in param, mutation);
 		}
 
 		/// <inheritdoc />
-		public virtual void Clear(Slice key)
+		public virtual void Clear(in ReadOnlySpan<byte> key)
 		{
 			ThrowIfDisposed();
-			m_transaction.Clear(key);
+			m_transaction.Clear(in key);
 		}
 
 		/// <inheritdoc />
-		public virtual void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
+		public virtual void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
 		{
 			ThrowIfDisposed();
-			m_transaction.ClearRange(beginKeyInclusive, endKeyExclusive);
+			m_transaction.ClearRange(in beginKeyInclusive, in endKeyExclusive);
 		}
 
 		/// <inheritdoc />
-		public virtual void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		public virtual void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			ThrowIfDisposed();
-			m_transaction.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
+			m_transaction.AddConflictRange(in beginKeyInclusive, in endKeyExclusive, type);
 		}
 
 		/// <inheritdoc />
@@ -309,6 +309,13 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
+		public virtual void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+		{
+			ThrowIfDisposed();
+			m_transaction.SetOption(option, in value);
+		}
+
+		/// <inheritdoc />
 		public virtual void SetOption(FdbTransactionOption option, long value)
 		{
 			ThrowIfDisposed();
@@ -383,7 +390,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<Slice> GetAsync(Slice key)
+		public virtual Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
 		{
 			return m_transaction.GetAsync(key);
 		}
@@ -470,6 +477,12 @@ namespace FoundationDB.Filters
 		public virtual void SetOption(FdbTransactionOption option, string value)
 		{
 			m_transaction.SetOption(option, value);
+		}
+
+		/// <inheritdoc />
+		public virtual void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+		{
+			m_transaction.SetOption(option, in value);
 		}
 
 		/// <inheritdoc />

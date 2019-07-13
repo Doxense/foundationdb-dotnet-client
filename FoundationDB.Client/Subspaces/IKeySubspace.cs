@@ -70,11 +70,24 @@ namespace FoundationDB.Client
 		[Pure]
 		bool Contains(Slice absoluteKey); //REVIEW: should this be renamed to "ContainsKey" ?
 
+		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
+		/// <param name="absoluteKey">Key to test</param>
+		/// <returns>True if the key can exist inside the current subspace.</returns>
+		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
+		[Pure]
+		bool Contains(in ReadOnlySpan<byte> absoluteKey);
+
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
 		/// <param name="key">Key that needs to be checked</param>
 		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
 		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
 		Slice BoundCheck(Slice key, bool allowSystemKeys);
+
+		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
+		/// <param name="key">Key that needs to be checked</param>
+		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		ReadOnlySpan<byte> BoundCheck(in ReadOnlySpan<byte> key, bool allowSystemKeys);
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>

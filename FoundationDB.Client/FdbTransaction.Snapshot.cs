@@ -89,17 +89,17 @@ namespace FoundationDB.Client
 				throw new NotSupportedException("You cannot set the read version on the Snapshot view of a transaction");
 			}
 
-			public Task<Slice> GetAsync(Slice key)
+			public Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(ref key);
+				m_parent.m_database.EnsureKeyIsValid(in key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-				return m_parent.m_handler.GetAsync(key, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetAsync(in key, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
@@ -205,6 +205,11 @@ namespace FoundationDB.Client
 			public void SetOption(FdbTransactionOption option, string value)
 			{
 				m_parent.SetOption(option, value);
+			}
+
+			public void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+			{
+				m_parent.SetOption(option, in value);
 			}
 
 			public void SetOption(FdbTransactionOption option, long value)

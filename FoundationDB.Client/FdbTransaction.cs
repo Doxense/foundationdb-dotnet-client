@@ -209,6 +209,17 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
+			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
+			m_handler.SetOption(option, data);
+		}
+
+		/// <inheritdoc />
+		public void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+		{
+			EnsureNotFailedOrDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
+
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
 		}
@@ -323,11 +334,11 @@ namespace FoundationDB.Client
 		#region Get...
 
 		/// <inheritdoc />
-		public Task<Slice> GetAsync(Slice key)
+		public Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(ref key);
+			m_database.EnsureKeyIsValid(in key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -335,6 +346,7 @@ namespace FoundationDB.Client
 
 			return m_handler.GetAsync(key, snapshot: false, ct: m_cancellation);
 		}
+
 
 		#endregion
 
@@ -460,12 +472,12 @@ namespace FoundationDB.Client
 		#region Set...
 
 		/// <inheritdoc />
-		public void Set(Slice key, Slice value)
+		public void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(ref key);
-			m_database.EnsureValueIsValid(ref value);
+			m_database.EnsureKeyIsValid(in key);
+			m_database.EnsureValueIsValid(in value);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
@@ -591,7 +603,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public void Atomic(Slice key, Slice param, FdbMutationType mutation)
+		public void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
 			//note: this method as many names in the various bindings:
 			// - C API   : fdb_transaction_atomic_op(...)
@@ -600,8 +612,8 @@ namespace FoundationDB.Client
 
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(ref key);
-			m_database.EnsureValueIsValid(ref param);
+			m_database.EnsureKeyIsValid(in key);
+			m_database.EnsureValueIsValid(in param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
 			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
@@ -618,11 +630,11 @@ namespace FoundationDB.Client
 		#region Clear...
 
 		/// <inheritdoc />
-		public void Clear(Slice key)
+		public void Clear(in ReadOnlySpan<byte> key)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(ref key);
+			m_database.EnsureKeyIsValid(in key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
@@ -636,12 +648,12 @@ namespace FoundationDB.Client
 		#region Clear Range...
 
 		/// <inheritdoc />
-		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
+		public void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(ref beginKeyInclusive);
-			m_database.EnsureKeyIsValid(ref endKeyExclusive, endExclusive: true);
+			m_database.EnsureKeyIsValid(in beginKeyInclusive);
+			m_database.EnsureKeyIsValid(in endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
@@ -655,12 +667,12 @@ namespace FoundationDB.Client
 		#region Conflict Range...
 
 		/// <inheritdoc />
-		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		public void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(ref beginKeyInclusive);
-			m_database.EnsureKeyIsValid(ref endKeyExclusive, endExclusive: true);
+			m_database.EnsureKeyIsValid(in beginKeyInclusive);
+			m_database.EnsureKeyIsValid(in endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));

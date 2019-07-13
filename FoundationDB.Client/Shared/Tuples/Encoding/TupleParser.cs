@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Buffers;
+	using System.Buffers.Text;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Tuples;
@@ -868,54 +870,44 @@ namespace Doxense.Collections.Tuples.Encoding
 			return value;
 		}
 
-		internal static Slice UnescapeByteString([NotNull] byte[] buffer, int offset, int count)
+		internal static bool ShouldUnescapeByteString(ReadOnlySpan<byte> buffer)
 		{
-			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
-
 			// check for nulls
-			int p = offset;
-			int end = offset + count;
 
-			while (p < end)
+			for(int i = 0; i < buffer.Length; i++)
 			{
-				if (buffer[p] == 0)
+				if (buffer[i] == 0)
 				{ // found a 0, switch to slow path
-					return UnescapeByteStringSlow(buffer, offset, count, p - offset);
+					return true;
 				}
-				++p;
 			}
 			// buffer is clean, we can return it as-is
-			return buffer.AsSlice(offset, count);
+			return true;
 		}
 
-		internal static Slice UnescapeByteStringSlow([NotNull] byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
+		internal static bool TryUnescapeByteString(ReadOnlySpan<byte> buffer, Span<byte> output, out int bytesWritten)
 		{
-			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
+			var tmp = new byte[buffer.Length];
 
-			var tmp = new byte[count];
-
-			int p = offset;
-			int end = offset + count;
-			int i = 0;
-			if (offsetOfFirstZero > 0)
+			int p = 0;
+			for(int i = 0; i < buffer.Length; i++)
 			{
-				UnsafeHelpers.CopyUnsafe(tmp, 0, buffer, offset, offsetOfFirstZero);
-				p += offsetOfFirstZero;
-				i = offsetOfFirstZero;
-			}
-
-			while (p < end)
-			{
-				byte b = buffer[p++];
+				byte b = buffer[i];
 				if (b == 0)
 				{ // skip next FF
 					//TODO: check that next byte really is 0xFF
-					++p;
+					++i;
 				}
-				tmp[i++] = b;
+
+				if (p >= output.Length) goto too_small;
+				tmp[p++] = b;
 			}
 
-			return tmp.AsSlice(0, i);
+			bytesWritten = p;
+			return true;
+		too_small:
+			bytesWritten = 0;
+			return false;
 		}
 
 		/// <summary>Parse a tuple segment containing a byte array</summary>
@@ -934,11 +926,31 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
 
-			if (slice.Count <= 2) return String.Empty;
+			if (slice.Count <= 2) return string.Empty;
 
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
+#if USE_SPAN_API
+			var chunk = slice.AsSpan(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Encoding.Default.GetString(chunk);
+			}
 
-			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			if (!TryUnescapeByteString(chunk, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+			string s = Encoding.Default.GetString(span.AsSpan(0, written));
+			ArrayPool<byte>.Shared.Return(span);
+			return s;
+#else
+			var chunk = slice.Substring(1, slice.Count - 2);
+			if (ShouldUnescapeByteString(chunk))
+			{
+				chunk = UnescapeByteStringSlow(chunk);
+			}
+			return Encoding.Default.GetString(chunk);
+#endif
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
@@ -948,9 +960,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
+
+#if USE_SPAN_API
+			var chunk = slice.AsSpan(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Encoding.UTF8.GetString(chunk);
+			}
+
+			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
+			if (!TryUnescapeByteString(chunk, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+			string s = Encoding.UTF8.GetString(span.AsSpan(0, written));
+			ArrayPool<byte>.Shared.Return(span);
+			return s;
+#else
 			//TODO: check args
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
 			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+#endif
 		}
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
@@ -1097,9 +1127,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			return VersionStamp.Parse(slice.Substring(1));
 		}
 
-		#endregion
+#endregion
 
-		#region Parsing...
+#region Parsing...
 
 		/// <summary>Decode the next token from a packed tuple</summary>
 		/// <param name="reader">Parser from which to read the next token</param>
@@ -1288,9 +1318,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			throw new FormatException("Old style embedded tuples (0x03) are not supported anymore.");
 		}
 
-		#endregion
+#endregion
 
-		#region Bits Twiddling...
+#region Bits Twiddling...
 
 		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
 		private static readonly int[] MultiplyDeBruijnBitPosition = new int[32]
@@ -1345,7 +1375,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return MultiplyDeBruijnBitPosition[r];
 		}
 
-		#endregion
+#endregion
 
 	}
 }

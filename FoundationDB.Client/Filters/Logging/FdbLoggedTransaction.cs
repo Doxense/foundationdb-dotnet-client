@@ -121,6 +121,29 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
+		private Slice Grab(in ReadOnlySpan<byte> slice)
+		{
+			if (slice.Length == 0) return Slice.Empty;
+
+			lock (m_lock)
+			{
+				if (slice.Length > m_buffer.Length - m_offset)
+				{ // not enough ?
+					if (slice.Length >= 2048)
+					{
+						return slice.ToArray().AsSlice();
+					}
+					m_buffer = new byte[4096];
+					m_offset = 0;
+				}
+
+				int start = m_offset;
+				slice.CopyTo(m_buffer.AsSpan(m_offset));
+				m_offset += slice.Length;
+				return m_buffer.AsSlice(start, slice.Length);
+			}
+		}
+
 		private Slice[] Grab(Slice[] slices)
 		{
 			if (slices == null) return null;
@@ -326,7 +349,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override void Set(Slice key, Slice value)
+		public override void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
 		{
 			Execute(
 				new FdbTransactionLog.SetCommand(Grab(key), Grab(value)),
@@ -334,7 +357,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override void Clear(Slice key)
+		public override void Clear(in ReadOnlySpan<byte> key)
 		{
 			ThrowIfDisposed();
 			Execute(
@@ -343,7 +366,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
+		public override void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
 		{
 			Execute(
 				new FdbTransactionLog.ClearRangeCommand(Grab(beginKeyInclusive), Grab(endKeyExclusive)),
@@ -351,7 +374,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override void Atomic(Slice key, Slice param, FdbMutationType mutation)
+		public override void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
 			Execute(
 				new FdbTransactionLog.AtomicCommand(Grab(key), Grab(param), mutation),
@@ -359,10 +382,10 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		public override void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			Execute(
-				new FdbTransactionLog.AddConflictRangeCommand(beginKeyInclusive, endKeyExclusive, type),
+				new FdbTransactionLog.AddConflictRangeCommand(Grab(beginKeyInclusive), Grab(endKeyExclusive), type),
 				(_tr, _cmd) => _tr.AddConflictRange(_cmd.Begin, _cmd.End, _cmd.Type)
 			);
 		}
@@ -379,11 +402,11 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override Task<Slice> GetAsync(Slice key)
+		public override Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetCommand(Grab(key)),
-				(tr, cmd) => tr.GetAsync(key)
+				(tr, cmd) => tr.GetAsync(cmd.Key)
 			);
 		}
 
@@ -480,7 +503,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override Task<Slice> GetAsync(Slice key)
+			public override Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetCommand(m_parent.Grab(key)),

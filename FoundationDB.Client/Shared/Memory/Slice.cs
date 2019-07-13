@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_SPAN
+#define ENABLE_SPAN
 
 #if !USE_SHARED_FRAMEWORK
 
@@ -193,7 +193,7 @@ namespace System
 		{
 			if (source.Length == 0) return Empty;
 			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, BitHelpers.NextPowerOfTwo(source.Length));
-			UnsafeHelpers.Copy(tmp, 0, source);
+			source.CopyTo(tmp);
 			return new Slice(tmp, 0, source.Length);
 		}
 
@@ -569,7 +569,7 @@ namespace System
 		public void CopyTo(Span<byte> destination)
 		{
 			if (destination.Length < this.Count) throw UnsafeHelpers.Errors.SliceBufferTooSmall();
-			UnsafeHelpers.Copy(destination, this.Array, this.Offset, this.Count);
+			this.AsSpan().CopyTo(destination);
 		}
 #endif
 
@@ -1796,6 +1796,37 @@ namespace System
 				}
 			}
 			if (value.Count > maxSize) sb.Append("[\u2026]"); // Unicode for '...'
+			return sb.ToString();
+		}
+
+		/// <summary>Returns a printable representation of a key</summary>
+		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
+		[NotNull]
+		public static string Dump(in ReadOnlySpan<byte> value, int maxSize = 1024) //REVIEW: rename this to Encode(..) or Escape(..)
+		{
+			if (value.Length == 0) return "<empty>";
+
+			int count = Math.Min(value.Length, maxSize);
+
+			var sb = new StringBuilder(count + 16);
+			for(int pos = 0; pos < count; pos++)
+			{
+				int c = value[pos];
+				if (c < 32 || c >= 127 || c == 60)
+				{
+					sb.Append('<');
+					int x = c >> 4;
+					sb.Append((char) (x + (x < 10 ? 48 : 55)));
+					x = c & 0xF;
+					sb.Append((char) (x + (x < 10 ? 48 : 55)));
+					sb.Append('>');
+				}
+				else
+				{
+					sb.Append((char) c);
+				}
+			}
+			if (value.Length > maxSize) sb.Append("[\u2026]"); // Unicode for '...'
 			return sb.ToString();
 		}
 

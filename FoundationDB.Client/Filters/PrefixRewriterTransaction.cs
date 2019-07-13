@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if TODO
+
 namespace FoundationDB.Filters
 {
 	using FoundationDB.Client;
@@ -137,7 +139,7 @@ namespace FoundationDB.Filters
 		}
 
 
-		public override void Set(Slice key, Slice value)
+		public override void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
 		{
 			base.Set(Encode(key), value);
 		}
@@ -171,3 +173,5 @@ namespace FoundationDB.Filters
 	}
 
 }
+
+ #endif

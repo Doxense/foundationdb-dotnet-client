@@ -54,6 +54,11 @@ namespace FoundationDB.Client
 				return new ArgumentException($"Key is too big ({key.Count} > {Fdb.MaxKeySize}).", paramName);
 			}
 
+			internal static Exception KeyIsTooBig(in ReadOnlySpan<byte> key, string paramName = "key")
+			{
+				return new ArgumentException($"Key is too big ({key.Length} > {Fdb.MaxKeySize}).", paramName);
+			}
+
 			internal static Exception ValueCannotBeNull(Slice value, string paramName = "value")
 			{
 				return new ArgumentException("Value cannot be null", paramName);
@@ -64,13 +69,31 @@ namespace FoundationDB.Client
 				return new ArgumentException($"Value is too big ({value.Count} > {Fdb.MaxValueSize}).", paramName);
 			}
 
+			internal static Exception ValueIsTooBig(in ReadOnlySpan<byte> value, string paramName = "value")
+			{
+				return new ArgumentException($"Value is too big ({value.Length} > {Fdb.MaxValueSize}).", paramName);
+			}
+
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, Slice key)
 			{
 				Contract.Requires(db != null);
 				return new FdbException(
 					FdbError.KeyOutsideLegalRange,
 #if DEBUG
-					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the global namespace {db.GlobalSpace} of database '{db.Name}'"
+					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the global namespace {db.GlobalSpace}."
+#else
+					$"An attempt was made to use a key that is outside of the global namespace {db.GlobalSpace}"
+#endif
+				);
+			}
+
+			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, in ReadOnlySpan<byte> key)
+			{
+				Contract.Requires(db != null);
+				return new FdbException(
+					FdbError.KeyOutsideLegalRange,
+#if DEBUG
+					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the global namespace {db.GlobalSpace}."
 #else
 					$"An attempt was made to use a key that is outside of the global namespace {db.GlobalSpace}"
 #endif

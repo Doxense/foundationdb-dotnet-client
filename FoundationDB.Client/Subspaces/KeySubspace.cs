@@ -199,6 +199,14 @@ namespace FoundationDB.Client
 			return absoluteKey.StartsWith(this.Key);
 		}
 
+		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
+		/// <param name="absoluteKey">The key to be tested</param>
+		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
+		public virtual bool Contains(in ReadOnlySpan<byte> absoluteKey)
+		{
+			return absoluteKey.StartsWith(this.Key);
+		}
+
 		/// <summary>Append a key to the subspace key</summary>
 		/// <remarks>This is the equivalent of calling 'subspace.Key + suffix'</remarks>
 		public Slice this[Slice relativeKey]
@@ -302,6 +310,30 @@ namespace FoundationDB.Client
 			// > return \xFF if we are after
 			if (key < prefix)
 				return Slice.Empty;
+			else
+				return FdbKey.System;
+		}
+
+		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
+		/// <param name="key">Key that needs to be checked</param>
+		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		public ReadOnlySpan<byte> BoundCheck(in ReadOnlySpan<byte> key, bool allowSystemKeys)
+		{
+			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
+			var prefix = this.Key;
+
+			// don't touch to nil and keys inside the globalspace
+			if (key.StartsWith(prefix)) return key;
+
+			// let the system keys pass
+			if (allowSystemKeys && key.Length > 0 && key[0] == 255) return key;
+
+			// The key is outside the bounds, and must be corrected
+			// > return empty if we are before
+			// > return \xFF if we are after
+			if (key.SequenceCompareTo(prefix) < 0)
+				return default;
 			else
 				return FdbKey.System;
 		}
