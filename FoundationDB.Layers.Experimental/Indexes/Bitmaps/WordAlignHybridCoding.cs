@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	public static class WordAlignHybridEncoder
@@ -120,7 +119,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			public UncompressedWordReader(byte* buffer, int count)
 			{
-				//TODO: boundcheck
+				//TODO: bound check
 				m_buffer = buffer;
 				m_remaining = count;
 			}
@@ -245,7 +244,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			public int Bits => m_bits;
 
 			/// <summary>Returns the last word, padded with 0s</summary>
-			/// <exception cref="InvalidOperationException">If there is at least one full word remaning</exception>
+			/// <exception cref="InvalidOperationException">If there is at least one full word remaining</exception>
 			public uint ReadLast()
 			{
 				if (m_bits >= 31) throw new InvalidOperationException("There are still words left to read in the source");
@@ -289,7 +288,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			// 4) Peek at next 31 bits, and if they are still all 0 (or 1), increment N, and jump back to step 4)
 			// 5) output a repeat word, with MSB set to 1, followed by FILL_BIT, and then LENGTH-1 (30 bit), and jump back to step 1)
 
-			// Optimisations:
+			// Optimizations:
 			// - for very small inputs (3 bytes or less) we return a single literal word
 			// - we read 64 bits at a time in the buffer, because it fits nicely in an UInt64 register
 
@@ -301,7 +300,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				output.Write(word);
 			}
 
-			// if there are reamining bits, they are padded with 0 and written as a literal
+			// if there are remaining bits, they are padded with 0 and written as a literal
 			int bits = bucket.Bits;
 			if (bits > 0)
 			{
@@ -329,11 +328,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			var reader = new SliceReader(compressed);
 
-			output.Append(String.Format("Compressed [{0} bytes]:", compressed.Count));
+			output.Append($"Compressed [{compressed.Count} bytes]:");
 
 			uint header = reader.ReadFixed32();
 			int highestBit = (int)header;
-			output.Append(String.Format(" {0} words", (compressed.Count >> 2) - 1));
+			output.Append($" {(compressed.Count >> 2) - 1} words");
 
 			uint p = 0;
 			int i = 0;
@@ -356,7 +355,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			output.Append(", MSB ").Append(highestBit);
 			if (reader.Remaining > 0)
 			{
-				output.AppendLine(String.Format(", ERROR: {0} trailing byte(s)", reader.Remaining));
+				output.AppendLine($", ERROR: {reader.Remaining} trailing byte(s)");
 			}
 			return output;
 		}

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,6 @@ namespace Doxense.Memory.Tests
 
 	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Linq;
@@ -40,58 +39,58 @@ namespace Doxense.Memory.Tests
 	using FoundationDB.Client.Tests;
 
 	[TestFixture]
-	public class SliceFacts : FdbTest
+	public class MutableSliceFacts : FdbTest
 	{
 
 		[Test]
-		public void Test_Slice_Nil()
+		public void Test_MutableSlice_Nil()
 		{
-			// Slice.Nil is the equivalent of 'default(byte[])'
+			// MutableSlice.Nil is the equivalent of 'default(byte[])'
 
-			Assert.That(Slice.Nil.Count, Is.EqualTo(0));
-			Assert.That(Slice.Nil.Offset, Is.EqualTo(0));
-			Assert.That(Slice.Nil.Array, Is.Null);
+			Assert.That(MutableSlice.Nil.Count, Is.EqualTo(0));
+			Assert.That(MutableSlice.Nil.Offset, Is.EqualTo(0));
+			Assert.That(MutableSlice.Nil.Array, Is.Null);
 
-			Assert.That(Slice.Nil.IsNull, Is.True);
-			Assert.That(Slice.Nil.HasValue, Is.False);
-			Assert.That(Slice.Nil.IsEmpty, Is.False);
-			Assert.That(Slice.Nil.IsNullOrEmpty, Is.True);
-			Assert.That(Slice.Nil.IsPresent, Is.False);
+			Assert.That(MutableSlice.Nil.IsNull, Is.True);
+			Assert.That(MutableSlice.Nil.HasValue, Is.False);
+			Assert.That(MutableSlice.Nil.IsEmpty, Is.False);
+			Assert.That(MutableSlice.Nil.IsNullOrEmpty, Is.True);
+			Assert.That(MutableSlice.Nil.IsPresent, Is.False);
 
-			Assert.That(Slice.Nil.GetBytes(), Is.Null);
-			Assert.That(Slice.Nil.GetBytesOrEmpty(), Is.Not.Null.And.Length.EqualTo(0));
-			Assert.That(Slice.Nil.ToByteString(), Is.Null);
-			Assert.That(Slice.Nil.ToUnicode(), Is.Null);
-			Assert.That(Slice.Nil.PrettyPrint(), Is.EqualTo(String.Empty));
+			Assert.That(MutableSlice.Nil.GetBytes(), Is.Null);
+			Assert.That(MutableSlice.Nil.GetBytesOrEmpty(), Is.Not.Null.And.Length.EqualTo(0));
+			Assert.That(MutableSlice.Nil.ToByteString(), Is.Null);
+			Assert.That(MutableSlice.Nil.ToUnicode(), Is.Null);
+			Assert.That(MutableSlice.Nil.PrettyPrint(), Is.EqualTo(String.Empty));
 		}
 
 		[Test]
-		public void Test_Slice_Empty()
+		public void Test_MutableSlice_Empty()
 		{
-			// Slice.Empty is the equivalent of 'new byte[0]'
+			// MutableSlice.Empty is the equivalent of 'new byte[0]'
 
-			Assert.That(Slice.Empty.Count, Is.EqualTo(0));
-			Assert.That(Slice.Empty.Offset, Is.EqualTo(0));
-			Assert.That(Slice.Empty.Array, Is.Not.Null);
-			Assert.That(Slice.Empty.Array.Length, Is.GreaterThan(0), "The backing array for Slice.Empty should not be empty, in order to work properly with the fixed() operator!");
+			Assert.That(MutableSlice.Empty.Count, Is.EqualTo(0));
+			Assert.That(MutableSlice.Empty.Offset, Is.EqualTo(0));
+			Assert.That(MutableSlice.Empty.Array, Is.Not.Null);
+			Assert.That(MutableSlice.Empty.Array.Length, Is.GreaterThan(0), "The backing array for MutableSlice.Empty should not be empty, in order to work properly with the fixed() operator!");
 
-			Assert.That(Slice.Empty.IsNull, Is.False);
-			Assert.That(Slice.Empty.HasValue, Is.True);
-			Assert.That(Slice.Empty.IsEmpty, Is.True);
-			Assert.That(Slice.Empty.IsNullOrEmpty, Is.True);
-			Assert.That(Slice.Empty.IsPresent, Is.False);
+			Assert.That(MutableSlice.Empty.IsNull, Is.False);
+			Assert.That(MutableSlice.Empty.HasValue, Is.True);
+			Assert.That(MutableSlice.Empty.IsEmpty, Is.True);
+			Assert.That(MutableSlice.Empty.IsNullOrEmpty, Is.True);
+			Assert.That(MutableSlice.Empty.IsPresent, Is.False);
 
-			Assert.That(Slice.Empty.GetBytes(), Is.Not.Null.And.Length.EqualTo(0));
-			Assert.That(Slice.Empty.GetBytesOrEmpty(), Is.Not.Null.And.Length.EqualTo(0));
-			Assert.That(Slice.Empty.ToByteString(), Is.EqualTo(String.Empty));
-			Assert.That(Slice.Empty.ToUnicode(), Is.EqualTo(String.Empty));
-			Assert.That(Slice.Empty.PrettyPrint(), Is.EqualTo("''"));
+			Assert.That(MutableSlice.Empty.GetBytes(), Is.Not.Null.And.Length.EqualTo(0));
+			Assert.That(MutableSlice.Empty.GetBytesOrEmpty(), Is.Not.Null.And.Length.EqualTo(0));
+			Assert.That(MutableSlice.Empty.ToByteString(), Is.EqualTo(String.Empty));
+			Assert.That(MutableSlice.Empty.ToUnicode(), Is.EqualTo(String.Empty));
+			Assert.That(MutableSlice.Empty.PrettyPrint(), Is.EqualTo("''"));
 		}
 
 		[Test]
-		public void Test_Slice_With_Content()
+		public void Test_MutableSlice_With_Content()
 		{
-			var slice = Slice.FromStringAscii("ABC");
+			var slice = MutableSlice.FromStringAscii("ABC");
 
 			Assert.That(slice.Count, Is.EqualTo(3));
 			Assert.That(slice.Offset, Is.EqualTo(0));
@@ -112,37 +111,127 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_Pseudo_Random()
+		public void Test_MutableSlice_Create_With_Capacity()
+		{
+			Assert.That(MutableSlice.Create(0).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(MutableSlice.Create(16).GetBytes(), Is.EqualTo(new byte[16]));
+
+			Assert.That(() => MutableSlice.Create(-1), Throws.InstanceOf<ArgumentException>());
+		}
+
+		[Test]
+		public void Test_MutableSlice_Create_With_Byte_Array()
+		{
+			Assert.That(default(byte[]).AsSlice().GetBytes(), Is.EqualTo(null));
+			Assert.That(new byte[0].AsSlice().GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(new byte[] { 1, 2, 3 }.AsSlice().GetBytes(), Is.EqualTo(new byte[] { 1, 2, 3 }));
+
+			// the array return by GetBytes() should not be the same array that was passed to Create !
+			byte[] tmp = Guid.NewGuid().ToByteArray(); // create a 16-byte array
+			var slice = tmp.AsSlice();
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(tmp.Length));
+			// they should be equal, but not the same !
+			Assert.That(slice.GetBytes(), Is.EqualTo(tmp));
+			Assert.That(slice.GetBytes(), Is.Not.SameAs(tmp));
+
+			// create from a slice of the array
+			slice = tmp.AsSlice(4, 7);
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(4));
+			Assert.That(slice.Count, Is.EqualTo(7));
+			var buf = new byte[7];
+			Array.Copy(tmp, 4, buf, 0, 7);
+			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
+
+			Assert.That(default(byte[]).AsSlice(), Is.EqualTo(MutableSlice.Nil));
+			Assert.That(new byte[0].AsSlice(), Is.EqualTo(MutableSlice.Empty));
+		}
+
+		[Test]
+		public void Test_MutableSlice_Create_Validates_Arguments()
+		{
+			// null array only allowed with offset=0 and count=0
+			// ReSharper disable AssignNullToNotNullAttribute
+			Assert.That(() => default(byte[]).AsSlice(0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => default(byte[]).AsSlice(1, 0), Throws.Nothing, "Count 0 ignores offset");
+			Assert.That(() => default(byte[]).AsSlice(1, 1), Throws.InstanceOf<ArgumentException>());
+			// ReSharper restore AssignNullToNotNullAttribute
+
+			// empty array only allowed with offset=0 and count=0
+			Assert.That(() => new byte[0].AsSlice(0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[0].AsSlice(1, 0), Throws.Nothing, "Count 0 ignores offset");
+			Assert.That(() => new byte[0].AsSlice(1, 1), Throws.InstanceOf<ArgumentException>());
+
+			// last item must fit in the buffer
+			Assert.That(() => new byte[3].AsSlice(0, 4), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(1, 3), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(3, 1), Throws.InstanceOf<ArgumentException>());
+
+			// negative arguments
+			Assert.That(() => new byte[3].AsSlice(-1, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(0, -1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(-1, -1), Throws.InstanceOf<ArgumentException>());
+		}
+
+		[Test]
+		public void Test_MutableSlice_Create_With_ArraySegment()
+		{
+			byte[] tmp = Guid.NewGuid().ToByteArray();
+
+			var slice = new ArraySegment<byte>(tmp).AsMutableSlice();
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(tmp.Length));
+			// they should be equal, but not the same !
+			Assert.That(slice.GetBytes(), Is.EqualTo(tmp));
+			Assert.That(slice.GetBytes(), Is.Not.SameAs(tmp));
+
+			slice = new ArraySegment<byte>(tmp, 4, 7).AsMutableSlice();
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(4));
+			Assert.That(slice.Count, Is.EqualTo(7));
+			var buf = new byte[7];
+			Array.Copy(tmp, 4, buf, 0, 7);
+			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
+
+			Assert.That(default(ArraySegment<byte>).AsSlice(), Is.EqualTo(MutableSlice.Nil));
+			Assert.That(new ArraySegment<byte>(new byte[0]).AsSlice(), Is.EqualTo(MutableSlice.Empty));
+		}
+
+		[Test]
+		public void Test_MutableSlice_Pseudo_Random()
 		{
 			var rng = new Random();
 
-			var slice = Slice.Random(rng, 16);
+			MutableSlice slice = MutableSlice.Random(rng, 16);
 			Assert.That(slice.Array, Is.Not.Null);
 			Assert.That(slice.Array.Length, Is.GreaterThanOrEqualTo(16));
 			Assert.That(slice.Offset, Is.EqualTo(0));
 			Assert.That(slice.Count, Is.EqualTo(16));
-			// can't really test random data, apart from checking that it's not filled with zeroes
+			// can't really test random data, appart from checking that it's not filled with zeroes
 			Assert.That(slice.GetBytes(), Is.Not.All.EqualTo(0));
 
-			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
+			Assert.That(MutableSlice.Random(rng, 0), Is.EqualTo(MutableSlice.Empty));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(Random), 16), Throws.ArgumentNullException);
-			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutableSlice.Random(default(Random), 16), Throws.ArgumentNullException);
+			Assert.That(() => MutableSlice.Random(rng, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		[Test]
-		public void Test_Slice_Cryptographic_Random()
+		public void Test_MutableSlice_Cryptographic_Random()
 		{
 			var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
 
 			// normal
-			var slice = Slice.Random(rng, 16);
+			MutableSlice slice = MutableSlice.Random(rng, 16);
 			Assert.That(slice.Array, Is.Not.Null);
 			Assert.That(slice.Array.Length, Is.GreaterThanOrEqualTo(16));
 			Assert.That(slice.Offset, Is.EqualTo(0));
 			Assert.That(slice.Count, Is.EqualTo(16));
-			// can't really test random data, apart from checking that it's not filled with zeroes
+			// can't really test random data, appart from checking that it's not filled with zeroes
 			Assert.That(slice.GetBytes(), Is.Not.All.EqualTo(0));
 
 			// non-zero bytes
@@ -150,40 +239,40 @@ namespace Doxense.Memory.Tests
 			for (int i = 0; i < 256; i++)
 			{
 				Assert.That(
-					Slice.Random(rng, 256, nonZeroBytes: true).GetBytes(),
+					MutableSlice.Random(rng, 256, nonZeroBytes: true).GetBytes(),
 					Is.All.Not.EqualTo(0)
 				);
 			}
 
-			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
+			Assert.That(MutableSlice.Random(rng, 0), Is.EqualTo(MutableSlice.Empty));
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.ArgumentNullException);
-			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => MutableSlice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.ArgumentNullException);
+			Assert.That(() => MutableSlice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
-		public void Test_Slice_FromStringAscii()
+		public void Test_MutableSlice_FromStringAscii()
 		{
-			Assert.That(Slice.FromStringAscii(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringAscii(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromStringAscii("A").GetBytes(), Is.EqualTo(new byte[] { 0x41 }));
-			Assert.That(Slice.FromStringAscii("AB").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42 }));
-			Assert.That(Slice.FromStringAscii("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringAscii("ABCD").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43, 0x44 }));
-			Assert.That(Slice.FromStringAscii("\xFF/ABC").GetBytes(), Is.EqualTo(new byte[] { 0xFF, 0x2F, 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringAscii("héllô").GetBytes(), Is.EqualTo(new byte[] { (byte)'h', 0xE9, (byte)'l', (byte)'l', 0xF4 }));
-			Assert.That(Slice.FromStringAscii("This is a test of the emergency encoding system").GetBytes(), Is.EqualTo(Encoding.ASCII.GetBytes("This is a test of the emergency encoding system")));
+			Assert.That(MutableSlice.FromStringAscii(default(string)).GetBytes(), Is.Null);
+			Assert.That(MutableSlice.FromStringAscii(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(MutableSlice.FromStringAscii("A").GetBytes(), Is.EqualTo(new byte[] { 0x41 }));
+			Assert.That(MutableSlice.FromStringAscii("AB").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42 }));
+			Assert.That(MutableSlice.FromStringAscii("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
+			Assert.That(MutableSlice.FromStringAscii("ABCD").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43, 0x44 }));
+			Assert.That(MutableSlice.FromStringAscii("\xFF/ABC").GetBytes(), Is.EqualTo(new byte[] { 0xFF, 0x2F, 0x41, 0x42, 0x43 }));
+			Assert.That(MutableSlice.FromStringAscii("héllô").GetBytes(), Is.EqualTo(new byte[] { (byte)'h', 0xE9, (byte)'l', (byte)'l', 0xF4 }));
+			Assert.That(MutableSlice.FromStringAscii("This is a test of the emergency encoding system").GetBytes(), Is.EqualTo(Encoding.ASCII.GetBytes("This is a test of the emergency encoding system")));
 
 			// if the string contains non-ASCII chars, it would be corrupted so FromAscii() should throw
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
-			Assert.That(() => Slice.FromStringAscii("hello 世界"), Throws.Exception, "String that contains code points >= 0x80 should throw");
+			Assert.That(() => MutableSlice.FromStringAscii("hello 世界"), Throws.Exception, "String that contains code points >= 0x80 should throw");
 		}
 
 		[Test]
-		public void Test_Slice_ToStringAscii()
+		public void Test_MutableSlice_ToStringAscii()
 		{
-			Assert.That(Slice.Nil.ToStringAscii(), Is.Null);
-			Assert.That(Slice.Empty.ToStringAscii(), Is.EqualTo(String.Empty));
+			Assert.That(MutableSlice.Nil.ToStringAscii(), Is.Null);
+			Assert.That(MutableSlice.Empty.ToStringAscii(), Is.EqualTo(String.Empty));
 			Assert.That(new byte[] { 0x41 }.AsSlice().ToStringAscii(), Is.EqualTo("A"));
 			Assert.That(new byte[] { 0x41, 0x42 }.AsSlice().ToStringAscii(), Is.EqualTo("AB"));
 			Assert.That(new byte[] { 0x41, 0x42, 0x43 }.AsSlice().ToStringAscii(), Is.EqualTo("ABC"));
@@ -199,95 +288,95 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromByteString()
+		public void Test_MutableSlice_FromByteString()
 		{
-			Assert.That(Slice.FromByteString(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromByteString(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromByteString("ABC").GetBytes(), Is.EqualTo(new [] { (byte) 'A', (byte) 'B', (byte) 'C' }));
-			Assert.That(Slice.FromByteString("\xFF/ABC").GetBytes(), Is.EqualTo(new [] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' }));
-			Assert.That(Slice.FromByteString("héllô").GetBytes(), Is.EqualTo(new byte[] { (byte)'h', 0xE9, (byte)'l', (byte)'l', 0xF4 }));
+			Assert.That(MutableSlice.FromByteString(default(string)).GetBytes(), Is.Null);
+			Assert.That(MutableSlice.FromByteString(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(MutableSlice.FromByteString("ABC").GetBytes(), Is.EqualTo(new [] { (byte) 'A', (byte) 'B', (byte) 'C' }));
+			Assert.That(MutableSlice.FromByteString("\xFF/ABC").GetBytes(), Is.EqualTo(new [] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' }));
+			Assert.That(MutableSlice.FromByteString("héllô").GetBytes(), Is.EqualTo(new byte[] { (byte)'h', 0xE9, (byte)'l', (byte)'l', 0xF4 }));
 
 			// if the caller likes to live dangerously and call, then the data should be corrupted
-			var slice = Slice.FromByteString("hello 世界"); // DON'T EVER DO THAT!
+			var slice = MutableSlice.FromByteString("hello 世界"); // DON'T EVER DO THAT!
 			Assume.That('世' & 0xFF, Is.EqualTo(0x16));
 			Assume.That('界' & 0xFF, Is.EqualTo(0x4C));
-			Assert.That(slice, Is.EqualTo(Slice.Unescape("hello <16><4C>")));
+			Assert.That(slice, Is.EqualTo(MutableSlice.Unescape("hello <16><4C>")));
 			Assert.That(slice.ToByteString(), Is.EqualTo("hello \x16L"), "non-ASCII chars should be corrupted after decoding");
 			Assert.That(slice.Count, Is.EqualTo(8));
 
 		}
 
 		[Test]
-		public void Test_Slice_FromStringAnsi()
+		public void Test_MutableSlice_FromStringAnsi()
 		{
 			//note: FromStringAnsi uses Encoding.Default which varies from system to system! (win-1252, utf8-, ...)
 
-			Assert.That(Slice.FromStringAnsi(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringAnsi(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromStringAnsi("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringAnsi("\xFF/ABC").GetBytes(), Is.EqualTo(Encoding.Default.GetBytes("\xFF/ABC")));
-			Assert.That(Slice.FromStringAnsi("héllô").GetBytes(), Is.EqualTo(Encoding.Default.GetBytes("héllô"))); //note: this depends on your OS locale!
+			Assert.That(MutableSlice.FromStringAnsi(default(string)).GetBytes(), Is.Null);
+			Assert.That(MutableSlice.FromStringAnsi(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(MutableSlice.FromStringAnsi("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
+			Assert.That(MutableSlice.FromStringAnsi("\xFF/ABC").GetBytes(), Is.EqualTo(Encoding.Default.GetBytes("\xFF/ABC")));
+			Assert.That(MutableSlice.FromStringAnsi("héllô").GetBytes(), Is.EqualTo(Encoding.Default.GetBytes("héllô"))); //note: this depends on your OS locale!
 
 			// if the string contains chars that are not supported by the Default encoding, it will be corrupted
-			var slice = Slice.FromStringAnsi("hello 世界"); // 8 'letters'
+			var slice = MutableSlice.FromStringAnsi("hello 世界"); // 8 'letters'
 			var expected = Encoding.Default.GetBytes("hello 世界");
 			Assert.That(slice.GetBytes(), Is.EqualTo(expected)); //note: this depends on your OS locale!
 			Assert.That(slice.ToStringAnsi(), Is.EqualTo(Encoding.Default.GetString(expected)));
 		}
 
 		[Test]
-		public void Test_Slice_ToStringAnsi()
+		public void Test_MutableSlice_ToStringAnsi()
 		{
 			//note: FromStringAnsi uses Encoding.Default which varies from system to system! (win-1252, utf8-, ...)
 
-			Assert.That(Slice.Nil.ToStringAnsi(), Is.Null);
-			Assert.That(Slice.Empty.ToStringAnsi(), Is.EqualTo(String.Empty));
+			Assert.That(MutableSlice.Nil.ToStringAnsi(), Is.Null);
+			Assert.That(MutableSlice.Empty.ToStringAnsi(), Is.EqualTo(String.Empty));
 			Assert.That(new[] { (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringAnsi(), Is.EqualTo("ABC"));
 			Assert.That(Encoding.Default.GetBytes("héllô").AsSlice().ToStringAnsi(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
 			Assert.That(new[] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringAnsi(), Is.EqualTo(Encoding.Default.GetString(new[] { (byte) 0xFF, (byte) '/', (byte) 'A', (byte) 'B', (byte) 'C' })));
 		}
 
 		[Test]
-		public void Test_Slice_FromString_Uses_UTF8()
+		public void Test_MutableSlice_FromString_Uses_UTF8()
 		{
-			Assert.That(Slice.FromString(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromString(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromString("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromString("é").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
+			Assert.That(MutableSlice.FromString(default(string)).GetBytes(), Is.Null);
+			Assert.That(MutableSlice.FromString(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(MutableSlice.FromString("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
+			Assert.That(MutableSlice.FromString("é").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
 
 			// if the string contains UTF-8 characters, it should be encoded properly
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
-			var slice = Slice.FromString("héllø 世界"); // 8 'letters'
+			var slice = MutableSlice.FromString("héllø 世界"); // 8 'letters'
 			Assert.That(slice.GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("héllø 世界")));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("héllø 世界"), "non-ASCII chars should not be corrupted");
 			Assert.That(slice.Count, Is.EqualTo(14));
 
 			// UTF8 does not map \xFF or \xFE directly to a single byte (but at least it should round-trip)
-			Assert.That(Slice.FromString("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBF }));
-			Assert.That(Slice.FromString("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBE }));
+			Assert.That(MutableSlice.FromString("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBF }));
+			Assert.That(MutableSlice.FromString("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBE }));
 			Assert.That(new byte[] { 0xC3, 0xBF }.AsSlice().ToUnicode(), Is.EqualTo("\xFF"));
 			Assert.That(new byte[] { 0xC3, 0xBE }.AsSlice().ToUnicode(), Is.EqualTo("\xFE"));
 		}
 
 		[Test]
-		public void Test_Slice_FromStringUtf8()
+		public void Test_MutableSlice_FromStringUtf8()
 		{
-			Assert.That(Slice.FromStringUtf8(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringUtf8(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.FromStringUtf8("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringUtf8("é").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
+			Assert.That(MutableSlice.FromStringUtf8(default(string)).GetBytes(), Is.Null);
+			Assert.That(MutableSlice.FromStringUtf8(string.Empty).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(MutableSlice.FromStringUtf8("ABC").GetBytes(), Is.EqualTo(new byte[] { 0x41, 0x42, 0x43 }));
+			Assert.That(MutableSlice.FromStringUtf8("é").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
 
 			// if the string contains UTF-8 characters, it should be encoded properly
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
-			var slice = Slice.FromStringUtf8("héllø 世界"); // 8 'letters'
+			var slice = MutableSlice.FromStringUtf8("héllø 世界"); // 8 'letters'
 			Assert.That(slice.GetBytes(), Is.EqualTo(Encoding.UTF8.GetBytes("héllø 世界")));
 			Assert.That(slice.ToStringUtf8(), Is.EqualTo("héllø 世界"), "non-ASCII chars should not be corrupted");
 			Assert.That(slice.ToUnicode(), Is.EqualTo("héllø 世界"), "non-ASCII chars should not be corrupted");
 			Assert.That(slice.Count, Is.EqualTo(14));
 
 			// UTF8 does not map \xFF or \xFE directly to a single byte (but at least it should round-trip)
-			Assert.That(Slice.FromStringUtf8("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBF }));
-			Assert.That(Slice.FromStringUtf8("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBE }));
+			Assert.That(MutableSlice.FromStringUtf8("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBF }));
+			Assert.That(MutableSlice.FromStringUtf8("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xBE }));
 			Assert.That(new byte[] { 0xC3, 0xBF }.AsSlice().ToStringUtf8(), Is.EqualTo("\xFF"));
 			Assert.That(new byte[] { 0xC3, 0xBF }.AsSlice().ToUnicode(), Is.EqualTo("\xFF"));
 			Assert.That(new byte[] { 0xC3, 0xBE }.AsSlice().ToStringUtf8(), Is.EqualTo("\xFE"));
@@ -295,10 +384,10 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_ToStringUtf8()
+		public void Test_MutableSlice_ToStringUtf8()
 		{
-			Assert.That(Slice.Nil.ToStringUtf8(), Is.Null);
-			Assert.That(Slice.Empty.ToStringUtf8(), Is.EqualTo(String.Empty));
+			Assert.That(MutableSlice.Nil.ToStringUtf8(), Is.Null);
+			Assert.That(MutableSlice.Empty.ToStringUtf8(), Is.EqualTo(String.Empty));
 			Assert.That(new[] { (byte) 'A', (byte) 'B', (byte) 'C' }.AsSlice().ToStringUtf8(), Is.EqualTo("ABC"));
 			Assert.That(Encoding.UTF8.GetBytes("héllô").AsSlice().ToStringUtf8(), Is.EqualTo("héllô")); //note: this depends on your OS locale!
 			Assert.That(Encoding.UTF8.GetBytes("世界").AsSlice().ToStringUtf8(), Is.EqualTo("世界"));
@@ -317,24 +406,24 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromStringUtf8WithBom()
+		public void Test_MutableSlice_FromStringUtf8WithBom()
 		{
-			Assert.That(Slice.FromStringUtf8WithBom(default(string)).GetBytes(), Is.Null);
-			Assert.That(Slice.FromStringUtf8WithBom(string.Empty).GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }));
-			Assert.That(Slice.FromStringUtf8WithBom("ABC").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0x41, 0x42, 0x43 }));
-			Assert.That(Slice.FromStringUtf8WithBom("é").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xA9 }));
+			Assert.That(MutableSlice.FromStringUtf8WithBom(default(string)).GetBytes(), Is.Null);
+			Assert.That(MutableSlice.FromStringUtf8WithBom(string.Empty).GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }));
+			Assert.That(MutableSlice.FromStringUtf8WithBom("ABC").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0x41, 0x42, 0x43 }));
+			Assert.That(MutableSlice.FromStringUtf8WithBom("é").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xA9 }));
 
 			// if the string contains UTF-8 characters, it should be encoded properly
 			// note: the line below should contain two kanjis. If your editor displays '??' or squares, it is probably not able to display unicode chars properly
-			var slice = Slice.FromStringUtf8WithBom("héllø 世界"); // 8 'letters'
+			var slice = MutableSlice.FromStringUtf8WithBom("héllø 世界"); // 8 'letters'
 			Assert.That(slice.GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes("héllø 世界")).ToArray()));
 			Assert.That(slice.ToStringUtf8(), Is.EqualTo("héllø 世界"), "The BOM should be removed");
 			Assert.That(slice.ToUnicode(), Is.EqualTo("\xFEFFhéllø 世界"), "The BOM should be preserved");
 			Assert.That(slice.Count, Is.EqualTo(3 + 14));
 
 			// UTF8 does not map \xFF or \xFE directly to a single byte (but at least it should round-trip)
-			Assert.That(Slice.FromStringUtf8WithBom("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBF }));
-			Assert.That(Slice.FromStringUtf8WithBom("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBE }));
+			Assert.That(MutableSlice.FromStringUtf8WithBom("\xFF").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBF }));
+			Assert.That(MutableSlice.FromStringUtf8WithBom("\xFE").GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBE }));
 			Assert.That(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBF }.AsSlice().ToStringUtf8(), Is.EqualTo("\xFF"));
 			Assert.That(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBF }.AsSlice().ToUnicode(), Is.EqualTo("\uFEFF\xFF"));
 			Assert.That(new byte[] { 0xEF, 0xBB, 0xBF, 0xC3, 0xBE }.AsSlice().ToStringUtf8(), Is.EqualTo("\xFE"));
@@ -342,22 +431,22 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromChar_Uses_UTF8()
+		public void Test_MutableSlice_FromChar_Uses_UTF8()
 		{
 			// from 0 to 127 is regular single-byte ASCII
-			Assert.That(Slice.FromChar('\0').GetBytes(), Is.EqualTo(new byte[] { 0 }));
-			Assert.That(Slice.FromChar('\x01').GetBytes(), Is.EqualTo(new byte[] { 1 }));
-			Assert.That(Slice.FromChar('0').GetBytes(), Is.EqualTo(new byte[] { 48 }));
-			Assert.That(Slice.FromChar('A').GetBytes(), Is.EqualTo(new byte[] { 65 }));
-			Assert.That(Slice.FromChar('a').GetBytes(), Is.EqualTo(new byte[] { 97 }));
-			Assert.That(Slice.FromChar('~').GetBytes(), Is.EqualTo(new byte[] { 126 }));
-			Assert.That(Slice.FromChar('\x7F').GetBytes(), Is.EqualTo(new byte[] { 127 }));
+			Assert.That(MutableSlice.FromChar('\0').GetBytes(), Is.EqualTo(new byte[] { 0 }));
+			Assert.That(MutableSlice.FromChar('\x01').GetBytes(), Is.EqualTo(new byte[] { 1 }));
+			Assert.That(MutableSlice.FromChar('0').GetBytes(), Is.EqualTo(new byte[] { 48 }));
+			Assert.That(MutableSlice.FromChar('A').GetBytes(), Is.EqualTo(new byte[] { 65 }));
+			Assert.That(MutableSlice.FromChar('a').GetBytes(), Is.EqualTo(new byte[] { 97 }));
+			Assert.That(MutableSlice.FromChar('~').GetBytes(), Is.EqualTo(new byte[] { 126 }));
+			Assert.That(MutableSlice.FromChar('\x7F').GetBytes(), Is.EqualTo(new byte[] { 127 }));
 
 			// 128 and above is multi-byte UTF-8
-			Assert.That(Slice.FromChar('\x80').GetBytes(), Is.EqualTo(new byte[] { 0xC2, 0x80 }));
-			Assert.That(Slice.FromChar('é').GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
-			Assert.That(Slice.FromChar('\u221E').GetBytes(), Is.EqualTo(new byte[] { 0xE2, 0x88, 0x9E }));
-			Assert.That(Slice.FromChar('\uFFFE').GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBF, 0xBE}));
+			Assert.That(MutableSlice.FromChar('\x80').GetBytes(), Is.EqualTo(new byte[] { 0xC2, 0x80 }));
+			Assert.That(MutableSlice.FromChar('é').GetBytes(), Is.EqualTo(new byte[] { 0xC3, 0xA9 }));
+			Assert.That(MutableSlice.FromChar('\u221E').GetBytes(), Is.EqualTo(new byte[] { 0xE2, 0x88, 0x9E }));
+			Assert.That(MutableSlice.FromChar('\uFFFE').GetBytes(), Is.EqualTo(new byte[] { 0xEF, 0xBF, 0xBE}));
 		}
 
 		#region Signed...
@@ -367,7 +456,7 @@ namespace Doxense.Memory.Tests
 		#region Little-Endian
 
 		[Test]
-		public void Test_Slice_ToInt24()
+		public void Test_MutableSlice_ToInt24()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt24(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToInt24(), Is.EqualTo(0x1234));
@@ -385,7 +474,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 127 }.AsSlice().ToInt24(), Is.EqualTo((1 << 23) - 1));
 			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToInt24(), Is.EqualTo((1 << 24) - 1));
 
-			Assert.That(() => new byte[4].AsSlice().ToInt24(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(4).ToInt24(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -393,7 +482,7 @@ namespace Doxense.Memory.Tests
 		#region Big Endian
 
 		[Test]
-		public void Test_Slice_ToInt24BE()
+		public void Test_MutableSlice_ToInt24BE()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt24BE(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToInt24BE(), Is.EqualTo(0x1234));
@@ -410,7 +499,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 127, 255, 255 }.AsSlice().ToInt24BE(), Is.EqualTo((1 << 23) - 1));
 			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToInt24BE(), Is.EqualTo((1 << 24) - 1));
 
-			Assert.That(() => new byte[4].AsSlice().ToInt24BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(4).ToInt24BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -422,13 +511,13 @@ namespace Doxense.Memory.Tests
 		#region Little-Endian
 
 		[Test]
-		public void Test_Slice_FromInt32()
+		public void Test_MutableSlice_FromInt32()
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
 			void Verify(int value, string expected)
 			{
-				Assert.That(Slice.FromInt32(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromInt32(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12, "12");
@@ -449,36 +538,36 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixed32()
+		public void Test_MutableSlice_FromFixed32()
 		{
 			// FromFixed32 always produce 4 bytes and uses Little Endian
 
-			Assert.That(Slice.FromFixed32(0).GetBytes(), Is.EqualTo(new byte[4]));
-			Assert.That(Slice.FromFixed32(1).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0 }));
-			Assert.That(Slice.FromFixed32(256).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0 }));
-			Assert.That(Slice.FromFixed32(65536).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0 }));
-			Assert.That(Slice.FromFixed32(16777216).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1 }));
-			Assert.That(Slice.FromFixed32(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 127, 0, 0 }));
-			Assert.That(Slice.FromFixed32(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 127 }));
+			Assert.That(MutableSlice.FromFixed32(0).GetBytes(), Is.EqualTo(new byte[4]));
+			Assert.That(MutableSlice.FromFixed32(1).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32(256).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32(65536).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0 }));
+			Assert.That(MutableSlice.FromFixed32(16777216).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1 }));
+			Assert.That(MutableSlice.FromFixed32(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 127, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 127 }));
 
-			Assert.That(Slice.FromFixed32(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255 }));
-			Assert.That(Slice.FromFixed32(-256).GetBytes(), Is.EqualTo(new byte[] { 0, 255, 255, 255 }));
-			Assert.That(Slice.FromFixed32(-65536).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 255, 255 }));
-			Assert.That(Slice.FromFixed32(-16777216).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255 }));
-			Assert.That(Slice.FromFixed32(int.MinValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 128 }));
+			Assert.That(MutableSlice.FromFixed32(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255 }));
+			Assert.That(MutableSlice.FromFixed32(-256).GetBytes(), Is.EqualTo(new byte[] { 0, 255, 255, 255 }));
+			Assert.That(MutableSlice.FromFixed32(-65536).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 255, 255 }));
+			Assert.That(MutableSlice.FromFixed32(-16777216).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255 }));
+			Assert.That(MutableSlice.FromFixed32(int.MinValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 128 }));
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
 			{
 				int x = rnd.Next() * (rnd.Next(2) == 0 ? +1 : -1);
-				var s = Slice.FromFixed32(x);
+				MutableSlice s = MutableSlice.FromFixed32(x);
 				Assert.That(s.Count, Is.EqualTo(4));
 				Assert.That(s.ToInt32(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToInt32()
+		public void Test_MutableSlice_ToInt32()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt32(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToInt32(), Is.EqualTo(0x1234));
@@ -497,7 +586,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 0, 0, 0, 1 }.AsSlice().ToInt32(), Is.EqualTo(1 << 24));
 			Assert.That(new byte[] { 255, 255, 255, 127 }.AsSlice().ToInt32(), Is.EqualTo(int.MaxValue));
 
-			Assert.That(() => new byte[5].AsSlice().ToInt32(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(5).ToInt32(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -505,13 +594,13 @@ namespace Doxense.Memory.Tests
 		#region Big Endian
 
 		[Test]
-		public void Test_Slice_FromInt32BE()
+		public void Test_MutableSlice_FromInt32BE()
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
 			void Verify(int value, string expected)
 			{
-				Assert.That(Slice.FromInt32BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromInt32BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12, "12");
@@ -532,36 +621,36 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixed32BE()
+		public void Test_MutableSlice_FromFixed32BE()
 		{
 			// FromFixed32 always produce 4 bytes and uses Little Endian
 
-			Assert.That(Slice.FromFixed32BE(0).GetBytes(), Is.EqualTo(new byte[4]));
-			Assert.That(Slice.FromFixed32BE(1).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1 }));
-			Assert.That(Slice.FromFixed32BE(256).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0 }));
-			Assert.That(Slice.FromFixed32BE(65536).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0 }));
-			Assert.That(Slice.FromFixed32BE(16777216).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0 }));
-			Assert.That(Slice.FromFixed32BE(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 127, 255 }));
-			Assert.That(Slice.FromFixed32BE(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 127, 255, 255, 255 }));
+			Assert.That(MutableSlice.FromFixed32BE(0).GetBytes(), Is.EqualTo(new byte[4]));
+			Assert.That(MutableSlice.FromFixed32BE(1).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1 }));
+			Assert.That(MutableSlice.FromFixed32BE(256).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(65536).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(16777216).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 127, 255 }));
+			Assert.That(MutableSlice.FromFixed32BE(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 127, 255, 255, 255 }));
 
-			Assert.That(Slice.FromFixed32BE(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255 }));
-			Assert.That(Slice.FromFixed32BE(-256).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 0 }));
-			Assert.That(Slice.FromFixed32BE(-65536).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 0, 0 }));
-			Assert.That(Slice.FromFixed32BE(-16777216).GetBytes(), Is.EqualTo(new byte[] { 255, 0, 0, 0 }));
-			Assert.That(Slice.FromFixed32BE(int.MinValue).GetBytes(), Is.EqualTo(new byte[] { 128, 0, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255 }));
+			Assert.That(MutableSlice.FromFixed32BE(-256).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(-65536).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(-16777216).GetBytes(), Is.EqualTo(new byte[] { 255, 0, 0, 0 }));
+			Assert.That(MutableSlice.FromFixed32BE(int.MinValue).GetBytes(), Is.EqualTo(new byte[] { 128, 0, 0, 0 }));
 
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
 			{
 				int x = rnd.Next() * (rnd.Next(2) == 0 ? +1 : -1);
-				var s = Slice.FromFixed32BE(x);
+				MutableSlice s = MutableSlice.FromFixed32BE(x);
 				Assert.That(s.Count, Is.EqualTo(4));
 				Assert.That(s.ToInt32BE(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToInt32BE()
+		public void Test_MutableSlice_ToInt32BE()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt32BE(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToInt32BE(), Is.EqualTo(0x1234));
@@ -580,7 +669,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 1, 0, 0, 0 }.AsSlice().ToInt32BE(), Is.EqualTo(1 << 24));
 			Assert.That(new byte[] { 127, 255, 255, 255 }.AsSlice().ToInt32BE(), Is.EqualTo(int.MaxValue));
 
-			Assert.That(() => new byte[5].AsSlice().ToInt32BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(5).ToInt32BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -592,13 +681,13 @@ namespace Doxense.Memory.Tests
 		#region Little-Endian
 
 		[Test]
-		public void Test_Slice_FromInt64()
+		public void Test_MutableSlice_FromInt64()
 		{
 			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
 
 			void Verify(long value, string expected)
 			{
-				Assert.That(Slice.FromInt64(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromInt64(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12, "12");
@@ -627,13 +716,13 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixed64()
+		public void Test_MutableSlice_FromFixed64()
 		{
 			// FromFixed64 always produce 8 bytes and uses Little Endian
 
 			void Verify(long value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixed64(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromFixed64(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0L, new byte[8]);
@@ -660,14 +749,14 @@ namespace Doxense.Memory.Tests
 			for (int i = 0; i < 1000; i++)
 			{
 				long x = (long)rnd.Next() * rnd.Next() * (rnd.Next(2) == 0 ? +1 : -1);
-				var s = Slice.FromFixed64(x);
+				MutableSlice s = MutableSlice.FromFixed64(x);
 				Assert.That(s.Count, Is.EqualTo(8));
 				Assert.That(s.ToInt64(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToInt64()
+		public void Test_MutableSlice_ToInt64()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt64(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToInt64(), Is.EqualTo(0x1234));
@@ -697,7 +786,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToInt64(), Is.EqualTo(-1L));
 
 			// should validate the arguments
-			var x = new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice();
+			var x = new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsMutableSlice();
 			Assert.That(() => MutateOffset(x, -1).ToInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToInt64(), Throws.InstanceOf<FormatException>());
@@ -708,13 +797,13 @@ namespace Doxense.Memory.Tests
 		#region Big-Endian
 
 		[Test]
-		public void Test_Slice_FromInt64BE()
+		public void Test_MutableSlice_FromInt64BE()
 		{
 			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
 
 			void Verify(long value, string expected)
 			{
-				Assert.That(Slice.FromInt64BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromInt64BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12, "12");
@@ -759,13 +848,13 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixed64BE()
+		public void Test_MutableSlice_FromFixed64BE()
 		{
 			// FromFixed64 always produce 8 bytes and uses Little Endian
 
 			void Verify(long value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixed64BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromFixed64BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0L, new byte[8]);
@@ -792,14 +881,14 @@ namespace Doxense.Memory.Tests
 			for (int i = 0; i < 1000; i++)
 			{
 				long x = (long)rnd.Next() * rnd.Next() * (rnd.Next(2) == 0 ? +1 : -1);
-				var s = Slice.FromFixed64BE(x);
+				MutableSlice s = MutableSlice.FromFixed64BE(x);
 				Assert.That(s.Count, Is.EqualTo(8));
 				Assert.That(s.ToInt64BE(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToInt64BE()
+		public void Test_MutableSlice_ToInt64BE()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToInt64BE(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToInt64BE(), Is.EqualTo(0x1234));
@@ -829,7 +918,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToInt64BE(), Is.EqualTo(-1L));
 
 			// should validate the arguments
-			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice();
+			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsMutableSlice();
 			Assert.That(() => MutateOffset(x, -1).ToInt64BE(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToInt64BE(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToInt64BE(), Throws.InstanceOf<FormatException>());
@@ -848,13 +937,13 @@ namespace Doxense.Memory.Tests
 		#region Little-Endian
 
 		[Test]
-		public void Test_Slice_FromUInt32()
+		public void Test_MutableSlice_FromUInt32()
 		{
 			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
 
 			void Verify(uint value, string expected)
 			{
-				Assert.That(Slice.FromUInt32(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromUInt32(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12, "12");
@@ -873,13 +962,13 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixedU32()
+		public void Test_MutableSlice_FromFixedU32()
 		{
 			// FromFixed32 always produce 4 bytes and uses Little Endian
 
 			void Verify(uint value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU32(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromFixedU32(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0, new byte[4]);
@@ -894,15 +983,15 @@ namespace Doxense.Memory.Tests
 			var rnd = new Random();
 			for (int i = 0; i < 1000; i++)
 			{
-				uint x = (uint) rnd.Next() + (uint) rnd.Next();
-				var s = Slice.FromFixedU32(x);
+				uint x = (uint)rnd.Next() + (uint)rnd.Next();
+				MutableSlice s = MutableSlice.FromFixedU32(x);
 				Assert.That(s.Count, Is.EqualTo(4));
 				Assert.That(s.ToUInt32(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToUInt32()
+		public void Test_MutableSlice_ToUInt32()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt32(), Is.EqualTo(0x12U));
 			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToUInt32(), Is.EqualTo(0x1234U));
@@ -922,7 +1011,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 255, 127 }.AsSlice().ToUInt32(), Is.EqualTo((uint)int.MaxValue));
 			Assert.That(new byte[] { 255, 255, 255, 255 }.AsSlice().ToUInt32(), Is.EqualTo(uint.MaxValue));
 
-			Assert.That(() => new byte[5].AsSlice().ToUInt32(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(5).ToUInt32(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -930,13 +1019,13 @@ namespace Doxense.Memory.Tests
 		#region Big-Endian
 
 		[Test]
-		public void Test_Slice_FromUInt32BE()
+		public void Test_MutableSlice_FromUInt32BE()
 		{
 			// 32-bit integers should be encoded in big endian, and with 1, 2 or 4 bytes
 
 			void Verify(uint value, string expected)
 			{
-				Assert.That(Slice.FromUInt32BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromUInt32BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12, "12");
@@ -955,13 +1044,13 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixedU32BE()
+		public void Test_MutableSlice_FromFixedU32BE()
 		{
 			// FromFixedU32BE always produce 4 bytes and uses Big Endian
 
 			void Verify(uint value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU32BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromFixedU32BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0, new byte[4]);
@@ -977,14 +1066,14 @@ namespace Doxense.Memory.Tests
 			for (int i = 0; i < 1000; i++)
 			{
 				uint x = (uint)rnd.Next() + (uint)rnd.Next();
-				var s = Slice.FromFixedU32BE(x);
+				MutableSlice s = MutableSlice.FromFixedU32BE(x);
 				Assert.That(s.Count, Is.EqualTo(4));
 				Assert.That(s.ToUInt32BE(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToUInt32BE()
+		public void Test_MutableSlice_ToUInt32BE()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt32BE(), Is.EqualTo(0x12U));
 			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToUInt32BE(), Is.EqualTo(0x1234U));
@@ -1004,7 +1093,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 127, 255, 255, 255 }.AsSlice().ToUInt32BE(), Is.EqualTo((uint)int.MaxValue));
 			Assert.That(new byte[] { 255, 255, 255, 255 }.AsSlice().ToUInt32BE(), Is.EqualTo(uint.MaxValue));
 
-			Assert.That(() => new byte[5].AsSlice().ToUInt32BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(5).ToUInt32BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1014,13 +1103,13 @@ namespace Doxense.Memory.Tests
 		#region 64-bits
 
 		[Test]
-		public void Test_Slice_FromUInt64()
+		public void Test_MutableSlice_FromUInt64()
 		{
 			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
 
 			void Verify(ulong value, string expected)
 			{
-				Assert.That(Slice.FromUInt64(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromUInt64(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12UL, "12");
@@ -1049,13 +1138,13 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixedU64()
+		public void Test_MutableSlice_FromFixedU64()
 		{
 			// FromFixed64 always produce 8 bytes and uses Little Endian
 
 			void Verify(ulong value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU64(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromFixedU64(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0UL, new byte[8]);
@@ -1077,14 +1166,14 @@ namespace Doxense.Memory.Tests
 			for (int i = 0; i < 1000; i++)
 			{
 				ulong x = (ulong)rnd.Next() * (ulong)rnd.Next();
-				var s = Slice.FromFixedU64(x);
+				MutableSlice s = MutableSlice.FromFixedU64(x);
 				Assert.That(s.Count, Is.EqualTo(8));
 				Assert.That(s.ToUInt64(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToUInt64()
+		public void Test_MutableSlice_ToUInt64()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt64(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x34, 0x12 }.AsSlice().ToUInt64(), Is.EqualTo(0x1234));
@@ -1115,20 +1204,20 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt64(), Is.EqualTo(ulong.MaxValue));
 
 			// should validate the arguments
-			var x = new byte[] { 0x78, 0x56, 0x34, 0x12 }.AsSlice();
+			var x = new byte[] { 0x78, 0x56, 0x34, 0x12 }.AsMutableSlice();
 			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 5).ToUInt64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToUInt64(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
-		public void Test_Slice_FromUInt64BE()
+		public void Test_MutableSlice_FromUInt64BE()
 		{
 			// 64-bit integers should be encoded in big endian, and using from 1 to 8 bytes
 
 			void Verify(ulong value, string expected)
 			{
-				Assert.That(Slice.FromUInt64BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromUInt64BE(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0x12UL, "12");
@@ -1157,13 +1246,13 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromFixedU64BE()
+		public void Test_MutableSlice_FromFixedU64BE()
 		{
 			// FromFixed64 always produce 8 bytes and uses Big Endian
 
 			void Verify(ulong value, byte[] expected)
 			{
-				Assert.That(Slice.FromFixedU64BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromFixedU64BE(value).GetBytes(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0UL, new byte[8]);
@@ -1185,14 +1274,14 @@ namespace Doxense.Memory.Tests
 			for (int i = 0; i < 1000; i++)
 			{
 				ulong x = (ulong)rnd.Next() * (ulong)rnd.Next();
-				var s = Slice.FromFixedU64BE(x);
+				MutableSlice s = MutableSlice.FromFixedU64BE(x);
 				Assert.That(s.Count, Is.EqualTo(8));
 				Assert.That(s.ToUInt64BE(), Is.EqualTo(x));
 			}
 		}
 
 		[Test]
-		public void Test_Slice_ToUInt64BE()
+		public void Test_MutableSlice_ToUInt64BE()
 		{
 			Assert.That(new byte[] { 0x12 }.AsSlice().ToUInt64BE(), Is.EqualTo(0x12));
 			Assert.That(new byte[] { 0x12, 0x34 }.AsSlice().ToUInt64BE(), Is.EqualTo(0x1234));
@@ -1223,7 +1312,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }.AsSlice().ToUInt64BE(), Is.EqualTo(ulong.MaxValue));
 
 			// should validate the arguments
-			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice();
+			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsMutableSlice();
 			Assert.That(() => MutateOffset(x, -1).ToUInt64BE(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToUInt64BE(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToUInt64BE(), Throws.InstanceOf<FormatException>());
@@ -1248,12 +1337,12 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromSingle()
+		public void Test_MutableSlice_FromSingle()
 		{
 			void Verify(float value, string expected)
 			{
-				Assert.That(Slice.FromSingle(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0} (Little Endian)", value);
-				Assert.That(Slice.FromSingleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), "Invalid encoding for {0} (Big Endian)", value);
+				Assert.That(MutableSlice.FromSingle(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0} (Little Endian)", value);
+				Assert.That(MutableSlice.FromSingleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), "Invalid encoding for {0} (Big Endian)", value);
 			}
 
 			Verify(0f, "00000000");
@@ -1276,15 +1365,15 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_ToSingle()
+		public void Test_MutableSlice_ToSingle()
 		{
 			void Verify(string value, float expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToSingle(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
+				Assert.That(MutableSlice.FromHexa(value).ToSingle(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
+				Assert.That(MutableSlice.FromHexa(SwapHexa(value)).ToSingleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
 			}
 
-			Assert.That(Slice.Empty.ToSingle(), Is.EqualTo(0d));
+			Assert.That(MutableSlice.Empty.ToSingle(), Is.EqualTo(0d));
 			Verify("00000000", 0f);
 			Verify("0000803F", 1f);
 			Verify("000080BF", -1f);
@@ -1303,17 +1392,17 @@ namespace Doxense.Memory.Tests
 			Verify("0000807F", float.PositiveInfinity);
 			Verify("000080FF", float.NegativeInfinity);
 
-			Assert.That(() => new byte[5].AsSlice().ToSingle(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => new byte[5].AsSlice().ToSingle(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(5).ToSingle(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(3).ToSingle(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
-		public void Test_Slice_FromDouble()
+		public void Test_MutableSlice_FromDouble()
 		{
 			void Verify(double value, string expected)
 			{
-				Assert.That(Slice.FromDouble(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0} (Little Endian)", value);
-				Assert.That(Slice.FromDoubleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), "Invalid encoding for {0} (Big Endian)", value);
+				Assert.That(MutableSlice.FromDouble(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0} (Little Endian)", value);
+				Assert.That(MutableSlice.FromDoubleBE(value).ToHexaString(), Is.EqualTo(SwapHexa(expected)), "Invalid encoding for {0} (Big Endian)", value);
 			}
 
 			Verify(0d, "0000000000000000");
@@ -1337,12 +1426,12 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_ToDouble()
+		public void Test_MutableSlice_ToDouble()
 		{
 			void Verify(string value, double expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDouble(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
-				Assert.That(Slice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
+				Assert.That(MutableSlice.FromHexa(value).ToDouble(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Little Endian)", value);
+				Assert.That(MutableSlice.FromHexa(SwapHexa(value)).ToDoubleBE(), Is.EqualTo(expected), "Invalid decoding for '{0}' (Big Endian)", value);
 			}
 
 			Verify("", 0d);
@@ -1364,16 +1453,16 @@ namespace Doxense.Memory.Tests
 			Verify("000000000000F07F", double.PositiveInfinity);
 			Verify("000000000000F0FF", double.NegativeInfinity);
 
-			Assert.That(() => new byte[9].AsSlice().ToDouble(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => new byte[7].AsSlice().ToDouble(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(9).ToDouble(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(7).ToDouble(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
-		public void Test_Slice_FromDecimal()
+		public void Test_MutableSlice_FromDecimal()
 		{
 			void Verify(decimal value, string expected)
 			{
-				Assert.That(Slice.FromDecimal(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
+				Assert.That(MutableSlice.FromDecimal(value).ToHexaString(), Is.EqualTo(expected), "Invalid encoding for {0}", value);
 			}
 
 			Verify(0m, "00000000000000000000000000000000");
@@ -1393,11 +1482,11 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_ToDecimal()
+		public void Test_MutableSlice_ToDecimal()
 		{
 			void Verify(string value, decimal expected)
 			{
-				Assert.That(Slice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), "Invalid decoding for '{0}'", value);
+				Assert.That(MutableSlice.FromHexa(value).ToDecimal(), Is.EqualTo(expected), "Invalid decoding for '{0}'", value);
 			}
 
 			Verify("", 0m);
@@ -1415,8 +1504,8 @@ namespace Doxense.Memory.Tests
 			Verify("00000000FFFFFFFFFFFFFFFFFFFFFFFF", decimal.MaxValue);
 			Verify("00000080FFFFFFFFFFFFFFFFFFFFFFFF", decimal.MinValue);
 
-			Assert.That(() => new byte[15].AsSlice().ToDecimal(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => new byte[17].AsSlice().ToDecimal(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(15).ToDecimal(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.Create(17).ToDecimal(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1424,52 +1513,52 @@ namespace Doxense.Memory.Tests
 		#region UUIDs...
 
 		[Test]
-		public void Test_Slice_FromGuid()
+		public void Test_MutableSlice_FromGuid()
 		{
 			// Verify that System.GUID are stored as UUIDs using RFC 4122, and not their natural in-memory format
 
 			// empty guid should be all zeroes
-			var slice = Slice.FromGuid(Guid.Empty);
+			MutableSlice slice = MutableSlice.FromGuid(Guid.Empty);
 			Assert.That(slice.ToHexaString(), Is.EqualTo("00000000000000000000000000000000"));
 
 			// GUIDs should be stored using RFC 4122 (big endian)
 			var guid = new Guid("00112233-4455-6677-8899-aabbccddeeff");
 
 			// byte order should follow the string!
-			slice = Slice.FromGuid(guid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "Slice.FromGuid() should use the RFC 4122 encoding");
+			slice = MutableSlice.FromGuid(guid);
+			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "MutableSlice.FromGuid() should use the RFC 4122 encoding");
 
 			// but guid in memory should follow MS format
-			slice = guid.ToByteArray().AsSlice(); // <-- this is BAD, don't try this at home !
+			slice = guid.ToByteArray().AsMutableSlice(); // <-- this is BAD, don't try this at home !
 			Assert.That(slice.ToHexaString(), Is.EqualTo("33221100554477668899AABBCCDDEEFF"));
 		}
 
 		[Test]
-		public void Test_Slice_ToGuid()
+		public void Test_MutableSlice_ToGuid()
 		{
 			// nil or empty should return Guid.Empty
-			Assert.That(Slice.Nil.ToGuid(), Is.EqualTo(Guid.Empty));
-			Assert.That(Slice.Empty.ToGuid(), Is.EqualTo(Guid.Empty));
+			Assert.That(MutableSlice.Nil.ToGuid(), Is.EqualTo(Guid.Empty));
+			Assert.That(MutableSlice.Empty.ToGuid(), Is.EqualTo(Guid.Empty));
 
 			// all zeroes should also return Guid.Empty
-			var slice = new byte[16].AsSlice();
+			MutableSlice slice = MutableSlice.Create(16);
 			Assert.That(slice.ToGuid(), Is.EqualTo(Guid.Empty));
 
 			// RFC 4122 encoded UUIDs should be properly reversed when converted to System.GUID
-			slice = Slice.FromHexa("00112233445566778899aabbccddeeff");
+			slice = MutableSlice.FromHexa("00112233445566778899aabbccddeeff");
 			Guid guid = slice.ToGuid();
 			Assert.That(guid.ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"), "slice.ToGuid() should convert RFC 4122 encoded UUIDs into native System.Guid");
 
 			// round-trip
 			guid = Guid.NewGuid();
-			Assert.That(Slice.FromGuid(guid).ToGuid(), Is.EqualTo(guid));
+			Assert.That(MutableSlice.FromGuid(guid).ToGuid(), Is.EqualTo(guid));
 
-			Assert.That(Slice.FromStringAscii(guid.ToString()).ToGuid(), Is.EqualTo(guid), "String literals should also be converted if they match the expected format");
+			Assert.That(MutableSlice.FromStringAscii(guid.ToString()).ToGuid(), Is.EqualTo(guid), "String literals should also be converted if they match the expected format");
 
-			Assert.That(() => Slice.FromStringAscii("random text").ToGuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.FromStringAscii("random text").ToGuid(), Throws.InstanceOf<FormatException>());
 
 			// should validate the arguments
-			var x = Slice.FromGuid(guid);
+			var x = MutableSlice.FromGuid(guid);
 			Assert.That(() => MutateOffset(x, -1).ToGuid(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 17).ToGuid(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToGuid(), Throws.InstanceOf<FormatException>());
@@ -1477,107 +1566,107 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromUuid128()
+		public void Test_MutableSlice_FromUuid128()
 		{
 			// Verify that FoundationDb.Client.Uuid are stored as 128-bit UUIDs using RFC 4122
 
 			// empty guid should be all zeroes
-			var slice = Slice.FromUuid128(Uuid128.Empty);
+			MutableSlice slice = MutableSlice.FromUuid128(Uuid128.Empty);
 			Assert.That(slice.ToHexaString(), Is.EqualTo("00000000000000000000000000000000"));
 
 			// UUIDs should be stored using RFC 4122 (big endian)
 			var uuid = new Uuid128("00112233-4455-6677-8899-aabbccddeeff");
 
 			// byte order should follow the string!
-			slice = Slice.FromUuid128(uuid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "Slice.FromUuid() should preserve RFC 4122 ordering");
+			slice = MutableSlice.FromUuid128(uuid);
+			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"), "MutableSlice.FromUuid() should preserve RFC 4122 ordering");
 
 			// ToByteArray() should also be safe
-			slice = uuid.ToByteArray().AsSlice();
+			slice = uuid.ToByteArray().AsMutableSlice();
 			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899AABBCCDDEEFF"));
 		}
 
 		[Test]
-		public void Test_Slice_ToUuid128()
+		public void Test_MutableSlice_ToUuid128()
 		{
 			// nil or empty should return Uuid128.Empty
-			Uuid128 uuid = Slice.Nil.ToUuid128();
+			Uuid128 uuid = MutableSlice.Nil.ToUuid128();
 			Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
-			uuid = Slice.Empty.ToUuid128();
+			uuid = MutableSlice.Empty.ToUuid128();
 			Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
 
 			// all zeroes should also return Uuid128.Empty
-			var slice = new byte[16].AsSlice();
+			MutableSlice slice = MutableSlice.Create(16);
 			Assert.That(slice.ToUuid128(), Is.EqualTo(Uuid128.Empty));
 
 			// RFC 4122 encoded UUIDs should not keep the byte ordering
-			slice = Slice.FromHexa("00112233445566778899aabbccddeeff");
+			slice = MutableSlice.FromHexa("00112233445566778899aabbccddeeff");
 			uuid = slice.ToUuid128();
 			Assert.That(uuid.ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"), "slice.ToUuid() should preserve RFC 4122 ordering");
 
 			// round-trip
 			uuid = Uuid128.NewUuid();
-			Assert.That(Slice.FromUuid128(uuid).ToUuid128(), Is.EqualTo(uuid));
+			Assert.That(MutableSlice.FromUuid128(uuid).ToUuid128(), Is.EqualTo(uuid));
 
-			Assert.That(Slice.FromStringAscii(uuid.ToString()).ToUuid128(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
+			Assert.That(MutableSlice.FromStringAscii(uuid.ToString()).ToUuid128(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
 
-			Assert.That(() => Slice.FromStringAscii("random text").ToUuid128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.FromStringAscii("random text").ToUuid128(), Throws.InstanceOf<FormatException>());
 
 			// should validate the arguments
-			var x = Slice.FromUuid128(uuid);
+			var x = MutableSlice.FromUuid128(uuid);
 			Assert.That(() => MutateOffset(x, -1).ToUuid128(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 17).ToUuid128(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToUuid128(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
-		public void Test_Slice_FromUuid64()
+		public void Test_MutableSlice_FromUuid64()
 		{
 			// Verify that FoundationDb.Client.Uuid64 are stored as 64-bit UUIDs in big-endian
 
 			// empty guid should be all zeroes
-			var slice = Slice.FromUuid64(Uuid64.Empty);
+			MutableSlice slice = MutableSlice.FromUuid64(Uuid64.Empty);
 			Assert.That(slice.ToHexaString(), Is.EqualTo("0000000000000000"));
 
 			// UUIDs should be stored in lexicographical order
 			var uuid = Uuid64.Parse("01234567-89abcdef");
 
 			// byte order should follow the string!
-			slice = Slice.FromUuid64(uuid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789ABCDEF"), "Slice.FromUuid64() should preserve ordering");
+			slice = MutableSlice.FromUuid64(uuid);
+			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789ABCDEF"), "MutableSlice.FromUuid64() should preserve ordering");
 
 			// ToByteArray() should also be safe
-			slice = uuid.ToByteArray().AsSlice();
+			slice = uuid.ToByteArray().AsMutableSlice();
 			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789ABCDEF"));
 		}
 
 		[Test]
-		public void Test_Slice_ToUuid64()
+		public void Test_MutableSlice_ToUuid64()
 		{
 			// nil or empty should return Uuid64.Empty
-			Uuid64 uuid = Slice.Nil.ToUuid64();
+			Uuid64 uuid = MutableSlice.Nil.ToUuid64();
 			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
-			uuid = Slice.Empty.ToUuid64();
+			uuid = MutableSlice.Empty.ToUuid64();
 			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
 
 			// all zeroes should also return Uuid64.Empty
-			uuid = new byte[8].AsSlice().ToUuid64();
+			uuid = MutableSlice.Create(8).ToUuid64();
 			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
 
 			// hexadecimal text representation
-			uuid = Slice.FromHexa("0123456789abcdef").ToUuid64();
+			uuid = MutableSlice.FromHexa("0123456789abcdef").ToUuid64();
 			Assert.That(uuid.ToInt64(), Is.EqualTo(0x123456789abcdef), "slice.ToUuid64() should preserve ordering");
 
 			// round-trip
 			uuid = Uuid64.NewUuid();
-			Assert.That(Slice.FromUuid64(uuid).ToUuid64(), Is.EqualTo(uuid));
+			Assert.That(MutableSlice.FromUuid64(uuid).ToUuid64(), Is.EqualTo(uuid));
 
-			Assert.That(Slice.FromStringAscii(uuid.ToString()).ToUuid64(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
+			Assert.That(MutableSlice.FromStringAscii(uuid.ToString()).ToUuid64(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
 
-			Assert.That(() => Slice.FromStringAscii("random text").ToUuid64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.FromStringAscii("random text").ToUuid64(), Throws.InstanceOf<FormatException>());
 
 			// should validate the arguments
-			var x = Slice.FromUuid64(uuid);
+			var x = MutableSlice.FromUuid64(uuid);
 			Assert.That(() => MutateOffset(x, -1).ToUuid64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 9).ToUuid64(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).ToUuid64(), Throws.InstanceOf<FormatException>());
@@ -1586,41 +1675,41 @@ namespace Doxense.Memory.Tests
 		#endregion
 
 		[Test]
-		public void Test_Slice_FromBase64()
+		public void Test_MutableSlice_FromBase64()
 		{
 			// numl string is Nil slice
-			var slice = Slice.FromBase64(default(string));
-			Assert.That(slice, Is.EqualTo(Slice.Nil));
+			MutableSlice slice = MutableSlice.FromBase64(default(string));
+			Assert.That(slice, Is.EqualTo(MutableSlice.Nil));
 
 			// empty string is empty slice
-			slice = Slice.FromBase64("");
-			Assert.That(slice, Is.EqualTo(Slice.Empty));
+			slice = MutableSlice.FromBase64("");
+			Assert.That(slice, Is.EqualTo(MutableSlice.Empty));
 
 			// UUIDs should be stored in lexicographical order
-			slice = Slice.FromBase64(Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!")));
+			slice = MutableSlice.FromBase64(Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!")));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("Hello, World!"));
 
 			// malformed
-			Assert.That(() => Slice.FromBase64(Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!")).Substring(1)), Throws.InstanceOf<FormatException>());
-			Assert.That(() => Slice.FromBase64("This is not a base64 string!"), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.FromBase64(Convert.ToBase64String(Encoding.UTF8.GetBytes("Hello, World!")).Substring(1)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutableSlice.FromBase64("This is not a base64 string!"), Throws.InstanceOf<FormatException>());
 		}
 
 		#region Equality / Comparison / HashCodes...
 
 		[Test]
 		[SuppressMessage("ReSharper", "EqualExpressionComparison")]
-		public void Test_Slice_Equality()
+		public void Test_MutableSlice_Equality()
 		{
 #pragma warning disable 1718
 			// a == b == c && x != y && a != x
-			var a = new byte[] { 1, 2, 3 }.AsSlice();
-			var b = new byte[] { 1, 2, 3 }.AsSlice();
-			var c = new byte[] { 0, 1, 2, 3, 4 }.AsSlice(1, 3);
-			var x = new byte[] { 4, 5, 6 }.AsSlice();
-			var y = new byte[] { 1, 2, 3 }.AsSlice(0, 2);
-			var z = new byte[] { 1, 2, 3, 4 }.AsSlice();
+			var a = new byte[] { 1, 2, 3 }.AsMutableSlice();
+			var b = new byte[] { 1, 2, 3 }.AsMutableSlice();
+			var c = new byte[] { 0, 1, 2, 3, 4 }.AsMutableSlice(1, 3);
+			var x = new byte[] { 4, 5, 6 }.AsMutableSlice();
+			var y = new byte[] { 1, 2, 3 }.AsMutableSlice(0, 2);
+			var z = new byte[] { 1, 2, 3, 4 }.AsMutableSlice();
 
-			// IEquatable<Slice>
+			// IEquatable<MutableSlice>
 			// equals
 			Assert.That(a, Is.EqualTo(a));
 			Assert.That(a, Is.EqualTo(b));
@@ -1638,19 +1727,19 @@ namespace Doxense.Memory.Tests
 
 			// Default Comparer
 			// equals
-			Assert.That(Slice.Comparer.Default.Equals(a, a), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(a, b), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(a, c), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(b, a), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(b, b), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(b, c), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(c, a), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(c, b), Is.True);
-			Assert.That(Slice.Comparer.Default.Equals(c, c), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(a, a), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(a, b), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(a, c), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(b, a), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(b, b), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(b, c), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(c, a), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(c, b), Is.True);
+			Assert.That(MutableSlice.Comparer.Default.Equals(c, c), Is.True);
 			// not equals
-			Assert.That(Slice.Comparer.Default.Equals(a, x), Is.False);
-			Assert.That(Slice.Comparer.Default.Equals(a, y), Is.False);
-			Assert.That(Slice.Comparer.Default.Equals(a, z), Is.False);
+			Assert.That(MutableSlice.Comparer.Default.Equals(a, x), Is.False);
+			Assert.That(MutableSlice.Comparer.Default.Equals(a, y), Is.False);
+			Assert.That(MutableSlice.Comparer.Default.Equals(a, z), Is.False);
 
 			// Operators
 			// ==
@@ -1684,7 +1773,7 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_Equals_Slice()
+		public void Test_MutableSlice_Equals_Slice()
 		{
 
 			var a = new byte[] { 1, 2, 3 }.AsSlice();
@@ -1704,57 +1793,57 @@ namespace Doxense.Memory.Tests
 			Assert.That(c.Equals(a), Is.True);
 			Assert.That(c.Equals(b), Is.True);
 			Assert.That(c.Equals(c), Is.True);
-			Assert.That(Slice.Nil.Equals(Slice.Nil), Is.True);
-			Assert.That(Slice.Empty.Equals(Slice.Empty), Is.True);
+			Assert.That(MutableSlice.Nil.Equals(MutableSlice.Nil), Is.True);
+			Assert.That(MutableSlice.Empty.Equals(MutableSlice.Empty), Is.True);
 
 			// not equals
 			Assert.That(a.Equals(x), Is.False);
 			Assert.That(a.Equals(y), Is.False);
 			Assert.That(a.Equals(z), Is.False);
-			Assert.That(a.Equals(Slice.Nil), Is.False);
-			Assert.That(a.Equals(Slice.Empty), Is.False);
-			Assert.That(Slice.Empty.Equals(Slice.Nil), Is.False);
-			Assert.That(Slice.Nil.Equals(Slice.Empty), Is.False);
+			Assert.That(a.Equals(MutableSlice.Nil), Is.False);
+			Assert.That(a.Equals(MutableSlice.Empty), Is.False);
+			Assert.That(MutableSlice.Empty.Equals(MutableSlice.Nil), Is.False);
+			Assert.That(MutableSlice.Nil.Equals(MutableSlice.Empty), Is.False);
 		}
 
 		[Test]
-		public void Test_Slice_Equality_Corner_Cases()
+		public void Test_MutableSlice_Equality_Corner_Cases()
 		{
-			Assert.That(default(byte[]).AsSlice(), Is.EqualTo(Slice.Nil));
-			Assert.That(new byte[0].AsSlice(), Is.EqualTo(Slice.Empty));
+			Assert.That(default(byte[]).AsSlice(), Is.EqualTo(MutableSlice.Nil));
+			Assert.That(new byte[0].AsSlice(), Is.EqualTo(MutableSlice.Empty));
 
-			Assert.That(default(byte[]).AsSlice() == Slice.Nil, Is.True, "null == Nil");
-			Assert.That(default(byte[]).AsSlice() == Slice.Empty, Is.False, "null != Empty");
-			Assert.That(new byte[0].AsSlice() == Slice.Empty, Is.True, "[0] == Empty");
-			Assert.That(new byte[0].AsSlice() == Slice.Nil, Is.False, "[0] != Nill");
+			Assert.That(default(byte[]).AsSlice() == MutableSlice.Nil, Is.True, "null == Nil");
+			Assert.That(default(byte[]).AsSlice() == MutableSlice.Empty, Is.False, "null != Empty");
+			Assert.That(new byte[0].AsSlice() == MutableSlice.Empty, Is.True, "[0] == Empty");
+			Assert.That(new byte[0].AsSlice() == MutableSlice.Nil, Is.False, "[0] != Nill");
 
-			// "slice == null" should be the equivalent to "slice.IsNull" so only true for Slice.Nil
-			Assert.That(Slice.Nil == null, Is.True, "'Slice.Nil == null' is true");
-			Assert.That(Slice.Empty == null, Is.False, "'Slice.Empty == null' is false");
-			Assert.That(Slice.FromByte(1) == null, Is.False, "'[1] == null' is false");
-			Assert.That(null == Slice.Nil, Is.True, "'Slice.Nil == null' is true");
-			Assert.That(null == Slice.Empty, Is.False, "'Slice.Empty == null' is false");
-			Assert.That(null == Slice.FromByte(1), Is.False, "'[1] == null' is false");
+			// "slice == null" should be the equivalent to "slice.IsNull" so only true for MutableSlice.Nil
+			Assert.That(MutableSlice.Nil == null, Is.True, "'MutableSlice.Nil == null' is true");
+			Assert.That(MutableSlice.Empty == null, Is.False, "'MutableSlice.Empty == null' is false");
+			Assert.That(MutableSlice.FromByte(1) == null, Is.False, "'[1] == null' is false");
+			Assert.That(null == MutableSlice.Nil, Is.True, "'MutableSlice.Nil == null' is true");
+			Assert.That(null == MutableSlice.Empty, Is.False, "'MutableSlice.Empty == null' is false");
+			Assert.That(null == MutableSlice.FromByte(1), Is.False, "'[1] == null' is false");
 
-			// "slice != null" should be the equivalent to "slice.HasValue" so only false for Slice.Nil
-			Assert.That(Slice.Nil != null, Is.False, "'Slice.Nil != null' is false");
-			Assert.That(Slice.Empty != null, Is.True, "'Slice.Empty != null' is true");
-			Assert.That(Slice.FromByte(1) != null, Is.True, "'[1] != null' is true");
-			Assert.That(null != Slice.Nil, Is.False, "'Slice.Nil != null' is false");
-			Assert.That(null != Slice.Empty, Is.True, "'Slice.Empty != null' is true");
-			Assert.That(null != Slice.FromByte(1), Is.True, "'[1] != null' is true");
+			// "slice != null" should be the equivalent to "slice.HasValue" so only false for MutableSlice.Nil
+			Assert.That(MutableSlice.Nil != null, Is.False, "'MutableSlice.Nil != null' is false");
+			Assert.That(MutableSlice.Empty != null, Is.True, "'MutableSlice.Empty != null' is true");
+			Assert.That(MutableSlice.FromByte(1) != null, Is.True, "'[1] != null' is true");
+			Assert.That(null != MutableSlice.Nil, Is.False, "'MutableSlice.Nil != null' is false");
+			Assert.That(null != MutableSlice.Empty, Is.True, "'MutableSlice.Empty != null' is true");
+			Assert.That(null != MutableSlice.FromByte(1), Is.True, "'[1] != null' is true");
 		}
 
 		[Test]
-		public void Test_Slice_Equality_TwoByteArrayWithSameContentShouldReturnTrue()
+		public void Test_MutableSlice_Equality_TwoByteArrayWithSameContentShouldReturnTrue()
 		{
-			var s1 = Slice.FromStringAscii("abcd");
-			var s2 = Slice.FromStringAscii("abcd");
+			var s1 = MutableSlice.FromStringAscii("abcd");
+			var s2 = MutableSlice.FromStringAscii("abcd");
 			Assert.That(s1.Equals(s2), Is.True, "'abcd' should equals 'abcd'");
 		}
 
 		[Test]
-		public void Test_Slice_Equality_TwoByteArrayWithSameContentFromSameOriginalBufferShouldReturnTrue()
+		public void Test_MutableSlice_Equality_TwoByteArrayWithSameContentFromSameOriginalBufferShouldReturnTrue()
 		{
 			var origin = System.Text.Encoding.ASCII.GetBytes("abcdabcd");
 			var a1 = new ArraySegment<byte>(origin, 0, 4); //"abcd", refer first part of origin buffer
@@ -1765,10 +1854,10 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_Equality_Malformed()
+		public void Test_MutableSlice_Equality_Malformed()
 		{
-			var good = Slice.FromStringAscii("good");
-			var evil = Slice.FromStringAscii("evil");
+			var good = MutableSlice.FromStringAscii("good");
+			var evil = MutableSlice.FromStringAscii("evil");
 
 			// argument should be validated
 			Assert.That(() => good.Equals(MutateOffset(evil, -1)), Throws.InstanceOf<FormatException>());
@@ -1784,26 +1873,26 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_Hash_Code()
+		public void Test_MutableSlice_Hash_Code()
 		{
 			// note: the test values MAY change if the hashcode algorithm is modified.
 			// That means that if all the asserts in this test fail, you should probably ensure that the expected results are still valid.
 
-			Assert.That(Slice.Nil.GetHashCode(), Is.EqualTo(0), "Nil hashcode should always be 0");
-			Assert.That(Slice.Empty.GetHashCode(), Is.Not.EqualTo(0), "Empty hashcode should not be equal to 0");
+			Assert.That(MutableSlice.Nil.GetHashCode(), Is.EqualTo(0), "Nil hashcode should always be 0");
+			Assert.That(MutableSlice.Empty.GetHashCode(), Is.Not.EqualTo(0), "Empty hashcode should not be equal to 0");
 
-			Assert.That(Slice.FromString("abc").GetHashCode(), Is.EqualTo(Slice.FromString("abc").GetHashCode()), "Hashcode should not depend on the backing array");
-			Assert.That(Slice.FromString("zabcz").Substring(1, 3).GetHashCode(), Is.EqualTo(Slice.FromString("abc").GetHashCode()), "Hashcode should not depend on the offset in the array");
-			Assert.That(Slice.FromString("abc").GetHashCode(), Is.Not.EqualTo(Slice.FromString("abcd").GetHashCode()), "Hashcode should include all the bytes");
+			Assert.That(MutableSlice.FromString("abc").GetHashCode(), Is.EqualTo(MutableSlice.FromString("abc").GetHashCode()), "Hashcode should not depend on the backing array");
+			Assert.That(MutableSlice.FromString("zabcz").Substring(1, 3).GetHashCode(), Is.EqualTo(MutableSlice.FromString("abc").GetHashCode()), "Hashcode should not depend on the offset in the array");
+			Assert.That(MutableSlice.FromString("abc").GetHashCode(), Is.Not.EqualTo(MutableSlice.FromString("abcd").GetHashCode()), "Hashcode should include all the bytes");
 
-			Assert.That(Slice.Comparer.Default.GetHashCode(Slice.Nil), Is.EqualTo(0), "Nil hashcode should always be 0");
-			Assert.That(Slice.Comparer.Default.GetHashCode(Slice.Empty), Is.Not.EqualTo(0), "Empty hashcode should not be equal to 0");
-			Assert.That(Slice.Comparer.Default.GetHashCode(Slice.FromString("abc")), Is.EqualTo(Slice.FromString("abc").GetHashCode()), "Hashcode should not depend on the backing array");
-			Assert.That(Slice.Comparer.Default.GetHashCode(Slice.FromString("zabcz").Substring(1, 3)), Is.EqualTo(Slice.FromString("abc").GetHashCode()), "Hashcode should not depend on the offset in the array");
-			Assert.That(Slice.Comparer.Default.GetHashCode(Slice.FromString("abc")), Is.Not.EqualTo(Slice.FromString("abcd").GetHashCode()), "Hashcode should include all the bytes");
+			Assert.That(MutableSlice.Comparer.Default.GetHashCode(MutableSlice.Nil), Is.EqualTo(0), "Nil hashcode should always be 0");
+			Assert.That(MutableSlice.Comparer.Default.GetHashCode(MutableSlice.Empty), Is.Not.EqualTo(0), "Empty hashcode should not be equal to 0");
+			Assert.That(MutableSlice.Comparer.Default.GetHashCode(MutableSlice.FromString("abc")), Is.EqualTo(MutableSlice.FromString("abc").GetHashCode()), "Hashcode should not depend on the backing array");
+			Assert.That(MutableSlice.Comparer.Default.GetHashCode(MutableSlice.FromString("zabcz").Substring(1, 3)), Is.EqualTo(MutableSlice.FromString("abc").GetHashCode()), "Hashcode should not depend on the offset in the array");
+			Assert.That(MutableSlice.Comparer.Default.GetHashCode(MutableSlice.FromString("abc")), Is.Not.EqualTo(MutableSlice.FromString("abcd").GetHashCode()), "Hashcode should include all the bytes");
 
 			// should validate the arguments
-			var x = Slice.FromString("evil");
+			var x = MutableSlice.FromString("evil");
 			Assert.That(() => MutateOffset(x, -1).GetHashCode(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateCount(x, 17).GetHashCode(), Throws.InstanceOf<FormatException>());
 			Assert.That(() => MutateArray(x, null).GetHashCode(), Throws.InstanceOf<FormatException>());
@@ -1811,14 +1900,14 @@ namespace Doxense.Memory.Tests
 
 		[Test]
 		[SuppressMessage("ReSharper", "EqualExpressionComparison")]
-		public void Test_Slice_Comparison()
+		public void Test_MutableSlice_Comparison()
 		{
 #pragma warning disable 1718
-			var a = Slice.FromStringAscii("a");
-			var ab = Slice.FromStringAscii("ab");
-			var abc = Slice.FromStringAscii("abc");
-			var abc2 = Slice.FromStringAscii("abc"); // same bytes but different buffer
-			var b = Slice.FromStringAscii("b");
+			var a = MutableSlice.FromStringAscii("a");
+			var ab = MutableSlice.FromStringAscii("ab");
+			var abc = MutableSlice.FromStringAscii("abc");
+			var abc2 = MutableSlice.FromStringAscii("abc"); // same bytes but different buffer
+			var b = MutableSlice.FromStringAscii("b");
 
 			// CompateTo
 			// a = b
@@ -1837,18 +1926,18 @@ namespace Doxense.Memory.Tests
 
 			// Default Comparer
 			// a = b
-			Assert.That(Slice.Comparer.Default.Compare(a, a), Is.EqualTo(0));
-			Assert.That(Slice.Comparer.Default.Compare(ab, ab), Is.EqualTo(0));
-			Assert.That(Slice.Comparer.Default.Compare(abc, abc), Is.EqualTo(0));
-			Assert.That(Slice.Comparer.Default.Compare(abc, abc2), Is.EqualTo(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(a, a), Is.EqualTo(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(ab, ab), Is.EqualTo(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(abc, abc), Is.EqualTo(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(abc, abc2), Is.EqualTo(0));
 			// a < b
-			Assert.That(Slice.Comparer.Default.Compare(a, b), Is.LessThan(0));
-			Assert.That(Slice.Comparer.Default.Compare(a, ab), Is.LessThan(0));
-			Assert.That(Slice.Comparer.Default.Compare(a, abc), Is.LessThan(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(a, b), Is.LessThan(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(a, ab), Is.LessThan(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(a, abc), Is.LessThan(0));
 			// a > b
-			Assert.That(Slice.Comparer.Default.Compare(b, a), Is.GreaterThan(0));
-			Assert.That(Slice.Comparer.Default.Compare(b, ab), Is.GreaterThan(0));
-			Assert.That(Slice.Comparer.Default.Compare(b, abc), Is.GreaterThan(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(b, a), Is.GreaterThan(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(b, ab), Is.GreaterThan(0));
+			Assert.That(MutableSlice.Comparer.Default.Compare(b, abc), Is.GreaterThan(0));
 
 			// Operators
 			// <
@@ -1891,27 +1980,27 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Slice_Comparison_Corner_Cases()
+		public void Test_MutableSlice_Comparison_Corner_Cases()
 		{
 			// Nil == Empty
-			Assert.That(Slice.Nil.CompareTo(Slice.Nil), Is.EqualTo(0));
-			Assert.That(Slice.Empty.CompareTo(Slice.Empty), Is.EqualTo(0));
-			Assert.That(Slice.Nil.CompareTo(Slice.Empty), Is.EqualTo(0));
-			Assert.That(Slice.Empty.CompareTo(Slice.Nil), Is.EqualTo(0));
+			Assert.That(MutableSlice.Nil.CompareTo(MutableSlice.Nil), Is.EqualTo(0));
+			Assert.That(MutableSlice.Empty.CompareTo(MutableSlice.Empty), Is.EqualTo(0));
+			Assert.That(MutableSlice.Nil.CompareTo(MutableSlice.Empty), Is.EqualTo(0));
+			Assert.That(MutableSlice.Empty.CompareTo(MutableSlice.Nil), Is.EqualTo(0));
 
 			// X > NULL, NULL < X
-			var abc = Slice.FromStringAscii("abc");
-			Assert.That(abc.CompareTo(Slice.Nil), Is.GreaterThan(0));
-			Assert.That(abc.CompareTo(Slice.Empty), Is.GreaterThan(0));
-			Assert.That(Slice.Nil.CompareTo(abc), Is.LessThan(0));
-			Assert.That(Slice.Empty.CompareTo(abc), Is.LessThan(0));
+			var abc = MutableSlice.FromStringAscii("abc");
+			Assert.That(abc.CompareTo(MutableSlice.Nil), Is.GreaterThan(0));
+			Assert.That(abc.CompareTo(MutableSlice.Empty), Is.GreaterThan(0));
+			Assert.That(MutableSlice.Nil.CompareTo(abc), Is.LessThan(0));
+			Assert.That(MutableSlice.Empty.CompareTo(abc), Is.LessThan(0));
 		}
 
 		[Test]
-		public void Test_Slice_Comparison_Malformed()
+		public void Test_MutableSlice_Comparison_Malformed()
 		{
-			var good = Slice.FromStringAscii("good");
-			var evil = Slice.FromStringAscii("evil");
+			var good = MutableSlice.FromStringAscii("good");
+			var evil = MutableSlice.FromStringAscii("evil");
 
 			// argument should be validated
 			Assert.That(() => good.CompareTo(MutateOffset(evil, -1)), Throws.InstanceOf<FormatException>());
@@ -1932,43 +2021,43 @@ namespace Doxense.Memory.Tests
 		private static readonly byte[] UNICODE_BYTES = Encoding.UTF8.GetBytes(UNICODE_TEXT);
 
 		[Test]
-		public void Test_Slice_FromStream()
+		public void Test_MutableSlice_FromStream()
 		{
-			Slice slice;
+			MutableSlice slice;
 
 			using(var ms = new MemoryStream(UNICODE_BYTES))
 			{
-				slice = Slice.FromStream(ms);
+				slice = MutableSlice.FromStream(ms);
 			}
 			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
 			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
 			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.FromStream(null), Throws.ArgumentNullException, "Should throw if null");
-			Assert.That(Slice.FromStream(Stream.Null), Is.EqualTo(Slice.Nil), "Stream.Null should return Slice.Nil");
+			Assert.That(() => MutableSlice.FromStream(null), Throws.ArgumentNullException, "Should throw if null");
+			Assert.That(MutableSlice.FromStream(Stream.Null), Is.EqualTo(MutableSlice.Nil), "Stream.Null should return MutableSlice.Nil");
 
 			using(var ms = new MemoryStream())
 			{
 				ms.Close();
-				Assert.That(() => Slice.FromStream(ms), Throws.InstanceOf<InvalidOperationException>(), "Reading from a disposed stream should throw");
+				Assert.That(() => MutableSlice.FromStream(ms), Throws.InstanceOf<InvalidOperationException>(), "Reading from a disposed stream should throw");
 			}
 		}
 
 		[Test]
-		public void Test_Slice_Substring()
+		public void Test_MutableSlice_Substring()
 		{
-			Assert.That(Slice.Empty.Substring(0), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Empty.Substring(0, 0), Is.EqualTo(Slice.Empty));
-			Assert.That(() => Slice.Empty.Substring(0, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => Slice.Empty.Substring(1), Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => Slice.Empty.Substring(1, 0), Throws.Nothing, "We allow out of bound substring if count == 0");
+			Assert.That(MutableSlice.Empty.Substring(0), Is.EqualTo(MutableSlice.Empty));
+			Assert.That(MutableSlice.Empty.Substring(0, 0), Is.EqualTo(MutableSlice.Empty));
+			Assert.That(() => MutableSlice.Empty.Substring(0, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutableSlice.Empty.Substring(1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutableSlice.Empty.Substring(1, 0), Throws.Nothing, "We allow out of bound substring if count == 0");
 
 			// Substring(offset)
 			Assert.That(Value("Hello, World!").Substring(0), Is.EqualTo(Value("Hello, World!")));
 			Assert.That(Value("Hello, World!").Substring(7), Is.EqualTo(Value("World!")));
 			Assert.That(Value("Hello, World!").Substring(12), Is.EqualTo(Value("!")));
-			Assert.That(Value("Hello, World!").Substring(13), Is.EqualTo(Slice.Empty));
+			Assert.That(Value("Hello, World!").Substring(13), Is.EqualTo(MutableSlice.Empty));
 			Assert.That(() => Value("Hello, World!").Substring(14), Throws.InstanceOf<ArgumentOutOfRangeException>());
 
 			// Substring(offset, count)
@@ -1976,7 +2065,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(Value("Hello, World!").Substring(7, 5), Is.EqualTo(Value("World")));
 			Assert.That(Value("Hello, World!").Substring(7, 6), Is.EqualTo(Value("World!")));
 			Assert.That(Value("Hello, World!").Substring(12, 1), Is.EqualTo(Value("!")));
-			Assert.That(Value("Hello, World!").Substring(13, 0), Is.EqualTo(Slice.Empty));
+			Assert.That(Value("Hello, World!").Substring(13, 0), Is.EqualTo(MutableSlice.Empty));
 			Assert.That(() => Value("Hello, World!").Substring(7, 7), Throws.InstanceOf<ArgumentOutOfRangeException>());
 			Assert.That(() => Value("Hello, World!").Substring(13, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
 			Assert.That(() => Value("Hello, World!").Substring(7, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
@@ -1988,260 +2077,43 @@ namespace Doxense.Memory.Tests
 			Assert.That(Value("Hello, World!").Substring(-13), Is.EqualTo(Value("Hello, World!")));
 			Assert.That(() => Value("Hello, World!").Substring(-14), Throws.InstanceOf<ArgumentOutOfRangeException>());
 
-			// Slice - int
-			Assert.That(Value("Hello, World!") - 0, Is.EqualTo(Value("Hello, World!")));
-			Assert.That(Value("Hello, World!") - 1, Is.EqualTo(Value("Hello, World")));
-			Assert.That(Value("Hello, World!") - 8, Is.EqualTo(Value("Hello")));
-			Assert.That(Value("Hello, World!") - 12, Is.EqualTo(Value("H")));
-			Assert.That(Value("Hello, World!") - 13, Is.EqualTo(Slice.Empty));
-			Assert.That(() => Value("Hello, World!") - 14, Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => Value("Hello, World!") - (-1), Throws.InstanceOf<ArgumentOutOfRangeException>());
-		}
-
-		[Test]
-		public void Test_Slice_Concat()
-		{
-			var a = Value("a");
-			var b = Value("b");
-			var c = Value("c");
-			var ab = Value("ab");
-			var bc = Value("bc");
-			var abc = Value("abc");
-
-			// Concat2
-
-			Assert.That(Slice.Concat(a, a).ToUnicode(), Is.EqualTo("aa"));
-			Assert.That(Slice.Concat(a, b).ToUnicode(), Is.EqualTo("ab"));
-			Assert.That(Slice.Concat(b, c).ToUnicode(), Is.EqualTo("bc"));
-
-			Assert.That(Slice.Concat(ab, ab).ToUnicode(), Is.EqualTo("abab"));
-			Assert.That(Slice.Concat(ab, c).ToUnicode(), Is.EqualTo("abc"));
-			Assert.That(Slice.Concat(a, bc).ToUnicode(), Is.EqualTo("abc"));
-			Assert.That(Slice.Concat(a, b, c).ToUnicode(), Is.EqualTo("abc"));
-
-			Assert.That(Slice.Concat(abc[0, 2], c).ToUnicode(), Is.EqualTo("abc"));
-			Assert.That(Slice.Concat(a, abc[1, 3]).ToUnicode(), Is.EqualTo("abc"));
-			Assert.That(Slice.Concat(abc[0, 1], abc[1, 2], abc[2, 3]).ToUnicode(), Is.EqualTo("abc"));
-
-			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Concat(Slice.Nil, Slice.Empty), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Concat(Slice.Empty, Slice.Nil), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
-
-			Assert.That(Slice.Concat(abc, Slice.Empty), Is.EqualTo(abc));
-			Assert.That(Slice.Concat(abc, Slice.Nil), Is.EqualTo(abc));
-			Assert.That(Slice.Concat(Slice.Empty, abc), Is.EqualTo(abc));
-			Assert.That(Slice.Concat(Slice.Nil, abc), Is.EqualTo(abc));
-
-			// Concat3
-
-			Assert.That(Slice.Concat(Slice.Empty, b, c), Is.EqualTo(bc));
-			Assert.That(Slice.Concat(ab, Slice.Empty, c), Is.EqualTo(abc));
-			Assert.That(Slice.Concat(a, b, Slice.Empty), Is.EqualTo(ab));
-			Assert.That(Slice.Concat(a, Slice.Empty, Slice.Nil), Is.EqualTo(a));
-			Assert.That(Slice.Concat(Slice.Empty, b, Slice.Nil), Is.EqualTo(b));
-			Assert.That(Slice.Concat(Slice.Nil, Slice.Empty, c), Is.EqualTo(c));
-
-			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
-
-			// Slice + Slice
-			Assert.That(a + a, Is.EqualTo(Value("aa")));
-			Assert.That(a + b, Is.EqualTo(Value("ab")));
-			Assert.That(b + c, Is.EqualTo(Value("bc")));
-			Assert.That(ab + ab, Is.EqualTo(Value("abab")));
-			Assert.That(ab + c, Is.EqualTo(Value("abc")));
-			Assert.That(a + bc, Is.EqualTo(Value("abc")));
-
-			// Slice + byte
-			Assert.That(a + 0, Is.EqualTo(Slice.FromByteString("a\x00")));
-			Assert.That(a + 1, Is.EqualTo(Slice.FromByteString("a\x01")));
-			Assert.That(b + (byte)'A', Is.EqualTo(Slice.FromByteString("bA")));
-			Assert.That(abc + 255, Is.EqualTo(Slice.FromByteString("abc\xff")));
-		}
-
-		[Test]
-		public void Test_Slice_Join_Array()
-		{
-			var a = Value("A");
-			var b = Value("BB");
-			var c = Value("CCC");
-
-			// empty separator should just join all slices together
-			Assert.That(Slice.Join(Slice.Empty, new Slice[0]), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(Slice.Empty, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(Slice.Empty, new[] { a }), Is.EqualTo(Value("A")));
-			Assert.That(Slice.Join(Slice.Empty, new[] { a, b }), Is.EqualTo(Value("ABB")));
-			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }), Is.EqualTo(Value("ABBCCC")));
-			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Offset, Is.EqualTo(0));
-			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Count, Is.EqualTo(6));
-
-			// single byte separator
-			var sep = Slice.FromChar(',');
-			Assert.That(Slice.Join(sep, new Slice[0]), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(sep, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Value("A")));
-			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Value("A,BB")));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }), Is.EqualTo(Value("A,BB,CCC")));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.EqualTo(0));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }).Count, Is.EqualTo(8));
-			Assert.That(Slice.Join(sep, new[] { a, Slice.Empty, c }), Is.EqualTo(Value("A,,CCC")));
-			Assert.That(Slice.Join(sep, new[] { Slice.Empty, b, c }), Is.EqualTo(Value(",BB,CCC")));
-			Assert.That(Slice.Join(sep, new[] { Slice.Empty, Slice.Empty, Slice.Empty }), Is.EqualTo(Value(",,")));
-
-			// multi byte separator, with a non-0 offset
-			sep = Value("!<@>!").Substring(1, 3);
-			Assert.That(sep.Offset, Is.EqualTo(1));
-			Assert.That(Slice.Join(sep, new Slice[0]), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(sep, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Value("A")));
-			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Value("A<@>BB")));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }), Is.EqualTo(Value("A<@>BB<@>CCC")));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.EqualTo(0));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }).Count, Is.EqualTo(12));
-
-			// join slices that use the same underlying buffer
-			const string HELLO_WORLD = "hello world!!!";
-			byte[] tmp = Encoding.UTF8.GetBytes(HELLO_WORLD);
-			var slices = new Slice[tmp.Length];
-			for (int i = 0; i < tmp.Length; i++) slices[i] = tmp.AsSlice(i, 1);
-			Assert.That(Slice.Join(Slice.Empty, slices), Is.EqualTo(Value(HELLO_WORLD)));
-			Assert.That(Slice.Join(Slice.FromChar(':'), slices), Is.EqualTo(Value("h:e:l:l:o: :w:o:r:l:d:!:!:!")));
-		}
-
-		[Test]
-		public void Test_Slice_Join_Enumerable()
-		{
-			Assert.That(Slice.Join(Slice.Empty, Enumerable.Empty<Slice>()), Is.EqualTo(Slice.Empty));
-
-			// ReSharper disable PossibleMultipleEnumeration
-			var query = Enumerable.Range(1, 3).Select(c => Value(new string((char)(64 + c), c)));
-			Assert.That(Slice.Join(Slice.Empty, query), Is.EqualTo(Value("ABBCCC")));
-			Assert.That(Slice.Join(Slice.Empty, query).Offset, Is.EqualTo(0));
-			Assert.That(Slice.Join(Slice.Empty, query).Count, Is.EqualTo(6));
-
-			var sep = Slice.FromChar(',');
-			Assert.That(Slice.Join(sep, Enumerable.Empty<Slice>()), Is.EqualTo(Slice.Empty));
-			Assert.That(Slice.Join(sep, query), Is.EqualTo(Value("A,BB,CCC")));
-			Assert.That(Slice.Join(sep, query).Offset, Is.EqualTo(0));
-			Assert.That(Slice.Join(sep, query).Count, Is.EqualTo(8));
-
-			var arr = query.ToArray();
-			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr), Is.EqualTo(Value("ABBCCC")));
-			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Offset, Is.EqualTo(0));
-			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Count, Is.EqualTo(6));
-			// ReSharper restore PossibleMultipleEnumeration
-		}
-
-		[Test]
-		public void Test_Slice_JoinBytes()
-		{
-			var sep = Slice.FromChar(' ');
-			var tokens = new[] { Value("hello"), Value("world"), Value("!") };
-
-			var joined = Slice.JoinBytes(sep, tokens);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("hello world !"));
-
-			joined = Slice.JoinBytes(Slice.Empty, tokens);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("helloworld!"));
-
-			joined = Slice.JoinBytes(sep, tokens, 0, 3);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("hello world !"));
-
-			joined = Slice.JoinBytes(sep, tokens, 0, 2);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("hello world"));
-
-			joined = Slice.JoinBytes(sep, tokens, 1, 1);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("world"));
-
-			joined = Slice.JoinBytes(sep, tokens, 0, 0);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(joined.Length, Is.EqualTo(0));
-
-			joined = Slice.JoinBytes(sep, new Slice[0], 0, 0);
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(joined.Length, Is.EqualTo(0));
-
-			joined = Slice.JoinBytes(sep, Enumerable.Empty<Slice>());
-			Assert.That(joined, Is.Not.Null);
-			Assert.That(joined.Length, Is.EqualTo(0));
-
-			// ReSharper disable AssignNullToNotNullAttribute
-			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.ArgumentNullException);
-			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.ArgumentNullException);
-			// ReSharper restore AssignNullToNotNullAttribute
-
-			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, 4), Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => Slice.JoinBytes(sep, tokens, -1, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
-			Assert.That(() => Slice.JoinBytes(sep, tokens, 3, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
-		}
-
-		[Test]
-		public void Test_Slice_Split()
-		{
-			var a = Value("A");
-			var b = Value("BB");
-			var c = Value("CCC");
-			var comma = Slice.FromChar(',');
-
-			Assert.That(Value("A").Split(comma), Is.EqualTo(new[] { a }));
-			Assert.That(Value("A,BB").Split(comma), Is.EqualTo(new[] { a, b }));
-			Assert.That(Value("A,BB,CCC").Split(comma), Is.EqualTo(new[] { a, b, c }));
-
-			// empty values should be kept or discarded, depending on the option settings
-			Assert.That(Value("A,,CCC").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty, c }));
-			Assert.That(Value("A,,CCC").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new[] { a, c }));
-
-			// edge cases
-			// > should behave the same as String.Split()
-			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.None), Is.EqualTo(new [] { Slice.Empty }));
-			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
-			Assert.That(Value("A,").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty }));
-			Assert.That(Value("A,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new [] { a }));
-			Assert.That(Value(",").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
-			Assert.That(Value(",,,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
-
-			// multi-bytes separator with an offset
-			var sep = Value("!<@>!").Substring(1, 3);
-			Assert.That(Value("A<@>BB<@>CCC").Split(sep), Is.EqualTo(new[] { a, b, c }));
 		}
 
 		#region Black Magic Incantations...
 
-		// The Slice struct is not blittable, so we can't take its address and modify it via pointers trickery.
+		// The MutableSlice struct is not blittable, so we can't take its address and modify it via pointers trickery.
 		// Since its ctor is checking the arguments in Debug mode and all its fields are readonly, the only way to inject bad values is to use reflection.
 
-		private static Slice MutateOffset(Slice value, int offset)
+		private static MutableSlice MutateOffset(MutableSlice value, int offset)
 		{
 			// Don't try this at home !
 			object tmp = value;
-			typeof(Slice).GetField("Offset").SetValue(tmp, offset);
-			return (Slice) tmp;
+			typeof(MutableSlice).GetField("Offset").SetValue(tmp, offset);
+			return (MutableSlice) tmp;
 		}
 
-		private static Slice MutateCount(Slice value, int offset)
+		private static MutableSlice MutateCount(MutableSlice value, int offset)
 		{
 			// Don't try this at home !
 			object tmp = value;
-			typeof(Slice).GetField("Offset").SetValue(tmp, offset);
-			return (Slice) tmp;
+			typeof(MutableSlice).GetField("Offset").SetValue(tmp, offset);
+			return (MutableSlice) tmp;
 		}
 
-		private static Slice MutateArray(Slice value, byte[] array)
+		private static MutableSlice MutateArray(MutableSlice value, byte[] array)
 		{
 			// Don't try this at home !
 			object tmp = value;
-			typeof(Slice).GetField("Array").SetValue(tmp, array);
-			return (Slice) tmp;
+			typeof(MutableSlice).GetField("Array").SetValue(tmp, array);
+			return (MutableSlice) tmp;
 		}
 
 		#endregion
+
+		public new static MutableSlice Value(string text)
+		{
+			return MutableSlice.FromString(text);
+		}
 
 	}
 

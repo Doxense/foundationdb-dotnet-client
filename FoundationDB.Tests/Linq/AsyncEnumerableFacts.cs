@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // ReSharper disable AccessToDisposedClosure
-namespace FoundationDB.Linq.Tests
+namespace Doxense.Linq.Tests
 {
 	using System;
 	using System.Collections.Generic;

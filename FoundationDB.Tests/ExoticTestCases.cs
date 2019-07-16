@@ -49,11 +49,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				var subspace = db.GlobalSpace;
 				{
 					var tr = db.BeginTransaction(this.Cancellation);
-					tr.Set(subspace.Keys.Encode("AAA"), Slice.FromString("111"));
-					tr.Set(subspace.Keys.Encode("BBB"), Slice.FromString("222"));
-					tr.Set(subspace.Keys.Encode("CCC"), Slice.FromString("333"));
-					tr.Set(subspace.Keys.Encode("DDD"), Slice.FromString("444"));
-					tr.Set(subspace.Keys.Encode("EEE"), Slice.FromString("555"));
+					tr.Set(subspace.Keys.Encode("AAA"), Value("111"));
+					tr.Set(subspace.Keys.Encode("BBB"), Value("222"));
+					tr.Set(subspace.Keys.Encode("CCC"), Value("333"));
+					tr.Set(subspace.Keys.Encode("DDD"), Value("444"));
+					tr.Set(subspace.Keys.Encode("EEE"), Value("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -67,12 +67,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				var subspace = db.GlobalSpace;
 				{
 					var tr = db.BeginTransaction(this.Cancellation);
-					tr.ClearRange(subspace.Keys.Encode("AAA"), Slice.FromString("ZZZ"));
-					tr.Set(subspace.Keys.Encode("AAA"), Slice.FromString("111"));
-					tr.Set(subspace.Keys.Encode("BBB"), Slice.FromString("222"));
-					tr.Set(subspace.Keys.Encode("CCC"), Slice.FromString("333"));
-					tr.Set(subspace.Keys.Encode("DDD"), Slice.FromString("444"));
-					tr.Set(subspace.Keys.Encode("EEE"), Slice.FromString("555"));
+					tr.ClearRange(subspace.Keys.Encode("AAA"), Value("ZZZ"));
+					tr.Set(subspace.Keys.Encode("AAA"), Value("111"));
+					tr.Set(subspace.Keys.Encode("BBB"), Value("222"));
+					tr.Set(subspace.Keys.Encode("CCC"), Value("333"));
+					tr.Set(subspace.Keys.Encode("DDD"), Value("444"));
+					tr.Set(subspace.Keys.Encode("EEE"), Value("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -86,9 +86,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				var subspace = db.GlobalSpace;
 				{
 					var tr = db.BeginTransaction(this.Cancellation);
-					tr.ClearRange(subspace.Keys.Encode("AAA"), Slice.FromString("BBB"));
-					tr.ClearRange(subspace.Keys.Encode("BBB"), Slice.FromString("CCC"));
-					tr.ClearRange(subspace.Keys.Encode("CCC"), Slice.FromString("DDD"));
+					tr.ClearRange(subspace.Keys.Encode("AAA"), Value("BBB"));
+					tr.ClearRange(subspace.Keys.Encode("BBB"), Value("CCC"));
+					tr.ClearRange(subspace.Keys.Encode("CCC"), Value("DDD"));
 					// should be merged into a single AAA..DDD
 					await tr.CommitAsync();
 				}
@@ -137,13 +137,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				var subspace = db.GlobalSpace;
 				{
 					var tr = db.BeginTransaction(this.Cancellation);
-					tr.Set(subspace.Keys.Encode("AAA"), Slice.FromString("111"));
-					tr.AtomicAdd(subspace.Keys.Encode("BBB"), Slice.FromString("222"));
-					tr.AtomicAnd(subspace.Keys.Encode("CCC"), Slice.FromString("333"));
-					tr.AtomicOr(subspace.Keys.Encode("DDD"), Slice.FromString("444"));
-					tr.AtomicXor(subspace.Keys.Encode("EEE"), Slice.FromString("555"));
-					tr.AtomicMax(subspace.Keys.Encode("FFF"), Slice.FromString("666"));
-					tr.AtomicMin(subspace.Keys.Encode("GGG"), Slice.FromString("777"));
+					tr.Set(subspace.Keys.Encode("AAA"), Value("111"));
+					tr.AtomicAdd(subspace.Keys.Encode("BBB"), Value("222"));
+					tr.AtomicAnd(subspace.Keys.Encode("CCC"), Value("333"));
+					tr.AtomicOr(subspace.Keys.Encode("DDD"), Value("444"));
+					tr.AtomicXor(subspace.Keys.Encode("EEE"), Value("555"));
+					tr.AtomicMax(subspace.Keys.Encode("FFF"), Value("666"));
+					tr.AtomicMin(subspace.Keys.Encode("GGG"), Value("777"));
 					await tr.CommitAsync();
 				}
 			}
@@ -158,17 +158,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				{
 					var tr = db.BeginTransaction(this.Cancellation);
 
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX1"), Slice.FromString("EEE"));
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX1"), Slice.FromString("FFF"));
+					tr.AtomicMax(subspace.Keys.Encode("MAXMAX1"), Value("EEE"));
+					tr.AtomicMax(subspace.Keys.Encode("MAXMAX1"), Value("FFF"));
 
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX2"), Slice.FromString("FFF"));
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX2"), Slice.FromString("EEE"));
+					tr.AtomicMax(subspace.Keys.Encode("MAXMAX2"), Value("FFF"));
+					tr.AtomicMax(subspace.Keys.Encode("MAXMAX2"), Value("EEE"));
 
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN1"), Slice.FromString("111"));
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN1"), Slice.FromString("222"));
+					tr.AtomicMin(subspace.Keys.Encode("MINMIN1"), Value("111"));
+					tr.AtomicMin(subspace.Keys.Encode("MINMIN1"), Value("222"));
 
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN2"), Slice.FromString("222"));
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN2"), Slice.FromString("111"));
+					tr.AtomicMin(subspace.Keys.Encode("MINMIN2"), Value("222"));
+					tr.AtomicMin(subspace.Keys.Encode("MINMIN2"), Value("111"));
 
 					await tr.CommitAsync();
 				}
@@ -182,8 +182,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var subspace = db.GlobalSpace;
 
-				Slice init = Slice.Repeat(0xCC, 9);
-				Slice mask = Slice.Repeat(0xAA, 9);
+				var init = Slice.Repeat(0xCC, 9);
+				var mask = Slice.Repeat(0xAA, 9);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
@@ -284,7 +284,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 						{
 							for (int j = 0; j < cmds.Length; j++)
 							{
-								Slice key = subspace.Keys.Encode(cmds[i].Op + "_" + cmds[j].Op);
+								var key = subspace.Keys.Encode(cmds[i].Op + "_" + cmds[j].Op);
 								Log($"{i};{j} = {key}");
 								apply(tr, cmds[i].Op, key, cmds[i].Left);
 								apply(tr, cmds[j].Op, key, cmds[j].Right);
@@ -339,8 +339,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					// clear everything
 					await db.WriteAsync((tr) => tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999Z")), this.Cancellation);
 
-					await db.WriteAsync(tr => tr.Set(subspace.Keys.Encode("K0123"), Slice.FromString("V0123")), this.Cancellation);
-					await db.WriteAsync(tr => tr.Set(subspace.Keys.Encode("K0789"), Slice.FromString("V0789")), this.Cancellation);
+					await db.WriteAsync(tr => tr.Set(subspace.Keys.Encode("K0123"), Value("V0123")), this.Cancellation);
+					await db.WriteAsync(tr => tr.Set(subspace.Keys.Encode("K0789"), Value("V0789")), this.Cancellation);
 
 					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
@@ -383,7 +383,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999Z"));
 						for (int i = 0; i < 100; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Slice.FromString("V" + i.ToString("D4")));
+							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
 						}
 					}, this.Cancellation);
 
@@ -420,7 +420,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999Z"));
 						for (int i = 0; i < 100; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Slice.FromString("V" + i.ToString("D4")));
+							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
 						}
 					}, this.Cancellation);
 
@@ -507,24 +507,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					await db.WriteAsync((tr) =>
 					{
 						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K~~~~"));
-						tr.Set(subspace.Keys.Encode("K000"), Slice.FromString("BEGIN"));
+						tr.Set(subspace.Keys.Encode("K000"), Value("BEGIN"));
 						for (int i = 0; i < 5; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i + "A"), Slice.FromString("V111"));
-							tr.Set(subspace.Keys.Encode("K" + i + "B"), Slice.FromString("V222"));
-							tr.Set(subspace.Keys.Encode("K" + i + "C"), Slice.FromString("V333"));
-							tr.Set(subspace.Keys.Encode("K" + i + "D"), Slice.FromString("V444"));
-							tr.Set(subspace.Keys.Encode("K" + i + "E"), Slice.FromString("V555"));
-							tr.Set(subspace.Keys.Encode("K" + i + "F"), Slice.FromString("V666"));
-							tr.Set(subspace.Keys.Encode("K" + i + "G"), Slice.FromString("V777"));
-							tr.Set(subspace.Keys.Encode("K" + i + "H"), Slice.FromString("V888"));
+							tr.Set(subspace.Keys.Encode("K" + i + "A"), Value("V111"));
+							tr.Set(subspace.Keys.Encode("K" + i + "B"), Value("V222"));
+							tr.Set(subspace.Keys.Encode("K" + i + "C"), Value("V333"));
+							tr.Set(subspace.Keys.Encode("K" + i + "D"), Value("V444"));
+							tr.Set(subspace.Keys.Encode("K" + i + "E"), Value("V555"));
+							tr.Set(subspace.Keys.Encode("K" + i + "F"), Value("V666"));
+							tr.Set(subspace.Keys.Encode("K" + i + "G"), Value("V777"));
+							tr.Set(subspace.Keys.Encode("K" + i + "H"), Value("V888"));
 						}
-						tr.Set(subspace.Keys.Encode("K~~~"), Slice.FromString("END"));
+						tr.Set(subspace.Keys.Encode("K~~~"), Value("END"));
 					}, this.Cancellation);
 
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
-						tr.Set(subspace.Keys.Encode("KZZZ"), Slice.FromString("V999"));
+						tr.Set(subspace.Keys.Encode("KZZZ"), Value("V999"));
 
 						var r = await tr.GetRangeAsync(
 									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0B")),
@@ -550,13 +550,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					await db.WriteAsync((tr) =>
 					{
 						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K~~~~"));
-						tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Keys.Encode("K" + i.ToString("D4")), Slice.FromString("V" + i.ToString("D4")))));
-						tr.Set(subspace.Keys.Encode("K~~~"), Slice.FromString("END"));
+						tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Keys.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")))));
+						tr.Set(subspace.Keys.Encode("K~~~"), Value("END"));
 					}, this.Cancellation);
 
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0042"), Slice.FromString("K0069"));
+						tr.ClearRange(subspace.Keys.Encode("K0042"), Value("K0069"));
 
 						var r = await tr.GetRangeAsync(
 									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")),
@@ -589,21 +589,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					await db.WriteAsync((tr) =>
 					{
 						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K~~~~"));
-						tr.Set(subspace.Keys.Encode("KAAA"), Slice.FromString("V111"));
-						tr.Set(subspace.Keys.Encode("KBBB"), Slice.FromString("V222"));
-						tr.Set(subspace.Keys.Encode("KCCC"), Slice.FromString("V333"));
-						tr.Set(subspace.Keys.Encode("K~~~"), Slice.FromString("END"));
+						tr.Set(subspace.Keys.Encode("KAAA"), Value("V111"));
+						tr.Set(subspace.Keys.Encode("KBBB"), Value("V222"));
+						tr.Set(subspace.Keys.Encode("KCCC"), Value("V333"));
+						tr.Set(subspace.Keys.Encode("K~~~"), Value("END"));
 					}, this.Cancellation);
 
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						// set a key, then read it, and check if it could conflict on it (it should not!)
-						tr.Set(subspace.Keys.Encode("KBBB"), Slice.FromString("V222b"));
+						tr.Set(subspace.Keys.Encode("KBBB"), Value("V222b"));
 						await tr.GetAsync(subspace.Keys.Encode("KBBB"));
 
 						// read a key, then set it, and check if it could conflict on it (it should!)
 						await tr.GetAsync(subspace.Keys.Encode("KCCC"));
-						tr.Set(subspace.Keys.Encode("KCCC"), Slice.FromString("V333b"));
+						tr.Set(subspace.Keys.Encode("KCCC"), Value("V333b"));
 
 						await tr.CommitAsync();
 					}
@@ -622,9 +622,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				{
 					var subspace = db.GlobalSpace;
 
-					Slice aaa = subspace.Keys.Encode("KAAA");
-					Slice bbb = subspace.Keys.Encode("KBBB");
-					Slice ccc = subspace.Keys.Encode("KCCC");
+					var aaa = subspace.Keys.Encode("KAAA");
+					var bbb = subspace.Keys.Encode("KBBB");
+					var ccc = subspace.Keys.Encode("KCCC");
 
 					//using (var tr = db.BeginTransaction(this.Cancellation))
 					//{
@@ -636,7 +636,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					// set the key
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
-						tr.Set(aaa, Slice.FromString("VALUE_AAA"));
+						tr.Set(aaa, Value("VALUE_AAA"));
 						await tr.CommitAsync();
 					}
 					// set the key
@@ -653,8 +653,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					{
 						await Task.WhenAll(tr1.GetReadVersionAsync(), tr2.GetReadVersionAsync());
 
-						tr1.Set(bbb, Slice.FromString("VALUE_BBB_111"));
-						tr2.Set(ccc, Slice.FromString("VALUE_CCC_111"));
+						tr1.Set(bbb, Value("VALUE_BBB_111"));
+						tr2.Set(ccc, Value("VALUE_CCC_111"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -669,8 +669,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					{
 						await Task.WhenAll(tr1.GetAsync(aaa), tr2.GetAsync(aaa));
 
-						tr1.Set(bbb, Slice.FromString("VALUE_BBB_222"));
-						tr2.Set(ccc, Slice.FromString("VALUE_CCC_222"));
+						tr1.Set(bbb, Value("VALUE_BBB_222"));
+						tr2.Set(ccc, Value("VALUE_CCC_222"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -684,8 +684,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						await Task.WhenAll(tr1.GetAsync(ccc), tr2.GetAsync(bbb));
-						tr1.Set(bbb, Slice.FromString("VALUE_BBB_333"));
-						tr2.Set(ccc, Slice.FromString("VALUE_CCC_333"));
+						tr1.Set(bbb, Value("VALUE_BBB_333"));
+						tr2.Set(ccc, Value("VALUE_CCC_333"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 

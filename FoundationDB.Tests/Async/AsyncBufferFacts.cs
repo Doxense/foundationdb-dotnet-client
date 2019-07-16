@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Async.Tests
+namespace Doxense.Async.Tests
 {
 	using System;
 	using System.Collections.Generic;
@@ -35,7 +35,6 @@ namespace FoundationDB.Async.Tests
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 

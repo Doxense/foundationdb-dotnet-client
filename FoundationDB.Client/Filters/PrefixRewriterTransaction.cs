@@ -139,7 +139,7 @@ namespace FoundationDB.Filters
 		}
 
 
-		public override void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
+		public override void Set(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			base.Set(Encode(key), value);
 		}
@@ -174,4 +174,4 @@ namespace FoundationDB.Filters
 
 }
 
- #endif
+#endif

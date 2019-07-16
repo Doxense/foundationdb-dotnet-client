@@ -118,10 +118,10 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
+		public virtual Task<Slice> GetAsync(ReadOnlySpan<byte> key)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetAsync(in key);
+			return m_transaction.GetAsync(key);
 		}
 
 		/// <inheritdoc />
@@ -166,7 +166,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<string[]> GetAddressesForKeyAsync(Slice key)
+		public virtual Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetAddressesForKeyAsync(key);
@@ -190,38 +190,38 @@ namespace FoundationDB.Filters
 		public virtual int Size => m_transaction.Size;
 
 		/// <inheritdoc />
-		public virtual void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
+		public virtual void Set(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			ThrowIfDisposed();
 			m_transaction.Set(key, value);
 		}
 
 		/// <inheritdoc />
-		public virtual void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation)
+		public virtual void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
 			ThrowIfDisposed();
-			m_transaction.Atomic(in key, in param, mutation);
+			m_transaction.Atomic(key, param, mutation);
 		}
 
 		/// <inheritdoc />
-		public virtual void Clear(in ReadOnlySpan<byte> key)
+		public virtual void Clear(ReadOnlySpan<byte> key)
 		{
 			ThrowIfDisposed();
-			m_transaction.Clear(in key);
+			m_transaction.Clear(key);
 		}
 
 		/// <inheritdoc />
-		public virtual void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
+		public virtual void ClearRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			ThrowIfDisposed();
-			m_transaction.ClearRange(in beginKeyInclusive, in endKeyExclusive);
+			m_transaction.ClearRange(beginKeyInclusive, endKeyExclusive);
 		}
 
 		/// <inheritdoc />
-		public virtual void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
+		public virtual void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			ThrowIfDisposed();
-			m_transaction.AddConflictRange(in beginKeyInclusive, in endKeyExclusive, type);
+			m_transaction.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
 		}
 
 		/// <inheritdoc />
@@ -288,7 +288,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual FdbWatch Watch(Slice key, CancellationToken ct)
+		public virtual FdbWatch Watch(ReadOnlySpan<byte> key, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			return m_transaction.Watch(key, ct);
@@ -309,10 +309,10 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+		public virtual void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
 		{
 			ThrowIfDisposed();
-			m_transaction.SetOption(option, in value);
+			m_transaction.SetOption(option, value);
 		}
 
 		/// <inheritdoc />
@@ -390,7 +390,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
+		public virtual Task<Slice> GetAsync(ReadOnlySpan<byte> key)
 		{
 			return m_transaction.GetAsync(key);
 		}
@@ -432,7 +432,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<string[]> GetAddressesForKeyAsync(Slice key)
+		public virtual Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key)
 		{
 			return m_transaction.GetAddressesForKeyAsync(key);
 		}
@@ -480,9 +480,9 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+		public virtual void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
 		{
-			m_transaction.SetOption(option, in value);
+			m_transaction.SetOption(option, value);
 		}
 
 		/// <inheritdoc />

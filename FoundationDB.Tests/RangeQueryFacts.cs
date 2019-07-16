@@ -1143,7 +1143,7 @@ namespace FoundationDB.Client.Tests
 						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
 
-					// problem: Except() still returns the original (Slice,Slice) pairs from the first range,
+					// problem: Except() still returns the original (Slice, Slice) pairs from the first range,
 					// meaning that we still need to unpack again the key (this time knowing the location)
 					return query.Select(kv => locItems.Keys.Decode(kv.Key));
 				}, this.Cancellation);

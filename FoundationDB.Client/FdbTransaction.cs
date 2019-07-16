@@ -214,7 +214,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+		public void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -334,11 +334,11 @@ namespace FoundationDB.Client
 		#region Get...
 
 		/// <inheritdoc />
-		public Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
+		public Task<Slice> GetAsync(ReadOnlySpan<byte> key)
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(in key);
+			m_database.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -378,8 +378,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(beginInclusive.Key);
-			m_database.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+			m_database.EnsureKeyIsValid(in beginInclusive.Key);
+			m_database.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -400,8 +400,8 @@ namespace FoundationDB.Client
 			Contract.Requires(selector != null);
 
 			EnsureCanRead();
-			this.Database.EnsureKeyIsValid(begin.Key);
-			this.Database.EnsureKeyIsValid(end.Key, endExclusive: true);
+			this.Database.EnsureKeyIsValid(in begin.Key);
+			this.Database.EnsureKeyIsValid(in end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -434,7 +434,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(selector.Key);
+			m_database.EnsureKeyIsValid(in selector.Key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -457,7 +457,7 @@ namespace FoundationDB.Client
 
 			foreach (var selector in selectors)
 			{
-				m_database.EnsureKeyIsValid(selector.Key);
+				m_database.EnsureKeyIsValid(in selector.Key);
 			}
 
 #if DEBUG
@@ -472,12 +472,12 @@ namespace FoundationDB.Client
 		#region Set...
 
 		/// <inheritdoc />
-		public void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
+		public void Set(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(in key);
-			m_database.EnsureValueIsValid(in value);
+			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureValueIsValid(value);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
@@ -603,7 +603,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation)
+		public void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
 			//note: this method as many names in the various bindings:
 			// - C API   : fdb_transaction_atomic_op(...)
@@ -612,8 +612,8 @@ namespace FoundationDB.Client
 
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(in key);
-			m_database.EnsureValueIsValid(in param);
+			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureValueIsValid(param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
 			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
@@ -630,11 +630,11 @@ namespace FoundationDB.Client
 		#region Clear...
 
 		/// <inheritdoc />
-		public void Clear(in ReadOnlySpan<byte> key)
+		public void Clear(ReadOnlySpan<byte> key)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(in key);
+			m_database.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
@@ -648,12 +648,12 @@ namespace FoundationDB.Client
 		#region Clear Range...
 
 		/// <inheritdoc />
-		public void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
+		public void ClearRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(in beginKeyInclusive);
-			m_database.EnsureKeyIsValid(in endKeyExclusive, endExclusive: true);
+			m_database.EnsureKeyIsValid(beginKeyInclusive);
+			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
@@ -667,12 +667,12 @@ namespace FoundationDB.Client
 		#region Conflict Range...
 
 		/// <inheritdoc />
-		public void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
+		public void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(in beginKeyInclusive);
-			m_database.EnsureKeyIsValid(in endKeyExclusive, endExclusive: true);
+			m_database.EnsureKeyIsValid(beginKeyInclusive);
+			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
@@ -686,11 +686,11 @@ namespace FoundationDB.Client
 		#region GetAddressesForKey...
 
 		/// <inheritdoc />
-		public Task<string[]> GetAddressesForKeyAsync(Slice key)
+		public Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key)
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(ref key);
+			m_database.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
@@ -736,7 +736,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure]
-		public FdbWatch Watch(Slice key, CancellationToken ct)
+		public FdbWatch Watch(ReadOnlySpan<byte> key, CancellationToken ct)
 		{
 			//note: the caller CANNOT use the transaction's own token, or else the watch would not survive after the commit, rendering it useless
 			if (ct.CanBeCanceled && ct.Equals(m_cancellation))
@@ -747,22 +747,22 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(ref key);
+			m_database.EnsureKeyIsValid(key);
 
 			// keep a copy of the key
 			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
 			// > allow the caller to reuse freely the slice underlying buffer, without changing the value that we will return when the task completes
-			key = key.Memoize();
+			var mkey = Slice.Copy(key);
 
 #if DEBUG
-			if (Logging.On) Logging.Verbose(this, "WatchAsync", $"Watching key '{key.ToString()}'");
+			if (Logging.On) Logging.Verbose(this, "WatchAsync", $"Watching key '{mkey.ToString()}'");
 #endif
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource every time),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return m_handler.Watch(key, ct);
+			return m_handler.Watch(mkey, ct);
 		}
 
 		#endregion

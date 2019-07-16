@@ -54,7 +54,7 @@ namespace FoundationDB.Client
 				return new ArgumentException($"Key is too big ({key.Count} > {Fdb.MaxKeySize}).", paramName);
 			}
 
-			internal static Exception KeyIsTooBig(in ReadOnlySpan<byte> key, string paramName = "key")
+			internal static Exception KeyIsTooBig(ReadOnlySpan<byte> key, string paramName = "key")
 			{
 				return new ArgumentException($"Key is too big ({key.Length} > {Fdb.MaxKeySize}).", paramName);
 			}
@@ -69,7 +69,7 @@ namespace FoundationDB.Client
 				return new ArgumentException($"Value is too big ({value.Count} > {Fdb.MaxValueSize}).", paramName);
 			}
 
-			internal static Exception ValueIsTooBig(in ReadOnlySpan<byte> value, string paramName = "value")
+			internal static Exception ValueIsTooBig(ReadOnlySpan<byte> value, string paramName = "value")
 			{
 				return new ArgumentException($"Value is too big ({value.Length} > {Fdb.MaxValueSize}).", paramName);
 			}
@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 				);
 			}
 
-			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, in ReadOnlySpan<byte> key)
+			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, ReadOnlySpan<byte> key)
 			{
 				Contract.Requires(db != null);
 				return new FdbException(

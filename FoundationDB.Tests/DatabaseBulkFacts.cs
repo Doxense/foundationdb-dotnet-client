@@ -213,7 +213,7 @@ namespace FoundationDB.Client.Tests
 						await throttle;
 
 						long sum = 0;
-						foreach (Slice x in results)
+						foreach (var x in results)
 						{
 							sum += x.ToInt32();
 						}
@@ -364,7 +364,7 @@ namespace FoundationDB.Client.Tests
 						var results = t.Result; // <-- this is bad practice, never do that in real life, 'mkay?
 
 						long sum = 0;
-						foreach (Slice x in results)
+						foreach (var x in results)
 						{
 							sum += x.ToInt32();
 						}
@@ -608,7 +608,7 @@ namespace FoundationDB.Client.Tests
 						var results = await ctx.Transaction.GetValuesAsync(xs);
 
 						long sum = 0L;
-						foreach (Slice x in results)
+						foreach (var x in results)
 						{
 							sum += x.ToInt32();
 						}
@@ -673,7 +673,7 @@ namespace FoundationDB.Client.Tests
 						await throttle;
 
 						long sum = 0L;
-						foreach (Slice x in results)
+						foreach (var x in results)
 						{
 							sum += x.ToInt32();
 						}

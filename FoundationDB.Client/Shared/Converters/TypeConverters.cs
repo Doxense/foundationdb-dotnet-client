@@ -295,7 +295,7 @@ namespace Doxense.Runtime.Converters
 
 			RegisterUnsafe<float, Slice>(Slice.FromSingle);
 			RegisterUnsafe<float, byte[]>((value) => Slice.FromSingle(value).GetBytes());
-			RegisterUnsafe<float, string>((value) => value.ToString("R", CultureInfo.InvariantCulture));
+			RegisterUnsafe<float, string>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<float, bool>((value) => !(value == 0f || float.IsNaN(value)));
 			RegisterUnsafe<float, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<float, byte>((value) => checked((byte)value));
@@ -310,7 +310,7 @@ namespace Doxense.Runtime.Converters
 
 			RegisterUnsafe<double, Slice>((value) => Slice.FromDouble(value));
 			RegisterUnsafe<double, byte[]>((value) => Slice.FromDouble(value).GetBytes());
-			RegisterUnsafe<double, string>((value) => value.ToString("R", CultureInfo.InvariantCulture));
+			RegisterUnsafe<double, string>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<double, bool>((value) => !(value == 0d || double.IsNaN(value)));
 			RegisterUnsafe<double, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<double, byte>((value) => checked((byte)value));
@@ -322,6 +322,21 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<double, ulong>((value) => (ulong)value);
 			RegisterUnsafe<double, float>((value) => (float)value); // possible loss of precision
 			RegisterUnsafe<double, decimal>((value) => (decimal) value); // possible loss of precision
+
+			RegisterUnsafe<decimal, Slice>((value) => Slice.FromDecimal(value));
+			RegisterUnsafe<decimal, byte[]>((value) => Slice.FromDecimal(value).GetBytes());
+			RegisterUnsafe<decimal, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<decimal, bool>((value) => value != 0m);
+			RegisterUnsafe<decimal, sbyte>((value) => (sbyte) value);
+			RegisterUnsafe<decimal, byte>((value) => (byte) value);
+			RegisterUnsafe<decimal, short>((value) => (short) value);
+			RegisterUnsafe<decimal, ushort>((value) => (ushort) value);
+			RegisterUnsafe<decimal, int>((value) => (int) value);
+			RegisterUnsafe<decimal, uint>((value) => (uint) value);
+			RegisterUnsafe<decimal, long>((value) => (long) value);
+			RegisterUnsafe<decimal, ulong>((value) => (ulong) value);
+			RegisterUnsafe<decimal, double>((value) => (double) value); // possible loss of precision
+			RegisterUnsafe<decimal, float>((value) => (float) value); // possible loss of precision
 
 			RegisterUnsafe<string, Slice>((value) => Slice.FromString(value));
 			RegisterUnsafe<string, byte[]>((value) => Slice.FromString(value).GetBytes()); //REVIEW: string=>byte[] use UTF-8, but byte[]=>string uses Base64 ?
@@ -345,14 +360,17 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<byte[], Slice>((value) => value.AsSlice());
 			RegisterUnsafe<byte[], string>((value) => value == null ? default(string) : value.Length == 0 ? string.Empty : System.Convert.ToBase64String(value)); //REVIEW: string=>byte[] use UTF-8, but byte[]=>string uses Base64 ?
 			RegisterUnsafe<byte[], bool>((value) => value != null && value.Length > 0);
-			RegisterUnsafe<byte[], sbyte>((value) => value == null ? default(sbyte) : value.AsSlice().ToSByte());
-			RegisterUnsafe<byte[], byte>((value) => value == null ? default(byte) : value.AsSlice().ToByte());
-			RegisterUnsafe<byte[], short>((value) => value == null ? default(short) : value.AsSlice().ToInt16());
-			RegisterUnsafe<byte[], ushort>((value) => value == null ? default(ushort) : value.AsSlice().ToUInt16());
-			RegisterUnsafe<byte[], int>((value) => value == null ? 0 : value.AsSlice().ToInt32());
-			RegisterUnsafe<byte[], uint>((value) => value == null ? 0U : value.AsSlice().ToUInt32());
-			RegisterUnsafe<byte[], long>((value) => value == null ? 0L : value.AsSlice().ToInt64());
-			RegisterUnsafe<byte[], ulong>((value) => value == null ? 0UL : value.AsSlice().ToUInt64());
+			RegisterUnsafe<byte[], sbyte>((value) => value?.AsSlice().ToSByte() ?? default(sbyte));
+			RegisterUnsafe<byte[], byte>((value) => value?.AsSlice().ToByte() ?? default(byte));
+			RegisterUnsafe<byte[], short>((value) => value?.AsSlice().ToInt16() ?? default(short));
+			RegisterUnsafe<byte[], ushort>((value) => value?.AsSlice().ToUInt16() ?? default(ushort));
+			RegisterUnsafe<byte[], int>((value) => value?.AsSlice().ToInt32() ?? 0);
+			RegisterUnsafe<byte[], uint>((value) => value?.AsSlice().ToUInt32() ?? 0U);
+			RegisterUnsafe<byte[], long>((value) => value?.AsSlice().ToInt64() ?? 0L);
+			RegisterUnsafe<byte[], ulong>((value) => value?.AsSlice().ToUInt64() ?? 0UL);
+			RegisterUnsafe<byte[], float>((value) => value?.AsSlice().ToSingle() ?? 0f);
+			RegisterUnsafe<byte[], double>((value) => value?.AsSlice().ToDouble() ?? 0d);
+			RegisterUnsafe<byte[], decimal>((value) => value?.AsSlice().ToDecimal() ?? 0m);
 			RegisterUnsafe<byte[], Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid128(value).ToGuid());
 			RegisterUnsafe<byte[], Uuid128>((value) => value == null || value.Length == 0 ? default(Uuid128) : new Uuid128(value));
 			RegisterUnsafe<byte[], Uuid64>((value) => value != null ? Uuid64.Read(value) : default(Uuid64));
@@ -372,6 +390,16 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<Uuid128, Guid>((value) => value.ToGuid());
 			RegisterUnsafe<Uuid128, bool>((value) => value != Uuid128.Empty);
 			RegisterUnsafe<Uuid128, System.Net.IPAddress>((value) => new System.Net.IPAddress(value.ToByteArray())); //REVIEW: custom converter for Guid=>IPv6?
+
+			RegisterUnsafe<Uuid96, Slice>((value) => value.ToSlice());
+			RegisterUnsafe<Uuid96, byte[]>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid96, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid96, bool>((value) => value != Uuid96.Empty);
+
+			RegisterUnsafe<Uuid80, Slice>((value) => value.ToSlice());
+			RegisterUnsafe<Uuid80, byte[]>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid80, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid80, bool>((value) => value != Uuid80.Empty);
 
 			RegisterUnsafe<Uuid64, Slice>((value) => value.ToSlice());
 			RegisterUnsafe<Uuid64, byte[]>((value) => value.ToByteArray());
@@ -410,6 +438,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<Slice, decimal>((value) => value.ToDecimal());
 			RegisterUnsafe<Slice, Guid>((value) => value.ToGuid());
 			RegisterUnsafe<Slice, Uuid128>((value) => value.ToUuid128());
+			RegisterUnsafe<Slice, Uuid96>((value) => value.ToUuid96());
+			RegisterUnsafe<Slice, Uuid80>((value) => value.ToUuid80());
 			RegisterUnsafe<Slice, Uuid64>((value) => value.ToUuid64());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
 			RegisterUnsafe<Slice, System.Net.IPAddress>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.GetBytesOrEmpty()) : null);
@@ -421,7 +451,7 @@ namespace Doxense.Runtime.Converters
 		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailCannotConvert(Type source, Type destination)
 		{
-			// prettyprint nullable type names to have something more usefull than "Nullable`1"
+			// prettyprint nullable type names to have something more useful than "Nullable`1"
 			//TODO: extend this to all generic types ?
 			var nt = Nullable.GetUnderlyingType(source);
 			string sourceName = nt == null ? source.Name : ("Nullable<" + nt.Name + ">");
@@ -487,7 +517,7 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Returns a converter that converts <typeparamref name="TInput"/>s into <typeparamref name="TOutput"/>s</summary>
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
-		/// <returns>Valid convertir for this types, or an exception if there are no known convertions</returns>
+		/// <returns>Valid converter for this types, or an exception if there are no known conversions</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
 		[NotNull]
 		public static ITypeConverter<TInput, TOutput> GetConverter<TInput, TOutput>()

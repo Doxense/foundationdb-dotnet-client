@@ -256,7 +256,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			else
 			{
 				// we need to find the lowest and highest bits
-				m_bounds = CompressedBitmap.ComputeBounds(m_writer.ToSlice(), m_words);
+				m_bounds = CompressedBitmap.ComputeBounds(m_writer.ToMutableSlice(), m_words);
 
 				// update the header
 				int p;
@@ -275,7 +275,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Flush the final words and return the bytes of the completed bitmap</summary>
-		public Slice GetBuffer()
+		public MutableSlice GetBuffer()
 		{
 			if (!m_packed)
 			{
@@ -283,7 +283,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				Pack();
 			}
 			m_ownsBuffer = false;
-			return m_writer.ToSlice();
+			return m_writer.ToMutableSlice();
 		}
 
 		/// <summary>Flush the final words and return the compressed bitmap</summary>

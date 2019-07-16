@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		Task<Slice> GetAsync(in ReadOnlySpan<byte> key);
+		Task<Slice> GetAsync(ReadOnlySpan<byte> key);
 
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
@@ -127,7 +127,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
 		[ItemNotNull]
-		Task<string[]> GetAddressesForKeyAsync(Slice key);
+		Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync();
@@ -170,7 +170,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value of the parameter (can be null)</param>
 		void SetOption(FdbTransactionOption option, string value);
 
-		void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value);
+		void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value);
 
 		/// <summary>Set an option on this transaction that takes an integer value</summary>
 		/// <param name="option">Option to set</param>

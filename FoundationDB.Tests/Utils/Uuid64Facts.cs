@@ -26,15 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_SPAN
-
 // ReSharper disable AssignNullToNotNullAttribute
-namespace FoundationDB.Client.Tests
+namespace Doxense.Memory.Tests
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using Doxense.Memory;
+	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -133,7 +131,6 @@ namespace FoundationDB.Client.Tests
 			Assert.That(() => Uuid64.Parse("badc0ffe-e0ddf00d "), Throws.InstanceOf<FormatException>(), "Extra space at the end");
 			Assert.That(() => Uuid64.Parse(" badc0ffe-e0ddf00d"), Throws.InstanceOf<FormatException>(), "Extra space at the start");
 
-#if ENABLE_SPAN
 			// span from string
 
 			Assert.That(Uuid64.Parse("badc0ffe-e0ddf00d".AsSpan()).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
@@ -171,7 +168,6 @@ namespace FoundationDB.Client.Tests
 				"{badc0ffee0ddf00d}".AsSpan().CopyTo(span);
 				Assert.That(Uuid64.Parse(span.Slice(0, 18)).ToUInt64(), Is.EqualTo(0xBADC0FFEE0DDF00DUL));
 			}
-#endif
 		}
 
 		[Test]
@@ -483,30 +479,15 @@ namespace FoundationDB.Client.Tests
 			var original = Uuid64.Parse("01234567-89ABCDEF");
 			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789ABCDEF));
 
-#if ENABLE_SPAN
 			// ReadOnlySpan<byte>
 			Assert.That(Uuid64.Read(buf.AsSpan(4, 8)), Is.EqualTo(original));
-#endif
 
 			// Slice
 			Assert.That(Uuid64.Read(buf.AsSlice(4, 8)), Is.EqualTo(original));
 
 			// byte[]
 			Assert.That(Uuid64.Read(buf.AsSlice(4, 8).GetBytesOrEmpty()), Is.EqualTo(original));
-
-			unsafe
-			{
-				fixed (byte* ptr = &buf[4])
-				{
-					Assert.That(Uuid64.Read(ptr, 8), Is.EqualTo(original));
-#if ENABLE_SPAN
-					Assert.That(Uuid64.Read(new ReadOnlySpan<byte>(ptr, 8)), Is.EqualTo(original));
-#endif
-				}
-			}
 		}
-
-#if ENABLE_SPAN
 
 		[Test]
 		public void Test_UUid64_WriteTo()
@@ -515,47 +496,31 @@ namespace FoundationDB.Client.Tests
 			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789ABCDEF));
 
 			// span with more space
-			var scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.AsSpan());
+			var scratch = MutableSlice.Repeat(0xAA, 16);
+			original.WriteTo(scratch.Span);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
 
 			// span with no offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.AsSpan(0, 8));
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			original.WriteTo(scratch.Span);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
 
 			// span with offset
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.AsSpan(4));
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			original.WriteTo(scratch.Span.Slice(4));
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
 
 			// span with offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.AsSpan(4, 8));
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			original.WriteTo(scratch.Span.Slice(4, 8));
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
-
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteToUnsafe(scratch.Array, scratch.Offset);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
-
-			unsafe
-			{
-				byte* buf = stackalloc byte[16];
-				var span = USlice.FromUnmanagedPointer(buf, 16);
-				span.Fill(0xAA);
-
-				original.WriteToUnsafe(buf + 2);
-				Assert.That(span.ToString("X"), Is.EqualTo("AA AA 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
-			}
 
 			// errors
 
 			Assert.That(() => original.WriteTo(Span<byte>.Empty), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");
-			Assert.That(() => original.WriteTo(null, 8), Throws.InstanceOf<ArgumentException>(), "Target buffer is null");
-			Assert.That(() => original.WriteTo(null, 0), Throws.InstanceOf<ArgumentException>(), "Target buffer is null");
 
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(() => original.WriteTo(scratch.AsSpan(0, 7)), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			Assert.That(() => original.WriteTo(scratch.Span.Slice(0, 7)), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
 
 		}
@@ -567,124 +532,35 @@ namespace FoundationDB.Client.Tests
 			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789ABCDEF));
 
 			// span with more space
-			var scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.AsSpan()), Is.True);
+			var scratch = MutableSlice.Repeat(0xAA, 16);
+			Assert.That(original.TryWriteTo(scratch.Span), Is.True);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
 
 			// span with no offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.AsSpan(0, 8)), Is.True);
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			Assert.That(original.TryWriteTo(scratch.Span.Slice(0, 8)), Is.True);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
 
 			// span with offset
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.AsSpan(4)), Is.True);
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			Assert.That(original.TryWriteTo(scratch.Span.Slice(4)), Is.True);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
 
 			// span with offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.AsSpan(4, 8)), Is.True);
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			Assert.That(original.TryWriteTo(scratch.Span.Slice(4, 8)), Is.True);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
 
 			// errors
 
 			Assert.That(original.TryWriteTo(Span<byte>.Empty), Is.False, "Target buffer is empty");
 
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.AsSpan(0, 7)), Is.False, "Target buffer is too small");
+			scratch = MutableSlice.Repeat(0xAA, 16);
+			Assert.That(original.TryWriteTo(scratch.Span.Slice(0, 7)), Is.False, "Target buffer is too small");
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
 
 		}
 
-#else
-
-		[Test]
-		public void Test_UUid64_WriteTo()
-		{
-			var original = Uuid64.Parse("01234567-89ABCDEF");
-			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789ABCDEF));
-
-			// span with more space
-			var scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
-
-			// span with no offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.Substring(0, 8));
-			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
-
-			// span with offset
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.Substring(4));
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
-
-			// span with offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.Substring(4, 8));
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
-
-			scratch = Slice.Repeat(0xAA, 16);
-			original.WriteToUnsafe(scratch.Array, scratch.Offset);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
-
-			unsafe
-			{
-				byte* buf = stackalloc byte[16];
-				UnsafeHelpers.FillUnsafe(buf, 16, 0xAA);
-
-				original.WriteToUnsafe(buf + 2);
-				Assert.That(Slice.Copy(buf, 16).ToString("X"), Is.EqualTo("AA AA 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
-			}
-
-			// errors
-
-			Assert.That(() => original.WriteTo(Slice.Empty), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");
-			Assert.That(() => original.WriteTo(null, 8), Throws.InstanceOf<ArgumentException>(), "Target buffer is null");
-			Assert.That(() => original.WriteTo(null, 0), Throws.InstanceOf<ArgumentException>(), "Target buffer is null");
-
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(() => original.WriteTo(scratch.Substring(0, 7)), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
-
-		}
-
-		[Test]
-		public void Test_Uuid64_TryWriteTo()
-		{
-			var original = Uuid64.Parse("01234567-89ABCDEF");
-			Assume.That(original.ToUInt64(), Is.EqualTo(0x0123456789ABCDEF));
-
-			// span with more space
-			var scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
-
-			// span with no offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.Substring(0, 8)), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
-
-			// span with offset
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.Substring(4)), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
-
-			// span with offset and exact size
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.Substring(4, 8)), Is.True);
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
-
-			// errors
-
-			Assert.That(original.TryWriteTo(Slice.Empty), Is.False, "Target buffer is empty");
-
-			scratch = Slice.Repeat(0xAA, 16);
-			Assert.That(original.TryWriteTo(scratch.Substring(0, 7)), Is.False, "Target buffer is too small");
-			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
-
-		}
-#endif
 	}
 
 }

@@ -261,7 +261,7 @@ namespace Doxense.Memory
 		/// <summary>Closes the stream</summary>
 		protected override void Dispose(bool disposing)
 		{
-			m_slice = Slice.Nil;
+			m_slice = default;
 			m_position = 0;
 			m_lastTask = null;
 		}

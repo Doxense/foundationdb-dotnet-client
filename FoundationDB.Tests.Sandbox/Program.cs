@@ -657,7 +657,7 @@ namespace FoundationDB.Tests.Sandbox
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
 							{
-								tr.Set(subspace.Keys.Encode(i), Slice.Create(256));
+								tr.Set(subspace.Keys.Encode(i), Slice.Zero(256));
 								z++;
 							}
 

@@ -83,7 +83,7 @@ namespace FoundationDB.Samples.Tutorials
 			while (!ct.IsCancellationRequested)
 			{
 				int k = cnt++;
-				Slice taskId = TuPack.EncodeKey(this.Id.GetHashCode(), k);
+				var taskId = TuPack.EncodeKey(this.Id.GetHashCode(), k);
 
 				string msg = "Message #" + k + " from producer " + this.Id + " (" + DateTime.UtcNow.ToString("O") + ")";
 

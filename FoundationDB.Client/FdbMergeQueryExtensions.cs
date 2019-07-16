@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Linq;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 	using JetBrains.Annotations;
 
@@ -284,7 +283,7 @@ namespace FoundationDB.Client
 		/// <summary>Sequence the return only the elements of <paramref name="first"/> that are not in <paramref name="second"/>, using a custom key comparison</summary>
 		/// <typeparam name="TKey">Type of the keys that will be used for comparison</typeparam>
 		/// <typeparam name="TResult">Type of the results of the query</typeparam>
-		/// <param name="first">Fisrt query that contains the elements that could be in the result</param>
+		/// <param name="first">First query that contains the elements that could be in the result</param>
 		/// <param name="second">Second query that contains the elements that cannot be in the result</param>
 		/// <param name="keySelector">Lambda used to extract keys from both queries.</param>
 		/// <param name="keyComparer">Instance used to compare keys</param>
@@ -306,7 +305,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Sequence the return only the elements of <paramref name="first"/> that are not in <paramref name="second"/></summary>
 		/// <typeparam name="TResult">Type of the results of the query</typeparam>
-		/// <param name="first">Fisrt query that contains the elements that could be in the result</param>
+		/// <param name="first">First query that contains the elements that could be in the result</param>
 		/// <param name="second">Second query that contains the elements that cannot be in the result</param>
 		/// <param name="comparer">Instance used to compare elements</param>
 		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>

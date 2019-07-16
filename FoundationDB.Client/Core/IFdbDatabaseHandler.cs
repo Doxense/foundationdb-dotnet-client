@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Core
 
 		bool IsClosed { get; }
 
-		void SetOption(FdbDatabaseOption option, Slice data);
+		void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data);
 
 		[NotNull]
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);

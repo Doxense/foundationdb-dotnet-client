@@ -89,7 +89,7 @@ namespace FoundationDB.Client.Native
 
 		public bool IsClosed => m_handle.IsClosed;
 
-		public void SetOption(FdbDatabaseOption option, Slice data)
+		public void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data)
 		{
 			Fdb.EnsureNotOnNetworkThread();
 
@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Native
 			{
 				fixed (byte* ptr = data)
 				{
-					Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr, data.Count));
+					Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr, data.Length));
 				}
 			}
 		}

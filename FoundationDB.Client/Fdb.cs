@@ -722,14 +722,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Set the value of a network option on the database handler</summary>
-		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
+		private static FdbError SetNetworkOption(FdbNetworkOption option, ReadOnlySpan<byte> value)
 		{
-			value.EnsureSliceIsValid();
 			unsafe
 			{
 				fixed (byte* ptr = value)
 				{
-					return FdbNative.NetworkSetOption(option, ptr, value.Count);
+					return FdbNative.NetworkSetOption(option, ptr, value.Length);
 				}
 			}
 		}

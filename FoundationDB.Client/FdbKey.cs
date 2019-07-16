@@ -56,8 +56,8 @@ namespace FoundationDB.Client
 		/// <param name="slice">Slice to increment</param>
 		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="slice"/> which does not have <paramref name="slice"/> as a prefix</returns>
 		/// <remarks>If the last byte is already equal to 0xFF, it will rollover to 0x00 and the next byte will be incremented.</remarks>
-		/// <exception cref="ArgumentException">If the Slice is equal to Slice.Nil</exception>
-		/// <exception cref="OverflowException">If the Slice is the empty string or consists only of 0xFF bytes</exception>
+		/// <exception cref="ArgumentException">If <paramref name="slice"/> is <see cref="Slice.Nil"/></exception>
+		/// <exception cref="OverflowException">If <paramref name="slice"/> is <see cref="Slice.Empty"/> or consists only of 0xFF bytes</exception>
 		/// <example>
 		/// FdbKey.Increment(Slice.FromString("ABC")) => "ABD"
 		/// FdbKey.Increment(Slice.FromHexa("01 FF")) => { 02 }
@@ -106,8 +106,8 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(in prefix);
-				writer.WriteBytes(in key);
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				writer.WriteBytes(key);
 				next.Add(writer.Position);
 			}
 
@@ -137,8 +137,8 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(in prefix);
-				writer.WriteBytes(in key);
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				writer.WriteBytes(key);
 				next.Add(writer.Position);
 			}
 
@@ -365,7 +365,7 @@ namespace FoundationDB.Client
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		[NotNull]
-		public static string Dump(in ReadOnlySpan<byte> key)
+		public static string Dump(ReadOnlySpan<byte> key)
 		{
 			return PrettyPrint(key, PrettyPrintMode.Single);
 		}
@@ -377,7 +377,7 @@ namespace FoundationDB.Client
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		[DebuggerNonUserCode]
 		[NotNull]
-		public static string PrettyPrint(in ReadOnlySpan<byte> key, PrettyPrintMode mode)
+		public static string PrettyPrint(ReadOnlySpan<byte> key, PrettyPrintMode mode)
 		{
 			if (key.Length > 1)
 			{

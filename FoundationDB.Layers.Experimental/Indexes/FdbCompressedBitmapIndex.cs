@@ -26,19 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Doxense.Diagnostics.Contracts;
-
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of numerical ids</summary>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
@@ -87,7 +85,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			{
 				var key = this.Subspace.Keys[value];
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
-				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
+				var builder = data.HasValue ? new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data)) : CompressedBitmapBuilder.Empty;
 
 				//TODO: wasteful to crate a builder to only set on bit ?
 				builder.Set((int)id); //BUGBUG: id should be 64-bit!
@@ -119,7 +117,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
-						var builder = new CompressedBitmapBuilder(data);
+						var builder = new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data));
 						builder.Clear((int)id); //BUGBUG: 64 bit id!
 						trans.Set(key, builder.ToSlice());
 					}
@@ -130,7 +128,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{
 					var key = this.Subspace.Keys[newValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
-					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
+					var builder = data.HasValue ? new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data)) : CompressedBitmapBuilder.Empty;
 					builder.Set((int)id); //BUGBUG: 64 bit id!
 					trans.Set(key, builder.ToSlice());
 				}
@@ -153,7 +151,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
-				var builder = new CompressedBitmapBuilder(data);
+				var builder = new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data));
 				builder.Clear((int)id); //BUGBUG: 64 bit id!
 				trans.Set(key, builder.ToSlice());
 				return true;
@@ -172,14 +170,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.IsNull) return null;
 			if (data.IsEmpty) return Enumerable.Empty<long>();
-			var bitmap = new CompressedBitmap(data);
+			var bitmap = new CompressedBitmap(MutableSlice.AsUnsafeMutableSlice(data));
 			if (reverse) throw new NotImplementedException(); //TODO: GetView(reverse:true) !
 			return bitmap.GetView().Select(x => (long)x /*BUGBUG 64 bits*/);
 		}
 		
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "BitmapIndex['{0}']", this.Name);
+			return string.Format(CultureInfo.InvariantCulture, "BitmapIndex['{0}']", this.Name);
 		}
 
 	}

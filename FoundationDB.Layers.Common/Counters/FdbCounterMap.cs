@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Counters
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
 		public FdbCounterMap([NotNull] ITypedKeySubspace<TKey> subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(subspace, nameof(subspace));
 
 			this.Subspace = subspace;
 			this.Location = subspace;
@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Subtract a value from a counter in one atomic operation</summary>
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
-		/// <param name="value">Value that will be substracted. If the value is zero</param>
+		/// <param name="value">Value that will be subtracted. If the value is zero</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
 		public void Subtract([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Counters
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			var data = await transaction.GetAsync(this.Location.Keys[counterKey]).ConfigureAwait(false);
-			if (data.IsNullOrEmpty) return default(long?);
+			if (data.IsNullOrEmpty) return default;
 			return data.ToInt64();
 		}
 

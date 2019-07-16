@@ -31,9 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // note: when enabled, the code assumes that the CPU supports unaligned stores and loads
 #define EXPECT_LITTLE_ENDIAN_HOST
 
-// Enable the use of Span<T> and ReadOnlySpan<T>
-//#define ENABLE_SPAN
-
 //note: we would like to use Vector<byte> from System.Numerics.Vectors (which is converted to SIMD by the JIT), but this is not really practical just yet:
 // - v4.0 of the assembly does NOT have Vector<T>, which was removed between beta, and only came back in 4.1-beta
 // - the ctor Vector<byte>(byte* ptr, int offset) is currently private, which means that we cannot use it with unsafe pointers yet
@@ -137,135 +134,6 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Compare two byte segments for equality</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="count">Number of bytes to compare</param>
-		/// <returns>true if all bytes are the same in both segments</returns>
-		[Pure]
-		public static bool SameBytes(byte[] left, int leftOffset, byte[] right, int rightOffset, int count)
-		{
-			EnsureBufferIsValid(left, leftOffset, count);
-			EnsureBufferIsValid(right, rightOffset, count);
-
-			if (left == null || right == null) return left == right;
-			return SameBytesUnsafe(left, leftOffset, right, rightOffset, count);
-		}
-
-#if ENABLE_SPAN
-		/// <summary>Compare two spans for equality</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <returns>true if all bytes are the same in both segments</returns>
-		public static bool SameBytes(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
-		{
-			if (left.Length != right.Length) return false;
-			//REVIEW: is there a more direct wait to compare two spans ?? (did not find anything in ReadOnlySpan, MemoryExtensions nor MemoryMarshal ... ?)
-			fixed (byte* pLeft = &MemoryMarshal.GetReference(left))
-			fixed (byte* pRight = &MemoryMarshal.GetReference(right))
-			{
-				//TODO: version of comapre that is optimized for equality checks!
-				return 0 == CompareUnsafe(pLeft, pRight, (uint) left.Length);
-			}
-		}
-#endif
-
-		/// <summary>Compare two byte segments for equality, without validating the arguments</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="count">Number of bytes to compare</param>
-		/// <returns>true if all bytes are the same in both segments</returns>
-		[Pure]
-		public static bool SameBytesUnsafe([NotNull] byte[] left, int leftOffset, [NotNull] byte[] right, int rightOffset, int count)
-		{
-			Contract.Requires(left != null && leftOffset >= 0 && right != null && rightOffset >= 0 && count >= 0);
-
-			if (count == 0 || (object.ReferenceEquals(left, right) && leftOffset == rightOffset))
-			{ // empty, or same segment of the same buffer
-				return true;
-			}
-
-			fixed (byte* pLeft = &left[leftOffset])
-			fixed (byte* pRight = &right[rightOffset])
-			{
-				//TODO: version of comapre that is optimized for equality checks!
-				return 0 == CompareUnsafe(pLeft, pRight, checked((uint)count));
-			}
-		}
-
-		/// <summary>Compare two byte buffers lexicographically</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <returns>Returns zero if both buffers are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"
-		/// </remarks>
-		[Pure]
-		public static int Compare([NotNull] byte[] left, [NotNull] byte[] right)
-		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
-			return CompareUnsafe(left, 0, left.Length, right, 0, right.Length);
-		}
-
-		/// <summary>Compare two byte segments lexicographically</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="leftCount">Number of bytes in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="rightCount">Number of bytes in right buffer</param>
-		/// <returns>Returns zero if segments are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"
-		/// </remarks>
-		[Pure]
-		public static int Compare([NotNull] byte[] left, int leftOffset, int leftCount, [NotNull] byte[] right, int rightOffset, int rightCount)
-		{
-			EnsureBufferIsValidNotNull(left, leftOffset, leftCount);
-			EnsureBufferIsValidNotNull(right, rightOffset, rightCount);
-
-			return CompareUnsafe(left, leftOffset, leftCount, right, rightOffset, rightCount);
-		}
-
-		/// <summary>Compare two byte segments lexicographically, without validating the arguments</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="leftCount">Number of bytes in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="rightCount">Number of bytes in right buffer</param>
-		/// <returns>Returns zero if segments are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"
-		/// </remarks>
-		[Pure]
-		public static int CompareUnsafe([NotNull] byte[] left, int leftOffset, int leftCount, [NotNull] byte[] right, int rightOffset, int rightCount)
-		{
-			Contract.Requires(left != null && right != null && leftOffset >= 0 && leftCount >= 0 && rightOffset >= 0 && rightCount >= 0);
-
-			if (object.ReferenceEquals(left, right) && leftCount == rightCount && leftOffset == rightOffset)
-			{ // same segment in the same buffer
-				return 0;
-			}
-
-			fixed (byte* pLeft = &left[leftOffset])
-			fixed (byte* pRight = &right[rightOffset])
-			{
-				return CompareUnsafe(pLeft, (uint) leftCount, pRight, (uint) rightCount);
-			}
-		}
-
 		/// <summary>Ensure that the specified temporary buffer is large enough</summary>
 		/// <param name="buffer">Pointer to a temporary scratch buffer (previous data will not be maintained)</param>
 		/// <param name="minCapacity">Minimum expected capacity</param>
@@ -308,650 +176,69 @@ namespace Doxense.Memory
 			return new ArgumentOutOfRangeException(nameof(minCapacity), minCapacity, "Cannot allocate buffer larger than 2GB.");
 		}
 
-		/// <summary>Copy the content of a byte segment into another. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void Copy(byte[] dst, int dstOffset, byte[] src, int srcOffset, int count)
+		internal static int Unescape(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
-			if (count > 0)
+			// decode size will always be less or equal to buffer size!
+			buffer = EnsureCapacity(ref buffer, value.Length);
+			int p = 0;
+			for (int i = 0; i < value.Length; i++)
 			{
-				EnsureBufferIsValidNotNull(dst, dstOffset, count);
-				EnsureBufferIsValidNotNull(src, srcOffset, count);
-
-				fixed (byte* pDst = &dst[dstOffset]) // throw if dst == null or dstOffset outside of the array
-				fixed (byte* pSrc = &src[srcOffset]) // throw if src == null or srcOffset outside of the array
+				char c = value[i];
+				if (c == '<')
 				{
-					Buffer.MemoryCopy(pSrc, pDst, dst.Length - dstOffset, count);
+					if (i + 3 >= value.Length || value[i + 3] != '>') throw new FormatException($"Invalid escape character at offset {i}");
+					c = (char) (NibbleToDecimal(value[i + 1]) << 4 | NibbleToDecimal(value[i + 2]));
+					i += 3;
 				}
+				buffer[p++] = (byte) c;
 			}
+			return p;
 		}
 
-		/// <summary>Copy the content of a byte segment into another. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void Copy(byte[] dst, uint dstOffset, byte[] src, uint srcOffset, uint count)
+		internal static int FromHexa(ReadOnlySpan<char> hexaString, ref byte[] buffer)
 		{
-			if (count > 0)
+			int capacity = hexaString.Length >> 1;
+			buffer = EnsureCapacity(ref buffer, capacity);
+			int i = 0, p = 0;
+			while (i < hexaString.Length)
 			{
-				EnsureBufferIsValidNotNull(dst, dstOffset, count);
-				EnsureBufferIsValidNotNull(src, srcOffset, count);
-
-				fixed (byte* pDst = &dst[dstOffset]) // throw if dst == null or dstOffset outside of the array
-				fixed (byte* pSrc = &src[srcOffset]) // throw if src == null or srcOffset outside of the array
-				{
-					Buffer.MemoryCopy(pSrc, pDst, dst.Length - dstOffset, count);
-				}
+				char x = hexaString[i++];
+				if (x == ' ') { continue; } // skip whitespaces
+				if (i >= hexaString.Length) throw new ArgumentException("Hexadecimal string must be of even length", nameof(hexaString));
+				char y = hexaString[i++];
+				buffer[p++] = (byte) ((NibbleToDecimal(x) << 4) | NibbleToDecimal(y));
 			}
+			return p;
 		}
 
-#if ENABLE_SPAN
-		public static void Copy(Span<byte> destination, byte[] src, int srcOffset, int count)
+		/// <summary>Convert an hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
+		/// <param name="c">Hexadecimal digit (case insensitive)</param>
+		/// <returns>Decimal value between 0 and 15, or an exception</returns>
+		[Pure]
+		private static int NibbleToDecimal(char c)
 		{
-			if (count > 0)
-			{
-				new ReadOnlySpan<byte>(src, srcOffset, count).CopyTo(destination);
-			}
+			int x = c - 48;
+			if (x < 10) return x;
+			if (x >= 17 && x <= 42) return x - 7;
+			if (x >= 49 && x <= 74) return x - 39;
+			return ThrowInputNotValidHexadecimalDigit();
 		}
 
-		public static void Copy(Span<byte> destination, Slice source)
+		private static int ThrowInputNotValidHexadecimalDigit()
 		{
-			if (source.Count > 0)
-			{
-				new ReadOnlySpan<byte>(source.Array, source.Offset, source.Count).CopyTo(destination);
-			}
+			throw FailInputNotValidHexadecimalDigit();
 		}
 
-		public static void Copy(byte[] dst, int dstOffset, ReadOnlySpan<byte> source)
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		private static FormatException FailInputNotValidHexadecimalDigit()
 		{
-			if (source.Length > 0)
-			{
-				source.CopyTo(new Span<byte>(dst).Slice(dstOffset));
-			}
+			return ThrowHelper.FormatException("Input is not a valid hexadecimal digit");
 		}
 
-		public static void Copy(Slice destination, ReadOnlySpan<byte> source)
-		{
-			if (source.Length > 0)
-			{
-				source.CopyTo(new Span<byte>(destination.Array, destination.Offset, destination.Count));
-			}
-		}
-#endif
-
-		/// <summary>Copy the content of a byte segment into another, without validating the arguments. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, [NotNull] byte[] src, int srcOffset, int count)
-		{
-			//Contract.Requires(count >= 0);
-			if (count > 0)
-			{
-				//Contract.Requires(dst != null && dstOffset >= 0 && src != null && srcOffset >= 0);
-
-				fixed (byte* pDst = &dst[dstOffset])
-				fixed (byte* pSrc = &src[srcOffset])
-				{
-					Buffer.MemoryCopy(pSrc, pDst, count, count);
-				}
-			}
-		}
-
-#if ENABLE_SPAN
-		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Point to the source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, ReadOnlySpan<byte> src)
-		{
-			//Contract.Requires(dst != null && dstOffset >= 0 && src.Length >= 0);
-
-			fixed (byte* pDst = &dst[dstOffset])
-			fixed (byte* pSrc = &MemoryMarshal.GetReference(src))
-			{
-				Buffer.MemoryCopy(pSrc, pDst, src.Length, src.Length);
-			}
-		}
-#endif
-
-		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Point to the source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, byte* src, int count)
-		{
-			//Contract.Requires(dst != null && src != null && dstOffset >= 0 && count >= 0);
-
-			fixed (byte* pDst = &dst[dstOffset])
-			{
-				Buffer.MemoryCopy(src, pDst, count, count);
-			}
-		}
-
-		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Point to the source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, byte* src, uint count)
-		{
-			//Contact.Requires(dst != null && src != null && dstOffset >= 0);
-
-			fixed (byte* pDst = &dst[dstOffset])
-			{
-				Buffer.MemoryCopy(src, pDst, count, count);
-			}
-		}
-
-		/// <summary>Copy a managed slice to the specified memory location</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Reference to the first byte to copy</param>
-		/// <param name="count">Number of bytes to copy</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe(byte* dest, ref byte src, int count)
-		{
-			if (count > 0)
-			{
-				Contract.Requires(dest != null);
-				fixed (byte* ptr = &src)
-				{
-					Buffer.MemoryCopy(ptr, dest, count, count);
-				}
-			}
-		}
-		
-		/// <summary>Copy a managed slice to the specified memory location</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Slice of managed memory that will be copied to the destination</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe(byte* dest, Slice src)
-		{
-			int count = src.Count;
-			if (count > 0)
-			{
-				Contract.Requires(dest != null && src.Array != null && src.Offset >= 0 && src.Count >= 0);
-				fixed (byte* ptr = &src.DangerousGetPinnableReference())
-				{
-					Buffer.MemoryCopy(ptr, dest, count, count);
-				}
-			}
-		}
-
-		/// <summary>Copy a managed slice to the specified memory location</summary>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe(Slice dest, byte* src, uint count)
-		{
-			if (count > 0)
-			{
-				Contract.Requires(dest.Array != null && dest.Offset >= 0 && dest.Count >= 0 && src != null);
-				fixed (byte* ptr = &dest.DangerousGetPinnableReference())
-				{
-					Buffer.MemoryCopy(src, ptr, dest.Count, count);
-				}
-			}
-		}
-
-		/// <summary>Dangerously copy native memory from one location to another</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Where to read the bytes</param>
-		/// <param name="count">Number of bytes to copy</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe([NotNull] byte* dest, [NotNull] byte* src, uint count)
-		{
-			Contract.Requires(dest != null && src != null);
-			Buffer.MemoryCopy(src, dest, count, count);
-		}
-
-		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
-		/// <param name="left">Pointer to the first buffer</param>
-		/// <param name="leftCount">Size (in bytes) of the first buffer</param>
-		/// <param name="right">Pointer to the second buffer</param>
-		/// <param name="rightCount">Size (in bytes) of the second buffer</param>
-		/// <returns>The returned value will be &lt; 0 if <paramref name="left"/> is "before" <paramref name="right"/>, 0 if <paramref name="left"/> is the same as <paramref name="right"/>, and &lt; 0 if <paramref name="left"/> is "after" right.</returns>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int CompareUnsafe(byte* left, uint leftCount, byte* right, uint rightCount)
-		{
-			Contract.Requires((left != null || leftCount == 0) && (right != null || rightCount == 0));
-
-			int c = CompareUnsafe(left, right, Math.Min(leftCount, rightCount));
-			return c != 0 ? c : (int) (leftCount - rightCount);
-		}
-
-		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int CompareUnsafe(byte* left, byte* right, uint count)
-		{
-			// the most frequent case is to compare keys that are natural or GUIDs,
-			// in which case there is a very high probability that the first byte is different already
-			// => we check for that case immediately
-			if (count != 0 && *left != *right) return *left - *right;
-			//REVIEW: we could special case count==4 or count==8 because they are probably frequent (FreeSpace map uses 4, indexes may use 8, ...)
-			return CompareUnsafeInternal(left, right, count);
-		}
-
-		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
-		/// <param name="left">Pointer to the first buffer</param>
-		/// <param name="right">Pointer to the second buffer</param>
-		/// <param name="count">Size (in bytes) of both buffers</param>
-		/// <returns>The returned value will be &lt; 0 if <paramref name="left"/> is "before" <paramref name="right"/>, 0 if <paramref name="left"/> is the same as <paramref name="right"/>, and &lt; 0 if <paramref name="left"/> is "after" right.</returns>
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static int CompareUnsafeInternal(byte* left, byte* right, uint count)
-		{
-			Contract.Requires(count == 0 || (left != null && right != null));
-
-			// We would like to always use memcmp (fastest), but the overhead of PInvoke makes it slower for small keys (<= 256)
-			// For these, we will use a custom implementation which is a bit slower than memcmp but faster than the overhead of PInvoke.
-
-			if (count == 0) return 0;
-
-			// the minimum size to amortize the cost of P/Invoke seems to be over 256 bytes, On My Machine(tm)
-			if (count > 256)
-			{
-				return _memcmp(left, right, count);
-			}
-
-			// we will scan the strings by XORing together segments of 8 bytes (then 4, then 2, ...) looking for the first segment that contains at least one difference (ie: at least one bit set after XORing)
-			// then, if we find a difference, we will "fine tune" the pointers to locate the first byte that is different
-			// then, we will return the difference between the bytes at this location
-
-			// Sample scenario:
-			//            __ cursor   ___ first difference is at byte (cursor + 4)
-			//           v           v
-			// LEFT : .. AA AA AA AA AA AA AA AA ..
-			// RIGHT: .. AA AA AA AA BB AA AA AA ..
-			// XOR  :  ( 00 00 00 00 11 00 00 00 )
-			//
-			// The result of the XOR is 0x11000000 and is not equal to 0, so the first difference is within these 8 bytes
-			// The first 4 bytes of the result are 0, which means that the difference is at offset 4 (ie: we needed to SHR 8 the result 4 times before having at least one bit set in 0..7
-			//
-			// L XOR R:  00 00 00 00 11 00 00 00
-			// offset :  +0 +1 +2 +3 +4 +5 +6 +7
-			//                       ^^__ first non-zero byte
-
-			// number of 16-bytes segments to scan
-			long x;
-			if (count >= 16)
-			{
-				long y;
-				byte* end = left + (count & ~0xF);
-				while (left < end)
-				{
-					// parallelize the reads
-					x = *(long*) left ^ *(long*) right;
-					y = *(long*) (left + 8) ^ *(long*) (right + 8);
-					if (x != 0)
-					{
-						goto fine_tune_8;
-					}
-					if (y != 0)
-					{
-						x = y;
-						goto fine_tune_8_with_offset;
-					}
-					left += 16;
-					right += 16;
-				}
-
-				if ((count & 0xF) == 0)
-				{ // size is multiple of 16 with no differences => equal
-					return 0; // fast path for Guid keys
-				}
-			}
-
-			// use the last 4 bits in the count to parse the tail
-
-			if ((count & 8) != 0)
-			{ // at least 8 bytes remaining
-				x = *(long*) left ^ *(long*) right;
-				if (x != 0) goto fine_tune_8;
-				if ((count & 7) == 0) return 0; // fast path for long keys
-				left += 8;
-				right += 8;
-			}
-			if ((count & 4) != 0)
-			{ // at least 4 bytes remaining
-				x = *(int*) left ^ *(int*) right;
-				if (x != 0) goto fine_tune_4;
-				if ((count & 3) == 0) return 0; // fast path for int keys
-				left += 4;
-				right += 4;
-			}
-			if ((count & 2) != 0)
-			{ // at least 2 bytes remaining
-				x = *(short*) left ^ *(short*) right;
-				if (x != 0) goto fine_tune_2;
-				left += 2;
-				right += 2;
-			}
-			if ((count & 1) != 0)
-			{ // at least one byte remaining
-				return left[0] - right[0];
-			}
-			// both strings are equal
-			return 0;
-
-		fine_tune_8_with_offset:
-			// adjust the pointers (we were looking at the upper 8 bytes in a 16-bytes segment
-			left += 8;
-			right += 8;
-
-		fine_tune_8:
-			// the difference is somewhere in the last 8 bytes
-			if ((uint)x == 0)
-			{ // it is not in the first 4 bytes
-				x >>= 32;
-				left += 4;
-				right += 4;
-			}
-		fine_tune_4:
-			// the difference is somewhere in the last 4 bytes
-			if ((ushort) x == 0)
-			{ // if is not in the first 2 bytes
-				// the difference is either at +2 or +3
-				return (x & 0xFF0000) == 0
-					? left[3] - right[3]
-					: left[2] - right[2];
-			}
-
-		fine_tune_2:
-			// the difference is somewhere in the last 2 bytes
-			return (x & 0xFF) == 0
-				? left[1] - right[1]
-				: left[0] - right[0];
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static int _memcmp([NotNull] byte* left, byte* right, uint count)
-		{
-			return NativeMethods.memcmp(left, right, (UIntPtr) count);
-		}
-
-		/// <summary>Fill the content of a managed segment with zeroes</summary>
-		public static void Clear([NotNull] byte[] bytes, int offset, int count)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(bytes, offset, count);
-				fixed (byte* ptr = &bytes[offset])
-				{
-					ClearUnsafe(ptr, (uint) count);
-				}
-			}
-		}
-
-		/// <summary>Fill the content of a managed segment with zeroes</summary>
-		public static void Clear([NotNull] byte[] bytes, uint offset, uint count)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(bytes, offset, count);
-				fixed (byte* ptr = &bytes[offset])
-				{
-					ClearUnsafe(ptr, count);
-				}
-			}
-		}
-
-		/// <summary>Fill the content of a managed slice with zeroes</summary>
-		public static void Clear(Slice buffer)
-		{
-			Clear(buffer.Array, buffer.Offset, buffer.Count);
-		}
-
-		/// <summary>Fill the content of an unmanaged buffer with zeroes, without checking the arguments</summary>
-		/// <remarks>WARNING: invalid use of this method WILL corrupt the heap!</remarks>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		public static void ClearUnsafe([NotNull] byte* ptr, uint length)
-		{
-			Contract.Requires(ptr != null);
-			switch (length)
-			{
-				case 0:
-					return;
-				case 1:
-					*ptr = 0;
-					return;
-				case 2:
-					*(short*) ptr = 0;
-					return;
-				case 3:
-					*(short*) ptr = 0;
-					*(ptr + 2) = 0;
-					return;
-				case 4:
-					*(int*) ptr = 0;
-					return;
-				case 5:
-					((int*) ptr)[0] = 0;
-					*(ptr + 4) = 0;
-					return;
-				case 6:
-					*(int*) ptr = 0;
-					*(short*) (ptr + 4) = 0;
-					return;
-				case 7:
-					*(int*)ptr = 0;
-					*(short*)(ptr + 4) = 0;
-					*(ptr + 6) = 0;
-					return;
-				case 8:
-					*(long*)ptr = 0;
-					return;
-			}
-
-			if (length >= 512)
-			{ // PInvoke into the native memset
-				_memset(ptr, 0, length);
-				return;
-			}
-
-			while (length >= 16)
-			{
-				((long*) ptr)[0] = 0;
-				((long*) ptr)[1] = 0;
-				ptr += 16;
-				length -= 16;
-			}
-			if ((length & 8) != 0)
-			{
-				((long*)ptr)[0] = 0;
-				ptr += 8;
-			}
-			if ((length & 4) != 0)
-			{
-				((uint*) ptr)[0] = 0;
-				ptr += 4;
-			}
-			if ((length & 2) != 0)
-			{
-				((short*)ptr)[0] = 0;
-				ptr += 2;
-			}
-			if ((length & 1) != 0)
-			{
-				*ptr = 0;
-			}
-		}
-
-		/// <summary>Fill the content of an unmanaged buffer with zeroes, without checking the arguments</summary>
-		/// <remarks>WARNING: invalid use of this method WILL corrupt the heap!</remarks>
-		public static void ClearUnsafe([NotNull] byte* ptr, ulong length)
-		{
-			//pre-check in case of uint overflow
-			if (length >= 512)
-			{
-				Contract.Requires(ptr != null);
-				_memset(ptr, 0, length);
-			}
-			else
-			{
-				ClearUnsafe(ptr, (uint) length);
-			}
-		}
-
-		/// <summary>Fill the content of an unmanaged array with zeroes, without checking the arguments</summary>
-		/// <param name="ptr">Pointer to the start of the array</param>
-		/// <param name="count">Number of items to clear</param>
-		/// <param name="sizeOfItem">Size (in bytes) of one item</param>
-		/// <remarks>Will clear <paramref name="count"/> * <paramref name="sizeOfItem"/> elements in the array</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void ClearUnsafe([NotNull] void* ptr, [Positive] int count, uint sizeOfItem)
-		{
-			ClearUnsafe((byte*) ptr, checked((uint) count * sizeOfItem));
-		}
-
-		/// <summary>Fill the content of a managed segment with the same byte repeated</summary>
-		public static void Fill([NotNull] byte[] bytes, int offset, int count, byte filler)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(bytes, offset, count);
-				fixed (byte* ptr = &bytes[offset])
-				{
-					if (filler == 0)
-					{
-						ClearUnsafe(ptr, (uint)count);
-					}
-					else
-					{
-						_memset(ptr, filler, (uint)count);
-					}
-				}
-			}
-		}
-
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void FillUnsafe([NotNull] byte* ptr, uint count, byte filler)
-		{
-			if (count != 0)
-			{
-				Contract.Requires(ptr != null);
-				_memset(ptr, filler, count);
-			}
-		}
-
-		public static void FillUnsafe([NotNull] byte* ptr, ulong count, byte filler)
-		{
-			if (count != 0)
-			{
-				Contract.Requires(ptr != null);
-				_memset(ptr, filler, count);
-			}
-		}
-
-		[SecurityCritical]
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static void _memset([NotNull] byte* ptr, byte filler, uint count)
-		{
-			NativeMethods.memset(ptr, filler, (UIntPtr) count);
-		}
-
-		[SecurityCritical]
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static void _memset([NotNull] byte* ptr, byte filler, ulong count)
-		{
-			NativeMethods.memset(ptr, filler, (UIntPtr) count);
-		}
-
-		/// <summary>Add padding bytes to the end of buffer if it is not aligned to a specific value, and advance the cursor</summary>
-		/// <param name="buffer">Start of a buffer that may need padding</param>
-		/// <param name="size">Size of the buffer</param>
-		/// <param name="alignment">Required alignment of the buffer size, which MUST be a power of two. If the buffer is not aligned, additional 0 bytes are added at the end.</param>
-		/// <returns>Address of the next byte after the buffer, with padding included</returns>
-		[NotNull]
-		public static byte* PadBuffer([NotNull] byte* buffer, uint size, uint alignment)
-		{
-			Contract.PointerNotNull(buffer, nameof(buffer));
-			Contract.PowerOfTwo(alignment, nameof(alignment));
-			uint pad = size % (alignment - 1);
-			byte* ptr = buffer + size;
-			if (pad != 0)
-			{
-				ClearUnsafe(ptr, pad);
-				ptr += alignment - pad;
-			}
-			return ptr;
-		}
-
-		/// <summary>Compute the hash code of a byte segment</summary>
-		/// <param name="bytes">Buffer</param>
-		/// <param name="offset">Offset of the start of the segment in the buffer</param>
-		/// <param name="count">Number of bytes in the segment</param>
-		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		public static int ComputeHashCode(byte[] bytes, int offset, int count)
-		{
-			if (count == 0) return unchecked((int) 2166136261);
-			EnsureBufferIsValidNotNull(bytes, offset, count);
-			fixed (byte* ptr = &bytes[offset])
-			{
-				return ComputeHashCodeUnsafe(ptr, (uint) count);
-			}
-		}
 
 		/// <summary>Compute the hash code of a byte buffer</summary>
 		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		public static int ComputeHashCode(byte* bytes, uint count)
-		{
-			if (count == 0) return unchecked((int) 2166136261);
-			EnsureBufferIsValidNotNull(bytes, count);
-			return ComputeHashCodeUnsafe(bytes, count);
-		}
-
-		/// <summary>Compute the hash code of a byte buffer</summary>
-		/// <param name="bytes">Array that contains the byte buffer (ignored if count == 0)</param>
-		/// <param name="offset">Offset of the first byte in the buffer (ignored if count == 0)</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		/// <remarks>
-		/// If count == 0, then the value of <paramref name="bytes"/> is ignored.
-		/// This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.
-		/// </remarks>
-		internal static int ComputeHashCodeUnsafe([NotNull] byte[] bytes, int offset, int count)
-		{
-			if (count == 0) return unchecked((int) 2166136261);
-			fixed (byte* ptr = &bytes[offset])
-			{
-				return ComputeHashCodeUnsafe(ptr, (uint) count);
-			}
-		}
-
-		/// <summary>Compute the hash code of a byte buffer</summary>
-		/// <param name="bytes">Pointer to the first byte of the buffer (ignored if count == 0)</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		internal static int ComputeHashCodeUnsafe([NotNull] byte* bytes, uint count)
+		public static int ComputeHashCode(ReadOnlySpan<byte> bytes)
 		{
 			//note: callers should have handled the case where bytes == null, but they can call us with count == 0
 			Contract.Requires(bytes != null);
@@ -964,11 +251,9 @@ namespace Doxense.Memory
 
 			// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
 			uint h = 2166136261; // FNV1 32 bits offset basis
-			uint n = count;
-			while (n > 0)
+			for(int i = 0; i < bytes.Length; i++)
 			{
-				h = unchecked ((h ^ *bytes++) * 16777619); // FNV1 32 prime
-				--n;
+				h = unchecked ((h ^ bytes[i]) * 16777619); // FNV1 32 prime
 			}
 			return unchecked((int) h);
 			// </HACKHACK>
@@ -2144,19 +1429,19 @@ namespace Doxense.Memory
 		#endregion
 
 #if EXPECT_LITTLE_ENDIAN_HOST
-		#pragma warning restore 162
+#pragma warning restore 162
 		// ReSharper restore UnreachableCode
 		// ReSharper restore ConditionIsAlwaysTrueOrFalse
 #endif
 
 		#endregion
 
-		#region Fixed-Size Encoding
+#region Fixed-Size Encoding
 
 		// Plain old encoding where 32-bit values are stored using 4 bytes, 64-bit values are stored using 8 bytes, etc...
 		// Methods without suffix use Little-Endian, while methods with 'BE' suffix uses Big Endian.
 
-		#region 16-bit
+#region 16-bit
 
 		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
 		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2687,7 +1972,7 @@ namespace Doxense.Memory
 		//
 		// There are two variantes: Unsigned and Signed which encodes either positive values (ie: sizes, count, ...) or negatives/values (integers, deltas, coordinates, ...)
 
-		#region Unsigned
+#region Unsigned
 
 		// The signed variant uses the 3 highest bits to encode the number of extra bytes needed to store the value.
 		// - The 5 lowest bits of the start byte are the 5 highest bits of the encoded value
@@ -3051,7 +2336,6 @@ namespace Doxense.Memory
 			}
 		}
 
-#if ENABLE_SPAN
 		/// <summary>Check if a section of a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
 		public static bool IsAsciiString(ReadOnlySpan<char> value)
@@ -3062,7 +2346,6 @@ namespace Doxense.Memory
 				return IsAsciiString(pChars, value.Length);
 			}
 		}
-#endif
 
 		/// <summary>Check if a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
@@ -3353,6 +2636,7 @@ namespace Doxense.Memory
 				*outp = (char) *inp;
 			}
 		}
+
 		#endregion
 
 		[SuppressUnmanagedCodeSecurity]
@@ -3365,25 +2649,6 @@ namespace Doxense.Memory
 			// size_t		UIntPtr (or IntPtr)
 			// int			int
 			// char			byte
-
-			/// <summary>Compare characters in two buffers.</summary>
-			/// <param name="buf1">First buffer.</param>
-			/// <param name="buf2">Second buffer.</param>
-			/// <param name="count">Number of bytes to compare.</param>
-			/// <returns>The return value indicates the relationship between the buffers.</returns>
-			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			public static extern int memcmp(byte* buf1, byte* buf2, UIntPtr count);
-
-			/// <summary>Moves one buffer to another.</summary>
-			/// <param name="dest">Destination object.</param>
-			/// <param name="src">Source object.</param>
-			/// <param name="count">Number of bytes to copy.</param>
-			/// <returns>The value of dest.</returns>
-			/// <remarks>Copies count bytes from src to dest. If some regions of the source area and the destination overlap, both functions ensure that the original source bytes in the overlapping region are copied before being overwritten.</remarks>
-			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			public static extern byte* memmove(byte* dest, byte* src, UIntPtr count);
 
 			/// <summary>Sets buffers to a specified character.</summary>
 			/// <param name="dest">Pointer to destination</param>

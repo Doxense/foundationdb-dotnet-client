@@ -52,7 +52,7 @@ namespace Doxense.Serialization.Encoders
 		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
 		{
 			var writer = new SliceWriter(prefix.Count + 16); // ~16 bytes si T1 = Guid
-			writer.WriteBytes(in prefix);
+			writer.WriteBytes(prefix);
 			encoder.WriteKeyTo(ref writer, value);
 			return writer.ToSlice();
 		}
@@ -86,7 +86,7 @@ namespace Doxense.Serialization.Encoders
 		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1 item1, T2 item2)
 		{
 			var writer = new SliceWriter(prefix.Count + 24);
-			writer.WriteBytes(in prefix);
+			writer.WriteBytes(prefix);
 			encoder.WriteKeyTo(ref writer, item1, item2);
 			return writer.ToSlice();
 		}
@@ -102,7 +102,7 @@ namespace Doxense.Serialization.Encoders
 		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1 item1)
 		{
 			var writer = new SliceWriter(prefix.Count + 16);
-			writer.WriteBytes(in prefix);
+			writer.WriteBytes(prefix);
 			var tuple = (item1, default(T2));
 			encoder.WriteKeyPartsTo(ref writer, 1, ref tuple);
 			return writer.ToSlice();
@@ -151,7 +151,7 @@ namespace Doxense.Serialization.Encoders
 		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
 			var writer = new SliceWriter(prefix.Count + 32);
-			writer.WriteBytes(in prefix);
+			writer.WriteBytes(prefix);
 			encoder.WriteKeyTo(ref writer, item1, item2, item3);
 			return writer.ToSlice();
 		}
@@ -199,7 +199,7 @@ namespace Doxense.Serialization.Encoders
 		public static Slice EncodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var writer = new SliceWriter(prefix.Count + 48);
-			writer.WriteBytes(in prefix);
+			writer.WriteBytes(prefix);
 			encoder.WriteKeyTo(ref writer, item1, item2, item3, item4);
 			return writer.ToSlice();
 		}
@@ -247,7 +247,7 @@ namespace Doxense.Serialization.Encoders
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var writer = new SliceWriter(prefix.Count + 56);
-			writer.WriteBytes(in prefix);
+			writer.WriteBytes(prefix);
 			encoder.WriteKeyTo(ref writer, item1, item2, item3, item4, item5);
 			return writer.ToSlice();
 		}

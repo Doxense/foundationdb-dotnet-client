@@ -303,6 +303,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(double)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (double) value),
 				[typeof(decimal)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (decimal) value),
 				[typeof(Slice)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Slice) value),
+				[typeof(MutableSlice)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (MutableSlice) value),
 				[typeof(byte[])] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (byte[]) value),
 				[typeof(Guid)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Guid) value),
 				[typeof(Uuid128)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid128) value),
@@ -336,6 +337,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a slice as a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(ref TupleWriter writer, Slice value)
+		{
+			TupleParser.WriteBytes(ref writer, value);
+		}
+
+		/// <summary>Writes a slice as a byte[] array</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, MutableSlice value)
 		{
 			TupleParser.WriteBytes(ref writer, value);
 		}
@@ -1958,7 +1966,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			if (reader.Input.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-			return new SlicedTuple(p == 0 ? Array.Empty<Slice>() : items, 0, p);
+			return new SlicedTuple(p == 0 ? Array.Empty<Slice>() : items.AsMemory(0, p));
 		}
 
 
@@ -1992,7 +2000,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var slicer = new TupleReader(buffer);
 
-			Slice item = Slice.Nil;
+			Slice item = default;
 
 			Slice current;
 			while ((current = TupleParser.ParseNext(ref slicer)).HasValue)

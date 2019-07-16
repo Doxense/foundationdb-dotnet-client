@@ -26,11 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Tests
+namespace Doxense.Memory.Tests
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 
 	[TestFixture]

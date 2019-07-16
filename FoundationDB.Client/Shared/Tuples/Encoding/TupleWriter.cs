@@ -34,7 +34,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Memory;
 
 	[DebuggerDisplay("{Output.Position}/{Output.Buffer.Length} @ {Depth}")]
-	public struct TupleWriter
+	public ref struct TupleWriter
 	{
 		//TODO: Could we use "ref SliceWriter" here with C# 7?
 

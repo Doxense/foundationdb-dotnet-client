@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>
@@ -77,7 +76,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
-		public CompressedBitmapBuilder(Slice data)
+		public CompressedBitmapBuilder(MutableSlice data)
 			: this(new CompressedBitmap(data))
 		{ }
 
@@ -167,7 +166,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>True if the bit is set; otherwise, false.</returns>
 		public bool this[int index]
 		{
-			get { return Test(index); }
+			get => Test(index);
 			set { if (value) Set(index); else Clear(index); }
 		}
 
@@ -202,15 +201,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			if (index > m_highest) m_highest = index;
 			if (index < m_lowest) m_lowest = index;
 
-			uint mask;
-			int wordIndex = GetWordIndex(index, out mask);
+			int wordIndex = GetWordIndex(index, out uint mask);
 			//Console.WriteLine("> bitOffset {0} is in data word #{1} with mask {2}", index, wordIndex, mask);
 
-			int offset, position, count;
-			if (!GetCompressedWordIndex(wordIndex, out offset, out position))
+			if (!GetCompressedWordIndex(wordIndex, out int offset, out int position))
 			{ // falls outside the bitmap, need to add new words
 
-				count = wordIndex - position;
+				int count = wordIndex - position;
 				if (count > 0)
 				{
 					//Console.WriteLine("> outside by {0}, need filler", count);
@@ -282,11 +279,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (index < 0) throw new ArgumentException("Bit index cannot be less than zero.", nameof(index));
 
-			uint mask;
-			int wordIndex = GetWordIndex(index, out mask);
+			int wordIndex = GetWordIndex(index, out uint mask);
 
-			int offset, position;
-			if (!GetCompressedWordIndex(wordIndex, out offset, out position))
+			if (!GetCompressedWordIndex(wordIndex, out int offset, out int position))
 			{ // outside the buffer, nothing to do
 				return false;
 			}
@@ -339,7 +334,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			{
 				m_words[offset] = CompressedWord.MakeLiteral(w);
 			}
-			//TODO: update lowest/higest!
+			//TODO: update lowest/highest!
 			return true;
 
 		}
@@ -353,7 +348,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			// in bits: index - position
 			//Console.WriteLine("> Gap of " + (index - (position * 31)) + " in front of our literal");
 			int head = ((relativeOffset * 31) / 31); // how many empty words will stay before the inserted literal;
-			int tail = count - head - 1; // how many empty words will stary after the inserted literal
+			int tail = count - head - 1; // how many empty words will stay after the inserted literal
 
 			//Console.WriteLine("> Splitting 1-filler with repeat count {1} at {0}, with {2} before and {3} after", offset, count, head, tail);
 
@@ -407,13 +402,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return new CompressedBitmap(Pack(m_words, m_size, m_highest), new BitRange(m_lowest, m_highest));
 		}
 
-		internal static Slice Pack([NotNull] CompressedWord[] words, int size, int highest)
+		internal static MutableSlice Pack([NotNull] CompressedWord[] words, int size, int highest)
 		{
 			Contract.Requires(size >= 0 && size <= words.Length);
 
 			if (size == 0)
 			{ // empty bitmap
-				return Slice.Empty;
+				return MutableSlice.Empty;
 			}
 
 			var writer = new SliceWriter(checked((size + 1) << 2));
@@ -422,7 +417,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			{
 				writer.WriteFixed32(words[i].RawValue);
 			}
-			return writer.ToSlice();
+			return writer.ToMutableSlice();
 		}
 
 		[NotNull]

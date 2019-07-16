@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Converters.Tests
+namespace Doxense.Collections.Tuples.Tests
 {
 	using System;
 	using Doxense.Collections.Tuples;
@@ -36,7 +36,7 @@ namespace FoundationDB.Client.Converters.Tests
 	using NUnit.Framework;
 
 	[TestFixture]
-	public class TypeCodecFacts : FdbTest
+	public class TupleTypeCodecFacts : FdbTest
 	{
 
 		[Test]

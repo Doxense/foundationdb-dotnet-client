@@ -98,7 +98,7 @@ namespace FoundationDB.Client.Native
 
 		#region Options...
 
-		public void SetOption(FdbTransactionOption option, Slice data)
+		public void SetOption(FdbTransactionOption option, ReadOnlySpan<byte> data)
 		{
 			Fdb.EnsureNotOnNetworkThread();
 
@@ -106,7 +106,7 @@ namespace FoundationDB.Client.Native
 			{
 				fixed (byte* ptr = data)
 				{
-					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr, data.Count));
+					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr, data.Length));
 				}
 			}
 		}
@@ -160,7 +160,7 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
-		public Task<Slice> GetAsync(in ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct)
+		public Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
@@ -339,7 +339,7 @@ namespace FoundationDB.Client.Native
 
 		#region Writing...
 
-		public void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
+		public void Set(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			FdbNative.TransactionSet(m_handle, key, value);
 
@@ -348,7 +348,7 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, key.Length + value.Length + 28);
 		}
 
-		public void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType type)
+		public void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
 		{
 			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);
 
@@ -357,21 +357,21 @@ namespace FoundationDB.Client.Native
 
 		}
 
-		public void Clear(in ReadOnlySpan<byte> key)
+		public void Clear(ReadOnlySpan<byte> key)
 		{
 			FdbNative.TransactionClear(m_handle, key);
 			// The key is converted to range [key, key.'\0'), and there is an overhead of 28-byte per operation
 			Interlocked.Add(ref m_payloadBytes, (key.Length * 2) + 28 + 1);
 		}
 
-		public void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive)
+		public void ClearRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
 			// There is an overhead of 28-byte per operation
 			Interlocked.Add(ref m_payloadBytes, beginKeyInclusive.Length + endKeyExclusive.Length + 28);
 		}
 
-		public void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
+		public void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			FdbError err = FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
 			Fdb.DieOnError(err);
@@ -387,11 +387,11 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
 			Fdb.DieOnError(err);
-			Contract.Ensures(result != null); // can only be null in case of an errror
+			Contract.Ensures(result != null); // can only be null in case of an error
 			return result;
 		}
 
-		public Task<string[]> GetAddressesForKeyAsync(in ReadOnlySpan<byte> key, CancellationToken ct)
+		public Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
 			return FdbFuture.CreateTaskFromHandle(
@@ -407,7 +407,7 @@ namespace FoundationDB.Client.Native
 
 		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
-			var future = FdbNative.TransactionWatch(m_handle, key);
+			var future = FdbNative.TransactionWatch(m_handle, key.Span);
 			return new FdbWatch(
 				FdbFuture.FromHandle<Slice>(future, (h) => key, ct),
 				key

@@ -245,19 +245,18 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		{
 			var rnd = new Random();
 
-			Slice Compress(Slice input)
+			void Compress(Slice input)
 			{
 				Log($"IN  [{input.Count}] => {input}");
 
 				var writer = new CompressedBitmapWriter();
 				int r = WordAlignHybridEncoder.CompressTo(input, writer);
 
-				Slice compressed = writer.GetBuffer();
+				var compressed = writer.GetBuffer();
 				Log($"OUT [{compressed.Count}] => {compressed} [r={r}]");
 				var sb = new StringBuilder();
 				Log(WordAlignHybridEncoder.DumpCompressed(compressed).ToString());
 				Log();
-				return compressed;
 			}
 
 			Compress(Slice.FromString("This is a test of the emergency broadcast system"));

@@ -329,7 +329,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="value">String to convert (or null)</param>
 		/// <param name="nullTerminated">If true, adds a terminating \0 at the end (C-style strings)</param>
 		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
-		public static Slice ToNativeString(in ReadOnlySpan<char> value, bool nullTerminated)
+		public static Slice ToNativeString(ReadOnlySpan<char> value, bool nullTerminated)
 		{
 			if (value == null) return Slice.Nil;
 			if (value.Length == 0) return Slice.Empty;
@@ -595,13 +595,13 @@ namespace FoundationDB.Client.Native
 			return future;
 		}
 
-		public static FutureHandle TransactionWatch(TransactionHandle transaction, Slice key)
+		public static FutureHandle TransactionWatch(TransactionHandle transaction, ReadOnlySpan<byte> key)
 		{
-			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", nameof(key));
+			if (key.Length == 0) throw new ArgumentException("Key cannot be null or empty", nameof(key));
 
 			fixed (byte* ptrKey = key)
 			{
-				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey, key.Count);
+				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey, key.Length);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_watch(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
@@ -670,7 +670,7 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_future_get_version(future, out version);
 		}
 
-		public static FutureHandle TransactionGet(TransactionHandle transaction, in ReadOnlySpan<byte> key, bool snapshot)
+		public static FutureHandle TransactionGet(TransactionHandle transaction, ReadOnlySpan<byte> key, bool snapshot)
 		{
 			// the empty key is allowed !
 			fixed (byte* ptrKey = key)
@@ -717,7 +717,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, in ReadOnlySpan<byte> key)
+		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, ReadOnlySpan<byte> key)
 		{
 			if (key.Length == 0) throw new ArgumentException("Key cannot be null or empty", nameof(key));
 
@@ -804,7 +804,6 @@ namespace FoundationDB.Client.Native
 					long total = 0;
 					for (int i = 0; i < count; i++)
 					{
-						//TODO: protect against negative values or values too big ?
 						uint kl = kvp[i].KeyLength;
 						uint vl = kvp[i].ValueLength;
 						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
@@ -812,6 +811,7 @@ namespace FoundationDB.Client.Native
 						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
 						total += vl;
 					}
+					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of key/value data in a single batch!");
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
@@ -824,25 +824,20 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					var page = new byte[total];
-					fixed (byte* ptr = &page[0])
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
 					{
-						uint p = 0;
-						for (int i = 0; i < result.Length; i++)
-						{
-							uint kl = kvp[i].KeyLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-							Slice key = page.AsSlice(p, kl);
-							p += kl;
+						int kl = (int) kvp[i].KeyLength;
+						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						var key = page.AsSlice(p, kl);
+						p += kl;
 
-							uint vl = kvp[i].ValueLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
-							Slice value = page.AsSlice(p, vl);
-							p += vl;
+						int vl = (int) kvp[i].ValueLength;
+						new ReadOnlySpan<byte>(kvp[i].Value.ToPointer(), vl).CopyTo(page.AsSpan(p));
+						var value = page.AsSlice(p, vl);
+						p += vl;
 
-							result[i] = new KeyValuePair<Slice, Slice>(key, value);
-						}
-
-						Contract.Assert(p == total);
+						result[i] = new KeyValuePair<Slice, Slice>(key, value);
 					}
 				}
 			}
@@ -884,6 +879,7 @@ namespace FoundationDB.Client.Native
 						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
 						total += kl;
 					}
+					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of key data in a single batch!");
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
@@ -896,21 +892,18 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					var page = new byte[total];
-					fixed (byte* ptr = &page[0])
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
 					{
-						uint p = 0;
-						for (int i = 0; i < result.Length; i++)
-						{
-							uint kl = kvp[i].KeyLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-							Slice key = page.AsSlice(p, kl);
-							p += kl;
+						int kl = checked((int) kvp[i].KeyLength);
+						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						var key = page.AsSlice(p, kl);
+						p += kl;
 
-							result[i] = new KeyValuePair<Slice, Slice>(key, default);
-						}
-
-						Contract.Assert(p == total);
+						result[i] = new KeyValuePair<Slice, Slice>(key, default);
 					}
+
+					Contract.Assert(p == total);
 				}
 			}
 
@@ -957,6 +950,7 @@ namespace FoundationDB.Client.Native
 						if (i == 0 || i == end) total += kl;
 						total += vl;
 					}
+					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of value data in a single batch!");
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
@@ -969,33 +963,28 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					var page = new byte[total];
-					fixed (byte* ptr = &page[0])
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
 					{
-						uint p = 0;
-						for (int i = 0; i < result.Length; i++)
+						// note: even if we only read the values, we still need to keep the first and last keys,
+						// because we will need them for pagination when reading multiple ranges (ex: last key will be used as selector for next chunk when going forward)
+						if (i == 0 || i == end)
 						{
-							// note: even if we only read the values, we still need to keep the first and last keys,
-							// because we will need them for pagination when reading multiple ranges (ex: last key will be used as selector for next chunk when going forward)
-							if (i == 0 || i == end)
-							{
-								uint kl = kvp[i].KeyLength;
-								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-								Slice key = page.AsSlice(p, kl);
-								p += kl;
-								if (i == 0) first = key;
-								if (i == end) last = key;
-							}
-
-							uint vl = kvp[i].ValueLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
-							Slice value = page.AsSlice(p, vl);
-							p += vl;
-
-							result[i] = new KeyValuePair<Slice, Slice>(default, value);
+							int kl = checked((int) kvp[i].KeyLength);
+							new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+							var key = page.AsSlice(p, kl);
+							p += kl;
+							if (i == 0) first = key; else last = key;
 						}
 
-						Contract.Assert(p == total);
+						int vl = checked((int) kvp[i].ValueLength);
+						new ReadOnlySpan<byte>(kvp[i].Value.ToPointer(), vl).CopyTo(page.AsSpan(p));
+						var value = page.AsSlice(p, vl);
+						p += vl;
+
+						result[i] = new KeyValuePair<Slice, Slice>(default, value);
 					}
+					Contract.Assert(p == total);
 				}
 			}
 
@@ -1048,15 +1037,16 @@ namespace FoundationDB.Client.Native
 
 			if (keyLength != 10 || ptr == null)
 			{
+				//REVIEW: should we fail if len != 10? (would meed some MAJOR change in the fdb C API?)
 				stamp = default;
 				return err;
 			}
 
-			VersionStamp.ReadUnsafe(ptr, 10, out stamp);
+			VersionStamp.ReadUnsafe(new ReadOnlySpan<byte>(ptr, 10), out stamp);
 			return err;
 		}
 
-		public static void TransactionSet(TransactionHandle transaction, in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value)
+		public static void TransactionSet(TransactionHandle transaction, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			fixed (byte* pKey = key)
 			fixed (byte* pValue = value)
@@ -1068,7 +1058,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static void TransactionAtomicOperation(TransactionHandle transaction, in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType operationType)
+		public static void TransactionAtomicOperation(TransactionHandle transaction, ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType operationType)
 		{
 			fixed (byte* pKey = key)
 			fixed (byte* pParam = param)
@@ -1080,7 +1070,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static void TransactionClear(TransactionHandle transaction, in ReadOnlySpan<byte> key)
+		public static void TransactionClear(TransactionHandle transaction, ReadOnlySpan<byte> key)
 		{
 			fixed (byte* pKey = key)
 			{
@@ -1091,7 +1081,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static void TransactionClearRange(TransactionHandle transaction, in ReadOnlySpan<byte> beginKey, in ReadOnlySpan<byte> endKey)
+		public static void TransactionClearRange(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 		{
 			fixed (byte* pBeginKey = beginKey)
 			fixed (byte* pEndKey = endKey)
@@ -1103,7 +1093,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, in ReadOnlySpan<byte> beginKey, in ReadOnlySpan<byte> endKey, FdbConflictRangeType type)
+		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, FdbConflictRangeType type)
 		{
 			fixed (byte* pBeginKey = beginKey)
 			fixed (byte* pEndKey = endKey)

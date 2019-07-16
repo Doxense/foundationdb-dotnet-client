@@ -251,11 +251,11 @@ namespace FdbShell
 			}
 
 			object key = extras[0];
-			Slice k = MakeKey(folder, key);
+			var k = MakeKey(folder, key);
 
 			Program.Comment(log, "# Reading key: " + k.ToString("K"));
 
-			Slice v = await db.ReadWriteAsync(tr =>tr.GetAsync(k), ct);
+			var v = await db.ReadWriteAsync(tr =>tr.GetAsync(k), ct);
 
 			if (v.IsNull)
 			{
@@ -377,7 +377,7 @@ namespace FdbShell
 			}
 
 			object key = extras[0];
-			Slice k = MakeKey(folder, key);
+			var k = MakeKey(folder, key);
 
 			bool empty = await db.ReadWriteAsync(async tr =>
 			{

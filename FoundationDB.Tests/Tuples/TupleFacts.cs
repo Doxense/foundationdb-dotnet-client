@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Tests
 {
 	using System;
+	using System.Globalization;
 	using System.Linq;
 	using System.Net;
 	using Doxense.Collections.Tuples.Encoding;
@@ -361,7 +362,16 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tn.Get<bool>(6), Is.True);
 			Assert.That(tn.Get<double>(7), Is.EqualTo(Math.PI));
 			Assert.That(tn.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI }));
-			Assert.That(tn.ToString(), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", true, 3.1415926535897931)"));
+
+			//note: ToString("R")'s behavior is slightly different between NETFX and .NET Core!
+			// - .NET Core now returns the shortest string that will roundtrip back to the original, while NETFX may use more characters
+			// - In the case of Math.PI, NETFX will output "3.1415926535897931" while .NET Core will output "3.141592653589793"
+			// - Both strings, once parsed back into a double, will return the exacte same double which will be == Math.PI, so the differences is only "costmetic"!
+			// => this still mean that depending on the framework used by the unit test, we have to tweak the expected textual representation at runtime
+			string pi = Math.PI.ToString("R", CultureInfo.InvariantCulture);
+			Assume.That(double.Parse(pi, CultureInfo.InvariantCulture), Is.EqualTo(Math.PI), "Something is wrong with double roundtripping on the selected framework!");
+
+			Assert.That(tn.ToString(), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", true, " + pi + ")"));
 			Assert.That(tn, Is.InstanceOf<ListTuple>());
 
 			{ // Deconstruct
@@ -1720,7 +1730,7 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 			const int N = 100 * 1000;
 
-			Slice FUNKY_ASCII = Slice.FromAscii("bonjour\x00le\x00\xFFmonde");
+			var FUNKY_ASCII = Slice.FromAscii("bonjour\x00le\x00\xFFmonde");
 			string FUNKY_STRING = "hello\x00world";
 			string UNICODE_STRING = "héllø 世界";
 

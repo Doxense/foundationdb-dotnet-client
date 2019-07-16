@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples.Tests
+namespace FoundationDB.Client.Tests
 {
 	using System;
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 
 	[TestFixture]
-	public class SubspaceFacts : FdbTest
+	public class KeySubspaceFacts : FdbTest
 	{
 
 		[Test]

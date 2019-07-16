@@ -110,13 +110,13 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte) value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.Output.WriteBytes(TupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteBytes(TupleTypes.IntNeg1, (byte) (255 + value));
 					return;
 				}
 			}
@@ -145,13 +145,13 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte) value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.Output.WriteBytes(TupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteBytes(TupleTypes.IntNeg1, (byte) (255 + value));
 					return;
 				}
 			}
@@ -251,7 +251,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 				else
 				{ // 1..255
-					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteBytes(TupleTypes.IntPos1, (byte) value);
 				}
 			}
 			else
@@ -324,15 +324,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			{ // postive
 				bits |= 0x80000000U;
 			}
-			writer.Output.EnsureBytes(5);
-			var buffer = writer.Output.Buffer;
-			int p = writer.Output.Position;
-			buffer[p + 0] = TupleTypes.Single;
-			buffer[p + 1] = (byte)(bits >> 24);
-			buffer[p + 2] = (byte)(bits >> 16);
-			buffer[p + 3] = (byte)(bits >> 8);
-			buffer[p + 4] = (byte)(bits);
-			writer.Output.Position = p + 5;
+			var buffer = writer.Output.Allocate(5);
+			buffer[0] = TupleTypes.Single;
+			buffer[1] = (byte)(bits >> 24);
+			buffer[2] = (byte)(bits >> 16);
+			buffer[3] = (byte)(bits >> 8);
+			buffer[4] = (byte)(bits);
 		}
 
 
@@ -367,19 +364,16 @@ namespace Doxense.Collections.Tuples.Encoding
 			{ // postive
 				bits |= 0x8000000000000000UL;
 			}
-			writer.Output.EnsureBytes(9);
-			var buffer = writer.Output.Buffer;
-			int p = writer.Output.Position;
-			buffer[p] = TupleTypes.Double;
-			buffer[p + 1] = (byte)(bits >> 56);
-			buffer[p + 2] = (byte)(bits >> 48);
-			buffer[p + 3] = (byte)(bits >> 40);
-			buffer[p + 4] = (byte)(bits >> 32);
-			buffer[p + 5] = (byte)(bits >> 24);
-			buffer[p + 6] = (byte)(bits >> 16);
-			buffer[p + 7] = (byte)(bits >> 8);
-			buffer[p + 8] = (byte)(bits);
-			writer.Output.Position = p + 9;
+			var buffer = writer.Output.AllocateSpan(9);
+			buffer[0] = TupleTypes.Double;
+			buffer[1] = (byte)(bits >> 56);
+			buffer[2] = (byte)(bits >> 48);
+			buffer[3] = (byte)(bits >> 40);
+			buffer[4] = (byte)(bits >> 32);
+			buffer[5] = (byte)(bits >> 24);
+			buffer[6] = (byte)(bits >> 16);
+			buffer[7] = (byte)(bits >> 8);
+			buffer[8] = (byte)(bits);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -538,7 +532,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				encoder.Convert(ptr, remaining, buf, bufLen, true, out int charsUsed, out int bytesUsed, out done);
 				if (bytesUsed > 0)
 				{
-					writer.Output.WriteBytes(buf, (uint) bytesUsed);
+					writer.Output.WriteBytes(new ReadOnlySpan<byte>(buf, bytesUsed));
 				}
 				remaining -= charsUsed;
 				ptr += charsUsed;
@@ -577,7 +571,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				var tmp = Encoding.UTF8.GetBytes(new string(value, 1));
 				writer.Output.EnsureBytes(tmp.Length + 2);
 				writer.Output.UnsafeWriteByte(TupleTypes.Utf8);
-				writer.Output.UnsafeWriteBytes(tmp, 0, tmp.Length);
+				writer.Output.UnsafeWriteBytes(tmp.AsSpan());
 				writer.Output.UnsafeWriteByte(0x00);
 			}
 		}
@@ -597,14 +591,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			else
 			{
-				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.AsSpan());
 			}
 		}
 
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref TupleWriter writer, [NotNull] byte[] value, int offset, int count)
 		{
-			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value, offset, count);
+			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.AsSpan(offset, count));
 		}
 
 		/// <summary>Writes a binary string</summary>
@@ -616,7 +610,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 			else
 			{
-				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array, value.Offset, value.Count);
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.AsSpan());
 			}
 		}
 
@@ -627,63 +621,35 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				WriteNil(ref writer);
 			}
-			else if (value.Offset == 0 && value.Count == value.Array.Length)
+			else
 			{
-				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array);
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Span);
+			}
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(ref TupleWriter writer, MutableSlice value)
+		{
+			if (value.IsNull)
+			{
+				WriteNil(ref writer);
 			}
 			else
 			{
-				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Array, value.Offset, value.Count);
+				WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Span);
 			}
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, [NotNull] byte[] value, int offset, int count)
-		{
-			int n = count;
-
-			// we need to know if there are any NUL chars (\0) that need escaping...
-			// (we will also need to add 1 byte to the buffer size per NUL)
-			for (int i = offset, end = offset + count; i < end; ++i)
-			{
-				if (value[i] == 0) ++n;
-				//TODO: optimize this!
-			}
-
-			writer.Output.EnsureBytes(n + 2);
-			var buffer = writer.Output.Buffer;
-			int p = writer.Output.Position;
-			buffer[p++] = type;
-			if (n > 0)
-			{
-				if (n == count)
-				{ // no NULs in the string, can copy all at once
-					UnsafeHelpers.CopyUnsafe(buffer, p, value, offset, n);
-					p += n;
-				}
-				else
-				{ // we need to escape all NULs
-					for(int i = offset, end = offset + count; i < end; ++i)
-					{
-						//TODO: optimize this!
-						byte b = value[i];
-						buffer[p++] = b;
-						if (b == 0) buffer[p++] = 0xFF;
-					}
-				}
-			}
-			buffer[p] = 0x00;
-			writer.Output.Position = p + 1;
-		}
-
-		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		private static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, [NotNull] byte[] value)
+		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, [NotNull] ReadOnlySpan<byte> value)
 		{
 			int n = value.Length;
+
 			// we need to know if there are any NUL chars (\0) that need escaping...
 			// (we will also need to add 1 byte to the buffer size per NUL)
-			foreach (byte b in value)
+			foreach(var b in value)
 			{
+				//TODO: optimize this!
 				if (b == 0) ++n;
 			}
 
@@ -695,29 +661,30 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				if (n == value.Length)
 				{ // no NULs in the string, can copy all at once
-					UnsafeHelpers.CopyUnsafe(buffer, p, value, 0, n);
+					value.CopyTo(buffer.AsSpan(p));
 					p += n;
 				}
 				else
 				{ // we need to escape all NULs
-					foreach (byte b in value)
+					foreach(var b in value)
 					{
+						//TODO: optimize this!
 						buffer[p++] = b;
 						if (b == 0) buffer[p++] = 0xFF;
 					}
 				}
 			}
-			buffer[p++] = 0x00;
-			writer.Output.Position = p;
+			buffer[p] = 0x00;
+			writer.Output.Position = p + 1;
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
 		public static void WriteGuid(ref TupleWriter writer, in Guid value)
 		{
-			writer.Output.EnsureBytes(17);
-			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
+			var span = writer.Output.AllocateSpan(17);
+			span[0] = TupleTypes.Uuid128;
 			// Guids should be stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid (handled by Uuid128)
-			writer.Output.UnsafeWriteUuid128(new Uuid128(value));
+			new Uuid128(value).WriteToUnsafe(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -729,9 +696,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
 		public static void WriteUuid128(ref TupleWriter writer, in Uuid128 value)
 		{
-			writer.Output.EnsureBytes(17);
-			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
-			writer.Output.UnsafeWriteUuid128(value);
+			var span = writer.Output.AllocateSpan(17);
+			span[0] = TupleTypes.Uuid128;
+			value.WriteToUnsafe(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -743,9 +710,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a 96-bit UUID</summary>
 		public static void WriteUuid96(ref TupleWriter writer, in Uuid96 value)
 		{
-			writer.Output.EnsureBytes(11);
-			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
-			writer.Output.UnsafeWriteUuid96(value);
+			var span = writer.Output.AllocateSpan(13);
+			span[0] = TupleTypes.VersionStamp96;
+			value.WriteTo(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -757,9 +724,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a 80-bit UUID</summary>
 		public static void WriteUuid80(ref TupleWriter writer, in Uuid80 value)
 		{
-			writer.Output.EnsureBytes(11);
-			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
-			writer.Output.UnsafeWriteUuid80(value);
+			var span = writer.Output.AllocateSpan(11);
+			span[0] = TupleTypes.VersionStamp80;
+			value.WriteToUnsafe(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -771,9 +738,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a 64-bit UUID</summary>
 		public static void WriteUuid64(ref TupleWriter writer, Uuid64 value)
 		{
-			writer.Output.EnsureBytes(9);
-			writer.Output.UnsafeWriteByte(TupleTypes.Uuid64);
-			writer.Output.UnsafeWriteUuid64(value);
+			var span = writer.Output.AllocateSpan(9);
+			span[0] = TupleTypes.Uuid64;
+			value.WriteToUnsafe(span.Slice(1));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -786,15 +753,15 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			if (value.HasUserVersion)
 			{ // 96-bits Versionstamp
-				writer.Output.EnsureBytes(13);
-				writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
-				value.WriteTo(writer.Output.Allocate(12));
+				var span = writer.Output.AllocateSpan(13);
+				span[0] = TupleTypes.VersionStamp96;
+				value.WriteToUnsafe(span.Slice(1));
 			}
 			else
 			{ // 80-bits Versionstamp
-				writer.Output.EnsureBytes(11);
-				writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
-				value.WriteTo(writer.Output.Allocate(10));
+				var span = writer.Output.AllocateSpan(11);
+				span[0] = TupleTypes.VersionStamp80;
+				value.WriteToUnsafe(span.Slice(1));
 			}
 		}
 
@@ -820,8 +787,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			else
 			{
 				writer.Output.EnsureBytes(checked(1 + arg.Count));
-				writer.Output.WriteByte(value.Type);
-				writer.Output.WriteBytes(in arg);
+				writer.Output.UnsafeWriteByte((byte) value.Type);
+				writer.Output.UnsafeWriteBytes(arg);
 			}
 		}
 
@@ -887,8 +854,6 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		internal static bool TryUnescapeByteString(ReadOnlySpan<byte> buffer, Span<byte> output, out int bytesWritten)
 		{
-			var tmp = new byte[buffer.Length];
-
 			int p = 0;
 			for(int i = 0; i < buffer.Length; i++)
 			{
@@ -900,7 +865,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 
 				if (p >= output.Length) goto too_small;
-				tmp[p++] = b;
+				output[p++] = b;
 			}
 
 			bytesWritten = p;
@@ -917,7 +882,19 @@ namespace Doxense.Collections.Tuples.Encoding
 			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
-			return UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
+			var chunk = slice.Substring(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return chunk;
+			}
+
+			var span = new byte[chunk.Count];
+			if (!TryUnescapeByteString(chunk, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+
+			return span.AsSlice(0, written);
 		}
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
@@ -929,28 +906,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (slice.Count <= 2) return string.Empty;
 
 #if USE_SPAN_API
-			var chunk = slice.AsSpan(1, slice.Count - 2);
+			var chunk = slice.Substring(1, slice.Count - 2).Span;
 			if (!ShouldUnescapeByteString(chunk))
 			{
 				return Encoding.Default.GetString(chunk);
 			}
-
 			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
+#else
+			var chunk = slice.Substring(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Encoding.Default.GetString(chunk.Array, chunk.Offset, chunk.Count);
+			}
+			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
+#endif
 			if (!TryUnescapeByteString(chunk, span, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
-			string s = Encoding.Default.GetString(span.AsSpan(0, written));
+			string s = Encoding.Default.GetString(span, 0, written);
 			ArrayPool<byte>.Shared.Return(span);
 			return s;
-#else
-			var chunk = slice.Substring(1, slice.Count - 2);
-			if (ShouldUnescapeByteString(chunk))
-			{
-				chunk = UnescapeByteStringSlow(chunk);
-			}
-			return Encoding.Default.GetString(chunk);
-#endif
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
@@ -962,25 +938,27 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (slice.Count <= 2) return String.Empty;
 
 #if USE_SPAN_API
-			var chunk = slice.AsSpan(1, slice.Count - 2);
+			var chunk = slice.Substring(1, slice.Count - 2).Span;
 			if (!ShouldUnescapeByteString(chunk))
 			{
 				return Encoding.UTF8.GetString(chunk);
 			}
-
 			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
+#else
+			var chunk = slice.Substring(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk))
+			{
+				return Encoding.UTF8.GetString(chunk.Array, chunk.Offset, chunk.Count);
+			}
+			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
+#endif
 			if (!TryUnescapeByteString(chunk, span, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
-			string s = Encoding.UTF8.GetString(span.AsSpan(0, written));
+			string s = Encoding.UTF8.GetString(span, 0, written);
 			ArrayPool<byte>.Shared.Return(span);
 			return s;
-#else
-			//TODO: check args
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
-#endif
 		}
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
@@ -1127,9 +1105,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			return VersionStamp.Parse(slice.Substring(1));
 		}
 
-#endregion
+		#endregion
 
-#region Parsing...
+		#region Parsing...
 
 		/// <summary>Decode the next token from a packed tuple</summary>
 		/// <param name="reader">Parser from which to read the next token</param>
@@ -1318,9 +1296,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			throw new FormatException("Old style embedded tuples (0x03) are not supported anymore.");
 		}
 
-#endregion
+		#endregion
 
-#region Bits Twiddling...
+		#region Bits Twiddling...
 
 		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
 		private static readonly int[] MultiplyDeBruijnBitPosition = new int[32]
@@ -1375,7 +1353,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return MultiplyDeBruijnBitPosition[r];
 		}
 
-#endregion
+		#endregion
 
 	}
 }

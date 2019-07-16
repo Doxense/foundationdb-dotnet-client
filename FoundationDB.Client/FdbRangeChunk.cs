@@ -120,7 +120,7 @@ namespace FoundationDB.Client
 
 		public void CopyTo(KeyValuePair<Slice, Slice>[] array, int offset)
 		{
-			this.Items.CopyTo(array, 0);
+			this.Items.CopyTo(array, offset);
 		}
 
 		public ChunkEnumerator GetEnumerator()

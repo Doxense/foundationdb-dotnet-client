@@ -291,7 +291,7 @@ namespace FoundationDB.Layers.Collections
 
 			var prevKey = this.Subspace.Keys.DecodeLast<Slice>(kv.Key);
 			trans.AddReadConflictRange(kv.Key + FdbKey.MinValue, k);
-			trans.AddReadConflictKey(this.Subspace.Keys.Encode(0, (Slice)prevKey));
+			trans.AddReadConflictKey(this.Subspace.Keys.Encode(0, prevKey));
 			return prevKey;
 		}
 

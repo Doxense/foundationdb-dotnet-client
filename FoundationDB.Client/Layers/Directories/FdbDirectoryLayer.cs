@@ -924,7 +924,7 @@ namespace FoundationDB.Layers.Directories
 
 			var n = this.RootNode;
 			int i = 0;
-			Slice layer = Slice.Nil;
+			var layer = Slice.Nil;
 			while (i < path.Count)
 			{
 				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Looking for child {0} under node {1}...", path.Get<string>(i), n.GetPrefix());

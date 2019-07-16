@@ -204,7 +204,7 @@ namespace FoundationDB.Filters.Logging
 
 			public virtual string ToString(KeyResolver resolver)
 			{
-				resolver = resolver ?? KeyResolver.Default;
+				resolver ??= KeyResolver.Default;
 				var arg = GetArguments(resolver);
 				var res = GetResult(resolver);
 				var sb = new StringBuilder(255);
@@ -315,7 +315,7 @@ namespace FoundationDB.Filters.Logging
 					// look for a tuple of size 3 with 0 as the second element...
 					if (t.Count != 3 || t.Get<int>(1) != 0) continue;
 
-					//Slice parent = t.Get<Slice>(0); //TODO: use this to construct the full materialized path of this directory? (would need more than one pass)
+					//var parent = t.Get<Slice>(0); //TODO: use this to construct the full materialized path of this directory? (would need more than one pass)
 					string name = t.Get<string>(2);
 
 					map[entry.Value] = name;

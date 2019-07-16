@@ -78,7 +78,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Log("> Pop empty: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
-					await vector.PushAsync(tr, Slice.FromString("foo"));
+					await vector.PushAsync(tr, Value("foo"));
 					Log("> Pop size 1: " + await vector.PopAsync(tr));
 					await PrintVector(vector, tr);
 
@@ -94,12 +94,12 @@ namespace FoundationDB.Layers.Collections.Tests
 					Log("> Size: " + await vector.SizeAsync(tr));
 
 					Log("Settings values");
-					vector.Set(tr, 0, Slice.FromString("Portez"));
-					vector.Set(tr, 1, Slice.FromString("ce vieux"));
-					vector.Set(tr, 2, Slice.FromString("whisky"));
-					vector.Set(tr, 3, Slice.FromString("au juge"));
-					vector.Set(tr, 4, Slice.FromString("blond qui"));
-					vector.Set(tr, 5, Slice.FromString("fume"));
+					vector.Set(tr, 0, Value("Portez"));
+					vector.Set(tr, 1, Value("ce vieux"));
+					vector.Set(tr, 2, Value("whisky"));
+					vector.Set(tr, 3, Value("au juge"));
+					vector.Set(tr, 4, Value("blond qui"));
+					vector.Set(tr, 5, Value("fume"));
 					await PrintVector(vector, tr);
 
 					Log("FRONT");
@@ -145,7 +145,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Log("> Size: " + await vector.SizeAsync(tr));
 
 					Log("> Adding 'word' to index 10, resize to 25");
-					vector.Set(tr, 10, Slice.FromString("word"));
+					vector.Set(tr, 10, Value("word"));
 					await vector.ResizeAsync(tr, 25);
 					await PrintVector(vector, tr);
 					Log("> Size: " + await vector.SizeAsync(tr));

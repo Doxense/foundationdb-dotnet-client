@@ -55,8 +55,8 @@ namespace FoundationDB.Linq.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Keys.Encode("Hello"), Slice.FromString("World!"));
-					tr.Set(location.Keys.Encode("Narf"), Slice.FromString("Zort"));
+					tr.Set(location.Keys.Encode("Hello"), Value("World!"));
+					tr.Set(location.Keys.Encode("Narf"), Value("Zort"));
 				}, this.Cancellation);
 
 				var range = db.Query().RangeStartsWith(location.GetPrefix());

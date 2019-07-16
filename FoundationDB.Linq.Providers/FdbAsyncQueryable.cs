@@ -33,7 +33,6 @@ namespace FoundationDB.Linq
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Async;
 	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;

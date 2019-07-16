@@ -103,7 +103,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			Slice k = this.Subspace.Keys[key, value];
+			var k = this.Subspace.Keys[key, value];
 			if (this.AllowNegativeValues)
 			{
 				trans.AtomicDecrement64(k);
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections
 			}
 			else
 			{
-				Slice v = await trans.GetAsync(k).ConfigureAwait(false);
+				var v = await trans.GetAsync(k).ConfigureAwait(false);
 				if (this.AllowNegativeValues || v.ToInt64() > 1) //note: Slice.Nil.ToInt64() will return 0
 				{
 					trans.AtomicDecrement64(k);
@@ -145,7 +145,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			Slice v = await trans.GetAsync(this.Subspace.Keys[key, value]).ConfigureAwait(false);
+			var v = await trans.GetAsync(this.Subspace.Keys[key, value]).ConfigureAwait(false);
 			if (v.IsNullOrEmpty) return null;
 			long c = v.ToInt64();
 			return this.AllowNegativeValues || c > 0 ? c : default(long?);

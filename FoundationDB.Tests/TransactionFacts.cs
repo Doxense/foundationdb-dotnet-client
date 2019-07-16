@@ -227,7 +227,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Keys.Encode(1), Slice.FromString("hello"));
+					tr.Set(location.Keys.Encode(1), Value("hello"));
 					tr.Cancel();
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(
@@ -350,7 +350,7 @@ namespace FoundationDB.Client.Tests
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Keys.Encode("hello"), Slice.FromString("World!"));
+					tr.Set(location.Keys.Encode("hello"), Value("World!"));
 					tr.Set(location.Keys.Encode("timestamp"), Slice.FromInt64(ticks));
 					tr.Set(location.Keys.Encode("blob"), new byte[] { 42, 123, 7 }.AsSlice());
 
@@ -403,12 +403,12 @@ namespace FoundationDB.Client.Tests
 					// - (test,) + \0
 					// - (test, 0) .. (test, 19)
 					// - (test,) + \xFF
-					tr.Set(minKey, Slice.FromString("min"));
+					tr.Set(minKey, Value("min"));
 					for (int i = 0; i < 20; i++)
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromString(i.ToString()));
+						tr.Set(location.Keys.Encode(i), Value(i.ToString()));
 					}
-					tr.Set(maxKey, Slice.FromString("max"));
+					tr.Set(maxKey, Value("max"));
 					await tr.CommitAsync();
 				}
 				#endregion
@@ -553,7 +553,7 @@ namespace FoundationDB.Client.Tests
 				{
 					for (int i = 0; i < ids.Length; i++)
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromString("#" + i.ToString()));
+						tr.Set(location.Keys.Encode(i), Value("#" + i.ToString()));
 					}
 					await tr.CommitAsync();
 				}
@@ -600,12 +600,12 @@ namespace FoundationDB.Client.Tests
 					// - (test,) + \0
 					// - (test, 0) .. (test, N-1)
 					// - (test,) + \xFF
-					tr.Set(minKey, Slice.FromString("min"));
+					tr.Set(minKey, Value("min"));
 					for (int i = 0; i < 20; i++)
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromString(i.ToString()));
+						tr.Set(location.Keys.Encode(i), Value(i.ToString()));
 					}
-					tr.Set(maxKey, Slice.FromString("max"));
+					tr.Set(maxKey, Value("max"));
 					await tr.CommitAsync();
 				}
 				#endregion
@@ -978,12 +978,12 @@ namespace FoundationDB.Client.Tests
 				// execute
 				await db.WriteAsync((tr) =>
 				{
-					tr.AtomicAppendIfFits(location.Keys.Encode("AAA"), Slice.FromString("Hello, World!"));
-					tr.AtomicAppendIfFits(location.Keys.Encode("BBB"), Slice.FromString("Hello"));
-					tr.AtomicAppendIfFits(location.Keys.Encode("BBB"), Slice.FromString(", World!"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("AAA"), Value("Hello, World!"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("BBB"), Value("Hello"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("BBB"), Value(", World!"));
 					tr.AtomicAppendIfFits(location.Keys.Encode("CCC"), Slice.Repeat('c', 10_000)); // should just fit exactly!
-					tr.AtomicAppendIfFits(location.Keys.Encode("DDD"), Slice.FromString("!")); // should not fit!
-					tr.AtomicAppendIfFits(location.Keys.Encode("EEE"), Slice.FromString("Hello, World!"));
+					tr.AtomicAppendIfFits(location.Keys.Encode("DDD"), Value("!")); // should not fit!
+					tr.AtomicAppendIfFits(location.Keys.Encode("EEE"), Value("Hello, World!"));
 				}, this.Cancellation);
 
 				// check
@@ -1012,8 +1012,8 @@ namespace FoundationDB.Client.Tests
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Keys.Encode("hello"), Slice.FromString("World!"));
-					tr.Set(location.Keys.Encode("foo"), Slice.FromString("bar"));
+					tr.Set(location.Keys.Encode("hello"), Value("World!"));
+					tr.Set(location.Keys.Encode("foo"), Value("bar"));
 				}, this.Cancellation);
 
 				// read them using snapshot
@@ -1076,7 +1076,7 @@ namespace FoundationDB.Client.Tests
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					tr.Set(db.Keys.Encode("foo"), Slice.FromString("bar"));
+					tr.Set(db.Keys.Encode("foo"), Value("bar"));
 
 					// until the transaction commits, the committed version should still be -1
 					ver = tr.GetCommittedVersion();
@@ -1104,7 +1104,7 @@ namespace FoundationDB.Client.Tests
 					// take the read version (to compare with the committed version below)
 					long rv1 = await tr.GetReadVersionAsync();
 					// do something and commit
-					tr.Set(db.Keys.Encode("foo"), Slice.FromString("bar"));
+					tr.Set(db.Keys.Encode("foo"), Value("bar"));
 					await tr.CommitAsync();
 					long cv1 = tr.GetCommittedVersion();
 					Log($"COMMIT: {rv1} / {cv1}");
@@ -1143,7 +1143,7 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Keys.Encode("foo"), Slice.FromString("foo"));
+					tr.Set(location.Keys.Encode("foo"), Value("foo"));
 				}, this.Cancellation);
 
 				using (var trA = db.BeginTransaction(this.Cancellation))
@@ -1151,10 +1151,10 @@ namespace FoundationDB.Client.Tests
 				{
 					// regular read
 					var foo = await trA.GetAsync(location.Keys.Encode("foo"));
-					trA.Set(location.Keys.Encode("foo"), Slice.FromString("bar"));
+					trA.Set(location.Keys.Encode("foo"), Value("bar"));
 
 					// this will conflict with our read
-					trB.Set(location.Keys.Encode("foo"), Slice.FromString("bar"));
+					trB.Set(location.Keys.Encode("foo"), Value("bar"));
 					await trB.CommitAsync();
 
 					// should fail with a "not_comitted" error
@@ -1181,7 +1181,7 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Keys.Encode("foo"), Slice.FromString("foo"));
+					tr.Set(location.Keys.Encode("foo"), Value("foo"));
 				}, this.Cancellation);
 
 				using (var trA = db.BeginTransaction(this.Cancellation))
@@ -1189,10 +1189,10 @@ namespace FoundationDB.Client.Tests
 				{
 					// reading with snapshot mode should not conflict
 					var foo = await trA.Snapshot.GetAsync(location.Keys.Encode("foo"));
-					trA.Set(location.Keys.Encode("foo"), Slice.FromString("bar"));
+					trA.Set(location.Keys.Encode("foo"), Value("bar"));
 
 					// this would normally conflicts with the previous read if it wasn't a snapshot read
-					trB.Set(location.Keys.Encode("foo"), Slice.FromString("bar"));
+					trB.Set(location.Keys.Encode("foo"), Value("bar"));
 					await trB.CommitAsync();
 
 					// should succeed
@@ -1213,7 +1213,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
 
 				// we will read the first key from [0, 100), expected 50
@@ -1231,7 +1231,7 @@ namespace FoundationDB.Client.Tests
 					// 42 < 50 > conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 42), Slice.FromString("forty-two"));
+						tr2.Set(loc.Keys.Encode("foo", 42), Value("forty-two"));
 						await tr2.CommitAsync();
 					}
 
@@ -1248,7 +1248,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1262,7 +1262,7 @@ namespace FoundationDB.Client.Tests
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromString("docm"));
+						tr2.Set(loc.Keys.Encode("foo", 77), Value("docm"));
 						await tr2.CommitAsync();
 					}
 
@@ -1287,7 +1287,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
 
 				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
@@ -1301,7 +1301,7 @@ namespace FoundationDB.Client.Tests
 					// 42 < 50 => conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 42), Slice.FromString("forty-two"));
+						tr2.Set(loc.Keys.Encode("foo", 42), Value("forty-two"));
 						await tr2.CommitAsync();
 					}
 
@@ -1316,7 +1316,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1328,7 +1328,7 @@ namespace FoundationDB.Client.Tests
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromString("docm"));
+						tr2.Set(loc.Keys.Encode("foo", 77), Value("docm"));
 						await tr2.CommitAsync();
 					}
 
@@ -1344,8 +1344,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
-					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromString("one hundred"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 100), Value("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1357,7 +1357,7 @@ namespace FoundationDB.Client.Tests
 					// 77 between 50 and 100 => conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 77), Slice.FromString("docm"));
+						tr2.Set(loc.Keys.Encode("foo", 77), Value("docm"));
 						await tr2.CommitAsync();
 					}
 
@@ -1373,8 +1373,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
-					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromString("one hundred"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 100), Value("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1386,7 +1386,7 @@ namespace FoundationDB.Client.Tests
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Keys.Encode("foo", 100), Slice.FromString("cent"));
+						tr2.Set(loc.Keys.Encode("foo", 100), Value("cent"));
 						await tr2.CommitAsync();
 					}
 
@@ -1402,8 +1402,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Keys.Encode("foo", 50), Slice.FromString("fifty"));
-					tr.Set(loc.Keys.Encode("foo", 100), Slice.FromString("one hundred"));
+					tr.Set(loc.Keys.Encode("foo", 50), Value("fifty"));
+					tr.Set(loc.Keys.Encode("foo", 100), Value("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
@@ -1528,10 +1528,10 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(A, Slice.FromString("a"));
-					tr.Set(B, Slice.FromString("b"));
-					tr.Set(C, Slice.FromString("c"));
-					tr.Set(D, Slice.FromString("d"));
+					tr.Set(A, Value("a"));
+					tr.Set(B, Value("b"));
+					tr.Set(C, Value("c"));
+					tr.Set(D, Value("d"));
 				}, this.Cancellation);
 
 				Log("Initial db state:");
@@ -1547,12 +1547,12 @@ namespace FoundationDB.Client.Tests
 					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
 
 					// mutate (not yet committed)
-					tr.Set(A, Slice.FromString("aa"));
-					tr.Set(C, Slice.FromString("cc"));
+					tr.Set(A, Value("aa"));
+					tr.Set(C, Value("cc"));
 					await db.WriteAsync((tr2) =>
 					{ // have another transaction change B and D under our nose
-						tr2.Set(B, Slice.FromString("bb"));
-						tr2.Set(D, Slice.FromString("dd"));
+						tr2.Set(B, Value("bb"));
+						tr2.Set(D, Value("dd"));
 					}, this.Cancellation);
 
 					// check what the transaction sees
@@ -1593,10 +1593,10 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(A, Slice.FromString("a"));
-					tr.Set(B, Slice.FromString("b"));
-					tr.Set(C, Slice.FromString("c"));
-					tr.Set(D, Slice.FromString("d"));
+					tr.Set(A, Value("a"));
+					tr.Set(B, Value("b"));
+					tr.Set(C, Value("c"));
+					tr.Set(D, Value("d"));
 				}, this.Cancellation);
 
 				Log("Initial db state:");
@@ -1613,12 +1613,12 @@ namespace FoundationDB.Client.Tests
 					Assert.That((await tr.Snapshot.GetAsync(D)).ToStringUtf8(), Is.EqualTo("d"));
 
 					// mutate (not yet committed)
-					tr.Set(A, Slice.FromString("aa"));
-					tr.Set(C, Slice.FromString("cc"));
+					tr.Set(A, Value("aa"));
+					tr.Set(C, Value("cc"));
 					await db.WriteAsync((tr2) =>
 					{ // have another transaction change B and D under our nose
-						tr2.Set(B, Slice.FromString("bb"));
-						tr2.Set(D, Slice.FromString("dd"));
+						tr2.Set(B, Value("bb"));
+						tr2.Set(D, Value("dd"));
 					}, this.Cancellation);
 
 					// check what the transaction sees
@@ -1650,9 +1650,9 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(a, Slice.FromString("a"));
-					tr.Set(b.Keys.Encode(10), Slice.FromString("PRINT \"HELLO\""));
-					tr.Set(b.Keys.Encode(20), Slice.FromString("GOTO 10"));
+					tr.Set(a, Value("a"));
+					tr.Set(b.Keys.Encode(10), Value("PRINT \"HELLO\""));
+					tr.Set(b.Keys.Encode(20), Value("GOTO 10"));
 				}, this.Cancellation);
 
 				using(var tr = db.BeginTransaction(this.Cancellation))
@@ -1662,8 +1662,8 @@ namespace FoundationDB.Client.Tests
 					var res = await tr.GetRange(b.Keys.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 					Assert.That(res, Is.EqualTo(new [] { "PRINT \"HELLO\"", "GOTO 10" }));
 
-					tr.Set(a, Slice.FromString("aa"));
-					tr.Set(b.Keys.Encode(15), Slice.FromString("PRINT \"WORLD\""));
+					tr.Set(a, Value("aa"));
+					tr.Set(b.Keys.Encode(15), Value("PRINT \"WORLD\""));
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
@@ -1688,8 +1688,8 @@ namespace FoundationDB.Client.Tests
 					var res = await tr.GetRange(b.Keys.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }));
 
-					tr.Set(a, Slice.FromString("aa"));
-					tr.Set(b.Keys.Encode(15), Slice.FromString("PRINT \"WORLD\""));
+					tr.Set(a, Value("aa"));
+					tr.Set(b.Keys.Encode(15), Value("PRINT \"WORLD\""));
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
@@ -1941,14 +1941,14 @@ namespace FoundationDB.Client.Tests
 				{
 					await tr1.GetAsync(key1);
 					// tr1 writes to one key
-					tr1.Set(key1, Slice.FromString("hello"));
+					tr1.Set(key1, Value("hello"));
 					// but add the second as a conflict range
 					tr1.AddReadConflictKey(key2);
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						// tr2 writes to the second key
-						tr2.Set(key2, Slice.FromString("world"));
+						tr2.Set(key2, Value("world"));
 
 						// tr2 should succeed
 						await tr2.CommitAsync();
@@ -1983,12 +1983,12 @@ namespace FoundationDB.Client.Tests
 					// tr1 reads the conflicting key
 					await tr1.GetAsync(keyConflict);
 					// and writes to key1
-					tr1.Set(key1, Slice.FromString("hello"));
+					tr1.Set(key1, Value("hello"));
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						// tr2 changes key2, but adds a conflict range on the conflicting key
-						tr2.Set(key2, Slice.FromString("world"));
+						tr2.Set(key2, Value("world"));
 
 						// and writes on the third
 						tr2.AddWriteConflictKey(keyConflict);
@@ -2020,8 +2020,8 @@ namespace FoundationDB.Client.Tests
 
 				await db.SetValuesAsync(new []
 				{
-					(key1, Slice.FromString("some value")),
-					(key2, Slice.FromString("some other value")),
+					(key1, Value("some value")),
+					(key2, Value("some other value")),
 				}, this.Cancellation);
 
 				using (var cts = new CancellationTokenSource())
@@ -2045,7 +2045,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(w1.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w1 should survive the transaction without being triggered");
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should survive the transaction without being triggered");
 
-					await db.WriteAsync((tr) => tr.Set(key1, Slice.FromString("some new value")), this.Cancellation);
+					await db.WriteAsync((tr) => tr.Set(key1, Value("some new value")), this.Cancellation);
 
 					// the first watch should have triggered
 					await Task.Delay(100, this.Cancellation);
@@ -2111,7 +2111,7 @@ namespace FoundationDB.Client.Tests
 				var key = location.Keys.Encode("watched");
 
 				Log("Set to initial value...");
-				await db.SetAsync(key, Slice.FromString("initial value"), this.Cancellation);
+				await db.SetAsync(key, Value("initial value"), this.Cancellation);
 
 				Log("Create watch...");
 				var w = await db.ReadWriteAsync(tr => tr.Watch(key, this.Cancellation), this.Cancellation);
@@ -2120,7 +2120,7 @@ namespace FoundationDB.Client.Tests
 
 				// change the key to the same value
 				Log("Set to same value...");
-				await db.SetAsync(key, Slice.FromString("initial value"), this.Cancellation);
+				await db.SetAsync(key, Value("initial value"), this.Cancellation);
 
 				//note: it is difficult to verify something "that should never happen"
 				// let's say that 1sec is a good approximation of an infinite time
@@ -2131,7 +2131,7 @@ namespace FoundationDB.Client.Tests
 
 				// now really change the value
 				Log("Set to a different value...");
-				await db.SetAsync(key, Slice.FromString("new value"), this.Cancellation);
+				await db.SetAsync(key, Value("new value"), this.Cancellation);
 
 				Log("Watch should fire...");
 				await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
@@ -2160,7 +2160,7 @@ namespace FoundationDB.Client.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(key1, Slice.FromString("one"));
+					tr.Set(key1, Value("one"));
 				}, this.Cancellation);
 
 				// look for the address of key1
@@ -2300,12 +2300,12 @@ namespace FoundationDB.Client.Tests
 
 					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
 
-					//tr.Set(location.Concat(Slice.FromString("BAR")), Slice.FromString("FOO"));
+					//tr.Set(location.Concat(Slice.FromString("BAR")), Value("FOO"));
 					//tr.Clear(location.Concat(Slice.FromString("ZORT")));
 					//tr.Clear(location.Concat(Slice.FromString("NARF")));
-					tr.Set(a, Slice.FromString("BAR"));
-					tr.Set(b, Slice.FromString("BAZ"));
-					tr.Set(c, Slice.FromString("BAT"));
+					tr.Set(a, Value("BAR"));
+					tr.Set(b, Value("BAZ"));
+					tr.Set(c, Value("BAT"));
 					tr.ClearRange(a, c);
 
 					//tr.ClearRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z")));
@@ -2422,12 +2422,12 @@ namespace FoundationDB.Client.Tests
 					Log($"> placeholder stamp: {vs} with token '{vs.ToSlice():X}'");
 
 					// a single key using the 80-bit stamp
-					tr.SetVersionStampedKey(location.Keys.Encode("foo", vs, 123), Slice.FromString("Hello, World!"));
+					tr.SetVersionStampedKey(location.Keys.Encode("foo", vs, 123), Value("Hello, World!"));
 
 					// simulate a batch of 3 keys, using 96-bits stamps
-					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(0)), Slice.FromString("Zero"));
-					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(1)), Slice.FromString("One"));
-					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(42)), Slice.FromString("FortyTwo"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(0)), Value("Zero"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(1)), Value("One"));
+					tr.SetVersionStampedKey(location.Keys.Encode("bar", tr.CreateVersionStamp(42)), Value("FortyTwo"));
 
 					// value that contain the stamp
 					var val = Slice.FromString("$$$$$$$$$$Hello World!"); // '$' will be replaced by the stamp
@@ -2553,7 +2553,7 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		[Test, Category("LongRunning")]
+		[Test, Category("LongRunning")][Ignore("Takes too much time!")]
 		public async Task Test_BadPractice_Future_Fuzzer()
 		{
 #if DEBUG

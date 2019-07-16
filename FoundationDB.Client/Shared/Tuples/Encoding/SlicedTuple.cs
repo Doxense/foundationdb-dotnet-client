@@ -32,9 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Collections;
 	using System.Collections.Generic;
 	using Doxense.Collections.Tuples;
-	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
-	using JetBrains.Annotations;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	public sealed class SlicedTuple : IVarTuple, ITupleSerializable
@@ -43,23 +41,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		// This is helpful because in most cases, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
 		// We also support offset/count so that Splicing is efficient (used a lot to remove the suffixes from keys)
 
-		/// <summary>Buffer containing the original slices. Note: can be bigger than the size of the tuple</summary>
-		private readonly Slice[] m_slices;
-		/// <summary>Start offset of the first slice of this tuple</summary>
-		private readonly int m_offset;
-		/// <summary>Number of slices in this tuple.</summary>
-		private readonly int m_count;
+		/// <summary>Buffer containing the original slices.</summary>
+		private readonly ReadOnlyMemory<Slice> m_slices;
 
 		private int? m_hashCode;
 
-		public SlicedTuple([NotNull] Slice[] slices, int offset, int count)
+		public SlicedTuple(ReadOnlyMemory<Slice> slices)
 		{
-			Contract.Requires(slices != null && offset >= 0 && count >= 0);
-			Contract.Requires(offset + count <= slices.Length);
-
 			m_slices = slices;
-			m_offset = offset;
-			m_count = count;
 		}
 
 		void ITupleSerializable.PackTo(ref TupleWriter writer)
@@ -69,16 +58,13 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		internal void PackTo(ref TupleWriter writer)
 		{
-			var slices = m_slices;
-			int offset = m_offset;
-			int count = m_count;
-			for (int i = 0; i < count; i++)
+			foreach(var slice in m_slices.Span)
 			{
-				writer.Output.WriteBytes(in slices[i + offset]);
+				writer.Output.WriteBytes(slice);
 			}
 		}
 
-		public int Count => m_count;
+		public int Count => m_slices.Length;
 
 		public object this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
 
@@ -86,13 +72,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			get
 			{
-				int begin = fromIncluded.HasValue ? TupleHelpers.MapIndexBounded(fromIncluded.Value, m_count) : 0;
-				int end = toExcluded.HasValue ? TupleHelpers.MapIndexBounded(toExcluded.Value, m_count) : m_count;
+				int count = m_slices.Length;
+				int begin = fromIncluded.HasValue ? TupleHelpers.MapIndexBounded(fromIncluded.Value, count) : 0;
+				int end = toExcluded.HasValue ? TupleHelpers.MapIndexBounded(toExcluded.Value, count) : count;
 
 				int len = end - begin;
 				if (len <= 0) return STuple.Empty;
-				if (begin == 0 && len == m_count) return this;
-				return new SlicedTuple(m_slices, m_offset + begin, len);
+				if (begin == 0 && len == count) return this;
+				return new SlicedTuple(m_slices.Slice(begin, len));
 			}
 		}
 
@@ -103,13 +90,14 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public T Last<T>()
 		{
-			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			return TuplePacker<T>.Deserialize(m_slices[m_offset + m_count - 1]);
+			int count = m_slices.Length;
+			if (count == 0) throw new InvalidOperationException("Tuple is empty");
+			return TuplePacker<T>.Deserialize(m_slices.Span[count - 1]);
 		}
 
 		public Slice GetSlice(int index)
 		{
-			return m_slices[m_offset + TupleHelpers.MapIndex(index, m_count)];
+			return m_slices.Span[TupleHelpers.MapIndex(index, m_slices.Length)];
 		}
 
 		IVarTuple IVarTuple.Append<T>(T value)
@@ -124,17 +112,19 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public void CopyTo(object[] array, int offset)
 		{
-			for (int i = 0; i < m_count;i++)
+			var slices = m_slices.Span;
+			for (int i = 0; i < slices.Length;i++)
 			{
-				array[i + offset] = TuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
+				array[i + offset] = TuplePackers.DeserializeBoxed(slices[i]);
 			}
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
-			for (int i = 0; i < m_count; i++)
+			//note: I'm not sure if we're allowed to use a local variable of type Span<..> in here?
+			for (int i = 0; i < m_slices.Length; i++)
 			{
-				yield return TuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
+				yield return TuplePackers.DeserializeBoxed(m_slices.Span[i]);
 			}
 		}
 
@@ -173,12 +163,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			var sliced = other as SlicedTuple;
 			if (!object.ReferenceEquals(sliced, null))
 			{
-				if (sliced.m_count != m_count) return false;
-
 				// compare slices!
-				for (int i = 0; i < m_count; i++)
+				var left = m_slices.Span;
+				var right = sliced.m_slices.Span;
+				if (left.Length != right.Length) return false;
+				for (int i = 0; i < left.Length; i++)
 				{
-					if (m_slices[i + m_offset] != sliced.m_slices[i + sliced.m_offset]) return false;
+					if (left[i] != right[i]) return false;
 				}
 				return false;
 			}
@@ -196,9 +187,10 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			int h = 0;
-			for (int i = 0; i < m_count; i++)
+			var slices = m_slices.Span;
+			for (int i = 0; i < slices.Length; i++)
 			{
-				h = HashCodes.Combine(h, comparer.GetHashCode(m_slices[i + m_offset]));
+				h = HashCodes.Combine(h, comparer.GetHashCode(slices[i]));
 			}
 			if (canUseCache) m_hashCode = h;
 			return h;

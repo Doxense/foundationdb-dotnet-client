@@ -26,10 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Converters.Tests
+namespace Doxense.Runtime.Converters.Tests
 {
 	using System;
-	using Doxense.Runtime.Converters;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 

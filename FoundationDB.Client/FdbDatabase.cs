@@ -481,7 +481,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option}");
 
-			m_handler.SetOption(option, Slice.Nil);
+			m_handler.SetOption(option, default);
 		}
 
 		/// <summary>Set an option on this database that takes a string value</summary>
@@ -549,45 +549,15 @@ namespace FoundationDB.Client
 		/// <param name="ignoreError"></param>
 		/// <param name="error"></param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(IFdbDatabase database, ref Slice key, bool endExclusive, bool ignoreError, out Exception error)
+		internal static bool ValidateKey(IFdbDatabase database, in Slice key, bool endExclusive, bool ignoreError, out Exception error)
 		{
-			error = null;
-
-			// null or empty keys are not allowed
+			// null keys are not allowed
 			if (key.IsNull)
 			{
-				if (!ignoreError) error = Fdb.Errors.KeyCannotBeNull();
+				error = ignoreError ? null : Fdb.Errors.KeyCannotBeNull();
 				return false;
 			}
-
-			// key cannot be larger than maximum allowed key size
-			if (key.Count > Fdb.MaxKeySize)
-			{
-				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(key);
-				return false;
-			}
-
-			// special case for system keys
-			if (IsSystemKey(ref key))
-			{
-				// note: it will fail later if the transaction does not have access to the system keys!
-				return true;
-			}
-
-			// first, it MUST start with the root prefix of this database (if any)
-			if (!database.Contains(key))
-			{
-				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
-				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
-				if (!endExclusive
-				 || !key.Equals(FdbKey.Increment(database.GlobalSpace.GetPrefix()))) //TODO: cache this?
-				{
-					if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(database, key);
-					return false;
-				}
-			}
-
-			return true;
+			return ValidateKey(database, key.Span, endExclusive, ignoreError, out error);
 		}
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
@@ -597,7 +567,7 @@ namespace FoundationDB.Client
 		/// <param name="ignoreError"></param>
 		/// <param name="error"></param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(IFdbDatabase database, in ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception error)
+		internal static bool ValidateKey(IFdbDatabase database, ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception error)
 		{
 			error = null;
 
@@ -611,19 +581,19 @@ namespace FoundationDB.Client
 			// key cannot be larger than maximum allowed key size
 			if (key.Length > Fdb.MaxKeySize)
 			{
-				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(in key);
+				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(key);
 				return false;
 			}
 
 			// special case for system keys
-			if (IsSystemKey(in key))
+			if (IsSystemKey(key))
 			{
 				// note: it will fail later if the transaction does not have access to the system keys!
 				return true;
 			}
 
 			// first, it MUST start with the root prefix of this database (if any)
-			if (!database.Contains(in key))
+			if (!database.Contains(key))
 			{
 				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
 				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
@@ -649,9 +619,9 @@ namespace FoundationDB.Client
 		/// <summary>Test if a key is contained by this database instance.</summary>
 		/// <param name="key">Key to test</param>
 		/// <returns>True if the key is not null and contained inside the global subspace</returns>
-		public bool Contains(in ReadOnlySpan<byte> key)
+		public bool Contains(ReadOnlySpan<byte> key)
 		{
-			return key.Length != 0 && m_globalSpace.Contains(in key);
+			return key.Length != 0 && m_globalSpace.Contains(key);
 		}
 
 		public Slice BoundCheck(Slice key, bool allowSystemKeys)
@@ -659,9 +629,9 @@ namespace FoundationDB.Client
 			return m_globalSpace.BoundCheck(key, allowSystemKeys);
 		}
 
-		public ReadOnlySpan<byte> BoundCheck(in ReadOnlySpan<byte> key, bool allowSystemKeys)
+		public ReadOnlySpan<byte> BoundCheck(ReadOnlySpan<byte> key, bool allowSystemKeys)
 		{
-			return m_globalSpace.BoundCheck(in key, allowSystemKeys);
+			return m_globalSpace.BoundCheck(key, allowSystemKeys);
 		}
 
 		Slice IKeySubspace.this[Slice relativeKey] => m_globalSpace[relativeKey];
@@ -690,15 +660,15 @@ namespace FoundationDB.Client
 		public DynamicKeys Keys => m_globalSpace.Keys;
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
-		internal static bool IsSystemKey(ref Slice key)
+		internal static bool IsSystemKey(in Slice key)
 		{
 			return key.IsPresent && key[0] == 0xFF;
 		}
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
-		internal static bool IsSystemKey(in ReadOnlySpan<byte> key)
+		internal static bool IsSystemKey(ReadOnlySpan<byte> key)
 		{
-			return key.Length > 0 && key[0] == 0xFF;
+			return key.Length != 0 && key[0] == 0xFF;
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
@@ -726,17 +696,17 @@ namespace FoundationDB.Client
 
 		/// <summary>Ensures that a serialized value is valid</summary>
 		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
-		internal void EnsureValueIsValid(in ReadOnlySpan<byte> value)
+		internal void EnsureValueIsValid(ReadOnlySpan<byte> value)
 		{
-			var ex = ValidateValue(in value);
+			var ex = ValidateValue(value);
 			if (ex != null) throw ex;
 		}
 
-		internal Exception ValidateValue(in ReadOnlySpan<byte> value)
+		internal Exception ValidateValue(ReadOnlySpan<byte> value)
 		{
 			if (value.Length > Fdb.MaxValueSize)
 			{
-				return Fdb.Errors.ValueIsTooBig(in value);
+				return Fdb.Errors.ValueIsTooBig(value);
 			}
 
 			return null;

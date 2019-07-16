@@ -134,9 +134,9 @@ namespace FoundationDB.Filters
 			return m_database.Contains(key);
 		}
 
-		public virtual bool Contains(in ReadOnlySpan<byte> key)
+		public virtual bool Contains(ReadOnlySpan<byte> key)
 		{
-			return m_database.Contains(in key);
+			return m_database.Contains(key);
 		}
 
 		public virtual Slice BoundCheck(Slice key, bool allowSystemKeys)
@@ -144,9 +144,9 @@ namespace FoundationDB.Filters
 			return m_database.BoundCheck(key, allowSystemKeys);
 		}
 
-		public virtual ReadOnlySpan<byte> BoundCheck(in ReadOnlySpan<byte> key, bool allowSystemKeys)
+		public virtual ReadOnlySpan<byte> BoundCheck(ReadOnlySpan<byte> key, bool allowSystemKeys)
 		{
-			return m_database.BoundCheck(in key, allowSystemKeys);
+			return m_database.BoundCheck(key, allowSystemKeys);
 		}
 
 		public virtual Slice this[Slice key] => m_database[key];

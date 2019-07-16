@@ -40,11 +40,7 @@ namespace Doxense.Serialization
 	{
 		#region Numbers...
 
-		//NOTE: ces méthodes ont été importées de KTL/Sioux
-		//REVIEW: je ne sais pas si c'est la meilleure place pour ce code?
-
-		/// <summary>Table de lookup pour les nombres entre 0 et 99, afin d'éviter d'allouer une string inutilement</summary>
-		//note: vu que ce sont des literals, ils sont interned automatiquement
+		/// <summary>Lookup table for all small numbers from 0 to 99</summary>
 		private static readonly string[] SmallNumbers = new string[100]
 		{
 			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
@@ -59,10 +55,7 @@ namespace Doxense.Serialization
 			"90", "91", "92", "93", "94", "95", "96", "97", "98", "99",
 		};
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeure entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'évite le plus possibles des allocations mémoire</remarks>
+		/// <summary>Convert an integer into a string</summary>
 		[Pure, NotNull]
 		public static string ToString(int value)
 		{
@@ -70,10 +63,7 @@ namespace Doxense.Serialization
 			return value >= 0 && value < cache.Length ? cache[value] : value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeure entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'évite le plus possibles des allocations mémoire</remarks>
+		/// <summary>Convert an integer into a string</summary>
 		[Pure, NotNull]
 		public static string ToString(uint value)
 		{
@@ -81,10 +71,7 @@ namespace Doxense.Serialization
 			return value < cache.Length ? cache[value] : value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeure entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'évite le plus possibles des allocations mémoire</remarks>
+		/// <summary>Convert an integer into a string</summary>
 		[Pure, NotNull]
 		public static string ToString(long value)
 		{
@@ -92,10 +79,7 @@ namespace Doxense.Serialization
 			return value >= 0 && value < cache.Length ? cache[(int) value] : value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un entier en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeure entière à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'évite le plus possibles des allocations mémoire</remarks>
+		/// <summary>Convert an integer into a string</summary>
 		[Pure, NotNull]
 		public static string ToString(ulong value)
 		{
@@ -103,10 +87,7 @@ namespace Doxense.Serialization
 			return value < (ulong) cache.Length ? cache[(int) value] : value.ToString(NumberFormatInfo.InvariantInfo);
 		}
 
-		/// <summary>Convertit un décimal en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeure décimale à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'évite le plus possibles des allocations mémoire</remarks>
+		/// <summary>Convert a float into a string</summary>
 		[Pure, NotNull]
 		public static string ToString(float value)
 		{
@@ -117,10 +98,7 @@ namespace Doxense.Serialization
 					   : (x >= 0 && x < StringConverters.SmallNumbers.Length ? StringConverters.SmallNumbers[(int) x] : x.ToString(NumberFormatInfo.InvariantInfo));
 		}
 
-		/// <summary>Convertit un décimal en chaîne, de manière optimisée</summary>
-		/// <param name="value">Valeure décimale à convertir</param>
-		/// <returns>Version chaîne</returns>
-		/// <remarks>Cette fonction essaye d'évite le plus possibles des allocations mémoire</remarks>
+		/// <summary>Convert a double into a string</summary>
 		[Pure, NotNull]
 		public static string ToString(double value)
 		{
@@ -131,13 +109,13 @@ namespace Doxense.Serialization
 					   : (x >= 0 && x < StringConverters.SmallNumbers.Length ? StringConverters.SmallNumbers[(int)x] : x.ToString(NumberFormatInfo.InvariantInfo));
 		}
 
-		/// <summary>Convertit une chaîne en booléen</summary>
-		/// <param name="value">Chaîne de texte (ex: "true")</param>
-		/// <param name="dflt">Valeur par défaut si vide ou invalide</param>
-		/// <returns>Valeur booléenne correspondant (ex: true) ou valeur par défaut</returns>
-		/// <remarks>Les valeurs pour true sont "true", "yes", "on", "1".
-		/// Les valeurs pour false sont "false", "no", "off", "0", ou tout le reste
-		/// null et chaîne vide sont considérés comme false
+		/// <summary>Convert a string into a boolean</summary>
+		/// <param name="value">Text string (ex: "true")</param>
+		/// <param name="dflt">Default value if empty or invalid</param>
+		/// <returns>Corresponding boolean value (ex: true) or default</returns>
+		/// <remarks>The values considered 'true' are "true", "yes", "on", "1".
+		/// The values considered 'false' are "no", "off", "0".
+		/// The null or empty strings, or any other invalid token will return the default value.
 		/// </remarks>
 		[Pure]
 		public static bool ToBoolean(string value, bool dflt)
@@ -154,11 +132,12 @@ namespace Doxense.Serialization
 			return dflt;
 		}
 
-		/// <summary>Convertit une chaîne en booléen</summary>
-		/// <param name="value">Chaîne de texte (ex: "true")</param>
-		/// <returns>Valeur booléenne correspondant (ex: true) ou null</returns>
-		/// <remarks>Les valeurs pour true sont "true", "yes", "on", "1".
-		/// Les valeurs pour false sont "false", "no", "off", "0"
+		/// <summary>Convert a string into a boolean</summary>
+		/// <param name="value">Text string (ex: "true")</param>
+		/// <returns>Corresponding boolean value (ex: true) or null</returns>
+		/// <remarks>The values considered 'true' are "true", "yes", "on", "1".
+		/// The values considered 'false' are "no", "off", "0".
+		/// The null or empty strings, or any other invalid token will return <c>null</c>.
 		/// </remarks>
 		[Pure]
 		public static bool? ToBoolean(string value)
@@ -175,44 +154,44 @@ namespace Doxense.Serialization
 			return null;
 		}
 
-		/// <summary>Convertit un entier jusqu'au prochain séparateur (ou fin de buffer). A utilisé pour simuler un Split</summary>
-		/// <param name="buffer">Buffer de caractères</param>
-		/// <param name="offset">Offset courant dans le buffer</param>
-		/// <param name="length"></param>
-		/// <param name="separator">Séparateur attendu entre les ints</param>
-		/// <param name="defaultValue">Valeur par défaut retournée si erreur</param>
-		/// <param name="result">Récupère le résultat de la conversion</param>
-		/// <param name="newpos">Récupère la nouvelle position (après le séparateur)</param>
-		/// <returns>true si int chargé, false si erreur (plus de place, incorrect, ...)</returns>
-		/// <exception cref="System.ArgumentNullException">Si buffer est null</exception>
+		/// <summary>Parse a string containing an integer, up to the next separator (or end of string)</summary>
+		/// <param name="buffer">Text buffer</param>
+		/// <param name="offset">Starting offset in the buffer</param>
+		/// <param name="length">Length of the buffer</param>
+		/// <param name="separator">Expected separator</param>
+		/// <param name="defaultValue">Default value in case of error</param>
+		/// <param name="result">Stores the conversion result</param>
+		/// <param name="newpos">Stores the new position in the buffer (after the separator if found)</param>
+		/// <returns>true if an integer was found; otherwise, false (no more data, malformed integer, ...)</returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="buffer"/> is null</exception>
 		public static unsafe bool FastTryGetInt([NotNull] char* buffer, int offset, int length, char separator, int defaultValue, out int result, out int newpos)
 		{
 			Contract.PointerNotNull(buffer, nameof(buffer));
 			result = defaultValue;
 			newpos = offset;
-			if (offset < 0 || offset >= length) return false; // deja a la fin !!
+			if (offset < 0 || offset >= length) return false; // already at the end !!
 
 			char c = buffer[offset];
-			if (c == separator) { newpos = offset + 1; return false; } // avance quand même le curseur
+			if (c == separator) { newpos = offset + 1; return false; } // advance the cursor anyway
 			if (!char.IsDigit(c))
-			{ // c'est pas un nombre, va jusqu'au prochain séparateur
+			{ // this is not a number, go to the next separator
 				while (offset < length)
 				{
 					c = buffer[offset++];
 					if (c == separator) break;
 				}
 				newpos = offset;
-				return false; // deja le separateur, ou pas un digit == WARNING: le curseur ne sera pas avancé!
+				return false; // already the separator, or not a digit == WARNING: the cursor will not advance!
 			}
 			int res = c - 48;
 			offset++;
-			// il y a au moins 1 digit, parcourt les suivants
+			// there's at least 1 digit, scan for the next digits
 			while (offset < length)
 			{
 				c = buffer[offset++];
 				if (c == separator) break;
 				if (!char.IsDigit(c))
-				{ // va jusqu'au prochain séparator
+				{ // go to the next separator
 					while (offset < length)
 					{
 						c = buffer[offset++];
@@ -221,7 +200,6 @@ namespace Doxense.Serialization
 					newpos = offset;
 					return false;
 				}
-				// accumule le digit
 				res = res * 10 + (c - 48);
 			}
 
@@ -230,44 +208,44 @@ namespace Doxense.Serialization
 			return true;
 		}
 
-		/// <summary>Convertit un entier jusqu'au prochain séparateur (ou fin de buffer). A utilisé pour simuler un Split</summary>
-		/// <param name="buffer">Buffer de caractères</param>
-		/// <param name="offset">Offset courant dans le buffer</param>
-		/// <param name="length"></param>
-		/// <param name="separator">Séparateur attendu entre les ints</param>
-		/// <param name="defaultValue">Valeur par défaut retournée si erreur</param>
-		/// <param name="result">Récupère le résultat de la conversion</param>
-		/// <param name="newpos">Récupère la nouvelle position (après le séparateur)</param>
-		/// <returns>true si int chargé, false si erreur (plus de place, incorrect, ...)</returns>
-		/// <exception cref="System.ArgumentNullException">Si buffer est null</exception>
+		/// <summary>Parse a string containing an integer, up to the next separator (or end of string)</summary>
+		/// <param name="buffer">Text buffer</param>
+		/// <param name="offset">Starting offset in the buffer</param>
+		/// <param name="length">Length of the buffer</param>
+		/// <param name="separator">Expected separator</param>
+		/// <param name="defaultValue">Default value in case of error</param>
+		/// <param name="result">Stores the conversion result</param>
+		/// <param name="newpos">Stores the new position in the buffer (after the separator if found)</param>
+		/// <returns>true if an integer was found; otherwise, false (no more data, malformed integer, ...)</returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="buffer"/> is null</exception>
 		public static unsafe bool FastTryGetLong([NotNull] char* buffer, int offset, int length, char separator, long defaultValue, out long result, out int newpos)
 		{
 			Contract.PointerNotNull(buffer, nameof(buffer));
 			result = defaultValue;
 			newpos = offset;
-			if (offset < 0 || offset >= length) return false; // deja a la fin !!
+			if (offset < 0 || offset >= length) return false; // already at the end !!
 
 			char c = buffer[offset];
-			if (c == separator) { newpos = offset + 1; return false; } // avance quand même le curseur
+			if (c == separator) { newpos = offset + 1; return false; } // advance the cursor anyway
 			if (!char.IsDigit(c))
-			{ // c'est pas un nombre, va jusqu'au prochain séparateur
+			{ // this is not a number, go to the next separator
 				while (offset < length)
 				{
 					c = buffer[offset++];
 					if (c == separator) break;
 				}
 				newpos = offset;
-				return false; // deja le separateur, ou pas un digit == WARNING: le curseur ne sera pas avancé!
+				return false; // already the separator, or not a digit == WARNING: the cursor will not advance!
 			}
 			int res = c - 48;
 			offset++;
-			// il y a au moins 1 digit, parcourt les suivants
+			// there's at least 1 digit, scan for the next digits
 			while (offset < length)
 			{
 				c = buffer[offset++];
 				if (c == separator) break;
 				if (!char.IsDigit(c))
-				{ // va jusqu'au prochain séparator
+				{ // go to the next separator
 					while (offset < length)
 					{
 						c = buffer[offset++];
@@ -276,7 +254,6 @@ namespace Doxense.Serialization
 					newpos = offset;
 					return false;
 				}
-				// accumule le digit
 				res = res * 10 + (c - 48);
 			}
 
@@ -285,117 +262,121 @@ namespace Doxense.Serialization
 			return true;
 		}
 
-		/// <summary>Convertit une chaîne en entier (int)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <param name="defaultValue">Valeur par défaut si vide ou invalide</param>
-		/// <returns>Entier correspondant ou valeur par défaut si pb (ex: 1234)</returns>
+		/// <summary>Convert a string into an integer</summary>
+		/// <param name="value">Text string (ex: "1234")</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <returns>Corresponding integer (ex: 1234), or default value if empty or invalid</returns>
 		[Pure]
 		public static int ToInt32(string value, int defaultValue)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
-			// optimisation: si premier carac pas chiffre, exit
 			char c = value[0];
 			if (value.Length == 1) return char.IsDigit(c) ? c - 48 : defaultValue;
 			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return defaultValue;
 			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : defaultValue;
 		}
 
-		/// <summary>Convertit une chaîne en entier (int)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <returns>Entier correspondant ou null si pb (ex: 1234)</returns>
+		/// <summary>Convert a string into an integer</summary>
+		/// <param name="value">Text string (ex: "1234")</param>
+		/// <returns>Corresponding integer (ex: 1234), or <c>null</c> if empty or invalid</returns>
 		[Pure]
 		public static int? ToInt32(string value)
 		{
-			if (string.IsNullOrEmpty(value)) return default(int?);
-			// optimisation: si premier carac pas chiffre, exit
+			if (string.IsNullOrEmpty(value)) return default;
 			char c = value[0];
 			if (value.Length == 1) return char.IsDigit(c) ? (c - 48) : default(int?);
 			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return default(int?);
 			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int res) ? res : default(int?);
 		}
 
-		/// <summary>Convertit une chaîne en entier (long)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <param name="defaultValue">Valeur par défaut si vide ou invalide</param>
-		/// <returns>Entier correspondant ou valeur par défaut si pb (ex: 1234)</returns>
+		/// <summary>Convert a string into an integer</summary>
+		/// <param name="value">Text string (ex: "1234")</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <returns>Corresponding integer (ex: 1234), or default value if empty or invalid</returns>
 		[Pure]
 		public static long ToInt64(string value, long defaultValue)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
-			// optimisation: si premier carac pas chiffre, exit
 			char c = value[0];
 			if (value.Length == 1) return char.IsDigit(c) ? ((long) c - 48) : defaultValue;
 			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return defaultValue;
 			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : defaultValue;
 		}
 
-		/// <summary>Convertit une chaîne en entier (long)</summary>
-		/// <param name="value">Chaîne de caractère (ex: "1234")</param>
-		/// <returns>Entier correspondant ou null si pb (ex: 1234)</returns>
+		/// <summary>Convert a string into an integer</summary>
+		/// <param name="value">Text string (ex: "1234")</param>
+		/// <returns>Corresponding integer (ex: 1234), or <c>null</c> if empty or invalid</returns>
 		[Pure]
 		public static long? ToInt64(string value)
 		{
-			if (string.IsNullOrEmpty(value)) return default(long?);
-			// optimisation: si premier carac pas chiffre, exit
+			if (string.IsNullOrEmpty(value)) return default;
 			char c = value[0];
 			if (value.Length == 1) return char.IsDigit(c) ? ((long) c - 48) : default(long?);
 			if (!char.IsDigit(c) && c != '-' && c != '+' && c != ' ') return default(long?);
 			return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long res) ? res : default(long?);
 		}
 
-		/// <summary>Convertit une chaine de caractère en double, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
-		/// <param name="value">Chaine (ex: "1.0", "123.456e7")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <param name="culture">Culture (par défaut InvariantCulture)</param>
-		/// <returns>Double correspondant</returns>
+		/// <summary>Convert a string into a double</summary>
+		/// <param name="value">Text string (ex: "12.34")</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
+		/// <returns>Corresponding number (ex: 12.34d), or default value if empty or invalid</returns>
 		[Pure]
 		public static double ToDouble(string value, double defaultValue, IFormatProvider culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
 			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			if (culture == null) culture = CultureInfo.InvariantCulture;
+			culture ??= CultureInfo.InvariantCulture;
 			if (culture == CultureInfo.InvariantCulture && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
 			return double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double result) ? result : defaultValue;
 		}
 
+		/// <summary>Convert a string into an double</summary>
+		/// <param name="value">Text string (ex: "12.34")</param>
+		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
+		/// <returns>Corresponding number (ex: 12.34d), or <c>null</c> if empty or invalid</returns>
 		[Pure]
 		public static double? ToDouble(string value, IFormatProvider culture = null)
 		{
-			if (value == null) return default(double?);
+			if (value == null) return default;
 			double result = ToDouble(value, double.NaN, culture);
 			return double.IsNaN(result) ? default(double?) : result;
 		}
 
-		/// <summary>Convertit une chaine de caractère en float, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
-		/// <param name="value">Chaine (ex: "1.0", "123.456e7")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <param name="culture">Culture (par défaut InvariantCulture)</param>
-		/// <returns>Float correspondant</returns>
+		/// <summary>Convert a string into a float</summary>
+		/// <param name="value">Text string (ex: "12.34")</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
+		/// <returns>Corresponding number (ex: 12.34f), or default value if empty or invalid</returns>
 		[Pure]
 		public static float ToSingle(string value, float defaultValue, IFormatProvider culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
 			if (!char.IsDigit(c) && c != '+' && c != '-' && c != '.' && c != ' ') return defaultValue;
-			if (culture == null) culture = CultureInfo.InvariantCulture;
+			culture ??= CultureInfo.InvariantCulture;
 			if (culture == CultureInfo.InvariantCulture && value.IndexOf(',') >= 0) value = value.Replace(',', '.');
 			return float.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float result) ? result : defaultValue;
 		}
 
+		/// <summary>Convert a string into a float</summary>
+		/// <param name="value">Text string (ex: "12.34")</param>
+		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
+		/// <returns>Corresponding number (ex: 12.34f), or <c>null</c> if empty or invalid</returns>
 		[Pure]
 		public static float? ToSingle(string value, IFormatProvider culture = null)
 		{
-			if (value == null) return default(float?);
+			if (value == null) return default;
 			float result = ToSingle(value, float.NaN, culture);
 			return double.IsNaN(result) ? default(float?) : result;
 		}
 
-		/// <summary>Convertit une chaine de caractère en double, quelque soit la langue locale (utilise le '.' comme séparateur décimal)</summary>
-		/// <param name="value">Chaine (ex: "1.0", "123.456e7")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <param name="culture">Culture (par défaut InvariantCulture)</param>
-		/// <returns>Décimal correspondant</returns>
+		/// <summary>Convert a string into a decimal</summary>
+		/// <param name="value">Text string (ex: "12.34")</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
+		/// <returns>Corresponding number (ex: 12.34m), or default value if empty or invalid</returns>
 		[Pure]
 		public static decimal ToDecimal(string value, decimal defaultValue, IFormatProvider culture = null)
 		{
@@ -407,6 +388,10 @@ namespace Doxense.Serialization
 			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal result) ? result : defaultValue;
 		}
 
+		/// <summary>Convert a string into a decimal</summary>
+		/// <param name="value">Text string (ex: "12.34")</param>
+		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
+		/// <returns>Corresponding number (ex: 12.34m), or <c>null</c> if empty or invalid</returns>
 		[Pure]
 		public static decimal? ToDecimal(string value, IFormatProvider culture = null)
 		{
@@ -418,21 +403,21 @@ namespace Doxense.Serialization
 			return decimal.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, culture, out decimal result) ? result : default(decimal?);
 		}
 
-		/// <summary>Convertit une chaine en DateTime</summary>
-		/// <param name="value">Date à convertir</param>
-		/// <param name="defaultValue">Valeur par défaut</param>
-		/// <param name="culture"></param>
-		/// <returns>Voir StringConverters.ParseDateTime()</returns>
+		/// <summary>Convert a string into a <c>DateTime</c></summary>
+		/// <param name="value">Text string (ex: "2019-07-14T12:34:56.789")</param>
+		/// <param name="defaultValue">Default value if null or empty</param>
+		/// <param name="culture">Optional culture used to decode the date (invariant by default)</param>
+		/// <returns>See <see cref="ParseDateTime"/></returns>
 		[Pure]
 		public static DateTime ToDateTime(string value, DateTime defaultValue, CultureInfo culture = null)
 		{
 			return ParseDateTime(value, defaultValue, culture);
 		}
 
-		/// <summary>Convertit une chaine en DateTime</summary>
-		/// <param name="value">Date à convertir</param>
-		/// <param name="culture"></param>
-		/// <returns>Voir StringConverters.ParseDateTime()</returns>
+		/// <summary>Convert a string into a <c>DateTime</c></summary>
+		/// <param name="value">Text string (ex: "2019-07-14T12:34:56.789")</param>
+		/// <param name="culture">Optional culture used to decode the date (invariant by default)</param>
+		/// <returns>See <see cref="ParseDateTime"/></returns>
 		[Pure]
 		public static DateTime? ToDateTime(string value, CultureInfo culture = null)
 		{
@@ -441,10 +426,10 @@ namespace Doxense.Serialization
 			return result == DateTime.MaxValue ? default(DateTime?) : result;
 		}
 
-		/// <summary>Convertit une chaine de caractères en GUID</summary>
-		/// <param name="value">Chaine (ex: "123456-789")</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <returns>GUID correspondant</returns>
+		/// <summary>Convert a string into a GUID</summary>
+		/// <param name="value">Text string (ex: "dd69d327-8a48-4010-a849-843a43801c8b")</param>
+		/// <param name="defaultValue">Default value if empty or invalid</param>
+		/// <returns>Corresponding GUID, or default value empty or invalid</returns>
 		[Pure]
 		public static Guid ToGuid(string value, Guid defaultValue)
 		{
@@ -452,19 +437,22 @@ namespace Doxense.Serialization
 			return Guid.TryParse(value, out Guid result) ? result : defaultValue;
 		}
 
+		/// <summary>Convert a string into a GUID</summary>
+		/// <param name="value">Text string (ex: "dd69d327-8a48-4010-a849-843a43801c8b")</param>
+		/// <returns>Corresponding GUID, or <c>null</c> if empty or invalid</returns>
 		[Pure]
 		public static Guid? ToGuid(string value)
 		{
-			if (string.IsNullOrEmpty(value)) return default(Guid?);
+			if (string.IsNullOrEmpty(value)) return default;
 			return Guid.TryParse(value, out Guid result) ? result : default(Guid?);
 		}
 
-		/// <summary>Convertit une chaine de caractères en Enum</summary>
-		/// <typeparam name="TEnum">Type de l'Enum</typeparam>
-		/// <param name="value">Chaine (ex: "Red", "2", ...)</param>
-		/// <param name="defaultValue">Valeur par défaut si problème de conversion ou null</param>
-		/// <returns>Valeur de l'enum correspondante</returns>
-		/// <remarks>Accepte les valeures sous forme textuelle ou numérique, case insensitive</remarks>
+		/// <summary>Convert a string into an Enum</summary>
+		/// <typeparam name="TEnum">Enum type</typeparam>
+		/// <param name="value">Text string (ex: "Red", "2", ...)</param>
+		/// <param name="defaultValue">Default value if empty or invalid</param>
+		/// <returns>Corresponding enum value, or <paramref name="defaultValue"/> if empty or invalid</returns>
+		/// <remarks>Accept both numerical and case-insensitive textual forms of the enum values</remarks>
 		[Pure]
 		public static TEnum ToEnum<TEnum>(string value, TEnum defaultValue)
 			where TEnum : struct, IComparable, IConvertible, IFormattable
@@ -473,11 +461,16 @@ namespace Doxense.Serialization
 			return Enum.TryParse<TEnum>(value, true, out TEnum result) ? result : defaultValue;
 		}
 
+		/// <summary>Convert a string into an Enum</summary>
+		/// <typeparam name="TEnum">Enum type</typeparam>
+		/// <param name="value">Text string (ex: "Red", "2", ...)</param>
+		/// <returns>Corresponding enum value, or <c>null</c> if empty or invalid</returns>
+		/// <remarks>Accept both numerical and case-insensitive textual forms of the enum values</remarks>
 		[Pure]
 		public static TEnum? ToEnum<TEnum>(string value)
 			where TEnum : struct, IComparable, IConvertible, IFormattable
 		{
-			if (string.IsNullOrEmpty(value)) return default(TEnum?);
+			if (string.IsNullOrEmpty(value)) return default;
 			return Enum.TryParse<TEnum>(value, true, out TEnum result) ? result : default(TEnum?);
 		}
 
@@ -485,81 +478,48 @@ namespace Doxense.Serialization
 
 		#region Dates...
 
-		/// <summary>Convertit une date en une chaine de caractères au format "YYYYMMDDHHMMSS"</summary>
-		/// <param name="date">Date à formater</param>
-		/// <returns>Date formatée sur 14 caractères au format YYYYMMDDHHMMSS</returns>
+		/// <summary>Convert a date into a string, using the "YYYYMMDDHHMMSS" format</summary>
+		/// <param name="date">Date to convert</param>
+		/// <returns>Formatted date with fixed length 14 and format 'YYYYMMDDHHMMSS'</returns>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateTimeString(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
 			return date.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 		}
 
-		/// <summary>Convertit une date en une chaine de caractères au format "AAAAMMJJ"</summary>
-		/// <param name="date">Date à formater</param>
-		/// <returns>Date formatée sur 8 caractères au format AAAAMMJJ</returns>
+		/// <summary>Convert a date into a string, using the "YYYYMMDD" format</summary>
+		/// <param name="date">Date to convert (only date will be used)</param>
+		/// <returns>Formatted date width fixed length 8 and format 'YYYYMMDDHHMMSS'</returns>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateString(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
 			return date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 		}
 
-		/// <summary>Convertit un heure en une chaine de caractères au format "HHMMSS"</summary>
-		/// <param name="date">Date à formater</param>
-		/// <returns>Heure formatée sur 6 caractères au format HHMMSS</returns>
+		/// <summary>Convert a time of day into a string, using the "HHMMSS" format</summary>
+		/// <param name="date">Date to convert (only time of day will be used)</param>
+		/// <returns>Formatted time width fixed length 6 and format 'HHMMSS'</returns>
 		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToTimeString(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
 			return date.ToString("HHmmss", CultureInfo.InvariantCulture);
 		}
 
-		/// <summary>Convertit une date en une chaine de caractères au format "yyyy-MM-dd HH:mm:ss"</summary>
-		/// <param name="date">Date à convertir</param>
-		/// <returns>Chaine au format "yyyy-MM-dd HH:mm:ss"</returns>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static string FormatDateTime(DateTime date)
-		{
-			//REVIEW: PERF: faire une version optimisée?
-			return date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-		}
-
-		/// <summary>Convertit une date en une chaine de caractères au format "yyyy-MM-dd"</summary>
-		/// <param name="date">Date à convertir</param>
-		/// <returns>Chaine au format "yyyy-MM-dd"</returns>
-		[Pure, NotNull]
-		public static string FormatDate(DateTime date)
-		{
-			//REVIEW: PERF: faire une version optimisée?
-			return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-		}
-
-		/// <summary>Convertit une heure en une chaine de caractères au format "hh:mm:ss"</summary>
-		/// <param name="date">Heure à convertir</param>
-		/// <returns>Chaine au format "hh:mm:ss"</returns>
-		[Pure, NotNull]
-		public static string FormatTime(DateTime date)
-		{
-			//REVIEW: PERF: faire une version optimisée?
-			return date.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-		}
-
-		/// <summary>Convertit une chaine de caractère au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
-		/// <param name="date">Chaine de caractères à convertir</param>
-		/// <returns>Objet DateTime correspondant, ou exception si incorrect</returns>
-		/// <exception cref="System.ArgumentException">Si la date est incorrecte</exception>
+		/// <summary>Convert a string with any supported format ("YYYY", "YYYYMM", "YYYYMMDD", "YYYYMMDDHHMMSS", ..) into a DateTime</summary>
+		/// <param name="date">Text string to convert</param>
+		/// <returns>Corresponding DateTime, or an exception if invalid</returns>
+		/// <exception cref="System.ArgumentException">If the date is invalid</exception>
 		[Pure]
 		public static DateTime ParseDateTime(string date)
 		{
 			return ParseDateTime(date, null);
 		}
 
-		/// <summary>Convertit une chaine de caractère au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
-		/// <param name="date">Chaine de caractères à convertir</param>
-		/// <param name="culture">Culture (pour le format attendu) ou null</param>
-		/// <returns>Objet DateTime correspondant, ou exception si incorrect</returns>
-		/// <exception cref="System.ArgumentException">Si la date est incorrecte</exception>
+		/// <summary>Convert a string with any supported format ("YYYY", "YYYYMM", "YYYYMMDD", "YYYYMMDDHHMMSS", ..) into a DateTime</summary>
+		/// <param name="date">Text string to convert</param>
+		/// <param name="culture">Culture used to parse the date</param>
+		/// <returns>Corresponding DateTime, or an exception if invalid</returns>
+		/// <exception cref="System.ArgumentException">If the date is invalid</exception>
 		[Pure]
 		public static DateTime ParseDateTime(string date, CultureInfo culture)
 		{
@@ -574,32 +534,29 @@ namespace Doxense.Serialization
 			return new ArgumentException("Invalid date format", "date");
 		}
 
-		/// <summary>Convertit une chaine de caractère au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
-		/// <param name="date">Chaine de caractères à convertir</param>
-		/// <param name="dflt">Valeur par défaut</param>
-		/// <returns>Objet DateTime correspondant, ou dflt si date est null ou vide</returns>
+		/// <summary>Convert a string with any supported format ("YYYY", "YYYYMM", "YYYYMMDD", "YYYYMMDDHHMMSS", ..) into a DateTime</summary>
+		/// <param name="date">Text string to convert</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <returns>Corresponding DateTime, or default value if empty or invalid</returns>
 		[Pure]
-		public static DateTime ParseDateTime(string date, DateTime dflt)
+		public static DateTime ParseDateTime(string date, DateTime defaultValue)
 		{
-			if (string.IsNullOrEmpty(date)) return dflt;
-			if (!TryParseDateTime(date, null, out DateTime result, false)) return dflt;
-			return result;
+			if (string.IsNullOrEmpty(date)) return defaultValue;
+			return TryParseDateTime(date, null, out DateTime result, false) ? result : defaultValue;
 		}
 
-		/// <summary>Convertit une chaine de caractère au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
-		/// <param name="date">Chaine de caractères à convertir</param>
-		/// <param name="dflt">Valeur par défaut</param>
-		/// <param name="culture">Culture (pour le format attendu) ou null</param>
-		/// <returns>Objet DateTime correspondant, ou dflt si date est null ou vide</returns>
+		/// <summary>Convert a string with any supported format ("YYYY", "YYYYMM", "YYYYMMDD", "YYYYMMDDHHMMSS", ..) into a DateTime</summary>
+		/// <param name="date">Text string to convert</param>
+		/// <param name="defaultValue">Default value, if empty or invalid</param>
+		/// <param name="culture">Culture used to parse the date</param>
+		/// <returns>Corresponding DateTime, or default value if empty or invalid</returns>
 		[Pure]
-		public static DateTime ParseDateTime(string date, DateTime dflt, CultureInfo culture)
+		public static DateTime ParseDateTime(string date, DateTime defaultValue, CultureInfo culture)
 		{
-			if (!TryParseDateTime(date, culture, out DateTime result, false)) return dflt;
-			return result;
+			return TryParseDateTime(date, culture, out DateTime result, false) ? result : defaultValue;
 		}
 		private static int ParseDateSegmentUnsafe(string source, int offset, int size)
 		{
-			// note: normalement le caller a déja validé les paramètres
 			int sum = source[offset++] - '0';
 			if (sum < 0 || sum >= 10) return -1; // invalid first digit
 			while (--size > 0)
@@ -611,12 +568,12 @@ namespace Doxense.Serialization
 			return sum;
 		}
 
-		/// <summary>Essayes de convertir une chaine de caratères au format "YYYY", "YYYYMM", "YYYYMMDD" ou "YYYYMMDDHHMMSS" en DateTime</summary>
-		/// <param name="date">Chaine de caractères à convertir</param>
-		/// <param name="culture">Culture (pour le format attendu) ou null</param>
-		/// <param name="result">Date convertie (ou DateTime.MinValue en cas de problème)</param>
-		/// <param name="throwsFail">Si false, absorbe les exceptions éventuelles. Si true, laisse les s'échaper</param>
-		/// <returns>True si la date est correcte, false dans les autres cas</returns>
+		/// <summary>Try to convert a string into a <see cref="DateTime"/>, using any supported format ("YYYY", "YYYYMM", "YYYYMMDD" or "YYYYMMDDHHMMSS", ...)</summary>
+		/// <param name="date">Text string to convert</param>
+		/// <param name="culture">Optional culture (invariant if null)</param>
+		/// <param name="result">Stores the converted date (or DateTime.MinValue if conversion failed)</param>
+		/// <param name="throwsFail">If <c>false</c>, no exception is thrown and <c>false</c> is returned instead.. If <c>true<c>, re-throw all exceptions</param>
+		/// <returns><c>true</c> if the date was correctly converted; otherwise, <c>false</c>.</returns>
 		[Pure]
 		public static bool TryParseDateTime(string date, CultureInfo culture, out DateTime result, bool throwsFail)
 		{
@@ -624,7 +581,6 @@ namespace Doxense.Serialization
 
 			if (date == null) { if (throwsFail) throw new ArgumentNullException(nameof(date)); else return false; }
 			if (date.Length < 4) { if (throwsFail) throw new FormatException("Date '" + date + "' must be at least 4 characters long"); else return false; }
-			//if (throwsFail) throw new FormatException("Date '"+date+"' must contains only digits"); else return false;
 			try
 			{
 				if (char.IsDigit(date[0]))
@@ -696,68 +652,25 @@ namespace Doxense.Serialization
 					}
 				}
 				else if (char.IsLetter(date[0]))
-				{ // on va tenter un ParseExact ("Vendredi, 37 Trumaire 1789 à 3 heures moint le quart")
+				{ // Attempt a ParseExact even if the date is using an exotic representation ("Vendredi, 37 Trumaire 1789 à 3 heures moins le quart de l'après midi")
 					result = DateTime.ParseExact(date, new[] { "D", "F", "f" }, culture ?? CultureInfo.InvariantCulture, DateTimeStyles.None);
 					return true;
 				}
 
-				// Je vais tenter le jackpot, mon cher Julien!
+				// Well... we may as well try our luck!
 				result = DateTime.Parse(date, culture ?? CultureInfo.InvariantCulture);
 				return true;
 			}
 			catch (FormatException)
-			{ // Dommage! La cagnote est remise à la fois prochaine...
+			{ // This does not look like anything to us...
 				if (throwsFail) throw;
 				return false;
 			}
 			catch (ArgumentOutOfRangeException)
-			{ // Pb sur un DateTime avec des dates invalides (31 février, ...)
+			{ // For strings that have the shape of a date, only with invalid values (ex: 31th of February, etc..)
 				if (throwsFail) throw;
 				return false;
 			}
-		}
-
-		/// <summary>Convertit une heure "human friendly" en DateTime: "11","11h","11h00","11:00" -> {11:00:00.000}</summary>
-		/// <param name="time">Chaine contenant l'heure à convertir</param>
-		/// <returns>Object DateTime contenant l'heure. La partie "date" est fixée à aujourd'hui</returns>
-		[Pure]
-		public static DateTime ParseTime([NotNull] string time)
-		{
-			Contract.NotNullOrEmpty(time, nameof(time));
-
-			time = time.ToLowerInvariant();
-
-			int hour;
-			int minute = 0;
-			int second = 0;
-
-			int p = time.IndexOf('h');
-			if (p > 0)
-			{
-				hour = System.Convert.ToInt16(time.Substring(0, p));
-				if (p + 1 >= time.Length)
-					minute = 0;
-				else
-					minute = System.Convert.ToInt16(time.Substring(p + 1));
-			}
-			else
-			{
-				p = time.IndexOf(':');
-				if (p > 0)
-				{
-					hour = System.Convert.ToInt16(time.Substring(0, p));
-					if (p + 1 >= time.Length)
-						minute = 0;
-					else
-						minute = System.Convert.ToInt16(time.Substring(p + 1));
-				}
-				else
-				{
-					hour = System.Convert.ToInt16(time);
-				}
-			}
-			var d = DateTime.Today;
-			return new DateTime(d.Year, d.Month, d.Day, hour, minute, second, 0);
 		}
 
 		#endregion

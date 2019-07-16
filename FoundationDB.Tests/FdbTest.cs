@@ -201,5 +201,15 @@ namespace FoundationDB.Client.Tests
 
 		#endregion
 
+		protected static Slice Key(string text)
+		{
+			return Slice.FromStringUtf8(text);
+		}
+
+		protected static Slice Value(string text)
+		{
+			return Slice.FromStringUtf8(text);
+		}
+
 	}
 }

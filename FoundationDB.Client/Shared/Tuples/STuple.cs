@@ -466,7 +466,8 @@ namespace Doxense.Collections.Tuples
 				if (typeof(T) == typeof(ulong)) return Stringify((ulong) (object) item);
 				if (typeof(T) == typeof(bool)) return Stringify((bool) (object) item);
 				if (typeof(T) == typeof(char)) return Stringify((char) (object) item);
-				if (typeof(T) == typeof(Slice)) return Stringify((Slice)(object)item);
+				if (typeof(T) == typeof(Slice)) return Stringify((Slice) (object) item);
+				if (typeof(T) == typeof(MutableSlice)) return Stringify((MutableSlice)(object)item);
 				if (typeof(T) == typeof(double)) return Stringify((double) (object) item);
 				if (typeof(T) == typeof(float)) return Stringify((float) (object) item);
 				if (typeof(T) == typeof(Guid)) return Stringify((Guid) (object) item);
@@ -504,7 +505,8 @@ namespace Doxense.Collections.Tuples
 					case ulong ul:     return Stringify(ul);
 					case bool b:       return Stringify(b);
 					case char c:       return Stringify(c);
-					case Slice sl:     return Stringify(sl);
+					case Slice sl: return Stringify(sl);
+					case MutableSlice sl: return Stringify(sl);
 					case double d:     return Stringify(d);
 					case float f:      return Stringify(f);
 					case Guid guid:    return Stringify(guid);
@@ -518,14 +520,17 @@ namespace Doxense.Collections.Tuples
 
 			private static string StringifyInternal(object item)
 			{
-				if (item is byte[] bytes) return Stringify(bytes.AsSlice());
-				if (item is Slice slice) return Stringify(slice);
-				if (item is ArraySegment<byte> buffer) return Stringify(buffer.AsSlice());
-				//TODO: Span<T>, ReadOnlySpan<T>, Memory<T>, ReadOnlyMemory<T>, ...
-				if (item is IFormattable f) return f.ToString(null, CultureInfo.InvariantCulture);
-
-				// This will probably not give a meaningful result ... :(
-				return item.ToString();
+				switch (item)
+				{
+					case byte[] bytes: return Stringify(bytes.AsSlice());
+					case Slice slice: return Stringify(slice);
+					case MutableSlice slice: return Stringify(slice);
+					case ArraySegment<byte> buffer: return Stringify(buffer.AsSlice());
+					//TODO: Memory<T>, ReadOnlyMemory<T>, ...
+					case IFormattable f: return f.ToString(null, CultureInfo.InvariantCulture);
+					// This will probably not give a meaningful result ... :(
+					default: return item.ToString();
+				}
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -558,6 +563,9 @@ namespace Doxense.Collections.Tuples
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Slice item) => item.IsNull ? "null" : '`' + Slice.Dump(item, item.Count) + '`';
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(MutableSlice item) => item.IsNull ? "null" : '`' + Slice.Dump(item, item.Count) + '`';
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(byte[] item) => Stringify(item.AsSlice());

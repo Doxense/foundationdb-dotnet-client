@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace System
 {
 	using System;
-	using System.Globalization;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
@@ -39,35 +38,33 @@ namespace System
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 
-	public partial struct Slice
+	public partial struct MutableSlice
 	{
 
 		#region FromXXX...
 
 		/// <summary>Decode a Base64 encoded string into a slice</summary>
 		[Pure]
-		public static Slice FromBase64(string base64String)
+		public static MutableSlice FromBase64(string base64String)
 		{
-			return base64String == null ? default : base64String.Length == 0 ? Empty : new Slice(Convert.FromBase64String(base64String));
+			return base64String == null ? default : base64String.Length == 0 ? MutableSlice.Empty : Convert.FromBase64String(base64String).AsMutableSlice();
 		}
 
 		#region 8-bit integers...
 
 		/// <summary>Encode an unsigned 8-bit integer into a slice</summary>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] //used as a shortcut by a lot of other methods
-		public static Slice FromByte(byte value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static MutableSlice FromByte(byte value)
 		{
-			return new Slice(ByteSprite, value, 1);
+			return new MutableSlice(new byte[] { value });
 		}
 
 		/// <summary>Encode an unsigned 8-bit integer into a slice</summary>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] //used as a shortcut by a lot of other methods
-		public static Slice FromByte(int value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static MutableSlice FromByte(int value)
 		{
 			if ((uint) value > 255) throw ThrowHelper.ArgumentOutOfRangeException(nameof(value));
-			return new Slice(ByteSprite, value, 1);
+			return new MutableSlice(new byte[] { (byte) value });
 		}
 
 		#endregion
@@ -76,34 +73,29 @@ namespace System
 
 		/// <summary>Encode a signed 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt16(short value)
+		public static MutableSlice FromInt16(short value)
 		{
 			if (value >= 0)
 			{
-				if (value <= 255)
-				{
-					return Slice.FromByte((byte)value);
-				}
-				return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
+				return value <= 255 ? FromByte((byte)value) : new MutableSlice(new byte[2] { (byte)value, (byte)(value >> 8) }, 0, 2);
 			}
-
 			return FromFixed16(value);
 		}
 
 		/// <summary>Encode a signed 16-bit integer into a 2-byte slice in little-endian</summary>
 		[Pure]
-		public static Slice FromFixed16(short value)
+		public static MutableSlice FromFixed16(short value)
 		{
-			return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+			return new MutableSlice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromUInt16(ushort value)
+		public static MutableSlice FromUInt16(ushort value)
 		{
 			if (value <= 255)
 			{
-				return Slice.FromByte((byte)value);
+				return MutableSlice.FromByte((byte)value);
 			}
 			else
 			{
@@ -114,22 +106,22 @@ namespace System
 		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in little-endian</summary>
 		/// <remarks>0x1122 => 11 22</remarks>
 		[Pure]
-		public static Slice FromFixedU16(ushort value) //REVIEW: we could drop the 'U' here
+		public static MutableSlice FromFixedU16(ushort value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+			return new MutableSlice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in big-endian</summary>
 		/// <remarks>0x1122 => 22 11</remarks>
 		[Pure]
-		public static Slice FromFixedU16BE(ushort value) //REVIEW: we could drop the 'U' here
+		public static MutableSlice FromFixedU16BE(ushort value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 4);
+			return new MutableSlice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 16-bit integer into 7-bit encoded unsigned int (aka 'Varint16')</summary>
 		[Pure]
-		public static Slice FromVarint16(ushort value)
+		public static MutableSlice FromVarint16(ushort value)
 		{
 			if (value < 128)
 			{
@@ -139,7 +131,7 @@ namespace System
 			{
 				var writer = new SliceWriter(3);
 				writer.WriteVarInt16(value);
-				return writer.ToSlice();
+				return writer.ToMutableSlice();
 			}
 		}
 
@@ -149,22 +141,21 @@ namespace System
 
 		/// <summary>Encode a signed 32-bit integer into a variable size slice (1 to 4 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt32(int value)
+		public static MutableSlice FromInt32(int value)
 		{
 			if (value >= 0)
 			{
 				if (value <= (1 << 8) - 1)
 				{
-					return Slice.FromByte((byte)value);
+					return FromByte((byte)value);
 				}
 				if (value <= (1 << 16) - 1)
 				{
-					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
-					return new Slice(new byte[2] { (byte)value, (byte)(value >> 8) }, 0, 2);
+					return new MutableSlice(new byte[2] { (byte)value, (byte)(value >> 8) }, 0, 2);
 				}
 				if (value <= (1 << 24) - 1)
 				{
-					return new Slice(new byte[3] { (byte)value, (byte)(value >> 8), (byte)(value >> 16) }, 0, 3);
+					return new MutableSlice(new byte[3] { (byte)value, (byte)(value >> 8), (byte)(value >> 16) }, 0, 3);
 				}
 			}
 
@@ -174,29 +165,28 @@ namespace System
 		/// <summary>Encode a signed 32-bit integer into a 4-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed32(int value)
+		public static MutableSlice FromFixed32(int value)
 		{
-			return new Slice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4);
+			return new MutableSlice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4);
 		}
 
 		/// <summary>Encode a signed 32-bit integer into a variable size slice (1 to 4 bytes) in big-endian</summary>
 		[Pure]
-		public static Slice FromInt32BE(int value)
+		public static MutableSlice FromInt32BE(int value)
 		{
 			if (value >= 0)
 			{
 				if (value <= (1 << 8) - 1)
 				{
-					return Slice.FromByte((byte)value);
+					return FromByte((byte)value);
 				}
 				if (value <= (1 << 16) - 1)
 				{
-					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
-					return new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2);
+					return new MutableSlice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2);
 				}
 				if (value <= (1 << 24) - 1)
 				{
-					return new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3);
+					return new MutableSlice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3);
 				}
 			}
 			return FromFixed32BE(value);
@@ -205,14 +195,14 @@ namespace System
 		/// <summary>Encode a signed 32-bit integer into a 4-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed32BE(int value)
+		public static MutableSlice FromFixed32BE(int value)
 		{
-			return new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value, }, 0, 4);
+			return new MutableSlice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value, }, 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into a variable size slice (1 to 4 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromUInt32(uint value)
+		public static MutableSlice FromUInt32(uint value)
 		{
 			if (value <= (1 << 8) - 1)
 			{
@@ -220,11 +210,11 @@ namespace System
 			}
 			if (value <= (1 << 16) - 1)
 			{
-				return new Slice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
+				return new MutableSlice(new byte[2] { (byte) value, (byte) (value >> 8) }, 0, 2);
 			}
 			if (value <= (1 << 24) - 1)
 			{
-				return new Slice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3);
+				return new MutableSlice(new byte[3] { (byte) value, (byte) (value >> 8), (byte) (value >> 16) }, 0, 3);
 			}
 			return FromFixedU32(value);
 		}
@@ -233,14 +223,14 @@ namespace System
 		/// <remarks>0x11223344 => 11 22 33 44</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixedU32(uint value) //REVIEW: we could drop the 'U' here
+		public static MutableSlice FromFixedU32(uint value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4);
+			return new MutableSlice(new byte[4] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24) }, 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into a variable size slice (1 to 4 bytes) in big-endian</summary>
 		[Pure]
-		public static Slice FromUInt32BE(uint value)
+		public static MutableSlice FromUInt32BE(uint value)
 		{
 			if (value <= (1 << 8) - 1)
 			{
@@ -248,11 +238,11 @@ namespace System
 			}
 			if (value <= (1 << 16) - 1)
 			{
-				return new Slice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2);
+				return new MutableSlice(new byte[2] { (byte) (value >> 8), (byte) value }, 0, 2);
 			}
 			if (value <= (1 << 24) - 1)
 			{
-				return new Slice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3);
+				return new MutableSlice(new byte[3] { (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 3);
 			}
 			return FromFixedU32BE(value);
 		}
@@ -261,14 +251,14 @@ namespace System
 		/// <remarks>0x11223344 => 44 33 22 11</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixedU32BE(uint value) //REVIEW: we could drop the 'U' here
+		public static MutableSlice FromFixedU32BE(uint value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 4);
+			return new MutableSlice(new byte[4] { (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 4);
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into 7-bit encoded unsigned int (aka 'Varint32')</summary>
 		[Pure]
-		public static Slice FromVarint32(uint value)
+		public static MutableSlice FromVarint32(uint value)
 		{
 			if (value <= 127)
 			{ // single byte slices are cached
@@ -277,7 +267,7 @@ namespace System
 
 			var writer = new SliceWriter(value <= (1 << 14) - 1 ? 2 : 5);
 			writer.WriteVarInt32(value);
-			return writer.ToSlice();
+			return writer.ToMutableSlice();
 		}
 
 		#endregion
@@ -286,7 +276,7 @@ namespace System
 
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1 to 8 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromInt64(long value)
+		public static MutableSlice FromInt64(long value)
 		{
 			if (value >= 0)
 			{
@@ -296,15 +286,15 @@ namespace System
 				}
 				if (value <= (1L << 40) - 1)
 				{
-					return new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5);
+					return new MutableSlice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5);
 				}
 				if (value <= (1L << 48) - 1)
 				{
-					return new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6);
+					return new MutableSlice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6);
 				}
 				if (value <= (1L << 56) - 1)
 				{
-					return new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7);
+					return new MutableSlice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7);
 				}
 			}
 
@@ -314,14 +304,14 @@ namespace System
 		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed64(long value)
+		public static MutableSlice FromFixed64(long value)
 		{
-			return new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
+			return new MutableSlice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
 		}
 
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1 to 8 bytes) in big-endian</summary>
 		[Pure]
-		public static Slice FromInt64BE(long value)
+		public static MutableSlice FromInt64BE(long value)
 		{
 			if (value >= 0)
 			{
@@ -331,15 +321,15 @@ namespace System
 				}
 				if (value <= (1L << 40) - 1)
 				{
-					return new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5);
+					return new MutableSlice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5);
 				}
 				if (value <= (1L << 48) - 1)
 				{
-					return new Slice(new byte[6] { (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 6);
+					return new MutableSlice(new byte[6] { (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 6);
 				}
 				if (value <= (1L << 56) - 1)
 				{
-					return new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7);
+					return new MutableSlice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7);
 				}
 			}
 
@@ -349,14 +339,14 @@ namespace System
 		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed64BE(long value)
+		public static MutableSlice FromFixed64BE(long value)
 		{
-			return new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8);
+			return new MutableSlice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8);
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1 to 8 bytes) in little-endian</summary>
 		[Pure]
-		public static Slice FromUInt64(ulong value)
+		public static MutableSlice FromUInt64(ulong value)
 		{
 			if (value <= (1UL << 32) - 1)
 			{
@@ -364,15 +354,15 @@ namespace System
 			}
 			if (value <= (1UL << 40) - 1)
 			{
-				return new Slice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5);
+				return new MutableSlice(new byte[5] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32) }, 0, 5);
 			}
 			if (value <= (1UL << 48) - 1)
 			{
-				return new Slice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6);
+				return new MutableSlice(new byte[6] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40) }, 0, 6);
 			}
 			if (value <= (1UL << 56) - 1)
 			{
-				return new Slice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7);
+				return new MutableSlice(new byte[7] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48) }, 0, 7);
 			}
 			return FromFixedU64(value);
 		}
@@ -381,14 +371,14 @@ namespace System
 		/// <remarks>0x1122334455667788 => 11 22 33 44 55 66 77 88</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixedU64(ulong value) //REVIEW: we could drop the 'U' here
+		public static MutableSlice FromFixedU64(ulong value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
+			return new MutableSlice(new byte[8] { (byte) value, (byte) (value >> 8), (byte) (value >> 16), (byte) (value >> 24), (byte) (value >> 32), (byte) (value >> 40), (byte) (value >> 48), (byte) (value >> 56) }, 0, 8);
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1 to 8 bytes) in big-endian</summary>
 		[Pure]
-		public static Slice FromUInt64BE(ulong value)
+		public static MutableSlice FromUInt64BE(ulong value)
 		{
 			if (value <= (1UL << 32) - 1)
 			{
@@ -396,15 +386,15 @@ namespace System
 			}
 			if (value <= (1UL << 40) - 1)
 			{
-				return new Slice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5);
+				return new MutableSlice(new byte[5] { (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 5);
 			}
 			if (value <= (1UL << 48) - 1)
 			{
-				return new Slice(new byte[6] { (byte)(value >> 40), (byte)(value >> 32), (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }, 0, 6);
+				return new MutableSlice(new byte[6] { (byte)(value >> 40), (byte)(value >> 32), (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }, 0, 6);
 			}
 			if (value <= (1UL << 56) - 1)
 			{
-				return new Slice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7);
+				return new MutableSlice(new byte[7] { (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 7);
 			}
 			return FromFixedU64BE(value);
 		}
@@ -413,14 +403,14 @@ namespace System
 		/// <remarks>0x1122334455667788 => 88 77 66 55 44 33 22 11</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixedU64BE(ulong value) //REVIEW: we could drop the 'U' here
+		public static MutableSlice FromFixedU64BE(ulong value) //REVIEW: we could drop the 'U' here
 		{
-			return new Slice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8);
+			return new MutableSlice(new byte[8] { (byte) (value >> 56), (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32), (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8), (byte) value }, 0, 8);
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into 7-bit encoded unsigned int (aka 'Varint64')</summary>
 		[Pure]
-		public static Slice FromVarint64(ulong value)
+		public static MutableSlice FromVarint64(ulong value)
 		{
 			if (value <= 127)
 			{ // single byte slices are cached
@@ -438,7 +428,7 @@ namespace System
 				writer = new SliceWriter(10);
 				writer.WriteVarInt64(value);
 			}
-			return writer.ToSlice();
+			return writer.ToMutableSlice();
 		}
 
 		#endregion
@@ -450,9 +440,9 @@ namespace System
 		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in little-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed128(long lo, long hi)
+		public static MutableSlice FromFixed128(long lo, long hi)
 		{
-			return new Slice(
+			return new MutableSlice(
 				new byte[16]
 				{
 					(byte) (lo), (byte) (lo >> 8), (byte) (lo >> 16), (byte) (lo >> 24), (byte) (lo >> 32), (byte) (lo >> 40), (byte) (lo >> 48), (byte) (lo >> 56),
@@ -466,9 +456,9 @@ namespace System
 		/// <summary>Encode a signed 128-bit integer into a 16-byte slice in big-endian</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromFixed128BE(long lo, long hi)
+		public static MutableSlice FromFixed128BE(long lo, long hi)
 		{
-			return new Slice(
+			return new MutableSlice(
 				new byte[16]
 				{
 					(byte) (hi >> 56), (byte) (hi >> 48), (byte) (hi >> 40), (byte) (hi >> 32), (byte) (hi >> 24), (byte) (hi >> 16), (byte) (hi >> 8), (byte) (hi),
@@ -485,7 +475,7 @@ namespace System
 
 		/// <summary>Encode a 32-bit decimal into an 4-byte slice</summary>
 		[Pure]
-		public static Slice FromSingle(float value)
+		public static MutableSlice FromSingle(float value)
 		{
 			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[4];
@@ -496,12 +486,12 @@ namespace System
 					*((float*)ptr) = value;
 				}
 			}
-			return new Slice(tmp, 0, 4);
+			return new MutableSlice(tmp, 0, 4);
 		}
 
 		/// <summary>Encode a 32-bit decimal into an 4-byte slice (in network order)</summary>
 		[Pure]
-		public static Slice FromSingleBE(float value)
+		public static MutableSlice FromSingleBE(float value)
 		{
 			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[4];
@@ -512,12 +502,12 @@ namespace System
 					*((uint*)ptr) = UnsafeHelpers.ByteSwap32(*(uint*) &value);
 				}
 			}
-			return new Slice(tmp, 0, 4);
+			return new MutableSlice(tmp, 0, 4);
 		}
 
 		/// <summary>Encode a 64-bit decimal into an 8-byte slice</summary>
 		[Pure]
-		public static Slice FromDouble(double value)
+		public static MutableSlice FromDouble(double value)
 		{
 			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[8];
@@ -528,12 +518,12 @@ namespace System
 					*((double*) ptr) = value;
 				}
 			}
-			return new Slice(tmp, 0, 8);
+			return new MutableSlice(tmp, 0, 8);
 		}
 
 		/// <summary>Encode a 64-bit decimal into an 8-byte slice (in network order)</summary>
 		[Pure]
-		public static Slice FromDoubleBE(double value)
+		public static MutableSlice FromDoubleBE(double value)
 		{
 			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[8];
@@ -544,11 +534,11 @@ namespace System
 					*((ulong*)ptr) = UnsafeHelpers.ByteSwap64(*(ulong*) &value);
 				}
 			}
-			return new Slice(tmp, 0, 8);
+			return new MutableSlice(tmp, 0, 8);
 		}
 
 		/// <summary>Encode a 128-bit decimal into an 16-byte slice</summary>
-		public static Slice FromDecimal(decimal value)
+		public static MutableSlice FromDecimal(decimal value)
 		{
 			//TODO: may not work on BE platforms?
 			byte[] tmp = new byte[16];
@@ -559,7 +549,7 @@ namespace System
 					*((decimal*) ptr) = value;
 				}
 			}
-			return new Slice(tmp, 0, 16);
+			return new MutableSlice(tmp, 0, 16);
 		}
 
 		#endregion
@@ -569,51 +559,46 @@ namespace System
 		/// If you need to produce Microsoft compatible byte arrays, use Slice.Create(guid.ToByteArray()) but then you should NEVER use Slice.ToGuid() to decode such a value !</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromGuid(Guid value)
+		public static MutableSlice FromGuid(Guid value)
 		{
 			// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
 			// => we will convert the GUID into a UUID under the hood, and hope that it gets converted back when read from the db
-
-			return new Uuid128(value).ToSlice();
+			return new MutableSlice(new Uuid128(value).ToByteArray());
 		}
 
 		/// <summary>Create a 16-byte slice containing an RFC 4122 compliant 128-bit UUID</summary>
 		/// <remarks>You should never call this method on a slice created from the result of calling System.Guid.ToByteArray() !</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromUuid128(Uuid128 value)
+		public static MutableSlice FromUuid128(Uuid128 value)
 		{
 			// UUID should already be in the RFC 4122 ordering
-			return value.ToSlice();
+			return new MutableSlice(value.ToByteArray());
 		}
 
 		/// <summary>Create a 12-byte slice containing a 96-bit UUID</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromUuid96(Uuid96 value)
+		public static MutableSlice FromUuid96(Uuid96 value)
 		{
-			return value.ToSlice();
+			return new MutableSlice(value.ToByteArray());
 		}
 
 		/// <summary>Create a 10-byte slice containing a 80-bit UUID</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromUuid80(Uuid80 value)
+		public static MutableSlice FromUuid80(Uuid80 value)
 		{
-			return value.ToSlice();
+			return new MutableSlice(value.ToByteArray());
 		}
 
 		/// <summary>Create an 8-byte slice containing a 64-bit UUID</summary>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromUuid64(Uuid64 value)
+		public static MutableSlice FromUuid64(Uuid64 value)
 		{
-			return value.ToSlice();
+			return new MutableSlice(value.ToByteArray());
 		}
-
-		/// <summary>Encoding used to produce UTF-8 slices</summary>
-		[NotNull]
-		internal static readonly UTF8Encoding Utf8NoBomEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
 		/// <summary>Dangerously create a slice containing string converted to the local ANSI code page. All non-ANSI characters may be corrupted or converted to '?', and this slice may not decode properly on a different system.</summary>
 		/// <remarks>
@@ -621,11 +606,11 @@ namespace System
 		/// Slices encoded by this method are not guaranteed to be decoded without loss. <b>YOU'VE BEEN WARNED!</b>
 		/// </remarks>
 		[Pure]
-		public static Slice FromStringAnsi([CanBeNull] string text)
+		public static MutableSlice FromStringAnsi([CanBeNull] string text)
 		{
-			return text == null ? Slice.Nil
-				 : text.Length == 0 ? Slice.Empty
-				 : new Slice(Encoding.Default.GetBytes(text));
+			return text == null ? default
+			     : text.Length == 0 ? MutableSlice.Empty
+			     : new MutableSlice(Encoding.Default.GetBytes(text));
 		}
 
 		/// <summary>Create a slice from an ASCII string, where all the characters map directory into bytes (0..255). The string will be checked before being encoded.</summary>
@@ -636,10 +621,10 @@ namespace System
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
-		public static Slice FromStringAscii([CanBeNull] string value)
+		public static MutableSlice FromStringAscii([CanBeNull] string value)
 		{
-			if (value == null) return Slice.Nil;
-			if (value.Length == 0) return Slice.Empty;
+			if (value == null) return default;
+			if (value.Length == 0) return MutableSlice.Empty;
 			byte[] _ = null;
 			return ConvertByteStringChecked(value.AsSpan(), ref _);
 		}
@@ -652,9 +637,9 @@ namespace System
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
-		public static Slice FromStringAscii(ReadOnlySpan<char> value)
+		public static MutableSlice FromStringAscii(ReadOnlySpan<char> value)
 		{
-			if (value.Length == 0) return Slice.Empty;
+			if (value.Length == 0) return MutableSlice.Empty;
 			byte[] _ = null;
 			return ConvertByteStringChecked(value, ref _);
 		}
@@ -667,9 +652,9 @@ namespace System
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
-		public static Slice FromStringAscii(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromStringAscii(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
-			if (value.Length == 0) return Empty;
+			if (value.Length == 0) return MutableSlice.Empty;
 			return ConvertByteStringChecked(value, ref buffer);
 		}
 
@@ -679,7 +664,7 @@ namespace System
 		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromByteString([CanBeNull] string value)
+		public static MutableSlice FromByteString([CanBeNull] string value)
 		{
 			if (value == null) return default;
 			byte[] _ = null;
@@ -692,7 +677,7 @@ namespace System
 		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromByteString(ReadOnlySpan<char> value)
+		public static MutableSlice FromByteString(ReadOnlySpan<char> value)
 		{
 			byte[] _ = default;
 			return FromByteString(value, ref _);
@@ -704,13 +689,13 @@ namespace System
 		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromByteString(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromByteString(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
-			return value.Length != 0 ? ConvertByteStringNoCheck(value, ref buffer) : Empty;
+			return value.Length != 0 ? ConvertByteStringNoCheck(value, ref buffer) : MutableSlice.Empty;
 		}
 
 		[Pure]
-		internal static Slice ConvertByteStringChecked(ReadOnlySpan<char> value, ref byte[] buffer)
+		internal static MutableSlice ConvertByteStringChecked(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
 			int n = value.Length;
 			if (n == 1)
@@ -720,14 +705,14 @@ namespace System
 				if (buffer?.Length > 0)
 				{
 					buffer[0] = (byte) c;
-					return new Slice(buffer, 0, 1);
+					return new MutableSlice(buffer, 0, 1);
 				}
 				return FromByte((byte) c);
 			}
 
 			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, n);
 			if (!TryConvertBytesStringChecked(new Span<byte>(tmp, 0, n), value)) goto InvalidChar;
-			return new Slice(tmp, 0, n);
+			return new MutableSlice(tmp, 0, n);
 		InvalidChar:
 			throw ThrowHelper.FormatException("The specified string contains characters that cannot be safely truncated to 8 bits. If you are encoding natural text, you should use UTF-8 encoding.");
 		}
@@ -764,11 +749,11 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromString([CanBeNull] string value)
+		public static MutableSlice FromString([CanBeNull] string value)
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
-			if (value == null) return default;
+			if (value == null) return default(MutableSlice);
 			byte[] _ = null;
 			return FromString(value.AsSpan(), ref _);
 		}
@@ -780,7 +765,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromString(ReadOnlySpan<char> value)
+		public static MutableSlice FromString(ReadOnlySpan<char> value)
 		{
 			byte[] _ = null;
 			return FromString(value, ref _);
@@ -793,7 +778,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static Slice FromString(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromString(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
 			if (value.Length == 0) return Empty;
 			if (UnsafeHelpers.IsAsciiString(value))
@@ -805,11 +790,11 @@ namespace System
 			{
 				fixed (char* chars = &MemoryMarshal.GetReference(value))
 				{
-					int capa = Utf8NoBomEncoding.GetByteCount(chars, value.Length);
+					int capa = Slice.Utf8NoBomEncoding.GetByteCount(chars, value.Length);
 					var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, capa);
 					fixed (byte* ptr = &tmp[0])
 					{
-						if (Utf8NoBomEncoding.GetBytes(chars, value.Length, ptr, capa) != capa)
+						if (Slice.Utf8NoBomEncoding.GetBytes(chars, value.Length, ptr, capa) != capa)
 						{
 #if DEBUG
 							// uhoh, on a une désynchro entre GetByteCount() et ce que l'encoding a réellement généré??
@@ -817,7 +802,7 @@ namespace System
 #endif
 							throw new InvalidOperationException("UTF-8 byte capacity estimation failed.");
 						}
-						return new Slice(tmp, 0, capa);
+						return new MutableSlice(tmp, 0, capa);
 					}
 				}
 			}
@@ -833,13 +818,13 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure]
-		public static Slice FromStringUtf8([CanBeNull] string value)
+		public static MutableSlice FromStringUtf8([CanBeNull] string value)
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			return value == null ? default
-			     : value.Length == 0 ? Empty
-			     : new Slice(Utf8NoBomEncoding.GetBytes(value));
+				 : value.Length == 0 ? MutableSlice.Empty
+			     : new MutableSlice(Slice.Utf8NoBomEncoding.GetBytes(value));
 		}
 
 		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
@@ -853,7 +838,7 @@ namespace System
 		/// </remarks>
 		[Pure, ContractAnnotation("=> buffer:notnull")]
 		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead")]
-		public static Slice FromStringUtf8([NotNull] string value, [Positive] int offset, [Positive] int count, ref byte[] buffer, out bool asciiOnly)
+		public static MutableSlice FromStringUtf8([NotNull] string value, [Positive] int offset, [Positive] int count, ref byte[] buffer, out bool asciiOnly)
 		{
 			if (count == 0)
 			{
@@ -872,7 +857,7 @@ namespace System
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
-		public static Slice FromStringUtf8(ReadOnlySpan<char> value)
+		public static MutableSlice FromStringUtf8(ReadOnlySpan<char> value)
 		{
 			if (value.Length == 0) return Empty;
 			byte[] __ = null;
@@ -888,7 +873,7 @@ namespace System
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
-		public static Slice FromStringUtf8(ReadOnlySpan<char> value, ref byte[] buffer, out bool asciiOnly)
+		public static MutableSlice FromStringUtf8(ReadOnlySpan<char> value, ref byte[] buffer, out bool asciiOnly)
 		{
 			if (value.Length == 0)
 			{
@@ -901,7 +886,7 @@ namespace System
 				//note: there is no direct way to GetBytes(..) from a segment of a string, without going to char pointers :(
 				fixed (char* inp = &MemoryMarshal.GetReference(value))
 				{
-					int len = Utf8NoBomEncoding.GetByteCount(inp, value.Length);
+					int len = Slice.Utf8NoBomEncoding.GetByteCount(inp, value.Length);
 					Contract.Assert(len > 0);
 
 					//TODO: we could optimize conversion if we know it is only ascii!
@@ -912,7 +897,7 @@ namespace System
 					fixed (byte* outp = &tmp[0])
 					{
 						//TODO: PERF: if len == count, we know it is ASCII only and could optimize for that case?
-						if (len != Utf8NoBomEncoding.GetBytes(inp, value.Length, outp, len))
+						if (len != Slice.Utf8NoBomEncoding.GetBytes(inp, value.Length, outp, len))
 						{
 #if DEBUG
 							// uhoh, y a mismatch entre GetByteCount() et l'encoding UTF-8!
@@ -920,7 +905,7 @@ namespace System
 #endif
 							throw new InvalidOperationException("UTF-8 string size estimation failed.");
 						}
-						return new Slice(tmp, 0, len);
+						return new MutableSlice(tmp, 0, len);
 					}
 				}
 			}
@@ -934,7 +919,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromStringUtf8WithBom([CanBeNull] string value)
+		public static MutableSlice FromStringUtf8WithBom([CanBeNull] string value)
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
@@ -951,7 +936,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value)
+		public static MutableSlice FromStringUtf8WithBom(ReadOnlySpan<char> value)
 		{
 			byte[] _ = null;
 			return FromStringUtf8WithBom(value, ref _);
@@ -965,7 +950,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static Slice FromStringUtf8WithBom(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromStringUtf8WithBom(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
 			if (value.Length == 0)
 			{
@@ -974,22 +959,22 @@ namespace System
 				tmp[0] = 0xEF;
 				tmp[1] = 0xBB;
 				tmp[2] = 0xBF;
-				return new Slice(tmp, 0, 3);
+				return new MutableSlice(tmp, 0, 3);
 			}
 			unsafe
 			{
 				fixed (char* pchars = &MemoryMarshal.GetReference(value))
 				{
-					int capa = checked(3 + Utf8NoBomEncoding.GetByteCount(pchars, value.Length));
+					int capa = checked(3 + Slice.Utf8NoBomEncoding.GetByteCount(pchars, value.Length));
 					var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, capa);
 					fixed (byte* outp = &tmp[0])
 					{
 						outp[0] = 0xEF;
 						outp[1] = 0xBB;
 						outp[2] = 0xBF;
-						Utf8NoBomEncoding.GetBytes(pchars, value.Length, outp + 3, tmp.Length - 3);
+						Slice.Utf8NoBomEncoding.GetBytes(pchars, value.Length, outp + 3, tmp.Length - 3);
 					}
-					return new Slice(tmp, 0, capa);
+					return new MutableSlice(tmp, 0, capa);
 				}
 			}
 		}
@@ -1002,7 +987,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		private static Slice ConvertByteStringNoCheck(ReadOnlySpan<char> value, ref byte[] buffer)
+		private static MutableSlice ConvertByteStringNoCheck(ReadOnlySpan<char> value, ref byte[] buffer)
 		{
 			int len = value.Length;
 			if (len == 0) return Empty;
@@ -1023,7 +1008,7 @@ namespace System
 					}
 				}
 			}
-			return new Slice(tmp, 0, len);
+			return new MutableSlice(tmp, 0, len);
 		}
 
 		/// <summary>Create a slice that holds the UTF-8 encoded representation of <paramref name="value"/></summary>
@@ -1031,7 +1016,7 @@ namespace System
 		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
 		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice FromChar(char value)
+		public static MutableSlice FromChar(char value)
 		{
 			if (value < 128)
 			{ // ASCII
@@ -1046,11 +1031,11 @@ namespace System
 		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
 		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		[Pure]
-		public static Slice FromChar(char value, ref byte[] buffer)
+		public static MutableSlice FromChar(char value, ref byte[] buffer)
 		{
 			if (value < 128)
 			{ // ASCII
-				return FromByte((byte)value);
+				return MutableSlice.FromByte((byte)value);
 			}
 
 			// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
@@ -1059,54 +1044,78 @@ namespace System
 			{
 				fixed (byte* ptr = &tmp[0])
 				{
-					int n = Utf8NoBomEncoding.GetBytes(&value, 1, ptr, tmp.Length);
-					return n == 1 ? FromByte(tmp[0]) : new Slice(tmp, 0, n);
+					int n = Slice.Utf8NoBomEncoding.GetBytes(&value, 1, ptr, tmp.Length);
+					return n == 1 ? FromByte(tmp[0]) : new MutableSlice(tmp, 0, n);
 				}
 			}
 		}
 
+		/// <summary>Convert an hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
+		/// <param name="c">Hexadecimal digit (case insensitive)</param>
+		/// <returns>Decimal value between 0 and 15, or an exception</returns>
+		[Pure]
+		private static int NibbleToDecimal(char c)
+		{
+			int x = c - 48;
+			if (x < 10) return x;
+			if (x >= 17 && x <= 42) return x - 7;
+			if (x >= 49 && x <= 74) return x - 39;
+			return ThrowInputNotValidHexadecimalDigit();
+		}
+
+		private static int ThrowInputNotValidHexadecimalDigit()
+		{
+			throw FailInputNotValidHexadecimalDigit();
+		}
+
+		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		private static FormatException FailInputNotValidHexadecimalDigit()
+		{
+			return ThrowHelper.FormatException("Input is not a valid hexadecimal digit");
+		}
+
 		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
 		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
-		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
+		/// <returns>Slice containing the decoded byte array, or an exeception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static Slice FromHexa([CanBeNull] string hexaString)
+		public static MutableSlice FromHexa([CanBeNull] string hexaString)
 		{
 			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? default : Empty;
 			byte[] buffer = null;
 			int written = UnsafeHelpers.FromHexa(hexaString.AsSpan(), ref buffer);
-			return new Slice(buffer, 0, written);
+			return new MutableSlice(buffer, 0, written);
 		}
 
 		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
 		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
-		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
+		/// <returns>Slice containing the decoded byte array, or an exeception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static Slice FromHexa(ReadOnlySpan<char> hexaString)
+		public static MutableSlice FromHexa(ReadOnlySpan<char> hexaString)
 		{
 			if (hexaString.Length == 0) return Empty;
 			byte[] buffer = null;
 			int written = UnsafeHelpers.FromHexa(hexaString, ref buffer);
-			return new Slice(buffer, 0, written);
+			return new MutableSlice(buffer, 0, written);
 		}
 
 		/// <summary>Decode the string that was generated by slice.ToString() or Slice.Dump(), back into the original slice</summary>
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
-		public static Slice Unescape([CanBeNull] string value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
+		public static MutableSlice Unescape([CanBeNull] string value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
 		{
 			if (string.IsNullOrEmpty(value)) return value == null ? default : Empty;
 			byte[] buffer = null;
 			int written = UnsafeHelpers.Unescape(value.AsSpan(), ref buffer);
-			return new Slice(buffer, 0, written);
+			return new MutableSlice(buffer, 0, written);
 		}
 
 		/// <summary>Decode the string that was generated by slice.ToString() or Slice.Dump(), back into the original slice</summary>
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
-		public static Slice Unescape(ReadOnlySpan<char> value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
+		public static MutableSlice Unescape(ReadOnlySpan<char> value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
 		{
 			if (value.Length == 0) return Empty;
 			byte[] buffer = null;
 			int written = UnsafeHelpers.Unescape(value, ref buffer);
-			return new Slice(buffer, 0, written);
+			return new MutableSlice(buffer, 0, written);
 		}
 
 		#endregion
@@ -1114,7 +1123,7 @@ namespace System
 		#region ToXXX
 
 		/// <summary>Stringify a slice containing characters in the operating system's current ANSI codepage</summary>
-		/// <returns>Decoded string, or null if the slice is <see cref="Nil"/></returns>
+		/// <returns>Decoded string, or null if the slice is <see cref="MutableSlice.Nil"/></returns>
 		/// <remarks>
 		/// Calling this method on a slice that is not ANSI, or was generated with different codepage than the current process, will return a corrupted string!
 		/// This method should ONLY be used to interop with the Win32 API or unmanaged libraries that require the ANSI codepage!
@@ -1179,7 +1188,7 @@ namespace System
 			int offset = this.Offset;
 			return count == 0 ? (array != null ? string.Empty : null)
 				: UnsafeHelpers.IsAsciiBytes(array, offset, count) ? UnsafeHelpers.ConvertToByteString(array, offset, count)
-				: Utf8NoBomEncoding.GetString(array, offset, count);
+				: Slice.Utf8NoBomEncoding.GetString(array, offset, count);
 		}
 
 		[Pure]
@@ -1232,7 +1241,7 @@ namespace System
 		[Pure, NotNull]
 		public string ToHexaString(bool lower = false)
 		{
-			return FormatHexaString(this.Array, this.Offset, this.Count, '\0', lower);
+			return Slice.FormatHexaString(this.Array, this.Offset, this.Count, '\0', lower);
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
@@ -1242,163 +1251,26 @@ namespace System
 		[Pure, NotNull]
 		public string ToHexaString(char sep, bool lower = false)
 		{
-			return FormatHexaString(this.Array, this.Offset, this.Count, sep, lower);
-		}
-
-		[Pure, NotNull]
-		internal static string FormatHexaString(byte[] buffer, int offset, int count, char sep, bool lower)
-		{
-			if (count == 0) return String.Empty;
-			UnsafeHelpers.EnsureBufferIsValidNotNull(buffer, offset, count);
-
-			var sb = new StringBuilder(count * (sep == '\0' ? 2 : 3));
-			int letters = lower ? 87 : 55;
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[offset])
-				{
-					byte* inp = ptr;
-					byte* stop = ptr + count;
-					while (inp < stop)
-					{
-						if ((sep != '\0') & (sb.Length > 0)) sb.Append(sep);
-						byte b = *inp++;
-						int h = b >> 4;
-						int l = b & 0xF;
-						h += h < 10 ? 48 : letters;
-						l += l < 10 ? 48 : letters;
-						sb.Append((char) h).Append((char) l);
-					}
-				}
-			}
-
-			return sb.ToString();
-		}
-
-		[NotNull]
-		internal static StringBuilder EscapeString(StringBuilder sb, [NotNull] byte[] buffer, int offset, int count, [NotNull] Encoding encoding)
-		{
-			if (sb == null) sb = new StringBuilder(count + 16);
-			foreach (var c in encoding.GetChars(buffer, offset, count))
-			{
-				if ((c >= ' ' && c <= '~') || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
-					sb.Append(c);
-				else if (c == 0)
-					sb.Append(@"\0");
-				else if (c == '\n')
-					sb.Append(@"\n");
-				else if (c == '\r')
-					sb.Append(@"\r");
-				else if (c == '\t')
-					sb.Append(@"\t");
-				else if (c > 127)
-					sb.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-				else // pas clean!
-					sb.Append(@"\x").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture));
-			}
-			return sb;
+			return Slice.FormatHexaString(this.Array, this.Offset, this.Count, sep, lower);
 		}
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
-		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
+		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="MutableSlice.Nil"/></returns>
 		[Pure, NotNull]
 		public string PrettyPrint()
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
-			return PrettyPrint(this.Array, this.Offset, this.Count, 1024); //REVIEW: constant for max size!
+			return Slice.PrettyPrint(this.Array, this.Offset, this.Count, 1024); //REVIEW: constant for max size!
 		}
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <param name="maxLen">Truncate the slice if it exceeds this size</param>
-		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
+		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="MutableSlice.Nil"/></returns>
 		[Pure, NotNull]
 		public string PrettyPrint(int maxLen)
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
-			return PrettyPrint(this.Array, this.Offset, this.Count, maxLen);
-		}
-
-		[Pure, NotNull]
-		internal static string PrettyPrint([NotNull] byte[] buffer, int offset, int count, int maxLen)
-		{
-			if (count == 0) return "''";
-
-			// look for UTF-8 BOM
-			if (count >= 3 && buffer[offset] == 0xEF && buffer[offset + 1] == 0xBB && buffer[offset + 2] == 0xBF)
-			{ // this is supposed to be an UTF-8 string
-				return EscapeString(new StringBuilder(count).Append('\''), buffer, offset + 3, Math.Min(count - 3, maxLen), Slice.Utf8NoBomEncoding).Append('\'').ToString();
-			}
-
-			if (count >= 2)
-			{
-				// look for JSON objets or arrays
-				if ((buffer[offset] == '{' && buffer[offset + count - 1] == '}') || (buffer[offset] == '[' && buffer[offset + count - 1] == ']'))
-				{
-					try
-					{
-						if (count <= maxLen)
-						{
-							return EscapeString(new StringBuilder(count + 16), buffer, offset, count, Slice.Utf8NoBomEncoding).ToString();
-						}
-						else
-						{
-							return
-								EscapeString(new StringBuilder(count + 16), buffer, offset, maxLen, Slice.Utf8NoBomEncoding)
-									.Append("[\u2026]")
-									.Append(buffer[offset + count - 1])
-									.ToString();
-						}
-					}
-					catch (System.Text.DecoderFallbackException)
-					{
-						// sometimes, binary data "looks" like valid JSON but is not, so we just ignore it (even if we may have done a bunch of work for nothing)
-					}
-				}
-			}
-
-			// do a first path on the slice to look for binary of possible text
-			bool mustEscape = false;
-			int n = count;
-			int p = offset;
-			while (n-- > 0)
-			{
-				byte b = buffer[p++];
-				if (b >= 32 && b < 127) continue;
-
-				// we accept via escaping the following special chars: CR, LF, TAB
-				if (b == 0 || b == 10 || b == 13 || b == 9)
-				{
-					mustEscape = true;
-					continue;
-				}
-
-				//TODO: are there any chars above 128 that could be accepted ?
-
-				// this looks like binary
-				//return "<" + FormatHexaString(buffer, offset, count, ' ', false) + ">";
-				return Slice.Dump(new Slice(buffer, offset, count), maxLen);
-			}
-
-			if (!mustEscape)
-			{ // only printable chars found
-				if (count <= maxLen)
-				{
-					return "'" + Encoding.ASCII.GetString(buffer, offset, count) + "'";
-				}
-				else
-				{
-					return "'" + Encoding.ASCII.GetString(buffer, offset, maxLen) + "[\u2026]'"; // Unicode for '...'
-				}
-			}
-			// some escaping required
-			if (count <= maxLen)
-			{
-				return EscapeString(new StringBuilder(count + 2).Append('\''), buffer, offset, count, Slice.Utf8NoBomEncoding).Append('\'').ToString();
-			}
-			else
-			{
-				return EscapeString(new StringBuilder(count + 2).Append('\''), buffer, offset, maxLen, Slice.Utf8NoBomEncoding).Append("[\u2026]'").ToString();
-			}
+			return Slice.PrettyPrint(this.Array, this.Offset, this.Count, maxLen);
 		}
 
 		/// <summary>Converts a slice into a byte</summary>

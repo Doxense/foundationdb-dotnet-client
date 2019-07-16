@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Messaging
 			var range = ring.Keys.ToRange();
 
 			// start from a random position around the ring
-			Slice key = ring.Keys.Encode(GetRandomId());
+			var key = ring.Keys.Encode(GetRandomId());
 
 			// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
 			// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
@@ -251,8 +251,8 @@ namespace FoundationDB.Layers.Messaging
 		{
 			int num = Interlocked.Increment(ref s_counter);
 
-			Slice workerId = Slice.Nil;
-			Slice previousTaskId = Slice.Nil;
+			var workerId = Slice.Nil;
+			var previousTaskId = Slice.Nil;
 			FdbWatch watch = null;
 			FdbWorkerMessage msg = null;
 
@@ -264,7 +264,7 @@ namespace FoundationDB.Layers.Messaging
 					//TODO: how do we clear the previousTaskId from the db in case of cancellation ?
 					ct.ThrowIfCancellationRequested();
 
-					Slice myId = Slice.Nil;
+					var myId = Slice.Nil;
 					await db.ReadWriteAsync(
 						async (tr) =>
 						{

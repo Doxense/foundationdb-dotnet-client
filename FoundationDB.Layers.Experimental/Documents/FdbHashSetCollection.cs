@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
-		/// <returns>Value of the corresponding field, or Slice.Nil if it the hashset does not exist, or doesn't have a field with this name</returns>
+		/// <returns>Value of the corresponding field, or <see cref="Slice.Nil"/> if it the hashset does not exist, or doesn't have a field with this name</returns>
 		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
-		/// <returns>Dictionary containing the values of the selected fields, or Slice.Empty if that particular field does not exist.</returns>
+		/// <returns>Dictionary containing the values of the selected fields, or <see cref="Slice.Empty"/> if that particular field does not exist.</returns>
 		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple id, [NotNull] params string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -228,8 +228,6 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var prefix = GetKey(id);
-			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
-
 			return trans
 				.GetRange(KeyRange.StartsWith(prefix))
 				.Select((kvp) => ParseFieldKey(TuPack.Unpack(kvp.Key)))

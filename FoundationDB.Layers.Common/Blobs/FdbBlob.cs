@@ -122,7 +122,7 @@ namespace FoundationDB.Layers.Blobs
 
 			long chunkOffset = DataKeyOffset(chunkKey);
 
-			Slice chunkData = await trans.GetAsync(chunkKey).ConfigureAwait(false);
+			var chunkData = await trans.GetAsync(chunkKey).ConfigureAwait(false);
 
 			if (chunkOffset + chunkData.Count <= offset)
 			{ // in sparse region after chunk
@@ -171,18 +171,19 @@ namespace FoundationDB.Layers.Blobs
 			return true;
 		}
 
-		private void WriteToSparse([NotNull] IFdbTransaction trans, long offset, Slice data)
+		private void WriteToSparse([NotNull] IFdbTransaction trans, long offset, ReadOnlySpan<byte> data)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			if (data.IsNullOrEmpty) return;
+			if (data.Length == 0) return;
 
-			int chunks = (int)((data.Count + CHUNK_LARGE - 1) / CHUNK_LARGE);
-			int chunkSize = (data.Count + chunks) / chunks;
+			int chunks = (int)((data.Length + CHUNK_LARGE - 1) / CHUNK_LARGE);
+			int chunkSize = (data.Length + chunks) / chunks;
 
-			for (int n = 0; n < data.Count; n += chunkSize)
+			for (int n = 0; n < data.Length; n += chunkSize)
 			{
-				trans.Set(DataKey(offset + n), data[n, n + chunkSize]);
+				int r = Math.Min(chunkSize, data.Length - n);
+				trans.Set(DataKey(offset + n), data.Slice(n, r));
 			}
 		}
 
@@ -250,7 +251,7 @@ namespace FoundationDB.Layers.Blobs
 				{
 					// get offset of this chunk
 					long chunkOffset = DataKeyOffset(chunk.Key);
-					Slice chunkData = chunk.Value;
+					var chunkData = chunk.Value;
 
 					checked
 					{
@@ -280,16 +281,16 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.
 		/// </summary>
-		public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, Slice data)
+		public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
 
-			if (data.IsNullOrEmpty) return;
+			if (data.Length == 0) return;
 
-			long end = offset + data.Count;
+			long end = offset + data.Length;
 			await MakeSparseAsync(trans, offset, end).ConfigureAwait(false);
-			WriteToSparse(trans, offset, data);
+			WriteToSparse(trans, offset, data.Span);
 			await TryRemoteSplitPointAsync(trans, offset).ConfigureAwait(false);
 
 			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
@@ -306,16 +307,16 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Append the contents of <paramref name="data"/> onto the end of the blob.
 		/// </summary>
-		public async Task AppendAsync([NotNull] IFdbTransaction trans, Slice data)
+		public async Task AppendAsync([NotNull] IFdbTransaction trans, ReadOnlyMemory<byte> data)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			if (data.IsNullOrEmpty) return;
+			if (data.Length == 0) return;
 
 			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
-			WriteToSparse(trans, oldLength, data);
+			WriteToSparse(trans, oldLength, data.Span);
 			await TryRemoteSplitPointAsync(trans, oldLength).ConfigureAwait(false);
-			SetSize(trans, oldLength + data.Count);
+			SetSize(trans, oldLength + data.Length);
 		}
 
 		/// <summary>

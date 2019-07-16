@@ -34,11 +34,11 @@ namespace System
 	using System.Collections.Generic;
 	using Doxense.Memory;
 
-	public partial struct Slice
+	public partial struct MutableSlice
 	{
 
 		/// <summary>Performs optimized equality and comparison checks on Slices</summary>
-		public sealed class Comparer : IComparer<Slice>, IEqualityComparer<Slice>, IComparer<KeyValuePair<Slice, Slice>>
+		public sealed class Comparer : IComparer<MutableSlice>, IEqualityComparer<MutableSlice>, IComparer<KeyValuePair<MutableSlice, MutableSlice>>
 		{
 			/// <summary>Default instance of the slice comparator</summary>
 			public static readonly Comparer Default = new Comparer();
@@ -54,7 +54,7 @@ namespace System
 			/// <para>If both <paramref name="x"/> and <paramref name="y"/> are nil or empty, the comparison will return ZERO. If only <paramref name="y"/> is nil or empty, it will return a NEGATIVE value. If only <paramref name="x"/> is nil or empty, it will return a POSITIVE value.</para>
 			/// <para>There are no guarantees that non-zero results will be exactly -1 or +1. You should always use comparison operators or the sign of the returned value, instead of testing for equality with -1 or +1.</para>
 			/// </remarks>
-			public int Compare(Slice x, Slice y)
+			public int Compare(MutableSlice x, MutableSlice y)
 			{
 				//REVIEW: cmp(Nil, Empty) returns 0 but Nil != Empty ?
 				if (x.Count == 0) return y.Count == 0 ? 0 : -1;
@@ -66,7 +66,7 @@ namespace System
 			/// <param name="x">Slice compared with <paramref name="y"/></param>
 			/// <param name="y">Slice compared with <paramref name="x"/></param>
 			/// <returns>true if <paramref name="x"/> and <paramref name="y"/> have the same size and contain the same sequence of bytes; otherwise, false.</returns>
-			public bool Equals(Slice x, Slice y)
+			public bool Equals(MutableSlice x, MutableSlice y)
 			{
 				if (x.Array == null) return y.Array == null;
 				return x.Count == y.Count && y.Array != null && x.Span.SequenceEqual(y.Span);
@@ -75,12 +75,12 @@ namespace System
 			/// <summary>Computes the hash code of a slice</summary>
 			/// <param name="obj">A slice</param>
 			/// <returns>A 32-bit signed hash coded calculated from all the bytes in the slice</returns>
-			public int GetHashCode(Slice obj)
+			public int GetHashCode(MutableSlice obj)
 			{
 				return obj.Array == null ? 0 : UnsafeHelpers.ComputeHashCode(obj.Span);
 			}
 
-			int IComparer<KeyValuePair<Slice, Slice>>.Compare(KeyValuePair<Slice, Slice> x, KeyValuePair<Slice, Slice> y)
+			int IComparer<KeyValuePair<MutableSlice, MutableSlice>>.Compare(KeyValuePair<MutableSlice, MutableSlice> x, KeyValuePair<MutableSlice, MutableSlice> y)
 			{
 				// only compare the keys
 				return Compare(x.Key, y.Key);

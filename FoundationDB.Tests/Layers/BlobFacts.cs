@@ -78,9 +78,9 @@ namespace FoundationDB.Layers.Blobs.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					await blob.AppendAsync(tr, Slice.FromString("Attack"));
-					await blob.AppendAsync(tr, Slice.FromString(" of the "));
-					await blob.AppendAsync(tr, Slice.FromString("Blobs!"));
+					await blob.AppendAsync(tr, Value("Attack"));
+					await blob.AppendAsync(tr, Value(" of the "));
+					await blob.AppendAsync(tr, Value("Blobs!"));
 
 					await tr.CommitAsync();
 				}
@@ -94,7 +94,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(20));
 
-					Slice data = await blob.ReadAsync(tr, 0, (int)(size ?? 0));
+					var data = await blob.ReadAsync(tr, 0, (int)(size ?? 0));
 					Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
 				}
 

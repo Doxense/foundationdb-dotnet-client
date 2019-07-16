@@ -26,14 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Linq.Expressions
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using Doxense.Linq;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -48,10 +46,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns the pair of key selectors for this range query</summary>
-		public KeySelectorPair Range { get; private set; }
+		public KeySelectorPair Range { get; }
 
 		/// <summary>Returns the options for this range query</summary>
-		public FdbRangeOptions Options { get; private set; }
+		public FdbRangeOptions Options { get; }
 
 		/// <summary>Visit this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)

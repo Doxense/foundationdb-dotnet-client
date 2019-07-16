@@ -130,7 +130,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (tuple == null || tuple.Count == 0) return prefix;
 
 			var writer = new TupleWriter(32 + prefix.Count);
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			WriteTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
@@ -154,7 +154,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			foreach (var tuple in tuples)
 			{
-				writer.Output.WriteBytes(in prefix);
+				writer.Output.WriteBytes(prefix);
 				WriteTo(ref writer, tuple);
 				next.Add(writer.Output.Position);
 			}
@@ -183,7 +183,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			foreach (var tuple in tuples)
 			{
-				writer.Output.WriteBytes(in prefix);
+				writer.Output.WriteBytes(prefix);
 				WriteTo(ref writer, tuple);
 				next.Add(writer.Output.Position);
 			}
@@ -212,7 +212,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 				else
 				{
-					writer.Output.WriteBytes(in prefix);
+					writer.Output.WriteBytes(prefix);
 					WriteTo(ref writer, tuple);
 					next.Add(writer.Output.Position);
 				}
@@ -245,7 +245,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 				else
 				{
-					writer.Output.WriteBytes(in prefix);
+					writer.Output.WriteBytes(prefix);
 					WriteTo(ref writer, tuple);
 					next.Add(writer.Output.Position);
 				}
@@ -261,7 +261,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1>(Slice prefix, T1 value)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value);
 			return writer.ToSlice();
 		}
@@ -271,7 +271,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1>(Slice prefix, ref ValueTuple<T1> items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			return writer.ToSlice();
 		}
@@ -281,7 +281,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2>(Slice prefix, T1 value1, T2 value2)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			return writer.ToSlice();
@@ -292,7 +292,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2>(Slice prefix, ref (T1, T2) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			return writer.ToSlice();
@@ -302,7 +302,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			TuplePackers.SerializeTo(ref writer, value3);
@@ -313,7 +313,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3>(Slice prefix, ref (T1, T2, T3) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			TuplePackers.SerializeTo(ref writer, items.Item3);
@@ -324,7 +324,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			TuplePackers.SerializeTo(ref writer, value3);
@@ -336,7 +336,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, ref (T1, T2, T3, T4) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			TuplePackers.SerializeTo(ref writer, items.Item3);
@@ -348,7 +348,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			TuplePackers.SerializeTo(ref writer, value3);
@@ -361,7 +361,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, ref (T1, T2, T3, T4, T5) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			TuplePackers.SerializeTo(ref writer, items.Item3);
@@ -374,7 +374,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			TuplePackers.SerializeTo(ref writer, value3);
@@ -388,7 +388,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, ref (T1, T2, T3, T4, T5, T6) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			TuplePackers.SerializeTo(ref writer, items.Item3);
@@ -402,7 +402,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			TuplePackers.SerializeTo(ref writer, value3);
@@ -417,7 +417,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, ref (T1, T2, T3, T4, T5, T6, T7) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			TuplePackers.SerializeTo(ref writer, items.Item3);
@@ -432,7 +432,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7, T8 value8)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, value1);
 			TuplePackers.SerializeTo(ref writer, value2);
 			TuplePackers.SerializeTo(ref writer, value3);
@@ -448,7 +448,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, ref (T1, T2, T3, T4, T5, T6, T7, T8) items)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TuplePackers.SerializeTo(ref writer, items.Item1);
 			TuplePackers.SerializeTo(ref writer, items.Item2);
 			TuplePackers.SerializeTo(ref writer, items.Item3);
@@ -472,7 +472,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1>(Slice prefix, in STuple<T1> tuple)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TupleSerializer<T1>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
@@ -481,7 +481,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2>(Slice prefix, in STuple<T1, T2> tuple)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TupleSerializer<T1, T2>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
@@ -490,7 +490,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3>(Slice prefix, in STuple<T1, T2, T3> tuple)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TupleSerializer<T1, T2, T3>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
@@ -499,7 +499,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, in STuple<T1, T2, T3, T4> tuple)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TupleSerializer<T1, T2, T3, T4>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
@@ -508,7 +508,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(ref writer, tuple);
 			return writer.ToSlice();
 		}
@@ -517,7 +517,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			var writer = new TupleWriter();
-			writer.Output.WriteBytes(in prefix);
+			writer.Output.WriteBytes(prefix);
 			TupleSerializer<T1, T2, T3, T4, T5, T6>.Default.PackTo(ref writer, tuple);
 			return writer.Output.ToSlice();
 		}
@@ -637,7 +637,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			foreach (var key in keys)
 			{
-				if (hasPrefix) writer.Output.WriteBytes(in prefix);
+				if (hasPrefix) writer.Output.WriteBytes(prefix);
 				packer(ref writer, key);
 				next.Add(writer.Output.Position);
 			}
@@ -671,7 +671,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			foreach (var key in keys)
 			{
-				if (prefix.Count > 0) writer.Output.WriteBytes(in prefix);
+				if (prefix.Count > 0) writer.Output.WriteBytes(prefix);
 				packer(ref writer, key);
 				next.Add(writer.Output.Position);
 			}
@@ -714,7 +714,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			foreach (var value in elements)
 			{
-				if (prefix.Count > 0) writer.Output.WriteBytes(in prefix);
+				if (prefix.Count > 0) writer.Output.WriteBytes(prefix);
 				packer(ref writer, selector(value));
 				next.Add(writer.Output.Position);
 			}
@@ -757,7 +757,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Unpacking...
 
-		/// <summary>Unpack a tuple from a serialied key blob</summary>
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
@@ -771,7 +771,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Unpack a tuple from a binary representation</summary>
-		/// <param name="packedKey">Binary key containing a previously packed tuple, or Slice.Nil</param>
+		/// <param name="packedKey">Binary key containing a previously packed tuple, or <see cref="Slice.Nil"/></param>
 		/// <returns>Unpacked tuple, the empty tuple if <paramref name="packedKey"/> is equal to <see cref="Slice.Empty"/>, or null if the key is <see cref="Slice.Nil"/></returns>
 		[CanBeNull]
 		public static IVarTuple UnpackOrDefault(Slice packedKey)
@@ -783,7 +783,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T">Type of the first value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
 		/// <returns>Decoded value of the first item in the tuple</returns>
 		public static T DecodeFirst<T>(Slice packedKey)
 		{
@@ -797,7 +797,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
 		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
+		/// <param name="packedKey">Slice that should be entirely parseable as a tuple</param>
 		/// <returns>Decoded value of the last item in the tuple</returns>
 		public static T DecodeLast<T>(Slice packedKey)
 		{

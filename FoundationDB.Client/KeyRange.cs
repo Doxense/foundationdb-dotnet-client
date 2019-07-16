@@ -185,8 +185,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public KeyRange Merge(in KeyRange other)
 		{
-			Slice begin = this.Begin.CompareTo(other.Begin) <= 0 ? this.Begin : other.Begin;
-			Slice end = this.End.CompareTo(other.End) >= 0 ? this.End : other.End;
+			var begin = this.Begin.CompareTo(other.Begin) <= 0 ? this.Begin : other.Begin;
+			var end = this.End.CompareTo(other.End) >= 0 ? this.End : other.End;
 			return new KeyRange(begin, end);
 		}
 

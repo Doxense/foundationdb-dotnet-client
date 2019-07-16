@@ -1323,8 +1323,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_Pack_With_Prefix()
 		{
-
-			Slice prefix = Slice.FromString("ABC");
+			var prefix = Slice.FromString("ABC");
 
 			Assert.That(
 				TuPack.Pack(prefix, STuple.Create()).ToString(),
@@ -1530,7 +1529,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_PackTuples_With_Prefix()
 		{
-			Slice prefix = Slice.FromString("ABC");
+			var prefix = Slice.FromString("ABC");
 
 			{
 				Slice[] slices;
@@ -1669,7 +1668,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_EncodeKey_With_Prefix()
 		{
-			Slice prefix = Slice.FromString("ABC");
+			var prefix = Slice.FromString("ABC");
 
 			Assert.That(
 				TuPack.EncodePrefixedKey(prefix, "hello world").ToString(),
@@ -1806,7 +1805,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_EncodeKeys_With_Prefix()
 		{
-			Slice prefix = Slice.FromString("ABC");
+			var prefix = Slice.FromString("ABC");
 
 			{
 				var packed = TuPack.EncodePrefixedKeys(
@@ -1857,7 +1856,7 @@ namespace Doxense.Collections.Tuples.Tests
 		[Test]
 		public void Test_TuplePack_SerializersOfT()
 		{
-			Slice prefix = Slice.FromString("ABC");
+			var prefix = Slice.FromString("ABC");
 			{
 				var serializer = TupleSerializer<int>.Default;
 				var t = STuple.Create(123);

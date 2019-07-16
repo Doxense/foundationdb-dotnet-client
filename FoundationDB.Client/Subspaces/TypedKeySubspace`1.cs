@@ -168,7 +168,7 @@ namespace FoundationDB.Client
 		{
 			var bytes = this.Encoder.EncodeKey(item1);
 			var sw = this.Parent.OpenWriter(bytes.Count);
-			sw.WriteBytes(in bytes);
+			sw.WriteBytes(bytes);
 			return sw.ToSlice();
 		}
 
@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 				return this.Encoder.DecodeKey(key).ToString();
 			}
 			catch (Exception)
-			{ // decoding failed, or some other non-trival
+			{ // decoding failed, or some other non-trivial
 				return key.PrettyPrint();
 			}
 		}

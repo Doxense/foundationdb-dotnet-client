@@ -193,7 +193,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
 		/// <param name="absoluteKey">The key to be tested</param>
-		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
+		/// <remarks>The key <see cref="Slice.Nil"/> is not contained by any Subspace, so <c>subspace.Contains(Slice.Nil)</c> will always return false</remarks>
 		public virtual bool Contains(Slice absoluteKey)
 		{
 			return absoluteKey.StartsWith(this.Key);
@@ -201,8 +201,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
 		/// <param name="absoluteKey">The key to be tested</param>
-		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
-		public virtual bool Contains(in ReadOnlySpan<byte> absoluteKey)
+		/// <remarks>The key <see cref="Slice.Nil"/> is not contained by any Subspace, so <c>subspace.Contains(Slice.Nil)</c> will always return false</remarks>
+		public virtual bool Contains(ReadOnlySpan<byte> absoluteKey)
 		{
 			return absoluteKey.StartsWith(this.Key);
 		}
@@ -220,10 +220,10 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
+		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
-		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
+		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
 		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IKeySubspace.Item(Slice)"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		public virtual Slice ExtractKey(Slice absoluteKey, bool boundCheck = false)
@@ -243,7 +243,7 @@ namespace FoundationDB.Client
 		{
 			var key = GetKeyPrefix();
 			var sw = new SliceWriter(key.Count + extra); //TODO: BufferPool ?
-			sw.WriteBytes(in key);
+			sw.WriteBytes(key);
 			return sw;
 		}
 
@@ -293,7 +293,7 @@ namespace FoundationDB.Client
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
 		/// <param name="key">Key that needs to be checked</param>
 		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
-		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, <see cref="Slice.Empty"/> if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
 		public Slice BoundCheck(Slice key, bool allowSystemKeys)
 		{
 			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
@@ -317,8 +317,8 @@ namespace FoundationDB.Client
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
 		/// <param name="key">Key that needs to be checked</param>
 		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
-		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
-		public ReadOnlySpan<byte> BoundCheck(in ReadOnlySpan<byte> key, bool allowSystemKeys)
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, <see cref="Slice.Empty"/> if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		public ReadOnlySpan<byte> BoundCheck(ReadOnlySpan<byte> key, bool allowSystemKeys)
 		{
 			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
 			var prefix = this.Key;

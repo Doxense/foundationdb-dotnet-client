@@ -143,10 +143,10 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to test</param>
 		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
 		[Pure]
-		public static bool IsKeyValid([NotNull] this IFdbDatabase db, Slice key)
+		public static bool IsKeyValid([NotNull] this IFdbDatabase db, in Slice key)
 		{
 			Exception _;
-			return FdbDatabase.ValidateKey(db, ref key, false, true, out _);
+			return FdbDatabase.ValidateKey(db, in key, false, true, out _);
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -154,10 +154,9 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, Slice key, bool endExclusive = false)
+		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, in Slice key, bool endExclusive = false)
 		{
-			Exception ex;
-			if (!FdbDatabase.ValidateKey(db, ref key, endExclusive, false, out ex)) throw ex;
+			if (!FdbDatabase.ValidateKey(db, in key, endExclusive, false, out Exception ex)) throw ex;
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -165,21 +164,10 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, ref Slice key, bool endExclusive = false)
+		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, ReadOnlySpan<byte> key, bool endExclusive = false)
 		{
 			Exception ex;
-			if (!FdbDatabase.ValidateKey(db, ref key, endExclusive, false, out ex)) throw ex;
-		}
-
-		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key to verify</param>
-		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, in ReadOnlySpan<byte> key, bool endExclusive = false)
-		{
-			Exception ex;
-			if (!FdbDatabase.ValidateKey(db, in key, endExclusive, false, out ex)) throw ex;
+			if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
 		}
 
 		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -193,7 +181,7 @@ namespace FoundationDB.Client
 			for (int i = 0; i < keys.Length; i++)
 			{
 				Exception ex;
-				if (!FdbDatabase.ValidateKey(db, ref keys[i], endExclusive, false, out ex)) throw ex;
+				if (!FdbDatabase.ValidateKey(db, in keys[i], endExclusive, false, out ex)) throw ex;
 			}
 		}
 

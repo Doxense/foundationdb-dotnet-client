@@ -75,24 +75,24 @@ namespace FoundationDB.Client
 		/// <returns>True if the key can exist inside the current subspace.</returns>
 		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
 		[Pure]
-		bool Contains(in ReadOnlySpan<byte> absoluteKey);
+		bool Contains(ReadOnlySpan<byte> absoluteKey);
 
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
 		/// <param name="key">Key that needs to be checked</param>
 		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
-		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, <see cref="Slice.Empty"/> if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
 		Slice BoundCheck(Slice key, bool allowSystemKeys);
 
 		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
 		/// <param name="key">Key that needs to be checked</param>
 		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
-		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
-		ReadOnlySpan<byte> BoundCheck(in ReadOnlySpan<byte> key, bool allowSystemKeys);
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, <see cref="Slice.Empty"/> if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		ReadOnlySpan<byte> BoundCheck(ReadOnlySpan<byte> key, bool allowSystemKeys);
 
-		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
+		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
-		/// <returns>Binary suffix of the key (or Slice.Empty if the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
+		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> if the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
 		/// <remarks>This is the inverse operation of <see cref="this[Slice]"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]

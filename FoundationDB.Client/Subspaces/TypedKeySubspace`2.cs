@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 				return this.Encoder.DecodeKey(key).ToString();
 			}
 			catch (Exception)
-			{ // decoding failed, or some other non-trival
+			{ // decoding failed, or some other non-trivial
 				return key.PrettyPrint();
 			}
 		}

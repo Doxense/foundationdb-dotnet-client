@@ -63,8 +63,8 @@ namespace FoundationDB.Filters.Logging.Tests
 				await db.WriteAsync((tr) =>
 				{
 					var rnd = new Random();
-					tr.Set(location.Encode("One"), Slice.FromString("111111"));
-					tr.Set(location.Encode("Two"), Slice.FromString("222222"));
+					tr.Set(location.Encode("One"), Value("111111"));
+					tr.Set(location.Encode("Two"), Value("222222"));
 					for (int j = 0; j < 4; j++)
 					{
 						for (int i = 0; i < 100; i++)
@@ -112,7 +112,7 @@ namespace FoundationDB.Filters.Logging.Tests
 						await tr.GetAsync(location.Encode("One")).ConfigureAwait(false);
 						await tr.GetAsync(location.Encode("NotFound")).ConfigureAwait(false);
 
-						tr.Set(location.Encode("Write"), Slice.FromString("abcdef" + k.ToString()));
+						tr.Set(location.Encode("Write"), Value("abcdef" + k.ToString()));
 
 						//tr.Annotate("BEFORE");
 						//await Task.Delay(TimeSpan.FromMilliseconds(10));
@@ -149,7 +149,7 @@ namespace FoundationDB.Filters.Logging.Tests
 							tr.GetAsync(location.Encode("W", 3))
 						).ConfigureAwait(false);
 
-						tr.Set(location.Encode("Write2"), Slice.FromString("ghijkl" + k.ToString()));
+						tr.Set(location.Encode("Write2"), Value("ghijkl" + k.ToString()));
 						tr.Clear(location.Encode("Clear", "0"));
 						tr.ClearRange(location.Encode("Clear", "A"), location.Encode("Clear", "Z"));
 

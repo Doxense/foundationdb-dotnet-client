@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Converters.Tests
+namespace Doxense.Collections.Tuples.Tests
 {
 	using System;
-	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 
 	[TestFixture]
-	public class EncoderFacts : FdbTest
+	public class TupleEncoderFacts : FdbTest
 	{
 
 		[Test]

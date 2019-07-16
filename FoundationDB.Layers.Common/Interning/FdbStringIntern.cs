@@ -136,13 +136,13 @@ namespace FoundationDB.Layers.Interning
 				// remove from caches, account for bytes
 				if (!m_uidStringCache.TryGetValue(uidKey, out string value) || value == null)
 				{
-					throw new InvalidOperationException("Error in cache evication: string not found");
+					throw new InvalidOperationException("Error in cache eviction: string not found");
 				}
 
 				m_uidStringCache.Remove(uidKey);
 				m_stringUidCache.Remove(value);
 
-				// tries to get an accurante idea of the in-memory size: chars are 2-byte in .NET, but the UID key is 1-byte
+				// tries to get an accurate idea of the in-memory size: chars are 2-byte in .NET, but the UID key is 1-byte
 				int size = checked ((value.Length * 2) + uidKey.Slice.Count);
 				Interlocked.Add(ref m_bytesCached, -size);
 			}
@@ -262,7 +262,7 @@ namespace FoundationDB.Layers.Interning
 			var stringKey = StringKey(value);
 
 			var uid = await trans.GetAsync(stringKey).ConfigureAwait(false);
-			if (uid == Slice.Nil)
+			if (uid.IsNull)
 			{
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("_ not found in db, will create...");
@@ -299,7 +299,7 @@ namespace FoundationDB.Layers.Interning
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", nameof(uid));
 
-			if (uid.IsEmpty) return Task.FromResult(String.Empty);
+			if (uid.IsEmpty) return Task.FromResult(string.Empty);
 
 			if (m_uidStringCache.TryGetValue(new Uid(uid), out string value))
 			{
@@ -312,7 +312,7 @@ namespace FoundationDB.Layers.Interning
 		private async Task<string> LookupSlowAsync(IFdbReadOnlyTransaction trans, Slice uid)
 		{
 			var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
-			if (valueBytes.IsNull) throw new KeyNotFoundException("String intern indentifier not found");
+			if (valueBytes.IsNull) throw new KeyNotFoundException("String intern identifier not found");
 
 			string value = valueBytes.ToUnicode();
 

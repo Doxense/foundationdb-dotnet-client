@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ReSharper disable AssignNullToNotNullAttribute
 #undef ENABLE_LOGGING
 
-namespace FoundationDB.Layers.Directories
+namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Collections.Generic;
@@ -37,13 +37,13 @@ namespace FoundationDB.Layers.Directories
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
 	using FoundationDB.Filters.Logging;
+	using FoundationDB.Layers.Directories;
 	using NUnit.Framework;
 	using NUnit.Framework.Constraints;
 
 	[TestFixture]
-	public class DirectoryFacts : FdbTest
+	public class DirectoryLayerFacts : FdbTest
 	{
 
 		[Test]
@@ -956,10 +956,10 @@ namespace FoundationDB.Layers.Directories
 						);
 
 						var first = await directory.CreateAsync(tr1, new[] { "First" }, Slice.Nil);
-						tr1.Set(first.GetPrefix(), Slice.FromString("This belongs to the first directory"));
+						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
 
 						var second = await directory.CreateAsync(tr2, new[] { "Second" }, Slice.Nil);
-						tr2.Set(second.GetPrefix(), Slice.FromString("This belongs to the second directory"));
+						tr2.Set(second.GetPrefix(), Value("This belongs to the second directory"));
 
 						Log("Committing T1...");
 						await tr1.CommitAsync();
@@ -1015,10 +1015,10 @@ namespace FoundationDB.Layers.Directories
 						);
 
 						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, location.Keys.Encode("abc"));
-						tr1.Set(first.GetPrefix(), Slice.FromString("This belongs to the first directory"));
+						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
 
 						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Keys.Encode("def"));
-						tr2.Set(second.GetPrefix(), Slice.FromString("This belongs to the second directory"));
+						tr2.Set(second.GetPrefix(), Value("This belongs to the second directory"));
 
 						Log("Committing T1...");
 						await tr1.CommitAsync();

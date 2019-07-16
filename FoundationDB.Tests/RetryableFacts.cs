@@ -49,12 +49,12 @@ namespace FoundationDB.Client.Tests
 
 				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Keys.Encode("Hello"), Slice.FromString(secret));
+					tr.Set(location.Keys.Encode("Hello"), Value(secret));
 					await tr.CommitAsync();
 				}
 
 				int called = 0;
-				Slice result = await db.ReadAsync<Slice>((tr) =>
+				var result = await db.ReadAsync<Slice>((tr) =>
 				{
 					++called;
 					Assert.That(tr, Is.Not.Null);
@@ -243,7 +243,7 @@ namespace FoundationDB.Client.Tests
 					Assume.That(hijack, Is.Not.Null, "This test requires the transaction to implement IFdbTransaction !");
 
 					// this call should fail !
-					hijack.Set(location.Keys.Encode("Hello"), Slice.FromString("Hijacked"));
+					hijack.Set(location.Keys.Encode("Hello"), Value("Hijacked"));
 
 					Assert.Fail("Calling Set() on a read-only transaction should fail");
 					return Task.FromResult(123);
@@ -322,12 +322,12 @@ namespace FoundationDB.Client.Tests
 
 				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Keys.Encode("Hello"), Slice.FromString(secret));
+					tr.Set(location.Keys.Encode("Hello"), Value(secret));
 					await tr.CommitAsync();
 				}
 
 				int called = 0;
-				Slice result = await db.ReadWriteAsync<Slice>(
+				var result = await db.ReadWriteAsync<Slice>(
 					(tr) =>
 					{
 						if (tr.Context.Retries == 0) throw new FdbException(FdbError.NotCommitted, "Fake Not Committed!");
@@ -358,7 +358,7 @@ namespace FoundationDB.Client.Tests
 
 				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Keys.Encode("Hello"), Slice.FromString(secret));
+					tr.Set(location.Keys.Encode("Hello"), Value(secret));
 					await tr.CommitAsync();
 				}
 
@@ -393,7 +393,7 @@ namespace FoundationDB.Client.Tests
 				// Cannot set a key after commit
 				Assert.That(
 					async () => await db.WriteAsync(
-						(tr) => tr.Set(key, Slice.FromString("Set")),
+						(tr) => tr.Set(key, Value("Set")),
 						(tr) => tr.Set(key, Slice.Empty),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
@@ -405,7 +405,7 @@ namespace FoundationDB.Client.Tests
 				// Cannot double-commit!
 				Assert.That(
 					async () => await db.WriteAsync(
-						(tr) => tr.Set(key, Slice.FromString("Commit")),
+						(tr) => tr.Set(key, Value("Commit")),
 						(tr) => tr.CommitAsync(),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
@@ -417,7 +417,7 @@ namespace FoundationDB.Client.Tests
 				// Cannot read a key after commit
 				Assert.That(
 					async () => await db.WriteAsync(
-						(tr) => tr.Set(key, Slice.FromString("Get")),
+						(tr) => tr.Set(key, Value("Get")),
 						(tr) => tr.GetAsync(key),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
@@ -428,7 +428,7 @@ namespace FoundationDB.Client.Tests
 
 				// GetCommitVersion() is allowed to be executed AFTER the commit!
 				var cv = await db.WriteAsync(
-					(tr) => tr.Set(key, Slice.FromString("GetCommitVersion")),
+					(tr) => tr.Set(key, Value("GetCommitVersion")),
 					(tr) => tr.GetCommittedVersion(),
 					this.Cancellation
 				);
@@ -437,7 +437,7 @@ namespace FoundationDB.Client.Tests
 
 				// GetCommitVersion() is allowed to be executed AFTER the commit!
 				var rv = await db.WriteAsync(
-					(tr) => tr.Set(key, Slice.FromString("GetReadVersion")),
+					(tr) => tr.Set(key, Value("GetReadVersion")),
 					(tr) =>
 					{
 						var rvt = tr.GetReadVersionAsync();
@@ -465,7 +465,7 @@ namespace FoundationDB.Client.Tests
 					async () => await db.WriteAsync(
 					(tr) =>
 					{
-						tr.Set(key, Slice.FromString("GetVersionStamp"));
+						tr.Set(key, Value("GetVersionStamp"));
 						tr.SetVersionStampedKey(key + tr.CreateVersionStamp().ToSlice(), Slice.Empty);
 					},
 					(tr) => tr.GetVersionStampAsync(),
@@ -481,7 +481,7 @@ namespace FoundationDB.Client.Tests
 					async (tr) =>
 					{
 						var prev = await tr.GetAsync(key);
-						tr.Set(key, Slice.FromString("GetVersionStamp2"));
+						tr.Set(key, Value("GetVersionStamp2"));
 						tr.SetVersionStampedKey(key + VersionStamp.Incomplete().ToSlice(), key.Count, prev);
 						return new { Stamp = tr.GetVersionStampAsync() }; //REVIEW: "return tr.GetVersionStampAsync()" will deadlock because 'ReadWrite' will try to await it!
 					},
@@ -491,8 +491,6 @@ namespace FoundationDB.Client.Tests
 				Assert.That(st.IsIncomplete, Is.False, "Stamp should be completed");
 				Assert.That(st.TransactionVersion, Is.Not.Zero.And.Not.EqualTo(ulong.MaxValue), "Stamp should be completed");
 				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp2")));
-
-
 			}
 		}
 

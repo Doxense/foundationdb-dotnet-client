@@ -116,21 +116,21 @@ namespace System
 		public Uuid128(Slice slice)
 			: this()
 		{
-			m_packed = Convert(slice);
+			m_packed = Convert(slice.Span);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128(byte[] bytes)
 			: this()
 		{
-			m_packed = Convert(bytes.AsSlice());
+			m_packed = Convert(bytes.AsSpan());
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal unsafe Uuid128(byte* ptr, uint count)
+		public Uuid128(ReadOnlySpan<byte> bytes)
 			: this()
 		{
-			m_packed = Convert(ptr, count);
+			m_packed = Convert(bytes);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -186,36 +186,20 @@ namespace System
 			return new Uuid128(Guid.NewGuid());
 		}
 
-		public static Guid Convert(Slice input)
+		public static Guid Convert(ReadOnlySpan<byte> input)
 		{
-			input.EnsureSliceIsValid();
-			if (input.Count == 0) return default(Guid);
-			if (input.Count != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
-
-			unsafe
-			{
-				fixed (byte* buf = &input.DangerousGetPinnableReference())
-				{
-					return ReadUnsafe(buf);
-				}
-			}
-		}
-
-		public static unsafe Guid Convert(byte* buffer, uint count)
-		{
-			if (count == 0) return default(Guid);
-			if (count != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
-
-			return ReadUnsafe(buffer);
+			if (input.Length == 0) return default(Guid);
+			if (input.Length != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
+			return ReadUnsafe(input);
 		}
 
 		public static Guid Convert(Uuid64 a, Uuid64 b)
 		{
 			unsafe
 			{
-				byte* buf = stackalloc byte[16];
+				Span<byte> buf = stackalloc byte[SizeOf];
 				a.WriteToUnsafe(buf);
-				b.WriteToUnsafe(buf + 8);
+				b.WriteToUnsafe(buf.Slice(8));
 				return ReadUnsafe(buf);
 			}
 		}
@@ -224,7 +208,7 @@ namespace System
 		{
 			unsafe
 			{
-				byte* buf = stackalloc byte[16];
+				Span<byte> buf = stackalloc byte[16];
 				a.WriteToUnsafe(buf);
 
 				buf[8] = (byte) b;
@@ -326,109 +310,83 @@ namespace System
 		#region Unsafe I/O...
 
 		[Pure]
-		public static unsafe Guid ReadUnsafe([NotNull] byte* src)
+		public static unsafe Guid ReadUnsafe([NotNull] ReadOnlySpan<byte> source)
 		{
-			Contract.Requires(src != null);
+			Contract.Requires(source.Length >= 16);
 			Guid tmp;
-
-			if (BitConverter.IsLittleEndian)
+			fixed (byte* src = &MemoryMarshal.GetReference(source))
 			{
-				byte* ptr = (byte*)&tmp;
+				if (BitConverter.IsLittleEndian)
+				{
+					byte* ptr = (byte*) &tmp;
 
-				// Data1: 32 bits, must swap
-				ptr[0] = src[3];
-				ptr[1] = src[2];
-				ptr[2] = src[1];
-				ptr[3] = src[0];
-				// Data2: 16 bits, must swap
-				ptr[4] = src[5];
-				ptr[5] = src[4];
-				// Data3: 16 bits, must swap
-				ptr[6] = src[7];
-				ptr[7] = src[6];
-				// Data4: 64 bits, no swap required
-				*(long*)(ptr + 8) = *(long*)(src + 8);
+					// Data1: 32 bits, must swap
+					ptr[0] = src[3];
+					ptr[1] = src[2];
+					ptr[2] = src[1];
+					ptr[3] = src[0];
+					// Data2: 16 bits, must swap
+					ptr[4] = src[5];
+					ptr[5] = src[4];
+					// Data3: 16 bits, must swap
+					ptr[6] = src[7];
+					ptr[7] = src[6];
+					// Data4: 64 bits, no swap required
+					*(long*) (ptr + 8) = *(long*) (src + 8);
+				}
+				else
+				{
+					long* ptr = (long*) &tmp;
+					ptr[0] = *(long*) (src);
+					ptr[1] = *(long*) (src + 8);
+				}
 			}
-			else
-			{
-				long* ptr = (long*)&tmp;
-				ptr[0] = *(long*)(src);
-				ptr[1] = *(long*)(src + 8);
-			}
-
 			return tmp;
 		}
 
-		public static Guid ReadUnsafe([NotNull] byte[] buffer, int offset)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static unsafe void WriteUnsafe(Guid value, Span<byte> buffer)
 		{
-			Contract.Requires(buffer != null && offset >= 0 && offset + 15 < buffer.Length);
-			unsafe
+			WriteUnsafe(in value, buffer);
+		}
+
+		internal static unsafe void WriteUnsafe([NotNull] in Guid value, Span<byte> buffer)
+		{
+			Contract.Requires(value != null && buffer.Length >= 16);
+			fixed (Guid* inp = &value)
+			fixed (byte* outp = &MemoryMarshal.GetReference(buffer))
 			{
-				fixed (byte* ptr = &buffer[offset])
+				if (BitConverter.IsLittleEndian)
 				{
-					return ReadUnsafe(ptr);
+					byte* src = (byte*) inp;
+
+					// Data1: 32 bits, must swap
+					outp[0] = src[3];
+					outp[1] = src[2];
+					outp[2] = src[1];
+					outp[3] = src[0];
+					// Data2: 16 bits, must swap
+					outp[4] = src[5];
+					outp[5] = src[4];
+					// Data3: 16 bits, must swap
+					outp[6] = src[7];
+					outp[7] = src[6];
+					// Data4: 64 bits, no swap required
+					*(long*) (outp + 8) = *(long*) (src + 8);
+				}
+				else
+				{
+					long* src = (long*) inp;
+					*(long*) (outp) = src[0];
+					*(long*) (outp + 8) = src[1];
 				}
 			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe void WriteUnsafe(Guid value, [NotNull] byte* ptr)
+		public void WriteToUnsafe([NotNull] Span<byte> buffer)
 		{
-			WriteUnsafe(&value, ptr);
-		}
-
-		internal static unsafe void WriteUnsafe([NotNull] Guid* value, [NotNull] byte* ptr)
-		{
-			Contract.Requires(value != null && ptr != null);
-			if (BitConverter.IsLittleEndian)
-			{
-				byte* src = (byte*) value;
-
-				// Data1: 32 bits, must swap
-				ptr[0] = src[3];
-				ptr[1] = src[2];
-				ptr[2] = src[1];
-				ptr[3] = src[0];
-				// Data2: 16 bits, must swap
-				ptr[4] = src[5];
-				ptr[5] = src[4];
-				// Data3: 16 bits, must swap
-				ptr[6] = src[7];
-				ptr[7] = src[6];
-				// Data4: 64 bits, no swap required
-				*(long*)(ptr + 8) = *(long*)(src + 8);
-			}
-			else
-			{
-				long* src = (long*) value;
-				*(long*)(ptr) = src[0];
-				*(long*)(ptr + 8) = src[1];
-			}
-
-		}
-
-		public static void WriteUnsafe(Guid value, [NotNull] byte[] buffer, int offset)
-		{
-			Contract.Requires(buffer != null && offset >= 0 && offset + 15 < buffer.Length);
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[offset])
-				{
-					WriteUnsafe(value, ptr);
-				}
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public unsafe void WriteToUnsafe([NotNull] byte* ptr)
-		{
-			WriteUnsafe(m_packed, ptr);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteToUnsafe([NotNull] byte[] buffer, int offset)
-		{
-			WriteUnsafe(m_packed, buffer, offset);
+			WriteUnsafe(in m_packed, buffer);
 		}
 
 		#endregion
@@ -442,10 +400,10 @@ namespace System
 		{
 			unsafe
 			{
-				byte* buffer = stackalloc byte[16];
+				Span<byte> buffer = stackalloc byte[SizeOf];
 				WriteUnsafe(m_packed, buffer);
-				high = new Uuid64(Uuid64.ReadUnsafe(buffer));
-				low = new Uuid64(Uuid64.ReadUnsafe(buffer + 8));
+				high = Uuid64.ReadUnsafe(buffer);
+				low = Uuid64.ReadUnsafe(buffer.Slice(8));
 			}
 		}
 
@@ -456,8 +414,8 @@ namespace System
 		{
 			unsafe
 			{
-				byte* buffer = stackalloc byte[16];
-				WriteUnsafe(m_packed, buffer);
+				byte* buffer = stackalloc byte[SizeOf];
+				WriteUnsafe(m_packed, new Span<byte>(buffer, SizeOf));
 				a = UnsafeHelpers.LoadUInt64BE(buffer + 0);
 				b = UnsafeHelpers.LoadUInt64BE(buffer + 8);
 			}
@@ -471,8 +429,8 @@ namespace System
 		{
 			unsafe
 			{
-				byte* buffer = stackalloc byte[16];
-				WriteUnsafe(m_packed, buffer);
+				byte* buffer = stackalloc byte[SizeOf];
+				WriteUnsafe(m_packed, new Span<byte>(buffer, SizeOf));
 				a = UnsafeHelpers.LoadUInt64BE(buffer + 0);
 				b = UnsafeHelpers.LoadUInt32BE(buffer + 8);
 				c = UnsafeHelpers.LoadUInt32BE(buffer + 12);
@@ -488,8 +446,8 @@ namespace System
 		{
 			unsafe
 			{
-				byte* buffer = stackalloc byte[16];
-				WriteUnsafe(m_packed, buffer);
+				byte* buffer = stackalloc byte[SizeOf];
+				WriteUnsafe(m_packed, new Span<byte>(buffer, SizeOf));
 				a = UnsafeHelpers.LoadUInt32BE(buffer + 0);
 				b = UnsafeHelpers.LoadUInt32BE(buffer + 4);
 				c = UnsafeHelpers.LoadUInt32BE(buffer + 8);
@@ -511,16 +469,8 @@ namespace System
 		public byte[] ToByteArray()
 		{
 			// We must use Big Endian when serializing the UUID
-
-			var res = new byte[16];
-			unsafe
-			{
-				fixed (byte* ptr = res)
-				fixed (Uuid128* self = &this)
-				{
-					WriteUnsafe((Guid*) self, ptr);
-				}
-			}
+			var res = new byte[SizeOf];
+			WriteUnsafe(in m_packed, res.AsSpan());
 			return res;
 		}
 
@@ -528,7 +478,7 @@ namespace System
 		public Slice ToSlice()
 		{
 			//TODO: optimize this ?
-			return new Slice(ToByteArray(), 0, 16);
+			return new Slice(ToByteArray());
 		}
 
 		public override string ToString()
@@ -574,22 +524,19 @@ namespace System
 		{
 			unsafe
 			{
-				fixed (Guid* self = &m_packed)
-				{
-					// serialize GUID into High Endian format
-					byte* buf = stackalloc byte[SizeOf];
-					WriteUnsafe(self, buf);
+				// serialize GUID into High Endian format
+				byte* buf = stackalloc byte[SizeOf];
+				WriteUnsafe(in m_packed, new Span<byte>(buf, SizeOf));
 
-					// Add the low 64 bits (in HE)
-					ulong sum = unchecked(UnsafeHelpers.LoadUInt64BE(buf + 8) + value);
-					if (sum < value)
-					{ // overflow occured, we must carry to the high 64 bits (in HE)
-						UnsafeHelpers.StoreUInt64BE(buf, unchecked(UnsafeHelpers.LoadUInt64BE(buf) + 1));
-					}
-					UnsafeHelpers.StoreUInt64BE(buf + 8, sum);
-					// deserialize back to GUID
-					return new Uuid128(ReadUnsafe(buf));
+				// Add the low 64 bits (in HE)
+				ulong sum = unchecked(UnsafeHelpers.LoadUInt64BE(buf + 8) + value);
+				if (sum < value)
+				{ // overflow occured, we must carry to the high 64 bits (in HE)
+					UnsafeHelpers.StoreUInt64BE(buf, unchecked(UnsafeHelpers.LoadUInt64BE(buf) + 1));
 				}
+				UnsafeHelpers.StoreUInt64BE(buf + 8, sum);
+				// deserialize back to GUID
+				return new Uuid128(ReadUnsafe(new ReadOnlySpan<byte>(buf, SizeOf)));
 			}
 		}
 

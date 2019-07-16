@@ -38,7 +38,7 @@ namespace Doxense.Memory
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
 	/// <remarks>
-	/// This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the reference to the buffer will automatically reclaim all the slices that were stored with it.
+	/// This class is useful to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the reference to the buffer will automatically reclaim all the slices that were stored with it.
 	/// This class is not thread safe.
 	/// </remarks>
 	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Size={Size}, Allocated={Allocated}")]
@@ -67,7 +67,7 @@ namespace Doxense.Memory
 			: this(0)
 		{ }
 
-		/// <summary>Ceate a new slice buffer with the specified page size</summary>
+		/// <summary>Create a new slice buffer with the specified page size</summary>
 		/// <param name="pageSize">Initial page size</param>
 		public SliceBuffer(int pageSize)
 		{
@@ -99,8 +99,8 @@ namespace Doxense.Memory
 		/// <param name="count">Number of bytes to allocate</param>
 		/// <param name="aligned">If true, align the start of the slice with the default padding size.</param>
 		/// <returns>Slice pointing to a space in the buffer</returns>
-		/// <remarks>There is NO garantees that the allocated slice will be pre-filled with zeroes.</remarks>
-		public Slice Allocate(int count, bool aligned = false)
+		/// <remarks>There is NO guarantees that the allocated slice will be pre-filled with zeroes.</remarks>
+		public MutableSlice Allocate(int count, bool aligned = false)
 		{
 			if (count < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(count));
 
@@ -108,7 +108,7 @@ namespace Doxense.Memory
 
 			if (count == 0)
 			{
-				return Slice.Empty;
+				return MutableSlice.Empty;
 			}
 
 			int p = m_pos;
@@ -124,15 +124,15 @@ namespace Doxense.Memory
 			m_remaining = r - (count + extra);
 			Contract.Ensures(m_remaining >= 0);
 			//note: we rely on the fact that the buffer was pre-filled with zeroes
-			return new Slice(m_current, p + extra, count);
+			return new MutableSlice(m_current, p + extra, count);
 		}
 
-		private Slice AllocateFallback(int count)
+		private MutableSlice AllocateFallback(int count)
 		{
 			// keys that are too large are best kept in their own chunks
 			if (count > (m_pageSize >> 1))
 			{
-				var tmp = Slice.Create(count);
+				var tmp = MutableSlice.Create(count);
 				Keep(tmp);
 				return tmp;
 			}
@@ -142,7 +142,7 @@ namespace Doxense.Memory
 			// double the page size on each new allocation
 			if (m_current != null)
 			{
-				if (m_pos > 0) Keep(new Slice(m_current, 0, m_pos));
+				if (m_pos > 0) Keep(new MutableSlice(m_current, 0, m_pos));
 				pageSize <<= 1;
 				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
 				m_pageSize = pageSize;
@@ -153,10 +153,10 @@ namespace Doxense.Memory
 			m_pos = count;
 			m_remaining = pageSize - count;
 
-			return new Slice(buffer, 0, count);
+			return new MutableSlice(buffer, 0, count);
 		}
 
-		/// <summary>Copy a slice into the buffer, with optional alignement, and return a new identical slice.</summary>
+		/// <summary>Copy a slice into the buffer, with optional alignment, and return a new identical slice.</summary>
 		/// <param name="data">Data to copy in the buffer</param>
 		/// <param name="aligned">If true, align the index of first byte of the slice with a multiple of 8 bytes</param>
 		/// <returns>Slice that is the equivalent of <paramref name="data"/>, backed by the buffer.</returns>
@@ -172,7 +172,7 @@ namespace Doxense.Memory
 
 			// allocate the slice
 			var slice = Allocate(data.Count, aligned);
-			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
+			data.CopyTo(slice.Span);
 			return slice;
 		}
 
@@ -187,15 +187,15 @@ namespace Doxense.Memory
 			if (data.Count == 0)
 			{
 				// note: we don't memoize the suffix, because in most case, it comes from a constant, and it would be a waste to copy it other and other again...
-				return suffix.Count > 0 ? suffix : data.Array == null ? Slice.Nil : Slice.Empty;
+				return suffix.Count > 0 ? suffix : data.Array == null ? default : Slice.Empty;
 			}
 
 			data.EnsureSliceIsValid();
 			suffix.EnsureSliceIsValid();
 
 			var slice = Allocate(data.Count + suffix.Count, aligned);
-			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
-			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset + data.Count, suffix.Array, suffix.Offset, suffix.Count);
+			data.CopyTo(slice.Span);
+			suffix.CopyTo(slice.Span.Slice(data.Count));
 			return slice;
 		}
 

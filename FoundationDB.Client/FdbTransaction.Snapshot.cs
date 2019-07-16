@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 			{
 				EnsureNotFailedOrDisposed();
 				//TODO: we need to check if the transaction handler supports Snapshot isolation level
-				return m_snapshotted ?? (m_snapshotted = new Snapshotted(this));
+				return m_snapshotted ??= new Snapshotted(this);
 			}
 		}
 
@@ -89,17 +89,17 @@ namespace FoundationDB.Client
 				throw new NotSupportedException("You cannot set the read version on the Snapshot view of a transaction");
 			}
 
-			public Task<Slice> GetAsync(in ReadOnlySpan<byte> key)
+			public Task<Slice> GetAsync(ReadOnlySpan<byte> key)
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(in key);
+				m_parent.m_database.EnsureKeyIsValid(key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-				return m_parent.m_handler.GetAsync(in key, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetAsync(key, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(selector.Key);
+				m_parent.m_database.EnsureKeyIsValid(in selector.Key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -138,9 +138,9 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				foreach (var selector in selectors)
+				for(int i = 0; i < selectors.Length; i++)
 				{
-					m_parent.m_database.EnsureKeyIsValid(selector.Key);
+					m_parent.m_database.EnsureKeyIsValid(in selectors[i].Key);
 				}
 
 #if DEBUG
@@ -154,8 +154,8 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(beginInclusive.Key);
-				m_parent.m_database.EnsureKeyIsValid(endExclusive.Key);
+				m_parent.m_database.EnsureKeyIsValid(in beginInclusive.Key);
+				m_parent.m_database.EnsureKeyIsValid(in endExclusive.Key);
 
 				options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 				options.EnsureLegalValues();
@@ -176,7 +176,7 @@ namespace FoundationDB.Client
 				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, selector);
 			}
 
-			public Task<string[]> GetAddressesForKeyAsync(Slice key)
+			public Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key)
 			{
 				EnsureCanRead();
 				return m_parent.m_handler.GetAddressesForKeyAsync(key, ct: m_parent.m_cancellation);
@@ -207,9 +207,9 @@ namespace FoundationDB.Client
 				m_parent.SetOption(option, value);
 			}
 
-			public void SetOption(FdbTransactionOption option, in ReadOnlySpan<char> value)
+			public void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
 			{
-				m_parent.SetOption(option, in value);
+				m_parent.SetOption(option, value);
 			}
 
 			public void SetOption(FdbTransactionOption option, long value)

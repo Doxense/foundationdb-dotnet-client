@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Collections
 			// This makes pushes fast and usually conflict free (unless the queue becomes empty
 			// during the push)
 
-			Slice key = this.QueueItem.Keys.Encode(index, this.RandId());
+			var key = this.QueueItem.Keys.Encode(index, this.RandId());
 			await tr.GetAsync(key).ConfigureAwait(false);
 			tr.Set(key, this.Encoder.EncodeValue(value));
 		}
@@ -317,7 +317,7 @@ namespace FoundationDB.Layers.Collections
 				return Slice.Nil;
 			}
 
-			Slice waitKey = this.ConflictedPop.Keys.Encode(index, this.RandId());
+			var waitKey = this.ConflictedPop.Keys.Encode(index, this.RandId());
 			await tr.GetAsync(waitKey).ConfigureAwait(false);
 			tr.Set(waitKey, Slice.Empty);
 			return waitKey;
@@ -463,7 +463,7 @@ namespace FoundationDB.Layers.Collections
 
 						var sw = System.Diagnostics.Stopwatch.StartNew();
 
-						var tmp = await tr.GetValuesAsync(new Slice[] { waitKey, resultKey }).ConfigureAwait(false);
+						var tmp = await tr.GetValuesAsync(new [] { waitKey, resultKey }).ConfigureAwait(false);
 						var value = tmp[0];
 						var result = tmp[1];
 

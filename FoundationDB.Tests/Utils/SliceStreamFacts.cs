@@ -155,7 +155,7 @@ namespace Doxense.Memory.Tests
 			while(r > 0)
 			{
 				int sz = Math.Min(1 + rnd.Next(1024), r);
-				Slice slice = bytes.AsSlice(p, sz);
+				var slice = bytes.AsSlice(p, sz);
 				if (rnd.Next(2) == 1) slice = slice.Memoize();
 				slices.Add(slice);
 

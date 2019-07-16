@@ -81,7 +81,7 @@ namespace FoundationDB.Types.ProtocolBuffers
 			var packed = EncodeInternal(value);
 			Contract.Assert(packed.Count >= 0);
 			output.WriteVarInt32((uint)packed.Count);
-			output.WriteBytes(in packed);
+			output.WriteBytes(packed);
 		}
 
 		TDocument IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)

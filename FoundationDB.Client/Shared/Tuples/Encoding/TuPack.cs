@@ -1033,7 +1033,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure, NotNull]
-		public static IVarTuple Unpack(in ReadOnlySpan<byte> packedKey)
+		public static IVarTuple Unpack(ReadOnlySpan<byte> packedKey)
 		{
 			if (packedKey.Length == 0) return STuple.Empty;
 

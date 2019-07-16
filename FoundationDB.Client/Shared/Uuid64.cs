@@ -47,7 +47,7 @@ namespace System
 	[ImmutableObject(true), Serializable]
 	public readonly struct Uuid64 : IFormattable, IEquatable<Uuid64>, IComparable<Uuid64>
 	{
-		public static readonly Uuid64 Empty = default(Uuid64);
+		public static readonly Uuid64 Empty = default;
 
 		/// <summary>Size is 8 bytes</summary>
 		public const int SizeOf = 8;
@@ -150,38 +150,19 @@ namespace System
 
 		/// <summary>Read a 64-bit UUID from a byte array</summary>
 		/// <param name="value">Array of exactly 0 or 8 bytes</param>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 Read(byte[] value)
 		{
-			Contract.NotNull(value, nameof(value));
-			if (value.Length == 0) return default;
-			if (value.Length == 8) return new Uuid64(ReadUnsafe(value, 0));
-			throw FailInvalidBufferSize(nameof(value));
-		}
-
-		/// <summary>Read a 64-bit UUID from part of a byte array</summary>
-		[Pure]
-		[Obsolete("Use Uuid64.Read(ReadOnlySpan<byte>) instead!")]
-		public static Uuid64 Read(byte[] value, int offset, int count)
-		{
-			Contract.DoesNotOverflow(value, offset, count, nameof(value));
-			if (count == 0) return default;
-			if (count == 8) return new Uuid64(ReadUnsafe(value, 0));
-			throw FailInvalidBufferSize(nameof(count));
+			return Read(value.AsSpan());
 		}
 
 		/// <summary>Read a 64-bit UUID from slice of memory</summary>
 		/// <param name="value">slice of exactly 0 or 8 bytes</param>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 Read(Slice value)
 		{
-			Contract.NotNull(value.Array, nameof(value));
-			if (value.Count == 0) return default;
-			if (value.Count == 8) return new Uuid64(ReadUnsafe(value.Array, value.Offset));
-			throw FailInvalidBufferSize(nameof(value));
+			return Read(value.Span);
 		}
-
-#if ENABLE_SPAN
 
 		/// <summary>Read a 64-bit UUID from slice of memory</summary>
 		/// <param name="value">Span of exactly 0 or 8 bytes</param>
@@ -193,22 +174,9 @@ namespace System
 			throw FailInvalidBufferSize(nameof(value));
 		}
 
-#endif
-
-		/// <summary>Read a 64-bit UUID from slice of memory</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe Uuid64 Read(byte* ptr, uint count)
-		{
-			if (count == 0) return default;
-			if (count == 8) return new Uuid64(ReadUnsafe(ptr));
-			throw FailInvalidBufferSize(nameof(count));
-		}
-
 		#endregion
 
 		#region Parsing...
-
-#if ENABLE_SPAN
 
 		/// <summary>Parse a string representation of an UUid64</summary>
 		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
@@ -229,19 +197,6 @@ namespace System
 		public static Uuid64 Parse(ReadOnlySpan<char> buffer)
 		{
 			if (!TryParse(buffer, out var value))
-			{
-				throw FailInvalidFormat();
-			}
-			return value;
-		}
-
-		/// <summary>Parse a string representation of an UUid64</summary>
-		[Pure]
-		[Obsolete("Use Uuid64.Parse(ReadOnlySpan<char>) instead", error: true)] //TODO: remove me!
-		public static unsafe Uuid64 Parse(char* buffer, int count)
-		{
-			if (count == 0) return default(Uuid64);
-			if (!TryParse(new ReadOnlySpan<char>(buffer, count), out var value))
 			{
 				throw FailInvalidFormat();
 			}
@@ -331,142 +286,6 @@ namespace System
 			result = default;
 			return false;
 		}
-
-#else
-
-		/// <summary>Parse a string representation of an UUid64</summary>
-		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
-		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid64.Empty</see>.</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Parse([NotNull] string buffer)
-		{
-			Contract.NotNull(buffer, nameof(buffer));
-			unsafe
-			{
-				fixed (char* chars = buffer)
-				{
-					if (!TryParse(chars, buffer.Length, out var value))
-					{
-						throw FailInvalidFormat();
-					}
-
-					return value;
-				}
-			}
-		}
-
-		/// <summary>Parse a string representation of an UUid64</summary>
-		[Pure]
-		[Obsolete("Use Uuid64.Parse(ReadOnlySpan<char>) instead", error: true)] //TODO: remove me!
-		public static unsafe Uuid64 Parse(char* chars, int numChars)
-		{
-			if (numChars == 0) return default(Uuid64);
-			if (!TryParse(chars, numChars, out var value))
-			{
-				throw FailInvalidFormat();
-			}
-			return value;
-		}
-
-		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 FromBase62([NotNull] string buffer)
-		{
-			Contract.NotNull(buffer, nameof(buffer));
-			unsafe
-			{
-				fixed (char* chars = buffer)
-				{
-					if (!TryParseBase62(chars, buffer.Length, out var value))
-					{
-						throw FailInvalidFormat();
-					}
-
-					return value;
-				}
-			}
-		}
-
-		/// <summary>Try parsing a string representation of an UUid64</summary>
-		public static bool TryParse([NotNull] string buffer, out Uuid64 result)
-		{
-			Contract.NotNull(buffer, nameof(buffer));
-			unsafe
-			{
-				fixed (char* chars = buffer)
-				{
-					return TryParse(chars, buffer.Length, out result);
-				}
-			}
-		}
-
-		/// <summary>Try parsing a string representation of an UUid64</summary>
-		public static unsafe bool TryParse(char* chars, int numChars, out Uuid64 result)
-		{
-			Contract.Requires(chars != null && numChars >= 0);
-
-			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
-			// we don't support base10 format, because there is no way to differentiate from hex or base62
-
-			result = default(Uuid64);
-			switch (numChars)
-			{
-				case 0:
-				{ // empty
-					return true;
-				}
-				case 16:
-				{ // xxxxxxxxxxxxxxxx
-					return TryDecode16Unsafe(chars, numChars, false, out result);
-				}
-				case 17:
-				{ // xxxxxxxx-xxxxxxxx
-					if (chars[8] != '-') return false;
-					return TryDecode16Unsafe(chars, numChars, true, out result);
-				}
-				case 18:
-				{ // {xxxxxxxxxxxxxxxx}
-					if (chars[0] != '{' || chars[17] != '}')
-					{
-						return false;
-					}
-					return TryDecode16Unsafe(chars + 1, numChars - 2, false, out result);
-				}
-				case 19:
-				{ // {xxxxxxxx-xxxxxxxx}
-					if (chars[0] != '{' || chars[18] != '}')
-					{
-						return false;
-					}
-					return TryDecode16Unsafe(chars + 1, numChars - 2, true, out result);
-				}
-				default:
-				{
-					return false;
-				}
-			}
-		}
-
-		public static unsafe bool TryParseBase62(char* chars, int numChars, out Uuid64 result)
-		{
-			if (numChars == 0)
-			{
-				result = default(Uuid64);
-				return true;
-			}
-
-			if (numChars <= 11 && Base62.TryDecode(chars, numChars, out ulong x))
-			{
-				result = new Uuid64(x);
-				return true;
-			}
-
-			result = default(Uuid64);
-			return false;
-
-		}
-#endif
-
 
 		#endregion
 
@@ -734,8 +553,6 @@ namespace System
 			return INVALID_CHAR;
 		}
 
-#if ENABLE_SPAN
-
 		private static bool TryCharsToHexsUnsafe(ReadOnlySpan<char> chars, out uint result)
 		{
 			int word = 0;
@@ -765,40 +582,6 @@ namespace System
 			result = default(Uuid64);
 			return false;
 		}
-
-#else
-
-		private static unsafe bool TryCharsToHexsUnsafe(char* chars, int numChars, out uint result)
-		{
-			int word = 0;
-			for (int i = 0; i < 8; i++)
-			{
-				int a = CharToHex(chars[i]);
-				if (a == INVALID_CHAR)
-				{
-					result = 0;
-					return false;
-				}
-				word = (word << 4) | a;
-			}
-			result = (uint)word;
-			return true;
-		}
-
-		private static unsafe bool TryDecode16Unsafe(char* chars, int numChars, bool separator, out Uuid64 result)
-		{
-			if ((!separator || chars[8] == '-')
-			&& TryCharsToHexsUnsafe(chars, numChars, out uint hi)
-			&& TryCharsToHexsUnsafe(chars + (separator ? 9 : 8), numChars - (separator ? 9 : 8), out uint lo))
-			{
-				result = new Uuid64(((ulong)hi << 32) | lo);
-				return true;
-			}
-			result = default(Uuid64);
-			return false;
-		}
-
-#endif
 
 		#endregion
 
@@ -864,8 +647,6 @@ namespace System
 				}
 			}
 
-#if ENABLE_SPAN
-
 			public static bool TryDecode(char[] s, out ulong value)
 			{
 				if (s == null) { value = 0; return false; }
@@ -904,107 +685,27 @@ namespace System
 				return true;
 			}
 
-#else
-
-
-			public static bool TryDecode(char[] s, out ulong value)
-			{
-				if (s == null) { value = 0; return false; }
-
-				unsafe
-				{
-					fixed (char* chars = s)
-					{
-						return TryDecode(chars, s.Length, out value);
-					}
-				}
-			}
-
-			public static unsafe bool TryDecode(char* chars, int numChars, out ulong value)
-			{
-				if (chars == null || numChars == 0 || numChars > 11)
-				{ // fail: too small/too big
-					value = 0;
-					return false;
-				}
-
-				// we know that the original value is exactly 64bits, and any missing digit is '0'
-				ulong factor = 1UL;
-				ulong acc = 0UL;
-				int p = numChars - 1;
-				int[] bv = Base62Values;
-				while (p >= 0)
-				{
-					// read digit
-					int a = chars[p];
-					// decode base62 digit
-					a = a >= 32 && a < 128 ? bv[a - 32] : -1;
-					if (a == -1)
-					{ // fail: invalid character
-						value = 0;
-						return false;
-					}
-					// accumulate, while checking for overflow
-					acc = checked(acc + ((ulong) a * factor));
-					if (p-- > 0) factor *= 62;
-				}
-				value = acc;
-				return true;
-			}
-
-#endif
-
 		}
 
 		#endregion
 
 		#region Unsafe I/O...
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe ulong ReadUnsafe([NotNull] byte* src)
-		{
-			//Contract.Requires(src != null);
-			return UnsafeHelpers.LoadUInt64BE(src);
-		}
-
-#if ENABLE_SPAN
 		internal static unsafe ulong ReadUnsafe(ReadOnlySpan<byte> src)
 		{
-			//Contract.Requires(src.Length >= 0);
+			Contract.Requires(src.Length >= 8);
 			fixed (byte* ptr = &MemoryMarshal.GetReference(src))
 			{
 				return UnsafeHelpers.LoadUInt64BE(ptr);
 			}
 		}
-#endif
 
-		[Pure]
-		public static ulong ReadUnsafe([NotNull] byte[] buffer, int offset)
+		internal static void WriteUnsafe(ulong value, [NotNull] Span<byte> buffer)
 		{
-			//Contract.Requires(buffer != null && offset >= 0 && offset + 7 < buffer.Length);
-			// buffer contains the bytes in Big Endian
+			Contract.Requires(buffer.Length >= 8);
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[offset])
-				{
-					return UnsafeHelpers.LoadUInt64BE(ptr);
-				}
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe void WriteUnsafe(ulong value, byte* ptr)
-		{
-			//Contract.Requires(ptr != null);
-			UnsafeHelpers.StoreUInt64BE(ptr, value);
-		}
-
-		public static void WriteUnsafe(ulong value, [NotNull] byte[] buffer, int offset)
-		{
-			//Contract.Requires(buffer != null && offset >= 0 && offset + 7 < buffer.Length);
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[offset])
+				fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
 				{
 					UnsafeHelpers.StoreUInt64BE(ptr, value);
 				}
@@ -1012,78 +713,23 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public unsafe void WriteToUnsafe([NotNull] byte* ptr)
+		internal void WriteToUnsafe([NotNull] Span<byte> buffer)
 		{
-			WriteUnsafe(m_value, ptr);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteToUnsafe([NotNull] byte[] buffer, int offset)
-		{
-			WriteUnsafe(m_value, buffer, offset);
-		}
-
-#if ENABLE_SPAN
-		public void WriteTo(byte[] buffer, int offset)
-		{
-			WriteTo(buffer.AsSpan(offset));
+			WriteUnsafe(m_value, buffer);
 		}
 
 		public void WriteTo(Span<byte> destination)
 		{
 			if (destination.Length < 8) throw FailInvalidBufferSize(nameof(destination));
-			unsafe
-			{
-				fixed (byte* ptr = &MemoryMarshal.GetReference(destination))
-				{
-					WriteUnsafe(m_value, ptr);
-				}
-			}
+			WriteUnsafe(m_value, destination);
 		}
 
 		public bool TryWriteTo(Span<byte> destination)
 		{
 			if (destination.Length < 8) return false;
-			unsafe
-			{
-				fixed (byte* ptr = &MemoryMarshal.GetReference(destination))
-				{
-					WriteUnsafe(m_value, ptr);
-					return true;
-				}
-			}
+			WriteUnsafe(m_value, destination);
+			return true;
 		}
-#else
-		public void WriteTo(byte[] buffer, int offset)
-		{
-			WriteTo(buffer.AsSlice(offset));
-		}
-
-		public void WriteTo(Slice destination)
-		{
-			if (destination.Count < 8) throw FailInvalidBufferSize(nameof(destination));
-			unsafe
-			{
-				fixed (byte* ptr = &destination.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(m_value, ptr);
-				}
-			}
-		}
-
-		public bool TryWriteTo(Slice destination)
-		{
-			if (destination.Count < 8) return false;
-			unsafe
-			{
-				fixed (byte* ptr = &destination.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(m_value, ptr);
-					return true;
-				}
-			}
-		}
-#endif
 
 		#endregion
 

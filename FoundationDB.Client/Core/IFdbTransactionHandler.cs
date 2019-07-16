@@ -45,8 +45,8 @@ namespace FoundationDB.Client.Core
 
 		/// <summary>Set an option on this transaction</summary>
 		/// <param name="option">Option to set</param>
-		/// <param name="data">Parameter value (or Slice.Nil for parameter-less options)</param>
-		void SetOption(FdbTransactionOption option, Slice data);
+		/// <param name="data">Parameter value (or <see cref="Slice.Nil"/> for parameter-less options)</param>
+		void SetOption(FdbTransactionOption option, ReadOnlySpan<byte> data);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync(CancellationToken ct);
@@ -74,13 +74,13 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="ct"></param>
 		/// <returns></returns>
-		Task<Slice> GetAsync(in ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
+		Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
-		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or <see cref="Slice.Nil"/> if that key does not exist.</returns>
 		[ItemNotNull]
 		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys, bool snapshot, CancellationToken ct);
 
@@ -114,43 +114,43 @@ namespace FoundationDB.Client.Core
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
 		[ItemNotNull]
-		Task<string[]> GetAddressesForKeyAsync(in ReadOnlySpan<byte> key, CancellationToken ct);
+		Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key, CancellationToken ct);
 
 		/// <summary>Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
 		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
-		void Set(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> value);
+		void Set(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.</summary>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
 		/// <param name="mutation">Type of mutation that should be performed on the key</param>
-		void Atomic(in ReadOnlySpan<byte> key, in ReadOnlySpan<byte> param, FdbMutationType mutation);
+		void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType mutation);
 
 		/// <summary>Modify the database snapshot represented by this transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.</summary>
 		/// <param name="key">Name of the key to be removed from the database.</param>
-		void Clear(in ReadOnlySpan<byte> key);
+		void Clear(ReadOnlySpan<byte> key);
 
 		/// <summary>Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
 		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
 		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the range to clear.</param>
 		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
-		void ClearRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive);
+		void ClearRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive);
 
 		/// <summary>Adds a conflict range to a transaction without performing the associated read or write.</summary>
 		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
 		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		void AddConflictRange(in ReadOnlySpan<byte> beginKeyInclusive, in ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type);
+		void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type);
 
 		/// <summary>Watch a key for any change in the database.</summary>
 		/// <param name="key">Key to watch</param>
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
-		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property.</remarks>
+		/// <remarks>You can directly await an FdbWatch, or obtain a <c>Task&lt;Slice&gt;</c> by reading the <see cref="FdbWatch.Task"/> property.</remarks>
 		[Pure, NotNull]
 		FdbWatch Watch(Slice key, CancellationToken ct);
 

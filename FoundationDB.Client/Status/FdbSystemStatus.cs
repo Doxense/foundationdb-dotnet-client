@@ -765,7 +765,6 @@ namespace FoundationDB.Client.Status
 		public static ProcessRoleMetrics Create(Dictionary<string, object> data)
 		{
 			string role = TinyJsonParser.GetStringField(data, "role");
-			ProcessRoleMetrics pm;
 			switch (role)
 			{
 				case "master":

@@ -34,7 +34,6 @@ namespace FoundationDB.Layers.Collections
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
@@ -65,7 +64,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector([NotNull] IKeySubspace subspace, T defaultValue = default(T), IValueEncoder<T> encoder = null)
+		public FdbVector([NotNull] IKeySubspace subspace, T defaultValue = default, IValueEncoder<T> encoder = null)
 			: this(subspace.AsDynamic(), defaultValue, encoder)
 		{ }
 
@@ -75,7 +74,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="encoder">Encoder used for the values of this vector</param>
 		public FdbVector([NotNull] IDynamicKeySubspace subspace, T defaultValue, IValueEncoder<T> encoder = null)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(subspace, nameof(subspace));
 
 			this.Subspace = subspace;
 			this.DefaultValue = defaultValue;
@@ -234,7 +233,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
-			//BUGUBG: implement FdbVector.GetRangeAsync() !
+			//BUGBUG: implement FdbVector.GetRangeAsync() !
 
 			throw new NotImplementedException();
 		}

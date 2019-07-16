@@ -80,13 +80,30 @@ namespace Doxense.Memory.Tests
 				PerformWriterTest(test, new byte[] {65, 66, 67}, "41 42 43");
 			}
 			{
-				TestHandler<Slice> test = (ref SliceWriter writer, Slice value) => writer.WriteBytes(in value);
+				TestHandler<Slice> test = (ref SliceWriter writer, Slice value) => writer.WriteBytes(value);
 
 				PerformWriterTest(test, Slice.Nil, "");
 				PerformWriterTest(test, Slice.Empty, "");
 				PerformWriterTest(test, Slice.FromByte(66), "42");
 				PerformWriterTest(test, new byte[] { 65, 66, 67 }.AsSlice(), "41 42 43");
 				PerformWriterTest(test, new byte[] { 65, 66, 67, 68, 69 }.AsSlice(1, 3), "42 43 44");
+			}
+			{
+				TestHandler<MutableSlice> test = (ref SliceWriter writer, MutableSlice value) => writer.WriteBytes(value);
+
+				PerformWriterTest(test, MutableSlice.Nil, "");
+				PerformWriterTest(test, MutableSlice.Empty, "");
+				PerformWriterTest(test, MutableSlice.FromByte(66), "42");
+				PerformWriterTest(test, new byte[] { 65, 66, 67 }.AsMutableSlice(), "41 42 43");
+				PerformWriterTest(test, new byte[] { 65, 66, 67, 68, 69 }.AsMutableSlice(1, 3), "42 43 44");
+			}
+			{
+				TestHandler<Memory<byte>> test = (ref SliceWriter writer, Memory<byte> value) => writer.WriteBytes(value.Span);
+
+				PerformWriterTest(test, default, "");
+				PerformWriterTest(test, new byte[] { 66 }.AsMemory(), "42");
+				PerformWriterTest(test, new byte[] { 65, 66, 67 }.AsMemory(), "41 42 43");
+				PerformWriterTest(test, new byte[] { 65, 66, 67, 68, 69 }.AsMemory(1, 3), "42 43 44");
 			}
 		}
 
@@ -704,13 +721,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(writer.ToSlice().ToStringUtf8(), Is.EqualTo("hello world!foo"));
 
 			var bar = Slice.FromString("bar");
-			unsafe
-			{
-				fixed (byte* ptr = &bar.DangerousGetPinnableReference())
-				{
-					slice = writer.AppendBytes(ptr, 3);
-				}
-			}
+			slice = writer.AppendBytes(bar.Span);
 			Assert.That(slice.Array, Is.SameAs(writer.Buffer));
 			Assert.That(slice.Offset, Is.EqualTo(15));
 			Assert.That(slice.Count, Is.EqualTo(3));
@@ -718,14 +729,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(writer.ToSlice().ToStringUtf8(), Is.EqualTo("hello world!foobar"));
 
 			var baz = Slice.FromString("baz");
-			unsafe
-			{
-				fixed (byte* ptr = &baz.DangerousGetPinnableReference())
-				{
-					//TODO: this test was using ReadOnlySpan<byte>, update it once we enable support for these!
-					slice = writer.AppendBytes(ptr, 3);
-				}
-			}
+			slice = writer.AppendBytes(baz.Array, baz.Offset, baz.Count);
 			Assert.That(slice.Array, Is.SameAs(writer.Buffer));
 			Assert.That(slice.Offset, Is.EqualTo(18));
 			Assert.That(slice.Count, Is.EqualTo(3));
@@ -734,7 +738,7 @@ namespace Doxense.Memory.Tests
 
 			unsafe
 			{
-				slice = writer.AppendBytes(null, 0);
+				slice = writer.AppendBytes(null);
 			}
 			//note: slice.Array is not guaranteed to be equal to writer.Buffer
 			Assert.That(slice.Offset, Is.EqualTo(0)); //REVIEW: should we return (Buffer, Position, 0) instead of (EmptyArray, 0, 0) ?
