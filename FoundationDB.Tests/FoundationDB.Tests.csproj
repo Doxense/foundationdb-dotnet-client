@@ -34,11 +34,11 @@
     <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj" />
     <ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj" />
     <ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj" />
-    <PackageReference Include="MathNet.Numerics.Signed" Version="4.7.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.0" />
+    <PackageReference Include="MathNet.Numerics.Signed" Version="4.8.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="NUnit" Version="3.12.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.14.0" />
     <PackageReference Include="protobuf-net" Version="2.4.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
   </ItemGroup>

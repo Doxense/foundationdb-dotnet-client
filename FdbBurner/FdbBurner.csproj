@@ -37,7 +37,7 @@
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.0'">
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version=" 4.6.0-preview4.19164.7" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.6.0-preview8.19405.3" />
 	</ItemGroup>
 
 	<ItemGroup>
