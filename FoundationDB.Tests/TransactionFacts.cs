@@ -2554,7 +2554,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test, Category("LongRunning")]
-		public async Task Test_BadPractice_Future_Fuzzer()
+		public async Task Test_VeryBadPractice_Future_Fuzzer()
 		{
 #if DEBUG
 			const int DURATION_SEC = 5;

@@ -34,7 +34,6 @@ namespace FoundationDB.Client.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Layers.Directories;
-	using JetBrains.Annotations;
 	using NUnit.Framework;
 
 	/// <summary>Base class for all FoundationDB tests</summary>

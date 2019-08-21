@@ -98,6 +98,7 @@ namespace FoundationDB.Client.Native
 
 		#region Options...
 
+		/// <inheritdoc />
 		public void SetOption(FdbTransactionOption option, Slice data)
 		{
 			Fdb.EnsureNotOnNetworkThread();
@@ -115,6 +116,7 @@ namespace FoundationDB.Client.Native
 
 		#region Reading...
 
+		/// <inheritdoc />
 		public Task<long> GetReadVersionAsync(CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
@@ -162,8 +164,11 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken ct)
 		{
-			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.TransactionGet(m_handle, key, snapshot),
+				(h) => GetValueResultBytes(h),
+				ct
+			);
 		}
 
 		public Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken ct)
@@ -339,6 +344,7 @@ namespace FoundationDB.Client.Native
 
 		#region Writing...
 
+		/// <inheritdoc />
 		public void Set(Slice key, Slice value)
 		{
 			FdbNative.TransactionSet(m_handle, key, value);
@@ -348,6 +354,7 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count + 28);
 		}
 
+		/// <inheritdoc />
 		public void Atomic(Slice key, Slice param, FdbMutationType type)
 		{
 			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);
@@ -357,6 +364,7 @@ namespace FoundationDB.Client.Native
 
 		}
 
+		/// <inheritdoc />
 		public void Clear(Slice key)
 		{
 			FdbNative.TransactionClear(m_handle, key);
@@ -364,6 +372,7 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, (key.Count * 2) + 28 + 1);
 		}
 
+		/// <inheritdoc />
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
@@ -371,12 +380,14 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, beginKeyInclusive.Count + endKeyExclusive.Count + 28);
 		}
 
+		/// <inheritdoc />
 		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
 			FdbError err = FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
 			Fdb.DieOnError(err);
 		}
 
+		/// <inheritdoc />
 		[NotNull]
 		private static string[] GetStringArrayResult(FutureHandle h)
 		{
@@ -391,6 +402,7 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
+		/// <inheritdoc />
 		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
@@ -401,6 +413,7 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
+		/// <inheritdoc />
 		public Task<long> GetApproximateSizeAsync(CancellationToken ct)
 		{
 			//TODO: only if API version is >= 620
