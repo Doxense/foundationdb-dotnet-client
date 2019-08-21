@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client.Native
 	using FoundationDB.Client.Core;
 	using System;
 	using System.Diagnostics;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
@@ -51,7 +52,7 @@ namespace FoundationDB.Client.Native
 
 		public FdbNativeDatabase(DatabaseHandle handle, string clusterFile)
 		{
-			if (handle == null) throw new ArgumentNullException(nameof(handle));
+			Contract.NotNull(handle, nameof(handle));
 
 			m_handle = handle;
 			m_clusterFile = clusterFile;
@@ -60,18 +61,18 @@ namespace FoundationDB.Client.Native
 #endif
 		}
 
-		//REVIEW: do we really need a destructor ? The handle is a SafeHandle, and will take care of itself...
+#if DEBUG
+		// We add a destructor in DEBUG builds to help track leaks of databases...
 		~FdbNativeDatabase()
 		{
 #if CAPTURE_STACKTRACES
 			Trace.WriteLine("A database handle (" + m_handle + ") was leaked by " + m_stackTrace);
 #endif
-#if DEBUG
 			// If you break here, that means that a native database handler was leaked by a FdbDatabase instance (or that the database instance was leaked)
 			if (Debugger.IsAttached) Debugger.Break();
-#endif
 			Dispose(false);
 		}
+#endif
 
 		public static IFdbDatabaseHandler CreateDatabase(string clusterFile)
 		{
@@ -116,7 +117,7 @@ namespace FoundationDB.Client.Native
 			}
 			catch(Exception)
 			{
-				if (handle != null) handle.Dispose();
+				handle?.Dispose();
 				throw;
 			}
 		}
@@ -131,7 +132,7 @@ namespace FoundationDB.Client.Native
 		{
 			if (disposing)
 			{
-				if (m_handle != null) m_handle.Dispose();
+				m_handle?.Dispose();
 			}
 		}
 	}

@@ -261,7 +261,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 			if (!this.StillAlive)
-			{ // we have already been committed or cancelleD?
+			{ // we have already been committed or cancelled?
 				ThrowOnInvalidState(this);
 			}
 			return m_handler.GetVersionStampAsync(m_cancellation);
@@ -685,6 +685,18 @@ namespace FoundationDB.Client
 #endif
 
 			return m_handler.GetAddressesForKeyAsync(key, ct: m_cancellation);
+		}
+
+		#endregion
+
+		#region GetApproximateSize...
+
+		/// <inheritdoc />
+		public Task<long> GetApproximateSizeAsync()
+		{
+			EnsureCanWrite();
+
+			return m_handler.GetApproximateSizeAsync(m_cancellation);
 		}
 
 		#endregion

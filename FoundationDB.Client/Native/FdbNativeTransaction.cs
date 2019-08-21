@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -68,18 +68,18 @@ namespace FoundationDB.Client.Native
 #endif
 		}
 
-		//REVIEW: do we really need a destructor ? The handle is a SafeHandle, and will take care of itself...
+#if DEBUG
+		// We add a destructor in DEBUG builds to help track leaks of transactions...
 		~FdbNativeTransaction()
 		{
 #if CAPTURE_STACKTRACES
 			Trace.WriteLine("A transaction handle (" + m_handle + ", " + m_payloadBytes + " bytes written) was leaked by " + m_stackTrace);
 #endif
-#if DEBUG
 			// If you break here, that means that a native transaction handler was leaked by a FdbTransaction instance (or that the transaction instance was leaked)
 			if (Debugger.IsAttached) Debugger.Break();
-#endif
 			Dispose(false);
 		}
+#endif
 
 		#region Properties...
 
@@ -121,7 +121,7 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
-					var err = FdbNative.FutureGetVersion(h, out long version);
+					var err = FdbNative.FutureGetInt64(h, out long version);
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif
@@ -387,7 +387,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
 			Fdb.DieOnError(err);
-			Contract.Ensures(result != null); // can only be null in case of an errror
+			Contract.Ensures(result != null); // can only be null in case of an error
 			return result;
 		}
 
@@ -397,6 +397,25 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) => GetStringArrayResult(h),
+				ct
+			);
+		}
+
+		public Task<long> GetApproximateSizeAsync(CancellationToken ct)
+		{
+			//TODO: only if API version is >= 620
+
+			var future = FdbNative.TransactionGetReadVersion(m_handle);
+			return FdbFuture.CreateTaskFromHandle(future,
+				(h) =>
+				{
+					var err = FdbNative.FutureGetInt64(h, out long size); //TODO: rename to FutureGetInt64 !
+#if DEBUG_TRANSACTIONS
+					Debug.WriteLine("FdbTransaction[" + m_id + "].GetApproximateSize() => err=" + err + ", size=" + size);
+#endif
+					Fdb.DieOnError(err);
+					return size;
+				},
 				ct
 			);
 		}
