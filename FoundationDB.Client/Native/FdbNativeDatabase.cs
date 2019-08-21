@@ -34,28 +34,38 @@ namespace FoundationDB.Client.Native
 	using FoundationDB.Client.Core;
 	using System;
 	using System.Diagnostics;
+	using System.Threading;
+	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
 	internal sealed class FdbNativeDatabase : IFdbDatabaseHandler
 	{
 		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
+		[NotNull]
 		private readonly DatabaseHandle m_handle;
 
+		/// <summary>Optional Cluster handle (only for API 600 or below)</summary>
+		[CanBeNull]
+		private readonly ClusterHandle m_clusterHandle;
+
 		/// <summary>Path to the cluster file</summary>
+		[CanBeNull]
 		private readonly string m_clusterFile;
 
 #if CAPTURE_STACKTRACES
 		private readonly StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeDatabase(DatabaseHandle handle, string clusterFile)
+		public FdbNativeDatabase([NotNull] DatabaseHandle handle, [CanBeNull] string clusterFile, ClusterHandle cluster = null)
 		{
 			Contract.NotNull(handle, nameof(handle));
 
 			m_handle = handle;
 			m_clusterFile = clusterFile;
+			m_clusterHandle = cluster;
 #if CAPTURE_STACKTRACES
 			m_stackTrace = new StackTrace();
 #endif
@@ -69,19 +79,73 @@ namespace FoundationDB.Client.Native
 			Trace.WriteLine("A database handle (" + m_handle + ") was leaked by " + m_stackTrace);
 #endif
 			// If you break here, that means that a native database handler was leaked by a FdbDatabase instance (or that the database instance was leaked)
-			if (Debugger.IsAttached) Debugger.Break();
+			if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 			Dispose(false);
 		}
 #endif
 
-		public static IFdbDatabaseHandler CreateDatabase(string clusterFile)
+		public static ValueTask<IFdbDatabaseHandler> CreateDatabaseAsync(string clusterFile, CancellationToken ct)
 		{
+			if (Fdb.GetMaxApiVersion() < 610)
+			{ // Older version used a different way to create a database handle
+				return CreateDatabaseLegacyAsync(clusterFile, ct);
+			}
+
+			// Starting from 6.1, creating a database handler can be done directly
 			var err = FdbNative.CreateDatabase(clusterFile, out var handle);
 			if (err != FdbError.Success)
 			{
 				throw Fdb.MapToException(err);
 			}
-			return new FdbNativeDatabase(handle, clusterFile);
+
+			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
+		}
+
+		private static async ValueTask<IFdbDatabaseHandler> CreateDatabaseLegacyAsync(string clusterFile, CancellationToken ct)
+		{
+			// In legacy API versions, you first had to create "cluster" handle and then obtain a database handle that that cluster.
+			// The API is async, but the future always completed inline...
+
+			ClusterHandle cluster = null;
+			DatabaseHandle database = null;
+			try
+			{
+				cluster = await FdbFuture.CreateTaskFromHandle(
+					FdbNative.CreateCluster(clusterFile),
+					h =>
+					{
+						var err = FdbNative.FutureGetCluster(h, out var handle);
+						if (err != FdbError.Success)
+						{
+							throw Fdb.MapToException(err);
+						}
+
+						return handle;
+					},
+					ct).ConfigureAwait(false);
+
+				database = await FdbFuture.CreateTaskFromHandle(
+					FdbNative.ClusterCreateDatabase(cluster, "DB"),
+					h =>
+					{
+						var err = FdbNative.FutureGetDatabase(h, out var handle);
+						if (err != FdbError.Success)
+						{
+							throw Fdb.MapToException(err);
+						}
+
+						return handle;
+					}, 
+					ct).ConfigureAwait(false);
+
+				return new FdbNativeDatabase(database, clusterFile, cluster);
+			}
+			catch (Exception)
+			{
+				database?.Dispose();
+				cluster?.Dispose();
+				throw;
+			}
 		}
 
 		public string ClusterFile => m_clusterFile;
@@ -132,7 +196,8 @@ namespace FoundationDB.Client.Native
 		{
 			if (disposing)
 			{
-				m_handle?.Dispose();
+				m_handle.Dispose();
+				m_clusterHandle?.Dispose();
 			}
 		}
 	}

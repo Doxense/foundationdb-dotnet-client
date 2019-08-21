@@ -51,6 +51,7 @@ namespace FoundationDB.Client.Native
 		private readonly TransactionHandle m_handle;
 		/// <summary>Estimated current size of the transaction</summary>
 		private int m_payloadBytes;
+		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
 
 #if CAPTURE_STACKTRACES
 		private StackTrace m_stackTrace;
@@ -93,6 +94,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size => m_payloadBytes;
+		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
 
 		#endregion
 
@@ -416,7 +418,9 @@ namespace FoundationDB.Client.Native
 		/// <inheritdoc />
 		public Task<long> GetApproximateSizeAsync(CancellationToken ct)
 		{
-			//TODO: only if API version is >= 620
+			// API was introduced in 6.2
+			if (Fdb.ApiVersion < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You willl need to select API version 620 or greater.");
+			//TODO: for lesser version, maybe we could return our own estimation?
 
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
