@@ -125,7 +125,10 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
-					var err = FdbNative.FutureGetInt64(h, out long version);
+					long version;
+					var err = Fdb.ApiVersion < 620 
+						? FdbNative.FutureGetVersion(h, out version)
+						: FdbNative.FutureGetInt64(h, out version);
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif
@@ -426,7 +429,7 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
-					var err = FdbNative.FutureGetInt64(h, out long size); //TODO: rename to FutureGetInt64 !
+					var err = FdbNative.FutureGetInt64(h, out long size);
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetApproximateSize() => err=" + err + ", size=" + size);
 #endif

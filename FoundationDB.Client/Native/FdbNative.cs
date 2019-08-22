@@ -221,6 +221,9 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_future_get_version(FutureHandle future, out long version);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_int64(FutureHandle future, out long version);
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
@@ -665,7 +668,7 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_transaction_get_committed_version(transaction, out version);
 		}
 
-		public static FdbError FutureGetInt64(FutureHandle future, out long version)
+		public static FdbError FutureGetVersion(FutureHandle future, out long version)
 		{
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_version(0x" + future.Handle.ToString("x") + ")");
@@ -673,6 +676,16 @@ namespace FoundationDB.Client.Native
 			// for 620 or above, we must use fdb_future_get_int64
 			// for 610 and below, we must use fdb_future_get_version
 			return NativeMethods.fdb_future_get_version(future, out version);
+		}
+
+		public static FdbError FutureGetInt64(FutureHandle future, out long version)
+		{
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_int64(0x" + future.Handle.ToString("x") + ")");
+#endif
+			// for 620 or above, we must use fdb_future_get_int64
+			// for 610 and below, we must use fdb_future_get_version
+			return NativeMethods.fdb_future_get_int64(future, out version);
 		}
 
 		public static FutureHandle TransactionGet(TransactionHandle transaction, ReadOnlySpan<byte> key, bool snapshot)
