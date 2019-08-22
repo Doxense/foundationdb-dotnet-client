@@ -146,6 +146,9 @@ namespace FoundationDB.Client.Core
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
 		void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type);
 
+		/// <summary>Returns the approximate size of the transaction's mutations</summary>
+		Task<long> GetApproximateSizeAsync(CancellationToken ct);
+
 		/// <summary>Watch a key for any change in the database.</summary>
 		/// <param name="key">Key to watch</param>
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>

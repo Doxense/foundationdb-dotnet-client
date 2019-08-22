@@ -272,7 +272,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 			if (!this.StillAlive)
-			{ // we have already been committed or cancelleD?
+			{ // we have already been committed or cancelled?
 				ThrowOnInvalidState(this);
 			}
 			return m_handler.GetVersionStampAsync(m_cancellation);
@@ -501,11 +501,11 @@ namespace FoundationDB.Client
 
 				if (Fdb.GetMaxApiVersion() >= 200)
 				{ // but the installed client could support it
-					throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations are only supported starting from API level 200. You need to select API level 200 or more at the start of your process.");
+					throw new NotSupportedException("Atomic mutations are only supported starting from API level 200. You need to select API level 200 or more at the start of your process.");
 				}
 				else
 				{ // not supported by the local client
-					throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations are only supported starting from client version 2.x. You need to update the version of the client, and select API level 200 or more at the start of your process.");
+					throw new NotSupportedException("Atomic mutations are only supported starting from client version 2.x. You need to update the version of the client, and select API level 200 or more at the start of your process.");
 				}
 			}
 
@@ -527,11 +527,11 @@ namespace FoundationDB.Client
 					{
 						if (Fdb.GetMaxApiVersion() >= 300)
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from API level 300. You need to select API level 300 or more at the start of your process.");
+							throw new NotSupportedException("Atomic mutations Max and Min are only supported starting from API level 300. You need to select API level 300 or more at the start of your process.");
 						}
 						else
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 3.x. You need to update the version of the client, and select API level 300 or more at the start of your process..");
+							throw new NotSupportedException("Atomic mutations Max and Min are only supported starting from client version 3.x. You need to update the version of the client, and select API level 300 or more at the start of your process..");
 						}
 					}
 
@@ -546,11 +546,11 @@ namespace FoundationDB.Client
 					{
 						if (Fdb.GetMaxApiVersion() >= 400)
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations for VersionStamps are only supported starting from API level 400. You need to select API level 400 or more at the start of your process.");
+							throw new NotSupportedException("Atomic mutations for VersionStamps are only supported starting from API level 400. You need to select API level 400 or more at the start of your process.");
 						}
 						else
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 4.x. You need to update the version of the client, and select API level 400 or more at the start of your process..");
+							throw new NotSupportedException("Atomic mutations Max and Min are only supported starting from client version 4.x. You need to update the version of the client, and select API level 400 or more at the start of your process..");
 						}
 					}
 
@@ -564,11 +564,11 @@ namespace FoundationDB.Client
 					{
 						if (Fdb.GetMaxApiVersion() >= 520)
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from API level 520. You need to select API level 520 or more at the start of your process.");
+							throw new NotSupportedException("Atomic mutation AppendIfFits is only supported starting from API level 520. You need to select API level 520 or more at the start of your process.");
 						}
 						else
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations AppendIfFits is only supported starting from client version 5.2. You need to update the version of the client, and select API level 520 or more at the start of your process..");
+							throw new NotSupportedException("Atomic mutation AppendIfFits is only supported starting from client version 5.2. You need to update the version of the client, and select API level 520 or more at the start of your process..");
 						}
 					}
 
@@ -582,11 +582,11 @@ namespace FoundationDB.Client
 					{
 						if (Fdb.GetMaxApiVersion() >= 610)
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic CompareAndClear is only supported starting from API level 610. You need to select API level 610 or more at the start of your process.");
+							throw new NotSupportedException("Atomic mutation CompareAndClear is only supported starting from API level 610. You need to select API level 610 or more at the start of your process.");
 						}
 						else
 						{
-							throw new FdbException(FdbError.InvalidMutationType, "Atomic CompareAndClear is only supported starting from client version 6.1. You need to update the version of the client, and select API level 610 or more at the start of your process..");
+							throw new NotSupportedException("Atomic mutation CompareAndClear is only supported starting from client version 6.1. You need to update the version of the client, and select API level 610 or more at the start of your process..");
 						}
 					}
 
@@ -597,7 +597,7 @@ namespace FoundationDB.Client
 				default:
 				{
 					// this could be a new mutation type, or an invalid value.
-					throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
+					throw new NotSupportedException($"An invalid mutation type '{mutation}' was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
 				}
 			}
 		}
@@ -697,6 +697,18 @@ namespace FoundationDB.Client
 #endif
 
 			return m_handler.GetAddressesForKeyAsync(key, ct: m_cancellation);
+		}
+
+		#endregion
+
+		#region GetApproximateSize...
+
+		/// <inheritdoc />
+		public Task<long> GetApproximateSizeAsync()
+		{
+			EnsureCanWrite();
+
+			return m_handler.GetApproximateSizeAsync(m_cancellation);
 		}
 
 		#endregion

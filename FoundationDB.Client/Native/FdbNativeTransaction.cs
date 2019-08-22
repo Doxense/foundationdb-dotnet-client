@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,7 @@ namespace FoundationDB.Client.Native
 		private readonly TransactionHandle m_handle;
 		/// <summary>Estimated current size of the transaction</summary>
 		private int m_payloadBytes;
+		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
 
 #if CAPTURE_STACKTRACES
 		private StackTrace m_stackTrace;
@@ -68,18 +69,18 @@ namespace FoundationDB.Client.Native
 #endif
 		}
 
-		//REVIEW: do we really need a destructor ? The handle is a SafeHandle, and will take care of itself...
+#if DEBUG
+		// We add a destructor in DEBUG builds to help track leaks of transactions...
 		~FdbNativeTransaction()
 		{
 #if CAPTURE_STACKTRACES
 			Trace.WriteLine("A transaction handle (" + m_handle + ", " + m_payloadBytes + " bytes written) was leaked by " + m_stackTrace);
 #endif
-#if DEBUG
 			// If you break here, that means that a native transaction handler was leaked by a FdbTransaction instance (or that the transaction instance was leaked)
 			if (Debugger.IsAttached) Debugger.Break();
-#endif
 			Dispose(false);
 		}
+#endif
 
 		#region Properties...
 
@@ -93,11 +94,13 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size => m_payloadBytes;
+		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
 
 		#endregion
 
 		#region Options...
 
+		/// <inheritdoc />
 		public void SetOption(FdbTransactionOption option, ReadOnlySpan<byte> data)
 		{
 			Fdb.EnsureNotOnNetworkThread();
@@ -115,13 +118,14 @@ namespace FoundationDB.Client.Native
 
 		#region Reading...
 
+		/// <inheritdoc />
 		public Task<long> GetReadVersionAsync(CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
-					var err = FdbNative.FutureGetVersion(h, out long version);
+					var err = FdbNative.FutureGetInt64(h, out long version);
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif
@@ -162,8 +166,11 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct)
 		{
-			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.TransactionGet(m_handle, key, snapshot),
+				(h) => GetValueResultBytes(h),
+				ct
+			);
 		}
 
 		public Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken ct)
@@ -339,6 +346,7 @@ namespace FoundationDB.Client.Native
 
 		#region Writing...
 
+		/// <inheritdoc />
 		public void Set(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			FdbNative.TransactionSet(m_handle, key, value);
@@ -348,6 +356,7 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, key.Length + value.Length + 28);
 		}
 
+		/// <inheritdoc />
 		public void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
 		{
 			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);
@@ -357,6 +366,7 @@ namespace FoundationDB.Client.Native
 
 		}
 
+		/// <inheritdoc />
 		public void Clear(ReadOnlySpan<byte> key)
 		{
 			FdbNative.TransactionClear(m_handle, key);
@@ -364,6 +374,7 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, (key.Length * 2) + 28 + 1);
 		}
 
+		/// <inheritdoc />
 		public void ClearRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
@@ -371,12 +382,14 @@ namespace FoundationDB.Client.Native
 			Interlocked.Add(ref m_payloadBytes, beginKeyInclusive.Length + endKeyExclusive.Length + 28);
 		}
 
+		/// <inheritdoc />
 		public void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			FdbError err = FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
 			Fdb.DieOnError(err);
 		}
 
+		/// <inheritdoc />
 		[NotNull]
 		private static string[] GetStringArrayResult(FutureHandle h)
 		{
@@ -391,12 +404,35 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
+		/// <inheritdoc />
 		public Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) => GetStringArrayResult(h),
+				ct
+			);
+		}
+
+		/// <inheritdoc />
+		public Task<long> GetApproximateSizeAsync(CancellationToken ct)
+		{
+			// API was introduced in 6.2
+			if (Fdb.ApiVersion < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You willl need to select API version 620 or greater.");
+			//TODO: for lesser version, maybe we could return our own estimation?
+
+			var future = FdbNative.TransactionGetReadVersion(m_handle);
+			return FdbFuture.CreateTaskFromHandle(future,
+				(h) =>
+				{
+					var err = FdbNative.FutureGetInt64(h, out long size); //TODO: rename to FutureGetInt64 !
+#if DEBUG_TRANSACTIONS
+					Debug.WriteLine("FdbTransaction[" + m_id + "].GetApproximateSize() => err=" + err + ", size=" + size);
+#endif
+					Fdb.DieOnError(err);
+					return size;
+				},
 				ct
 			);
 		}

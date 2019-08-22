@@ -142,7 +142,7 @@ namespace FoundationDB.Client
 			public static Task<Slice> GetMetadataVersionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
-
+				if (Fdb.ApiVersion < 610) throw new NotSupportedException($"The metadata version system key is only available on version 6.1 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You will need to select API version 610 or greater.");
 				return db.ReadAsync(tr => tr.GetAsync(System.MetadataVersion), ct);
 			}
 

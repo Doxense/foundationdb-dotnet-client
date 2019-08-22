@@ -112,6 +112,9 @@ namespace FoundationDB.Client
 		[Pure]
 		long GetCommittedVersion();
 
+		//TODO: description!
+		Task<long> GetApproximateSizeAsync();
+
 		/// <summary>Returns the <see cref="VersionStamp"/> which was used by VersionStamped operations in this transaction.</summary>
 		/// <remarks>
 		/// The Task will be ready only after the successful completion of a call to <see cref="CommitAsync"/> on this transaction.

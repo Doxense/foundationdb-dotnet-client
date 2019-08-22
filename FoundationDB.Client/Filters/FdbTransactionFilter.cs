@@ -253,6 +253,13 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
+		public Task<long> GetApproximateSizeAsync()
+		{
+			ThrowIfDisposed();
+			return m_transaction.GetApproximateSizeAsync();
+		}
+
+		/// <inheritdoc />
 		public virtual Task<VersionStamp> GetVersionStampAsync()
 		{
 			ThrowIfDisposed();

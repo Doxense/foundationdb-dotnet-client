@@ -1,5 +1,5 @@
 #region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -190,6 +190,9 @@ namespace FoundationDB.Client.Native
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_add_conflict_range(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, FdbConflictRangeType type);
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_approximate_size(TransactionHandle transaction);
 
 			// Future
 
@@ -662,11 +665,13 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_transaction_get_committed_version(transaction, out version);
 		}
 
-		public static FdbError FutureGetVersion(FutureHandle future, out long version)
+		public static FdbError FutureGetInt64(FutureHandle future, out long version)
 		{
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_version(0x" + future.Handle.ToString("x") + ")");
 #endif
+			// for 620 or above, we must use fdb_future_get_int64
+			// for 610 and below, we must use fdb_future_get_version
 			return NativeMethods.fdb_future_get_version(future, out version);
 		}
 
@@ -1103,6 +1108,16 @@ namespace FoundationDB.Client.Native
 #endif
 				return NativeMethods.fdb_transaction_add_conflict_range(transaction, pBeginKey, beginKey.Length, pEndKey, endKey.Length, type);
 			}
+		}
+
+		public static FutureHandle TransactionGetApproximateSize(TransactionHandle transaction)
+		{
+			var future = NativeMethods.fdb_transaction_get_approximate_size(transaction);
+			Contract.Assert(future != null);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_transaction_get_approximate_size(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+#endif
+			return future;
 		}
 
 		#endregion

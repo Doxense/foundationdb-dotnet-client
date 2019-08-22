@@ -485,9 +485,10 @@ namespace FoundationDB.Client
 		#region Database...
 
 		[ItemNotNull]
-		private static FdbDatabase CreateDatabaseInternal([CanBeNull] string clusterFile, IKeySubspace globalSpace, bool readOnly)
+		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync([CanBeNull] string clusterFile, IKeySubspace globalSpace, bool readOnly, CancellationToken ct)
 		{
 			EnsureIsStarted();
+			ct.ThrowIfCancellationRequested();
 
 			// "" should also be considered to mean "default cluster file"
 			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
@@ -496,8 +497,7 @@ namespace FoundationDB.Client
 
 			//TODO: check the path ? (exists, readable, ...)
 
-			//TODO: have a way to configure the default IFdbClusterHandler !
-			var handler = FdbNativeDatabase.CreateDatabase(clusterFile);
+			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
 			return FdbDatabase.Create(handler, globalSpace, null, readOnly);
 		}
 
@@ -544,8 +544,7 @@ namespace FoundationDB.Client
 			bool success = false;
 			try
 			{
-				// Starting from 6.1, we can directly instantiate a database instance
-				db = CreateDatabaseInternal(clusterFile, globalSpace, !hasPartition && readOnly);
+				db = await CreateDatabaseInternalAsync(clusterFile, globalSpace, !hasPartition && readOnly, ct).ConfigureAwait(false);
 
 				// set the default options
 				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
