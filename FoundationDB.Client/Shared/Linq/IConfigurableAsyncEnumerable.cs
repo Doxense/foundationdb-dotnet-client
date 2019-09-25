@@ -28,30 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if !USE_SHARED_FRAMEWORK
 
-#if !NETCOREAPP && !NETSTANDARD2_1
-
-namespace System.Collections.Generic
-{
-	using System;
-	using System.Threading;
-	using JetBrains.Annotations;
-
-	// note: these interfaces were introduced in .NET Core 3.0 and have to be emulated for older frameworks
-
-	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable{T}"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
-	/// <typeparam name="T">Element type.</typeparam>
-	public interface IAsyncEnumerable<out T>
-	{
-		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
-		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
-		[NotNull]
-		IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken ct);
-	}
-
-}
-
-#endif
-
 namespace Doxense.Linq
 {
 	using System;
