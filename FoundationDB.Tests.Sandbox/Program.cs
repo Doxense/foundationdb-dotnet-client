@@ -66,6 +66,7 @@ namespace FoundationDB.Tests.Sandbox
 					if (p > 0)
 					{
 						param = cmd.Substring(p + 1);
+						cmd = cmd.Substring(0, p);
 						if (param.Length >= 2 && param[0] == '\"' && param[param.Length - 1] == '\"') param = param.Substring(1, param.Length - 2);
 					}
 
