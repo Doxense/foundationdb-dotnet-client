@@ -3,10 +3,14 @@
     <VersionPrefix>6.1.0</VersionPrefix>
     <VersionSuffix>preview</VersionSuffix>
     <Authors>Doxense</Authors>
-    <PackageLicenseUrl>https://opensource.org/licenses/BSD-3-Clause</PackageLicenseUrl>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Doxense/foundationdb-dotnet-client</PackageProjectUrl>
+    <PackageIcon>foundationdb.png</PackageIcon>
     <PackageIconUrl>https://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/Doxense/foundationdb-dotnet-client</RepositoryUrl>
     <Copyright>Copyright 2013-2019 Doxense SAS</Copyright>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="../Common/foundationdb.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
 </Project>
