@@ -79,6 +79,9 @@ namespace FoundationDB.Client
 		/// <summary>Currently selected API version</summary>
 		private static int s_apiVersion;
 
+		/// <summary>Max API version of the native binding</summary>
+		private static int s_bindingVersion;
+
 		/// <summary>Event handler called when the AppDomain gets unloaded</summary>
 		private static EventHandler s_appDomainUnloadHandler;
 
@@ -99,6 +102,7 @@ namespace FoundationDB.Client
 		/// If you want the highest possible version that is supported by both the binding and the client, you must call <see cref="GetMaxSafeApiVersion()"/>.
 		/// Attempts to select an API version higher than this value will fail.
 		/// </remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int GetMaxApiVersion()
 		{
 			return FdbNative.GetMaxApiVersion();
@@ -140,8 +144,14 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns the currently selected API version.</summary>
-		/// <remarks>The value will be 0 if <see cref="Fdb.Start(int)"/> has not been called yet.</remarks>
+		/// <remarks>
+		/// The value will be 0 if <see cref="Fdb.Start(int)"/> has not been called yet.
+		/// If less than <see cref="BindingVersion"/>, some features will be emulated by the native binding.</remarks>
 		public static int ApiVersion => s_apiVersion;
+
+		/// <summary>Returns the maximum API version supported by the currently loaded native binding</summary>
+		/// <remarks>The value will be 0 if <see cref="Fdb.Start(int)"/> has not been called yet.</remarks>
+		public static int BindingVersion => s_bindingVersion;
 
 		/// <summary>Sets the desired API version of the binding.
 		/// The selected version level may affect the availability and behavior or certain features.
@@ -498,6 +508,7 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
+			Console.WriteLine("AAA");
 			return FdbDatabase.Create(handler, globalSpace, null, readOnly);
 		}
 
@@ -604,6 +615,10 @@ namespace FoundationDB.Client
 			apiVersion = CheckApiVersion(apiVersion);
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", $"Selecting fdb API version {apiVersion}");
 
+			// we must know the actual version of the C binding in use, because it will change the methods we wiil call later.
+			int bindingVersion = FdbNative.GetMaxApiVersion();
+
+			// select the appropriate API level that the binding will emulate (obviously, cannot be higher than `nativeVersion`
 			FdbError err = FdbNative.SelectApiVersion(apiVersion);
 			if (err != FdbError.Success)
 			{
@@ -614,7 +629,7 @@ namespace FoundationDB.Client
 					case FdbError.ApiVersionNotSupported:
 					{ // bad version was selected ?
 						// note: we already bound check the values before, so that means that fdb_c.dll is either an older version or an incompatible new version.
-						throw new FdbException(err, $"The API version {apiVersion} is not supported by the FoundationDB client library (fdb_c.dll) installed on this system. The binding only supports versions {GetMinApiVersion()} to {GetMaxApiVersion()}. You either need to upgrade the .NET binding or the FoundationDB client library to a newer version.");
+						throw new FdbException(err, $"The API version {apiVersion} is not supported by the FoundationDB client library (fdb_c.dll) installed on this system. The binding only supports versions {GetMinApiVersion()} to {bindingVersion}. You either need to upgrade the .NET binding or the FoundationDB client library to a newer version.");
 					}
 #if DEBUG
 					case FdbError.ApiVersionAlreadySet:
@@ -628,6 +643,7 @@ namespace FoundationDB.Client
 				DieOnError(err);
 			}
 			s_apiVersion = apiVersion;
+			s_bindingVersion = bindingVersion;
 
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{

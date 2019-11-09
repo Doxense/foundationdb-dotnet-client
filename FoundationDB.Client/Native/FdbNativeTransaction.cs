@@ -126,7 +126,7 @@ namespace FoundationDB.Client.Native
 				(h) =>
 				{
 					long version;
-					var err = Fdb.ApiVersion < 620 
+					var err = Fdb.BindingVersion < 620 
 						? FdbNative.FutureGetVersion(h, out version)
 						: FdbNative.FutureGetInt64(h, out version);
 #if DEBUG_TRANSACTIONS
