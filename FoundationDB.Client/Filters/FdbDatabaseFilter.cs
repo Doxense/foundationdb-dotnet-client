@@ -88,6 +88,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Name of the database</summary>
+		[Obsolete("This property is not supported anymore and will always return \"DB\".")]
 		public string Name => m_database.Name;
 
 		/// <summary>Path to the cluster file used to connect to the database</summary>
