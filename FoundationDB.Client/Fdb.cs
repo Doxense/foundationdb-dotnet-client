@@ -153,7 +153,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="InvalidOperationException">When attempting to change the API version after the binding has been started.</exception>
 		/// <exception cref="ArgumentException">When attempting to set a negative version, or a version that is either less or greater than the minimum and maximum supported versions.</exception>
-		[Obsolete("Use Fdb.Start(int) to specify the API version")]
+		[Obsolete("Use Fdb.Start(int) to specify the API version", true)]
 		public static void UseApiVersion(int value)
 		{
 			value = CheckApiVersion(value);
@@ -584,7 +584,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Start the Network Thread, using the pre-selected API version.</summary>
 		/// <remarks>If you need a specific API version level, you should call <see cref="Start(int)"/>. Otherwise, the max safe default API version will be selected.</remarks>
-		[Obsolete("Use should always specify the desired API version, to prevent any breaking change when updating the FoundationDB .NET Client to a newer version! Change this call to Fdb.Start(int) ensure maximum forward compatibility.")]
+		[Obsolete("Use should always specify the desired API version, to prevent any breaking change when updating the FoundationDB .NET Client to a newer version! Change this call to Fdb.Start(int) ensure maximum forward compatibility.", error: true)]
 		public static void Start()
 		{
 			Start(s_apiVersion);
