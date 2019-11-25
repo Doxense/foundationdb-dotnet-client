@@ -508,7 +508,6 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
-			Console.WriteLine("AAA");
 			return FdbDatabase.Create(handler, globalSpace, null, readOnly);
 		}
 
