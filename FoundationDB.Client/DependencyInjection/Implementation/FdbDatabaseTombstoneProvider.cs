@@ -23,15 +23,12 @@ namespace FoundationDB.DependencyInjection
 			Contract.Requires(error != null);
 			this.Parent = parent;
 			this.Error = error;
-			this.FailedTask = Task.FromException<IFdbDatabase>(error);
 			this.Lifetime = parent != null ? CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation, lifetime) : CancellationTokenSource.CreateLinkedTokenSource(lifetime);
 		}
 
 		public IFdbDatabaseScopeProvider Parent { get; }
 
 		public Exception Error { get; private set; }
-
-		private Task<IFdbDatabase> FailedTask { get; set; }
 
 		public TState GetState() => default;
 
@@ -53,7 +50,6 @@ namespace FoundationDB.DependencyInjection
 				finally
 				{
 					this.Lifetime.Dispose();
-					this.FailedTask = null;
 					this.Error = null;
 				}
 			}
@@ -64,7 +60,25 @@ namespace FoundationDB.DependencyInjection
 			return new ValueTask<IFdbDatabase>(
 				ct.IsCancellationRequested ? Task.FromCanceled<IFdbDatabase>(ct)
 				: m_disposed ? Task.FromException<IFdbDatabase>(ThrowHelper.ObjectDisposedException(this))
-				: this.FailedTask
+				: Task.FromException<IFdbDatabase>(this.Error)
+			);
+		}
+
+		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
+		{
+			return new ValueTask<TState>(
+				tr.Cancellation.IsCancellationRequested ? Task.FromCanceled<TState>(tr.Cancellation)
+				: m_disposed ? Task.FromException<TState>(ThrowHelper.ObjectDisposedException(this))
+				: Task.FromException<TState>(this.Error)
+			);
+		}
+
+		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct)
+		{
+			return new ValueTask<(IFdbDatabase, TState)>(
+				ct.IsCancellationRequested ? Task.FromCanceled<(IFdbDatabase, TState)>(ct)
+				: m_disposed ? Task.FromException<(IFdbDatabase, TState)>(ThrowHelper.ObjectDisposedException(this))
+				: Task.FromException<(IFdbDatabase, TState)>(this.Error)
 			);
 		}
 

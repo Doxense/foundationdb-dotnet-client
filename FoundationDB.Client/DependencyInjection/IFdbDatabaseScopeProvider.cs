@@ -60,10 +60,13 @@ namespace FoundationDB.Client
 
 	}
 
-	public interface IFdbDatabaseScopeProvider<out TState> : IFdbDatabaseScopeProvider
+	public interface IFdbDatabaseScopeProvider<TState> : IFdbDatabaseScopeProvider
 	{
-		[Pure]
-		TState GetState();
+		/// <summary>Return both the underlying database and the scope's State, once they are ready</summary>
+		ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default);
+
+		/// <summary>Return the scope's State, once it is ready.</summary>
+		ValueTask<TState> GetState(IFdbReadOnlyTransaction tr);
 	}
 
 }

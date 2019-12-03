@@ -60,15 +60,47 @@ namespace FoundationDB.DependencyInjection
 
 		private readonly Lazy<Task> DbTask;
 
-		internal IFdbDatabase Db { get; private set; }
+		private readonly ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
 
-		internal TState State { get; private set; }
+		private IFdbDatabase Db { get; set; }
 
-		internal Exception Error { get; private set; }
+		private TState State { get; set; }
+
+		private Exception Error { get; set; }
 
 		private CancellationTokenSource LifeTime { get; }
 
 		public CancellationToken Cancellation => this.LifeTime.Token;
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void UpdateInternalState(IFdbDatabase db, TState state, Exception error)
+		{
+			this.Lock.EnterWriteLock();
+			try
+			{
+				this.State = state;
+				this.Db = db;
+				this.Error = error;
+			}
+			finally
+			{
+				this.Lock.ExitWriteLock();
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private (IFdbDatabase Database, TState State, Exception error) ReadInternalState()
+		{
+			this.Lock.EnterReadLock();
+			try
+			{
+				return (this.Db, this.State, this.Error);
+			}
+			finally
+			{
+				this.Lock.ExitReadLock();
+			}
+		}
 
 		private async Task InitAsync()
 		{
@@ -80,14 +112,13 @@ namespace FoundationDB.DependencyInjection
 				TState state;
 				(db, state) = await this.Handler(db, ct).ConfigureAwait(false);
 				Contract.Assert(db != null);
-				this.State = state;
-				this.Db = db;
+				UpdateInternalState(db,  state, null);
 			}
 			catch (Exception e)
 			{
-				this.Error = e;
-				this.Db = null;
-				this.State = default;
+				//TODO: should be do something if the state implements IDisposable or IAsyncDisposable?
+				UpdateInternalState(null, default, e);
+				Interlocked.MemoryBarrier();
 				throw;
 			}
 		}
@@ -101,22 +132,7 @@ namespace FoundationDB.DependencyInjection
 
 		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
 
-		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
-		{
-			//BUGBUG: what if the parent scope has been shut down?
-			var db = this.Db;
-			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
-		}
-
-		public TState GetState()
-		{
-			//REVIEW: do we need some sort of locking/volatile reads?
-			if (this.Db == null) throw new InvalidOperationException("The state can only be accessed when the database becomes available.");
-			return this.State;
-		}
-
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
+		private async ValueTask<(IFdbDatabase Database, TState state, Exception error)> EnsureInitialized(CancellationToken ct)
 		{
 			if (this.LifeTime.IsCancellationRequested) throw ThrowHelper.ObjectDisposedException(this);
 			var t = this.DbTask.Value;
@@ -131,7 +147,50 @@ namespace FoundationDB.DependencyInjection
 				}
 			}
 			await t.ConfigureAwait(false);
-			return this.Db;
+
+			return ReadInternalState();
+		}
+
+		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default)
+		{
+			//BUGBUG: what if the parent scope has been shut down?
+			var t = ReadInternalState();
+			return t.Database != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<(IFdbDatabase, TState)>((t.Database, t.State)) : GetDatabaseAndStateSlow(ct);
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private async ValueTask<(IFdbDatabase, TState)> GetDatabaseAndStateSlow(CancellationToken ct)
+		{
+			(var db, var state, _) = await EnsureInitialized(ct);
+			return (db, state);
+		}
+
+		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
+		{
+			//BUGBUG: what if the parent scope has been shut down?
+			(var db, _, _) = ReadInternalState();
+			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<IFdbDatabase>(db) : GetDatabaseSlow(ct);
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
+		{
+			(var db, _, _) = await EnsureInitialized(ct);
+			return db;
+		}
+
+		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
+		{
+			tr.Cancellation.ThrowIfCancellationRequested();
+			(var db, var state, _) = ReadInternalState();
+			return db != null && !this.LifeTime.IsCancellationRequested ? new ValueTask<TState>(state) : GetStateSlow(tr);
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private async ValueTask<TState> GetStateSlow(IFdbReadOnlyTransaction tr)
+		{
+			(_, var state, _) = await EnsureInitialized(tr.Cancellation);
+			return state;
 		}
 
 		public void Dispose()

@@ -171,8 +171,8 @@ namespace FoundationDB.Client
 			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.ReadAsync(provider.GetState(), handler, ct).ConfigureAwait(false);
+			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			return await db.ReadAsync(state, handler, ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -209,8 +209,8 @@ namespace FoundationDB.Client
 			[NotNull, InstantHandle] Func<IFdbTransaction, TState, Task<TResult>> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			return await db.ReadWriteAsync(provider.GetState(), handler, ct).ConfigureAwait(false);
+			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			return await db.ReadWriteAsync(state, handler, ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -247,8 +247,8 @@ namespace FoundationDB.Client
 			[NotNull, InstantHandle] Func<IFdbTransaction, TState, Task> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			await db.ReadWriteAsync(provider.GetState(), handler, ct).ConfigureAwait(false);
+			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			await db.ReadWriteAsync(state, handler, ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -283,8 +283,8 @@ namespace FoundationDB.Client
 			[NotNull, InstantHandle] Action<IFdbTransaction, TState> handler,
 			CancellationToken ct)
 		{
-			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			await db.WriteAsync(provider.GetState(), handler, ct).ConfigureAwait(false);
+			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
+			await db.WriteAsync(state, handler, ct).ConfigureAwait(false);
 		}
 
 	}

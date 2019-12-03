@@ -1,4 +1,4 @@
-﻿#region Copyright Doxense 2017-2018
+﻿#region Copyright Doxense 2017-2019
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -9,6 +9,7 @@
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -23,56 +24,77 @@ namespace FoundationDB.DependencyInjection
 		public FdbDatabaseSingletonProvider([NotNull] IFdbDatabase db, [CanBeNull] TState state, [NotNull] CancellationTokenSource lifetime)
 		{
 			Contract.Requires(db != null && lifetime != null);
-			this.Db = db;
-			this.State = state;
 			this.Lifetime = lifetime;
+			Volatile.Write(ref this.InternalState, new Scope(db, state));
+			Interlocked.MemoryBarrier();
 		}
 
-		public IFdbDatabase Db { get; private set; }
+		private sealed class Scope
+		{
+			[NotNull]
+			public readonly IFdbDatabase Db;
 
-		public TState State { get; private set; }
+			[CanBeNull]
+			public readonly TState State;
+
+			public Scope([NotNull] IFdbDatabase db, [CanBeNull] TState state)
+			{
+				this.Db = db;
+				this.State = state;
+			}
+		}
+
+		[CanBeNull]
+		private Scope InternalState;
 
 		private CancellationTokenSource Lifetime { get; }
 
-		private bool m_disposed;
-
-		public TState GetState()
-		{
-			return this.State;
-		}
+		private int m_disposed;
 
 		public void Dispose()
 		{
-			lock (this)
+			if (Interlocked.Exchange(ref this.InternalState, null) != null)
 			{
-				if (!m_disposed)
-				{
-					m_disposed = true;
-					this.Lifetime.Cancel();
-					this.State = default;
-					this.Db = null;
-				}
+				this.Lifetime.Cancel();
 			}
 		}
 
 		public IFdbDatabaseScopeProvider Parent => null;
 
-		public bool IsAvailable => !Volatile.Read(ref m_disposed);
+		public bool IsAvailable => Volatile.Read(ref m_disposed) == 0;
 
 		public CancellationToken Cancellation => this.Lifetime.Token;
 
-		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private Scope EnsureReady()
 		{
-			lock (this)
-			{
-				if (m_disposed) throw ThrowHelper.ObjectDisposedException(this);
-				return new ValueTask<IFdbDatabase>(this.Db);
-			}
+			var scope = Volatile.Read(ref this.InternalState);
+			if (scope == null) throw ThrowHelper.ObjectDisposedException(this);
+			return scope;
+		}
+
+		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
+		{
+			var scope = EnsureReady();
+			return new ValueTask<IFdbDatabase>(scope.Db);
+		}
+
+		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
+		{
+			tr.Cancellation.ThrowIfCancellationRequested();
+			var scope = EnsureReady();
+			return new ValueTask<TState>(scope.State);
+		}
+
+		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default)
+		{
+			var scope = EnsureReady();
+			return new ValueTask<(IFdbDatabase, TState)>((scope.Db, scope.State));
 		}
 
 		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TNewState State)>> start, CancellationToken lifetime = default)
 		{
-			if (m_disposed) throw ThrowHelper.ObjectDisposedException(this);
+			_ = EnsureReady();
 			return new FdbDatabaseScopeProvider<TNewState>(this, start, lifetime);
 		}
 
