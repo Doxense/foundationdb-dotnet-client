@@ -1,47 +1,47 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<TargetFrameworks>net472;netcoreapp3.0</TargetFrameworks>
-		<ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
-		<RestorePackages>true</RestorePackages>
-		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-		<RootNamespace>FdbBurner</RootNamespace>
-		<AssemblyName>FdbBurner</AssemblyName>
-		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-	</PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net472;netcoreapp3.1</TargetFrameworks>
+    <ProjectGuid>{60049BA1-A95F-4127-BAC5-74AF023D3082}</ProjectGuid>
+    <RestorePackages>true</RestorePackages>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <RootNamespace>FdbBurner</RootNamespace>
+    <AssemblyName>FdbBurner</AssemblyName>
+    <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
 
-	<Import Project="..\Common\VersionInfo.props" />
+  <Import Project="..\Common\VersionInfo.props" />
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-		<PlatformTarget>AnyCPU</PlatformTarget>
-		<DebugSymbols>true</DebugSymbols>
-		<DebugType>full</DebugType>
-		<Optimize>false</Optimize>
-		<OutputPath>bin\Debug\</OutputPath>
-		<DefineConstants>DEBUG;TRACE</DefineConstants>
-		<ErrorReport>prompt</ErrorReport>
-		<WarningLevel>4</WarningLevel>
-		<Prefer32Bit>false</Prefer32Bit>
-	</PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
 
-	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-		<PlatformTarget>AnyCPU</PlatformTarget>
-		<DebugType>pdbonly</DebugType>
-		<Optimize>true</Optimize>
-		<OutputPath>bin\Release\</OutputPath>
-		<DefineConstants>TRACE</DefineConstants>
-		<ErrorReport>prompt</ErrorReport>
-		<WarningLevel>4</WarningLevel>
-		<Prefer32Bit>false</Prefer32Bit>
-	</PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.0'">
-	  <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.6.0" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)'=='netcoreapp3.1'">
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="4.7.0" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+  </ItemGroup>
 
 </Project>

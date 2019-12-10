@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net472;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>net472;netcoreapp3.1</TargetFrameworks>
     <ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
     <RestorePackages>true</RestorePackages>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -38,7 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="ILRepack.MSBuild.Task" Version="1.0.9" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.6.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,12 +47,10 @@
 
   <Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets') AND '$(OS)' == 'Windows_NT'" />
   <!-- ILRepack -->
-  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(TargetFramework)'=='net461'">
+  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release' AND '$(OS)' == 'Windows_NT' AND '$(TargetFramework)'=='net472'">
     <ItemGroup>
       <InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
       <InputAssemblies Include="$(OutputPath)\FoundationDB.Client.dll" />
-      <InputAssemblies Include="$(OutputPath)\System.ValueTuple.dll" />
-      <InputAssemblies Include="$(OutputPath)\System.Runtime.InteropServices.RuntimeInformation.dll" />
     </ItemGroup>
     <ILRepack Parallel="true" Internalize="true" InternalizeExclude="@(DoNotInternalizeAssemblies)" InputAssemblies="@(InputAssemblies)" TargetKind="Exe" OutputFile="$(OutputPath)\$(AssemblyName).Merged.exe" />
   </Target>
