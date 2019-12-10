@@ -1000,7 +1000,13 @@ namespace FoundationDB.Client
 							if (Logging.On) Logging.Error(this, "Dispose", $"Transaction #{m_id} failed to dispose the transaction handler: [{e.GetType().Name}] {e.Message}");
 						}
 					}
-					if (!m_context.Shared) m_context.Dispose();
+
+					var context = m_context;
+					context.ReleaseTransaction(this);
+					if (!context.Shared)
+					{
+						context.Dispose();
+					}
 					m_cts.Dispose();
 				}
 			}

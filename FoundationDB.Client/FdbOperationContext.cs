@@ -29,8 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -90,6 +92,11 @@ namespace FoundationDB.Client
 		[CanBeNull]
 		internal CancellationTokenSource TokenSource { get; }
 
+		/// <summary>Transaction instance currently being used by this context</summary>
+		[CanBeNull]
+		private IFdbTransaction Transaction;
+		//note: field accessed via interlocked operations!
+
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
 		/// <param name="mode">Operation mode of the retry loop</param>
@@ -112,6 +119,8 @@ namespace FoundationDB.Client
 			}
 			this.Cancellation = token;
 		}
+
+		#region Sucess Handlers...
 
 		/// <summary>List of one or more success handlers</summary>
 		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
@@ -198,11 +207,113 @@ namespace FoundationDB.Client
 			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
 
-		/// <summary>Execute a retry loop on this context</summary>
-		internal static async Task ExecuteInternal([NotNull] IFdbDatabase db, [NotNull] FdbOperationContext context, [NotNull] Delegate handler, Delegate success)
+		#endregion
+
+		#region Local Data...
+
+		/// <summary>Stores contextual data that can be added and retrieved at any step of the transaction's processing</summary>
+		/// <remarks>Access to this collection must be performed under lock, because a transaction can be used concurrently from multiple threads!</remarks>
+		private Dictionary<Type, object> LocalData { get; set; }
+
+		[Pure, CanBeNull, ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private Dictionary<Type, object> GetLocalDataContainer(bool createIfMissing)
 		{
-			Contract.Requires(db != null && context != null && handler != null);
-			Contract.Requires(context.Shared);
+			return this.LocalData ?? GetLocalDataContainerSlow(createIfMissing);
+		}
+
+		[CanBeNull, ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.NoInlining)]
+		private Dictionary<Type, object> GetLocalDataContainerSlow(bool createIfMissing)
+		{
+			var container = this.LocalData;
+			if (container == null && createIfMissing)
+			{
+				container = new Dictionary<Type, object>();
+				this.LocalData = container;
+			}
+			return container;
+		}
+
+		public void SetLocalData<TState>([NotNull] TState newState) where TState : class
+		{
+			Contract.NotNull(newState, nameof(newState));
+			lock (this)
+			{
+				GetLocalDataContainer(true)[typeof(TState)] = newState;
+			}
+		}
+
+		public void RemoveLocalData<TState>() where TState : class
+		{
+			lock (this)
+			{
+				GetLocalDataContainer(false)?.Remove(typeof(TState));
+			}
+		}
+
+		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
+		public bool TryGetLocalData<TState>(out TState state) where TState : class
+		{
+			lock (this)
+			{
+				var container = GetLocalDataContainer(false);
+				if (container != null && container.TryGetValue(typeof(TState), out var value))
+				{
+					state = (TState) value;
+					return true;
+				}
+				state = default;
+				return false;
+			}
+		}
+
+		[NotNull]
+		public TState GetOrCreateLocalData<TState>() where TState : class, new()
+		{
+			lock (this)
+			{
+				var container = GetLocalDataContainer(true);
+				TState result;
+				if (container.TryGetValue(typeof(TState), out var value))
+				{
+					result = (TState) value;
+				}
+				else
+				{
+					result = new TState();
+					container[typeof(TState)] = result;
+				}
+				return result;
+			}
+		}
+
+
+		[NotNull]
+		public TState GetOrCreateLocalData<TState>(Func<TState> factory) where TState : class
+		{
+			lock (this)
+			{
+				var container = GetLocalDataContainer(true);
+				TState result;
+				if (container.TryGetValue(typeof(TState), out var value))
+				{
+					result = (TState) value;
+				}
+				else
+				{
+					result = factory() ?? throw new InvalidOperationException("Constructed state cannot be null");
+					container[typeof(TState)] = result;
+				}
+				return result;
+			}
+		}
+
+		#endregion
+
+		/// <summary>Execute a retry loop on this context</summary>
+		internal static async Task ExecuteInternal([NotNull] FdbOperationContext context, [NotNull] Delegate handler, Delegate success)
+		{
+			Contract.Requires(context != null && handler != null);
+			Contract.Requires(context.Database != null && context.Shared);
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
@@ -217,8 +328,11 @@ namespace FoundationDB.Client
 				// => algorithms that monitor the elapsed duration to rate limit themselves may think that the trans is older than it really is...
 				// => we would need to plug into the transaction handler itself to be notified when exactly a read op starts...
 
-				using (var trans = db.BeginTransaction(context.Mode, CancellationToken.None, context))
+				using (var trans = context.Database.BeginTransaction(context.Mode, CancellationToken.None, context))
 				{
+					//note: trans may be different from context.Transaction if it has been filtered!
+					Contract.Assert(context.Transaction != null);
+
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
 						try
@@ -335,6 +449,20 @@ namespace FoundationDB.Client
 			}
 		}
 
+		internal void AttachTransaction([NotNull] IFdbTransaction trans)
+		{
+			if (Interlocked.CompareExchange(ref this.Transaction, trans, null) != null)
+			{
+				throw new InvalidOperationException("Cannot attach another transaction to this context because another transaction is still attache");
+			}
+		}
+
+		internal void ReleaseTransaction([NotNull] IFdbTransaction trans)
+		{
+			// only if this is still the current one!
+			Interlocked.CompareExchange(ref this.Transaction, null, trans);
+		}
+
 		public void Dispose()
 		{
 			this.Abort = true;
@@ -352,7 +480,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, null);
+			return ExecuteInternal(context, handler, null);
 		}
 
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -369,7 +497,25 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, ValueTask<TResult>> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			async Task Handler(IFdbTransaction tr)
+			{
+				result = await handler(tr).ConfigureAwait(false);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
 			return result;
 		}
 
@@ -392,7 +538,30 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, ValueTask<TResult>> handler, [NotNull] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			async Task Handler(IFdbReadOnlyTransaction tr)
+			{
+				result = await handler(tr).ConfigureAwait(false);
+			}
+
+			void Complete(IFdbReadOnlyTransaction tr)
+			{
+				success(tr, result);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
@@ -416,7 +585,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
@@ -440,7 +609,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbReadOnlyTransaction, Task>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbReadOnlyTransaction, Task>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
@@ -456,7 +625,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, null);
+			return ExecuteInternal(context, handler, null);
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails a with non retry-able error</summary>
@@ -467,7 +636,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, null);
+			return ExecuteInternal(context, handler, null);
 		}
 
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -479,7 +648,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -491,7 +660,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -509,7 +678,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
@@ -522,7 +691,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -534,7 +703,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -551,7 +720,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Action<IFdbTransaction>) Handler, null).ConfigureAwait(false);
+			await ExecuteInternal(context, (Action<IFdbTransaction>) Handler, null).ConfigureAwait(false);
 			return result;
 		}
 
@@ -569,7 +738,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
 			return result;
 		}
 
@@ -593,7 +762,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
@@ -618,7 +787,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
@@ -643,7 +812,7 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbTransaction, Task>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbTransaction, Task>) Complete).ConfigureAwait(false);
 			return result;
 		}
 

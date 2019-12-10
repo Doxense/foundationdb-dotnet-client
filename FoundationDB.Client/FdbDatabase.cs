@@ -204,6 +204,7 @@ namespace FoundationDB.Client
 
 				trans = new FdbTransaction(this, context, id, transactionHandler, mode);
 				RegisterTransaction(trans);
+				context.AttachTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
 				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
@@ -214,7 +215,11 @@ namespace FoundationDB.Client
 			}
 			catch (Exception)
 			{
-				trans?.Dispose();
+				if (trans != null)
+				{
+					context.ReleaseTransaction(trans);
+					trans.Dispose();
+				}
 				throw;
 			}
 		}
@@ -279,10 +284,27 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, ValueTask<TResult>> handler, CancellationToken ct)
+		{
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
 		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
 		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
 		public Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct)
+		{
+			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
+		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
+		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
+		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, ValueTask<TResult>> handler, CancellationToken ct)
 		{
 			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
 		}
@@ -520,7 +542,7 @@ namespace FoundationDB.Client
 		internal void ChangeRoot(IKeySubspace subspace, IFdbDirectory directory, bool readOnly)
 		{
 			//REVIEW: rename to "ChangeRootSubspace" ?
-			subspace = subspace ?? KeySubspace.Empty;
+			subspace ??= KeySubspace.Empty;
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
