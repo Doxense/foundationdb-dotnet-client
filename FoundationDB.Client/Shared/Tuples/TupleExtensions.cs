@@ -136,6 +136,47 @@ namespace Doxense.Collections.Tuples
 			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
 		}
 
+		/// <summary>Create a new Tuple by appending a list of items at the end of this tuple</summary>
+		[Pure, NotNull]
+		public static IVarTuple Concat<T>([NotNull] this IVarTuple tuple, T[] values)
+		{
+			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(values, nameof(values));
+
+			switch (values.Length)
+			{
+				case 0: return tuple;
+				case 1: return tuple.Append<T>(values[0]);
+				case 2: return tuple.Append<T>(values[0]).Append<T>(values[1]);
+				default: return tuple.Concat(STuple.FromArray(values));
+			}
+		}
+
+		/// <summary>Create a new Tuple by appending a span of items at the end of this tuple</summary>
+		[Pure, NotNull]
+		public static IVarTuple Concat<T>([NotNull] this IVarTuple tuple, ReadOnlySpan<T> values)
+		{
+			Contract.NotNull(tuple, nameof(tuple));
+
+			switch (values.Length)
+			{
+				case 0: return tuple;
+				case 1: return tuple.Append<T>(values[0]);
+				case 2: return tuple.Append<T>(values[0]).Append<T>(values[1]);
+				default: return tuple.Concat(STuple.FromSpan(values));
+			}
+		}
+
+		/// <summary>Create a new Tuple by appending a sequence of items at the end of this tuple</summary>
+		[Pure, NotNull]
+		public static IVarTuple Concat<T>([NotNull] this IVarTuple tuple, [NotNull] IEnumerable<T> values)
+		{
+			Contract.NotNull(tuple, nameof(tuple));
+
+			if (values is T[] arr) return Concat<T>(tuple, arr);
+			return tuple.Concat(STuple.FromEnumerable<T>(values));
+		}
+
 		/// <summary>Returns a substring of the current tuple</summary>
 		/// <param name="tuple">Current tuple</param>
 		/// <param name="offset">Offset from the start of the current tuple (negative value means from the end)</param>

@@ -196,6 +196,21 @@ namespace Doxense.Collections.Tuples
 			return new ListTuple(items, 0, items.Length);
 		}
 
+		/// <summary>Create a new N-tuple, from N items</summary>
+		/// <param name="items">Items to wrap in a tuple</param>
+		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
+		[NotNull]
+		public static IVarTuple Create(ReadOnlySpan<object> items)
+		{
+			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
+
+			if (items.Length == 0) return new STuple();
+
+			// we have to copy the items :(
+			var tmp = items.ToArray();
+			return new ListTuple(tmp, 0, tmp.Length);
+		}
+
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		/// <remarks>This is the non-generic equivalent of STuple.Create&lt;object&gt;()</remarks>
 		[NotNull]
@@ -271,7 +286,7 @@ namespace Doxense.Collections.Tuples
 		{
 			Contract.NotNull(items, nameof(items));
 
-			return FromArray<T>(items, 0, items.Length);
+			return FromSpan<T>(items.AsSpan());
 		}
 
 		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
@@ -283,21 +298,34 @@ namespace Doxense.Collections.Tuples
 			Contract.Positive(count, nameof(count));
 			Contract.LessOrEqual(offset + count, items.Length, nameof(count), "Source array is too small");
 
-			switch (count)
+			return FromSpan<T>(items.AsSpan(offset, count));
+		}
+
+		/// <summary>Create a new tuple, from a span of typed items</summary>
+		/// <param name="items">Span of items</param>
+		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
+		[NotNull]
+		public static IVarTuple FromSpan<T>(ReadOnlySpan<T> items)
+		{
+			switch (items.Length)
 			{
-				case 0: return Create();
-				case 1: return Create<T>(items[offset]);
-				case 2: return Create<T, T>(items[offset], items[offset + 1]);
-				case 3: return Create<T, T, T>(items[offset], items[offset + 1], items[offset + 2]);
-				case 4: return Create<T, T, T, T>(items[offset], items[offset + 1], items[offset + 2], items[offset + 3]);
-				case 5: return Create<T, T, T, T, T>(items[offset], items[offset + 1], items[offset + 2], items[offset + 3], items[offset + 4]);
-				case 6: return Create<T, T, T, T, T, T>(items[offset], items[offset + 1], items[offset + 2], items[offset + 3], items[offset + 4], items[offset + 5]);
+				case 0: return new STuple();
+				case 1: return new STuple<T>(items[0]);
+				case 2: return new STuple<T, T>(items[0], items[1]);
+				case 3: return new STuple<T, T, T>(items[0], items[1], items[2]);
+				case 4: return new STuple<T, T, T, T>(items[0], items[1], items[2], items[3]);
+				case 5: return new STuple<T, T, T, T, T>(items[0], items[1], items[2], items[3], items[4]);
+				case 6: return new STuple<T, T, T, T, T, T>(items[0], items[1], items[2], items[3], items[4], items[5]);
 				default:
 				{ // copy the items in a temp array
-					//TODO: we would probably benefit from having an ListTuple<T> here!
-					var tmp = new object[count];
-					Array.Copy(items, offset, tmp, 0, count);
-					return new ListTuple(tmp, 0, count);
+					var tmp = new object[items.Length];
+					int i = 0;
+					foreach(var item in items)
+					{
+						tmp[i++] = item;
+					}
+					return new ListTuple(tmp, 0, items.Length);
+					//TODO: PERF: we would probably benefit from having a ListTuple<T> here!
 				}
 			}
 		}
@@ -310,7 +338,7 @@ namespace Doxense.Collections.Tuples
 
 			if (items is T[] arr)
 			{
-				return FromArray<T>(arr, 0, arr.Length);
+				return FromSpan<T>(arr);
 			}
 
 			// may already be a tuple (because it implements IE<obj>)
