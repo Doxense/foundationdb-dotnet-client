@@ -40,7 +40,7 @@ namespace FoundationDB.Client.Tests
 	internal static class TestHelpers
 	{
 		public const string TestClusterFile = null;
-		public static readonly Slice TestGlobalPrefix = Slice.FromByte('T');
+		public static readonly Slice TestGlobalPrefix = new byte[] { 0x2, (byte)'T', (byte) 'E', (byte)'S', (byte)'T', 0x0 }.AsSlice();
 		public static readonly string[] TestPartition = { "Tests", Environment.MachineName };
 		public const int DefaultTimeout = 15_000;
 
