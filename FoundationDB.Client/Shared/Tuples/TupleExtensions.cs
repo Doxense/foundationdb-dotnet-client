@@ -160,7 +160,9 @@ namespace Doxense.Collections.Tuples
 			Contract.Positive(count, nameof(count));
 
 			if (count == 0) return STuple.Empty;
-
+			int len = tuple.Count;
+			offset = TupleHelpers.MapIndexBounded(offset, len);
+			if (offset == 0 && count == len) return tuple;
 			return tuple[offset, offset + count];
 		}
 
