@@ -241,13 +241,23 @@ namespace FoundationDB.Client
 
 		#region Versions...
 
+		private Task<long> CachedReadVersion;
+
 		/// <inheritdoc />
 		public Task<long> GetReadVersionAsync()
 		{
 			// can be called after the transaction has been committed
 			EnsureCanRetry();
+			return this.CachedReadVersion ?? GetReadVersionSlow();
+		}
 
-			return m_handler.GetReadVersionAsync(m_cancellation);
+		/// <summary>Get the read version when it is not in cache</summary>
+		private Task<long> GetReadVersionSlow()
+		{
+			lock (this)
+			{
+				return this.CachedReadVersion ??= m_handler.GetReadVersionAsync(m_cancellation);
+			}
 		}
 
 		/// <inheritdoc />
@@ -265,6 +275,134 @@ namespace FoundationDB.Client
 			EnsureCanRead();
 
 			m_handler.SetReadVersion(version);
+		}
+
+		/// <inheritdoc />
+		public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			return GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: false);
+		}
+
+		/// <inheritdoc />
+		public void TouchMetadataVersionKey(Slice key = default)
+		{
+			SetMetadataVersionKey(key.IsNull ? Fdb.System.MetadataVersionKey : key);
+		}
+
+		// all access to this should be made under lock!
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> MetadataVersionKeysCache;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCache()
+		{
+			return this.MetadataVersionKeysCache ??= new Dictionary<Slice, (Task<VersionStamp?>, bool)>(Slice.Comparer.Default);
+		}
+
+		private static readonly Task<VersionStamp?> PoisonedMetadataVersion = Task.FromResult<VersionStamp?>(null);
+
+		/// <summary>Fetch and parse the metadataVersion system key</summary>
+		/// <param name="key">Key to read</param>
+		/// <param name="snapshot">If false, add a read conflict range on the key.</param>
+		internal Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key, bool snapshot)
+		{
+			if (key.IsNull) throw new ArgumentNullException(nameof(key));
+
+			EnsureCanRetry();
+
+			(Task<VersionStamp?> Task, bool Snapshot) t;
+
+			// only add the range if we read in non-snapshot isolation for the first time
+			bool mustAddConflictRange = false;
+
+			// note: we have to lock because there could be another thread calling TouchMetadataVersionKey at the same time!
+			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent write from causing us to throw error code 1036
+
+			lock (this)
+			{
+				var cache = GetMetadataVersionKeysCache();
+				if (!cache.TryGetValue(key, out t) || t.Task == null)
+				{
+					mustAddConflictRange = !snapshot;
+					t = (ReadAndParseMetadataVersionSlow(key), snapshot);
+					cache[key] = t;
+				}
+				else if (t.Snapshot)
+				{ // previous reads were done in snapshot isolation
+
+					if (!snapshot)
+					{ // but this read is not, so we have to add the conflict range!
+						mustAddConflictRange = true;
+						t.Snapshot = false;
+						cache[key] = t;
+					}
+				}
+			}
+
+			// for non-snapshot reads on writable transactions, we have to add the conflict range ourselves.
+			if (mustAddConflictRange && !this.IsReadOnly)
+			{
+				//TODO: only on the first non-snapshot read!!!
+				AddConflictRange(key, key + (byte) 0, FdbConflictRangeType.Read);
+			}
+			return t.Task;
+		}
+
+
+		private async Task<VersionStamp?> ReadAndParseMetadataVersionSlow(Slice key)
+		{
+			Contract.Requires(!key.IsNull);
+
+			Slice value;
+			try
+			{
+				// this can fail if the value has been changed earlier in the transaction!
+				value = await m_handler.GetAsync(key, snapshot: true, m_cancellation).ConfigureAwait(false);
+			}
+			catch (FdbException e)
+			{
+				if (e.Code == FdbError.AccessedUnreadable)
+				{ // happens whenever the value has already been changed in the transaction!
+					// Basically this means "we don't know yet", and the caller should decide on a case by case how to deal with it
+
+					//note: the transaction will FAIL to commit! this only helps for transactions that decide to not commit given this result.
+					lock (this)
+					{
+						// poison this key!
+						GetMetadataVersionKeysCache()[key] = (FdbTransaction.PoisonedMetadataVersion, false);
+					}
+
+					return null;
+				}
+				throw;
+			}
+
+			// if the db is new, it is possible that the version is not yet present, we will return the empty stamp
+			return value.IsNullOrEmpty ? VersionStamp.Complete(0, 0) : VersionStamp.Parse(value);
+		}
+
+		internal void SetMetadataVersionKey(Slice key)
+		{
+			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
+			EnsureMutationTypeIsSupported(FdbMutationType.VersionStampedValue, Fdb.ApiVersion);
+
+			// note: we have to lock because there could be another thread calling GetMetadataVersionKey at the same time!
+			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent read from throwing error code 1036
+
+			lock (this)
+			{
+				var cache = GetMetadataVersionKeysCache();
+				if (cache.TryGetValue(key, out var t) && t.Task == PoisonedMetadataVersion)
+				{ // already done!
+					return;
+				}
+
+				// mark this key as dirty to prevent any future read
+				cache[key] = (PoisonedMetadataVersion, false);
+
+				// update the key with a new versionstamp
+				m_handler.Atomic(key, Fdb.System.MetadataVersionValue, FdbMutationType.VersionStampedValue);
+			}
+
 		}
 
 		/// <inheritdoc />

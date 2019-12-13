@@ -26,10 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+//#define ENABLE_LOGGING
+
 // ReSharper disable AccessToDisposedClosure
 namespace FoundationDB.Client.Tests
 {
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -37,6 +38,10 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using NUnit.Framework;
+#if ENABLE_LOGGING
+	using FoundationDB.Filters.Logging;
+#endif
 
 	[TestFixture]
 	public class TransactionFacts : FdbTest
@@ -2530,26 +2535,127 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Metadata_Version()
+		public async Task Test_GetMetadataVersion()
 		{
 			//note: this test may be vulnerable to exterior changes to the database!
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var version1 = await Fdb.System.GetMetadataVersionAsync(db, this.Cancellation);
-				Log("Version1: " + version1.ToString());
+				// reading the mv twice in _should_ return the same value, unless the test cluster is used by another application!
 
-				var version2 = await db.ReadAsync(tr => tr.GetMetadataVersionAsync(), this.Cancellation);
-				Log("Version2: " + version2.ToString());
+#if ENABLE_LOGGING
+				var logged = db.Logged(tr => Log(tr.Log.GetTimingsReport(true)));
+#else
+				var logged = db;
+#endif
 
-				Assert.That(version2, Is.EqualTo(version1), "Metadata version should be stable");
+				var version1 = await logged.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
+				Assert.That(version1, Is.Not.Null, "Version should be valid");
+				Log($"Version1: {version1}");
+
+				var version2 = await logged.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
+				Assert.That(version1, Is.Not.Null, "Version should be valid");
+				Log($"Version2: {version2}");
+
+				Assume.That(version2, Is.EqualTo(version1), "Metadata version should be stable! Make sure the test cluster is not used concurrently when running this test!");
 				// if it fails randomly here, maybe due to another process interfering with us!
 
 				Log("Changing version...");
-				await db.WriteAsync(tr => tr.TouchMetadataVersion(), this.Cancellation);
+				await db.WriteAsync(tr => tr.TouchMetadataVersionKey(), this.Cancellation);
 
-				var version3 = await Fdb.System.GetMetadataVersionAsync(db, this.Cancellation);
-				Log("Version3: " + version3.ToString());
-				Assert.That(version3, Is.Not.EqualTo(version2), "Metadata version should have changed");
+				var version3 = await logged.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
+				Log($"Version3: {version3}");
+				Assert.That(version3, Is.Not.Null.And.Not.EqualTo(version2), "Metadata version should have changed");
+
+				// changing the metadata version and then reading it back from the same transaction should return <null>
+				await logged.ReadWriteAsync(async tr =>
+				{
+					// We can read the version before
+					var before = await tr.GetMetadataVersionKeyAsync();
+					Log($"Before: {before}");
+					Assert.That(before, Is.Not.Null);
+
+					// Another read attempt should return the cached value
+					var cached = await tr.GetMetadataVersionKeyAsync();
+					Log($"Cached: {before}");
+					Assert.That(cached, Is.Not.Null.And.EqualTo(before));
+
+					// change the version from inside the transaction
+					Log("Mutate!");
+					tr.TouchMetadataVersionKey();
+
+					// we should not be able to get the version anymore (should return null)
+					var after = await tr.GetMetadataVersionKeyAsync();
+					Log($"After: {after}");
+					Assert.That(after, Is.Null, "Should not be able to get the version right after changing it from the same transaction.");
+
+				}, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_GetMetadataVersion_Custom_Keys()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+#if ENABLE_LOGGING
+				var logged = db.Logged(tr => Log(tr.Log.GetTimingsReport(true)));
+#else
+				var logged = db;
+#endif
+
+				var foo = db.GlobalSpace[Slice.FromString("Foo")];
+				var bar = db.GlobalSpace[Slice.FromString("Bar")];
+				var baz = db.GlobalSpace[Slice.FromString("Baz")];
+
+				// initial setup:
+				// - Foo: version stamp
+				// - Bar: different version stamp
+				// - Baz: _missing_
+
+				await logged.WriteAsync(tr => tr.TouchMetadataVersionKey(foo), this.Cancellation);
+				await logged.WriteAsync(tr => tr.TouchMetadataVersionKey(bar), this.Cancellation);
+				await logged.WriteAsync(tr => tr.Clear(baz), this.Cancellation);
+
+				// changing the metadata version and then reading it back from the same transaction CANNOT WORK!
+				await logged.ReadWriteAsync(async tr =>
+				{
+
+					// We can read the version before
+					var before1 = await tr.GetMetadataVersionKeyAsync(foo);
+					Log($"Foo (before): {before1}");
+					Assert.That(before1, Is.Not.Null);
+
+					// Another read attempt should return the cached value
+					var before2 = await tr.GetMetadataVersionKeyAsync(bar);
+					Log($"Bar (before): {before2}");
+					Assert.That(before2, Is.Not.Null.And.Not.EqualTo(before1));
+
+					// Another read attempt should return the cached value
+					var before3 = await tr.GetMetadataVersionKeyAsync(baz);
+					Log($"Baz (before): {before3}");
+					Assert.That(before3, Is.EqualTo(new VersionStamp()));
+
+					// change the version from inside the transaction
+					Log("Mutate Foo!");
+					tr.TouchMetadataVersionKey(foo);
+
+					// we should not be able to get the version anymore (should return null)
+					var after1 = await tr.GetMetadataVersionKeyAsync(foo);
+					Log($"Foo (after): {after1}");
+					Assert.That(after1, Is.Null, "Should not be able to get the version right after changing it from the same transaction.");
+
+					// We can read the version before
+					var after2 = await tr.GetMetadataVersionKeyAsync(bar);
+					Log($"Bar (after): {after2}");
+					Assert.That(after2, Is.Not.Null.And.EqualTo(before2));
+
+					// We can read the version before
+					var after3 = await tr.GetMetadataVersionKeyAsync(baz);
+					Log($"Baz (after): {after3}");
+					Assert.That(after3, Is.EqualTo(new VersionStamp()));
+
+				}, this.Cancellation);
+
 			}
 		}
 

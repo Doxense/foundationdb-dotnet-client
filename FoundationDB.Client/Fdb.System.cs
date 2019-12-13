@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,11 @@ namespace FoundationDB.Client
 			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
 			/// <summary>"\xFF/metadataVersion"</summary>
-			public static readonly Slice MetadataVersion = Slice.FromByteString("\xff/metadataVersion");
+			internal static readonly Slice MetadataVersionKey = Slice.FromByteString("\xff/metadataVersion");
+
+			/// <summary>"\xFF/metadataVersion\x00"</summary>
+			/// <remarks>Used to add a read conflict range on the metadataVersion key</remarks>
+			internal static readonly Slice MetadataVersionKeyEnd = Slice.FromByteString("\xff/metadataVersion\x00");
 
 			/// <summary>Placeholder value used when updating the metadataVersion key (80-bit version stamp + 32 bit offset)</summary>
 			internal static readonly Slice MetadataVersionValue = Slice.Zero(14);
@@ -132,19 +136,6 @@ namespace FoundationDB.Client
 			}
 
 			#endregion
-
-			/// <summary>Return the current value of the metadata version of the database.</summary>
-			/// <remarks>
-			/// Please note that by the time the value has been read, it may have already changed in the database!
-			/// It is highly recommended to read the key as part as the same transaction that would read or update any metadata.
-			/// This method requires API version 610 or greater.
-			/// </remarks>
-			public static Task<Slice> GetMetadataVersionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
-			{
-				Contract.NotNull(db, nameof(db));
-				if (Fdb.ApiVersion < 610) throw new NotSupportedException($"The metadata version system key is only available on version 6.1 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You will need to select API version 610 or greater.");
-				return db.ReadAsync(tr => tr.GetAsync(System.MetadataVersion), ct);
-			}
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>

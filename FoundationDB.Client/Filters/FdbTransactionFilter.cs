@@ -180,6 +180,20 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
+		public virtual Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			ThrowIfDisposed();
+			return m_transaction.GetMetadataVersionKeyAsync(key);
+		}
+
+		/// <inheritdoc />
+		public virtual void TouchMetadataVersionKey(Slice key = default)
+		{
+			ThrowIfDisposed();
+			m_transaction.TouchMetadataVersionKey(key);
+		}
+
+		/// <inheritdoc />
 		public virtual void EnsureCanWrite()
 		{
 			ThrowIfDisposed();
@@ -448,6 +462,12 @@ namespace FoundationDB.Filters
 		public virtual Task<long> GetReadVersionAsync()
 		{
 			return m_transaction.GetReadVersionAsync();
+		}
+
+		/// <inheritdoc />
+		public virtual Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			return m_transaction.GetMetadataVersionKeyAsync(key);
 		}
 
 		/// <inheritdoc />

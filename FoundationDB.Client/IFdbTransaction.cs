@@ -112,7 +112,18 @@ namespace FoundationDB.Client
 		[Pure]
 		long GetCommittedVersion();
 
-		//TODO: description!
+		/// <summary>Bump the value of a metadata key of the database snapshot represented by the current transaction.</summary>
+		/// <remarks>Key to mutate. If <see cref="Slice.Nil"/>, mutate the global <c>\xff/metadataVersion</c> key</remarks>
+		/// <remarks>
+		/// The value of the key will be updated to a value higher than any previous value, once the transaction commits.
+		/// Until this happens, any additional call to <see cref="IFdbReadOnlyTransaction.GetMetadataVersionKeyAsync"/> will return <c>null</c>.
+		/// If the value of the <paramref name="key"/> is read via a regular <see cref="IFdbReadOnlyTransaction.GetAsync"/> or <see cref="IFdbReadOnlyTransaction.GetRange"/> call, the transaction will fail to commit!
+		/// This method requires API version 610 or greater.
+		/// </remarks>
+		void TouchMetadataVersionKey(Slice key = default);
+
+		//TODO: better message!
+		/// <summary>Return the approximate size of the mutation list that this transaction will sent to the server.</summary>
 		Task<long> GetApproximateSizeAsync();
 
 		/// <summary>Returns the <see cref="VersionStamp"/> which was used by VersionStamped operations in this transaction.</summary>

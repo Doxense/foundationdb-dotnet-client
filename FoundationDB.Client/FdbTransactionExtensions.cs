@@ -206,27 +206,14 @@ namespace FoundationDB.Client
 			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false));
 		}
 
-		/// <summary>Read the metadata version from the database snapshot represented by the current transaction.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <returns>
-		/// Value of the <c>'\xff/metadataVersion'</c> key in the database.
-		/// May return <see cref="Slice.Nil"/> for uninitialized database or until the very first write to the metadata version key.
-		/// </returns>
-		/// <remarks>This method requires API version 610 or greater.</remarks>
-		public static Task<Slice> GetMetadataVersionAsync([NotNull] this IFdbReadOnlyTransaction trans)
-		{
-			return trans.GetAsync(Fdb.System.MetadataVersion);
-		}
-
-		/// <summary>Bump the metadata version of the database snapshot represented by the current transaction.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
+		/// <summary>Add a read conflict range on the <c>\xff/metadataVersion</c> key</summary>
 		/// <remarks>
-		/// The value of the <c>'\xff/metadataVersion'</c> key will be updated to a value higher than any previous value.
-		/// This method requires API version 610 or greater.
+		/// This is only required if a previous read to that key was done with snapshot isolation, to guarantee that the transaction will conflict!
+		/// Please note that any external change to the key, unrelated to the current application code, could also trigger a conflict!
 		/// </remarks>
-		public static void TouchMetadataVersion(this IFdbTransaction trans)
+		public static void ProtectAgainstMetadataVersionChange(this IFdbTransaction trans)
 		{
-			trans.Atomic(Fdb.System.MetadataVersion, Fdb.System.MetadataVersionValue, FdbMutationType.VersionStampedValue);
+			trans.AddReadConflictRange(Fdb.System.MetadataVersionKey, Fdb.System.MetadataVersionKeyEnd);
 		}
 
 		#endregion

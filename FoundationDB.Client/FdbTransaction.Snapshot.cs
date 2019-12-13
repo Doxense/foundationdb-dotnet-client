@@ -84,6 +84,11 @@ namespace FoundationDB.Client
 				return m_parent.GetReadVersionAsync();
 			}
 
+			public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+			{
+				return m_parent.GetMetadataVersionKeyAsync(key, snapshot: true);
+			}
+
 			void IFdbReadOnlyTransaction.SetReadVersion(long version)
 			{
 				throw new NotSupportedException("You cannot set the read version on the Snapshot view of a transaction");

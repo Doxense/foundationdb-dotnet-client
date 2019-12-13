@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -503,7 +503,7 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
-		public sealed class AtomicCommand : Command
+		public class AtomicCommand : Command
 		{
 			/// <summary>Type of mutation performed on the key</summary>
 			public FdbMutationType Mutation { get; }
@@ -845,6 +845,50 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetReadVersionCommand : Command<long>
 		{
 			public override Operation Op => Operation.GetReadVersion;
+		}
+
+		public sealed class GetMetadataVersionCommand : Command<VersionStamp?>
+		{
+			/// <summary>Key read from the database</summary>
+			public Slice Key { get; }
+
+			public override Operation Op => Operation.Get;
+
+			public GetMetadataVersionCommand(Slice key)
+			{
+				this.Key = key;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count;
+
+			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : 10;
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return resolver.Resolve(this.Key);
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.Result.HasValue)
+				{
+					if (this.Result.Value == null) return "<null>";
+				}
+				return base.GetResult(resolver);
+			}
+
+			protected override string Dump(VersionStamp? value)
+			{
+				return value?.ToString() ?? "<null>";
+			}
+		}
+
+		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand
+		{
+			public TouchMetadataVersionKeyCommand(Slice key)
+				: base(key, Fdb.System.MetadataVersionValue, FdbMutationType.VersionStampedValue)
+			{ }
+
 		}
 
 		public sealed class CancelCommand : Command

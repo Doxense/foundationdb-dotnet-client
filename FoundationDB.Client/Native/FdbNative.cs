@@ -33,12 +33,12 @@ namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Runtime.ExceptionServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
 
 	internal static unsafe class FdbNative
 	{
@@ -435,7 +435,7 @@ namespace FoundationDB.Client.Native
 		{
 			var err = NativeMethods.fdb_future_set_callback(future, callback, callbackParameter);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + ptrCallback.ToString("x") + ") => err=" + err);
+			Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + callbackParameter.ToString("x") + ") => err=" + err);
 #endif
 			return err;
 		}
@@ -694,7 +694,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* ptrKey = key)
 			{
 				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey, key.Length, snapshot);
-				Contract.Assert(future != null);
+				Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.Handle.ToString("x"));
 #endif

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -390,6 +390,14 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
+		public override void TouchMetadataVersionKey(Slice key = default)
+		{
+			Execute(
+				new FdbTransactionLog.TouchMetadataVersionKeyCommand(key.IsNull ? Fdb.System.MetadataVersionKey : Grab(key)),
+				(tr, cmd) => tr.TouchMetadataVersionKey(cmd.Key)
+			);
+		}
+
 		#endregion
 
 		#region Read...
@@ -399,6 +407,14 @@ namespace FoundationDB.Filters.Logging
 			return ExecuteAsync(
 				new FdbTransactionLog.GetReadVersionCommand(),
 				(tr, cmd) => tr.GetReadVersionAsync()
+			);
+		}
+
+		public override Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			return ExecuteAsync(
+				new FdbTransactionLog.GetMetadataVersionCommand(key.IsNull ? Fdb.System.MetadataVersionKey : Grab(key)),
+				(tr, cmd) => tr.GetMetadataVersionKeyAsync(cmd.Key)
 			);
 		}
 
@@ -500,6 +516,14 @@ namespace FoundationDB.Filters.Logging
 				return ExecuteAsync(
 					new FdbTransactionLog.GetReadVersionCommand(),
 					(tr, cmd) => tr.GetReadVersionAsync()
+				);
+			}
+
+			public override Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+			{
+				return ExecuteAsync(
+					new FdbTransactionLog.GetMetadataVersionCommand(key.IsNull ? Fdb.System.MetadataVersionKey : m_parent.Grab(key)), 
+					(tr, cmd) => tr.GetMetadataVersionKeyAsync(cmd.Key)
 				);
 			}
 

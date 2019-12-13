@@ -132,6 +132,18 @@ namespace FoundationDB.Client
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync();
 
+		/// <summary>Safely read a key containing a <see cref="VersionStamp"/> representing the version of some metadata or schema information stored in the database.</summary>
+		/// <param name="key">Key to read. If <see cref="Slice.Nil"/>, read the global <c>\xff/metadataVersion</c> key</param>
+		/// <remarks>Either the current value of the key, or <see cref="Slice.Nil"/> if the key has already changed in this transaction</remarks>
+		/// <remarks>
+		/// This should be used when implementing caching layers that use one or more "metadata version" keys to detect local changes.
+		/// If the same key has already been changed within the transaction (via <see cref="IFdbTransaction.TouchMetadataVersionKey"/>) this method will return <c>null</c>.
+		/// When this happens, the caller must consider that any previous cached state is invalid, and should not construct any new cache state inside this transaction!
+		/// Please note that attempting to read or write this key using regular <see cref="GetAsync"/> or <see cref="FdbMutationType.VersionStampedValue"/> atomic operations can render the transaction unable to commit.
+		/// If the key does not exist in the database, the zero <see cref="VersionStamp"/> will be returned instead.
+		/// </remarks>
+		Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default);
+
 		/// <summary>
 		/// Sets the snapshot read version used by a transaction. This is not needed in simple cases.
 		/// </summary>
