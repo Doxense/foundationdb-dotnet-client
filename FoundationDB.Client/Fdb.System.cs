@@ -56,7 +56,7 @@ namespace FoundationDB.Client
 			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
 			/// <summary>"\xFF/metadataVersion"</summary>
-			internal static readonly Slice MetadataVersionKey = Slice.FromByteString("\xff/metadataVersion");
+			public static readonly Slice MetadataVersionKey = Slice.FromByteString("\xff/metadataVersion");
 
 			/// <summary>"\xFF/metadataVersion\x00"</summary>
 			/// <remarks>Used to add a read conflict range on the metadataVersion key</remarks>
