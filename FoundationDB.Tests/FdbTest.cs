@@ -31,9 +31,12 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.IO;
+	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Layers.Directories;
+	using JetBrains.Annotations;
 	using NUnit.Framework;
 
 	/// <summary>Base class for all FoundationDB tests</summary>
@@ -173,16 +176,107 @@ namespace FoundationDB.Client.Tests
 
 		// These methods are just there to help with the problem of culture-aware string formatting
 
+		// Quand on est exécuté depuis VS en mode debug on préfère écrire dans Trace. Sinon, on écrit dans la Console...
+		private static readonly bool AttachedToDebugger = Debugger.IsAttached;
+
+		/// <summary>Indique si on fonctionne sous un runner qui préfère utiliser la console pour l'output des logs</summary>
+		private static readonly bool MustOutputLogsOnConsole = DetectConsoleTestRunner();
+
+		private static bool DetectConsoleTestRunner()
+		{
+			// TeamCity
+			if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TEAMCITY_VERSION"))) return true;
+
+			string host = Assembly.GetEntryAssembly()?.GetName().Name;
+			return host == "TestDriven.NetCore.AdHoc" // TestDriven.NET
+			       || host == "testhost";                // ReSharper Test Runner
+		}
+
+		[DebuggerNonUserCode]
+		private static void WriteToLog(string message, bool lineBreak = true)
+		{
+			if (MustOutputLogsOnConsole)
+			{ // write to stdout
+				if (lineBreak)
+					Console.Out.WriteLine(message);
+				else
+					Console.Out.Write(message);
+			}
+			else if (AttachedToDebugger)
+			{ // write to the VS 'output' tab
+				if (lineBreak)
+					Trace.WriteLine(message);
+				else
+					Trace.Write(message);
+			}
+			else
+			{ // write to NUnit's realtime log
+				if (lineBreak)
+				{
+					TestContext.Progress.WriteLine(message);
+				}
+				else
+				{
+					TestContext.Progress.Write(message);
+				}
+			}
+		}
+
+		[DebuggerNonUserCode]
+		private static void WriteToErrorLog(string message)
+		{
+			if (MustOutputLogsOnConsole)
+			{ // write to stderr
+				Console.Error.WriteLine(message);
+			}
+			else if (AttachedToDebugger)
+			{ // write to the VS 'output' tab
+				Trace.WriteLine("ERROR: " + message);
+				TestContext.Error.WriteLine(message);
+			}
+			else
+			{ // write to NUnit's stderr
+				TestContext.Error.WriteLine(message);
+			}
+		}
+
 		[DebuggerStepThrough]
 		public static void Log(string text)
 		{
-			TestContext.Progress.WriteLine(text);
+			WriteToLog(text);
 		}
 
 		[DebuggerStepThrough]
 		public static void Log()
 		{
-			Log(string.Empty);
+			WriteToLog(string.Empty);
+		}
+
+		[DebuggerNonUserCode]
+		[StringFormatMethod("format")]
+		public static void Log([NotNull] string format, object arg0)
+		{
+			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, arg0));
+		}
+
+		[DebuggerNonUserCode]
+		[StringFormatMethod("format")]
+		public static void Log([NotNull] string format, object arg0, object arg1)
+		{
+			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
+		}
+
+		[DebuggerNonUserCode]
+		[StringFormatMethod("format")]
+		public static void Log([NotNull] string format, params object[] args)
+		{
+			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, args));
+		}
+
+		[DebuggerNonUserCode]
+		public static void LogError(string text)
+		{
+			WriteToErrorLog(text);
 		}
 
 		[DebuggerStepThrough]
@@ -190,11 +284,11 @@ namespace FoundationDB.Client.Tests
 		{
 			if (item == null)
 			{
-				Log("null");
+				WriteToLog("null");
 			}
 			else
 			{
-				Log(string.Format(CultureInfo.InvariantCulture, "[{0}] {1}", item.GetType().Name, item));
+				WriteToLog(string.Format(CultureInfo.InvariantCulture, "[{0}] {1}", item.GetType().Name, item));
 			}
 		}
 
