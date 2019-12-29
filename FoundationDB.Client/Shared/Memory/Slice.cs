@@ -833,6 +833,23 @@ namespace System
 			return new Slice(tmp);
 		}
 
+		/// <summary>Append/Merge a slice at the end of the current slice</summary>
+		/// <param name="tail">Slice that must be appended</param>
+		/// <returns>Merged slice if both slices are contiguous, or a new slice containing the content of the current slice, followed by the tail slice. Or <see cref="Slice.Empty"/> if both parts are nil or empty</returns>
+		[Pure]
+		public Slice Concat(ReadOnlySpan<byte> tail)
+		{
+			int count = this.Count;
+			if (tail.Length == 0) return count > 0 ? this : Empty;
+			if (count == 0) return Copy(tail);
+
+			this.EnsureSliceIsValid();
+
+			var tmp = new byte[count + tail.Length];
+			this.Span.CopyTo(tmp);
+			tail.CopyTo(tmp.AsSpan(count));
+			return new Slice(tmp);
+		}
 		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
