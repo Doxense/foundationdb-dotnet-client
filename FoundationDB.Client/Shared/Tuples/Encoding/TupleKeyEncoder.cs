@@ -42,7 +42,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		private TupleKeyEncoder()
 		{ }
 
-		public IKeyEncoding Encoding => TuPack.Encoding;
+		IKeyEncoding IKeyEncoder.Encoding => TuPack.Encoding;
+
+		public IDynamicKeyEncoding Encoding => TuPack.Encoding;
 
 		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items)
 			where TTuple : IVarTuple

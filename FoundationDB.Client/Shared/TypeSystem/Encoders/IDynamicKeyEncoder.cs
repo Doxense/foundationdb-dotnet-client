@@ -40,6 +40,8 @@ namespace Doxense.Serialization.Encoders
 	public interface IDynamicKeyEncoder : IKeyEncoder
 	{
 
+		new IDynamicKeyEncoding Encoding { get; }
+
 		#region Encoding...
 
 		/// <summary>Pack a tuple of arbitrary length into a binary slice</summary>

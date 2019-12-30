@@ -32,7 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>
-	public sealed class TupleKeyEncoding : ITypeSystem
+	public sealed class TupleKeyEncoding : IDynamicTypeSystem
 	{
 
 		public static readonly TupleKeyEncoding Instance = new TupleKeyEncoding();

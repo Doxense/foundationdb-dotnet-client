@@ -38,7 +38,9 @@ namespace FoundationDB.Client
 	public abstract class DynamicKeyEncoderBase : IDynamicKeyEncoder
 	{
 
-		public abstract IKeyEncoding Encoding { get; }
+		IKeyEncoding IKeyEncoder.Encoding => this.Encoding;
+
+		public abstract IDynamicKeyEncoding Encoding { get; }
 
 		public virtual (Slice Begin, Slice End) ToRange(Slice prefix)
 		{

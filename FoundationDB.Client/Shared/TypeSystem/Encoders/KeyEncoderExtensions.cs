@@ -33,12 +33,34 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	public static class KeyEncoderExtensions
 	{
+
+		#region Dynamic...
+
+		public static Slice Pack<TTuple>([NotNull] this IDynamicKeyEncoder encoder, TTuple tuple)
+			where TTuple : IVarTuple
+		{
+			var writer = new SliceWriter(checked(tuple.Count * 8));
+			encoder.PackKey(ref writer, tuple);
+			return writer.ToSlice();
+		}
+
+		public static Slice Pack<TTuple>([NotNull] this IDynamicKeyEncoder encoder, Slice prefix, TTuple tuple)
+			where TTuple : IVarTuple
+		{
+			var writer = new SliceWriter(checked(prefix.Count + tuple.Count * 8));
+			writer.WriteBytes(prefix);
+			encoder.PackKey(ref writer, tuple);
+			return writer.ToSlice();
+		}
+
+		#endregion
 
 		#region <T1>
 

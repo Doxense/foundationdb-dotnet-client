@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using JetBrains.Annotations;
 
-	public sealed class BinaryEncoding : IValueEncoding,
+	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,
 		IValueEncoder<Slice>,
 		IValueEncoder<string>,
 		IValueEncoder<int>,
@@ -140,6 +140,15 @@ namespace Doxense.Serialization.Encoders
 		public Slice EncodeValue(VersionStamp value) => value.ToSlice();
 		VersionStamp IValueEncoder<VersionStamp, Slice>.DecodeValue(Slice encoded) => VersionStamp.Parse(encoded);
 
+		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
+
+		IKeyEncoder<T1> IKeyEncoding.GetKeyEncoder<T1>() => throw new NotSupportedException();
+
+		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
+
+		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
+
+		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
 	}
 
 }

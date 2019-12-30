@@ -82,6 +82,12 @@ namespace Doxense.Serialization.Encoders
 		ICompositeKeyEncoder<T1, T2, T3, T4> GetKeyEncoder<T1, T2, T3, T4>();
 
 	}
+
+	/// <summary>Type system that only handles encoding and decoding of dynamically typed of keys</summary>
+	public interface IDynamicKeyEncoding : IKeyEncoding
+	{
+
+	}
 }
 
 #endif

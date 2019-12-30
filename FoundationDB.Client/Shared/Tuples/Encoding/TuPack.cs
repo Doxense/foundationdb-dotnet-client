@@ -43,9 +43,9 @@ namespace Doxense.Collections.Tuples
 	public static class TuPack
 	{
 
-		/// <summary>Key Encoding that use the Tuple Binary Encoding</summary>
+		/// <summary>Key encoding that uses the Tuple Binary Encoding</summary>
 		[NotNull]
-		public static ITypeSystem Encoding => TupleKeyEncoding.Instance;
+		public static IDynamicTypeSystem Encoding => TupleKeyEncoding.Instance;
 
 		#region Packing...
 
