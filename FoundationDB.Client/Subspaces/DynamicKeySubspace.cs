@@ -1,5 +1,5 @@
 #region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,75 +38,80 @@ namespace FoundationDB.Client
 	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
+	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
+	/// <remarks>This is useful when dealing with subspaces that store keys of different types and shapes.</remarks>
+	/// <example>In pseudo code, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="Doxense.Collections.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
+	/// <code>
+	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
+	/// subspace.GetPrefix() => {prefix}
+	/// subspace.Keys.Pack(("Hello", "World")) => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
+	/// subspace.Keys.Encode("Hello", "World") => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
+	/// subspace.Keys.Decode({prefix}'\x02Hello\x00\x15\x42') => ('Hello', 0x42)
+	/// </code>
+	/// </example>
 	[PublicAPI]
-	public class DynamicKeySubspace : KeySubspace, IDynamicKeySubspace
+	public interface IDynamicKeySubspace : IKeySubspace
+	{
+
+		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
+		[NotNull]
+		DynamicPartition Partition { get; }
+
+		/// <summary>Encoder used to generate and parse the keys of this subspace</summary>
+		[NotNull] IDynamicKeyEncoder KeyEncoder { get; }
+
+		Slice this[[NotNull] IVarTuple tuple] { [Pure] get; }
+
+		/// <summary>Convert a tuple into a key of this subspace</summary>
+		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
+		Slice Pack<TTuple>(TTuple tuple) where TTuple : IVarTuple;
+
+		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
+		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
+		/// <returns>Original tuple</returns>
+		IVarTuple Unpack(Slice packedKey);
+
+		string PrettyPrint(Slice packedKey);
+
+	}
+
+	/// <summary>Represents a <see cref="IDynamicKeySubspace">Dynamic Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
+	/// <remarks>This is useful when dealing with subspaces that store keys of different types and shapes.</remarks>
+	/// <example>In pseudo code, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="Doxense.Collections.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
+	/// <code>
+	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
+	/// subspace.GetPrefix() => {prefix}
+	/// subspace.Keys.Pack(("Hello", "World")) => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
+	/// subspace.Keys.Encode("Hello", "World") => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
+	/// subspace.Keys.Decode({prefix}'\x02Hello\x00\x15\x42') => ('Hello', 0x42)
+	/// </code>
+	/// </example>
+	[PublicAPI]
+	public class DynamicKeySubspace : KeySubspace, IDynamicKeySubspace, IBinaryKeySubspace
 	{
 
 		/// <summary>Encoder for the keys of this subspace</summary>
-		public IKeyEncoding Encoding { get; }
-
-		[NotNull]
-		internal IDynamicKeyEncoder KeyEncoder { get; }
-
-		/// <summary>Create a new subspace from a binary prefix</summary>
-		/// <param name="prefix">Prefix of the new subspace</param>
-		/// <param name="encoding">Type System used to encode keys in this subspace</param>
-		internal DynamicKeySubspace(Slice prefix, [NotNull] IKeyEncoding encoding)
-			: base(prefix)
-		{
-			Contract.Requires(encoding != null);
-			this.Encoding = encoding;
-			this.KeyEncoder = encoding.GetDynamicKeyEncoder();
-			this.Keys = new DynamicKeys(this, this.KeyEncoder);
-			this.Partition = new DynamicPartition(this);
-		}
+		public IDynamicKeyEncoder KeyEncoder { get; }
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="encoder">Encoder that will be used by this subspace</param>
-		internal DynamicKeySubspace(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
-			: base(prefix)
+		/// <param name="context">Context that controls the lifetime of this subspace</param>
+		internal DynamicKeySubspace(Slice prefix, [NotNull] IDynamicKeyEncoder encoder, [NotNull] ISubspaceContext context)
+			: base(prefix, context)
 		{
 			Contract.Requires(encoder != null);
-			this.Encoding = encoder.Encoding;
 			this.KeyEncoder = encoder;
-			this.Keys = new DynamicKeys(this, encoder);
 			this.Partition = new DynamicPartition(this);
 		}
 
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
-		public DynamicKeys Keys { get; }
-
-		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
 		public DynamicPartition Partition { get; }
 
-		public Slice this[[NotNull] IVarTuple item]
+		public Slice this[IVarTuple item]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Keys.Pack(item);
-		}
-
-	}
-
-	/// <summary>Key helper for a dynamic TypeSystem</summary>
-	[DebuggerDisplay("{Parent.ToString(),nq)}")]
-	[PublicAPI]
-	public sealed class DynamicKeys
-	{
-
-		/// <summary>Parent subspace</summary>
-		[NotNull]
-		private readonly DynamicKeySubspace Parent;
-
-		/// <summary>Encoder used to format keys in this subspace</summary>
-		[NotNull]
-		public IDynamicKeyEncoder Encoder { get; }
-
-		internal DynamicKeys(DynamicKeySubspace parent, IDynamicKeyEncoder encoder)
-		{
-			Contract.Requires(parent != null && encoder != null);
-			this.Parent = parent;
-			this.Encoder = encoder;
+			get => Pack(item);
 		}
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
@@ -117,71 +122,9 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
 
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.PackKey(ref sw, tuple);
+			var sw = this.OpenWriter();
+			this.KeyEncoder.PackKey(ref sw, tuple);
 			return sw.ToSlice();
-		}
-
-		/// <summary>Encode a batch of tuples</summary>
-		[Pure, NotNull]
-		public Slice[] PackMany<TTuple>(IEnumerable<TTuple> items)
-			where TTuple : IVarTuple
-		{
-			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
-				this.Parent.OpenWriter(),
-				items,
-				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
-				this.Encoder
-			);
-		}
-
-		/// <summary>Encode a batch of tuples extracted from each elements</summary>
-		[Pure, NotNull]
-		public Slice[] PackMany<TSource, TTuple>(IEnumerable<TSource> items, Func<TSource, TTuple> selector)
-			where TTuple : IVarTuple
-		{
-			return Batched<TSource, IDynamicKeyEncoder>.Convert(
-				this.Parent.OpenWriter(),
-				items,
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
-				this.Encoder
-			);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack<T1>(ValueTuple<T1> items)
-		{
-			return Encode<T1>(items.Item1);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack<T1, T2>((T1, T2) items)
-		{
-			return Encode<T1, T2>(items.Item1, items.Item2);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack<T1, T2, T3>((T1, T2, T3) items)
-		{
-			return Encode<T1, T2, T3>(items.Item1, items.Item2, items.Item3);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack<T1, T2, T3, T4>((T1, T2, T3, T4) items)
-		{
-			return Encode<T1, T2, T3, T4>(items.Item1, items.Item2, items.Item3, items.Item4);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) items)
-		{
-			return Encode<T1, T2, T3, T4, T5>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5);
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice Pack<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) items)
-		{
-			return Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -189,123 +132,218 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		public IVarTuple Unpack(Slice packedKey)
 		{
-			return this.Encoder.UnpackKey(this.Parent.ExtractKey(packedKey));
+			return this.KeyEncoder.UnpackKey(ExtractKey(packedKey));
+		}
+
+		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
+		public string PrettyPrint(Slice packedKey)
+		{
+			//TODO: defer to the encoding itself?
+			var key = ExtractKey(packedKey);
+			try
+			{
+				return this.KeyEncoder.UnpackKey(key).ToString();
+			}
+			catch (FormatException)
+			{
+				// this is not a tuple???
+			}
+			return key.PrettyPrint();
+		}
+
+
+		#region IBinaryKeySubspace
+
+		// we implement this because most subspaces will be dynamic, and converting them to binary would need an allocation of a BinaryKeySubspace otherwise!
+
+		Slice IBinaryKeySubspace.this[Slice relativeKey] => Append(relativeKey);
+
+		Slice IBinaryKeySubspace.Decode(Slice absoluteKey) => ExtractKey(absoluteKey);
+
+		IBinaryKeySubspace IBinaryKeySubspace.Partition(Slice relativeKey) => new BinaryKeySubspace(Append(relativeKey), this.Context);
+
+		#endregion
+	}
+
+	/// <summary>Key helper for a dynamic TypeSystem</summary>
+	[PublicAPI]
+	public static class DynamicKeysExtensions
+	{
+
+		/// <summary>Encode a batch of tuples</summary>
+		[Pure, NotNull]
+		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, IEnumerable<TTuple> items)
+			where TTuple : IVarTuple
+		{
+			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				self.KeyEncoder
+			);
+		}
+
+		/// <summary>Encode a batch of tuples extracted from each elements</summary>
+		[Pure, NotNull]
+		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, TTuple> selector)
+			where TTuple : IVarTuple
+		{
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
+				self.OpenWriter(),
+				items,
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
+				self.KeyEncoder
+			);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1>(this IDynamicKeySubspace self, ValueTuple<T1> items)
+		{
+			return self.Encode<T1>(items.Item1);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2>(this IDynamicKeySubspace self, (T1, T2) items)
+		{
+			return self.Encode<T1, T2>(items.Item1, items.Item2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) items)
+		{
+			return self.Encode<T1, T2, T3>(items.Item1, items.Item2, items.Item3);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) items)
+		{
+			return self.Encode<T1, T2, T3, T4>(items.Item1, items.Item2, items.Item3, items.Item4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) items)
+		{
+			return self.Encode<T1, T2, T3, T4, T5>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) items)
+		{
+			return self.Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
+		}
+		public static IVarTuple Unpack(this IDynamicKeySubspace self, Slice packedKey)
+		{
+			return self.KeyEncoder.UnpackKey(self.ExtractKey(packedKey));
 		}
 
 		#region ToRange()...
 
-		/// <summary>Return a key range that encompass all the keys inside this subspace, according to the current key encoder</summary>
-		public KeyRange ToRange()
-		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix());
-		}
-
 		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
 		/// <param name="tuple">Tuple used as a prefix for the range</param>
-		public KeyRange PackRange([NotNull] IVarTuple tuple)
+		public static KeyRange PackRange(this IDynamicKeySubspace self, [NotNull] IVarTuple tuple)
 		{
-			return this.Encoder.ToRange(this.Parent.GetPrefix(), tuple);
+			return self.KeyEncoder.ToRange(self.GetPrefix(), tuple);
 		}
 
-		public KeyRange PackRange<T1>(STuple<T1> tuple)
+		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, STuple<T1> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
-		public KeyRange PackRange<T1, T2>(STuple<T1, T2> tuple)
+		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, STuple<T1, T2> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
-		public KeyRange PackRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
+		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, STuple<T1, T2, T3> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		public KeyRange PackRange<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
-		public KeyRange PackRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
-		public KeyRange PackRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
-		public KeyRange PackRange<T1>(ValueTuple<T1> tuple)
+		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, ValueTuple<T1> tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
-		public KeyRange PackRange<T1, T2>((T1, T2) tuple)
+		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, (T1, T2) tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
-		public KeyRange PackRange<T1, T2, T3>((T1, T2, T3) tuple)
+		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
-		public KeyRange PackRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
-		public KeyRange PackRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
-		public KeyRange PackRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) tuple)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		#endregion
 
 		#region ToKeyRange()...
 
-		public KeyRange EncodeRange<T1>(T1 item1)
+		public static KeyRange EncodeRange<T1>(this IDynamicKeySubspace self, T1 item1)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1);
 		}
 
-		public KeyRange EncodeRange<T1, T2>(T1 item1, T2 item2)
+		public static KeyRange EncodeRange<T1, T2>(this IDynamicKeySubspace self, T1 item1, T2 item2)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2);
 		}
 
-		public KeyRange EncodeRange<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+		public static KeyRange EncodeRange<T1, T2, T3>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2, item3);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3);
 		}
 
-		public KeyRange EncodeRange<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		public static KeyRange EncodeRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2, item3, item4);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4);
 		}
 
-		public KeyRange EncodeRange<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2, item3, item4, item5);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5);
 		}
-		public KeyRange EncodeRange<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2, item3, item4, item5, item6);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6);
 		}
-		public KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2, item3, item4, item5, item6, item7);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7);
 		}
-		public KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
-			return this.Encoder.ToKeyRange(this.Parent.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8);
+			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		#endregion
@@ -314,74 +352,74 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of a single element</summary>
 		[Pure]
-		public Slice Encode<T1>(T1 item1)
+		public static Slice Encode<T1>(this IDynamicKeySubspace self, T1 item1)
 		{
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.EncodeKey(ref sw, item1);
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1);
 			return sw.ToSlice();
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure, NotNull]
-		public Slice[] EncodeMany<T>(IEnumerable<T> items)
+		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
-				this.Parent.OpenWriter(),
+				self.OpenWriter(),
 				items,
 				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
-				this.Encoder
+				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>
 		[Pure, NotNull]
-		public Slice[] EncodeMany<TSource, T>(IEnumerable<TSource> items, Func<TSource, T> selector)
+		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
-				this.Parent.OpenWriter(),
+				self.OpenWriter(),
 				items,
 				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
-				this.Encoder
+				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encode a key which is composed of a two elements</summary>
-		public Slice Encode<T1, T2>(T1 item1, T2 item2)
+		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, T1 item1, T2 item2)
 		{
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.EncodeKey(ref sw, item1, item2);
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2);
 			return sw.ToSlice();
 		}
 
 		/// <summary>Encode a key which is composed of three elements</summary>
-		public Slice Encode<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
 		{
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.EncodeKey(ref sw, item1, item2, item3);
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3);
 			return sw.ToSlice();
 		}
 
 		/// <summary>Encode a key which is composed of four elements</summary>
-		public Slice Encode<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.EncodeKey(ref sw, item1, item2, item3, item4);
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4);
 			return sw.ToSlice();
 		}
 
 		/// <summary>Encode a key which is composed of five elements</summary>
-		public Slice Encode<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.EncodeKey(ref sw, item1, item2, item3, item4, item5);
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5);
 			return sw.ToSlice();
 		}
 
 		/// <summary>Encode a key which is composed of six elements</summary>
-		public Slice Encode<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
-			var sw = this.Parent.OpenWriter();
-			this.Encoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6);
+			var sw = self.OpenWriter();
+			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6);
 			return sw.ToSlice();
 		}
 
@@ -390,72 +428,55 @@ namespace FoundationDB.Client
 		#region Decode...
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
-		public T1 Decode<T1>(Slice packedKey)
+		public static T1 Decode<T1>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKey<T1>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
-		public STuple<T1, T2> Decode<T1, T2>(Slice packedKey)
+		public static STuple<T1, T2> Decode<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKey<T1, T2>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
-		public STuple<T1, T2, T3> Decode<T1, T2, T3>(Slice packedKey)
+		public static STuple<T1, T2, T3> Decode<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKey<T1, T2, T3>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
-		public STuple<T1, T2, T3, T4> Decode<T1, T2, T3, T4>(Slice packedKey)
+		public static STuple<T1, T2, T3, T4> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKey<T1, T2, T3, T4>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
-		public STuple<T1, T2, T3, T4, T5> Decode<T1, T2, T3, T4, T5>(Slice packedKey)
+		public static STuple<T1, T2, T3, T4, T5> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKey<T1, T2, T3, T4, T5>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 		}
 
-		public STuple<T1, T2, T3, T4, T5, T6> Decode<T1, T2, T3, T4, T5, T6>(Slice packedKey)
+		public static STuple<T1, T2, T3, T4, T5, T6> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKey<T1, T2, T3, T4, T5, T6>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
-		public TFirst DecodeFirst<TFirst>(Slice packedKey)
+		public static TFirst DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKeyFirst<TFirst>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKeyFirst<TFirst>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
-		public TLast DecodeLast<TLast>(Slice packedKey)
+		public static TLast DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
 		{
-			return this.Encoder.DecodeKeyLast<TLast>(this.Parent.ExtractKey(packedKey));
+			return self.KeyEncoder.DecodeKeyLast<TLast>(self.ExtractKey(packedKey));
 		}
 
 		#endregion
-
-		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
-		public string Dump(Slice packedKey)
-		{
-			//TODO: defer to the encoding itself?
-			var key = this.Parent.ExtractKey(packedKey);
-			try
-			{
-				var tuple = TuPack.Unpack(key);
-				return tuple.ToString();
-			}
-			catch (FormatException)
-			{
-				// this is not a tuple???
-			}
-			return key.PrettyPrint();
-		}
 
 	}
 
@@ -477,13 +498,13 @@ namespace FoundationDB.Client
 		public IDynamicKeySubspace this[Slice binarySuffix]
 		{
 			[Pure, NotNull]
-			get => new DynamicKeySubspace(this.Subspace[binarySuffix], this.Subspace.Encoding);
+			get => new DynamicKeySubspace(this.Subspace.Append(binarySuffix), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 		public IDynamicKeySubspace this[IVarTuple suffix]
 		{
 			[Pure, NotNull]
-			get => new DynamicKeySubspace(this.Subspace.Keys.Pack(suffix), this.Subspace.Encoding);
+			get => new DynamicKeySubspace(this.Subspace.Pack(suffix), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -497,7 +518,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T>(T value)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T>(value), this.Subspace.Encoding);
+			return new DynamicKeySubspace(this.Subspace.Encode<T>(value), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -513,7 +534,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), this.Subspace.Encoding);
+			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2>(value1, value2), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -530,7 +551,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.Encoding);
+			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -549,7 +570,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return new DynamicKeySubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.Encoding);
+			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 	}
