@@ -47,11 +47,11 @@ namespace FoundationDB.Client.Tests
 
 				string secret = Guid.NewGuid().ToString();
 
-				using(var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadWriteAsync(async tr =>
 				{
-					tr.Set(location.Keys.Encode("Hello"), Value(secret));
-					await tr.CommitAsync();
-				}
+					var subspace = await location.Resolve(tr);
+					tr.Set(subspace.Encode("Hello"), Value(secret));
+				}, this.Cancellation);
 
 				int called = 0;
 				var result = await db.ReadAsync<Slice>((tr) =>
@@ -320,11 +320,12 @@ namespace FoundationDB.Client.Tests
 
 				string secret = Guid.NewGuid().ToString();
 
-				using(var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadWriteAsync(async tr =>
 				{
-					tr.Set(location.Keys.Encode("Hello"), Value(secret));
+					var subspace = await location.Resolve(tr);
+					tr.Set(subspace.Encode("Hello"), Value(secret));
 					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
 				int called = 0;
 				var result = await db.ReadWriteAsync<Slice>(
@@ -356,11 +357,12 @@ namespace FoundationDB.Client.Tests
 
 				string secret = Guid.NewGuid().ToString();
 
-				using(var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadWriteAsync(async tr =>
 				{
-					tr.Set(location.Keys.Encode("Hello"), Value(secret));
+					var subspace = await location.Resolve(tr);
+					tr.Set(subspace.Encode("Hello"), Value(secret));
 					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
 				int called = 0;
 				Assert.That(

@@ -387,7 +387,7 @@ namespace FoundationDB.Client
 				var batch = new List<TSource>(batchCount);
 				long itemCount = 0;
 
-				using (var trans = db.BeginTransaction(ct))
+				using (var trans = await db.BeginTransactionAsync(ct))
 				{
 					var timer = Stopwatch.StartNew();
 
@@ -703,7 +703,7 @@ namespace FoundationDB.Client
 				var chunk = new List<TSource>(batchCount); // holds all the items processed in the current transaction cycle
 				long itemCount = 0; // total number of items processed
 
-				using (var trans = db.BeginTransaction(ct))
+				using (var trans = await db.BeginTransactionAsync(ct))
 				{
 					var timer = Stopwatch.StartNew();
 
@@ -1178,7 +1178,7 @@ namespace FoundationDB.Client
 				{
 					var totalTimer = Stopwatch.StartNew();
 
-					using (var trans = db.BeginReadOnlyTransaction(ct))
+					using (var trans = await db.BeginReadOnlyTransactionAsync(ct))
 					{
 						var ctx = new BatchOperationContext
 						{
@@ -1406,15 +1406,16 @@ namespace FoundationDB.Client
 				//	W:           [*B1]-----[*B2]-----[*B3]-----[ *B4 + flush to disk ...... |*B5]-----[*B6]------....
 
 				// this lambda should be applied on any new or reset transaction
-				Action<IFdbReadOnlyTransaction> reset = (tr) =>
+				Func<IFdbReadOnlyTransaction, Task> reset = (tr) =>
 				{
 					// should export be lower priority? TODO: make if configurable!
 					tr.WithPriorityBatch();
+					return Task.CompletedTask;
 				};
 
-				using (var tr = db.BeginReadOnlyTransaction(ct))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
 				{
-					reset(tr);
+					await reset(tr);
 
 					//TODO: make options configurable!
 					var options = new FdbRangeOptions
@@ -1473,7 +1474,7 @@ namespace FoundationDB.Client
 			/// <param name="options">Range read options</param>
 			/// <param name="onReset">Action (optional) that can reconfigure a transaction whenever it gets reset inside the retry loop.</param>
 			/// <returns>Task that will return the next batch</returns>
-			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, KeySelector begin, KeySelector end, [NotNull] FdbRangeOptions options, Action<IFdbReadOnlyTransaction> onReset = null)
+			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, KeySelector begin, KeySelector end, [NotNull] FdbRangeOptions options, Func<IFdbReadOnlyTransaction, Task> onReset = null)
 			{
 				Contract.Requires(tr != null && options != null);
 
@@ -1495,8 +1496,125 @@ namespace FoundationDB.Client
 							await tr.OnErrorAsync(e.Code).ConfigureAwait(false);
 						}
 						// before retrying, we need to re-configure the transaction if needed
-						onReset?.Invoke(tr);
+						if (onReset != null) await onReset(tr).ConfigureAwait(false);
 					}
+				}
+			}
+
+			/// <summary>Export the content of a potentially large range of keys defined by a pair of selectors.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="path">Path of the subspace to export</param>
+			/// <param name="handler">Lambda that will be called for each batch of data read from the database. The first argument is the array of ordered key/value pairs in the batch, taken from the same database snapshot. The second argument is the offset of the first item in the array, from the start of the range. The third argument is a token should be used by any async i/o performed by the lambda.</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Number of keys exported</returns>
+			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
+			public static async Task<long> ExportAsync<TSubspace>([NotNull] IFdbDatabase db, ISubspaceLocation<TSubspace> path, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], TSubspace, long, CancellationToken, Task> handler, CancellationToken ct)
+				where TSubspace : IKeySubspace
+			{
+				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(handler, nameof(handler));
+				ct.ThrowIfCancellationRequested();
+
+				// to maximize throughput, we want to read as much as possible per transaction, so that means that we should prefetch the next batch while the current batch is processing
+
+				// If handler() is always faster than the prefetch(), the bottleneck is the database (or possibly the network).
+				//	R: [ Read B1 ... | Read B2 ........ | Read B3 ..... ]
+				//	W:               [ Process B1 ]-----[ Process B2 ]--[ Process B3]X
+
+				// TODO: alternative method that we could use to almost double the throughput (second thread that exports backwards starting from the end)
+				//	R: [ Read B1 ... | Read B2 ..... | Read B3 ..... | ...
+				//	R:		| Read B10 ...... | Read B9 ..... | Read B8 ..... | ...
+				//	W:               [ Process B1 | Process B10 | Process B2 | Process B9 | Process B3 | ...
+
+				// If handler() is always slower than the prefetch(), the bottleneck is the local processing (or possibly local disk if writing to disk)
+				//	R: [ Read B1 | Read B2 ]----------[ Read B3 ]-------[ Read B4 ]--------
+				//	W:           [ Process B1 ....... | Process B2 .... | Process B3 .... | Process B4 ]
+
+				// If handler() does some buffering, and only flush to disk every N batches, then reading may stall because we could have prefetch more pages (TODO: we could prefetch more pages in queue ?)
+				//	R: [ Read B1 | Read B2 | Read B3 | Read B4 | Read B5 ]------------------[ Read B6 | Read B7 ]....
+				//	W:           [*B1]-----[*B2]-----[*B3]-----[ *B4 + flush to disk ...... |*B5]-----[*B6]------....
+
+				Slice previous = default;
+				TSubspace location = default;
+				KeySelector begin = default;
+				KeySelector end = default;
+
+				// this lambda should be applied on any new or reset transaction
+				Func<IFdbReadOnlyTransaction, Task> reset = async (tr) =>
+				{
+					// should export be lower priority? TODO: make if configurable!
+					tr.WithPriorityBatch();
+
+					var folder = await path.Resolve(tr);
+					if (previous.IsNull)
+					{
+						previous = folder.GetPrefix();
+						location = folder;
+						var range = folder.ToRange();
+						begin = KeySelector.FirstGreaterOrEqual(range.Begin);
+						end = KeySelector.FirstGreaterOrEqual(range.End);
+					}
+					else
+					{
+						if (folder == null || folder.GetPrefix() != previous)
+						{
+							throw new InvalidOperationException($"Failed to export the content of subspace {path} because it was deleted, moved or renamed during the operation.");
+						}
+						location = folder;
+					}
+				};
+
+				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
+				{
+					await reset(tr);
+
+					//TODO: make options configurable!
+					var options = new FdbRangeOptions
+					{
+						// serial mode is optimized for a single client with maximum throughput
+						Mode = FdbStreamingMode.Serial,
+					};
+
+					long count = 0;
+					long chunks = 0;
+					long waitForFetch = 0;
+
+					// read the first batch
+					var page = await FetchNextBatchAsync(tr, begin, end, options, reset);
+					++waitForFetch;
+
+					while (page.HasMore)
+					{
+						// prefetch the next one (don't wait for the task yet)
+						var next = FetchNextBatchAsync(tr, KeySelector.FirstGreaterThan(page.Last), end, options, reset);
+
+						// process the current one
+						if (page.Count > 0)
+						{
+							ct.ThrowIfCancellationRequested();
+							await handler(page.Items, location, count, ct);
+							++chunks;
+							count += page.Count;
+						}
+
+						if (next.Status != TaskStatus.RanToCompletion) ++waitForFetch;
+						page = await next;
+					}
+
+					// process the last page, if any
+					if (page.Count > 0)
+					{
+						ct.ThrowIfCancellationRequested();
+						await handler(page.Items, location, count, ct);
+						++chunks;
+						count += page.Count;
+					}
+
+#if DEBUG
+					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+#endif
+
+					return count;
 				}
 			}
 

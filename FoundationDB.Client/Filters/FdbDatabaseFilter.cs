@@ -163,7 +163,7 @@ namespace FoundationDB.Filters
 
 		#region Transactionals...
 
-		public virtual IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
+		public virtual ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
 		{
 			ThrowIfDisposed();
 
@@ -175,7 +175,7 @@ namespace FoundationDB.Filters
 				context = new FdbOperationContext(this, mode, ct);
 			}
 
-			return m_database.BeginTransaction(mode, ct, context);
+			return m_database.BeginTransactionAsync(mode, ct, context);
 		}
 
 		#region ReadOnly...

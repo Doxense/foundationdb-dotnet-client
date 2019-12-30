@@ -99,7 +99,7 @@ namespace FoundationDB.Client.Tests
 			// do not log
 			db = db.WithoutLogging();
 
-			using (var tr = db.BeginTransaction(ct))
+			using (var tr = await db.BeginTransactionAsync(ct))
 			{
 				await DumpSubspace(tr, subspace).ConfigureAwait(false);
 			}

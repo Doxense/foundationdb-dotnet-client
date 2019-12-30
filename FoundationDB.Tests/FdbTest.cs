@@ -165,7 +165,7 @@ namespace FoundationDB.Client.Tests
 		[DebuggerStepThrough]
 		protected async Task DeleteSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
-			using (var tr = db.BeginTransaction(this.Cancellation))
+			using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 			{
 				tr.ClearRange(subspace);
 				await tr.CommitAsync();

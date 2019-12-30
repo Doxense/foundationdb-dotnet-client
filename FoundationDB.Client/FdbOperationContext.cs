@@ -328,7 +328,7 @@ namespace FoundationDB.Client
 				// => algorithms that monitor the elapsed duration to rate limit themselves may think that the trans is older than it really is...
 				// => we would need to plug into the transaction handler itself to be notified when exactly a read op starts...
 
-				using (var trans = context.Database.BeginTransaction(context.Mode, CancellationToken.None, context))
+				using (var trans = await context.Database.BeginTransactionAsync(context.Mode, CancellationToken.None, context))
 				{
 					//note: trans may be different from context.Transaction if it has been filtered!
 					Contract.Assert(context.Transaction != null);

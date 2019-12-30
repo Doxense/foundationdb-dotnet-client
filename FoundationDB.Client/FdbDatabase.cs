@@ -176,11 +176,12 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null)
+		public async ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null)
 		{
 			ct.ThrowIfCancellationRequested();
 			if (context == null) context = new FdbOperationContext(this, mode, ct);
-			return CreateNewTransaction(context);
+			var tr = CreateNewTransaction(context);
+			return tr;
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>

@@ -69,7 +69,7 @@ namespace FoundationDB.Client.Tests
 				var ids = new HashSet<long>();
 
 				// allocate a single new id
-				using (var tr = logged.BeginTransaction(this.Cancellation))
+				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 				{
 					id = await hpa.AllocateAsync(tr);
 					await tr.CommitAsync();
@@ -81,7 +81,7 @@ namespace FoundationDB.Client.Tests
 				// allocate a batch of new ids
 				for (int i = 0; i < 100; i++)
 				{
-					using (var tr = logged.BeginTransaction(this.Cancellation))
+					using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 					{
 						id = await hpa.AllocateAsync(tr);
 						await tr.CommitAsync();
@@ -133,7 +133,7 @@ namespace FoundationDB.Client.Tests
 				// first call should create a new subspace (with a random prefix)
 				FdbDirectorySubspace foo;
 
-				using (var tr = logged.BeginTransaction(this.Cancellation))
+				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 				{
 					foo = await directory.CreateOrOpenAsync(tr, new[] { "Foo" });
 					await tr.CommitAsync();
@@ -268,7 +268,7 @@ namespace FoundationDB.Client.Tests
 				var directory = FdbDirectoryLayer.Create(location);
 
 				FdbDirectorySubspace folder;
-				using (var tr = logged.BeginTransaction(this.Cancellation))
+				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 				{
 
 					folder = await directory.CreateOrOpenAsync(tr, new [] { "Foo", "Bar", "Baz" });
@@ -707,7 +707,7 @@ namespace FoundationDB.Client.Tests
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// create foo
 					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
@@ -757,7 +757,7 @@ namespace FoundationDB.Client.Tests
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// create foo
 					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
@@ -946,8 +946,8 @@ namespace FoundationDB.Client.Tests
 				{
 					FdbDirectoryLayer.AnnotateTransactions = true;
 
-					using (var tr1 = logdb.BeginTransaction(this.Cancellation))
-					using (var tr2 = logdb.BeginTransaction(this.Cancellation))
+					using (var tr1 = await logdb.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = await logdb.BeginTransactionAsync(this.Cancellation))
 					{
 
 						await Task.WhenAll(
@@ -1005,8 +1005,8 @@ namespace FoundationDB.Client.Tests
 				{
 					FdbDirectoryLayer.AnnotateTransactions = true;
 
-					using (var tr1 = logdb.BeginTransaction(this.Cancellation))
-					using (var tr2 = logdb.BeginTransaction(this.Cancellation))
+					using (var tr1 = await logdb.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = await logdb.BeginTransactionAsync(this.Cancellation))
 					{
 
 						await Task.WhenAll(

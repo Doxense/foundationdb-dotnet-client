@@ -31,6 +31,7 @@ namespace FoundationDB.Filters.Logging
 	using FoundationDB.Client;
 	using System;
 	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Database filter that logs all the transactions</summary>
 	public sealed class FdbLoggedDatabase : FdbDatabaseFilter
@@ -55,10 +56,10 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Create a new logged transaction</summary>
-		public override IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
+		public override async ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
 		{
 			return new FdbLoggedTransaction(
-				base.BeginTransaction(mode, ct, context),
+				await base.BeginTransactionAsync(mode, ct, context),
 				true,
 				this.OnCommitted,
 				this.LoggingOptions

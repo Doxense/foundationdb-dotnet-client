@@ -120,19 +120,19 @@ namespace FoundationDB.Client
 			}
 
 			[ItemCanBeNull]
-			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			public static Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
 
 				// we should not retry the read to the status key!
-				using (var trans = db.BeginReadOnlyTransaction(ct))
+				return db.ReadAsync(tr =>
 				{
-					trans.WithPrioritySystemImmediate();
+					tr.WithPrioritySystemImmediate();
 					//note: in v3.x, the status key does not need the access to system key option.
 
 					//TODO: set a custom timeout?
-					return await GetStatusAsync(trans);
-				}
+					return GetStatusAsync(tr);
+				}, ct);
 			}
 
 			#endregion
@@ -248,16 +248,17 @@ namespace FoundationDB.Client
 				Contract.NotNull(trans, nameof(trans));
 				Contract.Requires(trans.Context?.Database != null);
 
-				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
+				var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);
+
+				// We don't want to change the state of the transaction, so we will create another one at the same read version
+				return await trans.Context.Database.ReadAsync(shadow =>
 				{
-					// We don't want to change the state of the transaction, so we will create another one at the same read version
-					var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);
 					shadow.SetReadVersion(readVersion);
 
 					//TODO: we may need to also copy options like RetryLimit and Timeout ?
 
-					return await GetBoundaryKeysInternalAsync(shadow, beginInclusive, endExclusive).ConfigureAwait(false);
-				}
+					return GetBoundaryKeysInternalAsync(shadow, beginInclusive, endExclusive);
+				}, trans.Cancellation);
 			}
 
 			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
@@ -461,7 +462,7 @@ namespace FoundationDB.Client
 				var cursor = beginInclusive.Memoize();
 				var end = endExclusive.Memoize();
 
-				using (var tr = db.BeginReadOnlyTransaction(ct))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
 				{
 #if TRACE_COUNTING
 					tr.Annotate("Estimating number of keys in range {0}", KeyRange.Create(beginInclusive, endExclusive));

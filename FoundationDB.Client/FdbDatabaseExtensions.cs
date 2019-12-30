@@ -56,11 +56,11 @@ namespace FoundationDB.Client
 		/// }
 		/// </code>
 		/// </example>
-		[Pure, NotNull]
-		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction([NotNull] this IFdbDatabase db, CancellationToken ct)
+		[Pure, ItemNotNull]
+		public static async ValueTask<IFdbReadOnlyTransaction> BeginReadOnlyTransactionAsync([NotNull] this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
-			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+			return await db.BeginTransactionAsync(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
 		}
 
 		/// <summary>Start a new transaction on this database</summary>
@@ -75,11 +75,11 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		[Pure, NotNull]
-		public static IFdbTransaction BeginTransaction([NotNull] this IFdbDatabase db, CancellationToken ct)
+		[Pure, ItemNotNull]
+		public static ValueTask<IFdbTransaction> BeginTransactionAsync([NotNull] this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
-			return db.BeginTransaction(FdbTransactionMode.Default, ct, default(FdbOperationContext));
+			return db.BeginTransactionAsync(FdbTransactionMode.Default, ct, default(FdbOperationContext));
 		}
 
 		#endregion

@@ -101,7 +101,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 						#region Method 1: get_range everything...
 
-						using (var tr = db.BeginTransaction(ct))
+						using (var tr = await db.BeginTransactionAsync(ct))
 						{
 							long keySize = 0;
 							long valueSize = 0;
