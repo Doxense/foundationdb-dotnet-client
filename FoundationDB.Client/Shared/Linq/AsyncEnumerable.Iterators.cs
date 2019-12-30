@@ -107,6 +107,21 @@ namespace Doxense.Linq
 			}
 		}
 
+		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
+		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult>(Func<CancellationToken, Task<IAsyncEnumerable<TResult>>> factory)
+		{
+			Contract.NotNull(factory, nameof(factory));
+			return new DeferredAsyncIterator<TResult, IAsyncEnumerable<TResult>>(factory);
+		}
+
+		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
+		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult, TCollection>(Func<CancellationToken, Task<TCollection>> factory)
+			where TCollection: IAsyncEnumerable<TResult>
+		{
+			Contract.NotNull(factory, nameof(factory));
+			return new DeferredAsyncIterator<TResult, TCollection>(factory);
+		}
+
 		#endregion
 
 		#region Helpers...
