@@ -85,7 +85,7 @@ namespace FoundationDB.Samples.Benchmarks
 					if (tr.Context.Retries > 0) Console.Write("!");
 					for (int j = 0; j < values.Length; j++)
 					{
-						tr.Set(location.Keys.Encode(j, now), Slice.FromString(values[j] + new string('A', 100)));
+						tr.Set(location.Encode(j, now), Slice.FromString(values[j] + new string('A', 100)));
 					}
 				}, ct);
 				Console.Write(".");

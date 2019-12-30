@@ -79,7 +79,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 			var duration = Stopwatch.StartNew();
 
-			var foo = this.Subspace.Keys.Encode("foo");
+			var foo = this.Subspace.Encode("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 
