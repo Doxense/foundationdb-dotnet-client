@@ -36,7 +36,6 @@ namespace FoundationDB.Client.Tests
 	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
-	using FoundationDB.Layers.Directories;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -72,34 +71,35 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
-
-				var data = Enumerable
-					.Range(0, N)
-					.Select(i => new KeyValuePair<Slice, Slice>(location.Keys.Encode(i), Slice.FromInt32(i)))
-					.ToArray();
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
 				// insert all values (batched)
 				Log($"Inserting {N:N0} keys...");
 				var insert = Stopwatch.StartNew();
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				var data = await db.ReadWriteAsync(async tr =>
 				{
-					tr.SetValues(data);
-					await tr.CommitAsync();
-				}
+					var subspace = await location.Resolve(tr);
+					var items = Enumerable.Range(0, N).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode(i), Slice.FromInt32(i))).ToArray();
+					tr.SetValues(items);
+					return items;
+				}, this.Cancellation);
+
 				insert.Stop();
 
 				Log($"> Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
 
 				// Read All
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
+					var folder = await location.Resolve(tr);
+
 					Log("Getting range (WantAll)...");
 					var ts = Stopwatch.StartNew();
 					var chunk = await tr.GetRangeAsync(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
+						folder.Encode(0),
+						folder.Encode(N),
 						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
 					);
 					ts.Stop();
@@ -118,13 +118,15 @@ namespace FoundationDB.Client.Tests
 					Verify(chunk, data, 0);
 				}
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					Log("Getting range (Iterator)...");
 					var ts = Stopwatch.StartNew();
 					var chunk = await tr.GetRangeAsync(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
+						folder.Encode(0),
+						folder.Encode(N),
 						new FdbRangeOptions { Mode = FdbStreamingMode.Iterator }
 					);
 					ts.Stop();
@@ -139,12 +141,13 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Values.Count, Is.EqualTo(chunk.Count), "Values collection count does not match");
 
 					Verify(chunk, data, 0);
-				}
+
+				}, this.Cancellation);
 
 			}
 		}
 
-				[Test]
+		[Test]
 		public async Task Test_Can_Get_Range()
 		{
 			// test that we can get a range of keys
@@ -154,34 +157,36 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
 				// insert all values (batched)
 				Log($"Inserting {N:N0} keys...");
-				var insert = Stopwatch.StartNew();
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
-				{ 
+				var insert = Stopwatch.StartNew();
+				await db.ReadWriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(folder.Encode(i), Slice.FromInt32(i));
 					}
-
-					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 				insert.Stop();
 
 				Log($"Committed {N:N0} keys in {insert.Elapsed.TotalMilliseconds:N1} ms");
 
 				// GetRange values
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(location.Keys.Encode(0), location.Keys.Encode(N));
+					var folder = await location.Resolve(tr);
+
+					var query = tr.GetRange(folder.Encode(0), folder.Encode(N));
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Transaction, Is.SameAs(tr));
-					Assert.That(query.Begin.Key, Is.EqualTo(location.Keys.Encode(0)));
-					Assert.That(query.End.Key, Is.EqualTo(location.Keys.Encode(N)));
+					Assert.That(query.Begin.Key, Is.EqualTo(folder.Encode(0)));
+					Assert.That(query.End.Key, Is.EqualTo(folder.Encode(N)));
 					Assert.That(query.Limit, Is.Null);
 					Assert.That(query.TargetBytes, Is.Null);
 					Assert.That(query.Reversed, Is.False);
@@ -206,7 +211,7 @@ namespace FoundationDB.Client.Tests
 						var kvp = items[i];
 
 						// key should be a tuple in the correct order
-						var key = location.Keys.Unpack(kvp.Key);
+						var key = folder.Unpack(kvp.Key);
 
 						if (i % 128 == 0) Log($"... {key} = {kvp.Value}");
 
@@ -231,54 +236,58 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
 				// insert all values (batched)
-				using (var tr = db.BeginTransaction(this.Cancellation))
-				{ 
+				await db.ReadWriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(folder.Encode(i), Slice.FromInt32(i));
 					}
-
-					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
 				// via FdbReadMode.Keys option
 				// => returns a chunk of KV<Slice, Slice> but with Value == Slice.Nil
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var chunk = await tr.GetRangeAsync(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
+						folder.Encode(0),
+						folder.Encode(N),
 						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Keys }
 					);
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
 					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
 					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Keys));
-					Assert.That(chunk.First, Is.EqualTo(location.Keys.Encode(0)), "First key does not match");
-					Assert.That(chunk.Last, Is.EqualTo(location.Keys.Encode(chunk.Count - 1)), "Last key does not match");
+					Assert.That(chunk.First, Is.EqualTo(folder.Encode(0)), "First key does not match");
+					Assert.That(chunk.Last, Is.EqualTo(folder.Encode(chunk.Count - 1)), "Last key does not match");
 
 					for (int i = 0; i < chunk.Count; i++)
 					{
 						var kvp = chunk[i];
 
 						// key should be a tuple in the correct order
-						var key = location.Keys.Unpack(kvp.Key);
+						var key = folder.Unpack(kvp.Key);
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 
 						// value should be nil!
 						Assert.That(kvp.Value, Is.EqualTo(Slice.Nil), "Reading with read mode 'Keys' should return nil values");
 					}
-				}
+				}, this.Cancellation);
 
 				// via FdbReadMode.Keys option
 				// => returns a sequence of KV<Slice, Slice> but with Value == Slice.Nil
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
-					var query = tr.GetRange(location.Keys.Encode(0), location.Keys.Encode(N), new FdbRangeOptions { Read = FdbReadMode.Keys });
+					var folder = await location.Resolve(tr);
+
+					var query = tr.GetRange(folder.Encode(0), folder.Encode(N), new FdbRangeOptions { Read = FdbReadMode.Keys });
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
 
 					var items = await query.ToListAsync();
@@ -291,20 +300,22 @@ namespace FoundationDB.Client.Tests
 						var kvp = items[i];
 
 						// key should be a tuple in the correct order
-						var key = location.Keys.Unpack(kvp.Key);
+						var key = folder.Unpack(kvp.Key);
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 
 						// value should be nil!
 						Assert.That(kvp.Value, Is.EqualTo(Slice.Nil), "Reading with read mode 'Keys' should return nil values");
 					}
-				}
+				}, this.Cancellation);
 
 				// via GetRangeKeys()
 				// => return only a sequence of Slice
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
-					var query = tr.GetRangeKeys(location.Keys.Encode(0), location.Keys.Encode(N));
+					var folder = await location.Resolve(tr);
+
+					var query = tr.GetRangeKeys(folder.Encode(0), folder.Encode(N));
 
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
 
@@ -316,17 +327,19 @@ namespace FoundationDB.Client.Tests
 					for (int i = 0; i < N; i++)
 					{
 						// key should be a tuple in the correct order
-						var key = location.Keys.Unpack(items[i]);
+						var key = folder.Unpack(items[i]);
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 				// via OnlyKeys() LINQ extension
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr
-						.GetRange(location.Keys.Encode(0), location.Keys.Encode(N))
+						.GetRange(folder.Encode(0), folder.Encode(N))
 						.OnlyKeys();
 
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Keys));
@@ -339,11 +352,11 @@ namespace FoundationDB.Client.Tests
 					for (int i = 0; i < N; i++)
 					{
 						// key should be a tuple in the correct order
-						var key = location.Keys.Unpack(items[i]);
+						var key = folder.Unpack(items[i]);
 						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 			}
 		}
 
@@ -357,32 +370,35 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
 				// insert all values (batched)
-				using (var tr = db.BeginTransaction(this.Cancellation))
-				{ 
+				await db.ReadWriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(folder.Encode(i), Slice.FromInt32(i));
 					}
 
-					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var chunk = await tr.GetRangeAsync(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
+						folder.Encode(0),
+						folder.Encode(N),
 						new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Read = FdbReadMode.Values }
 					);
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
 					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
 					Assert.That(chunk.ReadMode, Is.EqualTo(FdbReadMode.Values));
-					Assert.That(chunk.First, Is.EqualTo(location.Keys.Encode(0)), "The chunk should still read the first key (even in Values only mode)");
-					Assert.That(chunk.Last, Is.EqualTo(location.Keys.Encode(chunk.Count - 1)), "The chunk should still read the last key (even in Values only mode)");
+					Assert.That(chunk.First, Is.EqualTo(folder.Encode(0)), "The chunk should still read the first key (even in Values only mode)");
+					Assert.That(chunk.Last, Is.EqualTo(folder.Encode(chunk.Count - 1)), "The chunk should still read the last key (even in Values only mode)");
 
 					for (int i = 0; i < chunk.Count; i++)
 					{
@@ -395,15 +411,17 @@ namespace FoundationDB.Client.Tests
 						Assert.That(chunk[i], Is.Not.EqualTo(Slice.Nil));
 						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 				// via FdbReadMode.Values option
 				// => returns a sequence of KV<Slice, Slice> but with Key == Slice.Nil
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr.GetRange(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
+						folder.Encode(0),
+						folder.Encode(N),
 						new FdbRangeOptions { Read = FdbReadMode.Values }
 					);
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
@@ -424,13 +442,15 @@ namespace FoundationDB.Client.Tests
 						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
 						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 				// via GetRangeValues()
 				// => return only a sequence of Slice
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
-					var query = tr.GetRangeValues(location.Keys.Encode(0), location.Keys.Encode(N));
+					var folder = await location.Resolve(tr);
+
+					var query = tr.GetRangeValues(folder.Encode(0), folder.Encode(N));
 
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
 
@@ -445,13 +465,15 @@ namespace FoundationDB.Client.Tests
 						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
 						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 				// via OnlyValues() LINQ extension
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr
-						.GetRange(location.Keys.Encode(0), location.Keys.Encode(N))
+						.GetRange(folder.Encode(0), folder.Encode(N))
 						.OnlyValues();
 
 					Assert.That(query.Read, Is.EqualTo(FdbReadMode.Values));
@@ -467,14 +489,16 @@ namespace FoundationDB.Client.Tests
 						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
 						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 				// if the range needs to read multiple chunks, it will need the last (or first) key for read the next chunk!
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr.GetRangeValues(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
+						folder.Encode(0),
+						folder.Encode(N),
 						new FdbRangeOptions { Mode = FdbStreamingMode.Small }
 					);
 
@@ -491,7 +515,7 @@ namespace FoundationDB.Client.Tests
 						Assert.That(items[i], Is.Not.EqualTo(Slice.Nil));
 						Assert.That(items[i].ToInt32(), Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 			}
 
@@ -507,27 +531,29 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
 				// insert all values (batched)
-				using (var tr = db.BeginTransaction(this.Cancellation))
-				{ 
+				await db.ReadWriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(folder.Encode(i), Slice.FromInt32(i));
 					}
-
-					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
 				// GetRange<T>
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr.GetRange(
-						location.Keys.Encode(0),
-						location.Keys.Encode(N),
-						(kv) => (Index: location.Keys.DecodeLast<int>(kv.Key), Score: kv.Value.ToInt32()),
+						folder.Encode(0),
+						folder.Encode(N),
+						(kv) => (Index: folder.DecodeLast<int>(kv.Key), Score: kv.Value.ToInt32()),
 						new FdbRangeOptions { Limit = N / 2 }
 					);
 					Assert.That(query, Is.Not.Null);
@@ -542,7 +568,7 @@ namespace FoundationDB.Client.Tests
 						Assert.That(items[i].Index, Is.EqualTo(i));
 						Assert.That(items[i].Score, Is.EqualTo(i));
 					}
-				}
+				}, this.Cancellation);
 
 			}
 		}
@@ -553,47 +579,52 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
-				var a = location.Partition.ByKey("a");
-				var b = location.Partition.ByKey("b");
-				var c = location.Partition.ByKey("c");
+				var a = location.ByKey("a");
+				var b = location.ByKey("b");
+				var c = location.ByKey("c");
 
 				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
+					var fa = await a.Resolve(tr);
+					var fb = await b.Resolve(tr);
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(a.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(fa.Encode(i), Slice.FromInt32(i));
 					}
-					tr.Set(b.Keys.Encode(0), Slice.FromInt32(42));
+					tr.Set(fb.Encode(0), Slice.FromInt32(42));
 				}, this.Cancellation);
 
 				KeyValuePair<Slice, Slice> res;
 
 				// A: more then one item
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(a.Keys.ToRange());
+					var fa = await a.Resolve(tr);
+
+					var query = tr.GetRange(fa.ToRange());
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(0)));
 
 					// should return the first one
 					res = await query.FirstAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(0)));
 
 					// should return the last one
 					res = await query.LastOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(9)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(9)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
 
 					// should return the last one
 					res = await query.LastAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(9)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(9)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
 
 					// should fail because there is more than one
@@ -604,45 +635,49 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// B: exactly one item
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(b.Keys.ToRange());
+					var fb = await b.Resolve(tr);
+
+					var query = tr.GetRange(fb.ToRange());
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(b.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the first one
 					res = await query.FirstAsync();
-					Assert.That(res.Key, Is.EqualTo(b.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the last one
 					res = await query.LastOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(b.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the last one
 					res = await query.LastAsync();
-					Assert.That(res.Key, Is.EqualTo(b.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the first one
 					res = await query.SingleOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(b.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the first one
 					res = await query.SingleAsync();
-					Assert.That(res.Key, Is.EqualTo(b.Keys.Encode(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Encode(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 				}
 
 				// C: no items
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(c.Keys.ToRange());
+					var fc = await c.Resolve(tr);
+
+					var query = tr.GetRange(fc.ToRange());
 
 					// should return nothing
 					res = await query.FirstOrDefaultAsync();
@@ -670,34 +705,38 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// A: with a size limit
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(a.Keys.ToRange()).Take(5);
+					var fa = await a.Resolve(tr);
+
+					var query = tr.GetRange(fa.ToRange()).Take(5);
 
 					// should return the fifth one
 					res = await query.LastOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(4)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(4)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(4)));
 
 					// should return the fifth one
 					res = await query.LastAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(4)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(4)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(4)));
 				}
 
 				// A: with an offset
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(a.Keys.ToRange()).Skip(5);
+					var fa = await a.Resolve(tr);
+
+					var query = tr.GetRange(fa.ToRange()).Skip(5);
 
 					// should return the fifth one
 					res = await query.FirstOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(5)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(5)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
 
 					// should return the fifth one
 					res = await query.FirstAsync();
-					Assert.That(res.Key, Is.EqualTo(a.Keys.Encode(5)));
+					Assert.That(res.Key, Is.EqualTo(fa.Encode(5)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
 				}
 
@@ -711,27 +750,32 @@ namespace FoundationDB.Client.Tests
 			{
 
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
 
-				var a = location.Partition.ByKey("a");
+				var a = location.ByKey("a");
 
 				// insert a bunch of keys under 'a'
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async tr =>
 				{
+					var f = await location.Resolve(tr);
+					var fa = await a.Resolve(tr);
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(a.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(fa.Encode(i), Slice.FromInt32(i));
 					}
 					// add guard keys
-					tr.Set(location.GetPrefix(), Slice.FromInt32(-1));
-					tr.Set(location.GetPrefix() + (byte)255, Slice.FromInt32(-1));
+					tr.Set(f.GetPrefix(), Slice.FromInt32(-1));
+					tr.Set(f.GetPrefix() + (byte)255, Slice.FromInt32(-1));
 				}, this.Cancellation);
 
 				// Take(5) should return the first 5 items
 
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(a.Keys.ToRange()).Take(5);
+					var fa = await a.Resolve(tr);
+
+					var query = tr.GetRange(fa.ToRange()).Take(5);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(5));
 
@@ -740,16 +784,18 @@ namespace FoundationDB.Client.Tests
 					Assert.That(elements.Count, Is.EqualTo(5));
 					for (int i = 0; i < 5; i++)
 					{
-						Assert.That(elements[i].Key, Is.EqualTo(a.Keys.Encode(i)));
+						Assert.That(elements[i].Key, Is.EqualTo(fa.Encode(i)));
 						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
 					}
 				}
 
 				// Take(12) should return only the 10 items
 
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(a.Keys.ToRange()).Take(12);
+					var fa = await a.Resolve(tr);
+
+					var query = tr.GetRange(fa.ToRange()).Take(12);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(12));
 
@@ -758,16 +804,18 @@ namespace FoundationDB.Client.Tests
 					Assert.That(elements.Count, Is.EqualTo(10));
 					for (int i = 0; i < 10; i++)
 					{
-						Assert.That(elements[i].Key, Is.EqualTo(a.Keys.Encode(i)));
+						Assert.That(elements[i].Key, Is.EqualTo(fa.Encode(i)));
 						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
 					}
 				}
 
 				// Take(0) should return nothing
 
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(a.Keys.ToRange()).Take(0);
+					var fa = await a.Resolve(tr);
+
+					var query = tr.GetRange(fa.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.Zero);
 
@@ -785,16 +833,28 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
+
+				var dataSet = Enumerable.Range(0, 100).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
 
 				// import test data
-				var data = Enumerable.Range(0, 100).Select(x => new KeyValuePair<Slice, Slice>(location.Keys.Encode(x), Slice.FromFixed32(x)));
-				await Fdb.Bulk.WriteAsync(db, data, this.Cancellation);
+				await db.ReadWriteAsync(async tr =>
+				{
+					var folder = await location.Resolve(tr);
+					foreach((var k, var v) in dataSet)
+					{
+						tr.Set(folder.Encode(k), v);
+					}
+				}, this.Cancellation);
 
 				// from the start
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(location.Keys.ToRange());
+					var folder = await location.Resolve(tr);
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+
+					var query = tr.GetRange(folder.ToRange());
 
 					// |>>>>>>>>>>>>(50---------->99)|
 					var res = await query.Skip(50).ToListAsync();
@@ -819,9 +879,12 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// from the end
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(location.Keys.ToRange());
+					var folder = await location.Resolve(tr);
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+
+					var query = tr.GetRange(folder.ToRange());
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
 					var res = await query.Reverse().Skip(50).ToListAsync();
@@ -846,9 +909,12 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// from both sides
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					var query = tr.GetRange(location.Keys.ToRange());
+					var folder = await location.Resolve(tr);
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Encode(kv.Index), kv.Value)).ToArray();
+
+					var query = tr.GetRange(folder.ToRange());
 
 					// |>>>>>>>>>(25<------------74)<<<<<<<<|
 					var res = await query.Skip(25).Reverse().Skip(25).ToListAsync();
@@ -867,16 +933,27 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "Queries", "Range");
+				var location = db.Directory["Queries"]["Range"];
+				await CleanLocation(db, location);
+
+				var dataSet = Enumerable.Range(0, 300).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
 
 				// import test data
-				var data = Enumerable.Range(0, 30).Select(x => (location.Keys.Encode(x), Slice.FromFixed32(x)));
-				await Fdb.Bulk.WriteAsync(db, data, this.Cancellation);
-
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				await db.ReadWriteAsync(async tr =>
 				{
+					var folder = await location.Resolve(tr);
+					foreach ((var k, var v) in dataSet)
+					{
+						tr.Set(folder.Encode(k), v);
+					}
+				}, this.Cancellation);
+
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr
-						.GetRange(location.Keys.Encode(10), location.Keys.Encode(20)) // 10 -> 19
+						.GetRange(folder.Encode(10), folder.Encode(20)) // 10 -> 19
 						.Take(20) // 10 -> 19 (limit 20)
 						.Reverse(); // 19 -> 10 (limit 20)
 					Log($"query: {query}");
@@ -886,10 +963,12 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Count, Is.EqualTo(10));
 				}
 
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
+					var folder = await location.Resolve(tr);
+
 					var query = tr
-						.GetRange(location.Keys.Encode(10), location.Keys.Encode(20)) // 10 -> 19
+						.GetRange(folder.Encode(10), folder.Encode(20)) // 10 -> 19
 						.Reverse() // 19 -> 10
 						.Take(20)  // 19 -> 10 (limit 20)
 						.Reverse(); // 10 -> 19 (limit 20)
@@ -907,29 +986,31 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
+			// create K lists:
+			// lists[0] contains all multiples of K ([0, 0], [K, 1], [2K, 2], ...)
+			// lists[1] contains all multiples of K, offset by 1 ([1, 0], [K+1, 1], [2K+1, 2], ...)
+			// lists[k-1] contains all multiples of K, offset by k-1 ([K-1, 0], [2K-1, 1], [3K-1, 2], ...)
+			// more generally: lists[k][i] = (..., MergeSort, k, (i * K) + k) = (k, i)
+			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
+			{
+				return folder.Partition.ByKey(k);
+			}
+
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Queries", "MergeSort");
-
-				// clear!
-				await db.ClearRangeAsync(location, this.Cancellation);
-
-				// create K lists
-				var lists = Enumerable.Range(0, K).Select(i => location.Partition.ByKey(i)).ToArray();
-
-				// lists[0] contains all multiples of K ([0, 0], [K, 1], [2K, 2], ...)
-				// lists[1] contains all multiples of K, offset by 1 ([1, 0], [K+1, 1], [2K+1, 2], ...)
-				// lists[k-1] contains all multiples of K, offset by k-1 ([K-1, 0], [2K-1, 1], [3K-1, 2], ...)
-
-				// more generally: lists[k][i] = (..., MergeSort, k, (i * K) + k) = (k, i)
+				var location = db.Directory["Queries"]["MergeSort"];
+				await CleanLocation(db, location);
 
 				for (int k = 0; k < K; k++)
 				{
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var folder = await location.Resolve(tr);
+
+						var list = GetList(folder, k);
 						for (int i = 0; i < N; i++)
 						{
-							tr.Set(lists[k].Keys.Encode((i * K) + k), TuPack.EncodeKey(k, i));
+							tr.Set(list.Encode((i * K) + k), TuPack.EncodeKey(k, i));
 						}
 						await tr.CommitAsync();
 					}
@@ -938,11 +1019,15 @@ namespace FoundationDB.Client.Tests
 				// MergeSorting all lists together should produce all integers from 0 to (K*N)-1, in order
 				// we use the last part of the key for sorting
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
+					var folder = await location.Resolve(tr);
+
+					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
+
 					var merge = tr.MergeSort(
-						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
-						kvp => location.Keys.DecodeLast<int>(kvp.Key)
+						lists.Select(list => KeySelectorPair.Create(list.ToRange())),
+						kvp => folder.DecodeLast<int>(kvp.Key)
 						);
 
 					Assert.That(merge, Is.Not.Null);
@@ -954,7 +1039,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < K * N; i++)
 					{
-						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(TuPack.EncodeKey(i % K, i)));
+						Assert.That(folder.ExtractKey(results[i].Key), Is.EqualTo(TuPack.EncodeKey(i % K, i)));
 						Assert.That(results[i].Value, Is.EqualTo(TuPack.EncodeKey(i % K, i / K)));
 					}
 				}
@@ -967,18 +1052,19 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
+			// lists[0] contains all multiples of 1
+			// lists[1] contains all multiples of 2
+			// lists[k-1] contains all multiples of K
+			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
+			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
+			{
+				return folder.Partition.ByKey(k);
+			}
+
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Queries", "Intersect");
-
-				// create K lists
-				var lists = Enumerable.Range(0, K).Select(i => location.Partition.ByKey(i)).ToArray();
-
-				// lists[0] contains all multiples of 1
-				// lists[1] contains all multiples of 2
-				// lists[k-1] contains all multiples of K
-
-				// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
+				var location = db.Directory["Queries"]["Intersect"];
+				await CleanLocation(db, location);
 
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
 				//foreach(var serie in series)
@@ -989,11 +1075,13 @@ namespace FoundationDB.Client.Tests
 				for (int k = 0; k < K; k++)
 				{
 					//Log("> k = " + k);
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var folder = await location.Resolve(tr);
+						var list = GetList(folder, k);
 						for (int i = 0; i < N; i++)
 						{
-							var key = lists[k].Keys.Encode(series[k][i]);
+							var key = list.Encode(series[k][i]);
 							var value = TuPack.EncodeKey(k, i);
 							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
@@ -1008,11 +1096,14 @@ namespace FoundationDB.Client.Tests
 				var expected = xs.ToArray();
 				Log($"Expected: {string.Join(", ", expected)}");
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
+					var folder = await location.Resolve(tr);
+					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
+
 					var merge = tr.Intersect(
-						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
-						kvp => location.Keys.DecodeLast<int>(kvp.Key)
+						lists.Select(list => KeySelectorPair.Create(list.ToRange())),
+						kvp => folder.DecodeLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -1025,7 +1116,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < results.Count; i++)
 					{
-						Assert.That(location.Keys.DecodeLast<int>(results[i].Key), Is.EqualTo(expected[i]));
+						Assert.That(folder.DecodeLast<int>(results[i].Key), Is.EqualTo(expected[i]));
 					}
 				}
 			}
@@ -1038,19 +1129,20 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
+			// lists[0] contains all multiples of 1
+			// lists[1] contains all multiples of 2
+			// lists[k-1] contains all multiples of K
+			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
+			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
+			{
+				return folder.Partition.ByKey(k);
+			}
+
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// get a clean new directory
-				var location = await GetCleanDirectory(db, "Queries", "Except");
-
-				// create K lists
-				var lists = Enumerable.Range(0, K).Select(i => location.Partition.ByKey(i)).ToArray();
-
-				// lists[0] contains all multiples of 1
-				// lists[1] contains all multiples of 2
-				// lists[k-1] contains all multiples of K
-
-				// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
+				var location = db.Directory["Queries"]["Except"];
+				await CleanLocation(db, location);
 
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
 				//foreach(var serie in series)
@@ -1061,11 +1153,13 @@ namespace FoundationDB.Client.Tests
 				for (int k = 0; k < K; k++)
 				{
 					//Log("> k = " + k);
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var folder = await location.Resolve(tr);
+						var list = GetList(folder, k);
 						for (int i = 0; i < N; i++)
 						{
-							var key = lists[k].Keys.Encode(series[k][i]);
+							var key = list.Encode(series[k][i]);
 							var value = TuPack.EncodeKey(k, i);
 							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
@@ -1080,11 +1174,14 @@ namespace FoundationDB.Client.Tests
 				var expected = xs.ToArray();
 				Log($"Expected: {string.Join(", ", expected)}");
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
+					var folder = await location.Resolve(tr);
+					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
+
 					var merge = tr.Except(
-						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
-						kvp => location.Keys.DecodeLast<int>(kvp.Key)
+						lists.Select(list => KeySelectorPair.Create(list.ToRange())),
+						kvp => folder.DecodeLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -1097,7 +1194,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < results.Count; i++)
 					{
-						Assert.That(location.Keys.DecodeLast<int>(results[i].Key), Is.EqualTo(expected[i]));
+						Assert.That(folder.DecodeLast<int>(results[i].Key), Is.EqualTo(expected[i]));
 					}
 				}
 
@@ -1112,40 +1209,53 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// get a clean new directory
-				var location = await GetCleanDirectory(db, "Queries", "ExceptComposite");
+				var location = db.Directory["Queries"]["ExceptComposite"];
+				await CleanLocation(db, location);
 
 				// Items contains a list of all ("user", id) that were created
-				var locItems = (await location.CreateOrOpenAsync(db, "Items", this.Cancellation)).AsTyped<string, int>();
+				var locItems = location.ByKey("Items").AsTyped<string, int>();
 				// Processed contain the list of all ("user", id) that were processed
-				var locProcessed = (await location.CreateOrOpenAsync(db, "Processed", this.Cancellation)).AsTyped<string, int>();
+				var locProcessed = location.ByKey("Processed", this.Cancellation).AsTyped<string, int>();
+
+				await db.ReadWriteAsync(async tr =>
+				{
+					await db.Directory.CreateAsync(tr, locItems.Path);
+					await db.Directory.CreateAsync(tr, locProcessed.Path);
+				}, this.Cancellation);
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async tr =>
 				{
+					var items = await locItems.Resolve(tr);
+					var processed = await locProcessed.Resolve(tr);
+
 					// Items
-					tr.Set(locItems.Keys["userA", 10093], Slice.Empty);
-					tr.Set(locItems.Keys["userA", 19238], Slice.Empty);
-					tr.Set(locItems.Keys["userB", 20003], Slice.Empty);
+					tr.Set(items["userA", 10093], Slice.Empty);
+					tr.Set(items["userA", 19238], Slice.Empty);
+					tr.Set(items["userB", 20003], Slice.Empty);
 					// Processed
-					tr.Set(locProcessed.Keys["userA", 19238], Slice.Empty);
+					tr.Set(processed["userA", 19238], Slice.Empty);
 				}, this.Cancellation);
 
 				// the query (Items ∩ Processed) should return (userA, 10093) and (userB, 20003)
 
 				// First Method: pass in a list of key ranges, and merge on the (Slice, Slice) pairs
-				Trace.WriteLine("Method 1:");
-				var results = await db.QueryAsync((tr) =>
+				Log("Method 1:");
+				var results = await db.QueryAsync(async tr =>
 				{
+					var items = await locItems.Resolve(tr);
+					var processed = await locProcessed.Resolve(tr);
+
 					var query = tr.Except(
-						new[] { locItems.Keys.ToRange(), locProcessed.Keys.ToRange() },
+						new[] { items.ToRange(), processed.ToRange() },
 						(kv) => TuPack.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
 						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
 
 					// problem: Except() still returns the original (Slice, Slice) pairs from the first range,
 					// meaning that we still need to unpack again the key (this time knowing the location)
-					return query.Select(kv => locItems.Keys.Decode(kv.Key));
+					return query.Select(kv => items.Decode(kv.Key));
 				}, this.Cancellation);
 
 				foreach(var r in results)
@@ -1158,18 +1268,21 @@ namespace FoundationDB.Client.Tests
 
 				// Second Method: pre-parse the queries, and merge on the results directly
 				Trace.WriteLine("Method 2:");
-				results = await db.QueryAsync((tr) =>
+				results = await db.QueryAsync(async tr =>
 				{
-					var items = tr
-						.GetRange(locItems.Keys.ToRange())
-						.Select(kv => locItems.Keys.Decode(kv.Key));
+					var items = await locItems.Resolve(tr);
+					var processed = await locProcessed.Resolve(tr);
 
-					var processed = tr
-						.GetRange(locProcessed.Keys.ToRange())
-						.Select(kv => locProcessed.Keys.Decode(kv.Key));
+					var resItems = tr
+						.GetRange(items.ToRange())
+						.Select(kv => items.Decode(kv.Key));
+
+					var resProcessed = tr
+						.GetRange(processed.ToRange())
+						.Select(kv => processed.Decode(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly
-					var query = items.Except(processed, TupleComparisons.Composite<string, int>());
+					var query = resItems.Except(resProcessed, TupleComparisons.Composite<string, int>());
 
 					// query is already a list of tuples, nothing more to do
 					return query;
@@ -1188,4 +1301,5 @@ namespace FoundationDB.Client.Tests
 		}
 
 	}
+
 }

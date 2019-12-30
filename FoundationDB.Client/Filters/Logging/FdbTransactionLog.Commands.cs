@@ -37,7 +37,6 @@ namespace FoundationDB.Filters.Logging
 	using Doxense;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
@@ -301,7 +300,8 @@ namespace FoundationDB.Filters.Logging
 			[ItemNotNull]
 			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 			{
-				var location = directory.NodeSubspace.Keys;
+				var metadata = await directory.Resolve(tr);
+				var location = metadata.Partition.Nodes;
 
 				//HACKHACK: for now, we will simply poke inside the node subspace of the directory layer, which is brittle (if the structure changes in future versions!)
 				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix

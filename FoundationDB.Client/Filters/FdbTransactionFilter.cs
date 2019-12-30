@@ -31,6 +31,7 @@ namespace FoundationDB.Filters
 	using FoundationDB.Client;
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -296,6 +297,14 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
+		public virtual VersionStamp CreateUniqueVersionStamp()
+		{
+			ThrowIfDisposed();
+			return m_transaction.CreateUniqueVersionStamp();
+		}
+
+
+		/// <inheritdoc />
 		public virtual void SetReadVersion(long version)
 		{
 			ThrowIfDisposed();
@@ -376,6 +385,9 @@ namespace FoundationDB.Filters
 				m_transaction.MaxRetryDelay = value;
 			}
 		}
+
+		/// <inheritdoc />
+		public virtual IDynamicKeySubspace Keys => m_transaction.Keys;
 
 	}
 
@@ -539,6 +551,9 @@ namespace FoundationDB.Filters
 			get => m_transaction.MaxRetryDelay;
 			set => m_transaction.MaxRetryDelay = value;
 		}
+
+		/// <inheritdoc />
+		public virtual IDynamicKeySubspace Keys => m_transaction.Keys;
 
 		public void Dispose()
 		{

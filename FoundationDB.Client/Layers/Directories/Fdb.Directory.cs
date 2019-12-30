@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	public static partial class Fdb
@@ -47,53 +46,47 @@ namespace FoundationDB.Client
 		{
 
 			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
-			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull, ItemNotNull] string[] path, bool readOnly, CancellationToken ct)
+			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull] DynamicKeySubspaceLocation top, bool readOnly, CancellationToken ct)
 			{
-				Contract.Requires(db != null && path != null);
+				Contract.Requires(db != null && top != null);
 				ct.ThrowIfCancellationRequested();
-
-				if (path.Length == 0) throw new ArgumentException("The path to the named partition cannot be empty", nameof(path));
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer using cluster file '{db.ClusterFile}'");
 
-				// look up in the root layer for the named partition
-				var descriptor = await db.ReadWriteAsync(tr => db.Directory.CreateOrOpenAsync(tr, path, layer: FdbDirectoryPartition.LayerId), ct).ConfigureAwait(false);
-				if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
+				if (top.Path.Count != 0)
+				{
+					// look up in the root layer for the named partition
+					var descriptor = await db.ReadWriteAsync(tr => db.GetDirectoryLayer().CreateOrOpenAsync(tr, top.Path, layer: FdbDirectoryPartition.LayerId), ct).ConfigureAwait(false);
+					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
 
-				// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
-				var rootSpace = descriptor.Copy(); //note: create a copy of the key
-				//TODO: find a nicer way to do that!
-				db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace, path), readOnly);
-
-				if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.FullName} at {db.GlobalSpace}, using directory layer at {db.Directory.DirectoryLayer.NodeSubspace}");
+					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
+					var root = new DynamicKeySubspaceLocation(descriptor.Path, Slice.Empty, descriptor.KeyEncoder);
+					db.ChangeRoot(root, descriptor.DirectoryLayer, readOnly);
+					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.Path} at {descriptor.GetPrefixUnsafe()}");
+				}
 			}
 
 			/// <summary>List and open the sub-directories of the given directory</summary>
-			/// <param name="db">Database used for the operation</param>
+			/// <param name="tr">Transaction used for the operation</param>
 			/// <param name="parent">Parent directory</param>
-			/// <param name="ct">Token used to cancel this operation</param>
 			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
 			[ItemNotNull]
-			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbDatabase db, [NotNull] IFdbDirectory parent, CancellationToken ct)
+			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IFdbDirectory parent)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(tr, nameof(tr));
 				Contract.NotNull(parent, nameof(parent));
 
-				return await db.ReadAsync(async (tr) =>
-				{
-					// read the names of all the subdirectories
-					var names = await parent.ListAsync(tr).ConfigureAwait(false);
+				// read the names of all the subdirectories
+				var names = await parent.ListAsync(tr).ConfigureAwait(false);
 
-					// open all the subdirectories
-					var folders = await names
-						.ToAsyncEnumerable()
-						.SelectAsync((name, _) => parent.OpenAsync(tr, name))
-						.ToListAsync(ct);
+				// open all the subdirectories
+				var folders = await names
+					.ToAsyncEnumerable()
+					.SelectAsync((name, _) => parent.OpenAsync(tr, name))
+					.ToListAsync();
 
-					// map the result
-					return folders.ToDictionary(ds => ds.Name);
-
-				}, ct).ConfigureAwait(false);
+				// map the result
+				return folders.ToDictionary(ds => ds.Name);
 			}
 		}
 

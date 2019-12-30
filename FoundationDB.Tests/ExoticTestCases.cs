@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
 
 	[TestFixture][Ignore("These tests are not meant to be run as part of a CI build")]
@@ -46,14 +47,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var tr = db.BeginTransaction(this.Cancellation);
-					tr.Set(subspace.Keys.Encode("AAA"), Value("111"));
-					tr.Set(subspace.Keys.Encode("BBB"), Value("222"));
-					tr.Set(subspace.Keys.Encode("CCC"), Value("333"));
-					tr.Set(subspace.Keys.Encode("DDD"), Value("444"));
-					tr.Set(subspace.Keys.Encode("EEE"), Value("555"));
+					var subspace = tr.Keys;
+					tr.Set(subspace.Encode("AAA"), Value("111"));
+					tr.Set(subspace.Encode("BBB"), Value("222"));
+					tr.Set(subspace.Encode("CCC"), Value("333"));
+					tr.Set(subspace.Encode("DDD"), Value("444"));
+					tr.Set(subspace.Encode("EEE"), Value("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -64,15 +65,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var tr = db.BeginTransaction(this.Cancellation);
-					tr.ClearRange(subspace.Keys.Encode("AAA"), Value("ZZZ"));
-					tr.Set(subspace.Keys.Encode("AAA"), Value("111"));
-					tr.Set(subspace.Keys.Encode("BBB"), Value("222"));
-					tr.Set(subspace.Keys.Encode("CCC"), Value("333"));
-					tr.Set(subspace.Keys.Encode("DDD"), Value("444"));
-					tr.Set(subspace.Keys.Encode("EEE"), Value("555"));
+					var subspace = tr.Keys;
+					tr.ClearRange(subspace.Encode("AAA"), Value("ZZZ"));
+					tr.Set(subspace.Encode("AAA"), Value("111"));
+					tr.Set(subspace.Encode("BBB"), Value("222"));
+					tr.Set(subspace.Encode("CCC"), Value("333"));
+					tr.Set(subspace.Encode("DDD"), Value("444"));
+					tr.Set(subspace.Encode("EEE"), Value("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -83,12 +84,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var tr = db.BeginTransaction(this.Cancellation);
-					tr.ClearRange(subspace.Keys.Encode("AAA"), Value("BBB"));
-					tr.ClearRange(subspace.Keys.Encode("BBB"), Value("CCC"));
-					tr.ClearRange(subspace.Keys.Encode("CCC"), Value("DDD"));
+					var subspace = tr.Keys;
+					tr.ClearRange(subspace.Encode("AAA"), Value("BBB"));
+					tr.ClearRange(subspace.Encode("BBB"), Value("CCC"));
+					tr.ClearRange(subspace.Encode("CCC"), Value("DDD"));
 					// should be merged into a single AAA..DDD
 					await tr.CommitAsync();
 				}
@@ -100,29 +101,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var tr = db.BeginTransaction(this.Cancellation);
+					var subspace = tr.Context.Root;
+
 					//initial setup:
 					// A: none
 					// B: 0
 					// C: 255
 					// D: none
 					// E: none
-					tr.Set(subspace.Keys.Encode("BBB"), Slice.FromFixed32(0));
-					tr.Set(subspace.Keys.Encode("CCC"), Slice.FromFixed32(255));
+					tr.Set(subspace.Encode("BBB"), Slice.FromFixed32(0));
+					tr.Set(subspace.Encode("CCC"), Slice.FromFixed32(255));
 
 					// add 1 to everybody
-					tr.AtomicAdd32(subspace.Keys.Encode("AAA"), 1);
-					tr.AtomicAdd32(subspace.Keys.Encode("BBB"), -1);
-					tr.AtomicAdd32(subspace.Keys.Encode("CCC"), 1U);
-					tr.AtomicAdd64(subspace.Keys.Encode("DDD"), 1L);
-					tr.AtomicAdd64(subspace.Keys.Encode("EEE"), 1UL);
+					tr.AtomicAdd32(subspace.Encode("AAA"), 1);
+					tr.AtomicAdd32(subspace.Encode("BBB"), -1);
+					tr.AtomicAdd32(subspace.Encode("CCC"), 1U);
+					tr.AtomicAdd64(subspace.Encode("DDD"), 1L);
+					tr.AtomicAdd64(subspace.Encode("EEE"), 1UL);
 
 					// overwrite DDD with a fixed value
-					tr.Set(subspace.Keys.Encode("DDD"), Slice.FromFixed32(5));
+					tr.Set(subspace.Encode("DDD"), Slice.FromFixed32(5));
 					// double add on EEE
-					tr.AtomicAdd32(subspace.Keys.Encode("EEE"), 1);
+					tr.AtomicAdd32(subspace.Encode("EEE"), 1);
 
 					await tr.CommitAsync();
 				}
@@ -134,16 +136,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var tr = db.BeginTransaction(this.Cancellation);
-					tr.Set(subspace.Keys.Encode("AAA"), Value("111"));
-					tr.AtomicAdd(subspace.Keys.Encode("BBB"), Value("222"));
-					tr.AtomicAnd(subspace.Keys.Encode("CCC"), Value("333"));
-					tr.AtomicOr(subspace.Keys.Encode("DDD"), Value("444"));
-					tr.AtomicXor(subspace.Keys.Encode("EEE"), Value("555"));
-					tr.AtomicMax(subspace.Keys.Encode("FFF"), Value("666"));
-					tr.AtomicMin(subspace.Keys.Encode("GGG"), Value("777"));
+					var subspace = tr.Keys;
+					tr.Set(subspace.Encode("AAA"), Value("111"));
+					tr.AtomicAdd(subspace.Encode("BBB"), Value("222"));
+					tr.AtomicAnd(subspace.Encode("CCC"), Value("333"));
+					tr.AtomicOr(subspace.Encode("DDD"), Value("444"));
+					tr.AtomicXor(subspace.Encode("EEE"), Value("555"));
+					tr.AtomicMax(subspace.Encode("FFF"), Value("666"));
+					tr.AtomicMin(subspace.Encode("GGG"), Value("777"));
 					await tr.CommitAsync();
 				}
 			}
@@ -154,21 +156,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var tr = db.BeginTransaction(this.Cancellation);
+					var subspace = tr.Keys;
 
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX1"), Value("EEE"));
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX1"), Value("FFF"));
+					tr.AtomicMax(subspace.Encode("MAXMAX1"), Value("EEE"));
+					tr.AtomicMax(subspace.Encode("MAXMAX1"), Value("FFF"));
 
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX2"), Value("FFF"));
-					tr.AtomicMax(subspace.Keys.Encode("MAXMAX2"), Value("EEE"));
+					tr.AtomicMax(subspace.Encode("MAXMAX2"), Value("FFF"));
+					tr.AtomicMax(subspace.Encode("MAXMAX2"), Value("EEE"));
 
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN1"), Value("111"));
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN1"), Value("222"));
+					tr.AtomicMin(subspace.Encode("MINMIN1"), Value("111"));
+					tr.AtomicMin(subspace.Encode("MINMIN1"), Value("222"));
 
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN2"), Value("222"));
-					tr.AtomicMin(subspace.Keys.Encode("MINMIN2"), Value("111"));
+					tr.AtomicMin(subspace.Encode("MINMIN2"), Value("222"));
+					tr.AtomicMin(subspace.Encode("MINMIN2"), Value("111"));
 
 					await tr.CommitAsync();
 				}
@@ -180,39 +182,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var subspace = db.GlobalSpace;
+				var location = db.Root;
 
 				var init = Slice.Repeat(0xCC, 9);
 				var mask = Slice.Repeat(0xAA, 9);
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					tr.Set(subspace.Keys.Encode("AAA"), init);
-					tr.Set(subspace.Keys.Encode("BBB"), init);
-					tr.Set(subspace.Keys.Encode("CCC"), init);
-					tr.Set(subspace.Keys.Encode("DDD"), init);
-					tr.Set(subspace.Keys.Encode("EEE"), init);
-					tr.Set(subspace.Keys.Encode("FFF"), init);
-					tr.Set(subspace.Keys.Encode("GGG"), init);
+					var subspace = await location.Resolve(tr);
+
+					tr.Set(subspace.Encode("AAA"), init);
+					tr.Set(subspace.Encode("BBB"), init);
+					tr.Set(subspace.Encode("CCC"), init);
+					tr.Set(subspace.Encode("DDD"), init);
+					tr.Set(subspace.Encode("EEE"), init);
+					tr.Set(subspace.Encode("FFF"), init);
+					tr.Set(subspace.Encode("GGG"), init);
 
 					await tr.CommitAsync();
 				}
 
-
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					tr.Set(subspace.Keys.Encode("AAA"), mask);
-					tr.AtomicAdd(subspace.Keys.Encode("BBB"), mask);
-					tr.AtomicAnd(subspace.Keys.Encode("CCC"), mask);
-					tr.AtomicOr(subspace.Keys.Encode("DDD"), mask);
-					tr.AtomicXor(subspace.Keys.Encode("EEE"), mask);
-					tr.AtomicMin(subspace.Keys.Encode("FFF"), mask);
-					tr.AtomicMax(subspace.Keys.Encode("GGG"), mask);
+					var subspace = await location.Resolve(tr);
+
+					tr.Set(subspace.Encode("AAA"), mask);
+					tr.AtomicAdd(subspace.Encode("BBB"), mask);
+					tr.AtomicAnd(subspace.Encode("CCC"), mask);
+					tr.AtomicOr(subspace.Encode("DDD"), mask);
+					tr.AtomicXor(subspace.Encode("EEE"), mask);
+					tr.AtomicMin(subspace.Encode("FFF"), mask);
+					tr.AtomicMax(subspace.Encode("GGG"), mask);
 
 					await tr.CommitAsync();
 				}
 
-				await DumpSubspace(db, db.GlobalSpace);
+				await DumpSubspace(db, db.Root);
 
 			}
 		}
@@ -224,10 +229,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
+					var location = db.Root;
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var subspace = await location.Resolve(tr);
 
 						var vX = Slice.FromFixedU32BE(0x55555555); // X
 						var vY = Slice.FromFixedU32BE(0x66666666); // Y
@@ -284,7 +290,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 						{
 							for (int j = 0; j < cmds.Length; j++)
 							{
-								var key = subspace.Keys.Encode(cmds[i].Op + "_" + cmds[j].Op);
+								var key = subspace.Encode(cmds[i].Op + "_" + cmds[j].Op);
 								Log($"{i};{j} = {key}");
 								apply(tr, cmds[i].Op, key, cmds[i].Left);
 								apply(tr, cmds[j].Op, key, cmds[j].Right);
@@ -304,22 +310,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
 
-					await db.WriteAsync((tr) =>
+					await db.WriteAsync(tr =>
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999\x00"));
+						var subspace = tr.Keys;
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999\x00"));
 						for (int i = 0; i < 1000; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Slice.FromFixedU32BE((uint)i));
+							tr.Set(subspace.Encode("K" + i.ToString("D4")), Slice.FromFixedU32BE((uint)i));
 						}
 					}, this.Cancellation);
 
 					for (int i = 0; i < 100; i++)
 					{
-						using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+						using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 						{
-							var res = await tr.GetAsync(subspace.Keys.Encode("K" + i.ToString("D4")));
+							var subspace = tr.Keys;
+							var res = await tr.GetAsync(subspace.Encode("K" + i.ToString("D4")));
 							Dump(res);
 						}
 					}
@@ -334,35 +341,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
-
 					// clear everything
-					await db.WriteAsync((tr) => tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999Z")), this.Cancellation);
+					await db.WriteAsync((tr) => tr.ClearRange(tr.Keys.Encode("K0000"), tr.Keys.Encode("K9999Z")), this.Cancellation);
 
-					await db.WriteAsync(tr => tr.Set(subspace.Keys.Encode("K0123"), Value("V0123")), this.Cancellation);
-					await db.WriteAsync(tr => tr.Set(subspace.Keys.Encode("K0789"), Value("V0789")), this.Cancellation);
+					await db.WriteAsync(tr => tr.Set(tr.Keys.Encode("K0123"), Value("V0123")), this.Cancellation);
+					await db.WriteAsync(tr => tr.Set(tr.Keys.Encode("K0789"), Value("V0789")), this.Cancellation);
 
-					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						await tr.GetValuesAsync(new[] {
-							subspace.Keys.Encode("K0123"),
-							subspace.Keys.Encode("K0234"),
-							subspace.Keys.Encode("K0456"),
-							subspace.Keys.Encode("K0567"),
-							subspace.Keys.Encode("K0789")
-						});
+						await tr.GetValuesAsync(tr.Keys.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
 					}
 
 					// once more with feelings
-					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						await tr.GetValuesAsync(new[] {
-							subspace.Keys.Encode("K0123"),
-							subspace.Keys.Encode("K0234"),
-							subspace.Keys.Encode("K0456"),
-							subspace.Keys.Encode("K0567"),
-							subspace.Keys.Encode("K0789")
-						});
+						await tr.GetValuesAsync(tr.Keys.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
 					}
 				}
 			}
@@ -375,28 +368,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
-
 					// clear everything and write some values
-					await db.WriteAsync((tr) =>
+					await db.WriteAsync(tr =>
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999Z"));
+						var subspace = tr.Context.Root;
+
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
 						for (int i = 0; i < 100; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
+							tr.Set(subspace.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
 						}
 					}, this.Cancellation);
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0010"), subspace.Keys.Encode("K0020"));
-						tr.ClearRange(subspace.Keys.Encode("K0050"), subspace.Keys.Encode("K0060"));
+						var subspace = tr.Context.Root;
 
-						var chunk = await tr.GetRangeAsync(
-										KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0000")),
-										KeySelector.LastLessOrEqual(subspace.Keys.Encode("K9999")),
-										new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Reverse = true }
-									);
+						tr.ClearRange(subspace.Encode("K0010"), subspace.Encode("K0020"));
+						tr.ClearRange(subspace.Encode("K0050"), subspace.Encode("K0060"));
+
+						_ = await tr.GetRangeAsync(
+							KeySelector.FirstGreaterOrEqual(subspace.Encode("K0000")),
+							KeySelector.LastLessOrEqual(subspace.Encode("K9999")),
+							new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Reverse = true }
+						);
 
 						//no commit
 					}
@@ -412,47 +407,52 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
+					var location = db.Root;
 
 					// clear everything and write some values
-					await db.WriteAsync((tr) =>
+					await db.WriteAsync(async tr =>
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K9999Z"));
+						var subspace = await location.Resolve(tr);
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
 						for (int i = 0; i < 100; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
+							tr.Set(subspace.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")));
 						}
 					}, this.Cancellation);
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0010"), subspace.Keys.Encode("K0020"));
-						tr.ClearRange(subspace.Keys.Encode("K0050"), subspace.Keys.Encode("K0060"));
-						tr.Set(subspace.Keys.Encode("K0021"), Slice.Empty);
-						tr.Set(subspace.Keys.Encode("K0042"), Slice.Empty);
+						var subspace = await location.Resolve(tr);
 
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0005")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0010")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0015")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0022")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0049")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0050")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0055")));
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0061")));
+						tr.ClearRange(subspace.Encode("K0010"), subspace.Encode("K0020"));
+						tr.ClearRange(subspace.Encode("K0050"), subspace.Encode("K0060"));
+						tr.Set(subspace.Encode("K0021"), Slice.Empty);
+						tr.Set(subspace.Encode("K0042"), Slice.Empty);
+
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0005")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0010")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0015")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0022")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0049")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0050")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0055")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0061")));
 
 						//no commit
 					}
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						//tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0000"))); // equal=false, offset=1
-						await tr.GetKeyAsync(KeySelector.FirstGreaterThan(subspace.Keys.Encode("K0011")));    // equal=true, offset=1
-						await tr.GetKeyAsync(KeySelector.LastLessOrEqual(subspace.Keys.Encode("K0022")));	 // equal=true, offset=0
-						await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Keys.Encode("K0033")));		 // equal=false, offset=0
+						var subspace = await location.Resolve(tr);
 
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")) + 1000); // equal=false, offset=7 ?
-						await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Keys.Encode("K0050")) + 1000); // equal=false, offset=6 ?
+						//tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0000"))); // equal=false, offset=1
+						await tr.GetKeyAsync(KeySelector.FirstGreaterThan(subspace.Encode("K0011")));    // equal=true, offset=1
+						await tr.GetKeyAsync(KeySelector.LastLessOrEqual(subspace.Encode("K0022")));	 // equal=true, offset=0
+						await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Encode("K0033")));		 // equal=false, offset=0
+
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0040")) + 1000); // equal=false, offset=7 ?
+						await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Encode("K0050")) + 1000); // equal=false, offset=6 ?
 					}
 
 				}
@@ -466,28 +466,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
+					var location = db.Root;
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						await tr.GetAsync(subspace.Keys.Encode("KGET"));
-						tr.AddReadConflictRange(subspace.Keys.Encode("KRC0"), subspace.Keys.Encode("KRC0"));
-						tr.AddWriteConflictRange(subspace.Keys.Encode("KWRITECONFLICT0"), subspace.Keys.Encode("KWRITECONFLICT1"));
-						tr.Set(subspace.Keys.Encode("KWRITE"), Slice.Empty);
+						var subspace = await location.Resolve(tr);
+						await tr.GetAsync(subspace.Encode("KGET"));
+						tr.AddReadConflictRange(subspace.Encode("KRC0"), subspace.Encode("KRC0"));
+						tr.AddWriteConflictRange(subspace.Encode("KWRITECONFLICT0"), subspace.Encode("KWRITECONFLICT1"));
+						tr.Set(subspace.Encode("KWRITE"), Slice.Empty);
 						await tr.CommitAsync();
 					}
 
 					// once more with feelings
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var subspace = await location.Resolve(tr);
 						tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("KGETKEY")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("KGETKEY")));
 					}
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.AddReadConflictRange(subspace.Keys.Encode("KRC0"), subspace.Keys.Encode("KRC1"));
-						tr.Set(subspace.Keys.Encode("KWRITE"), Slice.Empty);
+						var subspace = await location.Resolve(tr);
+						tr.AddReadConflictRange(subspace.Encode("KRC0"), subspace.Encode("KRC1"));
+						tr.Set(subspace.Encode("KWRITE"), Slice.Empty);
 						await tr.CommitAsync();
 					}
 				}
@@ -501,35 +504,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
+					var location = db.Root;
 
 					// clear everything and write some values
-					await db.WriteAsync((tr) =>
+					await db.WriteAsync(async (tr) =>
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K~~~~"));
-						tr.Set(subspace.Keys.Encode("K000"), Value("BEGIN"));
+						var subspace = await location.Resolve(tr);
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
+						tr.Set(subspace.Encode("K000"), Value("BEGIN"));
 						for (int i = 0; i < 5; i++)
 						{
-							tr.Set(subspace.Keys.Encode("K" + i + "A"), Value("V111"));
-							tr.Set(subspace.Keys.Encode("K" + i + "B"), Value("V222"));
-							tr.Set(subspace.Keys.Encode("K" + i + "C"), Value("V333"));
-							tr.Set(subspace.Keys.Encode("K" + i + "D"), Value("V444"));
-							tr.Set(subspace.Keys.Encode("K" + i + "E"), Value("V555"));
-							tr.Set(subspace.Keys.Encode("K" + i + "F"), Value("V666"));
-							tr.Set(subspace.Keys.Encode("K" + i + "G"), Value("V777"));
-							tr.Set(subspace.Keys.Encode("K" + i + "H"), Value("V888"));
+							tr.Set(subspace.Encode("K" + i + "A"), Value("V111"));
+							tr.Set(subspace.Encode("K" + i + "B"), Value("V222"));
+							tr.Set(subspace.Encode("K" + i + "C"), Value("V333"));
+							tr.Set(subspace.Encode("K" + i + "D"), Value("V444"));
+							tr.Set(subspace.Encode("K" + i + "E"), Value("V555"));
+							tr.Set(subspace.Encode("K" + i + "F"), Value("V666"));
+							tr.Set(subspace.Encode("K" + i + "G"), Value("V777"));
+							tr.Set(subspace.Encode("K" + i + "H"), Value("V888"));
 						}
-						tr.Set(subspace.Keys.Encode("K~~~"), Value("END"));
+						tr.Set(subspace.Encode("K~~~"), Value("END"));
 					}, this.Cancellation);
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.Set(subspace.Keys.Encode("KZZZ"), Value("V999"));
+						var subspace = await location.Resolve(tr);
+
+						tr.Set(subspace.Encode("KZZZ"), Value("V999"));
 
 						var r = await tr.GetRangeAsync(
-									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0B")),
-									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0G"))
-								);
+							KeySelector.FirstGreaterOrEqual(subspace.Encode("K0B")),
+							KeySelector.FirstGreaterOrEqual(subspace.Encode("K0G"))
+						);
 
 						await tr.CommitAsync();
 					}
@@ -544,25 +550,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
+					var location = db.Root;
 
 					// clear everything and write some values
-					await db.WriteAsync((tr) =>
+					await db.WriteAsync(async tr =>
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K~~~~"));
-						tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Keys.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")))));
-						tr.Set(subspace.Keys.Encode("K~~~"), Value("END"));
+						var subspace = await location.Resolve(tr);
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
+						tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode("K" + i.ToString("D4")), Value("V" + i.ToString("D4")))));
+						tr.Set(subspace.Encode("K~~~"), Value("END"));
 					}, this.Cancellation);
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0042"), Value("K0069"));
+						var subspace = await location.Resolve(tr);
+
+						tr.ClearRange(subspace.Encode("K0042"), Value("K0069"));
 
 						var r = await tr.GetRangeAsync(
-									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")),
-									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0080")),
-									new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
-								);
+							KeySelector.FirstGreaterOrEqual(subspace.Encode("K0040")),
+							KeySelector.FirstGreaterOrEqual(subspace.Encode("K0080")),
+							new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+						);
 						// T 1
 						// => GETRANGE( (< 'KAAA<00>' +1) .. (< LAST +1)
 						Log($"Count={r.Count}, HasMore={r.HasMore}");
@@ -583,27 +592,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
+					var location = db.Root;
 
 					// clear everything and write some values
-					await db.WriteAsync((tr) =>
+					await db.WriteAsync(async tr =>
 					{
-						tr.ClearRange(subspace.Keys.Encode("K0000"), subspace.Keys.Encode("K~~~~"));
-						tr.Set(subspace.Keys.Encode("KAAA"), Value("V111"));
-						tr.Set(subspace.Keys.Encode("KBBB"), Value("V222"));
-						tr.Set(subspace.Keys.Encode("KCCC"), Value("V333"));
-						tr.Set(subspace.Keys.Encode("K~~~"), Value("END"));
+						var subspace = await location.Resolve(tr);
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
+						tr.Set(subspace.Encode("KAAA"), Value("V111"));
+						tr.Set(subspace.Encode("KBBB"), Value("V222"));
+						tr.Set(subspace.Encode("KCCC"), Value("V333"));
+						tr.Set(subspace.Encode("K~~~"), Value("END"));
 					}, this.Cancellation);
 
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var subspace = await location.Resolve(tr);
+
 						// set a key, then read it, and check if it could conflict on it (it should not!)
-						tr.Set(subspace.Keys.Encode("KBBB"), Value("V222b"));
-						await tr.GetAsync(subspace.Keys.Encode("KBBB"));
+						tr.Set(subspace.Encode("KBBB"), Value("V222b"));
+						await tr.GetAsync(subspace.Encode("KBBB"));
 
 						// read a key, then set it, and check if it could conflict on it (it should!)
-						await tr.GetAsync(subspace.Keys.Encode("KCCC"));
-						tr.Set(subspace.Keys.Encode("KCCC"), Value("V333b"));
+						await tr.GetAsync(subspace.Encode("KCCC"));
+						tr.Set(subspace.Encode("KCCC"), Value("V333b"));
 
 						await tr.CommitAsync();
 					}
@@ -618,43 +630,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 			using (var zedb = await OpenTestDatabaseAsync())
 			{
-				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
+				var db = zedb.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
-					var subspace = db.GlobalSpace;
-
-					var aaa = subspace.Keys.Encode("KAAA");
-					var bbb = subspace.Keys.Encode("KBBB");
-					var ccc = subspace.Keys.Encode("KCCC");
-
 					//using (var tr = db.BeginTransaction(this.Cancellation))
 					//{
-					//	tr.ClearRange(subspace.Keys.Encode("K"), subspace.Keys.Encode("KZZZZZZZZZ"));
+					//	tr.ClearRange(subspace.Encode("K"), subspace.Encode("KZZZZZZZZZ"));
 					//	await tr.CommitAsync();
 					//}
 					//return;
 
 					// set the key
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.Set(aaa, Value("VALUE_AAA"));
+						tr.Set(tr.Keys.Encode("KAAA"), Value("VALUE_AAA"));
 						await tr.CommitAsync();
 					}
 					// set the key
-					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						await tr.GetAsync(aaa);
+						await tr.GetAsync(tr.Keys.Encode("KAAA"));
 					}
 
 					await Task.Delay(500);
 
 					// first: concurrent trans, set only, no conflict
-					using (var tr1 = db.BeginTransaction(this.Cancellation))
-					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
 						await Task.WhenAll(tr1.GetReadVersionAsync(), tr2.GetReadVersionAsync());
 
-						tr1.Set(bbb, Value("VALUE_BBB_111"));
-						tr2.Set(ccc, Value("VALUE_CCC_111"));
+						tr1.Set(tr1.Keys.Encode("KBBB"), Value("VALUE_BBB_111"));
+						tr2.Set(tr2.Keys.Encode("KCCC"), Value("VALUE_CCC_111"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -664,13 +670,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					await Task.Delay(500);
 
 					// first: concurrent trans, read + set, no conflict
-					using (var tr1 = db.BeginTransaction(this.Cancellation))
-					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						await Task.WhenAll(tr1.GetAsync(aaa), tr2.GetAsync(aaa));
+						await Task.WhenAll(
+							tr1.GetAsync(tr1.Keys.Encode("KAAA")),
+							tr2.GetAsync(tr2.Keys.Encode("KAAA"))
+						);
 
-						tr1.Set(bbb, Value("VALUE_BBB_222"));
-						tr2.Set(ccc, Value("VALUE_CCC_222"));
+						tr1.Set(tr1.Keys.Encode("KBBB"), Value("VALUE_BBB_222"));
+						tr2.Set(tr2.Keys.Encode("KCCC"), Value("VALUE_CCC_222"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -680,12 +689,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					await Task.Delay(500);
 
 					// first: concurrent trans, read + set, conflict
-					using (var tr1 = db.BeginTransaction(this.Cancellation))
-					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
+					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						await Task.WhenAll(tr1.GetAsync(ccc), tr2.GetAsync(bbb));
-						tr1.Set(bbb, Value("VALUE_BBB_333"));
-						tr2.Set(ccc, Value("VALUE_CCC_333"));
+						await Task.WhenAll(
+							tr1.GetAsync(tr1.Keys.Encode("KCCC")),
+							tr2.GetAsync(tr2.Keys.Encode("KBBB"))
+						);
+						tr1.Set(tr1.Keys.Encode("KBBB"), Value("VALUE_BBB_333"));
+						tr2.Set(tr2.Keys.Encode("KCCC"), Value("VALUE_CCC_333"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -717,14 +729,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				// "future_version": ALWAYS ~10 ms
 				// "not_committed": start with 5, 10, 15, etc... but after 4 or 5, then transition into a random number between 0 and 1 sec
 
-				using (var tr = zedb.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await zedb.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
 					await tr.OnErrorAsync(FdbError.PastVersion).ConfigureAwait(false);
 					await tr.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
 				}
 
 
-				using (var tr = zedb.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await zedb.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
 					for (int i = 0; i < 20; i++)
 					{

@@ -35,7 +35,6 @@ namespace FoundationDB.Client.Tests
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 	using NUnit.Framework;
 
@@ -151,15 +150,43 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, params string[] path)
+		protected Task CleanLocation<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> location)
+			where TSubspace : IKeySubspace
 		{
-			return TestHelpers.GetCleanDirectory(db, path, this.Cancellation);
+			return TestHelpers.CleanLocation(db, location, this.Cancellation);
+		}
+
+		[DebuggerStepThrough]
+		protected Task CleanSubspace(IFdbDatabase db, IKeySubspace subspace)
+		{
+			return TestHelpers.CleanSubspace(db, subspace, this.Cancellation);
 		}
 
 		[DebuggerStepThrough]
 		protected Task DumpSubspace(IFdbDatabase db, IKeySubspace subspace)
 		{
 			return TestHelpers.DumpSubspace(db, subspace, this.Cancellation);
+		}
+
+		[DebuggerStepThrough]
+		protected Task DumpSubspace<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path)
+			where TSubspace : IKeySubspace
+		{
+			return TestHelpers.DumpLocation(db, path, this.Cancellation);
+		}
+
+		[DebuggerStepThrough]
+		protected Task DumpSubspace(IFdbReadOnlyTransaction tr, IKeySubspace subspace)
+		{
+			return TestHelpers.DumpSubspace(tr, subspace);
+		}
+
+		[DebuggerStepThrough]
+		protected async Task DumpSubspace<TSubspace>(IFdbReadOnlyTransaction tr, ISubspaceLocation<TSubspace> location)
+			where TSubspace : IKeySubspace
+		{
+			var subspace = await location.Resolve(tr);
+			await TestHelpers.DumpSubspace(tr, subspace);
 		}
 
 		[DebuggerStepThrough]
@@ -244,6 +271,25 @@ namespace FoundationDB.Client.Tests
 		public static void Log(string text)
 		{
 			WriteToLog(text);
+		}
+
+		public static void Log<T>(T value)
+		{
+			switch (value)
+			{
+				case string s:
+					Log(s ?? "<null>");
+					break;
+				case null:
+					Log($"({typeof(T).Name}) <null>");
+					break;
+				case IFormattable fmt:
+					Log(fmt.ToString());
+					break;
+				default:
+					Log($"({value.GetType().Name}) {value}");
+					break;
+			}
 		}
 
 		[DebuggerStepThrough]

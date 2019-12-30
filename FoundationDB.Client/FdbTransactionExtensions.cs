@@ -1345,6 +1345,148 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
+		[ItemNotNull]
+		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<T>>> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+
+			return db.ReadAsync(
+				async (tr) =>
+				{
+					var query = await handler(tr);
+					if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
+					return await query.ToListAsync();
+				},
+				ct
+			);
+		}
+
+		#endregion
+
+		#region Key Validation...
+
+
+		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <param name="ignoreError"></param>
+		/// <param name="error"></param>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
+		internal static bool ValidateKey(this IFdbReadOnlyTransaction tr, in Slice key, bool endExclusive, bool ignoreError, out Exception error)
+		{
+			// null keys are not allowed
+			if (key.IsNull)
+			{
+				error = ignoreError ? null : Fdb.Errors.KeyCannotBeNull();
+				return false;
+			}
+			return ValidateKey(tr, key.Span, endExclusive, ignoreError, out error);
+		}
+
+		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <param name="ignoreError"></param>
+		/// <param name="error"></param>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
+		internal static bool ValidateKey(this IFdbReadOnlyTransaction tr, ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception error)
+		{
+			error = null;
+
+			// key cannot be larger than maximum allowed key size
+			if (key.Length > Fdb.MaxKeySize)
+			{
+				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(key);
+				return false;
+			}
+
+			// special case for system keys
+			if (IsSystemKey(key))
+			{
+				// note: it will fail later if the transaction does not have access to the system keys!
+				return true;
+			}
+
+			//// first, it MUST start with the root prefix of this database (if any)
+			//var root = tr.Context.Root;
+			//if (root != null && !root.Contains(key))
+			//{
+			//	// special case: if endExclusive is true (we are validating the end key of a ClearRange),
+			//	// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let it slide
+			//	if (!endExclusive
+			//	 || !key.SequenceEqual(FdbKey.Increment(root.GetPrefix()))) //TODO: cache this?
+			//	{
+			//		if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(tr.Context.Database, key);
+			//		return false;
+			//	}
+			//}
+
+			return true;
+		}
+
+		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static bool IsSystemKey(ReadOnlySpan<byte> key)
+		{
+			return key.Length != 0 && key[0] == 0xFF;
+		}
+
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal static void EnsureKeyIsValid(this IFdbReadOnlyTransaction tr, Slice key, bool endExclusive = false)
+		{
+			if (!ValidateKey(tr, key, endExclusive, false, out Exception ex)) throw ex;
+		}
+
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal static void EnsureKeyIsValid(this IFdbReadOnlyTransaction tr, ReadOnlySpan<byte> key, bool endExclusive = false)
+		{
+			if (!ValidateKey(tr, key, endExclusive, false, out Exception ex)) throw ex;
+		}
+
+		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="keys">Array of keys to verify</param>
+		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal static void EnsureKeysAreValid(this IFdbReadOnlyTransaction tr, ReadOnlySpan<Slice> keys, bool endExclusive = false)
+		{
+			foreach (var key in keys)
+			{
+				if (!ValidateKey(tr, key, endExclusive, false, out Exception ex)) throw ex;
+			}
+		}
+
+		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
+		[Pure]
+		public static bool IsKeyValid(this IFdbReadOnlyTransaction tr, Slice key)
+		{
+			Exception _;
+			return tr.ValidateKey(key, false, true, out _);
+		}
+
+		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
+		[Pure]
+		public static bool IsKeyValid(this IFdbReadOnlyTransaction tr, ReadOnlySpan<byte> key)
+		{
+			Exception _;
+			return tr.ValidateKey(key, false, true, out _);
+		}
+
 		#endregion
 
 	}

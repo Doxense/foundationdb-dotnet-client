@@ -80,9 +80,9 @@ namespace FoundationDB.Client
 				return new FdbException(
 					FdbError.KeyOutsideLegalRange,
 #if DEBUG
-					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the global namespace {db.GlobalSpace}."
+					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the root keyspace {db.Root}."
 #else
-					$"An attempt was made to use a key that is outside of the global namespace {db.GlobalSpace}"
+					$"An attempt was made to use a key that is outside of the root Root {db.Root}"
 #endif
 				);
 			}
@@ -93,9 +93,9 @@ namespace FoundationDB.Client
 				return new FdbException(
 					FdbError.KeyOutsideLegalRange,
 #if DEBUG
-					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the global namespace {db.GlobalSpace}."
+					$"An attempt was made to use a key '{FdbKey.Dump(key)}' that is outside of the root keyspace {db.Root}."
 #else
-					$"An attempt was made to use a key that is outside of the global namespace {db.GlobalSpace}"
+					$"An attempt was made to use a key that is outside of the root Root {db.Root}"
 #endif
 				);
 			}

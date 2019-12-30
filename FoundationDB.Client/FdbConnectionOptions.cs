@@ -65,17 +65,10 @@ namespace FoundationDB.Client
 		/// <summary>Default maximum retry delay for all transactions (or infinite if 0)</summary>
 		public int DefaultMaxRetryDelay { get; set; }
 
-		/// <summary>Global subspace in use by the database (empty prefix by default)</summary>
-		/// <remarks>If <see cref="PartitionPath"/> is also set, this subspace will be used to locate the top-level Directory Layer, and the actual GlobalSpace of the database will be the partition</remarks>
+		/// <summary>Default root location used by the database (empty prefix by default)</summary>
+		/// <remarks>If specified, all started transactions will be automatically rooted to this location.</remarks>
 		[CanBeNull]
-		public IKeySubspace GlobalSpace { get; set; }
-		//REVIEW: get rid of this? cannot be serialized into a string, and can conflicting with PartitionPath
-		// => maybe let the caller call ChangeRoot(...) if they want this feature?
-
-		/// <summary>If specified, open the named partition at the specified path</summary>
-		/// <remarks>If <see cref="GlobalSpace"/> is also set, it will be used to locate the top-level Directory Layer.</remarks>
-		[CanBeNull, ItemNotNull]
-		public string[] PartitionPath { get; set; }
+		public ISubspaceLocation Root { get; set; }
 
 		/// <summary>If set, specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
 		[CanBeNull]
@@ -90,7 +83,7 @@ namespace FoundationDB.Client
 		{
 			var sb = new StringBuilder();
 			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
-			if (this.PartitionPath != null) AddKeyValue(sb, "partition", "/" + string.Join("/", this.PartitionPath));
+			if (this.Root != null) AddKeyValue(sb, "root", this.Root.ToString());
 			//REVIEW: cannot serialize subspace into a string ! :(
 			if (this.ReadOnly) AddKeyword(sb, "readonly");
 			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);

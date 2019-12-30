@@ -38,9 +38,9 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
-	using FoundationDB.Layers.Directories;
 	using NUnit.Framework;
 
+#if DISABLED
 	[TestFixture]
 	public class DatabaseBulkFacts : FdbTest
 	{
@@ -54,7 +54,8 @@ namespace FoundationDB.Client.Tests
 			{
 				Log($"Bulk inserting {N:N0} random items...");
 
-				var location = await GetCleanDirectory(db, "Bulk", "Write");
+				var location = db.Directory["Bulk"]["Write"];
+				await CleanDirectory(db, location);
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
@@ -114,7 +115,8 @@ namespace FoundationDB.Client.Tests
 
 				Log($"Generating {N:N0} random items...");
 
-				var location = await GetCleanDirectory(db, "Bulk", "Insert");
+				var location = db.Directory["Bulk"]["Insert"];
+				await CleanDirectory(db, location);
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
@@ -170,7 +172,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -183,15 +185,19 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log($"Bulk inserting {N:N0} items...");
-				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
+				var location = db.Directory["Bulk"]["ForEach"];
+				await CleanDirectory(db, location);
 
 				Log("Preparing...");
 
-				await Fdb.Bulk.WriteAsync(
-					db,
-					Enumerable.Range(1, N).Select((x) => (location.Keys.Encode(x), Slice.FromInt32(x))),
-					this.Cancellation
-				);
+				await db.ReadWriteAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					foreach (var x in Enumerable.Range(1, N))
+					{
+						tr.Set(subspace.Keys.Encode(x), Slice.FromInt32(x));
+					}
+				}, this.Cancellation);
 
 				Log("Reading...");
 
@@ -201,15 +207,17 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				await Fdb.Bulk.ForEachAsync(
 					db,
-					Enumerable.Range(1, N).Select(x => location.Keys.Encode(x)),
+					Enumerable.Range(1, N),
 					() => (Total: 0L, Count: 0L),
 					async (xs, ctx, state) =>
 					{
+						var subspace = await location.Resolve(ctx.Transaction);
+
 						Interlocked.Increment(ref chunks);
 						Log($"> Called with batch of {xs.Length:N0} items at offset {ctx.Position:N0} of gen #{ctx.Generation} with step {ctx.Step:N0} and cooldown {ctx.Cooldown} (generation = {ctx.ElapsedGeneration.TotalSeconds:N3} sec, total = {ctx.ElapsedTotal.TotalSeconds:N3} sec)");
 
 						var throttle = Task.Delay(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
-						var results = await ctx.Transaction.GetValuesAsync(xs);
+						var results = await ctx.Transaction.GetValuesAsync(subspace.Keys.EncodeMany(xs));
 						await throttle;
 
 						long sum = 0;
@@ -235,7 +243,7 @@ namespace FoundationDB.Client.Tests
 				Log($"Sum of integers 1 to {count:N0} is {total:N0}");
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -250,7 +258,8 @@ namespace FoundationDB.Client.Tests
 
 				Log($"Generating {N:N0} random items...");
 
-				var location = await GetCleanDirectory(db, "Bulk", "Insert");
+				var location = db.Directory["Bulk"]["Insert"];
+				await CleanDirectory(db, location);
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
@@ -321,7 +330,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -334,7 +343,8 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log($"Bulk inserting {N:N0} items...");
-				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
+				var location = db.Directory["Bulk"]["ForEach"];
+				await CleanDirectory(db, location);
 
 				Log("Preparing...");
 
@@ -386,7 +396,7 @@ namespace FoundationDB.Client.Tests
 				Log($"Sum of integers 1 to {count:N0} is {total:N0}");
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -399,7 +409,8 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log($"Bulk inserting {N:N0} items...");
-				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
+				var location = db.Directory["Bulk"]["ForEach"];
+				await CleanDirectory(db, location);
 
 				Log("Preparing...");
 
@@ -443,7 +454,7 @@ namespace FoundationDB.Client.Tests
 				Log($"Sum of integers 1 to {count:N0} is {total:N0}");
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -458,7 +469,8 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log("Preparing...");
-				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
+				var location = db.Directory["Bulk"]["Aggregate"];
+				await CleanDirectory(db, location);
 
 				var rnd = new Random(2403);
 				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
@@ -503,7 +515,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(total, Is.EqualTo(actual));
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -518,7 +530,8 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log("Preparing...");
-				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
+				var location = db.Directory["Bulk"]["Aggregate"];
+				await CleanDirectory(db, location);
 
 				var rnd = new Random(2403);
 				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
@@ -565,7 +578,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(total, Is.EqualTo(actual));
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 
 				Assume.That(sw.Elapsed.TotalSeconds, Is.GreaterThan(5), "This test has to run more than 5 seconds to trigger past_version internally!");
 			}
@@ -580,7 +593,8 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log("Preparing...");
-				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
+				var location = db.Directory["Bulk"]["Aggregate"];
+				await CleanDirectory(db, location);
 
 				var rnd = new Random(2403);
 				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
@@ -629,7 +643,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(average, Is.EqualTo(actual).Within(double.Epsilon));
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 			}
 		}
 
@@ -642,7 +656,8 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Log($"Bulk inserting {N:N0} items...");
-				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
+				var location = db.Directory["Bulk"]["Aggregate"];
+				await CleanDirectory(db, location);
 
 				Log("Preparing...");
 
@@ -694,7 +709,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(average, Is.EqualTo(actual).Within(double.Epsilon));
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(db, this.Cancellation);
+				await CleanDirectory(db, location);
 
 				Assume.That(sw.Elapsed.TotalSeconds, Is.GreaterThan(5), "This test has to run more than 5 seconds to trigger past_version internally!");
 			}
@@ -705,12 +720,13 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 50 * 1000;
 
-			using (var zedb = await OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var db = zedb.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
+				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 
 				Log($"Bulk inserting {N:N0} items...");
-				var location = await GetCleanDirectory(db, "Bulk", "Export");
+				var location = db.Directory["Bulk"]["Export"];
+				await CleanDirectory(logged, location);
 
 				Log("Preparing...");
 
@@ -723,7 +739,7 @@ namespace FoundationDB.Client.Tests
 				Log("Inserting...");
 
 				await Fdb.Bulk.WriteAsync(
-					db.WithoutLogging(),
+					logged.WithoutLogging(),
 					source.Select((x) => (location.Keys.Encode(x.Key), x.Value)),
 					this.Cancellation
 				);
@@ -735,7 +751,7 @@ namespace FoundationDB.Client.Tests
 				using (var file = File.CreateText(path))
 				{
 					double average = await Fdb.Bulk.ExportAsync(
-						db,
+						logged,
 						location.Keys.ToRange(),
 						async (xs, pos, ct) =>
 						{
@@ -763,11 +779,12 @@ namespace FoundationDB.Client.Tests
 				Log($"File size is {new FileInfo(path).Length:N0} bytes");
 
 				// cleanup because this test can produce a lot of data
-				await location.RemoveAsync(zedb, this.Cancellation);
+				await CleanDirectory(logged, location);
 
 				File.Delete(path);
 			}
 		}
 
 	}
+#endif
 }

@@ -31,11 +31,11 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
-	using FoundationDB.Layers.Directories;
+	using System.Threading.Tasks;
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]
-	public interface IFdbDatabase : IFdbRetryable, IDynamicKeySubspace, IDisposable
+	public interface IFdbDatabase : IFdbRetryable, IDisposable
 	{
 		/// <summary>Name of the database</summary>
 		[NotNull]
@@ -51,10 +51,8 @@ namespace FoundationDB.Client
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		CancellationToken Cancellation { get; }
 
-		/// <summary>Returns the global namespace used by this database instance</summary>
-		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
-		[NotNull]
-		IDynamicKeySubspace GlobalSpace { get; }
+		/// <summary>Returns the root path used by this database instance</summary>
+		DynamicKeySubspaceLocation Root { get; }
 
 		/// <summary>Directory partition of this database instance</summary>
 		[NotNull]

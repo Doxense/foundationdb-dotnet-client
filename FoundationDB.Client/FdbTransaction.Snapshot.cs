@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 
 			public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
 			{
-				return m_parent.GetMetadataVersionKeyAsync(key, snapshot: true);
+				return m_parent.GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: true);
 			}
 
 			void IFdbReadOnlyTransaction.SetReadVersion(long version)
@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(key);
+				m_parent.EnsureKeyIsValid(key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -114,7 +114,7 @@ namespace FoundationDB.Client
 
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeysAreValid(keys);
+				m_parent.EnsureKeysAreValid(keys);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -127,7 +127,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(in selector.Key);
+				m_parent.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -135,8 +135,8 @@ namespace FoundationDB.Client
 
 				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: m_parent.m_cancellation).ConfigureAwait(false);
 
-				// don't forget to truncate keys that would fall outside of the database's globalspace !
-				return m_parent.m_database.BoundCheck(key);
+				// don't forget to truncate keys that would fall outside of the database's root !
+				return m_parent.BoundCheck(key);
 
 			}
 
@@ -146,7 +146,7 @@ namespace FoundationDB.Client
 
 				for(int i = 0; i < selectors.Length; i++)
 				{
-					m_parent.m_database.EnsureKeyIsValid(in selectors[i].Key);
+					m_parent.EnsureKeyIsValid(selectors[i].Key);
 				}
 
 #if DEBUG
@@ -160,8 +160,8 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(in beginInclusive.Key);
-				m_parent.m_database.EnsureKeyIsValid(in endExclusive.Key);
+				m_parent.EnsureKeyIsValid(beginInclusive.Key);
+				m_parent.EnsureKeyIsValid(endExclusive.Key);
 
 				options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 				options.EnsureLegalValues();
@@ -240,6 +240,8 @@ namespace FoundationDB.Client
 				get => m_parent.MaxRetryDelay;
 				set => throw new NotSupportedException("The max retry delay value cannot be changed via the Snapshot view of a transaction.");
 			}
+
+			public IDynamicKeySubspace Keys => m_parent.Keys;
 
 			void IDisposable.Dispose()
 			{

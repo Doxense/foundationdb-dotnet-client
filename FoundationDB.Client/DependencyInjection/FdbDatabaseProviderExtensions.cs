@@ -32,9 +32,6 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.DependencyInjection;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
@@ -101,10 +98,10 @@ namespace FoundationDB.Client
 			CancellationToken lifetime = default
 		)
 		{
-			return provider.CreateScope<FdbDirectorySubspace>(async (db, cancel) =>
+			return provider.CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
 			{
-				var folder = await db.Directory.CreateOrOpenAsync(db, path, cancel).ConfigureAwait(false);
-				return (db, folder);
+				var folder = await database.ReadWriteAsync(tr => database.Directory.CreateOrOpenAsync(tr, path), cancel).ConfigureAwait(false);
+				return (database, folder);
 			}, lifetime);
 		}
 
@@ -121,7 +118,7 @@ namespace FoundationDB.Client
 		{
 			return Fdb.CreateRootScope(db).CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
 			{
-				var folder = await database.Directory.CreateOrOpenAsync(database, path, cancel).ConfigureAwait(false);
+				var folder = await database.ReadWriteAsync(tr => database.Directory.CreateOrOpenAsync(tr, path), cancel).ConfigureAwait(false);
 				return (database, folder);
 			}, lifetime);
 		}

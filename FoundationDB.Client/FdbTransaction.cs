@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -147,6 +147,9 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public bool IsReadOnly => m_readOnly;
+
+		/// <inheritdoc />
+		public IDynamicKeySubspace Keys => m_context.Root;
 
 		#endregion
 
@@ -467,6 +470,18 @@ namespace FoundationDB.Client
 			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), userVersion, incomplete: true);
 		}
 
+		/// <summary>Counter used to generated a unique unique versionstamps for this transaction.</summary>
+		private int m_stampCounter;
+
+		/// <inheritdoc />
+		[Pure]
+		public VersionStamp CreateUniqueVersionStamp()
+		{
+			int userVersion = Interlocked.Increment(ref m_stampCounter);
+			if (userVersion > 0xFFF) throw new InvalidOperationException("Cannot generate more than 65535 unique VersionStamps per transaction!");
+			return CreateVersionStamp(userVersion);
+		}
+
 		#endregion
 
 		#region Get...
@@ -476,7 +491,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			this.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -498,7 +513,7 @@ namespace FoundationDB.Client
 
 			EnsureCanRead();
 
-			m_database.EnsureKeysAreValid(keys);
+			this.EnsureKeysAreValid(keys);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -516,8 +531,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(in beginInclusive.Key);
-			m_database.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
+			this.EnsureKeyIsValid(beginInclusive.Key);
+			this.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -538,8 +553,8 @@ namespace FoundationDB.Client
 			Contract.Requires(selector != null);
 
 			EnsureCanRead();
-			this.Database.EnsureKeyIsValid(in begin.Key);
-			this.Database.EnsureKeyIsValid(in end.Key, endExclusive: true);
+			this.EnsureKeyIsValid(begin.Key);
+			this.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -572,7 +587,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(in selector.Key);
+			this.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -581,8 +596,15 @@ namespace FoundationDB.Client
 			var key = await m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation).ConfigureAwait(false);
 
 			// don't forget to truncate keys that would fall outside of the database's globalspace !
-			return m_database.BoundCheck(key);
+			return BoundCheck(key);
 		}
+
+		internal Slice BoundCheck(Slice key)
+		{
+			//REVIEW: should we always allow access to system keys ?
+			return this.Context.Root.BoundCheck(key, allowSystemKeys: true);
+		}
+
 
 		#endregion
 
@@ -595,7 +617,7 @@ namespace FoundationDB.Client
 
 			foreach (var selector in selectors)
 			{
-				m_database.EnsureKeyIsValid(in selector.Key);
+				this.EnsureKeyIsValid(selector.Key);
 			}
 
 #if DEBUG
@@ -614,7 +636,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			this.EnsureKeyIsValid(key);
 			m_database.EnsureValueIsValid(value);
 
 #if DEBUG
@@ -750,7 +772,7 @@ namespace FoundationDB.Client
 
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			this.EnsureKeyIsValid(key);
 			m_database.EnsureValueIsValid(param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
@@ -772,7 +794,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			this.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
@@ -790,8 +812,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			this.EnsureKeyIsValid(beginKeyInclusive);
+			this.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
@@ -809,8 +831,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			this.EnsureKeyIsValid(beginKeyInclusive);
+			this.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
@@ -828,7 +850,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			this.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
@@ -897,7 +919,7 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			this.EnsureKeyIsValid(key);
 
 			// keep a copy of the key
 			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected

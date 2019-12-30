@@ -72,6 +72,8 @@ namespace FoundationDB.Client
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
 
+		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
+
 		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
 		/// <param name="state">State that will be passed backed to the <paramref name="handler"/></param>
 		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>

@@ -34,13 +34,11 @@ namespace FoundationDB.Filters
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	/// <summary>Base class for simple database filters</summary>
-	[DebuggerDisplay("Database={m_database.Name}")]
+	[DebuggerDisplay("ClusterFile={m_database.ClusterFile}")]
 	public abstract class FdbDatabaseFilter : IFdbDatabase
 	{
 		#region Private Members...
@@ -87,20 +85,20 @@ namespace FoundationDB.Filters
 			return m_database;
 		}
 
-		/// <summary>Name of the database</summary>
+		/// <inheritdoc/>
 		[Obsolete("This property is not supported anymore and will always return \"DB\".")]
 		public string Name => m_database.Name;
 
-		/// <summary>Path to the cluster file used to connect to the database</summary>
+		/// <inheritdoc/>
 		public string ClusterFile => m_database.ClusterFile;
 
-		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
+		/// <inheritdoc/>
 		public CancellationToken Cancellation => m_database.Cancellation;
 
-		/// <summary>Returns the global namespace used by this database instance</summary>
-		public virtual IDynamicKeySubspace GlobalSpace => m_database.GlobalSpace;
+		/// <inheritdoc/>
+		public virtual DynamicKeySubspaceLocation Root => m_database.Root;
 
-		/// <summary>Directory partition of this database instance</summary>
+		/// <inheritdoc/>
 		public virtual IFdbDirectory Directory
 		{
 			get
@@ -113,51 +111,8 @@ namespace FoundationDB.Filters
 			}
 		}
 
-		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
+		/// <inheritdoc/>
 		public virtual bool IsReadOnly => m_readOnly;
-
-		Slice IKeySubspace.GetPrefix()
-		{
-			return this.GlobalSpace.GetPrefix();
-		}
-
-		KeyRange IKeySubspace.ToRange()
-		{
-			return this.GlobalSpace.ToRange();
-		}
-
-		public virtual DynamicPartition Partition => m_database.Partition;
-
-		public virtual DynamicKeys Keys => m_database.Keys;
-
-		public virtual bool Contains(Slice key)
-		{
-			return m_database.Contains(key);
-		}
-
-		public virtual bool Contains(ReadOnlySpan<byte> key)
-		{
-			return m_database.Contains(key);
-		}
-
-		public virtual Slice BoundCheck(Slice key, bool allowSystemKeys)
-		{
-			return m_database.BoundCheck(key, allowSystemKeys);
-		}
-
-		public virtual ReadOnlySpan<byte> BoundCheck(ReadOnlySpan<byte> key, bool allowSystemKeys)
-		{
-			return m_database.BoundCheck(key, allowSystemKeys);
-		}
-
-		public virtual Slice this[Slice key] => m_database[key];
-
-		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
-		{
-			return m_database.ExtractKey(key, boundCheck);
-		}
-
-		public virtual IKeyEncoding Encoding => m_database.Encoding;
 
 		#endregion
 
@@ -184,6 +139,12 @@ namespace FoundationDB.Filters
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, ct);
+		}
+
+		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunReadWithResultAsync(this, handler, ct);
 		}
 
 		public Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct)
@@ -313,6 +274,19 @@ namespace FoundationDB.Filters
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, onDone, ct);
 		}
+
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, TResult> onDone, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, onDone, ct);
+		}
+
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task<TResult>> onDone, CancellationToken ct)
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, onDone, ct);
+		}
+
 
 		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, TResult> onDone, CancellationToken ct)
 		{

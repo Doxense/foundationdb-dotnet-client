@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -132,74 +132,6 @@ namespace FoundationDB.Client
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			db.SetOption(FdbDatabaseOption.DataCenterId, hexId);
-		}
-
-		#endregion
-
-		#region Key Validation...
-
-		/// <summary>Test if a key is allowed to be used with this database instance</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key to test</param>
-		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
-		[Pure]
-		public static bool IsKeyValid([NotNull] this IFdbDatabase db, in Slice key)
-		{
-			Exception _;
-			return FdbDatabase.ValidateKey(db, in key, false, true, out _);
-		}
-
-		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key to verify</param>
-		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, in Slice key, bool endExclusive = false)
-		{
-			if (!FdbDatabase.ValidateKey(db, in key, endExclusive, false, out Exception ex)) throw ex;
-		}
-
-		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key to verify</param>
-		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, ReadOnlySpan<byte> key, bool endExclusive = false)
-		{
-			Exception ex;
-			if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
-		}
-
-		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="keys">Array of keys to verify</param>
-		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeysAreValid([NotNull] this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
-		{
-			Contract.NotNull(keys, nameof(keys));
-			for (int i = 0; i < keys.Length; i++)
-			{
-				Exception ex;
-				if (!FdbDatabase.ValidateKey(db, in keys[i], endExclusive, false, out ex)) throw ex;
-			}
-		}
-
-		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>
-		/// <returns>Binary key that contain only the bytes after the namespace prefix</returns>
-		/// <example>
-		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
-		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;&lt;02&gt;Bar&lt;00&gt;') => '&gt;&lt;02&gt;Bar&lt;00&gt;'
-		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;') => Slice.Empty
-		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
-		/// db.Extract(Slice.Nil) => Slice.Nil
-		/// </example>
-		[Pure]
-		public static Slice Extract([NotNull] this IFdbDatabase db, Slice keyAbsolute)
-		{
-			return db.GlobalSpace.ExtractKey(keyAbsolute);
 		}
 
 		#endregion

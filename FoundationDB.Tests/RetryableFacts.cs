@@ -43,7 +43,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Retryable");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -54,7 +55,7 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				int called = 0;
-				var result = await db.ReadAsync<Slice>((tr) =>
+				var result = await db.ReadAsync<Slice>(async (tr) =>
 				{
 					++called;
 					Assert.That(tr, Is.Not.Null);
@@ -62,7 +63,8 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Context.Database, Is.SameAs(db));
 					Assert.That(tr.Context.Shared, Is.True);
 
-					return tr.GetAsync(location.Keys.Encode("Hello"));
+					var subspace = await location.Resolve(tr);
+					return await tr.GetAsync(subspace.Encode("Hello"));
 				}, this.Cancellation);
 
 				Assert.That(called, Is.EqualTo(1)); // note: if this assert fails, first ensure that you did not get a transient error while running this test!
@@ -151,14 +153,25 @@ namespace FoundationDB.Client.Tests
 				db.DefaultRetryLimit = 10;
 				// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
 
-				var location = await GetCleanDirectory(db, "Retryable");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				// insert a good amount of test data
 
 				var sw = Stopwatch.StartNew();
 				Log("Inserting test data (this may take a few minutes)...");
 				var rnd = new Random();
-				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => (location.Keys.Encode(i), Slice.Random(rnd, 4096))), this.Cancellation);
+				for(int i = 0; i < 100; i++)
+				{
+					await db.ReadWriteAsync(async tr =>
+					{
+						var subspace = await location.Resolve(tr);
+						for (int j = 0; j < 1000; j++)
+						{
+							tr.Set(subspace.Encode(i * 1000 + j), Slice.Random(rnd, 4096));
+						}
+					}, this.Cancellation);
+				}
 				sw.Stop();
 				Log("> done in " + sw.Elapsed);
 
@@ -166,10 +179,11 @@ namespace FoundationDB.Client.Tests
 				{
 					try
 					{
-						var result = await db.ReadAsync((tr) =>
+						var result = await db.ReadAsync(async (tr) =>
 						{
 							Log("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
-							return tr.GetRange(location.Keys.ToRange()).ToListAsync();
+							var subspace = await location.Resolve(tr);
+							return tr.GetRange(subspace.ToRange()).ToListAsync();
 						}, this.Cancellation);
 
 						Assert.Fail("Too fast! increase the amount of inserted data, or slow down the system!");
@@ -232,9 +246,10 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Retryable");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
-				var t = db.ReadAsync((IFdbReadOnlyTransaction tr) =>
+				var t = db.ReadAsync(async (tr) =>
 				{
 					Assert.That(tr, Is.Not.Null);
 
@@ -242,8 +257,10 @@ namespace FoundationDB.Client.Tests
 					var hijack = tr as IFdbTransaction;
 					Assume.That(hijack, Is.Not.Null, "This test requires the transaction to implement IFdbTransaction !");
 
+					var subspace = await location.Resolve(tr);
+
 					// this call should fail !
-					hijack.Set(location.Keys.Encode("Hello"), Value("Hijacked"));
+					hijack.Set(subspace.Encode("Hello"), Value("Hijacked"));
 
 					Assert.Fail("Calling Set() on a read-only transaction should fail");
 					return Task.FromResult(123);
@@ -261,14 +278,16 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Retryable");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				// setup the keys from 0 to 9
-				await db.WriteAsync((tr) =>
+				await db.ReadWriteAsync(async (tr) =>
 				{
+					var subspace = await location.Resolve(tr);
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(location.Keys.Encode(i), Slice.FromInt32(i));
+						tr.Set(subspace.Encode(i), Slice.FromInt32(i));
 					}
 				}, this.Cancellation);
 
@@ -277,30 +296,32 @@ namespace FoundationDB.Client.Tests
 
 				var results = await db.ReadAsync(async (tr) =>
 				{
+					var subspace = await location.Resolve(tr);
+
 					int[] values = new int[10];
 
 					// read 0..2
 					for (int i = 0; i < 3; i++)
 					{
-						values[i] = (await tr.GetAsync(location.Keys.Encode(i))).ToInt32();
+						values[i] = (await tr.GetAsync(subspace.Encode(i))).ToInt32();
 					}
 
 					// another transaction commits a change to 3 before we read it
-					await db.WriteAsync((tr2) => tr2.Set(location.Keys.Encode(3), Slice.FromInt32(42)), this.Cancellation);
+					await db.WriteAsync((tr2) => tr2.Set(subspace.Encode(3), Slice.FromInt32(42)), this.Cancellation);
 
 					// read 3 to 7
 					for (int i = 3; i < 7; i++)
 					{
-						values[i] = (await tr.GetAsync(location.Keys.Encode(i))).ToInt32();
+						values[i] = (await tr.GetAsync(subspace.Encode(i))).ToInt32();
 					}
 
 					// another transaction commits a change to 6 after it has been read
-					await db.WriteAsync((tr2) => tr2.Set(location.Keys.Encode(6), Slice.FromInt32(66)), this.Cancellation);
+					await db.WriteAsync((tr2) => tr2.Set(subspace.Encode(6), Slice.FromInt32(66)), this.Cancellation);
 
 					// read 7 to 9
 					for (int i = 7; i < 10; i++)
 					{
-						values[i] = (await tr.GetAsync(location.Keys.Encode(i))).ToInt32();
+						values[i] = (await tr.GetAsync(subspace.Encode(i))).ToInt32();
 					}
 
 					return values;
@@ -316,7 +337,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Retryable");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -329,11 +351,12 @@ namespace FoundationDB.Client.Tests
 
 				int called = 0;
 				var result = await db.ReadWriteAsync<Slice>(
-					(tr) =>
+					async (tr) =>
 					{
 						if (tr.Context.Retries == 0) throw new FdbException(FdbError.NotCommitted, "Fake Not Committed!");
-						tr.Set(location.Keys.Encode("World"), Slice.Empty);
-						return tr.GetAsync(location.Keys.Encode("Hello"));
+						var subspace = await location.Resolve(tr);
+						tr.Set(subspace.Encode("World"), Slice.Empty);
+						return await tr.GetAsync(subspace.Encode("Hello"));
 					},
 					(tr, res) =>
 					{
@@ -353,7 +376,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Retryable");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -389,57 +413,104 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Retryable");
-				var key = location.Keys.Encode("Hello");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				// Cannot set a key after commit
 				Assert.That(
 					async () => await db.WriteAsync(
-						(tr) => tr.Set(key, Value("Set")),
-						(tr) => tr.Set(key, Slice.Empty),
+						async (tr) =>
+						{
+							var subspace = await location.Resolve(tr);
+							tr.Set(subspace.Encode("Hello"), Value("Set"));
+						},
+						async (tr) =>
+						{
+							var subspace = await location.Resolve(tr);
+							tr.Set(subspace.Encode("Hello"), Slice.Empty);
+						},
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
 					"Trying to write in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Set")));
+				Assert.That(await db.ReadAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					return tr.GetAsync(subspace.Encode("Hello"));
+				}, this.Cancellation), Is.EqualTo(Slice.FromString("Set")));
 
 				// Cannot double-commit!
 				Assert.That(
-					async () => await db.WriteAsync(
-						(tr) => tr.Set(key, Value("Commit")),
+					async () => await db.ReadWriteAsync(
+						async (tr) =>
+						{
+							var subspace = await location.Resolve(tr);
+							tr.Set(subspace.Encode("Hello"), Value("Commit"));
+						},
 						(tr) => tr.CommitAsync(),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
 					"Trying to double-Commit in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Commit")));
+				Assert.That(await db.ReadAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					return tr.GetAsync(subspace.Encode("Hello"));
+				}, this.Cancellation), Is.EqualTo(Slice.FromString("Commit")));
 
 				// Cannot read a key after commit
 				Assert.That(
-					async () => await db.WriteAsync(
-						(tr) => tr.Set(key, Value("Get")),
-						(tr) => tr.GetAsync(key),
+					async () => await db.ReadWriteAsync(
+						async (tr) =>
+						{
+							var subspace = await location.Resolve(tr);
+							tr.Set(subspace.Encode("Hello"), Value("Get"));
+						},
+						async (tr) =>
+						{
+							var subspace = await location.Resolve(tr);
+							return await tr.GetAsync(subspace.Encode("Hello"));
+						},
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
 					"Trying to read a key in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Get")));
+				Assert.That(await db.ReadAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					return tr.GetAsync(subspace.Encode("Hello"));
+				}, this.Cancellation), Is.EqualTo(Slice.FromString("Get")));
 
 				// GetCommitVersion() is allowed to be executed AFTER the commit!
-				var cv = await db.WriteAsync(
-					(tr) => tr.Set(key, Value("GetCommitVersion")),
+				var cv = await db.ReadWriteAsync(
+					async (tr) =>
+					{
+						var subspace = await location.Resolve(tr);
+						tr.Set(subspace.Encode("Hello"), Value("GetCommitVersion"));
+					},
 					(tr) => tr.GetCommittedVersion(),
 					this.Cancellation
 				);
 				Assert.That(cv, Is.GreaterThan(0));
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetCommitVersion")));
+				Assert.That(
+					await db.ReadAsync(async tr =>
+					{
+						var subspace = await location.Resolve(tr);
+						return tr.GetAsync(subspace.Encode("Hello"));
+					}, this.Cancellation),
+					Is.EqualTo(Slice.FromString("GetCommitVersion"))
+				);
 
 				// GetCommitVersion() is allowed to be executed AFTER the commit!
 				var rv = await db.WriteAsync(
-					(tr) => tr.Set(key, Value("GetReadVersion")),
+					async (tr) =>
+					{
+						var subspace = await location.Resolve(tr);
+						tr.Set(subspace.Encode("Hello"), Value("GetReadVersion"));
+					},
 					(tr) =>
 					{
 						var rvt = tr.GetReadVersionAsync();
@@ -449,7 +520,14 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 				Assert.That(rv, Is.GreaterThan(0));
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetReadVersion")));
+				Assert.That(
+					await db.ReadAsync(async tr =>
+					{
+						var subspace = await location.Resolve(tr);
+						return tr.GetAsync(subspace.Encode("Hello"));
+					}, this.Cancellation),
+					Is.EqualTo(Slice.FromString("GetReadVersion"))
+				);
 			}
 		}
 
@@ -458,15 +536,16 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-
-				var location = await GetCleanDirectory(db, "Retryable");
-				var key = location.Keys.Encode("Hello");
+				var location = db.Directory["Retryable"];
+				await CleanLocation(db, location);
 
 				// Cannot get version stamp after commit
 				Assert.That(
-					async () => await db.WriteAsync(
-					(tr) =>
+					async () => await db.ReadWriteAsync(
+					async (tr) =>
 					{
+						var subspace = await location.Resolve(tr);
+						var key = subspace.Encode("Hello");
 						tr.Set(key, Value("GetVersionStamp"));
 						tr.SetVersionStampedKey(key + tr.CreateVersionStamp().ToSlice(), Slice.Empty);
 					},
@@ -476,12 +555,18 @@ namespace FoundationDB.Client.Tests
 					"Trying to read a key in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp")));
+				Assert.That(await db.ReadAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					return tr.GetAsync(subspace.Encode("Hello"));
+				}, this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp")));
 
 				// but getting stamp before commit and awaiting it after should work
 				VersionStamp st = await db.ReadWriteAsync(
 					async (tr) =>
 					{
+						var subspace = await location.Resolve(tr);
+						var key = subspace.Encode("Hello");
 						var prev = await tr.GetAsync(key);
 						tr.Set(key, Value("GetVersionStamp2"));
 						tr.SetVersionStampedKey(key + VersionStamp.Incomplete().ToSlice(), key.Count, prev);
@@ -492,7 +577,11 @@ namespace FoundationDB.Client.Tests
 				);
 				Assert.That(st.IsIncomplete, Is.False, "Stamp should be completed");
 				Assert.That(st.TransactionVersion, Is.Not.Zero.And.Not.EqualTo(ulong.MaxValue), "Stamp should be completed");
-				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp2")));
+				Assert.That(await db.ReadAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					return tr.GetAsync(subspace.Encode("Hello"));
+				}, this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp2")));
 			}
 		}
 

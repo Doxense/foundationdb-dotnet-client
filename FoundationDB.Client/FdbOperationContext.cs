@@ -120,91 +120,96 @@ namespace FoundationDB.Client
 			this.Cancellation = token;
 		}
 
+		public IDynamicKeySubspace Root { get; internal set; }
+
+		internal async ValueTask ComputeRoot(IFdbReadOnlyTransaction tr)
+		{
+			Contract.Requires(tr != null);
+			var root = await this.Database.Root.Resolve(tr);
+			this.Root = root;
+		}
+
 		#region Sucess Handlers...
 
-		/// <summary>List of one or more success handlers</summary>
+		/// <summary>List of one or more state change callback</summary>
 		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
-		private object SuccessHandlers { get; set; }
+		private object StateCallbacks; // interlocked!
 
-		private void RegisterSuccessHandler(object handler)
+		private void RegisterStateCallback(object callback)
 		{
-			Contract.Requires(handler is Delegate || handler is IHandleTransactionSuccess);
+			Contract.Requires(callback is Delegate || callback is IHandleTransactionLifecycle);
 			lock (this)
 			{
-				var previous = this.SuccessHandlers;
+				var previous = this.StateCallbacks;
 				if (previous == null)
 				{ // first handler for this context
-					this.SuccessHandlers = handler;
+					this.StateCallbacks = callback;
 				}
 				else if (previous is object[] arr)
 				{ // one more 
 					Array.Resize(ref arr, arr.Length + 1);
-					arr[arr.Length - 1] = handler;
-					this.SuccessHandlers = arr;
+					arr[arr.Length - 1] = callback;
+					this.StateCallbacks = arr;
 				}
 				else
 				{ // second handler
-					this.SuccessHandlers = new [] { previous, handler };
+					this.StateCallbacks = new [] { previous, callback };
 				}
 			}
 		}
 
-		private Task ExecuteSuccessHandlers()
+		private Task ExecuteHandlers(ref object handlers, FdbOperationContext ctx, FdbTransactionState state)
 		{
-			var handlers = this.SuccessHandlers;
-			if (handlers == null) return Task.CompletedTask;
-
-			return handlers is object[] arr
-				? ExecuteMultipleHandlers(arr, this.Cancellation)
-				: ExecuteSingleHandler(handlers, this.Cancellation);
+			var cbk = Interlocked.Exchange(ref handlers, null);
+			switch (cbk)
+			{
+				case null: return Task.CompletedTask;
+				case object[] arr: return ExecuteMultipleHandlers(arr, ctx, state, this.Cancellation);
+				default: return ExecuteSingleHandler(cbk, ctx, state, this.Cancellation);
+			}
 		}
 
-		private static Task ExecuteSingleHandler(object del, CancellationToken ct)
+		private static Task ExecuteSingleHandler(object del, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
 		{
 			switch (del)
 			{
-				case IHandleTransactionSuccess hts:
+				case IHandleTransactionLifecycle htl:
 				{
-					hts.OnTransactionSuccessful();
+					htl.OnTransactionStateChanged(arg);
 					return Task.CompletedTask;
 				}
-				case IHandleTransactionFailure htf:
+				case Action<FdbOperationContext, FdbTransactionState> act:
 				{
-					htf.OnTransactionFailed();
+					act(ctx, arg);
 					return Task.CompletedTask;
 				}
-				case Action act:
+				case Func<FdbOperationContext, FdbTransactionState, CancellationToken, Task> fct:
 				{
-					act();
-					return Task.CompletedTask;
-				}
-				case Func<CancellationToken, Task> fct:
-				{
-					return fct(ct);
+					return fct(ctx, arg, ct);
 				}
 			}
 
 			throw new NotSupportedException("Unexpected handler delegate type.");
 		}
 
-		private static async Task ExecuteMultipleHandlers(object[] arr, CancellationToken ct)
+		private static async Task ExecuteMultipleHandlers(object[] arr, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
 		{
 			foreach (object del in arr)
 			{
-				if (del != null) await ExecuteSingleHandler(del, ct).ConfigureAwait(false);
+				if (del != null) await ExecuteSingleHandler(del, ctx, arg, ct).ConfigureAwait(false);
 			}
 		}
 
 		/// <summary>Register a callback that will only be called once the transaction has been successfully committed</summary>
 		/// <remarks>NOTE: there are _no_ guarantees that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
-		public void OnSuccess([NotNull] Action callback)
+		public void OnSuccess([NotNull] Action<FdbOperationContext, FdbTransactionState> callback)
 		{
-			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
+			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
 
-		public void OnSuccess([NotNull] Func<CancellationToken, Task> callback)
+		public void OnSuccess([NotNull] Func<FdbOperationContext, FdbTransactionState, CancellationToken, Task> callback)
 		{
-			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
+			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
 
 		#endregion
@@ -285,7 +290,6 @@ namespace FoundationDB.Client
 				return result;
 			}
 		}
-
 
 		[NotNull]
 		public TState GetOrCreateLocalData<TState>(Func<TState> factory) where TState : class
@@ -375,10 +379,10 @@ namespace FoundationDB.Client
 							context.Committed = true;
 							context.PreviousError = FdbError.Success;
 
-							// execute any success handlers if there are any
-							if (context.SuccessHandlers != null)
+							// execute any state callbacks, if there are any
+							if (context.StateCallbacks != null)
 							{
-								await context.ExecuteSuccessHandlers().ConfigureAwait(false);
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Commit).ConfigureAwait(false);
 							}
 
 							// execute any final logic, if there is any
@@ -417,12 +421,43 @@ namespace FoundationDB.Client
 						{
 							context.PreviousError = e.Code;
 
-							// reset any handler
-							context.SuccessHandlers = null;
+							// execute any state callbacks, if there are any
+							if (context.StateCallbacks != null)
+							{
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Faulted).ConfigureAwait(false);
+							}
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with error code {1}", trans.Id, e.Code));
-							await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
+							
+							bool shouldRethrow = false;
+							try
+							{
+								await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
+							}
+							catch (FdbException e2)
+							{
+								// if the code is the same, we prefer re-throwing the original exception to keep the stacktrace intact!
+								if (e2.Code != e.Code) throw;
+								shouldRethrow = true;
+							}
+							// re-throw original exception because it is not retryable.
+							if (shouldRethrow) throw;
+
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
+
+							// the transaction has been reset, we has to refresh the root location!
+							while (!context.Cancellation.IsCancellationRequested)
+							{
+								try
+								{
+									await context.ComputeRoot(trans); // this may also timeout!
+									break;
+								}
+								catch (FdbException e2)
+								{
+									await trans.OnErrorAsync(e2.Code).ConfigureAwait(false);
+								}
+							}
 						}
 
 						// update the base time for the next attempt
@@ -434,6 +469,12 @@ namespace FoundationDB.Client
 
 				if (context.Abort)
 				{
+					// execute any state callbacks, if there are any
+					if (context.StateCallbacks != null)
+					{
+						await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Aborted).ConfigureAwait(false);
+					}
+
 					throw new OperationCanceledException(context.Cancellation);
 				}
 
@@ -499,6 +540,17 @@ namespace FoundationDB.Client
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
 			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
 			return result;
+		}
+
+		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task RunReadWithResultAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, handler, null).ConfigureAwait(false);
 		}
 
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
@@ -767,6 +819,44 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Func<IFdbTransaction, Task<TResult>> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(success, nameof(success));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			async void Complete(IFdbTransaction tr)
+			{
+				result = await success(tr);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Func<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(success, nameof(success));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			void Complete(IFdbTransaction tr)
+			{
+				result = success(tr);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -820,19 +910,23 @@ namespace FoundationDB.Client
 
 	}
  
-	/// <summary>Marker interface for objects that need to 'activate' only once a transaction commits successful.</summary>
-	internal interface IHandleTransactionSuccess
+	/// <summary>Marker interface for objects that need to respond to transaction state change (commit, failure, ...)</summary>
+	public interface IHandleTransactionLifecycle
 	{
-		//REVIEW: for now internal only, we'll see if we make this public!
+		/// <summary>Called when the transaction state changes (reset, commit, rollback, ...)</summary>
+		/// <param name="state">Reason for the state change</param>
+		void OnTransactionStateChanged(FdbTransactionState state);
 
-		void OnTransactionSuccessful();
 	}
 
-	/// <summary>Marker interface for objects that need to 'self destruct' if a transaction fails to commit.</summary>
-	internal interface IHandleTransactionFailure
+	public enum FdbTransactionState
 	{
-		//REVIEW: for now internal only, we'll see if we make this public!
-
-		void OnTransactionFailed();
+		/// <summary>The last execution of the handler failed</summary>
+		Faulted,
+		/// <summary>The last execution of the handler successfully committed the transaction</summary>
+		Commit,
+		/// <summary>The last execution of the handler was aborted</summary>
+		Aborted,
 	}
+
 }
