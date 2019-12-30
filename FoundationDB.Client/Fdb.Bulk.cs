@@ -700,7 +700,6 @@ namespace FoundationDB.Client
 					throw new ArgumentException($"Unsupported delegate type {body.GetType().FullName} for body", nameof(body));
 				}
 
-			
 				var chunk = new List<TSource>(batchCount); // holds all the items processed in the current transaction cycle
 				long itemCount = 0; // total number of items processed
 
@@ -708,7 +707,7 @@ namespace FoundationDB.Client
 				{
 					var timer = Stopwatch.StartNew();
 
-					Func<Task> commit = async () =>
+					async Task Commit()
 					{
 #if FULL_DEBUG
 						Trace.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
@@ -725,7 +724,7 @@ namespace FoundationDB.Client
 							// recompute the batch count, so that we do about 4 batch per transaction
 							// we observed that 'chunk.Count' items produced 'trans.Size' bytes.
 							// we would like to have 'sizeThreshold' bytes, and about 8 batch per transaction
-							batchCount = (int)(((long)chunk.Count * sizeThreshold) / (trans.Size * 8L));
+							batchCount = (int) (((long) chunk.Count * sizeThreshold) / (trans.Size * 8L));
 							//Console.WriteLine("New batch size is {0}", batchCount);
 						}
 						catch (FdbException e)
@@ -763,7 +762,7 @@ namespace FoundationDB.Client
 						chunk.Clear();
 						trans.Reset();
 						timer.Reset();
-					};
+					}
 
 					int offset = 0; // offset of the current batch in the chunk
 
@@ -795,7 +794,7 @@ namespace FoundationDB.Client
 							if (trans.Size >= sizeThreshold         // transaction is startting to get big...
 							 || timer.Elapsed.TotalSeconds >= 4)    // it's getting late...
 							{
-								await commit().ConfigureAwait(false);
+								await Commit().ConfigureAwait(false);
 
 								offset = 0;
 							}
@@ -818,7 +817,7 @@ namespace FoundationDB.Client
 							bodyBlocking(batch, trans);
 						}
 
-						await commit().ConfigureAwait(false);
+						await Commit().ConfigureAwait(false);
 					}
 				}
 
@@ -1459,7 +1458,9 @@ namespace FoundationDB.Client
 						count += page.Count;
 					}
 
+#if DEBUG
 					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+#endif
 
 					return count;
 				}
@@ -1497,7 +1498,7 @@ namespace FoundationDB.Client
 						onReset?.Invoke(tr);
 					}
 				}
-			}		
+			}
 
 			#endregion
 

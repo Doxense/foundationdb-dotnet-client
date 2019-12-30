@@ -166,7 +166,7 @@ namespace FdbShell
 					Console.WindowHeight = 60;
 				}
 			}
-			catch (Exception e)
+			catch
 			{
 				// this sometimes fail on small screen sizes
 			}

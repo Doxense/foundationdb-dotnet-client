@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using JetBrains.Annotations;
 
-	/// <summary>Type system that handles encoding and decoding of differnt types of keys</summary>
+	/// <summary>Type system that handles encoding and decoding of different types of keys</summary>
 	/// <remarks>
 	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.
 	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.

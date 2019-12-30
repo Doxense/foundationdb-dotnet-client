@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,16 +61,17 @@ namespace FoundationDB.Filters
 			m_owner = ownsTransaction;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void ThrowIfDisposed()
 		{
 			// this should be inlined by the caller
-			if (m_disposed) ThrowFilterAlreadyDisposed(this);
+			if (m_disposed) throw FilterAlreadyDisposed(this);
 		}
 
-		[ContractAnnotation("=> halt")]
-		private static void ThrowFilterAlreadyDisposed([NotNull] FdbTransactionFilter filter)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static Exception FilterAlreadyDisposed([NotNull] FdbTransactionFilter filter)
 		{
-			throw new ObjectDisposedException(filter.GetType().Name);
+			return new ObjectDisposedException(filter.GetType().Name);
 		}
 
 		public void Dispose()
@@ -346,7 +347,7 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public int Timeout
 		{
-			get { return m_transaction.Timeout; }
+			get => m_transaction.Timeout;
 			set
 			{
 				ThrowIfDisposed();
@@ -357,7 +358,7 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public int RetryLimit
 		{
-			get { return m_transaction.RetryLimit; }
+			get => m_transaction.RetryLimit;
 			set
 			{
 				ThrowIfDisposed();
@@ -368,7 +369,7 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public int MaxRetryDelay
 		{
-			get { return m_transaction.MaxRetryDelay; }
+			get => m_transaction.MaxRetryDelay;
 			set
 			{
 				ThrowIfDisposed();
@@ -521,22 +522,22 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public virtual int Timeout
 		{
-			get { return m_transaction.Timeout; }
-			set { m_transaction.Timeout = value; }
+			get => m_transaction.Timeout;
+			set => m_transaction.Timeout = value;
 		}
 
 		/// <inheritdoc />
 		public virtual int RetryLimit
 		{
-			get { return m_transaction.RetryLimit; }
-			set { m_transaction.RetryLimit = value; }
+			get => m_transaction.RetryLimit;
+			set => m_transaction.RetryLimit = value;
 		}
 
 		/// <inheritdoc />
 		public virtual int MaxRetryDelay
 		{
-			get { return m_transaction.MaxRetryDelay; }
-			set { m_transaction.MaxRetryDelay = value; }
+			get => m_transaction.MaxRetryDelay;
+			set => m_transaction.MaxRetryDelay = value;
 		}
 
 		public void Dispose()
@@ -549,6 +550,7 @@ namespace FoundationDB.Filters
 		{
 			//NOP?
 		}
+
 	}
 
 }

@@ -62,6 +62,7 @@ namespace FoundationDB.Client
 		/// <summary>Default maximum number of retries for all transactions (or infinite if 0)</summary>
 		public int DefaultRetryLimit { get; set; }
 
+		/// <summary>Default maximum retry delay for all transactions (or infinite if 0)</summary>
 		public int DefaultMaxRetryDelay { get; set; }
 
 		/// <summary>Global subspace in use by the database (empty prefix by default)</summary>

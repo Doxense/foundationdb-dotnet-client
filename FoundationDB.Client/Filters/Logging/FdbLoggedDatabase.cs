@@ -45,7 +45,7 @@ namespace FoundationDB.Filters.Logging
 		/// <param name="database">Wrapped database</param>
 		/// <param name="forceReadOnly">If true, deny all write operations.</param>
 		/// <param name="ownsDatabase">If true, also dispose the wrapped database if this instance is disposed.</param>
-		/// <param name="onCommitted">Handler that will be called when a transaction is either committed succesfully, or disposed. The log can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
+		/// <param name="onCommitted">Handler that will be called when a transaction is either committed successfully, or disposed. The log can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
 		/// <param name="defaultOptions"></param>
 		public FdbLoggedDatabase(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions defaultOptions = FdbLoggingOptions.Default)
 			: base(database, forceReadOnly, ownsDatabase)

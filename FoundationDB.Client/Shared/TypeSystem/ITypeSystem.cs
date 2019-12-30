@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using JetBrains.Annotations;
 
-	/// <summary>Represents a particular encoding scheme that can convert with keys and values into binary literals</summary>
+	/// <summary>Represents a particular encoding scheme that can convert keys and values into binary literals</summary>
 	public interface ITypeSystem : IKeyEncoding, IValueEncoding
 	{
 

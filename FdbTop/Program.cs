@@ -179,7 +179,7 @@ namespace FdbTop
 							{
 								CurrentCoordinators = await Fdb.System.GetCoordinatorsAsync(db, cancel);
 							}
-							catch (Exception e)
+							catch (Exception)
 							{
 								CurrentCoordinators = null;
 								//TODO: error?
@@ -312,7 +312,7 @@ namespace FdbTop
 									var newStatus = await taskStatus.ConfigureAwait(false);
 									status = newStatus;
 								}
-								catch (Exception e)
+								catch (Exception)
 								{
 									//TODO: display error in top bar!
 									FailToBar();
