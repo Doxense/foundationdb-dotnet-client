@@ -54,35 +54,27 @@ namespace FoundationDB.Layers.Counters
 		private const int RUNNING = 1;
 
 		/// <summary>Create a new High Contention counter.</summary>
-		/// <param name="db">Database used by this layer</param>
-		/// <param name="subspace">Subspace to be used for storing the counter</param>
-		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace)
-			: this(db, subspace.AsDynamic(), TuPack.Encoding.GetValueEncoder<long>())
+		/// <param name="location">Subspace to be used for storing the counter</param>
+		public FdbHighContentionCounter([NotNull] ISubspaceLocation location)
+			: this(location.AsDynamic(), TuPack.Encoding.GetValueEncoder<long>())
 		{ }
 
 		/// <summary>Create a new High Contention counter, using a specific value encoder.</summary>
-		/// <param name="db">Database used by this layer</param>
-		/// <param name="subspace">Subspace to be used for storing the counter</param>
+		/// <param name="location">Location for storing the counters</param>
 		/// <param name="encoder">Encoder for the counter values</param>
-		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IDynamicKeySubspace subspace, [NotNull] IValueEncoder<long> encoder)
+		public FdbHighContentionCounter([NotNull] DynamicKeySubspaceLocation location, [NotNull] IValueEncoder<long> encoder)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (encoder == null) throw new ArgumentNullException(nameof(encoder));
-
-			this.Database = db;
-			this.Subspace = subspace.AsDynamic();
-			this.Encoder = encoder;
+			this.Location = location ?? throw new ArgumentNullException(nameof(location));
+			this.Encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IDynamicKeySubspace Subspace {[NotNull] get; }
-
-		/// <summary>Database instance that is used to perform background coalescing of the counter</summary>
-		public IFdbDatabase Database {[NotNull] get; }
+		[NotNull] 
+		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Encoder for the integer values of the counter</summary>
-		public IValueEncoder<long> Encoder {[NotNull] get; }
+		[NotNull]
+		public IValueEncoder<long> Encoder {get; }
 
 		/// <summary>Generate a new random slice</summary>
 		protected virtual Slice RandomId()
@@ -93,51 +85,40 @@ namespace FoundationDB.Layers.Counters
 			}
 		}
 
-		private async Task Coalesce(int N, CancellationToken ct)
+		private Task Coalesce(IFdbDatabase db, int N, CancellationToken ct)
 		{
-			long total = 0;
-
-			using (var tr = this.Database.BeginTransaction(ct))
+			return db.ReadWriteAsync(async tr =>
 			{
-				try
+				long total = 0;
+				var subspace = await this.Location.Resolve(tr);
+
+				// read N writes from a random place in ID space
+				var loc = subspace.Encode(RandomId());
+
+				bool right;
+				lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
+				var query = right
+					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new FdbRangeOptions { Limit = N })
+					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true });
+				var shards = await query.ToListAsync().ConfigureAwait(false);
+
+				if (shards.Count > 0)
 				{
-					// read N writes from a random place in ID space
-					var loc = this.Subspace.Keys.Encode(RandomId());
-
-					bool right;
-					lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
-					var query = right
-						? tr.Snapshot.GetRange(loc, this.Subspace.Keys.ToRange().End, new FdbRangeOptions { Limit = N })
-						: tr.Snapshot.GetRange(this.Subspace.Keys.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true });
-					var shards = await query.ToListAsync().ConfigureAwait(false);
-
-					if (shards.Count > 0)
+					// remove read shards transaction
+					foreach (var shard in shards)
 					{
-						// remove read shards transaction
-						foreach (var shard in shards)
-						{
-							checked { total += this.Encoder.DecodeValue(shard.Value); }
-							await tr.GetAsync(shard.Key).ConfigureAwait(false); // real read for isolation
-							tr.Clear(shard.Key);
-						}
-
-						tr.Set(this.Subspace.Keys.Encode(RandomId()), this.Encoder.EncodeValue(total));
-
-						// note: contrary to the python impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
-						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
-						await tr.CommitAsync().ConfigureAwait(false);
+						checked { total += this.Encoder.DecodeValue(shard.Value); }
+						await tr.GetAsync(shard.Key).ConfigureAwait(false); // real read for isolation
+						tr.Clear(shard.Key);
 					}
+
+					tr.Set(subspace.Encode(RandomId()), this.Encoder.EncodeValue(total));
+
 				}
-				catch (FdbException x)
-				{
-					//TODO: logging ?
-					System.Diagnostics.Debug.WriteLine($"Coalesce error: {x.Message}");
-					return;
-				}
-			}
+			}, ct);
 		}
 
-		private void BackgroundCoalesce(int n, CancellationToken ct)
+		private void BackgroundCoalesce(IFdbDatabase db, int n, CancellationToken ct)
 		{
 			// only coalesce if it is not already running
 			if (Interlocked.CompareExchange(ref m_coalesceRunning, RUNNING, NOT_RUNNING) == NOT_RUNNING)
@@ -146,7 +127,7 @@ namespace FoundationDB.Layers.Counters
 				{
 					// fire and forget
 					var _ = Task
-						.Run(() => Coalesce(n, ct), ct)
+						.Run(() => Coalesce(db, n, ct), ct)
 						.ContinueWith((t) =>
 						{
 							// reset the flag
@@ -176,29 +157,30 @@ namespace FoundationDB.Layers.Counters
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
+			var subspace = await this.Location.Resolve(trans);
+
 			long total = 0;
 			await trans
-				.GetRange(this.Subspace.Keys.ToRange())
+				.GetRange(subspace.ToRange())
 				.ForEachAsync((kvp) => { checked { total += this.Encoder.DecodeValue(kvp.Value); } })
 				.ConfigureAwait(false);
 
 			return total;
 		}
 
-		/// <summary>Get the value of the counter with snapshot isolation (no transaction conflicts).</summary>
 		public Task<long> GetSnapshot([NotNull] IFdbReadOnlyTransaction trans)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-
 			return GetTransactional(trans.Snapshot);
 		}
 
 		/// <summary>Add the value x to the counter.</summary>
-		public void Add([NotNull] IFdbTransaction trans, long x)
+		public async ValueTask Add([NotNull] IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			trans.Set(this.Subspace.Keys.Encode(RandomId()), this.Encoder.EncodeValue(x));
+			var subspace = await this.Location.Resolve(trans);
+
+			trans.Set(subspace.Encode(RandomId()), this.Encoder.EncodeValue(x));
 
 			// decide if we must coalesce
 			//note: Random() is not thread-safe so we must lock
@@ -207,48 +189,18 @@ namespace FoundationDB.Layers.Counters
 			if (coalesce)
 			{
 				//REVIEW: 20 is too small if there is a lot of activity on the counter !
-				BackgroundCoalesce(20, CancellationToken.None);
+				BackgroundCoalesce(trans.Context.Database, 20, CancellationToken.None);
 			}
 		}
 
 		/// <summary>Set the counter to value x.</summary>
-		public async Task SetTotal([NotNull] IFdbTransaction trans, long x)
+		public async ValueTask SetTotal([NotNull] IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			long value = await GetSnapshot(trans).ConfigureAwait(false);
-			Add(trans, x - value);
+			await Add(trans, x - value);
 		}
-
-		#region Transactionals...
-
-		/// <summary>Get the value of the counter.
-		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
-		/// </summary>
-		public Task<long> GetTransactionalAsync(CancellationToken ct)
-		{
-			return this.Database.ReadAsync((tr) => GetTransactional(tr), ct);
-		}
-
-		/// <summary>Get the value of the counter with snapshot isolation (no transaction conflicts).</summary>
-		public Task<long> GetSnapshotAsync(CancellationToken ct)
-		{
-			return this.Database.ReadAsync((tr) => GetSnapshot(tr), ct);
-		}
-
-		/// <summary>Add the value x to the counter.</summary>
-		public Task AddAsync(long x, CancellationToken ct)
-		{
-			return this.Database.WriteAsync((tr) => Add(tr, x), ct);
-		}
-
-		/// <summary>Set the counter to value x.</summary>
-		public Task SetTotalAsync(long x, CancellationToken ct)
-		{
-			return this.Database.ReadWriteAsync((tr) => SetTotal(tr, x), ct);
-		}
-
-		#endregion
 
 	}
 

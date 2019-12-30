@@ -122,10 +122,10 @@ namespace FoundationDB.Layers.Messaging
 
 		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IDynamicKeySubspace ring)
 		{
-			var range = ring.Keys.ToRange();
+			var range = ring.ToRange();
 
 			// start from a random position around the ring
-			var key = ring.Keys.Encode(GetRandomId());
+			var key = ring.Encode(GetRandomId());
 
 			// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
 			// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
@@ -159,12 +159,12 @@ namespace FoundationDB.Layers.Messaging
 			// - an empty queue must correspond to an empty subspace
 
 			// get the current size of the queue
-			var range = queue.Keys.ToRange();
+			var range = queue.ToRange();
 			var lastKey = await tr.Snapshot.GetKeyAsync(KeySelector.LastLessThan(range.End)).ConfigureAwait(false);
-			int count = lastKey < range.Begin ? 0 : queue.Keys.DecodeFirst<int>(lastKey) + 1;
+			int count = lastKey < range.Begin ? 0 : queue.DecodeFirst<int>(lastKey) + 1;
 
 			// set the value
-			tr.Set(queue.Keys.Encode(count, GetRandomId()), taskId);
+			tr.Set(queue.Encode(count, GetRandomId()), taskId);
 		}
 
 		private void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
@@ -175,7 +175,7 @@ namespace FoundationDB.Layers.Messaging
 
 			// store task body and timestamp
 			tr.Set(prefix.GetPrefix(), taskBody);
-			tr.Set(prefix.Keys.Encode(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
+			tr.Set(prefix.Encode(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
 			// increment total and pending number of tasks
 			this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
 			this.Counters.Increment(tr, COUNTER_PENDING_TASKS);
@@ -186,7 +186,7 @@ namespace FoundationDB.Layers.Messaging
 			tr.Annotate("Deleting task {0:P}", taskId);
 
 			// clear all metadata about the task
-			tr.ClearRange(KeyRange.StartsWith(this.TaskStore.Keys.Encode(taskId)));
+			tr.ClearRange(KeyRange.StartsWith(this.TaskStore.Encode(taskId)));
 			// decrement pending number of tasks
 			this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
 		}
@@ -215,16 +215,16 @@ namespace FoundationDB.Layers.Messaging
 
 				if (randomWorkerKey.Key != null)
 				{
-					Slice workerId = this.IdleRing.Keys.Decode<Slice>(randomWorkerKey.Key);
+					Slice workerId = this.IdleRing.Decode<Slice>(randomWorkerKey.Key);
 
 					tr.Annotate("Assigning {0:P} to {1:P}", taskId, workerId);
 
 					// remove worker from the idle ring
-					tr.Clear(this.IdleRing.Keys.Encode(workerId));
+					tr.Clear(this.IdleRing.Encode(workerId));
 					this.Counters.Decrement(tr, COUNTER_IDLE);
 
 					// assign task to the worker
-					tr.Set(this.BusyRing.Keys.Encode(workerId), taskId);
+					tr.Set(this.BusyRing.Encode(workerId), taskId);
 					this.Counters.Increment(tr, COUNTER_BUSY);
 				}
 				else
@@ -281,7 +281,7 @@ namespace FoundationDB.Layers.Messaging
 							else if (myId.IsPresent)
 							{ // look for an already assigned task
 								tr.Annotate("Look for already assigned task");
-								msg.Id = await tr.GetAsync(this.BusyRing.Keys.Encode(myId)).ConfigureAwait(false);
+								msg.Id = await tr.GetAsync(this.BusyRing.Encode(myId)).ConfigureAwait(false);
 							}
 
 							if (!msg.Id.IsPresent)
@@ -290,7 +290,7 @@ namespace FoundationDB.Layers.Messaging
 								tr.Annotate("Look for next queued item");
 								
 								// Find the next task on the queue
-								var item = await tr.GetRange(this.UnassignedTaskRing.Keys.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
+								var item = await tr.GetRange(this.UnassignedTaskRing.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
 
 								if (item.Key != null)
 								{ // pop the Task from the queue
@@ -303,7 +303,7 @@ namespace FoundationDB.Layers.Messaging
 									// note: we need a random id so generate one if it is the first time...
 									if (!myId.IsPresent) myId = GetRandomId();
 									tr.Annotate("Found {0:P}, switch to busy with id {1:P}", msg.Id, myId);
-									tr.Set(this.BusyRing.Keys.Encode(myId), msg.Id);
+									tr.Set(this.BusyRing.Encode(myId), msg.Id);
 									this.Counters.Increment(tr, COUNTER_BUSY);
 								}
 								else if (myId.IsPresent)
@@ -321,7 +321,7 @@ namespace FoundationDB.Layers.Messaging
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(new [] {
 									prefix.GetPrefix(),
-									prefix.Keys.Encode(TASK_META_SCHEDULED)
+									prefix.Encode(TASK_META_SCHEDULED)
 								}).ConfigureAwait(false);
 
 								msg.Body = data[0];
@@ -334,7 +334,7 @@ namespace FoundationDB.Layers.Messaging
 								// remove us from the busy ring
 								if (myId.IsPresent)
 								{
-									tr.Clear(this.BusyRing.Keys.Encode(myId));
+									tr.Clear(this.BusyRing.Encode(myId));
 									this.Counters.Decrement(tr, COUNTER_BUSY);
 								}
 
@@ -342,7 +342,7 @@ namespace FoundationDB.Layers.Messaging
 								myId = GetRandomId();
 
 								// the idle key will also be used as the watch key to wake us up
-								var watchKey = this.IdleRing.Keys.Encode(myId);
+								var watchKey = this.IdleRing.Encode(myId);
 								tr.Annotate("Will start watching on key {0:P} with id {1:P}", watchKey, myId);
 								tr.Set(watchKey, Slice.Empty);
 								this.Counters.Increment(tr, COUNTER_IDLE);

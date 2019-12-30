@@ -30,7 +30,6 @@ namespace FoundationDB.Layers.Collections.Tests
 {
 	using System;
 	using System.Threading.Tasks;
-	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
@@ -46,75 +45,81 @@ namespace FoundationDB.Layers.Collections.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = await GetCleanDirectory(db, "Collections", "MultiMaps");
+				var location = db.Directory["Collections"]["MultiMaps"];
+				await CleanLocation(db, location);
 
-				var map = new FdbMultiMap<string, string>(location.Partition.ByKey("Foos"), allowNegativeValues: false);
+				var mapFoos = new FdbMultiMap<string, string>(location.ByKey("Foos"), allowNegativeValues: false);
 
 				// read non existing value
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					bool res = await map.ContainsAsync(tr, "hello", "world");
+					var foos = await mapFoos.ResolveState(tr);
+					bool res = await foos.ContainsAsync(tr, "hello", "world");
 					Assert.That(res, Is.False, "ContainsAsync('hello','world')");
 
-					long? count = await map.GetCountAsync(tr, "hello", "world");
+					long? count = await foos.GetCountAsync(tr, "hello", "world");
 					Assert.That(count, Is.Null, "GetCountAsync('hello', 'world')");
 				}
 
 				// add some values
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.WriteAsync(async tr =>
 				{
-					await map.AddAsync(tr, "hello", "world");
-					await map.AddAsync(tr, "foo", "bar");
-					await map.AddAsync(tr, "foo", "baz");
-					await tr.CommitAsync();
-				}
+					var foos = await mapFoos.ResolveState(tr);
+					await foos.AddAsync(tr, "hello", "world");
+					await foos.AddAsync(tr, "foo", "bar");
+					await foos.AddAsync(tr, "foo", "baz");
+				}, this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// read values back
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
-					long? count = await map.GetCountAsync(tr, "hello", "world");
+					var foos = await mapFoos.ResolveState(tr);
+					long? count = await foos.GetCountAsync(tr, "hello", "world");
 					Assert.That(count, Is.EqualTo(1), "hello:world");
-					count = await map.GetCountAsync(tr, "foo", "bar");
+					count = await foos.GetCountAsync(tr, "foo", "bar");
 					Assert.That(count, Is.EqualTo(1), "foo:bar");
-					count = await map.GetCountAsync(tr, "foo", "baz");
+					count = await foos.GetCountAsync(tr, "foo", "baz");
 					Assert.That(count, Is.EqualTo(1), "foo:baz");
-				}
+				}, this.Cancellation);
 
 				// directly read the value, behind the table's back
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.ReadAsync(async tr =>
 				{
-					var loc = map.Subspace.AsDynamic();
-					var value = await tr.GetAsync(loc.Keys.Encode("hello", "world"));
+					var foos = await mapFoos.ResolveState(tr);
+					var loc = foos.Subspace.AsDynamic();
+					var value = await tr.GetAsync(loc.Encode("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
-				}
+				}, this.Cancellation);
 
 				// delete the value
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.WriteAsync(async tr =>
 				{
-					map.Remove(tr, "hello", "world");
-					await tr.CommitAsync();
-				}
+					var foos = await mapFoos.ResolveState(tr);
+					foos.Remove(tr, "hello", "world");
+				}, this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				// verifiy that it is gone
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				// verify that it is gone
+				await db.ReadAsync(async tr =>
 				{
-					long? count = await map.GetCountAsync(tr, "hello", "world");
+					var foos = await mapFoos.ResolveState(tr);
+
+					long? count = await foos.GetCountAsync(tr, "hello", "world");
 					Assert.That(count, Is.Null);
 
 					// also check directly
-					var loc = map.Subspace.AsDynamic();
-					var data = await tr.GetAsync(loc.Keys.Encode("hello", "world"));
+					var loc = foos.Subspace.AsDynamic();
+					var data = await tr.GetAsync(loc.Encode("hello", "world"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
-				}
+				}, this.Cancellation);
 
 			}
 

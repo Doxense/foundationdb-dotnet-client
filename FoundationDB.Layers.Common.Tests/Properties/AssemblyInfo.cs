@@ -26,28 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Providers
-{
-	using FoundationDB.Client;
-	using FoundationDB.Linq.Expressions;
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
+using System.Reflection;
+using System.Runtime.InteropServices;
 
-	/// <summary>Database query</summary>
-	/// <remarks>Reads data directly from a database</remarks>
-	public sealed class FdbDatabaseQuery : FdbAsyncQuery<IFdbDatabase>, IFdbDatabaseQueryable
-	{
-		internal FdbDatabaseQuery(IFdbDatabase db)
-			: base(db)
-		{ }
+[assembly: ComVisible(false)]
 
-		/// <summary>Execute the query and return the result in the expected type</summary>
-		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
-		{
-			throw new InvalidOperationException("You cannot execute this operation on the whole database. Try calling Range() or RangeStartsWith() on this query to read from the database.");
-		}
-
-	}
-
-}
+[assembly: Guid("3d64e90f-ec3a-4cb9-8703-d7b6ce916637")]

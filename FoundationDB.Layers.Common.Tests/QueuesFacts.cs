@@ -54,12 +54,13 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "queue");
+				var location = db.Directory["queue"];
+				await CleanLocation(db, location);
 
-				var queue = new FdbQueue<int>(location, highContention: false);
+				var queue = new FdbQueue<int>(location);
 
 				Log("Clear Queue");
-				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
+				await db.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
 
 				Log("Empty? " + await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
 
@@ -73,11 +74,11 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 				// Empty?
-				bool empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				bool empty = await db.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.False);
 
-				var item = await queue.PopAsync(db, this.Cancellation);
+				var item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(10));
@@ -89,7 +90,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				item = await queue.PopAsync(db, this.Cancellation);
+				item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(8));
@@ -97,7 +98,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				item = await queue.PopAsync(db, this.Cancellation);
+				item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(6));
@@ -105,23 +106,23 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				empty = await db.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 
 				Log("Push 5");
-				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 5), this.Cancellation);
+				await db.ReadWriteAsync(tr => queue.PushAsync(tr, 5), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				Log("Clear Queue");
-				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
+				await db.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				empty = await db.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 			}
@@ -132,11 +133,12 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "queue");
+				var location = db.Directory["queue"];
+				await CleanLocation(db, location);
 
-				var queue = new FdbQueue<int>(location, highContention: false);
+				var queue = new FdbQueue<int>(location);
 
-				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
+				await db.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
 
 				for (int i = 0; i < 10; i++)
 				{
@@ -145,7 +147,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				for (int i = 0; i < 10; i++)
 				{
-					var r = await queue.PopAsync(db, this.Cancellation);
+					var r = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 					Assert.That(r.HasValue, Is.True);
 					Assert.That(r.Value, Is.EqualTo(i));
 				}
@@ -156,12 +158,12 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		}
 
-		private static async Task RunMultiClientTest(IFdbDatabase db, KeySubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
+		private static async Task RunMultiClientTest(IFdbDatabase db, ISubspaceLocation location, string desc, int K, int NUM, CancellationToken ct)
 		{
 			Log($"Starting {desc} test with {K} threads and {NUM} iterations");
 
-			var queue = new FdbQueue<string>(location, highContention);
-			await db.WriteAsync((tr) => queue.Clear(tr), ct);
+			var queue = new FdbQueue<string>(location);
+			await db.WriteAsync(tr => queue.ClearAsync(tr), ct);
 
 			// use a CTS to ensure that everything will stop in case of problems...
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
@@ -218,7 +220,7 @@ namespace FoundationDB.Layers.Collections.Tests
 							int i = 0;
 							while (i < NUM)
 							{
-								var item = await queue.PopAsync(db, tok).ConfigureAwait(false);
+								var item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), tok).ConfigureAwait(false);
 								if (item.HasValue)
 								{
 									Interlocked.Increment(ref popCount);
@@ -279,35 +281,19 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		[Test]
 		[Ignore("Comment this when running benchmarks")]
-		public async Task Test_Multi_Client_Simple()
+		public async Task Test_Multi_Client()
 		{
 			int NUM = 100;
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "queue");
+				var location = db.Directory["queue"];
+				await CleanLocation(db, location);
 
-				await RunMultiClientTest(db, location, false, "simple queue", 1, NUM, this.Cancellation);
-				await RunMultiClientTest(db, location, false, "simple queue", 2, NUM, this.Cancellation);
-				await RunMultiClientTest(db, location, false, "simple queue", 4, NUM, this.Cancellation);
-				await RunMultiClientTest(db, location, false, "simple queue", 10, NUM, this.Cancellation);
-			}
-		}
-
-		[Test]
-		[Ignore("Comment this when running benchmarks")]
-		public async Task Test_Multi_Client_HighContention()
-		{
-			int NUM = 100;
-
-			using (var db = await OpenTestPartitionAsync())
-			{
-				var location = await GetCleanDirectory(db, "queue");
-
-				await RunMultiClientTest(db, location, true, "high contention queue", 1, NUM, this.Cancellation);
-				await RunMultiClientTest(db, location, true, "high contention queue", 2, NUM, this.Cancellation);
-				await RunMultiClientTest(db, location, true, "high contention queue", 4, NUM, this.Cancellation);
-				await RunMultiClientTest(db, location, true, "high contention queue", 10, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, "simple queue", 1, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, "simple queue", 2, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, "simple queue", 4, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, "simple queue", 10, NUM, this.Cancellation);
 			}
 		}
 
@@ -318,7 +304,8 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "queue");
+				var location = db.Directory["queue"];
+				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
 				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
@@ -326,11 +313,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var logged = db;
 #endif
 
-				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM, this.Cancellation);
-
-				Log("------------------------------------------------");
-
-				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM, this.Cancellation);
+				await RunMultiClientTest(logged, location, "simple queue", 4, NUM, this.Cancellation);
 
 				Log("------------------------------------------------");
 

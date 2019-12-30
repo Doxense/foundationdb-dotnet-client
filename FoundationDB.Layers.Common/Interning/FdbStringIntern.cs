@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Interning
 	using FoundationDB.Client;
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
-	[DebuggerDisplay("Subspace={" + nameof(FdbStringIntern.Subspace) + "}")]
+	[DebuggerDisplay("Location={Location}")]
 	[Obsolete("FIXME! This version of the layer has a MAJOR bug!")]
 	public class FdbStringIntern : IDisposable
 	{
@@ -90,26 +90,180 @@ namespace FoundationDB.Layers.Interning
 		private readonly RandomNumberGenerator m_prng = RandomNumberGenerator.Create();
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 
-		public FdbStringIntern(IKeySubspace subspace)
+		public FdbStringIntern(ISubspaceLocation location)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (location == null) throw new ArgumentNullException(nameof(location));
 
-			this.Subspace = subspace.AsDynamic();
-
+			this.Location = location.AsDynamic();
 		}
 
-		public IDynamicKeySubspace Subspace { get; }
+		public DynamicKeySubspaceLocation Location { get; }
 
-		#region Private Helpers...
-
-		protected virtual Slice UidKey(Slice uid)
+		public async ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			return this.Subspace.Keys.Encode(Uid2StringKey, uid);
+			var subspace = await this.Location.Resolve(tr);
+			return new Metadata(this, subspace);
 		}
 
-		protected virtual Slice StringKey(string value)
+		public sealed class Metadata
 		{
-			return this.Subspace.Keys.Encode(String2UidKey, value);
+
+			private FdbStringIntern Layer { get; }
+
+			public IDynamicKeySubspace Subspace { get; }
+
+			internal Metadata(FdbStringIntern layer, IDynamicKeySubspace subspace)
+			{
+				this.Layer = layer;
+				this.Subspace = subspace;
+			}
+
+			#region Private Helpers...
+
+			private Slice UidKey(Slice uid)
+			{
+				return this.Subspace.Encode(Uid2StringKey, uid);
+			}
+
+			private Slice StringKey(string value)
+			{
+				return this.Subspace.Encode(String2UidKey, value);
+			}
+
+			/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
+			/// <param name="trans">Transaction used to look for and create a new uid</param>
+			/// <returns>Newly created UID that is guaranteed to be globally unique</returns>
+			private async Task<Slice> FindUidAsync(IFdbTransaction trans)
+			{
+				const int MAX_TRIES = 256;
+
+				int tries = 0;
+				while (tries < MAX_TRIES)
+				{
+					// note: we diverge from the python sample layer by not expanding the size at each retry, in order to ensure that value size keeps as small as possible
+					Slice slice;
+					lock (this.Layer.m_prng)
+					{ // note: not all PRNG implementations are thread-safe !
+						slice = Slice.Random(this.Layer.m_prng, 4 + (tries >> 1));
+					}
+
+					if (this.Layer.m_uidStringCache.ContainsKey(new Uid(slice)))
+						continue;
+
+					var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
+					if (candidate.IsNull)
+						return slice;
+
+					++tries;
+				}
+
+				//TODO: another way ?
+				throw new InvalidOperationException($"Failed to find a free uid for interned string after {MAX_TRIES} attempts");
+			}
+
+			#endregion
+
+			#region Intern...
+
+			/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
+			/// <param name="trans">Fdb transaction</param>
+			/// <param name="value">String to intern</param>
+			/// <returns>Normalized representation of the string</returns>
+			/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
+			public Task<Slice> InternAsync(IFdbTransaction trans, string value)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (value == null) throw new ArgumentNullException(nameof(value));
+
+				if (value.Length == 0) return Task.FromResult(Slice.Empty);
+
+#if DEBUG_STRING_INTERNING
+			Debug.WriteLine("Want to intern: " + value);
+#endif
+
+				if (this.Layer.m_stringUidCache.TryGetValue(value, out Uid uidKey))
+				{
+#if DEBUG_STRING_INTERNING
+				Debug.WriteLine("> found in cache! " + uidKey);
+#endif
+					return Task.FromResult(uidKey.Slice);
+				}
+
+#if DEBUG_STRING_INTERNING
+			Debug.WriteLine("_ not in cache, taking slow route...");
+#endif
+
+				return InternSlowAsync(trans, value);
+			}
+
+			private async Task<Slice> InternSlowAsync(IFdbTransaction trans, string value)
+			{
+				var stringKey = StringKey(value);
+
+				var uid = await trans.GetAsync(stringKey).ConfigureAwait(false);
+				if (uid.IsNull)
+				{
+#if DEBUG_STRING_INTERNING
+					Debug.WriteLine("_ not found in db, will create...");
+#endif
+
+					uid = await FindUidAsync(trans).ConfigureAwait(false);
+					if (uid.IsNull) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
+#if DEBUG_STRING_INTERNING
+					Debug.WriteLine("> using new uid " + uid.ToBase64());
+#endif
+
+					trans.Set(UidKey(uid), Slice.FromString(value));
+					trans.Set(stringKey, uid);
+
+					//BUGBUG: if the transaction fails to commit, we will inserted a bad value in the cache!
+					this.Layer.AddToCache(value, uid);
+				}
+				else
+				{
+#if DEBUG_STRING_INTERNING
+					Debug.WriteLine("> found in db with uid " + uid.ToBase64());
+#endif
+				}
+
+				return uid;
+			}
+
+			#endregion
+
+			#region Lookup...
+
+			/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
+			public Task<string> LookupAsync(IFdbReadOnlyTransaction trans, Slice uid)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", nameof(uid));
+
+				if (uid.IsEmpty) return Task.FromResult(string.Empty);
+
+				if (this.Layer.m_uidStringCache.TryGetValue(new Uid(uid), out string value))
+				{
+					return Task.FromResult(value);
+				}
+
+				return LookupSlowAsync(trans, uid);
+			}
+
+			private async Task<string> LookupSlowAsync(IFdbReadOnlyTransaction trans, Slice uid)
+			{
+				var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
+				if (valueBytes.IsNull) throw new KeyNotFoundException("String intern identifier not found");
+
+				string value = valueBytes.ToUnicode();
+
+				//BUGBUG: if the uid has just been Interned in the current transaction, and if the transaction fails to commit (conflict, ...) we will insert a bad value in the cache!
+				this.Layer.AddToCache(value, uid);
+
+				return value;
+			}
+
+			#endregion
+
 		}
 
 		/// <summary>Evict a random value from the cache</summary>
@@ -143,7 +297,7 @@ namespace FoundationDB.Layers.Interning
 				m_stringUidCache.Remove(value);
 
 				// tries to get an accurate idea of the in-memory size: chars are 2-byte in .NET, but the UID key is 1-byte
-				int size = checked ((value.Length * 2) + uidKey.Slice.Count);
+				int size = checked((value.Length * 2) + uidKey.Slice.Count);
 				Interlocked.Add(ref m_bytesCached, -size);
 			}
 			finally
@@ -190,139 +344,6 @@ namespace FoundationDB.Layers.Interning
 				m_lock.ExitUpgradeableReadLock();
 			}
 		}
-
-		/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
-		/// <param name="trans">Transaction used to look for and create a new uid</param>
-		/// <returns>Newly created UID that is guaranteed to be globally unique</returns>
-		private async Task<Slice> FindUidAsync(IFdbTransaction trans)
-		{
-			const int MAX_TRIES = 256;
-
-			int tries = 0;
-			while (tries < MAX_TRIES)
-			{
-				// note: we diverge from the python sample layer by not expanding the size at each retry, in order to ensure that value size keeps as small as possible
-				Slice slice;
-				lock (m_prng)
-				{ // note: not all PRNG implementations are thread-safe !
-					slice = Slice.Random(m_prng, 4 + (tries >> 1));
-				}
-
-				if (m_uidStringCache.ContainsKey(new Uid(slice)))
-					continue;
-
-				var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
-				if (candidate.IsNull)
-					return slice;
-
-				++tries;
-			}
-
-			//TODO: another way ?
-			throw new InvalidOperationException($"Failed to find a free uid for interned string after {MAX_TRIES} attempts");
-		}
-
-		#endregion
-
-		#region Intern...
-
-		/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
-		/// <param name="trans">Fdb transaction</param>
-		/// <param name="value">String to intern</param>
-		/// <returns>Normalized representation of the string</returns>
-		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
-		public Task<Slice> InternAsync(IFdbTransaction trans, string value)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (value == null) throw new ArgumentNullException(nameof(value));
-
-			if (value.Length == 0) return Task.FromResult(Slice.Empty);
-
-#if DEBUG_STRING_INTERNING
-			Debug.WriteLine("Want to intern: " + value);
-#endif
-
-			if (m_stringUidCache.TryGetValue(value, out Uid uidKey))
-			{
-#if DEBUG_STRING_INTERNING
-				Debug.WriteLine("> found in cache! " + uidKey);
-#endif
-				return Task.FromResult(uidKey.Slice);
-			}
-
-#if DEBUG_STRING_INTERNING
-			Debug.WriteLine("_ not in cache, taking slow route...");
-#endif
-
-			return InternSlowAsync(trans, value);
-		}
-
-		private async Task<Slice> InternSlowAsync(IFdbTransaction trans, string value)
-		{
-			var stringKey = StringKey(value);
-
-			var uid = await trans.GetAsync(stringKey).ConfigureAwait(false);
-			if (uid.IsNull)
-			{
-#if DEBUG_STRING_INTERNING
-				Debug.WriteLine("_ not found in db, will create...");
-#endif
-
-				uid = await FindUidAsync(trans).ConfigureAwait(false);
-				if (uid.IsNull) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
-#if DEBUG_STRING_INTERNING
-				Debug.WriteLine("> using new uid " + uid.ToBase64());
-#endif
-
-				trans.Set(UidKey(uid), Slice.FromString(value));
-				trans.Set(stringKey, uid);
-
-				//BUGBUG: if the transaction fails to commit, we will inserted a bad value in the cache!
-				AddToCache(value, uid);
-			}
-			else
-			{
-#if DEBUG_STRING_INTERNING
-				Debug.WriteLine("> found in db with uid " + uid.ToBase64());
-#endif
-			}
-			return uid;
-		}
-
-		#endregion
-
-		#region Lookup...
-
-		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		public Task<string> LookupAsync(IFdbReadOnlyTransaction trans, Slice uid)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", nameof(uid));
-
-			if (uid.IsEmpty) return Task.FromResult(string.Empty);
-
-			if (m_uidStringCache.TryGetValue(new Uid(uid), out string value))
-			{
-				return Task.FromResult(value);
-			}
-
-			return LookupSlowAsync(trans, uid);
-		}
-
-		private async Task<string> LookupSlowAsync(IFdbReadOnlyTransaction trans, Slice uid)
-		{
-			var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
-			if (valueBytes.IsNull) throw new KeyNotFoundException("String intern identifier not found");
-
-			string value = valueBytes.ToUnicode();
-
-			//BUGBUG: if the uid has just been Interned in the current transaction, and if the transaction fails to commit (conflict, ...) we will insert a bad value in the cache!
-			AddToCache(value, uid);
-
-			return value;
-		}
-
-		#endregion
 
 		public void Dispose()
 		{

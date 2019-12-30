@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1;net472</TargetFrameworks>
     <RootNamespace>FoundationDB.Tests</RootNamespace>
-    <AssemblyName>FoundationDB.Tests</AssemblyName>
+    <AssemblyName>FoundationDB.Linq.Providers.Tests</AssemblyName>
     <LangVersion>8.0</LangVersion>
-    <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
+    <ProjectGuid>{C8546E7D-9E83-480D-9299-A0AF670FF369}</ProjectGuid>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <OutputType>Library</OutputType>
@@ -31,6 +31,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+    <ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj" />
+    <ProjectReference Include="..\FoundationDB.Tests\FoundationDB.Tests.csproj" />
     <PackageReference Include="MathNet.Numerics.Signed" Version="4.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0-preview-20191216-02" />
     <PackageReference Include="NUnit" Version="3.12.0" />

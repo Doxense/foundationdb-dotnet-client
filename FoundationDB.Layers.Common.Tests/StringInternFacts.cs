@@ -44,28 +44,31 @@ namespace FoundationDB.Layers.Interning.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var stringSpace = db.Partition.ByKey("Strings");
-				var dataSpace = db.Partition.ByKey("Data");
+				var stringSpace = db.Root.ByKey("Strings");
+				var dataSpace = db.Root.ByKey("Data").AsTyped<string>();
 
 				// clear all previous data
-				await DeleteSubspace(db, stringSpace);
-				await DeleteSubspace(db, dataSpace);
+				await CleanLocation(db, stringSpace);
+				await CleanLocation(db, dataSpace);
 
 				var stringTable = new FdbStringIntern(stringSpace);
 
 				// insert a bunch of strings
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var va = await stringTable.InternAsync(tr, "testing 123456789");
-					var vb = await stringTable.InternAsync(tr, "dog");
-					var vc = await stringTable.InternAsync(tr, "testing 123456789");
-					var vd = await stringTable.InternAsync(tr, "cat");
-					var ve = await stringTable.InternAsync(tr, "cat");
-					tr.Set(dataSpace.Keys.Encode("a"), va);
-					tr.Set(dataSpace.Keys.Encode("b"), vb);
-					tr.Set(dataSpace.Keys.Encode("c"), vc);
-					tr.Set(dataSpace.Keys.Encode("d"), vd);
-					tr.Set(dataSpace.Keys.Encode("e"), ve);
+					var table = await stringTable.Resolve(tr);
+					var va = await table.InternAsync(tr, "testing 123456789");
+					var vb = await table.InternAsync(tr, "dog");
+					var vc = await table.InternAsync(tr, "testing 123456789");
+					var vd = await table.InternAsync(tr, "cat");
+					var ve = await table.InternAsync(tr, "cat");
+
+					var subspace = await dataSpace.Resolve(tr);
+					tr.Set(subspace["a"], va);
+					tr.Set(subspace["b"], vb);
+					tr.Set(subspace["c"], vc);
+					tr.Set(subspace["d"], vd);
+					tr.Set(subspace["e"], ve);
 
 					await tr.CommitAsync();
 				}
@@ -76,13 +79,14 @@ namespace FoundationDB.Layers.Interning.Tests
 #endif
 
 				// check the contents of the data
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var uid_a = await tr.GetAsync(dataSpace.Keys.Encode("a"));
-					var uid_b = await tr.GetAsync(dataSpace.Keys.Encode("b"));
-					var uid_c = await tr.GetAsync(dataSpace.Keys.Encode("c"));
-					var uid_d = await tr.GetAsync(dataSpace.Keys.Encode("d"));
-					var uid_e = await tr.GetAsync(dataSpace.Keys.Encode("e"));
+					var subspace = await dataSpace.Resolve(tr);
+					var uid_a = await tr.GetAsync(subspace["a"]);
+					var uid_b = await tr.GetAsync(subspace["b"]);
+					var uid_c = await tr.GetAsync(subspace["c"]);
+					var uid_d = await tr.GetAsync(subspace["d"]);
+					var uid_e = await tr.GetAsync(subspace["e"]);
 
 					// a, b, d should be different
 					Assert.That(uid_b, Is.Not.EqualTo(uid_a));
@@ -95,11 +99,12 @@ namespace FoundationDB.Layers.Interning.Tests
 					Assert.That(uid_e, Is.EqualTo(uid_d));
 
 					// perform a lookup
-					var str_a = await stringTable.LookupAsync(tr, uid_a);
-					var str_b = await stringTable.LookupAsync(tr, uid_b);
-					var str_c = await stringTable.LookupAsync(tr, uid_c);
-					var str_d = await stringTable.LookupAsync(tr, uid_d);
-					var str_e = await stringTable.LookupAsync(tr, uid_e);
+					var table = await stringTable.Resolve(tr);
+					var str_a = await table.LookupAsync(tr, uid_a);
+					var str_b = await table.LookupAsync(tr, uid_b);
+					var str_c = await table.LookupAsync(tr, uid_c);
+					var str_d = await table.LookupAsync(tr, uid_d);
+					var str_e = await table.LookupAsync(tr, uid_e);
 
 					Assert.That(str_a, Is.EqualTo("testing 123456789"));
 					Assert.That(str_b, Is.EqualTo("dog"));

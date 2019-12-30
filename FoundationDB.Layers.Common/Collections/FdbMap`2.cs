@@ -40,35 +40,25 @@ namespace FoundationDB.Layers.Collections
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
-	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
+	[DebuggerDisplay("Location={Location}")]
 	public class FdbMap<TKey, TValue>
 	{
 
-		public FdbMap([NotNull] string name, [NotNull] IKeySubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
-			: this(name, subspace.AsTyped<TKey>(), valueEncoder)
+		public FdbMap([NotNull] ISubspaceLocation location, [NotNull] IValueEncoder<TValue> valueEncoder)
+			: this(location.AsTyped<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap([NotNull] string name, [NotNull] ITypedKeySubspace<TKey> subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] TypedKeySubspaceLocation<TKey> location, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
-			if (name == null) throw new ArgumentNullException(nameof(name));
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
-
-			this.Name = name;
-			this.Subspace = subspace;
-			this.ValueEncoder = valueEncoder;
+			this.Location = location ?? throw new ArgumentNullException(nameof(location));
+			this.ValueEncoder = valueEncoder ?? throw new ArgumentNullException(nameof(valueEncoder));
 		}
 
 		#region Public Properties...
 
-		/// <summary>Name of the map</summary>
-		// REVIEW: do we really need this property?
-		[NotNull]
-		public string Name { get; }
-
 		/// <summary>Subspace used to encoded the keys for the items</summary>
 		[NotNull]
-		public ITypedKeySubspace<TKey> Subspace { get; }
+		public TypedKeySubspaceLocation<TKey> Location { get; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		[NotNull]
@@ -76,141 +66,215 @@ namespace FoundationDB.Layers.Collections
 
 		#endregion
 
-		#region Get / Set / Remove...
-
-		/// <summary>Returns the value of an existing entry in the map</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="id">Key of the entry to read from the map</param>
-		/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
-		/// <exception cref="System.ArgumentNullException">If either <paramref name="trans"/> or <paramref name="id"/> is null.</exception>
-		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
-		public async Task<TValue> GetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
+		public sealed class State
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var data = await trans.GetAsync(this.Subspace.Keys[id]).ConfigureAwait(false);
+			public ITypedKeySubspace<TKey> Subspace { get; }
 
-			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
-			return this.ValueEncoder.DecodeValue(data);
-		}
+			public IValueEncoder<TValue> ValueEncoder { get; }
 
-		/// <summary>Returns the value of an entry in the map if it exists.</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="id">Key of the entry to read from the map</param>
-		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
-		public async Task<(TValue Value, bool HasValue)> TryGetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-
-			var data = await trans.GetAsync(this.Subspace.Keys[id]).ConfigureAwait(false);
-
-			if (data.IsNull) return (default(TValue), false);
-			return (this.ValueEncoder.DecodeValue(data), true);
-		}
-
-		/// <summary>Add or update an entry in the map</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="id">Key of the entry to add or update</param>
-		/// <param name="value">New value of the entry</param>
-		/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
-		public void Set([NotNull] IFdbTransaction trans, TKey id, TValue value)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-
-			trans.Set(this.Subspace.Keys[id], this.ValueEncoder.EncodeValue(value));
-		}
-
-		/// <summary>Remove a single entry from the map</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="id">Key of the entry to remove</param>
-		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
-		public void Remove([NotNull] IFdbTransaction trans, TKey id)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (id == null) throw new ArgumentNullException(nameof(id));
-
-			trans.Clear(this.Subspace.Keys[id]);
-		}
-
-		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="options"></param>
-		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
-		/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
-		[NotNull]
-		public IAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-
-			return trans
-				.GetRange(this.Subspace.ToRange(), options)
-				.Select(this.DecodeItem);
-		}
-
-		/// <summary>Reads the values of multiple entries in the map</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="ids">List of the keys to read</param>
-		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
-		public async Task<TValue[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> ids)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (ids == null) throw new ArgumentNullException(nameof(ids));
-
-			var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace.Keys[id])).ConfigureAwait(false);
-			if (kv.Length == 0) return Array.Empty<TValue>();
-
-			var result = new TValue[kv.Length];
-			var decoder = this.ValueEncoder;
-			for (int i = 0; i < kv.Length; i++)
+			internal State(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> encoder)
 			{
-				result[i] = decoder.DecodeValue(kv[i]);
+				Contract.Requires(subspace != null && encoder != null);
+				this.Subspace = subspace;
+				this.ValueEncoder = encoder;
 			}
 
-			return result;
-		}
+			#region Get / Set / Remove...
 
-		#endregion
-
-		#region Bulk Operations...
-
-		private KeyValuePair<TKey, TValue> DecodeItem(KeyValuePair<Slice, Slice> item)
-		{
-			return new KeyValuePair<TKey, TValue>(
-				this.Subspace.Keys.Decode(item.Key),
-				this.ValueEncoder.DecodeValue(item.Value)
-			);
-		}
-
-		[NotNull]
-		private KeyValuePair<TKey, TValue>[] DecodeItems(KeyValuePair<Slice, Slice>[] batch)
-		{
-			Contract.Requires(batch != null);
-
-			var keyEncoder = this.Subspace.Keys;
-			var valueEncoder = this.ValueEncoder;
-
-			var items = new KeyValuePair<TKey, TValue>[batch.Length];
-			for (int i = 0; i < batch.Length; i++)
+			/// <summary>Returns the value of an existing entry in the map</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <param name="id">Key of the entry to read from the map</param>
+			/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
+			/// <exception cref="System.ArgumentNullException">If either <paramref name="trans"/> or <paramref name="id"/> is null.</exception>
+			/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
+			public async Task<TValue> GetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
 			{
-				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.Decode(batch[i].Key),
-					valueEncoder.DecodeValue(batch[i].Value)
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (id == null) throw new ArgumentNullException(nameof(id));
+
+				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
+
+				if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
+				return this.ValueEncoder.DecodeValue(data);
+			}
+
+			/// <summary>Returns the value of an entry in the map if it exists.</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <param name="id">Key of the entry to read from the map</param>
+			/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
+			public async Task<(TValue Value, bool HasValue)> TryGetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (id == null) throw new ArgumentNullException(nameof(id));
+
+				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
+
+				if (data.IsNull) return (default(TValue), false);
+				return (this.ValueEncoder.DecodeValue(data), true);
+			}
+
+			/// <summary>Add or update an entry in the map</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <param name="id">Key of the entry to add or update</param>
+			/// <param name="value">New value of the entry</param>
+			/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
+			public void Set([NotNull] IFdbTransaction trans, TKey id, TValue value)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (id == null) throw new ArgumentNullException(nameof(id));
+
+				trans.Set(this.Subspace[id], this.ValueEncoder.EncodeValue(value));
+			}
+
+			/// <summary>Remove a single entry from the map</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <param name="id">Key of the entry to remove</param>
+			/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
+			public void Remove([NotNull] IFdbTransaction trans, TKey id)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (id == null) throw new ArgumentNullException(nameof(id));
+
+				trans.Clear(this.Subspace[id]);
+			}
+
+			/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <param name="options"></param>
+			/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
+			/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
+			[NotNull]
+			public IAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+
+				return trans
+					.GetRange(this.Subspace.ToRange(), options)
+					.Select(kv => DecodeItem(this.Subspace, this.ValueEncoder, kv));
+			}
+
+			/// <summary>Reads the values of multiple entries in the map</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <param name="ids">List of the keys to read</param>
+			/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
+			public async Task<TValue[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> ids)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (ids == null) throw new ArgumentNullException(nameof(ids));
+
+				var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace[id])).ConfigureAwait(false);
+				if (kv.Length == 0) return Array.Empty<TValue>();
+
+				var result = new TValue[kv.Length];
+				var decoder = this.ValueEncoder;
+				for (int i = 0; i < kv.Length; i++)
+				{
+					result[i] = decoder.DecodeValue(kv[i]);
+				}
+
+				return result;
+			}
+
+			#endregion
+
+			#region Bulk Operations...
+
+			/// <summary>Clear all the entries in the map</summary>
+			/// <param name="trans">Transaction used for the operation</param>
+			/// <remarks>This will delete EVERYTHING in the map!</remarks>
+			public void Clear([NotNull] IFdbTransaction trans)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+
+				trans.ClearRange(this.Subspace.ToRange());
+			}
+
+			#region Import...
+
+			/// <summary>Imports a potentially large sequence of items into the map.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="items">Sequence of items to import. If the item already exists in the map, its value will be overwritten.</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <remarks>
+			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+			/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
+			/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
+			/// </remarks>
+			public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken ct)
+			{
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (items == null) throw new ArgumentNullException(nameof(items));
+
+				return Fdb.Bulk.InsertAsync(
+					db,
+					items,
+					(item, tr) => Set(tr, item.Key, item.Value),
+					ct
 				);
 			}
-			return items;
+
+			/// <summary>Imports a potentially large sequence of items into the map, using a specific key selector.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
+			/// <param name="keySelector">Lambda that will extract the key of an element</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <remarks>
+			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+			/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
+			/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
+			/// </remarks>
+			public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TValue> items, [NotNull] Func<TValue, TKey> keySelector, CancellationToken ct)
+			{
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (items == null) throw new ArgumentNullException(nameof(items));
+				if (keySelector == null) throw new ArgumentException(nameof(keySelector));
+
+				return Fdb.Bulk.InsertAsync(
+					db,
+					items,
+					(item, tr) => Set(tr, keySelector(item), item),
+					ct
+				);
+			}
+
+			/// <summary>Imports a potentially large sequence of elements into the map, using specific key and value selectors.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
+			/// <param name="keySelector">Lambda that will return the key of an element</param>
+			/// <param name="valueSelector">Lambda that will return the value of an element</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <remarks>
+			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+			/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
+			/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
+			/// </remarks>
+			public Task ImportAsync<TElement>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TKey> keySelector, [NotNull] Func<TElement, TValue> valueSelector, CancellationToken ct)
+			{
+				if (db == null) throw new ArgumentNullException(nameof(db));
+				if (items == null) throw new ArgumentNullException(nameof(items));
+				if (keySelector == null) throw new ArgumentException(nameof(keySelector));
+				if (valueSelector == null) throw new ArgumentException(nameof(valueSelector));
+
+				return Fdb.Bulk.InsertAsync(
+					db,
+					items,
+					(item, tr) => Set(tr, keySelector(item), valueSelector(item)),
+					ct
+				);
+			}
+
+			#endregion
+
+			#endregion
+
 		}
 
-		/// <summary>Clear all the entries in the map</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <remarks>This will delete EVERYTHING in the map!</remarks>
-		public void Clear([NotNull] IFdbTransaction trans)
+		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-
-			trans.ClearRange(this.Subspace.ToRange());
+			var subspace = await this.Location.Resolve(tr);
+			//TODO: store in transaction context?
+			return new State(subspace, this.ValueEncoder);
 		}
 
 		#region Export...
@@ -228,12 +292,13 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Subspace.ToRange(),
-				(batch, _, __) =>
+				this.Location,
+				(batch, loc, _, __) =>
 				{
+					var encoder = this.ValueEncoder;
 					foreach (var item in batch)
 					{
-						handler(DecodeItem(item));
+						handler(DecodeItem(loc, encoder, item));
 					}
 					return Task.CompletedTask;
 				},
@@ -254,12 +319,13 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Subspace.ToRange(),
-				async (batch, _, __) =>
+				this.Location,
+				async (batch, loc, _, __) =>
 				{
+					var encoder = this.ValueEncoder;
 					foreach (var item in batch)
 					{
-						await handler(DecodeItem(item), ct);
+						await handler(DecodeItem(loc, encoder, item), ct);
 					}
 				},
 				ct
@@ -279,12 +345,12 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Subspace.ToRange(),
-				(batch, _, __) =>
+				this.Location,
+				(batch, loc, _, __) =>
 				{
 					if (batch.Length > 0)
 					{
-						handler(DecodeItems(batch));
+						handler(DecodeItems(loc, this.ValueEncoder, batch));
 					}
 					return Task.CompletedTask;
 				},
@@ -305,8 +371,8 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Subspace.ToRange(),
-				(batch, _, tok) => handler(DecodeItems(batch), tok),
+				this.Location,
+				(batch, loc, _, tok) => handler(DecodeItems(loc, this.ValueEncoder, batch), tok),
 				ct
 			);
 		}
@@ -331,10 +397,10 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Subspace.ToRange(),
-				(batch, _, __) =>
+				this.Location,
+				(batch, loc, _, __) =>
 				{
-					state = handler(state, DecodeItems(batch));
+					state = handler(state, DecodeItems(loc, this.ValueEncoder, batch));
 					return Task.CompletedTask;
 				},
 				ct
@@ -364,10 +430,10 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Subspace.ToRange(),
-				(batch, _, __) =>
+				this.Location,
+				(batch, loc, _, __) =>
 				{
-					state = handler(state, DecodeItems(batch));
+					state = handler(state, DecodeItems(loc, this.ValueEncoder, batch));
 					return Task.CompletedTask;
 				},
 				ct
@@ -384,85 +450,33 @@ namespace FoundationDB.Layers.Collections
 			return result;
 		}
 
-		#endregion
-
-		#region Import...
-
-		/// <summary>Imports a potentially large sequence of items into the map.</summary>
-		/// <param name="db">Database used for the operation</param>
-		/// <param name="items">Sequence of items to import. If the item already exists in the map, its value will be overwritten.</param>
-		/// <param name="ct">Token used to cancel the operation</param>
-		/// <remarks>
-		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
-		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
-		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
-		/// </remarks>
-		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken ct)
+		private static KeyValuePair<TKey, TValue> DecodeItem(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> valueEncoder, KeyValuePair<Slice, Slice> item)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (items == null) throw new ArgumentNullException(nameof(items));
-
-			return Fdb.Bulk.InsertAsync(
-				db,
-				items,
-				(item, tr) => this.Set(tr, item.Key, item.Value),
-				ct		
+			return new KeyValuePair<TKey, TValue>(
+				subspace.Decode(item.Key),
+				valueEncoder.DecodeValue(item.Value)
 			);
 		}
 
-		/// <summary>Imports a potentially large sequence of items into the map, using a specific key selector.</summary>
-		/// <param name="db">Database used for the operation</param>
-		/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
-		/// <param name="keySelector">Lambda that will extract the key of an element</param>
-		/// <param name="ct">Token used to cancel the operation</param>
-		/// <remarks>
-		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
-		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
-		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
-		/// </remarks>
-		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TValue> items, [NotNull] Func<TValue, TKey> keySelector, CancellationToken ct)
+		[NotNull]
+		private static KeyValuePair<TKey, TValue>[] DecodeItems(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> valueEncoder, KeyValuePair<Slice, Slice>[] batch)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (items == null) throw new ArgumentNullException(nameof(items));
-			if (keySelector == null) throw new ArgumentException("keySelector");
+			Contract.Requires(batch != null);
 
-			return Fdb.Bulk.InsertAsync(
-				db,
-				items,
-				(item, tr) => this.Set(tr, keySelector(item), item),
-				ct
-			);
-		}
-
-		/// <summary>Imports a potentially large sequence of elements into the map, using specific key and value selectors.</summary>
-		/// <param name="db">Database used for the operation</param>
-		/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
-		/// <param name="keySelector">Lambda that will return the key of an element</param>
-		/// <param name="valueSelector">Lambda that will return the value of an element</param>
-		/// <param name="ct">Token used to cancel the operation</param>
-		/// <remarks>
-		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
-		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
-		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
-		/// </remarks>
-		public Task ImportAsync<TElement>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TKey> keySelector, [NotNull] Func<TElement, TValue> valueSelector, CancellationToken ct)
-		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
-			if (items == null) throw new ArgumentNullException(nameof(items));
-			if (keySelector == null) throw new ArgumentException("keySelector");
-			if (valueSelector == null) throw new ArgumentException("valueSelector");
-
-			return Fdb.Bulk.InsertAsync(
-				db,
-				items,
-				(item, tr) => this.Set(tr, keySelector(item), valueSelector(item)),
-				ct
-			);
+			var items = new KeyValuePair<TKey, TValue>[batch.Length];
+			for (int i = 0; i < batch.Length; i++)
+			{
+				items[i] = new KeyValuePair<TKey, TValue>(
+					subspace.Decode(batch[i].Key),
+					valueEncoder.DecodeValue(batch[i].Value)
+				);
+			}
+			return items;
 		}
 
 		#endregion
 
-		#endregion
+
 	}
 
 }

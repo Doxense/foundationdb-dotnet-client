@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,22 +43,26 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "BlobsFromOuterSpace");
+				var location = db.Directory["BlobsFromOuterSpace"];
+				await CleanLocation(db, location);
 
-				// clear previous values
-				await DeleteSubspace(db, location);
-
-				var blob = new FdbBlob(location.Partition.ByKey("Empty"));
+				var blob = new FdbBlob(location.ByKey("Empty"));
 
 				long? size;
 
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					size = await blob.GetSizeAsync(tr);
+					var metadata = await blob.Resolve(tr);
+
+					size = await metadata.GetSizeAsync(tr);
 					Assert.That(size, Is.Null, "Non existing blob should have no size");
 				}
 
-				size = await db.ReadAsync((tr) => blob.GetSizeAsync(tr), this.Cancellation);
+				size = await db.ReadAsync(async (tr) =>
+				{
+					var metadata = await blob.Resolve(tr);
+					return await metadata.GetSizeAsync(tr);
+				}, this.Cancellation);
 				Assert.That(size, Is.Null, "Non existing blob should have no size");
 
 			}
@@ -69,18 +73,18 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "BlobsFromOuterSpace");
+				var location = db.Directory["BlobsFromOuterSpace"];
+				await CleanLocation(db, location);
 
-				// clear previous values
-				await DeleteSubspace(db, location);
+				var blob = new FdbBlob(location.ByKey("BobTheBlob"));
 
-				var blob = new FdbBlob(location.Partition.ByKey("BobTheBlob"));
-
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					await blob.AppendAsync(tr, Value("Attack"));
-					await blob.AppendAsync(tr, Value(" of the "));
-					await blob.AppendAsync(tr, Value("Blobs!"));
+					var metadata = await blob.Resolve(tr);
+
+					await metadata.AppendAsync(tr, Value("Attack"));
+					await metadata.AppendAsync(tr, Value(" of the "));
+					await metadata.AppendAsync(tr, Value("Blobs!"));
 
 					await tr.CommitAsync();
 				}
@@ -89,12 +93,14 @@ namespace FoundationDB.Layers.Blobs.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					long? size = await blob.GetSizeAsync(tr);
+					var metadata = await blob.Resolve(tr);
+
+					long? size = await metadata.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(20));
 
-					var data = await blob.ReadAsync(tr, 0, (int)(size ?? 0));
+					var data = await metadata.ReadAsync(tr, 0, (int)(size ?? 0));
 					Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
 				}
 
@@ -106,31 +112,32 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "BlobsFromOuterSpace");
+				var location = db.Directory["BlobsFromOuterSpace"];
+				await CleanLocation(db, location);
 
-				// clear previous values
-				await DeleteSubspace(db, location);
-
-				var blob = new FdbBlob(location.Partition.ByKey("BigBlob"));
+				var blob = new FdbBlob(location.ByKey("BigBlob"));
 
 				var data = new byte[100 * 1000];
 				for (int i = 0; i < data.Length; i++) data[i] = (byte)i;
 
 				for (int i = 0; i < 50; i++)
 				{
-					using (var tr = db.BeginTransaction(this.Cancellation))
+					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						await blob.AppendAsync(tr, data.AsSlice());
+						var metadata = await blob.Resolve(tr);
+						await metadata.AppendAsync(tr, data.AsSlice());
 						await tr.CommitAsync();
 					}
 				}
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					long? size = await blob.GetSizeAsync(tr);
+					var metadata = await blob.Resolve(tr);
+
+					long? size = await metadata.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(50 * data.Length));
 
-					var s = await blob.ReadAsync(tr, 1234567, 1 * 1000 * 1000);
+					var s = await metadata.ReadAsync(tr, 1234567, 1 * 1000 * 1000);
 					Assert.That(s.Count, Is.EqualTo(1 * 1000 * 1000));
 
 					// should contains the correct data

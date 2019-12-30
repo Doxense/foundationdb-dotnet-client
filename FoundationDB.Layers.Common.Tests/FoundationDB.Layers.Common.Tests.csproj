@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1;net472</TargetFrameworks>
     <RootNamespace>FoundationDB.Tests</RootNamespace>
-    <AssemblyName>FoundationDB.Tests</AssemblyName>
+    <AssemblyName>FoundationDB.Layers.Common.Tests</AssemblyName>
     <LangVersion>8.0</LangVersion>
-    <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
+    <ProjectGuid>{3EFE133B-F38A-44A2-B4B8-98EFF4425383}</ProjectGuid>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <OutputType>Library</OutputType>
@@ -31,10 +31,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
+    <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj" />
+    <ProjectReference Include="..\FoundationDB.Tests\FoundationDB.Tests.csproj" />
     <PackageReference Include="MathNet.Numerics.Signed" Version="4.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0-preview-20191216-02" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="NUnit" Version="3.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.15.1" />
+    <PackageReference Include="protobuf-net" Version="3.0.0-alpha.122" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
   </ItemGroup>
 

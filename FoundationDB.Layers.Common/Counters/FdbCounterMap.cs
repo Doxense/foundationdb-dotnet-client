@@ -71,7 +71,7 @@ namespace FoundationDB.Layers.Counters
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
-			transaction.AtomicAdd64(this.Location.Keys[counterKey], value);
+			transaction.AtomicAdd64(this.Location[counterKey], value);
 		}
 
 		/// <summary>Subtract a value from a counter in one atomic operation</summary>
@@ -111,7 +111,7 @@ namespace FoundationDB.Layers.Counters
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
-			var data = await transaction.GetAsync(this.Location.Keys[counterKey]).ConfigureAwait(false);
+			var data = await transaction.GetAsync(this.Location[counterKey]).ConfigureAwait(false);
 			if (data.IsNullOrEmpty) return default;
 			return data.ToInt64();
 		}
@@ -127,7 +127,7 @@ namespace FoundationDB.Layers.Counters
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
-			var key = this.Location.Keys.Encode(counterKey);
+			var key = this.Location[counterKey];
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			if (!res.IsNullOrEmpty) value += res.ToInt64();
@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Counters
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
 
-			var key = this.Location.Keys[counterKey];
+			var key = this.Location[counterKey];
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			long previous = res.IsNullOrEmpty ? 0 : res.ToInt64();

@@ -61,15 +61,11 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Apply a custom visitor on this expression</summary>
 		public abstract Expression Accept([NotNull] FdbQueryExpressionVisitor visitor);
 
-		internal string DebugView
+		public string GetDebugView()
 		{
-			[NotNull]
-			get
-			{
-				var builder = new FdbQueryExpressionStringBuilder();
-				builder.Visit(this);
-				return builder.ToString();
-			}
+			var builder = new FdbQueryExpressionStringBuilder();
+			builder.Visit(this);
+			return builder.ToString();
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
@@ -78,11 +74,11 @@ namespace FoundationDB.Linq.Expressions
 #if DEBUG
 		public override string ToString()
 		{
-			return this.DebugView;
+			return this.GetDebugView();
 		}
 #endif
 
-    }
+	}
 
 	/// <summary>Base class of all typed query expression extensions</summary>
 	/// <typeparam name="T">Type of the results of this expression</typeparam>

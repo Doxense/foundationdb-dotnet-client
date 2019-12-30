@@ -144,7 +144,7 @@ namespace FoundationDB.Layers.Messaging
 							.GetRange(KeyRange.StartsWith(location.GetPrefix()))
 							.ForEachAsync((kvp) =>
 							{
-								Console.WriteLine($" - {location.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
+								Console.WriteLine($" - {location.PrettyPrint(kvp.Key)} = {kvp.Value:V}");
 							}).ConfigureAwait(false);
 					}
 					Console.WriteLine("</dump>");
