@@ -2139,6 +2139,20 @@ namespace System
 			return this.Count == other.Count && this.Span.SequenceEqual(other.Span);
 		}
 
+		/// <summary>Checks if the content of a span is equal to the current slice.</summary>
+		/// <param name="other">Span of memory compared with the current instance</param>
+		/// <returns>true if both locations have the same size and contain the same sequence of bytes; otherwise, false.</returns>
+		[Pure]
+		public bool Equals(ReadOnlySpan<byte> other)
+		{
+			this.EnsureSliceIsValid();
+
+			// note: Nil and Empty are both equal to empty span
+			if (this.Array == null || this.Count == 0) return other.Length == 0;
+
+			return this.Count == other.Length && this.Span.SequenceEqual(other);
+		}
+
 		/// <summary>Lexicographically compare this slice with another one, and return an indication of their relative sort order</summary>
 		/// <param name="other">Slice to compare with this instance</param>
 		/// <returns>Returns a NEGATIVE value if the current slice is LESS THAN <paramref name="other"/>, ZERO if it is EQUAL TO <paramref name="other"/>, and a POSITIVE value if it is GREATER THAN <paramref name="other"/>.</returns>
@@ -2151,6 +2165,18 @@ namespace System
 			if (this.Count == 0) return other.Count == 0 ? 0 : -1;
 			if (other.Count == 0) return +1;
 			return this.Span.SequenceCompareTo(other.Span);
+		}
+
+		/// <summary>Lexicographically compare this slice with another span, and return an indication of their relative sort order</summary>
+		/// <param name="other">Span of memory to compare with this instance</param>
+		/// <returns>Returns a NEGATIVE value if the current slice is LESS THAN <paramref name="other"/>, ZERO if it is EQUAL TO <paramref name="other"/>, and a POSITIVE value if it is GREATER THAN <paramref name="other"/>.</returns>
+		public int CompareTo(ReadOnlySpan<byte> other)
+		{
+			this.EnsureSliceIsValid();
+
+			if (this.Count == 0) return other.Length == 0 ? 0 : -1;
+			if (other.Length == 0) return +1;
+			return this.Span.SequenceCompareTo(other);
 		}
 
 		/// <summary>Checks if the content of a byte array segment matches the current slice.</summary>
