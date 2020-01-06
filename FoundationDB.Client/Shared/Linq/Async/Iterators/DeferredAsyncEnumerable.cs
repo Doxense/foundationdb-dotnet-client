@@ -72,11 +72,7 @@ namespace Doxense.Linq.Async.Iterators
 			this.Inner = sequence.GetAsyncEnumerator(m_ct);
 			Contract.Assert(this.Inner != null);
 
-			if (!(await this.Inner.MoveNextAsync()))
-			{
-				return await Completed();
-			}
-			return Publish(this.Inner.Current);
+			return true;
 		}
 
 		protected override async ValueTask<bool> OnNextAsync()
