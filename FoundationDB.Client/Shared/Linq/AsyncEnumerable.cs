@@ -630,7 +630,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source, nameof(source));
 
 			var buffer = new Buffer<T>();
-			await ForEachAsync(source, (x) => buffer.Add(x), CancellationToken.None).ConfigureAwait(false);
+			await ForEachAsync(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
 			return buffer.ToArray();
 		}
 
