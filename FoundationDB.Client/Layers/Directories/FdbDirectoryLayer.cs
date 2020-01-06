@@ -477,7 +477,8 @@ namespace FoundationDB.Client
 
 		public ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			if (tr.Context.TryGetLocalData<Metadata>(out var metadata))
+			//note: we use the directory layer itself has the "token" key for the local data cache
+			if (tr.Context.TryGetLocalData(this, out Metadata metadata))
 			{
 				return new ValueTask<Metadata>(metadata);
 			}
@@ -493,8 +494,8 @@ namespace FoundationDB.Client
 
 			var metadata = new Metadata(this, partition, this.AllocatorRng, rv);
 			//TODO: locking?
-			tr.Context.SetLocalData<Metadata>(metadata);
-			return metadata;
+
+			return tr.Context.GetOrCreateLocalData(this, metadata);
 		}
 
 		public sealed class Metadata : ISubspaceContext
@@ -735,7 +736,7 @@ namespace FoundationDB.Client
 
 					if (layer.IsPresent && layer != existingNode.Layer)
 					{
-						throw new InvalidOperationException($"The directory {path} was created with incompatible layer {layer:P} instead of expected {existingNode.Layer:P}.");
+						throw new InvalidOperationException($"The directory {path} was created with incompatible layer {existingNode.Layer:P} instead of expected {layer:P}.");
 					}
 					return ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer, existingNode.Partition, existingNode.ParentPartition, null);
 				}
@@ -1178,7 +1179,7 @@ namespace FoundationDB.Client
 					{
 						case STATE_CACHED:
 						{
-							throw new InvalidOperationException("Cannot mutate the Directory Layer inside a transaction that used a cached subspace.");
+							return true;
 						}
 						case STATE_NEUTRAL:
 						{ // first mutation?
@@ -1445,7 +1446,7 @@ namespace FoundationDB.Client
 
 			public FdbDirectorySubspace AddSubspace(FdbDirectoryPath path, [CanBeNull] FdbDirectorySubspace subspace)
 			{
-				Contract.Requires(subspace == null || subspace.Descriptor.RelativePath == path);
+				Contract.Requires(subspace == null || subspace.Descriptor.Path == path);
 				//TODO: check !
 				this.Lock.EnterWriteLock();
 				try
@@ -1523,12 +1524,7 @@ namespace FoundationDB.Client
 				this.Partition = partition;
 
 				Contract.Ensures(this.DirectoryLayer != null);
-				Contract.Ensures(this.RelativePath.Count <= this.Path.Count && this.Path.EndsWith(this.RelativePath));
 			}
-
-			/// <summary>Location of the directory relative to its parent Directory Layer</summary>
-			/// <remarks>If equal to <see cref="Path"/>, then this directory lives in the root partition</remarks>
-			public FdbDirectoryPath RelativePath => this.Path.Substring(this.Partition.Path.Count);
 
 			/// <summary>Absolute path of this directory, from the root directory</summary>
 			public FdbDirectoryPath Path { get; }

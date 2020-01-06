@@ -124,7 +124,7 @@ namespace FoundationDB.Client
 
 			var descriptor = this.Descriptor;
 
-			if (descriptor.RelativePath.Count == 0)
+			if (descriptor.Path.Count == 0)
 			{ // cannot change the layer of the root of a directory layer
 				throw new InvalidOperationException("Cannot change the layer id of the root of a directory layer or partition.");
 			}
@@ -143,7 +143,7 @@ namespace FoundationDB.Client
 
 			// set the layer to the new value
 			var metadata = await this.DirectoryLayer.Resolve(trans);
-			await metadata.ChangeLayerInternalAsync(trans, descriptor.RelativePath, newLayer).ConfigureAwait(false);
+			await metadata.ChangeLayerInternalAsync(trans, descriptor.Path, newLayer).ConfigureAwait(false);
 
 			// and return the new version of the subspace
 			var changed = new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, newLayer, descriptor.Partition);
@@ -355,7 +355,7 @@ namespace FoundationDB.Client
 			if (!location.StartsWith(descriptor.Partition.Path)) throw new InvalidOperationException("Cannot move between partitions.");
 
 			var metadata = await descriptor.DirectoryLayer.Resolve(trans);
-			return await metadata.MoveInternalAsync(trans, descriptor.RelativePath, location, throwOnError: false);
+			return await metadata.MoveInternalAsync(trans, descriptor.Path, location, throwOnError: false);
 		}
 
 		/// <summary>Attempts to move the specified sub-directory to <paramref name="newPath"/>.
