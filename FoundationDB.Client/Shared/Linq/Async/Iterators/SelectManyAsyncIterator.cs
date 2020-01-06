@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,13 +64,16 @@ namespace Doxense.Linq.Async.Iterators
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
 
+			var iterator = m_iterator;
+			Contract.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
 
 				if (m_batch == null)
 				{
 
-					if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
 						return await Completed();
 					}
@@ -80,11 +83,11 @@ namespace Doxense.Linq.Async.Iterators
 					IEnumerable<TResult> sequence;
 					if (!m_selector.Async)
 					{
-						sequence = m_selector.Invoke(m_iterator.Current);
+						sequence = m_selector.Invoke(iterator.Current);
 					}
 					else
 					{
-						sequence = await m_selector.InvokeAsync(m_iterator.Current, m_ct).ConfigureAwait(false);
+						sequence = await m_selector.InvokeAsync(iterator.Current, m_ct).ConfigureAwait(false);
 					}
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
@@ -153,20 +156,23 @@ namespace Doxense.Linq.Async.Iterators
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
 
+			var iterator = m_iterator;
+			Contract.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
 				var batch = m_batch;
 				if (batch == null)
 				{
 
-					if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
 						return await Completed();
 					}
 
 					if (m_ct.IsCancellationRequested) break;
 
-					m_sourceCurrent = m_iterator.Current;
+					m_sourceCurrent = iterator.Current;
 
 					IEnumerable<TCollection> sequence;
 

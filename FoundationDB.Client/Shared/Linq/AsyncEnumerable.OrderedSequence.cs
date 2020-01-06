@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -196,7 +196,7 @@ namespace Doxense.Linq
 
 			public ValueTask<bool> MoveNextAsync()
 			{
-				// Firt call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
+				// First call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
 
 				if (m_map == null)
 				{

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -364,7 +364,7 @@ namespace Doxense.Linq
 		// We want to avoid growing the same array again and again !
 		// Instead, we grow list of chunks, that grow in size (until a max), and concatenate all the chunks together at the end, once we know the final size
 
-		/// <summary>Default intial capacity, if not specified</summary>
+		/// <summary>Default initial capacity, if not specified</summary>
 		const int DefaultCapacity = 16;
 		//REVIEW: should we use a power of 2 or of 10 for initial capacity?
 		// Since humans prefer the decimal system, it is more likely that query limit count be set to something like 10, 50, 100 or 1000
@@ -408,7 +408,7 @@ namespace Doxense.Linq
 		{
 			// Growth rate:
 			// - newly created chunk is always half the total size
-			// - except the first chunk who is set to the inital capacity
+			// - except the first chunk who is set to the initial capacity
 
 			Array.Resize(ref this.Chunks, this.Chunks.Length + 1);
 			this.Current = new T[Math.Min(this.Count, MaxChunkSize)];

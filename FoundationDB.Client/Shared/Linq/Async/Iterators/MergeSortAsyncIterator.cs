@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace Doxense.Linq.Async.Iterators
 {
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Merge all the elements of several ordered queries into one single async sequence</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
@@ -55,20 +56,24 @@ namespace Doxense.Linq.Async.Iterators
 			current = default(TSource);
 			TKey min = default(TKey);
 
-			for (int i = 0; i < m_iterators.Length; i++)
-			{
-				if (!m_iterators[i].Active) continue;
+			var iterators = m_iterators;
+			var keyComparer = m_keyComparer;
+			Contract.Requires(iterators != null);
 
-				if (index == -1 || m_keyComparer.Compare(m_iterators[i].Current, min) < 0)
+			for (int i = 0; i < iterators.Length; i++)
+			{
+				if (!iterators[i].Active) continue;
+
+				if (index == -1 || keyComparer.Compare(iterators[i].Current, min) < 0)
 				{
-					min = m_iterators[i].Current;
+					min = iterators[i].Current;
 					index = i;
 				}
 			}
 
 			if (index >= 0)
 			{
-				current = m_iterators[index].Iterator.Current;
+				current = iterators[index].Iterator.Current;
 				if (m_remaining == null || m_remaining.Value > 1)
 				{ // start getting the next value on this iterator
 					AdvanceIterator(index);

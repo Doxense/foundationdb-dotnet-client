@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -90,9 +90,12 @@ namespace Doxense.Linq.Async.Iterators
 				return await Completed();
 			}
 
+			var iterator = m_iterator;
+			Contract.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed();
 				}
@@ -100,16 +103,17 @@ namespace Doxense.Linq.Async.Iterators
 
 				#region Filtering...
 
-				TSource current = m_iterator.Current;
-				if (m_filter != null)
+				TSource current = iterator.Current;
+				var filter = m_filter;
+				if (filter != null)
 				{
-					if (!m_filter.Async)
+					if (!filter.Async)
 					{
-						if (!m_filter.Invoke(current)) continue;
+						if (!filter.Invoke(current)) continue;
 					}
 					else
 					{
-						if (!await m_filter.InvokeAsync(current, m_ct).ConfigureAwait(false)) continue;
+						if (!await filter.InvokeAsync(current, m_ct).ConfigureAwait(false)) continue;
 					}
 				}
 
@@ -124,7 +128,7 @@ namespace Doxense.Linq.Async.Iterators
 						m_skipped = m_skipped.Value - 1;
 						continue;
 					}
-					// we can now start outputing results...
+					// we can now start outputting results...
 					m_skipped = null;
 				}
 
@@ -147,7 +151,7 @@ namespace Doxense.Linq.Async.Iterators
 				#region Publishing...
 
 				// decrement remaining quota
-				m_remaining = m_remaining - 1;
+				--m_remaining;
 
 				return Publish(result);
 
@@ -328,15 +332,16 @@ namespace Doxense.Linq.Async.Iterators
 					// Filter...
 
 					TSource current = iterator.Current;
-					if (m_filter != null)
+					var filter = m_filter;
+					if (filter != null)
 					{
-						if (!m_filter.Async)
+						if (!filter.Async)
 						{
-							if (!m_filter.Invoke(current)) continue;
+							if (!filter.Invoke(current)) continue;
 						}
 						else
 						{
-							if (!await m_filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
+							if (!await filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
 						}
 					}
 
@@ -368,7 +373,7 @@ namespace Doxense.Linq.Async.Iterators
 					// Publish...
 
 					// decrement remaining quota
-					remaining = remaining - 1;
+					--remaining;
 					action(result);
 				}
 
@@ -395,15 +400,16 @@ namespace Doxense.Linq.Async.Iterators
 					// Filter...
 
 					TSource current = iterator.Current;
-					if (m_filter != null)
+					var filter = m_filter;
+					if (filter != null)
 					{
-						if (!m_filter.Async)
+						if (!filter.Async)
 						{
-							if (!m_filter.Invoke(current)) continue;
+							if (!filter.Invoke(current)) continue;
 						}
 						else
 						{
-							if (!await m_filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
+							if (!await filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
 						}
 					}
 
@@ -416,7 +422,7 @@ namespace Doxense.Linq.Async.Iterators
 							skipped = skipped.Value - 1;
 							continue;
 						}
-						// we can now start outputing results...
+						// we can now start outputting results...
 						skipped = null;
 					}
 
@@ -435,7 +441,7 @@ namespace Doxense.Linq.Async.Iterators
 					// Publish...
 
 					// decrement remaining quota
-					remaining = remaining - 1;
+					--remaining;
 
 					await asyncAction(result, ct).ConfigureAwait(false);
 				}

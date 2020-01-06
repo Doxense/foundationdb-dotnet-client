@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ namespace Doxense.Linq.Async
 	internal sealed class AsyncSequence<TSource, TResult> : IConfigurableAsyncEnumerable<TResult>
 	{
 		public readonly IAsyncEnumerable<TSource> Source;
+
 		public readonly Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> Factory;
 
 		public AsyncSequence([NotNull] IAsyncEnumerable<TSource> source, [NotNull] Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> factory)

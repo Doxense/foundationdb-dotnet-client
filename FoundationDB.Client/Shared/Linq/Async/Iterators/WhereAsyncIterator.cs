@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,26 +60,31 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnNextAsync()
 		{
-			while (!m_ct.IsCancellationRequested)
+			var iterator = m_iterator;
+			var filter = m_filter;
+			var ct = m_ct;
+			Contract.Requires(iterator != null);
+
+			while (!ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed();
 				}
 
-				if (m_ct.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
-				TSource current = m_iterator.Current;
-				if (!m_filter.Async)
+				TSource current = iterator.Current;
+				if (!filter.Async)
 				{
-					if (!m_filter.Invoke(current))
+					if (!filter.Invoke(current))
 					{
 						continue;
 					}
 				}
 				else
 				{
-					if (!await m_filter.InvokeAsync(current, m_ct).ConfigureAwait(false))
+					if (!await filter.InvokeAsync(current, ct).ConfigureAwait(false))
 					{
 						continue;
 					}
@@ -146,16 +151,17 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			Contract.NotNull(handler, nameof(handler));
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
+			var filter = m_filter;
 			await using (var iter = StartInner(ct))
 			{
-				if (!m_filter.Async)
+				if (!filter.Async)
 				{
 					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (m_filter.Invoke(current))
+						if (filter.Invoke(current))
 						{
 							handler(current);
 						}
@@ -166,7 +172,7 @@ namespace Doxense.Linq.Async.Iterators
 					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
+						if (await filter.InvokeAsync(current, ct).ConfigureAwait(false))
 						{
 							handler(current);
 						}
@@ -181,16 +187,17 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			Contract.NotNull(asyncHandler, nameof(asyncHandler));
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 
+			var filter = m_filter;
 			await using (var iter = StartInner(ct))
 			{
-				if (!m_filter.Async)
+				if (!filter.Async)
 				{
 					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (m_filter.Invoke(current))
+						if (filter.Invoke(current))
 						{
 							await asyncHandler(current, ct).ConfigureAwait(false);
 						}
@@ -201,7 +208,7 @@ namespace Doxense.Linq.Async.Iterators
 					while (!ct.IsCancellationRequested && (await iter.MoveNextAsync().ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
+						if (await filter.InvokeAsync(current, ct).ConfigureAwait(false))
 						{
 							await asyncHandler(current, ct).ConfigureAwait(false);
 						}
@@ -209,7 +216,7 @@ namespace Doxense.Linq.Async.Iterators
 				}
 			}
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 		}
 
 	}

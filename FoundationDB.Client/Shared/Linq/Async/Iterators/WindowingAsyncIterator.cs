@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -125,6 +125,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			var iterator = m_iterator;
 			var buffer = m_buffer;
+			Contract.Requires(iterator != null && buffer != null);
 
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)
@@ -171,7 +172,6 @@ namespace Doxense.Linq.Async.Iterators
 				}
 			}
 
-			//Console.WriteLine("# computing next batch of ...", m_inputBuffer.Count);
 			var items = buffer.ToArray();
 			buffer.Clear();
 			return Publish(items);

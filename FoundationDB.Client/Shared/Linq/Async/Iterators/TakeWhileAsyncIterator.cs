@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,16 +58,19 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnNextAsync()
 		{
+			var iterator = m_iterator;
+			Contract.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed();
 				}
 
 				if (m_ct.IsCancellationRequested) break;
 
-				TSource current = m_iterator.Current;
+				TSource current = iterator.Current;
 				if (!m_condition(current))
 				{ // we need to stop
 					return await Completed();

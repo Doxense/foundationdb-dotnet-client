@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace Doxense.Linq.Async.Iterators
 {
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Returns only the values for the keys that are in all the sub queries</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
@@ -58,15 +59,18 @@ namespace Doxense.Linq.Async.Iterators
 
 			TKey min = default(TKey);
 			TKey max = default(TKey);
+			var iterators = m_iterators;
+			var keyComparer = m_keyComparer;
+			Contract.Requires(iterators != null && keyComparer != null);
 
-			for (int i = 0; i < m_iterators.Length; i++)
+			for (int i = 0; i < iterators.Length; i++)
 			{
-				if (!m_iterators[i].Active)
+				if (!iterators[i].Active)
 				{ // all must be still active!
 					return false;
 				}
 
-				TKey key = m_iterators[i].Current;
+				TKey key = iterators[i].Current;
 				if (index == -1)
 				{
 					min = max = key;
@@ -74,8 +78,8 @@ namespace Doxense.Linq.Async.Iterators
 				}
 				else
 				{
-					if (m_keyComparer.Compare(key, min) < 0) { min = key; }
-					if (m_keyComparer.Compare(key, max) > 0) { max = key; index = i; }
+					if (keyComparer.Compare(key, min) < 0) { min = key; }
+					if (keyComparer.Compare(key, max) > 0) { max = key; index = i; }
 				}
 			}
 
@@ -84,23 +88,23 @@ namespace Doxense.Linq.Async.Iterators
 				return false;
 			}
 
-			if (m_keyComparer.Compare(min, max) == 0)
+			if (keyComparer.Compare(min, max) == 0)
 			{ // all equal !
 				// return the value of the first max encountered
-				current = m_iterators[index].Iterator.Current;
+				current = iterators[index].Iterator.Current;
 
 				// advance everyone !
-				for (int i = 0; i < m_iterators.Length;i++)
+				for (int i = 0; i < iterators.Length;i++)
 				{
-					if (m_iterators[i].Active) AdvanceIterator(i);
+					if (iterators[i].Active) AdvanceIterator(i);
 				}
 				return true;
 			}
 
 			// advance all the values that are lower than the max
-			for (int i = 0; i < m_iterators.Length; i++)
+			for (int i = 0; i < iterators.Length; i++)
 			{
-				if (m_iterators[i].Active && m_keyComparer.Compare(m_iterators[i].Current, max) < 0)
+				if (iterators[i].Active && keyComparer.Compare(iterators[i].Current, max) < 0)
 				{
 					AdvanceIterator(i);
 				}

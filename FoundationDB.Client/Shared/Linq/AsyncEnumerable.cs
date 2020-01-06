@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -421,7 +421,7 @@ namespace Doxense.Linq
 		/// <returns>Sequence that prefetch the next item, when outputing the current item.</returns>
 		/// <remarks>
 		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
-		/// Avoid prefetching from a source that is already reading from a buffer of results.
+		/// Avoid pre-fetching from a source that is already reading from a buffer of results.
 		/// </remarks>
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TSource> Prefetch<TSource>([NotNull] this IAsyncEnumerable<TSource> source)
@@ -493,9 +493,7 @@ namespace Doxense.Linq
 		public static IAsyncEnumerable<TSource> Distinct<TSource>([NotNull] this IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
-			comparer = comparer ?? EqualityComparer<TSource>.Default;
-
-			return new DistinctAsyncIterator<TSource>(source, comparer);
+			return new DistinctAsyncIterator<TSource>(source, comparer ?? EqualityComparer<TSource>.Default);
 		}
 
 		#endregion
@@ -507,9 +505,8 @@ namespace Doxense.Linq
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(keySelector, nameof(keySelector));
-			comparer = comparer ?? Comparer<TKey>.Default;
 
-			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer, descending: false, parent: null);
+			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer ?? Comparer<TKey>.Default, descending: false, parent: null);
 		}
 
 		[Pure, NotNull, LinqTunnel]
@@ -517,9 +514,8 @@ namespace Doxense.Linq
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(keySelector, nameof(keySelector));
-			comparer = comparer ?? Comparer<TKey>.Default;
 
-			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer, descending: true, parent: null);
+			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer ?? Comparer<TKey>.Default, descending: true, parent: null);
 		}
 
 		[Pure, NotNull, LinqTunnel]
@@ -732,7 +728,7 @@ namespace Doxense.Linq
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(aggregator, nameof(aggregator));
 
-			//TODO: opitmize this to not have to allocate lambdas!
+			//TODO: optimize this to not have to allocate lambdas!
 			var accumulate = seed;
 			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }, ct).ConfigureAwait(false);
 			return accumulate;

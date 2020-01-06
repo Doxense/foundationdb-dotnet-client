@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TSource">Type of the elements in the source queries</typeparam>
@@ -44,7 +43,7 @@ namespace Doxense.Linq.Async.Iterators
 	public abstract class MergeAsyncIterator<TSource, TKey, TResult> : AsyncIterator<TResult>
 	{
 		// Takes several range queries that return **SORTED** lists of items
-		// - Make all querie's iterators run concurrently
+		// - Make all iterators run concurrently
 		// - At each step, finds the "smallest" value from all remaining iterators, transform it into a TResult and expose it as the current element
 		// - Extract a TKey value from the keys and compare them with the provided comparer
 
@@ -134,24 +133,27 @@ namespace Doxense.Linq.Async.Iterators
 			int index;
 			TSource current;
 
+			var iterators = m_iterators;
+			Contract.Requires(iterators != null);
+
 			do
 			{
 				// ensure all iterators are ready
-				for (int i = 0; i < m_iterators.Length;i++)
+				for (int i = 0; i < iterators.Length;i++)
 				{
-					if (!m_iterators[i].Active) continue;
+					if (!iterators[i].Active) continue;
 
-					if (!m_iterators[i].HasCurrent)
+					if (!iterators[i].HasCurrent)
 					{
-						if (!await m_iterators[i].Next.ConfigureAwait(false))
+						if (!await iterators[i].Next.ConfigureAwait(false))
 						{ // this one is done, remove it
-							await m_iterators[i].Iterator.DisposeAsync();
-							m_iterators[i] = default(IteratorState);
+							await iterators[i].Iterator.DisposeAsync();
+							iterators[i] = default(IteratorState);
 							continue;
 						}
 
-						m_iterators[i].Current = m_keySelector(m_iterators[i].Iterator.Current);
-						m_iterators[i].HasCurrent = true;
+						iterators[i].Current = m_keySelector(iterators[i].Iterator.Current);
+						iterators[i].HasCurrent = true;
 					}
 
 				}
@@ -173,7 +175,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			// advance the current iterator
-			m_remaining = m_remaining - 1;
+			--m_remaining;
 
 			return true;
 		}
@@ -182,9 +184,11 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected void AdvanceIterator(int index)
 		{
-			m_iterators[index].HasCurrent = false;
-			m_iterators[index].Current = default(TKey);
-			m_iterators[index].Next = m_iterators[index].Iterator.MoveNextAsync();
+			var iterators = m_iterators;
+			Contract.Requires(iterators != null);
+			iterators[index].HasCurrent = false;
+			iterators[index].Current = default(TKey);
+			iterators[index].Next = iterators[index].Iterator.MoveNextAsync();
 		}
 
 		private static async ValueTask Cleanup(IteratorState[] iterators)

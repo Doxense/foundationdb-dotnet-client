@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,6 +103,7 @@ namespace Doxense.Linq.Async.Iterators
 			m_processingQueue = new AsyncTransformQueue<TSource, TResult>(m_taskSelector, m_options.MaxConcurrency ?? DefaultMaxConcurrency, m_options.Scheduler);
 
 			// we also need a pump that will work on the inner sequence
+			Contract.Assert(m_iterator != null);
 			m_pump = new AsyncIteratorPump<TSource>(m_iterator, m_processingQueue);
 
 			// start pumping
@@ -110,7 +111,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				// ReSharper disable once RedundantAssignment
 				var e = t.Exception; // observe the exception
-				LogDebug("Pump stopped with error: " + e.Message);
+				LogDebug($"Pump stopped with error: {e.Message}");
 			}, TaskContinuationOptions.OnlyOnFaulted);
 
 			LogDebug("[OnFirstAsync] pump started");
@@ -124,10 +125,11 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			try
 			{
-				LogDebug("[OnNextAsync] #" + Thread.CurrentThread.ManagedThreadId);
+				LogDebug($"[OnNextAsync] #{Thread.CurrentThread.ManagedThreadId}");
 
 				if (m_done) return false;
 
+				Contract.Requires(m_processingQueue != null);
 				var next = await m_processingQueue.ReceiveAsync(m_ct).ConfigureAwait(false);
 				LogDebug("[OnNextAsync] got result from queue");
 
@@ -149,13 +151,13 @@ namespace Doxense.Linq.Async.Iterators
 						return await Completed();
 					}
 				}
-				LogDebug("[OnNextAsync] received value " + next.Value);
+				LogDebug($"[OnNextAsync] received value {next.Value}");
 
 				return Publish(next.Value);
 			}
 			catch (Exception e)
 			{
-				LogDebug("[OnNextAsync] received failed: " + e.Message);
+				LogDebug($"[OnNextAsync] received failed: {e.Message}");
 				m_done = true;
 				throw;
 			}

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,10 @@ namespace Doxense.Linq
 	public static class EnumerableExtensions
 	{
 
-		//TODO: ajouter Batch(...) ?
-		//TODO: peut-être merger avec les CollectionExtensions.cs?
+		//TODO: add Batch(...) ?
+		//TODO: maybe merge with CollectionExtensions.cs?
 
-		/// <summary>Determines wether a sequence contains no elements at all.</summary>
+		/// <summary>Determines whether a sequence contains no elements at all.</summary>
 		/// <remarks>This is the logical equivalent to "source.Count() == 0" or "!source.Any()" but can be better optimized by some providers</remarks>
 		public static bool None<T>([NotNull, InstantHandle] this IEnumerable<T> source)
 		{
