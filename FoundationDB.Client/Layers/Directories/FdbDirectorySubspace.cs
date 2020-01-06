@@ -480,18 +480,8 @@ namespace FoundationDB.Client
 			return await metadata.ExistsInternalAsync(trans, ToAbsolutePath(location));
 		}
 
-		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
-		public async Task<List<string>> ListAsync([NotNull] IFdbReadOnlyTransaction trans)
-		{
-			Contract.NotNull(trans, nameof(trans));
-			EnsureIsValid();
-
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.ListInternalAsync(trans, this.Descriptor.RelativePath, throwIfMissing: true);
-		}
-
 		/// <summary>Returns the list of all the subdirectories of a sub-directory.</summary>
-		public async Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path)
+		public async Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			EnsureIsValid();
@@ -500,18 +490,8 @@ namespace FoundationDB.Client
 			return await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: true);
 		}
 
-		/// <summary>Returns the list of all the subdirectories of a sub-directory, it it exists.</summary>
-		public async Task<List<string>> TryListAsync([NotNull] IFdbReadOnlyTransaction trans)
-		{
-			Contract.NotNull(trans, nameof(trans));
-			EnsureIsValid();
-
-			var metadata = await this.DirectoryLayer.Resolve(trans);
-			return await metadata.ListInternalAsync(trans, this.Descriptor.RelativePath, throwIfMissing: false);
-		}
-
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
-		public async Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path)
+		public async Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			EnsureIsValid();
