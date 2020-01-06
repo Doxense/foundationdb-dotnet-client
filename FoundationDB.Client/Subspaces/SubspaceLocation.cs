@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 		protected SubspaceLocation(in FdbDirectoryPath path, in Slice prefix)
 		{
 			this.Path = path;
-			this.Prefix = prefix;
+			this.Prefix = prefix.IsNull ? Slice.Empty : prefix;
 		}
 
 		public override string ToString()
@@ -180,8 +180,8 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public DynamicKeySubspaceLocation(in Slice suffix, IDynamicKeyEncoder encoder)
-			: base(default, suffix)
+		public DynamicKeySubspaceLocation(in Slice prefix, IDynamicKeyEncoder encoder)
+			: base(default, prefix)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			this.Encoder = encoder;

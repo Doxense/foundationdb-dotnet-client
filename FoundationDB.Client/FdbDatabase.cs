@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 
 			m_handler = handler;
 			m_readOnly = readOnly;
-			ChangeRoot(root, directory, readOnly);
+			ChangeRoot(root ?? SubspaceLocation.Empty, directory, readOnly);
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
@@ -544,7 +544,8 @@ namespace FoundationDB.Client
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
 		internal void ChangeRoot(DynamicKeySubspaceLocation root, FdbDirectoryLayer directory, bool readOnly)
 		{
-			// we want a dynamic location, and also we need a root directory is none is provided!
+			Contract.NotNull(root, nameof(root));
+			Contract.NotNull(directory, nameof(directory));
 
 			lock (this)//TODO: don't use this for locking
 			{
