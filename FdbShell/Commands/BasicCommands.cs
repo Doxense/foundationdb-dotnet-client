@@ -42,7 +42,7 @@ namespace FdbShell
 		{
 			if (log == null) log = Console.Out;
 
-			Program.Comment(log, $"# Listing /{string.Join("/", location)}:");
+			Program.Comment(log, $"# Listing {location.Path}:");
 
 			await db.ReadAsync(async tr =>
 			{
@@ -109,7 +109,7 @@ namespace FdbShell
 
 			string layer = extras.Count > 0 ? extras.Get<string>(0) : null;
 
-			log.WriteLine($"# Creating directory {String.Join("/", location)} with layer '{layer}'");
+			log.WriteLine($"# Creating directory {location.Path} with layer '{layer}'");
 
 			(var prefix, var created) = await db.ReadWriteAsync(async tr =>
 			{
@@ -125,7 +125,7 @@ namespace FdbShell
 
 			if (!created)
 			{
-				log.WriteLine($"- Directory {string.Join("/", location)} already exists at {FdbKey.Dump(prefix)} [{prefix.ToHexaString(' ')}]");
+				log.WriteLine($"- Directory {location.Path} already exists at {FdbKey.Dump(prefix)} [{prefix.ToHexaString(' ')}]");
 				return;
 			}
 			log.WriteLine($"- Created under {FdbKey.Dump(prefix)} [{prefix.ToHexaString(' ')}]");
@@ -139,7 +139,7 @@ namespace FdbShell
 
 			if (stuff.Key.IsPresent)
 			{
-				Program.Error(log, $"CAUTION: There is already some data under {string.Join("/", location)} !");
+				Program.Error(log, $"CAUTION: There is already some data under {location.Path} !");
 				Program.Error(log, $"  {FdbKey.Dump(stuff.Key)} = {stuff.Value:V}");
 			}
 		}
@@ -154,13 +154,13 @@ namespace FdbShell
 			bool recursive = args.Contains("-r", StringComparer.Ordinal) || args.Contains("--recursive", StringComparer.Ordinal);
 			bool force = args.Contains("-f", StringComparer.Ordinal) || args.Contains("--force", StringComparer.Ordinal);
 
-			await db.ReadWriteAsync(async tr =>
+			var res = await db.ReadWriteAsync(async tr =>
 			{
 				var folder = await location.Resolve(tr);
 				if (folder == null)
 				{
-					Program.Error(log, $"# Directory /{string.Join("/", location)} does not exist");
-					return;
+					Program.Error(log, $"# Directory {location.Path} does not exist");
+					return false;
 				}
 
 				// are there any subdirectories ?
@@ -170,8 +170,9 @@ namespace FdbShell
 					if (subDirs != null && subDirs.Count > 0)
 					{
 						//TODO: "-r" flag ?
-						Program.Error(log, $"# Cannot remove /{string.Join("/", location)} because it still contains {subDirs.Count:N0} sub-directorie(s)");
-						return;
+						Program.Error(log, $"# Cannot remove {location.Path} because it still contains {subDirs.Count:N0} sub-directories.");
+						Program.StdOut(log, "Use the -r|--recursive flag to override this warning.");
+						return false;
 					}
 				}
 
@@ -181,8 +182,12 @@ namespace FdbShell
 				}
 
 				await folder.RemoveAsync(tr);
+				return true;
 			}, ct);
-			Program.Success(log, $"Deleted directory /{string.Join("/", location)}");
+			if (res)
+			{
+				Program.Success(log, $"Deleted directory /{location.Path}");
+			}
 		}
 
 		/// <summary>Move/Rename a directory</summary>
@@ -215,16 +220,16 @@ namespace FdbShell
 			var dir = await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, location), ct);
 			if (dir == null)
 			{
-				Program.Error(log, $"# Directory {string.Join("/", location)} does not exist anymore");
+				Program.Error(log, $"# Directory {location.Path} does not exist anymore");
 			}
 			else
 			{
 				if (dir.Layer == FdbDirectoryPartition.LayerId)
-					log.WriteLine($"# Directory {string.Join("/", location)} is a partition");
+					log.WriteLine($"# Directory {location.Path} is a partition");
 				else if (dir.Layer.IsPresent)
-					log.WriteLine($"# Directory {string.Join("/", location)} has layer {dir.Layer:P}");
+					log.WriteLine($"# Directory {location.Path} has layer {dir.Layer:P}");
 				else
-					log.WriteLine($"# Directory {string.Join("/", location)} does not have a layer defined");
+					log.WriteLine($"# Directory {location.Path} does not have a layer defined");
 			}
 		}
 
@@ -235,12 +240,12 @@ namespace FdbShell
 				var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(tr, location);
 				if (dir == null)
 				{
-					Program.Error(log, $"# Directory {string.Join("/", location)} does not exist anymore");
+					Program.Error(log, $"# Directory {location.Path} does not exist anymore");
 				}
 				else
 				{
 					dir = await dir.ChangeLayerAsync(tr, Slice.FromString(layer));
-					Program.Success(log, $"# Directory {string.Join("/", location)} layer changed to {dir.Layer:P}");
+					Program.Success(log, $"# Directory {location.Path} layer changed to {dir.Layer:P}");
 				}
 			}, ct);
 		}
@@ -424,7 +429,7 @@ namespace FdbShell
 			}
 			else
 			{
-				Program.Success(log, $"Key {key} has been cleared from Directory {String.Join("/", location)}.");
+				Program.Success(log, $"Key {key} has been cleared from Directory {location.Path}.");
 			}
 		}
 
@@ -507,11 +512,11 @@ namespace FdbShell
 
 			if (empty.Value)
 			{
-				Program.StdOut(log, $"Directory {String.Join("/", location)} was already empty.", ConsoleColor.Cyan);
+				Program.StdOut(log, $"Directory {location.Path} was already empty.", ConsoleColor.Cyan);
 			}
 			else
 			{
-				Program.Success(log, $"Cleared all content of Directory {String.Join("/", location)}.");
+				Program.Success(log, $"Cleared all content of Directory {location.Path}.");
 			}
 		}
 
@@ -522,7 +527,7 @@ namespace FdbShell
 			var folder = (await db.ReadWriteAsync(tr => TryOpenCurrentDirectoryAsync(tr, location), ct)) as FdbDirectorySubspace;
 			if (folder == null)
 			{
-				Program.Error(log, $"# Directory {String.Join("/", location)} does not exist");
+				Program.Error(log, $"# Directory {location.Path} does not exist");
 				return;
 			}
 
@@ -607,7 +612,7 @@ namespace FdbShell
 
 			if (folder == null)
 			{
-				Program.Comment(log, $"# Directory {String.Join("/", location)} does not exist");
+				Program.Comment(log, $"# Directory {location.Path} does not exist");
 				return;
 			}
 
@@ -659,7 +664,7 @@ namespace FdbShell
 		{
 			log = log ?? Console.Out;
 
-			Program.Comment(log, $"# Tree of {String.Join("/", location)}:");
+			Program.Comment(log, $"# Tree of {location.Path}:");
 
 			FdbDirectorySubspace root = null;
 			if (location.Path.Count != 0)
@@ -949,7 +954,7 @@ namespace FdbShell
 			if ((await db.ReadAsync(tr => TryOpenCurrentDirectoryAsync(tr, location), ct)) is FdbDirectorySubspace folder)
 			{
 				var r = KeyRange.StartsWith(folder.Copy().GetPrefix());
-				Console.WriteLine($"Searching for shards that intersect with /{String.Join("/", location)} ...");
+				Console.WriteLine($"Searching for shards that intersect with /{location.Path} ...");
 				ranges = await Fdb.System.GetChunksAsync(db, r, ct);
 				Console.WriteLine($"> Found {ranges.Count} ranges intersecting {r}:");
 				var last = Slice.Empty;
@@ -984,7 +989,7 @@ namespace FdbShell
 			if (folder is FdbDirectorySubspace)
 			{
 				span = KeyRange.StartsWith((folder as FdbDirectorySubspace).Copy().GetPrefix());
-				log.WriteLine($"Reading list of shards for /{String.Join("/", location)} under {FdbKey.Dump(span.Begin)} ...");
+				log.WriteLine($"Reading list of shards for /{location.Path} under {FdbKey.Dump(span.Begin)} ...");
 			}
 			else
 			{
