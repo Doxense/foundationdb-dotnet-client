@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 				{ // we got a new chunk !
 
 					//note: Dispose() or Cleanup() maybe have been called concurrently!
-					ThrowInvalidState();
+					EnsureIsIterating();
 
 					var chunk = iterator.Current;
 

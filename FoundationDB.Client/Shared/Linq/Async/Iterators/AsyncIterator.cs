@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			get
 			{
-				if (Volatile.Read(ref m_state) != STATE_ITERATING) ThrowInvalidState();
+				if (Volatile.Read(ref m_state) != STATE_ITERATING) EnsureIsIterating();
 				return m_current;
 			}
 		}
@@ -106,7 +106,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			if (state != STATE_INIT && state != STATE_ITERATING)
 			{
-				ThrowInvalidState();
+				EnsureIsIterating();
 				return false;
 			}
 
@@ -286,22 +286,23 @@ namespace Doxense.Linq.Async.Iterators
 			return false; //note: should not be reached
 		}
 
-		protected void ThrowInvalidState()
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		protected void EnsureIsIterating()
 		{
 			switch (Volatile.Read(ref m_state))
 			{
 				case STATE_SEQ:
-					throw new InvalidOperationException("The async iterator should have been initialized with a call to GetEnumerator()");
+					throw ThrowHelper.InvalidOperationException("The async iterator should have been initialized with a call to GetEnumerator()");
 
 				case STATE_ITERATING:
 					break;
 
 				case STATE_DISPOSED:
-					throw new ObjectDisposedException(null, "The async iterator has already been closed");
+					throw ThrowHelper.ObjectDisposedException(this, "The async iterator has already been closed");
 
 				default:
 				{
-					throw new InvalidOperationException();
+					throw ThrowHelper.InvalidOperationException("Unexpected state");
 				}
 			}
 		}
