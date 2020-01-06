@@ -30,12 +30,14 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 
+	[DebuggerDisplay("Path={Path}, Layer={Layer}")]
 	public sealed class FdbDirectorySubspaceLocation : ISubspaceLocation<FdbDirectorySubspace>, IFdbDirectory
 	{
 
@@ -65,9 +67,29 @@ namespace FoundationDB.Client
 			Contract.NotNull(tr, nameof(tr));
 
 			// using a different directory instance is most certainly an error, so it is not allowed
-			if (directory != null && directory != this.Directory) throw new InvalidOperationException("Cannot resolve a directory subspace location using a different DirectoryLayer instance.");
+			if (directory != null && !directory.Equals(this.Directory)) throw new InvalidOperationException("Cannot resolve a directory subspace location using a different DirectoryLayer instance.");
 
 			return this.Directory.TryOpenCachedAsync(tr, this.Path);
+		}
+
+		public override string ToString()
+		{
+			return this.Layer.Count == 0 ? this.Path.ToString() : (this.Path.ToString() + "[" + this.Layer.ToString() + "]");
+		}
+
+		public override int GetHashCode()
+		{
+			return HashCodes.Combine(this.Path.GetHashCode(), this.Layer.GetHashCode());
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is FdbDirectorySubspaceLocation loc && Equals(loc);
+		}
+
+		public bool Equals(ISubspaceLocation other)
+		{
+			return other != null && other.Path == this.Path && other.Prefix.Count == 0;
 		}
 
 		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this.Directory, this.Path[segment]);
@@ -81,6 +103,8 @@ namespace FoundationDB.Client
 		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new DynamicKeySubspaceLocation(this.Path, TuPack.EncodeKey<T1>(item1), TuPack.Encoding.GetDynamicKeyEncoder());
 
 		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new DynamicKeySubspaceLocation(this.Path, TuPack.EncodeKey<T1, T2>(item1, item2), TuPack.Encoding.GetDynamicKeyEncoder());
+
+		#region IFdbDirectory...
 
 		string IFdbDirectory.Name => this.Path.Name;
 
@@ -173,6 +197,7 @@ namespace FoundationDB.Client
 
 		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath) => throw new NotSupportedException();
 
+		#endregion
 
 	}
 }

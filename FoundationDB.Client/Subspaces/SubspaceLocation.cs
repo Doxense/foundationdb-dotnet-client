@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents the path to a specific subspace in the database</summary>
 	/// <remarks>A path can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into the actual <see cref="IKeySubspace"/> implementation that will be valid within the context of a transaction.</remarks>
-	public interface ISubspaceLocation
+	public interface ISubspaceLocation : IEquatable<ISubspaceLocation>
 	{
 
 		// Path and/or Prefix can be empty!
@@ -78,7 +78,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Default implementation of a subspace location</summary>
 	/// <typeparam name="TSubspace">Type of the concrete <see cref="IKeySubspace"/> implementation that this location will resolve to</typeparam>
-	[DebuggerDisplay("Directory={Directory}, Path={Path}, Prefix={Prefix}, Encoding={Encoding}")]
+	[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Encoding={Encoding}")]
 	public abstract class SubspaceLocation<TSubspace> : ISubspaceLocation<TSubspace>, IEquatable<ISubspaceLocation>
 		where TSubspace : IKeySubspace
 	{
