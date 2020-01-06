@@ -216,8 +216,21 @@ namespace FoundationDB.Client
 
 		#region Local Data...
 
+		// To help build a caching layer on top of transactions, it is necessary to be able to attach cached instance to each transaction
+		// The intent is that a layer implementation will use to build a "per-transaction state" on the first call to the layer within this transaction,
+		// and then reuse the same instance if the layer is called multiple times within the same transaction.
+
+		// The convention is that each layer uses its own type has the "key" of the cached instances.
+		// But since a layer can have multiple "instances" (ex: multiple indexes, multiple queues, ...) each instance is also coupled with a "token" key
+		// If a layer can only have a single instance, it can use the example the empty string has its "token" key.
+		// If not, the layer can use any type of key, if it can guarantee that it is unique. For exemple: for a record table "Users", the key can be the name
+		// itself, IF IT IS NOT POSSIBLE TO HAVE A DIFFERENT "Users" TABLE IN THE APPLICATION! If there can be collisions, then the key should be prefixed by
+		// some other "namespace" to make it globally unique.
+
 		/// <summary>Stores contextual data that can be added and retrieved at any step of the transaction's processing</summary>
 		/// <remarks>Access to this collection must be performed under lock, because a transaction can be used concurrently from multiple threads!</remarks>
+		/// map[ typeof(TState) => map[ TToken => TState ] ]
+		[CanBeNull]
 		private Dictionary<Type, object> LocalData { get; set; }
 
 		[Pure, CanBeNull, ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -238,74 +251,182 @@ namespace FoundationDB.Client
 			return container;
 		}
 
-		public void SetLocalData<TState>([NotNull] TState newState) where TState : class
+		/// <summary>Set the value of a cached instance attached to the transaction</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="newState">New instance that must be attached to the transaction</param>
+		/// <returns>If there was already a cached instance for this key, it will be discarded</returns>
+		public void SetLocalData<TState, TToken>(TToken key, [NotNull] TState newState)
+			where TState : class
 		{
+			Contract.NotNullAllowStructs(key, nameof(key));
 			Contract.NotNull(newState, nameof(newState));
 			lock (this)
 			{
-				GetLocalDataContainer(true)[typeof(TState)] = newState;
+				var container = GetLocalDataContainer(true);
+				if (!container.TryGetValue(typeof(TState), out var slot))
+				{
+					slot = new Dictionary<string, object>(StringComparer.Ordinal);
+					container[typeof(TState)] = slot;
+				}
+				var items = (Dictionary<TToken, TState>) slot;
+				items[key] = newState;
 			}
 		}
 
-		public void RemoveLocalData<TState>() where TState : class
+		/// <summary>Replace the value of a cached instance attached to the transaction, and return the previous one</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="newState">New instance that must be attached to the transaction</param>
+		/// <returns>Previous cached instance, or null if none was found.</returns>
+		[CanBeNull]
+		public TState ReplaceLocalData<TState, TToken>(TToken key, [NotNull] TState newState)
+			where TState : class
 		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(newState, nameof(newState));
 			lock (this)
 			{
-				GetLocalDataContainer(false)?.Remove(typeof(TState));
+				var container = GetLocalDataContainer(true);
+				if (!container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items =  new Dictionary<TToken, TState>
+					{
+						[key] = newState
+					};
+					container[typeof(TState)] = items;
+					return default;
+				}
+				else
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					items.TryGetValue(key, out var previous);
+					items[key] = newState;
+					return previous;
+				}
 			}
 		}
 
-		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
-		public bool TryGetLocalData<TState>(out TState state) where TState : class
+		/// <summary>Remove a cached instance previously attached to the transaction</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <returns>Returns <c>true</c> if the value was found and removed; otherwise, false.</returns>
+		public bool RemoveLocalData<TState, TToken>(TToken key) where TState : class
 		{
+			Contract.NotNullAllowStructs(key, nameof(key));
 			lock (this)
 			{
 				var container = GetLocalDataContainer(false);
-				if (container != null && container.TryGetValue(typeof(TState), out var value))
+				if (container != null && container.TryGetValue(typeof(TState), out var slot))
 				{
-					state = (TState) value;
-					return true;
+					var items = (Dictionary<TToken, TState>) slot;
+					return items.Remove(key);
+				}
+				return false;
+			}
+		}
+
+		/// <summary>Return the corresponding instance attached to the transaction, if it exists.</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="state">Receive the value if it was found; otherwise, <c>default(<typeparamref name="TState"/>)</c></param>
+		/// <returns>Returns <c>true</c> if the value was found; otherwise, <c>false</c>.</returns>
+		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
+		public bool TryGetLocalData<TState, TToken>(TToken key, [CanBeNull] out TState state)
+			where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(false);
+				if (container != null && container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					if (items.TryGetValue(key, out var value))
+					{
+						state = (TState) value;
+						return true;
+					}
 				}
 				state = default;
 				return false;
 			}
 		}
 
-		[NotNull]
-		public TState GetOrCreateLocalData<TState>() where TState : class, new()
+		/// <summary>Return the corresponding instance attached to the transaction, or use the specified instance no value was found.</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="newState">Instance that will be used if no value already exists in this transaction.</param>
+		/// <returns>Either the existing value, or <paramref name="newState"/>.</returns>
+		public TState GetOrCreateLocalData<TState, TToken>(TToken key, TState newState)
+			where TState : class
 		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(newState, nameof(newState));
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true);
 				TState result;
-				if (container.TryGetValue(typeof(TState), out var value))
+				if (container.TryGetValue(typeof(TState), out var slot))
 				{
-					result = (TState) value;
+					var items = (Dictionary<TToken, TState>) slot;
+					if (!items.TryGetValue(key, out result))
+					{
+						result = newState;
+						items[key] = result;
+					}
 				}
 				else
 				{
-					result = new TState();
-					container[typeof(TState)] = result;
+					result = newState;
+					slot = new Dictionary<TToken, TState>
+					{
+						[key] = result
+					};
+					container[typeof(TState)] = slot;
 				}
 				return result;
 			}
 		}
 
-		[NotNull]
-		public TState GetOrCreateLocalData<TState>(Func<TState> factory) where TState : class
+		/// <summary>Return the corresponding instance attached to the transaction, or invoke the specified factory if it was not already specified.</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="factory">Handler called to generate a new <typeparamref name="TState"/> instance if there is no match.</param>
+		/// <returns>Either the existing value, or the value returned by invoking <paramref name="factory"/>.</returns>
+		//REVIEW: should we return a tuple (TState Data, bool Created) instead ?
+		public TState GetOrCreateLocalData<TState, TToken>(TToken key, Func<TState> factory)
+			where TState : class
 		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(factory, nameof(factory));
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true);
 				TState result;
-				if (container.TryGetValue(typeof(TState), out var value))
+				if (container.TryGetValue(typeof(TState), out var slot))
 				{
-					result = (TState) value;
+					var items = (Dictionary<TToken, TState>) slot;
+					if (!items.TryGetValue(key, out result))
+					{
+						result = factory() ?? throw new InvalidOperationException("Constructed state cannot be null");
+						items[key] = result;
+					}
 				}
 				else
 				{
 					result = factory() ?? throw new InvalidOperationException("Constructed state cannot be null");
-					container[typeof(TState)] = result;
+					slot = new Dictionary<TToken, TState>
+					{
+						[key] = result
+					};
+					container[typeof(TState)] = slot;
 				}
 				return result;
 			}
