@@ -378,7 +378,7 @@ namespace FoundationDB.Client
 		/// <summary>Printable representation of this subspace</summary>
 		public override string ToString()
 		{
-			return $"{this.GetType().Name}({FdbKey.Dump(this.Key)})";
+			return $"Subspace({FdbKey.Dump(this.Key)})";
 		}
 
 		#endregion

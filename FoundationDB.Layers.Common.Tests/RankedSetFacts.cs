@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["ranked_set"];
+				var location = db.Root["ranked_set"];
 				await CleanLocation(db, location);
 
 				var rankedSet = new FdbRankedSet(location);
@@ -63,7 +63,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < 100; i++)
 				{
-					Console.Write("\rInserting " + i);
+					Log("\rInserting " + i);
 					await db.ReadWriteAsync(async tr =>
 					{
 						var state = await rankedSet.Resolve(tr);

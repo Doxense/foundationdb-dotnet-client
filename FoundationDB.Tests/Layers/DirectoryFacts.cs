@@ -588,7 +588,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("DL");
-				await CleanLocation(db, db.Root);
+				await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
 				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
@@ -961,7 +961,7 @@ namespace FoundationDB.Client.Tests
 				// the constraint will always be the same for all the checks
 				void ShouldFail<T>(ActualValueDelegate<T> del)
 				{
-					Assert.That(del, Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("root of a directory partition"));
+					Assert.That(del, Throws.InstanceOf<InvalidOperationException>().With.Message.Contains("root of directory partition"));
 				}
 
 				void ShouldPass<T>(ActualValueDelegate<T> del)

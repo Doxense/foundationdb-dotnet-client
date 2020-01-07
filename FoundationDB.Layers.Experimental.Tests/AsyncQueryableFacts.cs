@@ -91,7 +91,7 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Directory["Linq"];
+				var location = db.Root["Linq"];
 				await CleanLocation(db, location);
 
 				var indexFoos = new FdbIndex<long, string>(location.ByKey("Foos", "ByColor"));
@@ -128,7 +128,7 @@ namespace FoundationDB.Linq.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Linq"];
+				var location = db.Root["Linq"];
 				await CleanLocation(db, location);
 
 				var index = new FdbIndex<string, int>(location.ByKey("Foos", "ByScore"));

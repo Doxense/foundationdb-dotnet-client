@@ -259,7 +259,7 @@ namespace FdbShell
 				var cnxOptions = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
-					Root = SubspaceLocation.FromPath(partition)
+					Root = partition
 				};
 				Db = await ChangeDatabase(cnxOptions, cancel);
 				Db.DefaultTimeout = Math.Max(0, timeout) * 1000;
@@ -699,7 +699,7 @@ namespace FdbShell
 									var options = new FdbConnectionOptions
 									{
 										ClusterFile = clusterFile,
-										Root = SubspaceLocation.FromPath(newPartition)
+										Root = newPartition
 									};
 									newDb = await ChangeDatabase(options, cancel);
 								}
@@ -870,7 +870,7 @@ namespace FdbShell
 
 		private static FdbDirectorySubspaceLocation ParsePath(string path)
 		{
-			return Db.Directory[FdbDirectoryPath.Parse(path)];
+			return Db.Root[FdbDirectoryPath.Parse(path)];
 			//path = path.Replace("\\", "/").Trim();
 			//return path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 		}

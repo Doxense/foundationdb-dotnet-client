@@ -148,9 +148,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool IsReadOnly => m_readOnly;
 
-		/// <inheritdoc />
-		public IDynamicKeySubspace Keys => m_context.Root;
-
 		#endregion
 
 		#region Options..
@@ -298,7 +295,16 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCache()
 		{
-			return this.MetadataVersionKeysCache ??= new Dictionary<Slice, (Task<VersionStamp?>, bool)>(Slice.Comparer.Default);
+			return this.MetadataVersionKeysCache ?? GetMetadataVersionKeysCacheSlow();
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCacheSlow()
+		{
+			lock(this)
+			{
+				return this.MetadataVersionKeysCache ??= new Dictionary<Slice, (Task<VersionStamp?>, bool)>(Slice.Comparer.Default);
+			}
 		}
 
 		private static readonly Task<VersionStamp?> PoisonedMetadataVersion = Task.FromResult<VersionStamp?>(null);
@@ -471,13 +477,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Counter used to generated a unique unique versionstamps for this transaction.</summary>
-		private int m_stampCounter;
+		private int m_versionStampCounter;
 
 		/// <inheritdoc />
 		[Pure]
 		public VersionStamp CreateUniqueVersionStamp()
 		{
-			int userVersion = Interlocked.Increment(ref m_stampCounter);
+			int userVersion = Interlocked.Increment(ref m_versionStampCounter);
 			if (userVersion > 0xFFF) throw new InvalidOperationException("Cannot generate more than 65535 unique VersionStamps per transaction!");
 			return CreateVersionStamp(userVersion);
 		}
@@ -583,7 +589,7 @@ namespace FoundationDB.Client
 		#region GetKey...
 
 		/// <inheritdoc />
-		public async Task<Slice> GetKeyAsync(KeySelector selector)
+		public Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			EnsureCanRead();
 
@@ -593,18 +599,8 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-			var key = await m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation).ConfigureAwait(false);
-
-			// don't forget to truncate keys that would fall outside of the database's globalspace !
-			return BoundCheck(key);
+			return m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation);
 		}
-
-		internal Slice BoundCheck(Slice key)
-		{
-			//REVIEW: should we always allow access to system keys ?
-			return this.Context.Root.BoundCheck(key, allowSystemKeys: true);
-		}
-
 
 		#endregion
 

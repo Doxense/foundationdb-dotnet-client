@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -240,6 +241,14 @@ namespace FoundationDB.Client
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbDirectoryPath(segments);
 		}
+
+		[Pure]
+		public static FdbDirectoryPath Combine(ReadOnlySpan<string> segments)
+		{
+			// we have to copy the buffer!
+			return new FdbDirectoryPath(segments.ToArray());
+		}
+
 
 		[Pure]
 		public static FdbDirectoryPath Combine(ReadOnlyMemory<string> segments)

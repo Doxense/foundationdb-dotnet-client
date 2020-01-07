@@ -43,7 +43,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				string secret = Guid.NewGuid().ToString();
@@ -153,7 +153,7 @@ namespace FoundationDB.Client.Tests
 				db.DefaultRetryLimit = 10;
 				// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
 
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				// insert a good amount of test data
@@ -246,7 +246,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				var t = db.ReadAsync(async (tr) =>
@@ -278,7 +278,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				// setup the keys from 0 to 9
@@ -337,7 +337,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				string secret = Guid.NewGuid().ToString();
@@ -376,7 +376,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				string secret = Guid.NewGuid().ToString();
@@ -413,7 +413,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				// Cannot set a key after commit
@@ -536,7 +536,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Directory["Retryable"];
+				var location = db.Root["Retryable"];
 				await CleanLocation(db, location);
 
 				// Cannot get version stamp after commit

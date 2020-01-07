@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Directory["Collections"]["MultiMaps"];
+				var location = db.Root["Collections"]["MultiMaps"];
 				await CleanLocation(db, location);
 
 				var mapFoos = new FdbMultiMap<string, string>(location.ByKey("Foos"), allowNegativeValues: false);

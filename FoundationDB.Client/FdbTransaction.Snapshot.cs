@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
-			public async Task<Slice> GetKeyAsync(KeySelector selector)
+			public Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				EnsureCanRead();
 
@@ -133,11 +133,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: m_parent.m_cancellation).ConfigureAwait(false);
-
-				// don't forget to truncate keys that would fall outside of the database's root !
-				return m_parent.BoundCheck(key);
-
+				return m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
 			public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
@@ -240,8 +236,6 @@ namespace FoundationDB.Client
 				get => m_parent.MaxRetryDelay;
 				set => throw new NotSupportedException("The max retry delay value cannot be changed via the Snapshot view of a transaction.");
 			}
-
-			public IDynamicKeySubspace Keys => m_parent.Keys;
 
 			void IDisposable.Dispose()
 			{

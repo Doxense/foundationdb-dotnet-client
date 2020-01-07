@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 		{
 
 			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
-			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull] DynamicKeySubspaceLocation top, bool readOnly, CancellationToken ct)
+			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull] FdbDirectorySubspaceLocation top, bool readOnly, CancellationToken ct)
 			{
 				Contract.Requires(db != null && top != null);
 				ct.ThrowIfCancellationRequested();
@@ -55,13 +55,8 @@ namespace FoundationDB.Client
 
 				if (top.Path.Count != 0)
 				{
-					// look up in the root layer for the named partition
-					var descriptor = await db.ReadWriteAsync(tr => db.GetDirectoryLayer().CreateOrOpenAsync(tr, top.Path, layer: FdbDirectoryPartition.LayerId), ct).ConfigureAwait(false);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Found named partition '{descriptor.FullName}' at prefix {descriptor}");
-
-					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
-					var root = new DynamicKeySubspaceLocation(descriptor.Path, Slice.Empty, descriptor.KeyEncoder);
-					db.ChangeRoot(root, descriptor.DirectoryLayer, readOnly);
+					// create the root partition if does not already exist
+					var descriptor = await db.ReadWriteAsync(tr => db.DirectoryLayer.CreateOrOpenAsync(tr, top.Path, layer: FdbDirectoryPartition.LayerId), ct).ConfigureAwait(false);
 					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.Path} at {descriptor.GetPrefixUnsafe()}");
 				}
 			}

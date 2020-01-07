@@ -39,7 +39,7 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
 				// open the folder where we will store everything
-				var subspace = await db.Directory.CreateOrOpenAsync(tr, new [] { "Benchmarks", "LeakTest" });
+				var subspace = await db.Root["Benchmarks"]["LeakTest"].CreateOrOpenAsync(tr);
 
 				// clear all previous values
 				await db.ClearRangeAsync(subspace, ct);

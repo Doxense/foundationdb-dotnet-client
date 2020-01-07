@@ -52,11 +52,10 @@ namespace FoundationDB.Client
 		CancellationToken Cancellation { get; }
 
 		/// <summary>Returns the root path used by this database instance</summary>
-		DynamicKeySubspaceLocation Root { get; }
+		FdbDirectorySubspaceLocation Root { get; }
 
-		/// <summary>Directory partition of this database instance</summary>
-		[NotNull]
-		IFdbDirectory Directory { get; }
+		/// <summary>Directory Layer used by this database instance</summary>
+		FdbDirectoryLayer DirectoryLayer { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }

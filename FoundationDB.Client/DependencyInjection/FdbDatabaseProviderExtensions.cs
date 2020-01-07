@@ -87,42 +87,6 @@ namespace FoundationDB.Client
 			return Fdb.CreateRootScope(db, init, lifetime);
 		}
 
-		/// <summary>Create a scope that will provider a directory subspace to all transactions</summary>
-		/// <param name="provider">Parent provider</param>
-		/// <param name="path">Path of the directory subspace that will be open (and created if necessary) for all the transactions started from this scope.</param>
-		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateDirectoryScope(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			FdbDirectoryPath path,
-			CancellationToken lifetime = default
-		)
-		{
-			return provider.CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
-			{
-				var folder = await database.ReadWriteAsync(tr => database.Directory.CreateOrOpenAsync(tr, path), cancel).ConfigureAwait(false);
-				return (database, folder);
-			}, lifetime);
-		}
-
-		/// <summary>Create a scope that will provider a directory subspace to all transactions</summary>
-		/// <param name="db">Parent database</param>
-		/// <param name="path">Path of the directory subspace that will be open (and created if necessary) for all the transactions started from this scope.</param>
-		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider<FdbDirectorySubspace> CreateRootDirectoryScope(
-			[NotNull] this IFdbDatabase db,
-			FdbDirectoryPath path,
-			CancellationToken lifetime = default
-		)
-		{
-			return Fdb.CreateRootScope(db).CreateScope<FdbDirectorySubspace>(async (database, cancel) =>
-			{
-				var folder = await database.ReadWriteAsync(tr => database.Directory.CreateOrOpenAsync(tr, path), cancel).ConfigureAwait(false);
-				return (database, folder);
-			}, lifetime);
-		}
-
 		/// <summary>Wait for the scope to become ready.</summary>
 		public static ValueTask EnsureIsReady([NotNull] this IFdbDatabaseScopeProvider provider, CancellationToken ct)
 		{

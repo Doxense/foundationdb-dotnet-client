@@ -30,7 +30,7 @@ namespace FoundationDB.Layers.Messaging
 				{
 					var location = await db.ReadWriteAsync(async tr =>
 					{
-						var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "T", "WorkerPool" });
+						var subspace = await db.Root["T"]["WorkerPool"].CreateOrOpenAsync(tr);
 						tr.ClearRange(subspace);
 						return subspace;
 					}, cts.Token);

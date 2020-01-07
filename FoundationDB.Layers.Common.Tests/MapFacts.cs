@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Collections"]["Maps"];
+				var location = db.Root["Collections"]["Maps"];
 				await CleanLocation(db, location);
 
 				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
@@ -136,7 +136,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Collections"]["Maps"];
+				var location = db.Root["Collections"]["Maps"];
 				await CleanLocation(db, location);
 
 				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
@@ -200,7 +200,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Collections"]["Maps"];
+				var location = db.Root["Collections"]["Maps"];
 				await CleanLocation(db, location);
 
 				var mapHosts = new FdbMap<IPEndPoint, string>(location.ByKey("Hosts").AsTyped<IPEndPoint>(keyEncoder), BinaryEncoding.StringEncoder);

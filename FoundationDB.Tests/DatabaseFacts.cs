@@ -52,7 +52,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.ClusterFile, Is.Null, ".ClusterFile");
 				Assert.That(db.Root, Is.Not.Null, ".Root");
-				Assert.That(db.Directory, Is.Not.Null, ".Directory");
+				Assert.That(db.DirectoryLayer, Is.Not.Null.And.SameAs(db.Root.Directory), ".DirectoryLayer");
 				Assert.That(db.IsReadOnly, Is.False, ".IsReadOnly");
 			}
 		}
@@ -126,6 +126,9 @@ namespace FoundationDB.Client.Tests
 			{
 				Assert.That(db, Is.Not.Null, "Should return a valid database");
 				Assert.That(db.ClusterFile, Is.Null, "Cluster path should be null (default)");
+				Assert.That(db.Root, Is.Not.Null, ".Root");
+				Assert.That(db.Root.Path, Is.EqualTo(FdbDirectoryPath.Empty), ".Root");
+				Assert.That(db.DirectoryLayer, Is.Not.Null, ".DirectoryLayer");
 			}
 		}
 
@@ -237,61 +240,6 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
-		{
-			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { Root = SubspaceLocation.Empty.ByKey("test") }, this.Cancellation))
-			{
-				Assert.That(db, Is.Not.Null);
-				Assert.That(db.Root, Is.Not.Null, ".Root");
-				Assert.That(db.Root.Prefix.ToString(), Is.EqualTo("<02>test<00>"), ".Root.Prefix");
-				Assert.That(db.Root.Path, Is.EqualTo(FdbDirectoryPath.Empty), ".Root.Path");
-
-				var location = db.Root.ByKey("hello");
-				Assert.That(location.Prefix.ToString(), Is.EqualTo("<02>test<00><02>hello<00>"), "Root['Hello'].Prefix");
-				Assert.That(location.Path.ToString(), Is.EqualTo(FdbDirectoryPath.Empty), "Root['Hello'].Prefix");
-
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
-				{
-					Assert.That(tr.Context.Root, Is.Not.Null);
-					Assert.That(tr.Context.Root.GetPrefix().ToString(), Is.EqualTo("<02>test<00>"));
-					Assert.That(tr.Keys.Encode("foo", 123).ToString(), Is.EqualTo("<02>test<00><02>foo<00><15>{"));
-
-					// keys inside the global space are valid
-					Assert.That(tr.Context.Root.Contains(TuPack.EncodeKey("test", 123)), Is.True);
-
-					// keys outside the global space are invalid
-					Assert.That(tr.Context.Root.Contains(Slice.FromByte(42)), Is.False);
-				}
-			}
-
-			// using a random binary prefix
-			using (var db = await Fdb.OpenAsync(new FdbConnectionOptions { Root = SubspaceLocation.FromKey(new byte[] { 42, 255, 0, 90 }) }, this.Cancellation))
-			{
-				Assert.That(db, Is.Not.Null);
-				Assert.That(db.Root, Is.Not.Null, ".Root");
-				Assert.That(db.Root.Prefix.ToString(), Is.EqualTo("*<FF><00>Z"), ".Root.Prefix");
-				Assert.That(db.Root.Path, Is.EqualTo(FdbDirectoryPath.Empty), ".Root.Path");
-
-				var location = db.Root.ByKey("hello");
-				Assert.That(location.Prefix.ToString(), Is.EqualTo("*<FF><00>Z<02>hello<00>"), "Root['Hello'].Prefix");
-				Assert.That(location.Path.ToString(), Is.EqualTo(FdbDirectoryPath.Empty), "Root['Hello'].Prefix");
-
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
-				{
-					// keys inside the global space are valid
-					Assert.That(tr.Context.Root.Contains(Slice.Unescape("*<FF><00>Z123")), Is.True);
-
-					// keys outside the global space are invalid
-					Assert.That(tr.Context.Root.Contains(Slice.FromByte(123)), Is.False);
-					Assert.That(tr.Context.Root.Contains(Slice.Unescape("*<FF>")), Is.False);
-				}
-
-			}
-
-		}
-
-		[Test]
 		public async Task Test_Can_Change_Location_Cache_Size()
 		{
 			// New in Beta2
@@ -319,11 +267,10 @@ namespace FoundationDB.Client.Tests
 			{
 				Assert.That(db, Is.Not.Null);
 
-				var directory = db.Directory;
-				Assert.That(directory, Is.Not.Null);
-				Assert.That(directory.Path, Is.Not.Null);
+				Assert.That(db.Root, Is.Not.Null);
+				Assert.That(db.Root.Path, Is.Not.EqualTo(FdbDirectoryPath.Empty));
 
-				var dl = directory.DirectoryLayer;
+				var dl = db.DirectoryLayer;
 				Assert.That(dl, Is.Not.Null);
 				Assert.That(dl.Content, Is.Not.Null);
 				Assert.That(dl.Content, Is.EqualTo(db.Root));
@@ -373,7 +320,7 @@ namespace FoundationDB.Client.Tests
 			options = new FdbConnectionOptions
 			{
 				ClusterFile = "X:\\some\\path\\to\\fdb.cluster",
-				Root = SubspaceLocation.FromPath(FdbDirectoryPath.Combine("Hello", "World")),
+				Root = FdbDirectoryPath.Combine("Hello", "World"),
 			};
 			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; root=[Hello/World]"));
 

@@ -76,7 +76,7 @@ namespace FoundationDB.Layers.Documents.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Books"]["JSON"];
+				var location = db.Root["Books"]["JSON"];
 				await CleanLocation(db, location);
 
 				var docs = new FdbDocumentCollection<Book, int>(
@@ -118,7 +118,7 @@ namespace FoundationDB.Layers.Documents.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Books"]["ProtoBuf"];
+				var location = db.Root["Books"]["ProtoBuf"];
 				await CleanLocation(db, location);
 
 				// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere

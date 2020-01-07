@@ -55,8 +55,8 @@ namespace FoundationDB.Filters
 		/// <summary>If true, we have been disposed</summary>
 		protected bool m_disposed;
 
-		/// <summary>Wrapper for the inner db's Directory property</summary>
-		protected IFdbDirectory m_directory;
+		/// <summary>Wrapper for the inner db's Root property</summary>
+		protected FdbDirectorySubspaceLocation m_root;
 
 		#endregion
 
@@ -96,20 +96,20 @@ namespace FoundationDB.Filters
 		public CancellationToken Cancellation => m_database.Cancellation;
 
 		/// <inheritdoc/>
-		public virtual DynamicKeySubspaceLocation Root => m_database.Root;
-
-		/// <inheritdoc/>
-		public virtual IFdbDirectory Directory
+		public virtual FdbDirectorySubspaceLocation Root
 		{
 			get
 			{
-				if (m_directory == null || !object.ReferenceEquals(m_directory, m_database.Directory))
+				if (m_root == null || !object.ReferenceEquals(m_root, m_database.Root))
 				{
-					m_directory = m_database.Directory;
+					m_root = m_database.Root;
 				}
-				return m_directory;
+				return m_root;
 			}
 		}
+
+		/// <inheritdoc/>
+		public virtual FdbDirectoryLayer DirectoryLayer => this.Root.Directory;
 
 		/// <inheritdoc/>
 		public virtual bool IsReadOnly => m_readOnly;

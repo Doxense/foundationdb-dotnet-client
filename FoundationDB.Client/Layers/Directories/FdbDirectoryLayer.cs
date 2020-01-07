@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 		/// This is only useful if you want to diagnose performance or read conflict issues.
 		/// This will only work with logged transactions, obtained by applying the Logging Filter on a database instance
 		/// </remarks>
-		public static bool AnnotateTransactions { get; set; } = true;
+		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
 		[NotNull]
@@ -130,8 +130,21 @@ namespace FoundationDB.Client
 		/// <summary>Return the location of the sub-directory with the given name</summary>
 		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segment));
 
+		/// <summary>Return the location of the sub-directory with the given name</summary>
+		public FdbDirectorySubspaceLocation this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segment), layer);
+
 		/// <summary>Return the location of the sub-directory with the given relative path</summary>
-		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] => new FdbDirectorySubspaceLocation(this, relativePath);
+		public FdbDirectorySubspaceLocation this[FdbDirectoryPath path] => new FdbDirectorySubspaceLocation(this, path);
+
+		/// <summary>Return the location of the sub-directory with the given relative path</summary>
+		public FdbDirectorySubspaceLocation this[FdbDirectoryPath path, Slice layer] => new FdbDirectorySubspaceLocation(this, path, layer);
+
+
+		/// <summary>Return the location of the sub-directory with the given relative path</summary>
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segments));
+
+		/// <summary>Return the location of the sub-directory with the given relative path</summary>
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments, Slice layer] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segments), layer);
 
 		#region Constructors...
 
@@ -604,11 +617,6 @@ namespace FoundationDB.Client
 					++i;
 				}
 
-				if (partition != parent)
-				{ // if the last segment is a partition, we want the prefix of its content subspace instead!
-					current = partition.Content.GetPrefix();
-				}
-
 				return new Node(path, current, layer, partition, parent);
 			}
 
@@ -762,14 +770,9 @@ namespace FoundationDB.Client
 					//HACKHACK: idéalement, CreateOrOpenInternalAsync devrait retourner toutes les informations en une seule fois!
 					var parentNode = await FindAsync(readTrans, this.Partition, path.GetParent());
 					partition = parentNode.Partition;
-					parentPrefix = partition == parentNode.ParentPartition ? parentNode.Prefix : Slice.Nil;
+					parentPrefix = parentNode.Prefix;
 				}
 				else
-				{
-					parentPrefix = Slice.Nil;
-				}
-
-				if (parentPrefix.IsNull)
 				{
 					parentPrefix = partition.Nodes.GetPrefix();
 				}
@@ -905,13 +908,6 @@ namespace FoundationDB.Client
 					if (throwIfMissing) throw new InvalidOperationException($"The directory '{path}' does not exist.");
 					return false;
 				}
-
-				//if (n.IsInPartition(includeEmptySubPath: false))
-				//{
-				//	return await GetPartitionForNode(in n, null).DirectoryLayer.RemoveInternalAsync(trans, n.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
-				//}
-
-				//TODO: partitions ?
 
 				// Delete the node subtree and all the data
 				await RemoveRecursive(trans, n.Partition, n.Prefix).ConfigureAwait(false);
@@ -1071,7 +1067,7 @@ namespace FoundationDB.Client
 
 				if (layer == FdbDirectoryPartition.LayerId)
 				{
-					var descriptor = new DirectoryDescriptor(this.Layer, path, prefix, FdbDirectoryPartition.LayerId, partition);
+					var descriptor = new DirectoryDescriptor(this.Layer, path, partition.Content.GetPrefix(), FdbDirectoryPartition.LayerId, partition);
 					return new FdbDirectoryPartition(descriptor, parentPartition, TuPack.Encoding.GetDynamicKeyEncoder(), context);
 				}
 				else
@@ -1122,11 +1118,11 @@ namespace FoundationDB.Client
 				await SubdirNamesAndNodes(tr, partition, prefix).ForEachAsync((kvp) => RemoveRecursive(tr, partition, kvp.Value)).ConfigureAwait(false);
 
 				// remove ALL the contents
-				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all content located under {0}", prefix);
+				if (AnnotateTransactions) tr.Annotate("Removing all content located under {0}", KeyRange.StartsWith(prefix));
 				//TODO: REVIEW: we could get the prefix without calling ContentsOfNode here!
 				tr.ClearRange(KeyRange.StartsWith(prefix));
 				// and all the metadata for this folder
-				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all metadata for folder under {0}", prefix);
+				if (AnnotateTransactions) tr.Annotate("Removing all metadata for folder under {0}", partition.Nodes.EncodeRange(prefix));
 				tr.ClearRange(partition.Nodes.EncodeRange(prefix));
 			}
 
@@ -1249,11 +1245,11 @@ namespace FoundationDB.Client
 				{
 					if (gmv != null && context.MetadataVersion == gmv.Value)
 					{ // no change in the read version means that the context is unchanged
-						trans.Annotate($"{this.Layer} cache context still valid (GMV hit {gmv})");
+						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context still valid (GMV hit)");
 						return context;
 					}
 
-					trans.Annotate($"{this.Layer} cache context must be re-validated (GMV miss {gmv} != {context.MetadataVersion})");
+					if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context must be re-validated (GMV miss {gmv} != {context.MetadataVersion})");
 					// context is not valid anymore!
 				}
 
@@ -1271,11 +1267,11 @@ namespace FoundationDB.Client
 
 					if (context.PartitionVersion == pmv.Value)
 					{ // no change in the partition read version means that the change was from someone else
-						trans.Annotate($"{this.Layer} cache context still valid (PMV hit {pmv})");
+						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context still valid (PMV hit {pmv})");
 						if (gmv != null) context.BumpMetadataVersion(gmv.Value);
 						return context;
 					}
-					trans.Annotate($"{this.Layer} partition version has changed (PMV miss {pmv} != {context.PartitionVersion})");
+					if (AnnotateTransactions) trans.Annotate($"{this.Layer} partition version has changed (PMV miss {pmv} != {context.PartitionVersion})");
 				}
 
 				// create a new context!
@@ -1421,7 +1417,7 @@ namespace FoundationDB.Client
 				{
 					if (!this.CachedSubspaces.TryGetValue(path, out candidate))
 					{
-						tr.Annotate($"{this.DirectoryLayer} subspace MISS for {path}");
+						if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace MISS for {path}");
 						return false;
 					}
 				}
@@ -1439,7 +1435,7 @@ namespace FoundationDB.Client
 					writable.AddReadConflictKey(metadata.Partition.MetadataKey);
 				}
 
-				tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {subspace?.ToString() ?? "<not_found>"}");
+				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {subspace?.ToString() ?? "<not_found>"}");
 
 				return true;
 			}

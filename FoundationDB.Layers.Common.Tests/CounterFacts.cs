@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Counters.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["counters"]["simple"];
+				var location = db.Root["counters"]["simple"];
 				await CleanLocation(db, location);
 
 				var counter = new FdbHighContentionCounter(location);
@@ -72,7 +72,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["counters"]["big"];
+				var location = db.Root["counters"]["big"];
 				await CleanLocation(db, location);
 
 				var c = new FdbHighContentionCounter(location);
@@ -110,7 +110,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 				using (var db = await OpenTestPartitionAsync())
 				{
-					var location = db.Directory["counters"]["big"][W.ToString()];
+					var location = db.Root["counters"]["big"][W.ToString()];
 					await CleanLocation(db, location);
 
 					var c = new FdbHighContentionCounter(location);

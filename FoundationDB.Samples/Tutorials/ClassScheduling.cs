@@ -55,7 +55,7 @@ namespace FoundationDB.Samples.Tutorials
 			// open the folder where we will store everything
 			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
-				var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "Tutorials", "ClassScheduling" });
+				var subspace = await db.Root["Tutorials"]["ClassScheduling"].CreateOrOpenAsync(tr);
 
 				// clear all previous values
 				tr.ClearRange(subspace);

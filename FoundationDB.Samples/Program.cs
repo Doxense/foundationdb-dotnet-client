@@ -177,7 +177,7 @@ namespace FoundationDB.Samples
 				var options = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
-					Root = SubspaceLocation.FromPath(partition),
+					Root = partition,
 				};
 				Db = Fdb.OpenAsync(options, go.Token).GetAwaiter().GetResult();
 

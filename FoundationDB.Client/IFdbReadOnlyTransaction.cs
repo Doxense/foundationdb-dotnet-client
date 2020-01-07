@@ -209,7 +209,6 @@ namespace FoundationDB.Client
 		/// </summary>
 		int MaxRetryDelay { get; set; }
 
-		IDynamicKeySubspace Keys { get; } //REVIEW: rename to .Root?
 	}
 
 }

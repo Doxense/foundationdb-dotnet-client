@@ -65,11 +65,11 @@ namespace FoundationDB.Client
 		/// <summary>List of all "pending" transactions created from this database instance (and that have not yet been disposed)</summary>
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
 
-		/// <summary>DirectoryLayer instance used by this database</summary>
+		/// <summary>Directory instance corresponding to the root of this database</summary>
 		private FdbDirectoryLayer m_directory;
 
 		/// <summary>The root location of this database</summary>
-		private DynamicKeySubspaceLocation m_root;
+		private FdbDirectorySubspaceLocation m_root;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -87,29 +87,26 @@ namespace FoundationDB.Client
 		/// <summary>Create a new database instance</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="root">Root location of this database</param>
-		/// <param name="directory">DirectoryLayer instance used by this database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		protected FdbDatabase(IFdbDatabaseHandler handler, [CanBeNull] DynamicKeySubspaceLocation root, FdbDirectoryLayer directory, bool readOnly)
+		protected FdbDatabase(IFdbDatabaseHandler handler, [NotNull] FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			Contract.Requires(handler != null);
+			Contract.Requires(handler != null && root != null);
 
 			m_handler = handler;
 			m_readOnly = readOnly;
-			ChangeRoot(root ?? SubspaceLocation.Empty, directory, readOnly);
+			ChangeRoot(root, readOnly);
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="root">Root location of the database</param>
-		/// <param name="directory">DirectoryLayer instance used by the database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] ISubspaceLocation root, [NotNull] FdbDirectoryLayer directory, bool readOnly)
+		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] FdbDirectorySubspaceLocation root, bool readOnly)
 		{
 			Contract.NotNull(handler, nameof(handler));
 			Contract.NotNull(root, nameof(root));
-			Contract.NotNull(directory, nameof(directory));
 
-			return new FdbDatabase(handler, root.AsDynamic(), directory, readOnly);
+			return new FdbDatabase(handler, root, readOnly);
 		}
 
 		#endregion
@@ -129,10 +126,11 @@ namespace FoundationDB.Client
 		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Root directory of this database instance</summary>
-		public IFdbDirectory Directory => m_directory;
+		/// <remarks>Starts at the same path as the <see cref="Root"/> location, meaning that <code>db.Directory["Foo"]</code> will point to the same location as db.Root.Path.Add("Foo").</remarks>
+		public IFdbDirectory Directory => m_root;
 
 		/// <summary>Return the DirectoryLayer instance used by this database</summary>
-		internal FdbDirectoryLayer GetDirectoryLayer() => m_directory;
+		public FdbDirectoryLayer DirectoryLayer => m_directory;
 
 		#endregion
 
@@ -151,13 +149,11 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public async ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null)
+		public ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null)
 		{
 			ct.ThrowIfCancellationRequested();
 			if (context == null) context = new FdbOperationContext(this, mode, ct);
-			var tr = CreateNewTransaction(context);
-			await context.ComputeRoot(tr);
-			return tr;
+			return new ValueTask<IFdbTransaction>(CreateNewTransaction(context));
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
@@ -542,20 +538,19 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(DynamicKeySubspaceLocation root, FdbDirectoryLayer directory, bool readOnly)
+		internal void ChangeRoot(FdbDirectorySubspaceLocation root, bool readOnly)
 		{
 			Contract.NotNull(root, nameof(root));
-			Contract.NotNull(directory, nameof(directory));
 
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
 				m_root = root;
-				m_directory = directory;
+				m_directory = root.Directory;
 			}
 		}
 
-		public DynamicKeySubspaceLocation Root => m_root;
+		public FdbDirectorySubspaceLocation Root => m_root;
 
 		/// <summary>Ensures that a serialized value is valid</summary>
 		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>

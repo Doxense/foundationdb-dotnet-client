@@ -697,7 +697,7 @@ namespace FdbShell
 			if (folder == null)
 			{
 				stream.WriteLine(sb.ToString() + "<root>");
-				node = db.Directory;
+				node = db.Root;
 			}
 			else
 			{

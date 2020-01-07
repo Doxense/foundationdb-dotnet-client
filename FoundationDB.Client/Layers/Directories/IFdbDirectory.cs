@@ -64,7 +64,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Get the location of the sub-directory with the given path</summary>
 		[NotNull]
+		FdbDirectorySubspaceLocation this[string segment, Slice layer] { get; }
+
+		/// <summary>Get the location of the sub-directory with the given path</summary>
+		[NotNull]
 		FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] { get; }
+
+		/// <summary>Get the location of the sub-directory with the given path</summary>
+		[NotNull]
+		FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath, Slice layer] { get; }
 
 		/// <summary>Opens a sub-directory with the given path.
 		/// If the sub-directory does not exist, it is created (creating intermediate subdirectories if necessary).

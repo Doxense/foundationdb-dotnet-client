@@ -55,11 +55,11 @@ namespace FoundationDB.Client
 		/// <summary>Descriptor of the partition directory in its parent partition</summary>
 		internal FdbDirectoryLayer.PartitionDescriptor Parent { get; }
 
-		protected override Slice GetKeyPrefix() => throw new InvalidOperationException("Cannot create keys in the root of a directory partition.");
+		protected override Slice GetKeyPrefix() => throw new InvalidOperationException($"Cannot create keys in the root of directory partition {this.Path}.");
 
-		protected override KeyRange GetKeyRange() => throw new InvalidOperationException("Cannot create a key range in the root of a directory partition.");
+		protected override KeyRange GetKeyRange() => throw new InvalidOperationException($"Cannot create a key range in the root of directory partition {this.Path}.");
 
-		public override bool Contains(ReadOnlySpan<byte> key) => throw new InvalidOperationException("Cannot check whether a key belongs to the root of a directory partition.");
+		public override bool Contains(ReadOnlySpan<byte> key) => throw new InvalidOperationException($"Cannot check whether a key belongs to the root of directory partition {this.Path}");
 
 		internal override FdbDirectoryLayer.PartitionDescriptor GetEffectivePartition()
 		{

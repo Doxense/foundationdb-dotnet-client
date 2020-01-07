@@ -170,7 +170,7 @@ namespace FoundationDB.Tests.Sandbox
 				var settings = new FdbConnectionOptions()
 				{
 					ClusterFile = CLUSTER_FILE,
-					Root = SubspaceLocation.FromKey(Slice.FromByte(253)),
+					Root = FdbDirectoryPath.Combine("Sandbox"),
 				};
 
 				Console.WriteLine("Connecting to local cluster...");
@@ -568,7 +568,8 @@ namespace FoundationDB.Tests.Sandbox
 				list[i] = (byte)i;
 				using (var trans = await db.BeginTransactionAsync(ct))
 				{
-					trans.Set(trans.Keys.Encode("list"), list.AsSlice());
+					var subspace = await db.Root.Resolve(trans);
+					trans.Set(subspace.Encode("list"), list.AsSlice());
 					await trans.CommitAsync();
 				}
 				if (i % 100 == 0) Console.Write($"\r> {i:N0} / {N:N0}");

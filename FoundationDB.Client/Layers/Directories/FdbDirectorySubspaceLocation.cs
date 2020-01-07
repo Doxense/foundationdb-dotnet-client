@@ -41,7 +41,7 @@ namespace FoundationDB.Client
 	public sealed class FdbDirectorySubspaceLocation : ISubspaceLocation<FdbDirectorySubspace>, IFdbDirectory
 	{
 
-		public IFdbDirectory Directory { get; }
+		public FdbDirectoryLayer Directory { get; }
 
 		public FdbDirectoryPath Path { get; }
 
@@ -51,7 +51,9 @@ namespace FoundationDB.Client
 
 		IKeyEncoding ISubspaceLocation.Encoding => TuPack.Encoding;
 
-		public FdbDirectorySubspaceLocation(IFdbDirectory directory, FdbDirectoryPath path, Slice layer = default)
+		public bool IsPartition { get; }
+
+		public FdbDirectorySubspaceLocation(FdbDirectoryLayer directory, FdbDirectoryPath path, Slice layer = default)
 		{
 			Contract.NotNull(directory, nameof(directory));
 
@@ -60,9 +62,10 @@ namespace FoundationDB.Client
 			this.Directory = directory;
 			this.Path = path;
 			this.Layer = layer;
+			this.IsPartition = layer.Equals(FdbDirectoryPartition.LayerId);
 		}
 
-		public ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			Contract.NotNull(tr, nameof(tr));
 
@@ -92,17 +95,27 @@ namespace FoundationDB.Client
 			return other != null && other.Path == this.Path && other.Prefix.Count == 0;
 		}
 
+		internal FdbDirectoryPath GetSafePath()
+		{
+			if (this.IsPartition && this.Path.Count != 0) throw ThrowHelper.InvalidOperationException($"Cannot create a binary subspace under the root of directory partition '{this.Path}'.");
+			return this.Path;
+		}
+
 		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this.Directory, this.Path[segment]);
 
-		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] => throw new NotImplementedException();
+		public FdbDirectorySubspaceLocation this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(segment), layer);
 
-		public FdbDirectorySubspaceLocation this[string segment1, string segment2] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(segment1, segment2));
+		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(relativePath));
+
+		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath, Slice layer] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(relativePath), layer);
 
 		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments] => new FdbDirectorySubspaceLocation(this.Directory, this.Path[segments]);
 
-		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new DynamicKeySubspaceLocation(this.Path, TuPack.EncodeKey<T1>(item1), TuPack.Encoding.GetDynamicKeyEncoder());
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments, Slice layer] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(segments), layer);
 
-		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new DynamicKeySubspaceLocation(this.Path, TuPack.EncodeKey<T1, T2>(item1, item2), TuPack.Encoding.GetDynamicKeyEncoder());
+		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new DynamicKeySubspaceLocation(GetSafePath(), TuPack.EncodeKey<T1>(item1), TuPack.Encoding.GetDynamicKeyEncoder());
+
+		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new DynamicKeySubspaceLocation(GetSafePath(), TuPack.EncodeKey<T1, T2>(item1, item2), TuPack.Encoding.GetDynamicKeyEncoder());
 
 		#region IFdbDirectory...
 
@@ -110,7 +123,7 @@ namespace FoundationDB.Client
 
 		string IFdbDirectory.FullName => this.Path.ToString();
 
-		FdbDirectoryLayer IFdbDirectory.DirectoryLayer => this.Directory.DirectoryLayer;
+		FdbDirectoryLayer IFdbDirectory.DirectoryLayer => this.Directory;
 
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
 		{

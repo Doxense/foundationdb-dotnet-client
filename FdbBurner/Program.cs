@@ -74,7 +74,7 @@ namespace FdbBurner
 
 			var folder = await db.ReadWriteAsync(async tr =>
 			{
-				var x = await db.Directory.CreateOrOpenAsync(tr, new[] { "Benchmarks", "Burner", "Sequential" });
+				var x = await db.Root["Benchmarks"]["Burner"]["Sequential"].CreateOrOpenAsync(tr);
 				tr.ClearRange(x);
 				return x;
 			}, ct);

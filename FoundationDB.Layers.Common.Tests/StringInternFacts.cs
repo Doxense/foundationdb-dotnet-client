@@ -44,12 +44,11 @@ namespace FoundationDB.Layers.Interning.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var stringSpace = db.Root.ByKey("Strings");
-				var dataSpace = db.Root.ByKey("Data").AsTyped<string>();
+				var location = db.Root["StringInterning"];
+				await CleanLocation(db, location);
 
-				// clear all previous data
-				await CleanLocation(db, stringSpace);
-				await CleanLocation(db, dataSpace);
+				var stringSpace = location.ByKey("Strings");
+				var dataSpace = location.ByKey("Data").AsTyped<string>();
 
 				var stringTable = new FdbStringIntern(stringSpace);
 
@@ -57,6 +56,7 @@ namespace FoundationDB.Layers.Interning.Tests
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var table = await stringTable.Resolve(tr);
+					Assert.That(table, Is.Not.Null);
 					var va = await table.InternAsync(tr, "testing 123456789");
 					var vb = await table.InternAsync(tr, "dog");
 					var vc = await table.InternAsync(tr, "testing 123456789");

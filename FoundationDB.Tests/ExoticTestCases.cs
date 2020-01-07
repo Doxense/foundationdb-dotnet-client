@@ -45,11 +45,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_1()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = tr.Keys;
+					var subspace = await db.Root.Resolve(tr);
 					tr.Set(subspace.Encode("AAA"), Value("111"));
 					tr.Set(subspace.Encode("BBB"), Value("222"));
 					tr.Set(subspace.Encode("CCC"), Value("333"));
@@ -63,11 +63,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_2()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = tr.Keys;
+					var subspace = await db.Root.Resolve(tr);
 					tr.ClearRange(subspace.Encode("AAA"), Value("ZZZ"));
 					tr.Set(subspace.Encode("AAA"), Value("111"));
 					tr.Set(subspace.Encode("BBB"), Value("222"));
@@ -82,11 +82,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_3()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = tr.Keys;
+					var subspace = await db.Root.Resolve(tr);
 					tr.ClearRange(subspace.Encode("AAA"), Value("BBB"));
 					tr.ClearRange(subspace.Encode("BBB"), Value("CCC"));
 					tr.ClearRange(subspace.Encode("CCC"), Value("DDD"));
@@ -99,11 +99,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_4()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = tr.Context.Root;
+					var subspace = await db.Root.Resolve(tr);
 
 					//initial setup:
 					// A: none
@@ -134,11 +134,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_5()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = tr.Keys;
+					var subspace = await db.Root.Resolve(tr);
 					tr.Set(subspace.Encode("AAA"), Value("111"));
 					tr.AtomicAdd(subspace.Encode("BBB"), Value("222"));
 					tr.AtomicAnd(subspace.Encode("CCC"), Value("333"));
@@ -154,11 +154,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_6()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = tr.Keys;
+					var subspace = await db.Root.Resolve(tr);
 
 					tr.AtomicMax(subspace.Encode("MAXMAX1"), Value("EEE"));
 					tr.AtomicMax(subspace.Encode("MAXMAX1"), Value("FFF"));
@@ -180,16 +180,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_6b()
 		{
-			using (var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
 
 				var init = Slice.Repeat(0xCC, 9);
 				var mask = Slice.Repeat(0xAA, 9);
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = await location.Resolve(tr);
+					var subspace = await db.Root.Resolve(tr);
 
 					tr.Set(subspace.Encode("AAA"), init);
 					tr.Set(subspace.Encode("BBB"), init);
@@ -204,7 +203,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var subspace = await location.Resolve(tr);
+					var subspace = await db.Root.Resolve(tr);
 
 					tr.Set(subspace.Encode("AAA"), mask);
 					tr.AtomicAdd(subspace.Encode("BBB"), mask);
@@ -225,7 +224,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_7()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -306,14 +305,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_8()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 
-					await db.WriteAsync(tr =>
+					await db.WriteAsync(async tr =>
 					{
-						var subspace = tr.Keys;
+						var subspace = await db.Root.Resolve(tr);
 						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999\x00"));
 						for (int i = 0; i < 1000; i++)
 						{
@@ -325,7 +324,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					{
 						using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 						{
-							var subspace = tr.Keys;
+							var subspace = await db.Root.Resolve(tr);
 							var res = await tr.GetAsync(subspace.Encode("K" + i.ToString("D4")));
 							Dump(res);
 						}
@@ -337,25 +336,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_9()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					// clear everything
-					await db.WriteAsync((tr) => tr.ClearRange(tr.Keys.Encode("K0000"), tr.Keys.Encode("K9999Z")), this.Cancellation);
+					await db.WriteAsync(async (tr) =>
+					{
+						var subspace = await db.Root.Resolve(tr);
+						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
+					}, this.Cancellation);
 
-					await db.WriteAsync(tr => tr.Set(tr.Keys.Encode("K0123"), Value("V0123")), this.Cancellation);
-					await db.WriteAsync(tr => tr.Set(tr.Keys.Encode("K0789"), Value("V0789")), this.Cancellation);
+					await db.WriteAsync(async tr =>
+					{
+						var subspace = await db.Root.Resolve(tr);
+						tr.Set(subspace.Encode("K0123"), Value("V0123"));
+					}, this.Cancellation);
+					await db.WriteAsync(async tr =>
+					{
+						var subspace = await db.Root.Resolve(tr);
+						tr.Set(subspace.Encode("K0789"), Value("V0789"));
+					}, this.Cancellation);
 
 					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						await tr.GetValuesAsync(tr.Keys.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
+						var subspace = await db.Root.Resolve(tr);
+						await tr.GetValuesAsync(subspace.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
 					}
 
 					// once more with feelings
 					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						await tr.GetValuesAsync(tr.Keys.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
+						var subspace = await db.Root.Resolve(tr);
+						await tr.GetValuesAsync(subspace.EncodeMany(new[] { "K0123", "K0234", "K0456", "K0567", "K0789" }));
 					}
 				}
 			}
@@ -364,15 +377,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_10()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
 					// clear everything and write some values
-					await db.WriteAsync(tr =>
+					await db.WriteAsync(async tr =>
 					{
-						var subspace = tr.Context.Root;
-
+						var subspace = await db.Root.Resolve(tr);
 						tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
 						for (int i = 0; i < 100; i++)
 						{
@@ -382,8 +394,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						var subspace = tr.Context.Root;
-
+						var subspace = await db.Root.Resolve(tr);
 						tr.ClearRange(subspace.Encode("K0010"), subspace.Encode("K0020"));
 						tr.ClearRange(subspace.Encode("K0050"), subspace.Encode("K0060"));
 
@@ -403,7 +414,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_11()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -462,7 +473,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_12()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -500,7 +511,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_13()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -546,7 +557,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_14()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -588,7 +599,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test]
 		public async Task Test_Case_15()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -628,7 +639,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		public async Task Test_Case_16()
 		{
 
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				var db = zedb.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 				{
@@ -642,13 +653,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					// set the key
 					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						tr.Set(tr.Keys.Encode("KAAA"), Value("VALUE_AAA"));
+						var subspace = await db.Root.Resolve(tr);
+						tr.Set(subspace.Encode("KAAA"), Value("VALUE_AAA"));
 						await tr.CommitAsync();
 					}
 					// set the key
 					using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						await tr.GetAsync(tr.Keys.Encode("KAAA"));
+						var subspace = await db.Root.Resolve(tr);
+						await tr.GetAsync(subspace.Encode("KAAA"));
 					}
 
 					await Task.Delay(500);
@@ -659,8 +672,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					{
 						await Task.WhenAll(tr1.GetReadVersionAsync(), tr2.GetReadVersionAsync());
 
-						tr1.Set(tr1.Keys.Encode("KBBB"), Value("VALUE_BBB_111"));
-						tr2.Set(tr2.Keys.Encode("KCCC"), Value("VALUE_CCC_111"));
+						var subspace1 = await db.Root.Resolve(tr1);
+						var subspace2 = await db.Root.Resolve(tr2);
+
+						tr1.Set(subspace1.Encode("KBBB"), Value("VALUE_BBB_111"));
+						tr2.Set(subspace2.Encode("KCCC"), Value("VALUE_CCC_111"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -673,13 +689,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var subspace1 = await db.Root.Resolve(tr1);
+						var subspace2 = await db.Root.Resolve(tr2);
+
 						await Task.WhenAll(
-							tr1.GetAsync(tr1.Keys.Encode("KAAA")),
-							tr2.GetAsync(tr2.Keys.Encode("KAAA"))
+							tr1.GetAsync(subspace1.Encode("KAAA")),
+							tr2.GetAsync(subspace2.Encode("KAAA"))
 						);
 
-						tr1.Set(tr1.Keys.Encode("KBBB"), Value("VALUE_BBB_222"));
-						tr2.Set(tr2.Keys.Encode("KCCC"), Value("VALUE_CCC_222"));
+						tr1.Set(subspace1.Encode("KBBB"), Value("VALUE_BBB_222"));
+						tr2.Set(subspace2.Encode("KCCC"), Value("VALUE_CCC_222"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -692,12 +711,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 					using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
+						var subspace1 = await db.Root.Resolve(tr1);
+						var subspace2 = await db.Root.Resolve(tr2);
+
 						await Task.WhenAll(
-							tr1.GetAsync(tr1.Keys.Encode("KCCC")),
-							tr2.GetAsync(tr2.Keys.Encode("KBBB"))
+							tr1.GetAsync(subspace1.Encode("KCCC")),
+							tr2.GetAsync(subspace2.Encode("KBBB"))
 						);
-						tr1.Set(tr1.Keys.Encode("KBBB"), Value("VALUE_BBB_333"));
-						tr2.Set(tr2.Keys.Encode("KCCC"), Value("VALUE_CCC_333"));
+						tr1.Set(subspace1.Encode("KBBB"), Value("VALUE_BBB_333"));
+						tr2.Set(subspace2.Encode("KCCC"), Value("VALUE_CCC_333"));
 						var task1 = tr1.CommitAsync();
 						var task2 = tr2.CommitAsync();
 
@@ -720,7 +742,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		[Test][Ignore("This test requires the database to be stopped!")]
 		public async Task Test_Case_17()
 		{
-			using (var zedb = await OpenTestDatabaseAsync())
+			using (var zedb = await OpenTestPartitionAsync())
 			{
 				//THIS TEST MUST BE PERFORMED WITH THE CLUSTER DOWN! (net stop fdbmonitor)
 

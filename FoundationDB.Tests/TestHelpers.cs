@@ -50,7 +50,7 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				Root = SubspaceLocation.FromKey(TestGlobalPrefix),
+				Root = FdbDirectoryPath.Empty, // core tests cannot rely on the DirectoryLayer!
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
@@ -62,7 +62,7 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				Root = SubspaceLocation.FromKey(TestGlobalPrefix).ByKey(Environment.MachineName),
+				Root = FdbDirectoryPath.Combine("Tests", "Fdb", Environment.MachineName),
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
@@ -99,16 +99,16 @@ namespace FoundationDB.Client.Tests
 				else if (location.Prefix.Count == 0)
 				{
 					// remove previous
-					await db.Directory.TryRemoveAsync(tr, location.Path);
+					await db.DirectoryLayer.TryRemoveAsync(tr, location.Path);
 
 					// create new
-					var subspace = await db.Directory.CreateAsync(tr, location.Path);
+					_ = await db.DirectoryLayer.CreateAsync(tr, location.Path);
 				}
 				else
 				{ // subspace under a directory subspace
 
 					// make sure the parent path exists!
-					var subspace = await db.Directory.CreateOrOpenAsync(tr, location.Path);
+					var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, location.Path);
 
 					// get and clear subspace
 					tr.ClearRange(subspace.Partition[location.Prefix].ToRange());
@@ -141,16 +141,35 @@ namespace FoundationDB.Client.Tests
 			using (var tr = await db.BeginTransactionAsync(ct))
 			{
 				var subspace = await path.Resolve(tr);
+				if (subspace == null)
+				{
+					FdbTest.Log($"Dumping content of subspace {path}:");
+					FdbTest.Log("> EMPTY!");
+					return;
+				}
 
 				await DumpSubspace(tr, subspace).ConfigureAwait(false);
+
+				if (path.Prefix.Count == 0)
+				{
+					foreach(var name in await db.DirectoryLayer.TryListAsync(tr, path.Path))
+					{
+						var child = await db.DirectoryLayer.TryOpenAsync(tr, path.Path[name]);
+						if (child != null)
+						{
+							await DumpSubspace(tr, child);
+						}
+					}
+				}
 			}
 		}
 
 		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IKeySubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
+			Assert.That(subspace, Is.Not.Null);
 
-			FdbTest.Log($"Dumping content of subspace {subspace}:");
+			FdbTest.Log($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
 			int count = 0;
 			await tr
 				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))

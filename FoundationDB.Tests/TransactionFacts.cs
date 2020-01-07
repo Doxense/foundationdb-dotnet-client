@@ -190,7 +190,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -229,7 +229,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Cancelling_Transaction_Before_Commit_Should_Throw_Immediately()
 		{
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -256,7 +256,7 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -296,7 +296,7 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -330,7 +330,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Transaction_Read_Version()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -349,7 +349,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can read and write simple keys
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				long ticks = DateTime.UtcNow.Ticks;
 				long writeVersion;
@@ -402,7 +402,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("keys").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -554,7 +554,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Get_Multiple_Values()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("Batch").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -597,7 +597,7 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 20;
 
-			using(var db = await OpenTestPartitionAsync())
+			using(var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("keys").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -693,7 +693,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can perform atomic mutations on keys
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "atomic");
 				await CleanLocation(db, location);
@@ -773,7 +773,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicAdd32()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				Log(db.Root);
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
@@ -821,7 +821,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicIncrement32()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				//await db.WriteAsync(tr => tr.ClearRange(db.GlobalSpace.ToRange()), this.Cancellation);
 
@@ -866,7 +866,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicAdd64()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -909,7 +909,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicIncrement64()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -952,7 +952,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AtomicCompareAndClear()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -999,7 +999,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_AppendIfFits()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1044,7 +1044,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Snapshot_Read()
 		{
 
-			using(var db = await OpenTestPartitionAsync())
+			using(var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1080,14 +1080,15 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					var _ = await tr.GetAsync(tr.Keys.Encode("foo"));
+					var subspace = await db.Root.Resolve(tr);
+					var _ = await tr.GetAsync(subspace.Encode("foo"));
 
 					// until the transaction commits, the committed version will stay -1
 					ver = tr.GetCommittedVersion();
@@ -1108,7 +1109,7 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -1118,7 +1119,8 @@ namespace FoundationDB.Client.Tests
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					tr.Set(tr.Keys.Encode("foo"), Value("bar"));
+					var subspace = await db.Root.Resolve(tr);
+					tr.Set(subspace.Encode("foo"), Value("bar"));
 
 					// until the transaction commits, the committed version should still be -1
 					ver = tr.GetCommittedVersion();
@@ -1139,14 +1141,17 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
 					long rv1 = await tr.GetReadVersionAsync();
+
+					var subspace = await db.Root.Resolve(tr);
+
 					// do something and commit
-					tr.Set(tr.Keys.Encode("foo"), Value("bar"));
+					tr.Set(subspace.Encode("foo"), Value("bar"));
 					await tr.CommitAsync();
 					long cv1 = tr.GetCommittedVersion();
 					Log($"COMMIT: {rv1} / {cv1}");
@@ -1162,7 +1167,7 @@ namespace FoundationDB.Client.Tests
 					//Assert.That(cv2, Is.EqualTo(-1), "Committed version should go back to -1 after reset");
 
 					// read-only + commit
-					await tr.GetAsync(tr.Keys.Encode("foo"));
+					await tr.GetAsync(subspace.Encode("foo"));
 					await tr.CommitAsync();
 					cv2 = tr.GetCommittedVersion();
 					Log($"COMMIT2: {rv2} / {cv2}");
@@ -1177,7 +1182,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1219,7 +1224,7 @@ namespace FoundationDB.Client.Tests
 
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1254,7 +1259,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetRange_With_Concurrent_Change_Should_Conflict()
 		{
-			using(var db = await OpenTestPartitionAsync())
+			using(var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test");
 				await CleanLocation(db, location);
@@ -1335,7 +1340,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetKey_With_Concurrent_Change_Should_Conflict()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test");
 				await CleanLocation(db, location);
@@ -1515,19 +1520,24 @@ namespace FoundationDB.Client.Tests
 
 			// T1 should see A == 1, because it was started before T2
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
 
-				await db.WriteAsync((tr) => tr.Set(tr.Keys.Encode("test", "A"), Slice.FromInt32(1)), this.Cancellation);
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await db.Root.Resolve(tr);
+					tr.Set(subspace.Encode("test", "A"), Slice.FromInt32(1));
+				}, this.Cancellation);
 				using(var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// make sure that T1 has seen the db BEFORE T2 gets executed, or else it will not really be initialized until after the first read or commit
 					await tr1.GetReadVersionAsync();
 					//T1 should be locked to a specific version of the db
 
-					var key = tr1.Keys.Encode("test", "A");
+					var subspace1 = await db.Root.Resolve(tr1);
+					var key = subspace1.Encode("test", "A");
 
 					// change the value in T2
 					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)), this.Cancellation);
@@ -1553,16 +1563,26 @@ namespace FoundationDB.Client.Tests
 				// > T1 commits
 
 				// T1 should see A == 2, because in reality, it was started after T2
-				await db.WriteAsync((tr) => tr.Set(tr.Keys.Encode("test", "A"), Slice.FromInt32(1)), this.Cancellation);
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await db.Root.Resolve(tr);
+					tr.Set(subspace.Encode("test", "A"), Slice.FromInt32(1));
+				}, this.Cancellation);
 				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					//do NOT use T1 yet
 
 					// change the value in T2
-					await db.WriteAsync((tr) => tr.Set(tr.Keys.Encode("test", "A"), Slice.FromInt32(2)), this.Cancellation);
+					await db.WriteAsync(async (tr2) =>
+					{
+						var subspace2 = await db.Root.Resolve(tr2);
+						tr2.Set(subspace2.Encode("test", "A"), Slice.FromInt32(2));
+					}, this.Cancellation);
+
+					var subspace1 = await db.Root.Resolve(tr1);
 
 					// read the value in T1 and commits
-					var value = await tr1.GetAsync(tr1.Keys.Encode("test", "A"));
+					var value = await tr1.GetAsync(subspace1.Encode("test", "A"));
 
 					Assert.That(value, Is.Not.Null);
 					Assert.That(value.ToInt32(), Is.EqualTo(2), "T1 should have seen the value modified by T2");
@@ -1581,7 +1601,7 @@ namespace FoundationDB.Client.Tests
 			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
 			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1643,7 +1663,7 @@ namespace FoundationDB.Client.Tests
 			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 			// In API 300, this can be emulated by setting the SnapshotReadYourWriteDisable options
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1703,7 +1723,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_ReadYourWritesDisable_Isolation()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test");
 				await CleanLocation(db, location);
@@ -1781,7 +1801,7 @@ namespace FoundationDB.Client.Tests
 			// * tr2 will set value to 2
 			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -1829,7 +1849,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Has_Access_To_System_Keys()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -2000,7 +2020,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Read_Conflict_Range()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("conflict").AsTyped<int>();
 				await CleanLocation(db, location);
@@ -2039,7 +2059,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Write_Conflict_Range()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("conflict");
 				await CleanLocation(db, location);
@@ -2079,7 +2099,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Setup_And_Cancel_Watches()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "bigbrother");
 				await CleanLocation(db, location);
@@ -2138,7 +2158,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// tr.Watch(..., tr.Cancellation) is forbidden, because the watch would not survive the transaction
 
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "bigbrother");
 				await CleanLocation(db, location);
@@ -2174,7 +2194,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Setting_Key_To_Same_Value_Should_Not_Trigger_Watch()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test", "bigbrother");
 				await CleanLocation(db, location);
@@ -2234,7 +2254,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Addresses_For_Key()
 		{
-			using (var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("location_api");
 				await CleanLocation(db, location);
@@ -2376,12 +2396,14 @@ namespace FoundationDB.Client.Tests
 			{
 				using(var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					await tr.GetReadVersionAsync();
+					_ = await tr.GetReadVersionAsync();
 
-					var a = tr.Keys.Encode(Slice.FromString("A"));
-					var b = tr.Keys.Encode(Slice.FromString("B"));
-					var c = tr.Keys.Encode(Slice.FromString("C"));
-					var z = tr.Keys.Encode(Slice.FromString("Z"));
+					var subspace = await db.Root.Resolve(tr);
+
+					var a = subspace.Encode(Slice.FromString("A"));
+					var b = subspace.Encode(Slice.FromString("B"));
+					var c = subspace.Encode(Slice.FromString("C"));
+					var z = subspace.Encode(Slice.FromString("Z"));
 
 					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
 
@@ -2694,45 +2716,58 @@ namespace FoundationDB.Client.Tests
 				// - Bar: different version stamp
 				// - Baz: _missing_
 
-				await logged.WriteAsync(tr => tr.TouchMetadataVersionKey(tr.Keys.Encode(foo)), this.Cancellation);
-				await logged.WriteAsync(tr => tr.TouchMetadataVersionKey(tr.Keys.Encode(bar)), this.Cancellation);
-				await logged.WriteAsync(tr => tr.Clear(tr.Keys.Encode(baz)), this.Cancellation);
+				await logged.WriteAsync(async tr =>
+				{
+					var subspace = await db.Root.Resolve(tr);
+					tr.TouchMetadataVersionKey(subspace.Encode(foo));
+				}, this.Cancellation);
+				await logged.WriteAsync(async tr =>
+				{
+					var subspace = await db.Root.Resolve(tr);
+					tr.TouchMetadataVersionKey(subspace.Encode(bar));
+				}, this.Cancellation);
+				await logged.WriteAsync(async tr =>
+				{
+					var subspace = await db.Root.Resolve(tr);
+					tr.Clear(subspace.Encode(baz));
+				}, this.Cancellation);
 
 				// changing the metadata version and then reading it back from the same transaction CANNOT WORK!
 				await logged.ReadWriteAsync(async tr =>
 				{
+					var subspace = await db.Root.Resolve(tr);
 
 					// We can read the version before
-					var before1 = await tr.GetMetadataVersionKeyAsync(tr.Keys.Encode(foo));
+					var before1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(foo));
 					Log($"Foo (before): {before1}");
 					Assert.That(before1, Is.Not.Null);
 
 					// Another read attempt should return the cached value
-					var before2 = await tr.GetMetadataVersionKeyAsync(tr.Keys.Encode(bar));
+					var before2 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(bar));
 					Log($"Bar (before): {before2}");
 					Assert.That(before2, Is.Not.Null.And.Not.EqualTo(before1));
 
 					// Another read attempt should return the cached value
-					var before3 = await tr.GetMetadataVersionKeyAsync(tr.Keys.Encode(baz));
+					var before3 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(baz));
 					Log($"Baz (before): {before3}");
 					Assert.That(before3, Is.EqualTo(new VersionStamp()));
 
 					// change the version from inside the transaction
 					Log("Mutate Foo!");
-					tr.TouchMetadataVersionKey(tr.Keys.Encode(foo));
+					tr.TouchMetadataVersionKey(subspace.Encode(foo));
 
 					// we should not be able to get the version anymore (should return null)
-					var after1 = await tr.GetMetadataVersionKeyAsync(tr.Keys.Encode(foo));
+					var after1 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(foo));
 					Log($"Foo (after): {after1}");
 					Assert.That(after1, Is.Null, "Should not be able to get the version right after changing it from the same transaction.");
 
 					// We can read the version before
-					var after2 = await tr.GetMetadataVersionKeyAsync(tr.Keys.Encode(bar));
+					var after2 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(bar));
 					Log($"Bar (after): {after2}");
 					Assert.That(after2, Is.Not.Null.And.EqualTo(before2));
 
 					// We can read the version before
-					var after3 = await tr.GetMetadataVersionKeyAsync(tr.Keys.Encode(baz));
+					var after3 = await tr.GetMetadataVersionKeyAsync(subspace.Encode(baz));
 					Log($"Baz (after): {after3}");
 					Assert.That(after3, Is.EqualTo(new VersionStamp()));
 
@@ -2758,12 +2793,12 @@ namespace FoundationDB.Client.Tests
 				Log($"Using random seed {seed}");
 				rnd = new Random(seed);
 
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
-					var keys = tr.Keys;
+					var subspace = await db.Root.Resolve(tr);
 					for (int i = 0; i < R; i++)
 					{
-						tr.Set(keys.Encode("Fuzzer", i), Slice.FromInt32(i));
+						tr.Set(subspace.Encode("Fuzzer", i), Slice.FromInt32(i));
 					}
 				}, this.Cancellation);
 
@@ -2829,7 +2864,8 @@ namespace FoundationDB.Client.Tests
 							int x = rnd.Next(R);
 							try
 							{
-								_ = await tr.GetAsync(tr.Keys.Encode("Fuzzer", x));
+								var subspace = await db.Root.Resolve(tr); //TODO: cache subspace instance alongside transaction?
+								_ = await tr.GetAsync(subspace.Encode("Fuzzer", x));
 							}
 							catch (FdbException)
 							{
@@ -2847,7 +2883,8 @@ namespace FoundationDB.Client.Tests
 							var tr = alive[p];
 
 							int x = rnd.Next(R);
-							_ = tr.GetAsync(tr.Keys.Encode("Fuzzer", x)).ContinueWith((_) => sb.Append('!') /*BUGBUG: locking ?*/, TaskContinuationOptions.NotOnRanToCompletion);
+							var subspace = await db.Root.Resolve(tr); //TODO: cache subspace instance alongside transaction?
+							_ = tr.GetAsync(subspace.Encode("Fuzzer", x)).ContinueWith((_) => sb.Append('!') /*BUGBUG: locking ?*/, TaskContinuationOptions.NotOnRanToCompletion);
 							// => t is not stored
 							break;
 						}

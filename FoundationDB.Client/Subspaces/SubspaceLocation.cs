@@ -67,13 +67,13 @@ namespace FoundationDB.Client
 	{
 		/// <summary>Return the actual subspace that corresponds to this location</summary>
 		/// <param name="tr">Current transaction</param>
-		/// <param name="directory"><see cref="IFdbDirectory">Directory</see> instance to use for the resolve. If null, uses the default database directory.</param>
+		/// <param name="directory"><see cref="FdbDirectoryLayer">DirectoryLayer</see> instance to use for the resolve. If null, uses the default database directory layer.</param>
 		/// <returns>Key subspace using the resolved key prefix of this location in the context of the current transaction</returns>
 		/// <remarks>
 		/// The instance resolved for this transaction SHOULD NOT be used in the context of a different transaction, because its location in the Directory Layer may have been changed concurrently!
 		/// Re-using cached subspace instances MAY lead to DATA CORRUPTION if not used carefully! The best practice is to re-<see cref="Resolve"/>() the subspace again in each new transaction opened.
 		/// </remarks>
-		ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, [CanBeNull] IFdbDirectory directory = null);
+		ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, [CanBeNull] FdbDirectoryLayer directory = null);
 	}
 
 	/// <summary>Default implementation of a subspace location</summary>
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 
 		protected bool IsTopLevel => this.Path.Count == 0;
 
-		public abstract ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null);
+		public abstract ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null);
 
 		public override bool Equals(object obj) => obj is ISubspaceLocation path && Equals(path);
 
@@ -143,7 +143,7 @@ namespace FoundationDB.Client
 			object.ReferenceEquals(other, this)
 			|| (other is BinaryKeySubspaceLocation bin && bin.Path == this.Path && bin.Prefix == other.Prefix);
 
-		public override ValueTask<IBinaryKeySubspace> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public override ValueTask<IBinaryKeySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -152,10 +152,10 @@ namespace FoundationDB.Client
 			return ResolveWithDirectory(tr, directory);
 		}
 
-		private async ValueTask<IBinaryKeySubspace> ResolveWithDirectory(IFdbReadOnlyTransaction tr, IFdbDirectory directory)
+		private async ValueTask<IBinaryKeySubspace> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 		{
 			// located inside a directory subspace!
-			var folder = await (directory ?? tr.Context.Database.Directory).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			if (this.Prefix.Count == 0) return folder;
 			return new BinaryKeySubspace(folder.GetPrefix() + this.Prefix, folder.Context);
 		}
@@ -201,7 +201,7 @@ namespace FoundationDB.Client
 			object.ReferenceEquals(other, this)
 			|| (other is DynamicKeySubspaceLocation dyn && dyn.Encoding == this.Encoding && dyn.Path == this.Path && dyn.Prefix == other.Prefix);
 
-		public override ValueTask<IDynamicKeySubspace> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public override ValueTask<IDynamicKeySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			Contract.NotNull(tr, nameof(tr));
 
@@ -213,10 +213,10 @@ namespace FoundationDB.Client
 			return ResolveWithDirectory(tr, directory);
 		}
 
-		private async ValueTask<IDynamicKeySubspace> ResolveWithDirectory(IFdbReadOnlyTransaction tr, IFdbDirectory directory)
+		private async ValueTask<IDynamicKeySubspace> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 		{
 			// located inside a directory subspace!
-			var folder = await (directory ?? tr.Context.Database.Directory).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			return this.Prefix.Count == 0 ? folder : new DynamicKeySubspace(folder.GetPrefix() + this.Prefix, folder.KeyEncoder, folder.Context);
 		}
 
@@ -269,7 +269,7 @@ namespace FoundationDB.Client
 			|| (other is TypedKeySubspaceLocation<T1> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 		
 		/// <inheritdoc/>
-		public override ValueTask<ITypedKeySubspace<T1>> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public override ValueTask<ITypedKeySubspace<T1>> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			Contract.NotNull(tr, nameof(tr));
 
@@ -282,11 +282,11 @@ namespace FoundationDB.Client
 			return ResolveWithDirectory(tr, directory);
 		}
 
-		private async ValueTask<ITypedKeySubspace<T1>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, IFdbDirectory directory)
+		private async ValueTask<ITypedKeySubspace<T1>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 		{
 			Contract.Requires(this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.Directory).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			return new TypedKeySubspace<T1>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 
@@ -321,7 +321,7 @@ namespace FoundationDB.Client
 			|| (other is TypedKeySubspaceLocation<T1, T2> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
 		/// <inheritdoc/>
-		public override ValueTask<ITypedKeySubspace<T1, T2>> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public override ValueTask<ITypedKeySubspace<T1, T2>> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			Contract.NotNull(tr, nameof(tr));
 
@@ -334,11 +334,11 @@ namespace FoundationDB.Client
 			return ResolveWithDirectory(tr, directory);
 		}
 
-		private async ValueTask<ITypedKeySubspace<T1, T2>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, IFdbDirectory directory)
+		private async ValueTask<ITypedKeySubspace<T1, T2>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 		{
 			Contract.Requires(this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.Directory).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			return new TypedKeySubspace<T1, T2>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 
@@ -375,7 +375,7 @@ namespace FoundationDB.Client
 			object.ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
-		public override ValueTask<ITypedKeySubspace<T1, T2, T3>> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public override ValueTask<ITypedKeySubspace<T1, T2, T3>> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -386,11 +386,11 @@ namespace FoundationDB.Client
 			return ResolveWithDirectory(tr, directory);
 		}
 
-		private async ValueTask<ITypedKeySubspace<T1, T2, T3>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, IFdbDirectory directory)
+		private async ValueTask<ITypedKeySubspace<T1, T2, T3>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 		{
 			Contract.Requires(tr != null && this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.Directory).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			return new TypedKeySubspace<T1, T2, T3>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 
@@ -430,7 +430,7 @@ namespace FoundationDB.Client
 			object.ReferenceEquals(other, this)
 			|| (other is TypedKeySubspaceLocation<T1, T2, T3, T4> typed && typed.Encoding == this.Encoding && typed.Path == this.Path && typed.Prefix == other.Prefix);
 
-		public override ValueTask<ITypedKeySubspace<T1, T2, T3, T4>> Resolve(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		public override ValueTask<ITypedKeySubspace<T1, T2, T3, T4>> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -441,11 +441,11 @@ namespace FoundationDB.Client
 			return ResolveWithDirectory(tr, directory);
 		}
 
-		private async ValueTask<ITypedKeySubspace<T1, T2, T3, T4>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, IFdbDirectory directory = null)
+		private async ValueTask<ITypedKeySubspace<T1, T2, T3, T4>> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			Contract.Requires(tr != null && this.Path.Count != 0);
 
-			var folder = await (directory ?? tr.Context.Database.Directory).TryOpenCachedAsync(tr, this.Path);
+			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			return new TypedKeySubspace<T1, T2, T3, T4>(folder.GetPrefix() + this.Prefix, this.Encoder, folder.Context);
 		}
 

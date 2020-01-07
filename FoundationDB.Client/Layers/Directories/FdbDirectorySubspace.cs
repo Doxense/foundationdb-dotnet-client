@@ -77,7 +77,13 @@ namespace FoundationDB.Client
 		FdbDirectorySubspaceLocation IFdbDirectory.this[string segment] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path[segment]);
 
 		/// <inheritdoc/>
+		FdbDirectorySubspaceLocation IFdbDirectory.this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path[segment], layer);
+
+		/// <inheritdoc/>
 		FdbDirectorySubspaceLocation IFdbDirectory.this[FdbDirectoryPath relativePath] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path.Add(relativePath));
+
+		/// <inheritdoc/>
+		FdbDirectorySubspaceLocation IFdbDirectory.this[FdbDirectoryPath relativePath, Slice layer] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path.Add(relativePath), layer);
 
 		internal virtual FdbDirectorySubspace ChangeContext(ISubspaceContext context)
 		{

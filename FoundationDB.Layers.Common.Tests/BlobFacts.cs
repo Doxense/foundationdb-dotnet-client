@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["BlobsFromOuterSpace"];
+				var location = db.Root["BlobsFromOuterSpace"];
 				await CleanLocation(db, location);
 
 				var blob = new FdbBlob(location.ByKey("Empty"));
@@ -73,10 +73,10 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["BlobsFromOuterSpace"];
+				var location = db.Root["BlobsFromOuterSpace"];
 				await CleanLocation(db, location);
 
-				var blob = new FdbBlob(location.ByKey("BobTheBlob"));
+				var blob = new FdbBlob(location);
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["BlobsFromOuterSpace"];
+				var location = db.Root["BlobsFromOuterSpace"];
 				await CleanLocation(db, location);
 
 				var blob = new FdbBlob(location.ByKey("BigBlob"));

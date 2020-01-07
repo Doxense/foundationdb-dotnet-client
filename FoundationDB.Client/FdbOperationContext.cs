@@ -120,15 +120,6 @@ namespace FoundationDB.Client
 			this.Cancellation = token;
 		}
 
-		public IDynamicKeySubspace Root { get; internal set; }
-
-		internal async ValueTask ComputeRoot(IFdbReadOnlyTransaction tr)
-		{
-			Contract.Requires(tr != null);
-			var root = await this.Database.Root.Resolve(tr);
-			this.Root = root;
-		}
-
 		#region Sucess Handlers...
 
 		/// <summary>List of one or more state change callback</summary>
@@ -557,6 +548,7 @@ namespace FoundationDB.Client
 							}
 							catch (FdbException e2)
 							{
+								if (Logging.On && Logging.IsError) Logging.Error(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with un-retryable error code {1}", trans.Id, e.Code));
 								// if the code is the same, we prefer re-throwing the original exception to keep the stacktrace intact!
 								if (e2.Code != e.Code) throw;
 								shouldRethrow = true;
@@ -565,20 +557,6 @@ namespace FoundationDB.Client
 							if (shouldRethrow) throw;
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
-
-							// the transaction has been reset, we has to refresh the root location!
-							while (!context.Cancellation.IsCancellationRequested)
-							{
-								try
-								{
-									await context.ComputeRoot(trans); // this may also timeout!
-									break;
-								}
-								catch (FdbException e2)
-								{
-									await trans.OnErrorAsync(e2.Code).ConfigureAwait(false);
-								}
-							}
 						}
 
 						// update the base time for the next attempt

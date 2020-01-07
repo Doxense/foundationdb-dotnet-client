@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["vector"];
+				var location = db.Root["vector"];
 				await CleanLocation(db, location);
 
 				var vector = new FdbVector<Slice>(location, Slice.Empty, BinaryEncoding.SliceEncoder);

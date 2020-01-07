@@ -494,7 +494,7 @@ namespace FoundationDB.Client
 		#region Database...
 
 		[ItemNotNull]
-		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync([CanBeNull] string clusterFile, ISubspaceLocation root, FdbDirectoryLayer directory, bool readOnly, CancellationToken ct)
+		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync([CanBeNull] string clusterFile, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken ct)
 		{
 			EnsureIsStarted();
 			ct.ThrowIfCancellationRequested();
@@ -507,7 +507,7 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
-			return FdbDatabase.Create(handler, root, directory, readOnly);
+			return FdbDatabase.Create(handler, root, readOnly);
 		}
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file.</summary>
@@ -543,8 +543,8 @@ namespace FoundationDB.Client
 
 			string clusterFile = options.ClusterFile;
 			bool readOnly = options.ReadOnly;
-			var root = options.Root?.AsDynamic() ?? SubspaceLocation.Empty;
 			var directory = new FdbDirectoryLayer(SubspaceLocation.Empty);
+			var root = new FdbDirectorySubspaceLocation(directory, options.Root, FdbDirectoryPartition.LayerId);
 			bool hasPartition = root.Path.Count != 0;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile}' and root '{root}' ...");
@@ -553,7 +553,7 @@ namespace FoundationDB.Client
 			bool success = false;
 			try
 			{
-				db = await CreateDatabaseInternalAsync(clusterFile, root, directory, !hasPartition && readOnly, ct).ConfigureAwait(false);
+				db = await CreateDatabaseInternalAsync(clusterFile, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
 
 				// set the default options
 				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));

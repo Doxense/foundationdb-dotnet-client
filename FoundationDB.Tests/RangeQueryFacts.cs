@@ -71,7 +71,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
@@ -157,7 +157,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
@@ -236,7 +236,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
@@ -370,7 +370,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
@@ -531,7 +531,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
@@ -579,7 +579,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				var a = location.ByKey("a");
@@ -750,7 +750,7 @@ namespace FoundationDB.Client.Tests
 			{
 
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				var a = location.ByKey("a");
@@ -833,7 +833,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				var dataSet = Enumerable.Range(0, 100).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
@@ -933,7 +933,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = db.Directory["Queries"]["Range"];
+				var location = db.Root["Queries"]["Range"];
 				await CleanLocation(db, location);
 
 				var dataSet = Enumerable.Range(0, 300).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
@@ -998,7 +998,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Queries"]["MergeSort"];
+				var location = db.Root["Queries"]["MergeSort"];
 				await CleanLocation(db, location);
 
 				for (int k = 0; k < K; k++)
@@ -1063,7 +1063,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Directory["Queries"]["Intersect"];
+				var location = db.Root["Queries"]["Intersect"];
 				await CleanLocation(db, location);
 
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
@@ -1141,7 +1141,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// get a clean new directory
-				var location = db.Directory["Queries"]["Except"];
+				var location = db.Root["Queries"]["Except"];
 				await CleanLocation(db, location);
 
 				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
@@ -1209,19 +1209,13 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// get a clean new directory
-				var location = db.Directory["Queries"]["ExceptComposite"];
+				var location = db.Root["Queries"]["ExceptComposite"];
 				await CleanLocation(db, location);
 
 				// Items contains a list of all ("user", id) that were created
 				var locItems = location.ByKey("Items").AsTyped<string, int>();
 				// Processed contain the list of all ("user", id) that were processed
 				var locProcessed = location.ByKey("Processed", this.Cancellation).AsTyped<string, int>();
-
-				await db.ReadWriteAsync(async tr =>
-				{
-					await db.Directory.CreateAsync(tr, locItems.Path);
-					await db.Directory.CreateAsync(tr, locProcessed.Path);
-				}, this.Cancellation);
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 

@@ -386,9 +386,6 @@ namespace FoundationDB.Filters
 			}
 		}
 
-		/// <inheritdoc />
-		public virtual IDynamicKeySubspace Keys => m_transaction.Keys;
-
 	}
 
 	public class FdbReadOnlyTransactionFilter : IFdbReadOnlyTransaction
@@ -551,9 +548,6 @@ namespace FoundationDB.Filters
 			get => m_transaction.MaxRetryDelay;
 			set => m_transaction.MaxRetryDelay = value;
 		}
-
-		/// <inheritdoc />
-		public virtual IDynamicKeySubspace Keys => m_transaction.Keys;
 
 		public void Dispose()
 		{
