@@ -959,7 +959,6 @@ namespace FoundationDB.Client
 		{
 			// resetting the state of a transaction automatically clears the RetryLimit and Timeout settings
 			// => we need to set the again!
-
 			m_timeout = 0;
 			m_retryLimit = 0;
 			m_maxRetryDelay = 0;
@@ -981,6 +980,12 @@ namespace FoundationDB.Client
 			// => this ensure that if the error was due to a collision between the token and another part of the key,
 			//    a transaction retry will hopefully use a different token that does not collide.
 			m_versionStampToken = 0;
+			m_versionStampCounter = 0;
+
+			// clear any cached local data!
+			this.CachedReadVersion = null;
+			this.MetadataVersionKeysCache = null;
+			m_context.ClearAllLocalData();
 		}
 
 		/// <inheritdoc />

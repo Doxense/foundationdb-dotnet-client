@@ -242,6 +242,22 @@ namespace FoundationDB.Client
 			return container;
 		}
 
+		/// <summary>Clear any local data currently attached on this transaction</summary>
+		internal void ClearAllLocalData()
+		{
+			lock (this)
+			{
+				var container = GetLocalDataContainer(false);
+				if (container != null)
+				{
+					lock (container)
+					{
+						container.Clear();
+					}
+				}
+			}
+		}
+
 		/// <summary>Set the value of a cached instance attached to the transaction</summary>
 		/// <typeparam name="TState">Type of the instance</typeparam>
 		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
