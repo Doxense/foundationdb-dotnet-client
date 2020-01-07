@@ -62,22 +62,6 @@ namespace FoundationDB.Layers.Collections
 			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
 		}
 
-		private readonly struct State
-		{
-			public readonly ITypedKeySubspace<VersionStamp> Location;
-
-			public State(ITypedKeySubspace<VersionStamp> location)
-			{
-				this.Location = location;
-			}
-		}
-
-		private async ValueTask<State> Resolve(IFdbReadOnlyTransaction trans)
-		{
-			var location = await this.Location.Resolve(trans);
-			return new State(location);
-		}
-
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		[NotNull]
 		public TypedKeySubspaceLocation<VersionStamp> Location { get; }
@@ -87,63 +71,73 @@ namespace FoundationDB.Layers.Collections
 		public IValueEncoder<T> Encoder { get; }
 
 		/// <summary>Remove all items from the queue.</summary>
-		public async Task ClearAsync([NotNull] IFdbTransaction trans)
+		public async Task ClearAsync([NotNull] IFdbTransaction tr)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
-			var state = await Resolve(trans);
-
-			trans.ClearRange(state.Location.ToRange());
+			var subspace = await this.Location.Resolve(tr);
+			tr.ClearRange(subspace.ToRange());
 		}
 
 		/// <summary>Push a single item onto the queue.</summary>
-		public async Task PushAsync([NotNull] IFdbTransaction trans, T value)
+		public async Task PushAsync([NotNull] IFdbTransaction tr, T value)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
 #if DEBUG
-			trans.Annotate("Push({0})", value);
+			tr.Annotate("Push({0})", value);
 #endif
-			var state = await Resolve(trans);
+			var subspace = await this.Location.Resolve(tr);
 
 			//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!
-			trans.Set(state.Location[trans.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
+			tr.SetVersionStampedKey(subspace[tr.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
 		}
+
+		private static readonly FdbRangeOptions SingleOptions = new FdbRangeOptions() { Limit = 1, Mode = FdbStreamingMode.Exact };
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
 		public async Task<(T Value, bool HasValue)> PopAsync([NotNull] IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
-
 #if DEBUG
 			tr.Annotate("Pop()");
 #endif
-			var state = await Resolve(tr);
+			var subspace = await this.Location.Resolve(tr);
 
-			var first = await tr.GetRange(state.Location.ToRange()).FirstOrDefaultAsync();
-			if (first.Key.IsNull) return default;
+			var first = await tr.GetRangeAsync(subspace.ToRange(), SingleOptions);
+			if (first.IsEmpty)
+			{
+#if DEBUG
+				tr.Annotate("Got nothing");
+#endif
+				return default;
+			}
 
-			tr.Clear(first.Key);
-			return (this.Encoder.DecodeValue(first.Value), true);
+			tr.Clear(first[0].Key);
+#if DEBUG
+			if (tr.IsLogged()) tr.Annotate($"Got key {subspace.Decode(first[0].Key)} = {first[0].Value:V}");
+#endif
+			return (this.Encoder.DecodeValue(first[0].Value), true);
 		}
 
 		/// <summary>Test whether the queue is empty.</summary>
 		public async Task<bool> EmptyAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
-			var state = await Resolve(tr);
+			var subspace = await this.Location.Resolve(tr);
 
-			return (await tr.GetRangeKeys(state.Location.ToRange()).FirstOrDefaultAsync()).IsNull;
+			var first = await tr.GetRangeAsync(subspace.ToRange(), FdbQueue<T>.SingleOptions);
+			return first.IsEmpty;
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
 		public async Task<(T Value, bool HasValue)> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
-			var state = await Resolve(tr);
+			var subspace = await this.Location.Resolve(tr);
 
-			var first = await tr.GetRange(state.Location.ToRange()).FirstOrDefaultAsync();
-			if (first.Key.IsNull) return default;
+			var first = await tr.GetRangeAsync(subspace.ToRange(), FdbQueue<T>.SingleOptions);
+			if (first.IsEmpty) return default;
 
-			return (this.Encoder.DecodeValue(first.Value), true);
+			return (this.Encoder.DecodeValue(first[0].Value), true);
 		}
 
 		#region Bulk Operations

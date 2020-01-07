@@ -50,39 +50,40 @@ namespace FoundationDB.Layers.Collections.Tests
 		[Test]
 		public async Task Test_Queue_Fast()
 		{
-			// without high contention protecction
-
 			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Root["queue"];
 				await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
+#else
+				var logged = db;
+#endif
+
 				var queue = new FdbQueue<int>(location);
 
-				Log("Clear Queue");
-				await db.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
-
-				Log("Empty? " + await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
+				Log("Empty? " + await logged.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
 
 				Log("Push 10, 8, 6");
-				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 10), this.Cancellation);
-				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 8), this.Cancellation);
-				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 6), this.Cancellation);
+				await logged.ReadWriteAsync((tr) => queue.PushAsync(tr, 10), this.Cancellation);
+				await logged.ReadWriteAsync((tr) => queue.PushAsync(tr, 8), this.Cancellation);
+				await logged.ReadWriteAsync((tr) => queue.PushAsync(tr, 6), this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// Empty?
-				bool empty = await db.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
+				bool empty = await logged.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.False);
 
-				var item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
+				var item = await logged.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(10));
-				item = await db.ReadWriteAsync((tr) => queue.PeekAsync(tr), this.Cancellation);
+				item = await logged.ReadWriteAsync((tr) => queue.PeekAsync(tr), this.Cancellation);
 				Log($"Next item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(8));
@@ -90,7 +91,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
+				item = await logged.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(8));
@@ -98,7 +99,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
+				item = await logged.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
 				Log($"Pop item: {item}");
 				Assert.That(item.HasValue, Is.True);
 				Assert.That(item.Value, Is.EqualTo(6));
@@ -106,64 +107,114 @@ namespace FoundationDB.Layers.Collections.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				empty = await db.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
+				empty = await logged.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 
 				Log("Push 5");
-				await db.ReadWriteAsync(tr => queue.PushAsync(tr, 5), this.Cancellation);
+				await logged.ReadWriteAsync(tr => queue.PushAsync(tr, 5), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				Log("Clear Queue");
-				await db.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
+				await logged.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				empty = await db.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
+				empty = await logged.ReadAsync(tr => queue.EmptyAsync(tr), this.Cancellation);
 				Log("Empty? " + empty);
 				Assert.That(empty, Is.True);
 			}
 		}
 
 		[Test]
-		public async Task Test_Single_Client()
+		public async Task Test_Queue_Batch()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Root["queue"];
 				await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+				var logged = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
+#else
+				var logged = db;
+#endif
+
 				var queue = new FdbQueue<int>(location);
 
-				await db.WriteAsync(tr => queue.ClearAsync(tr), this.Cancellation);
-
-				for (int i = 0; i < 10; i++)
+				Log("Pushing 10 items in a batch...");
+				await logged.WriteAsync(async tr =>
 				{
-					await db.ReadWriteAsync((tr) => queue.PushAsync(tr, i), this.Cancellation);
-				}
+					for (int i = 0; i < 10; i++)
+					{
+						await queue.PushAsync(tr, i);
+					}
+				}, this.Cancellation);
+#if DEBUG
+				await DumpSubspace(db, queue.Location);
+#endif
 
-				for (int i = 0; i < 10; i++)
+				Log("Popping 7 items in same transaction...");
+				await logged.WriteAsync(async tr =>
 				{
-					var r = await db.ReadWriteAsync(tr => queue.PopAsync(tr), this.Cancellation);
+					for (int i = 0; i < 7; i++)
+					{
+						var r = await queue.PopAsync(tr);
+						Log($"- ({r.Value}, {r.HasValue})");
+						Assert.That(r.HasValue, Is.True);
+						Assert.That(r.Value, Is.EqualTo(i));
+					}
+				}, this.Cancellation);
+#if DEBUG
+				await DumpSubspace(db, queue.Location);
+#endif
+
+				bool empty = await logged.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				Assert.That(empty, Is.False);
+
+				Log("Popping 3 + 1 items in another transaction...");
+				await logged.ReadWriteAsync(async tr =>
+				{
+					// should be able to pop 3 items..
+
+					var r = await queue.PopAsync(tr);
+					Log($"- ({r.Value}, {r.HasValue})");
 					Assert.That(r.HasValue, Is.True);
-					Assert.That(r.Value, Is.EqualTo(i));
-				}
+					Assert.That(r.Value, Is.EqualTo(7));
 
-				bool empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+					r = await queue.PopAsync(tr);
+					Log($"- ({r.Value}, {r.HasValue})");
+					Assert.That(r.HasValue, Is.True);
+					Assert.That(r.Value, Is.EqualTo(8));
+
+					r = await queue.PopAsync(tr);
+					Log($"- ({r.Value}, {r.HasValue})");
+					Assert.That(r.HasValue, Is.True);
+					Assert.That(r.Value, Is.EqualTo(9));
+
+					// queue should now be empty!
+					r = await queue.PopAsync(tr);
+					Log($"- ({r.Value}, {r.HasValue})");
+					Assert.That(r.HasValue, Is.False);
+					Assert.That(r.Value, Is.EqualTo(0));
+
+				}, this.Cancellation);
+
+				empty = await logged.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
 				Assert.That(empty, Is.True);
 			}
-
 		}
 
-		private static async Task RunMultiClientTest(IFdbDatabase db, ISubspaceLocation location, string desc, int K, int NUM, CancellationToken ct)
+		private async Task RunMultiClientTest(IFdbDatabase db, FdbDirectorySubspaceLocation location, string desc, int K, int NUM, CancellationToken ct)
 		{
 			Log($"Starting {desc} test with {K} threads and {NUM} iterations");
 
+			await CleanLocation(db, location);
+
 			var queue = new FdbQueue<string>(location);
-			await db.WriteAsync(tr => queue.ClearAsync(tr), ct);
 
 			// use a CTS to ensure that everything will stop in case of problems...
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
@@ -177,9 +228,12 @@ namespace FoundationDB.Layers.Collections.Tests
 				int popCount = 0;
 				int stalls = 0;
 
+				var start = DateTime.UtcNow;
+
 				var pushTreads = Enumerable.Range(0, K)
 					.Select(async id =>
 					{
+						int i = 0;
 						try
 						{
 							// wait for the signal
@@ -187,7 +241,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 							var res = new List<string>(NUM);
 
-							for (int i = 0; i < NUM; i++)
+							for (; i < NUM; i++)
 							{
 								var item = id.ToString() + "." + i.ToString();
 								await db.ReadWriteAsync((tr) => queue.PushAsync(tr, item), tok).ConfigureAwait(false);
@@ -196,12 +250,14 @@ namespace FoundationDB.Layers.Collections.Tests
 								res.Add(item);
 							}
 
+							Log($"PushThread[{id}] pushed {NUM:N0} items in {(DateTime.UtcNow - start).TotalSeconds:N1} sec");
+
 							return res;
 						}
 						catch (Exception e)
 						{
-							Log("PushThread[" + id + "] failed: " + e);
-							Assert.Fail("PushThread[" + id + "] failed: " + e.Message);
+							Log($"PushThread[{id}] failed after {i} push and {(DateTime.UtcNow - start).TotalSeconds:N1} sec: {e}");
+							Assert.Fail($"PushThread[{id}] failed: {e.Message}");
 							throw;
 						}
 						
@@ -210,6 +266,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var popThreads = Enumerable.Range(0, K)
 					.Select(async id =>
 					{
+						int i = 0;
 						try
 						{
 							// make everyone wait a bit, to ensure that they all start roughly at the same time
@@ -217,7 +274,6 @@ namespace FoundationDB.Layers.Collections.Tests
 
 							var res = new List<string>(NUM);
 
-							int i = 0;
 							while (i < NUM)
 							{
 								var item = await db.ReadWriteAsync(tr => queue.PopAsync(tr), tok).ConfigureAwait(false);
@@ -230,35 +286,30 @@ namespace FoundationDB.Layers.Collections.Tests
 								else
 								{
 									Interlocked.Increment(ref stalls);
-									await Task.Delay(10).ConfigureAwait(false);
+									await Task.Delay(10, this.Cancellation).ConfigureAwait(false);
 								}
 							}
+							Log($"PopThread[{id}] popped {NUM:N0} items in {(DateTime.UtcNow - start).TotalSeconds:N1} sec");
 
 							return res;
 						}
 						catch (Exception e)
 						{
-							Log("PopThread[" + id + "] failed: " + e);
-							Assert.Fail("PopThread[" + id + "] failed: " + e.Message);
+							Log($"PopThread[{id}] failed: {e}");
+							Assert.Fail($"PopThread[{id}] failed after {i} pops and {(DateTime.UtcNow - start).TotalSeconds:N1} sec: {e.Message}");
 							throw;
 						}
 					}).ToArray();
 
 				var sw = Stopwatch.StartNew();
-
 				pushLock.Set(async: true);
-				await Task.Delay(100);
+
+				await Task.Delay(50, this.Cancellation);
 				popLock.Set(async: true);
 
-				//using (var timer = new Timer((_) =>
-				//{
-				//	var __ = TestHelpers.DumpSubspace(db, location);
-				//}, null, 1000, 4000))
-				{
-
-					await Task.WhenAll(pushTreads);
-					await Task.WhenAll(popThreads);
-				}
+				await Task.WhenAll(pushTreads);
+				Log("Push threads are finished!");
+				await Task.WhenAll(popThreads);
 
 				sw.Stop();
 				Log($"> Finished {desc} test in {sw.Elapsed.TotalSeconds} seconds");
@@ -279,9 +330,9 @@ namespace FoundationDB.Layers.Collections.Tests
 			}
 		}
 
-		[Test]
-		[Ignore("Comment this when running benchmarks")]
-		public async Task Test_Multi_Client()
+		[Test, Category("Bench")]
+		[Ignore("Uncomment this when running benchmarks")]
+		public async Task Bench_Concurrent_Clients()
 		{
 			int NUM = 100;
 
@@ -297,7 +348,8 @@ namespace FoundationDB.Layers.Collections.Tests
 			}
 		}
 
-		[Test]
+		[Test, Category("Bench")]
+		[Ignore("Uncomment this when running benchmarks")]
 		public async Task Test_Log_Queue()
 		{
 			int NUM = 100;
@@ -314,9 +366,6 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 				await RunMultiClientTest(logged, location, "simple queue", 4, NUM, this.Cancellation);
-
-				Log("------------------------------------------------");
-
 			}
 
 		}
