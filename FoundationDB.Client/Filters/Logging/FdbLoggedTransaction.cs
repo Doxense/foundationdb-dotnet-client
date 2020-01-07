@@ -67,6 +67,9 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Handler that will be called when this transaction commits successfully</summary>
 		public Action<FdbLoggedTransaction> Committed { get; private set; }
 
+		/// <summary>If non-null, at least one VersionStamped operation in the last attempt</summary>
+		private Task<VersionStamp> VersionStamp { get; set; }
+
 		/// <summary>Wrap an existing transaction and log all operations performed</summary>
 		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions options)
 			: base(trans, false, ownsTransaction)
@@ -298,6 +301,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override void Reset()
 		{
+			this.VersionStamp = null;
 			Execute(
 				new FdbTransactionLog.ResetCommand(),
 				(tr, cmd) => tr.Reset()
@@ -322,19 +326,25 @@ namespace FoundationDB.Filters.Logging
 			this.Log.TotalCommitSize += size;
 			this.Log.Attempts++;
 
+			var cmd = new FdbTransactionLog.CommitCommand();
 			return ExecuteAsync(
-				new FdbTransactionLog.CommitCommand(),
+				cmd,
 				(tr, _) => tr.CommitAsync(),
 				(self, tr) =>
 				{
 					self.Log.CommittedUtc = DateTimeOffset.UtcNow;
-					self.Log.CommittedVersion = tr.GetCommittedVersion();
+					var cv = tr.GetCommittedVersion();
+					self.Log.CommittedVersion = cv;
+					cmd.CommitVersion = cv;
+
+					if (this.VersionStamp != null) self.Log.VersionStamp = this.VersionStamp.GetAwaiter().GetResult();
 				}
 			);
 		}
 
 		public override Task OnErrorAsync(FdbError code)
 		{
+			this.VersionStamp = null;
 			return ExecuteAsync(
 				new FdbTransactionLog.OnErrorCommand(code),
 				(_tr, _cmd) => _tr.OnErrorAsync(_cmd.Code)
@@ -376,6 +386,10 @@ namespace FoundationDB.Filters.Logging
 
 		public override void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
+			if (mutation == FdbMutationType.VersionStampedKey || mutation == FdbMutationType.VersionStampedValue)
+			{
+				this.VersionStamp ??= m_transaction.GetVersionStampAsync();
+			}
 			Execute(
 				new FdbTransactionLog.AtomicCommand(Grab(key), Grab(param), mutation),
 				(_tr, _cmd) => _tr.Atomic(_cmd.Key, _cmd.Param, _cmd.Mutation)

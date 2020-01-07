@@ -111,7 +111,7 @@ namespace FoundationDB.Filters.Logging
 						? "[" + fdbEx.Code.ToString() + "] " + fdbEx.Message
 						: "[" + this.Error.GetType().Name + "] " + this.Error.Message;
 				}
-				return String.Empty;
+				return string.Empty;
 			}
 
 			/// <summary>Return the mode of the operation (Read, Write, Metadata, Watch, ...)</summary>
@@ -904,6 +904,15 @@ namespace FoundationDB.Filters.Logging
 		public sealed class CommitCommand : Command
 		{
 			public override Operation Op => Operation.Commit;
+
+			/// <summary>Receives the commit version if it succeed</summary>
+			public long? CommitVersion { get; internal set; }
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.CommitVersion != null) return "@" + this.CommitVersion;
+				return base.GetResult(resolver);
+			}
 		}
 
 		public sealed class OnErrorCommand : Command
