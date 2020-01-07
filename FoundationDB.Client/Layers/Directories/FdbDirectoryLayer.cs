@@ -628,7 +628,7 @@ namespace FoundationDB.Client
 				var ctx = await GetContext(trans);
 				Contract.Assert(ctx != null);
 
-				if (EnsureCanCache())
+				if (EnsureCanCache(trans))
 				{
 					if (ctx.TryGetSubspace(trans, this, path, out var subspace))
 					{
@@ -671,7 +671,7 @@ namespace FoundationDB.Client
 				var ctx = await GetContext(trans);
 				Contract.Assert(ctx != null);
 
-				if (EnsureCanCache())
+				if (EnsureCanCache(trans))
 				{
 					var results = new FdbDirectorySubspace[paths.Length];
 					List<(Task<FdbDirectorySubspace> Task, int Index)> tasks = null;
@@ -1198,7 +1198,7 @@ namespace FoundationDB.Client
 			/// <summary>Ensure that this transaction can perform caching operations</summary>
 			/// <returns>True the first time a DL cached operation is performed with this transaction, of false if it already did</returns>
 			/// <exception cref="InvalidOperationException">If this transaction was already used for mutating operations</exception>
-			internal bool EnsureCanCache()
+			internal bool EnsureCanCache(IFdbReadOnlyTransaction tr)
 			{
 				while (true)
 				{
@@ -1214,8 +1214,12 @@ namespace FoundationDB.Client
 						{ // first cache?
 							if (Interlocked.CompareExchange(ref this.State, STATE_CACHED, STATE_NEUTRAL) != STATE_NEUTRAL)
 							{ // another thread is racing with us! try again
-							  //TODO: add some read conflict range here?
 								continue;
+							}
+							if (tr is IFdbTransaction writable && !writable.IsReadOnly)
+							{
+								// the transaction is using a cached entry, so we must add a read conflict to protect against external changes!
+								writable.AddReadConflictKey(this.Partition.MetadataKey);
 							}
 							return true;
 						}
@@ -1426,17 +1430,10 @@ namespace FoundationDB.Client
 					this.Lock.ExitReadLock();
 				}
 
-				// the subspace was created with another context, we must migrate it to the current transaction's context
-				subspace = candidate?.ChangeContext(metadata);
-
-				if (tr is IFdbTransaction writable && !writable.IsReadOnly)
-				{
-					// the transaction is using a cached entry, so we must add a read conflict to protect against external changes!
-					writable.AddReadConflictKey(metadata.Partition.MetadataKey);
-				}
-
 				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {subspace?.ToString() ?? "<not_found>"}");
 
+				// the subspace was created with another context, we must migrate it to the current transaction's context
+				subspace = candidate?.ChangeContext(metadata);
 				return true;
 			}
 
