@@ -253,6 +253,14 @@ namespace FoundationDB.Client
 			return absoluteKey.Substring(key.Count);
 		}
 
+		/// <inheritdoc/>
+		public virtual string PrettyPrint(Slice packedKey)
+		{
+			if (packedKey.IsNull) return "<null>";
+			var key = ExtractKey(packedKey, boundCheck: true);
+			return key.PrettyPrint();
+		}
+
 		#endregion
 
 		#region IEquatable / IComparable...

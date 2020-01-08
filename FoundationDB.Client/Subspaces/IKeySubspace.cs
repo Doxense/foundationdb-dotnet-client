@@ -100,5 +100,8 @@ namespace FoundationDB.Client
 		[Pure]
 		Slice ExtractKey(Slice absoluteKey, bool boundCheck = false);
 
+		/// <summary>Return a human-friendly string representation of a key, as encoded by this subspace</summary>
+		/// <param name="packedKey">Key that was generated from this subspace</param>
+		string PrettyPrint(Slice packedKey);
 	}
 }

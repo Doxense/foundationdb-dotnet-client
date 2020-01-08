@@ -81,8 +81,6 @@ namespace FoundationDB.Client
 		/// <returns>Only the first <see cref="count"/> elements in the result are decoded. The remaining elements will be discarded.</returns>
 		(T1, T2, T3, T4) DecodePartial(Slice packedKey, int count);
 
-		string PrettyPrint(Slice packedKey);
-
 	}
 
 	/// <summary>Represents a key subspace than can encoded pairs of statically typed values to and from their binary representation</summary>
@@ -163,11 +161,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
 		[Pure]
-		public string PrettyPrint(Slice packedKey)
+		public override string PrettyPrint(Slice packedKey)
 		{
-			if (packedKey.IsNull) return String.Empty;
-			//TODO: defer to the encoding itself?
-			var key = ExtractKey(packedKey);
+			if (packedKey.IsNull) return "<null>";
+			var key = ExtractKey(packedKey, boundCheck: true);
 			try
 			{
 				//REVIEW: we need a TryUnpack!

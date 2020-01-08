@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the last part of the key, minus the subspace's prefix</summary>
 		Slice Decode(Slice absoluteKey);
-		//note: this is the same as calling ExtractKey(...) but is here for symetry reasons with other kinds of subspaces
+		//note: this is the same as calling ExtractKey(...) but is here for symmetry reasons with other kinds of subspaces
 
 		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace's prefix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>

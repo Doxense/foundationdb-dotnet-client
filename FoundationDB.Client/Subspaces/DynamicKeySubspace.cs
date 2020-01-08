@@ -71,8 +71,6 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		IVarTuple Unpack(Slice packedKey);
 
-		string PrettyPrint(Slice packedKey);
-
 	}
 
 	/// <summary>Represents a <see cref="IDynamicKeySubspace">Dynamic Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
@@ -136,12 +134,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
-		public string PrettyPrint(Slice packedKey)
+		public override string PrettyPrint(Slice packedKey)
 		{
-			//TODO: defer to the encoding itself?
-			var key = ExtractKey(packedKey);
+			if (packedKey.IsNull) return "<null>";
+			var key = ExtractKey(packedKey, boundCheck: true);
 			try
 			{
+				//TODO: we need a TryUnpackKey ?
 				return this.KeyEncoder.UnpackKey(key).ToString();
 			}
 			catch (FormatException)
