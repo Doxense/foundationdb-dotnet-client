@@ -58,6 +58,7 @@ namespace FoundationDB.Client
 		/// <remarks>The default is to use the <see cref="TuPack"/> encoding, but it can be any other custom encoding.</remarks>
 		IKeyEncoding Encoding { get; }
 
+		ValueTask<IKeySubspace> Resolve(IFdbReadOnlyTransaction tr, [CanBeNull] FdbDirectoryLayer directory = null);
 	}
 
 	/// <summary>Represents the path to a typed subspace in the database</summary>
@@ -73,7 +74,7 @@ namespace FoundationDB.Client
 		/// The instance resolved for this transaction SHOULD NOT be used in the context of a different transaction, because its location in the Directory Layer may have been changed concurrently!
 		/// Re-using cached subspace instances MAY lead to DATA CORRUPTION if not used carefully! The best practice is to re-<see cref="Resolve"/>() the subspace again in each new transaction opened.
 		/// </remarks>
-		ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, [CanBeNull] FdbDirectoryLayer directory = null);
+		new ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, [CanBeNull] FdbDirectoryLayer directory = null);
 	}
 
 	/// <summary>Default implementation of a subspace location</summary>
@@ -112,6 +113,11 @@ namespace FoundationDB.Client
 		}
 
 		protected bool IsTopLevel => this.Path.Count == 0;
+
+		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
+		{
+			return await Resolve(tr, directory);
+		}
 
 		public abstract ValueTask<TSubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null);
 

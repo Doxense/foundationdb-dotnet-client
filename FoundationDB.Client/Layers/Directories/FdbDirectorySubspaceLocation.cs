@@ -65,6 +65,11 @@ namespace FoundationDB.Client
 			this.IsPartition = layer.Equals(FdbDirectoryPartition.LayerId);
 		}
 
+		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
+		{
+			return await Resolve(tr, directory);
+		}
+
 		public ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
 		{
 			Contract.NotNull(tr, nameof(tr));
