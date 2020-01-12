@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2013-2018, Doxense SAS. All rights reserved.
+﻿#region Copyright (c) 2013-2020, Doxense SAS. All rights reserved.
 // See License.MD for license information
 #endregion
 
@@ -137,7 +137,7 @@ namespace System
 		public void Deconstruct(out uint a, out uint b, out uint c)
 		{
 			a = this.Hi;
-			b = (uint) this.Lo >> 32;
+			b = (uint) (this.Lo >> 32);
 			c = (uint) this.Lo;
 		}
 
