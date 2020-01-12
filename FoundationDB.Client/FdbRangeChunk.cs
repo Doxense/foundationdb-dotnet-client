@@ -107,6 +107,24 @@ namespace FoundationDB.Client
 			get => this.Items[index];
 		}
 
+#if USE_RANGE_API
+
+		/// <summary>Return a reference to the result at the specified index</summary>
+		public KeyValuePair<Slice, Slice> this[Index index]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Items[index];
+		}
+
+		/// <summary>Return a slice of the results in the specified range</summary>
+		public ReadOnlySpan<KeyValuePair<Slice, Slice>> this[Range range]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Items.AsSpan(range);
+		}
+
+#endif
+
 		/// <summary>Return a reference to the result at the specified index</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ref readonly KeyValuePair<Slice, Slice> ItemRef(int index) => ref this.Items[index];
