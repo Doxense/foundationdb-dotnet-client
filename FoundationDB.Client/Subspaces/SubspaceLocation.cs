@@ -223,6 +223,7 @@ namespace FoundationDB.Client
 		{
 			// located inside a directory subspace!
 			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
+			if (folder == null) return null;
 			return this.Prefix.Count == 0 ? folder : new DynamicKeySubspace(folder.GetPrefix() + this.Prefix, folder.KeyEncoder, folder.Context);
 		}
 

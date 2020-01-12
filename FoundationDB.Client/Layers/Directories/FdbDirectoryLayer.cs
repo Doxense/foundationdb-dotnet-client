@@ -116,15 +116,15 @@ namespace FoundationDB.Client
 
 		void IFdbDirectory.CheckLayer(Slice layer)
 		{
-			if (layer.IsPresent)
+			if (layer.Count != 0)
 			{
-				throw new InvalidOperationException($"The directory layer {this.FullName} is not compatible with layer {layer:K}.");
+				throw ThrowHelper.InvalidOperationException($"The directory layer {this.FullName} is not compatible with layer {layer:K}.");
 			}
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.ChangeLayerAsync(IFdbTransaction trans, Slice newLayer)
 		{
-			throw new NotSupportedException("You cannot change the layer of a Directory Layer.");
+			throw ThrowHelper.NotSupportedException("You cannot change the layer of a Directory Layer.");
 		}
 
 		/// <summary>Return the location of the sub-directory with the given name</summary>
@@ -648,7 +648,7 @@ namespace FoundationDB.Client
 				FdbDirectorySubspace subspace;
 				if (existingNode.Exists)
 				{
-					if (layer.IsPresent && layer != existingNode.Layer)
+					if (layer.Count != 0 && layer != existingNode.Layer)
 					{
 						throw new InvalidOperationException($"The directory {path} was created with incompatible layer {layer:P} instead of expected {existingNode.Layer:P}.");
 					}
@@ -742,7 +742,7 @@ namespace FoundationDB.Client
 						return null;
 					}
 
-					if (layer.IsPresent && layer != existingNode.Layer)
+					if (layer.Count != 0 && layer != existingNode.Layer)
 					{
 						throw new InvalidOperationException($"The directory {path} was created with incompatible layer {existingNode.Layer:P} instead of expected {layer:P}.");
 					}

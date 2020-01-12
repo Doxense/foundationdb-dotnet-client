@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.EnsureKeyIsValid(key);
+				FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -114,7 +114,7 @@ namespace FoundationDB.Client
 
 				EnsureCanRead();
 
-				m_parent.EnsureKeysAreValid(keys);
+				FdbKey.EnsureKeysAreValid(keys);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -127,7 +127,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.EnsureKeyIsValid(selector.Key);
+				FdbKey.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -142,7 +142,7 @@ namespace FoundationDB.Client
 
 				for(int i = 0; i < selectors.Length; i++)
 				{
-					m_parent.EnsureKeyIsValid(selectors[i].Key);
+					FdbKey.EnsureKeyIsValid(selectors[i].Key);
 				}
 
 #if DEBUG
@@ -156,8 +156,8 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.EnsureKeyIsValid(beginInclusive.Key);
-				m_parent.EnsureKeyIsValid(endExclusive.Key);
+				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+				FdbKey.EnsureKeyIsValid(endExclusive.Key);
 
 				options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 				options.EnsureLegalValues();

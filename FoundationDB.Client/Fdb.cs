@@ -661,7 +661,7 @@ namespace FoundationDB.Client
 			}
 #pragma warning restore 618
 
-			if (Fdb.Options.TLSCertificateBytes.IsPresent)
+			if (Fdb.Options.TLSCertificateBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from memory ({Fdb.Options.TLSCertificateBytes.Count} bytes)");
 
@@ -674,7 +674,7 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertPath, Fdb.Options.TLSCertificatePath));
 			}
 
-			if (Fdb.Options.TLSPrivateKeyBytes.IsPresent)
+			if (Fdb.Options.TLSPrivateKeyBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from memory ({Fdb.Options.TLSPrivateKeyBytes.Count} bytes)");
 
@@ -687,7 +687,7 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyPath, Fdb.Options.TLSPrivateKeyPath));
 			}
 
-			if (Fdb.Options.TLSVerificationPattern.IsPresent)
+			if (Fdb.Options.TLSVerificationPattern.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will verify TLS peers with pattern '{Fdb.Options.TLSVerificationPattern}'");
 
@@ -732,6 +732,12 @@ namespace FoundationDB.Client
 					return FdbNative.NetworkSetOption(option, ptr, data.Count);
 				}
 			}
+		}
+
+		/// <summary>Set the value of a network option on the database handler</summary>
+		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
+		{
+			return SetNetworkOption(option, value.Span);
 		}
 
 		/// <summary>Set the value of a network option on the database handler</summary>

@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
@@ -104,10 +105,11 @@ namespace FoundationDB.Client
 
 			//TODO: use multiple buffers if item count is huge ?
 
+			var prefixSpan = prefix.Span;
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				writer.WriteBytes(key);
+				if (prefixSpan.Length != 0) writer.WriteBytes(prefixSpan);
+				writer.WriteBytes(key.Span);
 				next.Add(writer.Position);
 			}
 
@@ -135,9 +137,10 @@ namespace FoundationDB.Client
 
 			//TODO: use multiple buffers if item count is huge ?
 
+			var prefixSpan = prefix.Span;
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				if (prefixSpan.Length != 0) writer.WriteBytes(prefixSpan);
 				writer.WriteBytes(key);
 				next.Add(writer.Position);
 			}
@@ -473,6 +476,153 @@ namespace FoundationDB.Client
 			End = 2,
 		}
 
+		#region Key Validation...
+
+		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <param name="ignoreError"></param>
+		/// <param name="error"></param>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
+		internal static bool ValidateKey(in Slice key, bool endExclusive, bool ignoreError, out Exception error)
+		{
+			// null keys are not allowed
+			if (key.IsNull)
+			{
+				error = ignoreError ? null : Fdb.Errors.KeyCannotBeNull();
+				return false;
+			}
+			return ValidateKey(key.Span, endExclusive, ignoreError, out error);
+		}
+
+		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <param name="ignoreError"></param>
+		/// <param name="error"></param>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
+		internal static bool ValidateKey(ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception error)
+		{
+			error = null;
+
+			// key cannot be larger than maximum allowed key size
+			if (key.Length > Fdb.MaxKeySize)
+			{
+				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(key);
+				return false;
+			}
+
+			// special case for system keys
+			if (IsSystemKey(key))
+			{
+				// note: it will fail later if the transaction does not have access to the system keys!
+				return true;
+			}
+
+			//// first, it MUST start with the root prefix of this database (if any)
+			//var root = tr.Context.Root;
+			//if (root != null && !root.Contains(key))
+			//{
+			//	// special case: if endExclusive is true (we are validating the end key of a ClearRange),
+			//	// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let it slide
+			//	if (!endExclusive
+			//	 || !key.SequenceEqual(FdbKey.Increment(root.GetPrefix()))) //TODO: cache this?
+			//	{
+			//		if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(tr.Context.Database, key);
+			//		return false;
+			//	}
+			//}
+
+			return true;
+		}
+
+		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSystemKey(ReadOnlySpan<byte> key)
+		{
+			return key.Length != 0 && key[0] == 0xFF;
+		}
+
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		public static void EnsureKeyIsValid(Slice key, bool endExclusive = false)
+		{
+			if (!ValidateKey(key, endExclusive, false, out Exception ex)) throw ex;
+		}
+
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		public static void EnsureKeyIsValid(ReadOnlySpan<byte> key, bool endExclusive = false)
+		{
+			if (!ValidateKey(key, endExclusive, false, out Exception ex)) throw ex;
+		}
+
+		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="keys">Array of keys to verify</param>
+		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		public static void EnsureKeysAreValid(ReadOnlySpan<Slice> keys, bool endExclusive = false)
+		{
+			foreach (var key in keys)
+			{
+				if (!ValidateKey(key, endExclusive, false, out Exception ex)) throw ex;
+			}
+		}
+
+		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
+		[Pure]
+		public static bool IsKeyValid(Slice key)
+		{
+			Exception _;
+			return ValidateKey(key, false, true, out _);
+		}
+
+		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
+		[Pure]
+		public static bool IsKeyValid(ReadOnlySpan<byte> key)
+		{
+			Exception _;
+			return ValidateKey(key, false, true, out _);
+		}
+
+		#endregion
+
+		#region Value Validation
+
+		/// <summary>Ensures that a serialized value is valid</summary>
+		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
+		public static void EnsureValueIsValid(Slice value)
+		{
+			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
+			EnsureValueIsValid(value.Span);
+		}
+
+		/// <summary>Ensures that a serialized value is valid</summary>
+		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
+		public static void EnsureValueIsValid(ReadOnlySpan<byte> value)
+		{
+			var ex = ValidateValue(value);
+			if (ex != null) throw ex;
+		}
+
+		internal static Exception ValidateValue(ReadOnlySpan<byte> value)
+		{
+			if (value.Length > Fdb.MaxValueSize)
+			{
+				return Fdb.Errors.ValueIsTooBig(value);
+			}
+			return null;
+		}
+
+		#endregion
 	}
 
 }

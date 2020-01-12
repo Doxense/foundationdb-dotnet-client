@@ -93,7 +93,7 @@ namespace FoundationDB.Layers.Allocators
 
 		public static async Task<long> AllocateAsync([NotNull] IFdbTransaction trans, ITypedKeySubspace<int, long> subspace, Random rng)
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			Contract.NotNull(trans, nameof(trans));
 
 			// find the current window size, by reading the last entry in the 'counters' subspace
 			long start = 0, count = 0;
@@ -102,7 +102,7 @@ namespace FoundationDB.Layers.Allocators
 				.GetRange(subspace.EncodePartialRange(COUNTERS))
 				.LastOrDefaultAsync();
 
-			if (kv.Key.IsPresent)
+			if (kv.Key.Count != 0)
 			{
 				start = subspace.DecodeLast(kv.Key);
 				count = kv.Value.ToInt64();

@@ -161,9 +161,7 @@ namespace FoundationDB.Client
 		[Pure]
 		VersionStamp CreateUniqueVersionStamp();
 
-		/// <summary>
-		/// Watch a key for any change in the database.
-		/// </summary>
+		/// <summary>Watch a key for any change in the database.</summary>
 		/// <param name="key">Key to watch</param>
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>

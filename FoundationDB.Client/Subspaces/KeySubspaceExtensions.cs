@@ -294,6 +294,27 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
+		public static Slice Append(this IKeySubspace subspace, Slice relativeKey)
+		{
+			//REVIEW: how do we handle Slice.Nil?
+			return subspace.Append(relativeKey.Span);
+		}
+
+
+		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
+		/// <param name="subspace">Subspace used for the test</param>
+		/// <param name="absoluteKey">Key to test</param>
+		/// <returns>True if the key can exist inside the current subspace.</returns>
+		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not outside the range of keys defined by the subspace.</remarks>
+		public static bool Contains(this IKeySubspace subspace, Slice absoluteKey)
+		{
+			return !absoluteKey.IsNull && subspace.Contains(absoluteKey.Span);
+		}
+
 		/// <summary>Clear the entire content of a subspace</summary>
 		public static void ClearRange(this IFdbTransaction trans, [NotNull] IKeySubspace subspace)
 		{

@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the directory was registered with a different layer id</exception>
 		public void CheckLayer(Slice layer)
 		{
-			if (layer.IsPresent && layer != this.Layer)
+			if (layer.Count != 0 && layer != this.Layer)
 			{
 				throw new InvalidOperationException($"The directory {this.FullName} was created with incompatible layer {this.Layer:P} instead of expected {layer:P}.");
 			}

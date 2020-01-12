@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
@@ -515,7 +516,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
-			m_handler.SetOption(option, data);
+			m_handler.SetOption(option, data.Span);
 		}
 
 		/// <summary>Set an option on this database that takes an integer value</summary>
@@ -528,8 +529,9 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
-			var data = Slice.FromFixed64(value);
-			m_handler.SetOption(option, data);
+			Span<byte> tmp = stackalloc byte[8];
+			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
+			m_handler.SetOption(option, tmp);
 		}
 
 		#endregion
@@ -551,24 +553,6 @@ namespace FoundationDB.Client
 		}
 
 		public FdbDirectorySubspaceLocation Root => m_root;
-
-		/// <summary>Ensures that a serialized value is valid</summary>
-		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
-		internal void EnsureValueIsValid(ReadOnlySpan<byte> value)
-		{
-			var ex = ValidateValue(value);
-			if (ex != null) throw ex;
-		}
-
-		internal Exception ValidateValue(ReadOnlySpan<byte> value)
-		{
-			if (value.Length > Fdb.MaxValueSize)
-			{
-				return Fdb.Errors.ValueIsTooBig(value);
-			}
-
-			return null;
-		}
 
 		#endregion
 

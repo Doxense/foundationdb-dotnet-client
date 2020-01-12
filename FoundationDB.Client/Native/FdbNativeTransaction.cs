@@ -176,7 +176,7 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
-		public Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken ct)
+		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(keys != null);
 
@@ -187,7 +187,7 @@ namespace FoundationDB.Client.Native
 			{
 				for (int i = 0; i < keys.Length; i++)
 				{
-					futures[i] = FdbNative.TransactionGet(m_handle, keys[i], snapshot);
+					futures[i] = FdbNative.TransactionGet(m_handle, keys[i].Span, snapshot);
 				}
 			}
 			catch

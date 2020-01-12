@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
@@ -199,7 +200,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()}");
 
-			m_handler.SetOption(option, Slice.Nil);
+			m_handler.SetOption(option, default);
 		}
 
 		/// <inheritdoc />
@@ -210,7 +211,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
-			m_handler.SetOption(option, data);
+			m_handler.SetOption(option, data.Span);
 		}
 
 		/// <inheritdoc />
@@ -221,7 +222,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			m_handler.SetOption(option, data);
+			m_handler.SetOption(option, data.Span);
 		}
 
 		/// <inheritdoc />
@@ -232,9 +233,9 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
-			var data = Slice.FromFixed64(value);
-
-			m_handler.SetOption(option, data);
+			Span<byte> tmp = stackalloc byte[8];
+			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
+			m_handler.SetOption(option, tmp);
 		}
 
 		#endregion
@@ -351,7 +352,8 @@ namespace FoundationDB.Client
 			if (mustAddConflictRange && !this.IsReadOnly)
 			{
 				//TODO: only on the first non-snapshot read!!!
-				AddConflictRange(key, key + (byte) 0, FdbConflictRangeType.Read);
+				var range = KeyRange.FromKey(key);
+				AddConflictRange(range.Begin.Span, range.End.Span, FdbConflictRangeType.Read);
 			}
 			return t.Task;
 		}
@@ -365,7 +367,7 @@ namespace FoundationDB.Client
 			try
 			{
 				// this can fail if the value has been changed earlier in the transaction!
-				value = await m_handler.GetAsync(key, snapshot: true, m_cancellation).ConfigureAwait(false);
+				value = await m_handler.GetAsync(key.Span, snapshot: true, m_cancellation).ConfigureAwait(false);
 			}
 			catch (FdbException e)
 			{
@@ -409,7 +411,7 @@ namespace FoundationDB.Client
 				cache[key] = (PoisonedMetadataVersion, false);
 
 				// update the key with a new versionstamp
-				m_handler.Atomic(key, Fdb.System.MetadataVersionValue, FdbMutationType.VersionStampedValue);
+				m_handler.Atomic(key.Span, Fdb.System.MetadataVersionValue.Span, FdbMutationType.VersionStampedValue);
 			}
 
 		}
@@ -497,7 +499,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			this.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -519,7 +521,7 @@ namespace FoundationDB.Client
 
 			EnsureCanRead();
 
-			this.EnsureKeysAreValid(keys);
+			FdbKey.EnsureKeysAreValid(keys);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -537,8 +539,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			this.EnsureKeyIsValid(beginInclusive.Key);
-			this.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -559,8 +561,8 @@ namespace FoundationDB.Client
 			Contract.Requires(selector != null);
 
 			EnsureCanRead();
-			this.EnsureKeyIsValid(begin.Key);
-			this.EnsureKeyIsValid(end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(begin.Key);
+			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -593,7 +595,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			this.EnsureKeyIsValid(selector.Key);
+			FdbKey.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -613,7 +615,7 @@ namespace FoundationDB.Client
 
 			foreach (var selector in selectors)
 			{
-				this.EnsureKeyIsValid(selector.Key);
+				FdbKey.EnsureKeyIsValid(selector.Key);
 			}
 
 #if DEBUG
@@ -632,8 +634,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			this.EnsureKeyIsValid(key);
-			m_database.EnsureValueIsValid(value);
+			FdbKey.EnsureKeyIsValid(key);
+			FdbKey.EnsureValueIsValid(value);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
@@ -768,8 +770,8 @@ namespace FoundationDB.Client
 
 			EnsureCanWrite();
 
-			this.EnsureKeyIsValid(key);
-			m_database.EnsureValueIsValid(param);
+			FdbKey.EnsureKeyIsValid(key);
+			FdbKey.EnsureValueIsValid(param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
 			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
@@ -790,7 +792,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			this.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
@@ -808,8 +810,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			this.EnsureKeyIsValid(beginKeyInclusive);
-			this.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginKeyInclusive);
+			FdbKey.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
@@ -827,8 +829,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			this.EnsureKeyIsValid(beginKeyInclusive);
-			this.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginKeyInclusive);
+			FdbKey.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
@@ -846,7 +848,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			this.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
@@ -915,7 +917,7 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 			EnsureCanWrite();
 
-			this.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 			// keep a copy of the key
 			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected

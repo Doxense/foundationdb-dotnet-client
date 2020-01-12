@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="absoluteKey">Key to test</param>
 		/// <returns>True if the key can exist inside the current subspace.</returns>
-		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
+		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not outside the range of keys defined by the subspace.</remarks>
 		[Pure]
 		bool Contains(ReadOnlySpan<byte> absoluteKey);
 

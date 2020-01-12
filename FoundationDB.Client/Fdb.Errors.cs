@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 				return new ArgumentException($"Key is too big ({key.Length} > {Fdb.MaxKeySize}).", paramName);
 			}
 
-			internal static Exception ValueCannotBeNull(Slice value, string paramName = "value")
+			internal static Exception ValueCannotBeNull(string paramName = "value")
 			{
 				return new ArgumentException("Value cannot be null", paramName);
 			}

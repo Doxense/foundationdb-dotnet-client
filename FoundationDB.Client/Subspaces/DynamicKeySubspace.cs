@@ -150,18 +150,20 @@ namespace FoundationDB.Client
 			return key.PrettyPrint();
 		}
 
-
 		#region IBinaryKeySubspace
 
 		// we implement this because most subspaces will be dynamic, and converting them to binary would need an allocation of a BinaryKeySubspace otherwise!
 
-		Slice IBinaryKeySubspace.this[Slice relativeKey] => Append(relativeKey);
+		Slice IBinaryKeySubspace.this[Slice relativeKey] => Append(relativeKey.Span);
+
+		Slice IBinaryKeySubspace.this[ReadOnlySpan<byte> relativeKey] => Append(relativeKey);
 
 		Slice IBinaryKeySubspace.Decode(Slice absoluteKey) => ExtractKey(absoluteKey);
 
-		IBinaryKeySubspace IBinaryKeySubspace.Partition(Slice relativeKey) => new BinaryKeySubspace(Append(relativeKey), this.Context);
+		IBinaryKeySubspace IBinaryKeySubspace.Partition(ReadOnlySpan<byte> relativeKey) => new BinaryKeySubspace(Append(relativeKey), this.Context);
 
 		#endregion
+
 	}
 
 	/// <summary>Key helper for a dynamic TypeSystem</summary>

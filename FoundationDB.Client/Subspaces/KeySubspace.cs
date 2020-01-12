@@ -210,7 +210,7 @@ namespace FoundationDB.Client
 			return this.Range;
 		}
 
-		public virtual KeyRange ToRange(Slice suffix)
+		public virtual KeyRange ToRange(ReadOnlySpan<byte> suffix)
 		{
 			return KeyRange.StartsWith(Append(suffix));
 		}
@@ -221,7 +221,7 @@ namespace FoundationDB.Client
 		public virtual bool Contains(ReadOnlySpan<byte> absoluteKey)
 		{
 			EnsureIsValid();
-			return absoluteKey.StartsWith(this.Key);
+			return absoluteKey.StartsWith(this.Key.Span);
 		}
 
 		/// <summary>Manually append a binary suffix to the subspace's prefix</summary>
@@ -339,7 +339,7 @@ namespace FoundationDB.Client
 			EnsureIsValid();
 
 			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
-			var prefix = this.Key;
+			var prefix = this.Key.Span;
 
 			// don't touch to nil and keys inside the globalspace
 			if (key.StartsWith(prefix)) return key;
@@ -353,7 +353,7 @@ namespace FoundationDB.Client
 			if (key.SequenceCompareTo(prefix) < 0)
 				return default;
 			else
-				return FdbKey.System;
+				return FdbKey.System.Span;
 		}
 
 		/// <summary>Throw an exception for a key that is out of the bounds of this subspace</summary>

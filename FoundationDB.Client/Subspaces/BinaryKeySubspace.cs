@@ -41,6 +41,11 @@ namespace FoundationDB.Client
 		/// <returns>Full binary key</returns>
 		Slice this[Slice relativeKey] { get; }
 
+		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
+		Slice this[ReadOnlySpan<byte> relativeKey] { get; }
+
 		/// <summary>Return the last part of the key, minus the subspace's prefix</summary>
 		Slice Decode(Slice absoluteKey);
 		//note: this is the same as calling ExtractKey(...) but is here for symmetry reasons with other kinds of subspaces
@@ -48,7 +53,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace's prefix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Child subspace</returns>
-		IBinaryKeySubspace Partition(Slice relativeKey);
+		IBinaryKeySubspace Partition(ReadOnlySpan<byte> relativeKey);
 	}
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys as binary literals.</summary>
@@ -66,15 +71,21 @@ namespace FoundationDB.Client
 		public Slice this[Slice relativeKey]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => Append(relativeKey.Span);
+		}
+
+		public Slice this[ReadOnlySpan<byte> relativeKey]
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Append(relativeKey);
 		}
 
-		public IBinaryKeySubspace Partition(Slice relativeKey)
+		public IBinaryKeySubspace Partition(ReadOnlySpan<byte> relativeKey)
 		{
-			return relativeKey.Count != 0 ? new BinaryKeySubspace(Append(relativeKey), this.Context) : this;
+			return relativeKey.Length != 0 ? new BinaryKeySubspace(Append(relativeKey), this.Context) : this;
 		}
 
-		public Slice Encode(Slice relativeKey)
+		public Slice Encode(ReadOnlySpan<byte> relativeKey)
 		{
 			return Append(relativeKey);
 		}
