@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 		{
 			var sb = new StringBuilder();
 			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
-			AddKeyValue(sb, "root", this.Root.ToString());
+			if (!this.Root.IsEmpty) AddKeyValue(sb, "root", "/" + this.Root.ToString());
 			//REVIEW: cannot serialize subspace into a string ! :(
 			if (this.ReadOnly) AddKeyword(sb, "readonly");
 			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);
