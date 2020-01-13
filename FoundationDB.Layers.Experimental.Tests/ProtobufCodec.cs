@@ -26,43 +26,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Types.Json
+namespace FoundationDB.Types.ProtocolBuffers
 {
 	using System;
+	using System.Diagnostics;
 	using System.IO;
-	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
-	using Newtonsoft.Json;
 
-	/// <summary>Sample codec that uses JSON.Net to serialize values into Slices</summary>
-	/// <typeparam name="TDocument"></typeparam>
-	public class JsonNetCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>
+	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>
 	{
 
-		private static readonly Encoding s_utf8NoBom = new UTF8Encoding(false);
-
-		private readonly JsonSerializer m_serializer;
-
-		public JsonNetCodec(JsonSerializerSettings settings = null)
-			: this(JsonSerializer.CreateDefault(settings))
-		{ }
-
-		public JsonNetCodec(JsonSerializer serializer)
+		public ProtobufCodec()
 		{
-			m_serializer = serializer ?? JsonSerializer.CreateDefault();
+			ProtoBuf.Serializer.PrepareSerializer<TDocument>();
 		}
 
 		protected virtual Slice EncodeInternal(TDocument document)
 		{
-			var ms = new MemoryStream(256);
-			using (var tw = new StreamWriter(ms, s_utf8NoBom))
+			using (var ms = new MemoryStream())
 			{
-				m_serializer.Serialize(tw, document, typeof(TDocument));
-
-				tw.Flush();
+				ProtoBuf.Serializer.Serialize<TDocument>(ms, document);
 
 				// Overflow protection (should never happen since a MemoryStream won't let us write more than 2G, but just to be sure ...)
 				if (ms.Length > int.MaxValue) throw new OutOfMemoryException("The serialized JSON document exceeds the maximum allowed size");
@@ -70,7 +56,7 @@ namespace FoundationDB.Types.Json
 				// Reuse the stream's internal buffer to reduce the need for allocations!
 				var tmp = ms.GetBuffer();
 				int size = checked((int)ms.Length);
-				Contract.Assert(tmp != null && size >= 0 && size <= tmp.Length);
+				Debug.Assert(tmp != null && size >= 0 && size <= tmp.Length);
 
 				return tmp.AsSlice(0, size);
 			}
@@ -85,20 +71,16 @@ namespace FoundationDB.Types.Json
 		{
 			if (encoded.IsNullOrEmpty) return default(TDocument);
 
-			// note: the StreamReader should remove the UTF8 BOM for us
-			using (var sr = new StreamReader(new SliceStream(encoded), Encoding.UTF8))
+			using (var sr = new SliceStream(encoded))
 			{
-				using (var reader = new JsonTextReader(sr))
-				{
-					return m_serializer.Deserialize<TDocument>(reader);
-				}
+				return ProtoBuf.Serializer.Deserialize<TDocument>(sr);
 			}
 		}
 
 		void IUnorderedTypeCodec<TDocument>.EncodeUnorderedSelfTerm(ref SliceWriter output, TDocument value)
 		{
 			var packed = EncodeInternal(value);
-			Contract.Assert(packed.Count >= 0);
+			Debug.Assert(packed.Count >= 0);
 			output.WriteVarInt32((uint)packed.Count);
 			output.WriteBytes(packed);
 		}

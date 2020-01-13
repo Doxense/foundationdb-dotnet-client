@@ -66,7 +66,7 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.ReadWriteAsync(tr => db.Directory.CreateOrOpenAsync(tr, new [] { "Samples", "MessageQueueTest" }), ct);
+			this.Subspace = await db.ReadWriteAsync(tr => db.Root["Samples"]["MessageQueueTest"].CreateOrOpenAsync(tr), ct);
 
 			this.WorkerPool = new FdbWorkerPool(this.Subspace);
 		}
@@ -140,9 +140,9 @@ namespace FoundationDB.Samples.Tutorials
 			var tasksLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('T'));
 			var unassignedLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('U'));
 
-			using(var tr = db.BeginTransaction(ct))
+			using(var tr = await db.BeginTransactionAsync(ct))
 			{
-				var counters = await tr.Snapshot.GetRange(countersLocation.Keys.ToRange()).Select(kvp => new KeyValuePair<string, long>(countersLocation.Keys.DecodeLast<string>(kvp.Key), kvp.Value.ToInt64())).ToListAsync().ConfigureAwait(false);
+				var counters = await tr.Snapshot.GetRange(countersLocation.ToRange()).Select(kvp => new KeyValuePair<string, long>(countersLocation.DecodeLast<string>(kvp.Key), kvp.Value.ToInt64())).ToListAsync().ConfigureAwait(false);
 
 				Console.WriteLine("Status at " + DateTimeOffset.Now.ToString("O"));
 				foreach(var counter in counters)
@@ -152,24 +152,24 @@ namespace FoundationDB.Samples.Tutorials
 
 				Console.WriteLine("Dump:");
 				Console.WriteLine("> Idle");
-				await tr.Snapshot.GetRange(idleLocation.Keys.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(idleLocation.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Idle.{idleLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Idle.{idleLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Busy");
-				await tr.Snapshot.GetRange(busyLocation.Keys.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(busyLocation.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Busy.{busyLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Busy.{busyLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Unassigned");
-				await tr.Snapshot.GetRange(unassignedLocation.Keys.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(unassignedLocation.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Unassigned.{unassignedLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Unassigned.{unassignedLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("> Tasks");
-				await tr.Snapshot.GetRange(tasksLocation.Keys.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(tasksLocation.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Tasks.{tasksLocation.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Tasks.{tasksLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
 				});
 				Console.WriteLine("<");
 			}

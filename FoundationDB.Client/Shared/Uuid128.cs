@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ namespace System
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
 		// For performance reasons, we will store the UUID as a System.GUID (Microsoft in-memory format), and swap the bytes when needed.
 
-		// cf 4.1.2. Layeout and Byte Order
+		// cf 4.1.2. Layout and Byte Order
 
 		//    The fields are encoded as 16 octets, with the sizes and order of the
 		//    fields defined above, and with each field encoded with the Most
@@ -174,7 +174,7 @@ namespace System
 			return new Uuid128(guid);
 		}
 
-		public static readonly Uuid128 Empty = default(Uuid128);
+		public static readonly Uuid128 Empty = default;
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
@@ -186,11 +186,18 @@ namespace System
 			return new Uuid128(Guid.NewGuid());
 		}
 
+		public static Guid Convert(Slice input)
+		{
+			if (input.Count == 0) return default;
+			if (input.Count != 16) throw ThrowHelper.ArgumentException(nameof(input), "Slice for UUID must be exactly 16 bytes long");
+			return Read(input.Span);
+		}
+
 		public static Guid Convert(ReadOnlySpan<byte> input)
 		{
-			if (input.Length == 0) return default(Guid);
+			if (input.Length == 0) return default;
 			if (input.Length != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
-			return ReadUnsafe(input);
+			return Read(input);
 		}
 
 		public static Guid Convert(Uuid64 a, Uuid64 b)
@@ -200,7 +207,7 @@ namespace System
 				Span<byte> buf = stackalloc byte[SizeOf];
 				a.WriteToUnsafe(buf);
 				b.WriteToUnsafe(buf.Slice(8));
-				return ReadUnsafe(buf);
+				return Read(buf);
 			}
 		}
 
@@ -221,16 +228,16 @@ namespace System
 				buf[14] = (byte)(c >> 16);
 				buf[15] = (byte)(c >> 24);
 
-				return ReadUnsafe(buf);
+				return Read(buf);
 			}
 		}
 
-		public static Uuid128 Parse([NotNull] string input)
+		public static Uuid128 Parse(string input)
 		{
 			return new Uuid128(Guid.Parse(input));
 		}
 
-		public static Uuid128 ParseExact([NotNull] string input, string format)
+		public static Uuid128 ParseExact(string input, string format)
 		{
 			return new Uuid128(Guid.ParseExact(input, format));
 		}
@@ -239,7 +246,7 @@ namespace System
 		{
 			if (!Guid.TryParse(input, out Guid guid))
 			{
-				result = default(Uuid128);
+				result = default;
 				return false;
 			}
 			result = new Uuid128(guid);
@@ -250,7 +257,7 @@ namespace System
 		{
 			if (!Guid.TryParseExact(input, format, out Guid guid))
 			{
-				result = default(Uuid128);
+				result = default;
 				return false;
 			}
 			result = new Uuid128(guid);
@@ -265,8 +272,8 @@ namespace System
 			get
 			{
 				long ts = m_timeLow;
-				ts |= ((long)m_timeMid) << 32;
-				ts |= ((long)(m_timeHiAndVersion & 0x0FFF)) << 48;
+				ts |= ((long) m_timeMid) << 32;
+				ts |= ((long) (m_timeHiAndVersion & 0x0FFF)) << 48;
 				return ts;
 			}
 		}
@@ -274,10 +281,7 @@ namespace System
 		public int Version
 		{
 			[Pure]
-			get
-			{
-				return m_timeHiAndVersion >> 12;
-			}
+			get => m_timeHiAndVersion >> 12;
 		}
 
 		public int ClockSequence
@@ -310,9 +314,22 @@ namespace System
 		#region Unsafe I/O...
 
 		[Pure]
-		public static unsafe Guid ReadUnsafe([NotNull] ReadOnlySpan<byte> source)
+		public static bool TryRead(ReadOnlySpan<byte> source, out Guid result)
+		{
+			if (source.Length < 16)
+			{
+				result = default;
+				return false;
+			}
+			result = Read(source);
+			return true;
+		}
+
+		[Pure]
+		public static unsafe Guid Read(ReadOnlySpan<byte> source)
 		{
 			Contract.Requires(source.Length >= 16);
+			if (source.Length < 16) throw new ArgumentException("The source buffer is too small", nameof(source));
 			Guid tmp;
 			fixed (byte* src = &MemoryMarshal.GetReference(source))
 			{
@@ -344,15 +361,19 @@ namespace System
 			return tmp;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe void WriteUnsafe(Guid value, Span<byte> buffer)
+		public static bool TryWrite(in Guid value, Span<byte> buffer)
 		{
-			WriteUnsafe(in value, buffer);
+			if (buffer.Length < 16)
+			{
+				return false;
+			}
+			Write(in value, buffer);
+			return true;
 		}
 
-		internal static unsafe void WriteUnsafe([NotNull] in Guid value, Span<byte> buffer)
+		public static unsafe void Write(in Guid value, Span<byte> buffer)
 		{
-			Contract.Requires(value != null && buffer.Length >= 16);
+			if (buffer.Length < 16) throw new ArgumentException("The destination buffer is too small", nameof(buffer));
 			fixed (Guid* inp = &value)
 			fixed (byte* outp = &MemoryMarshal.GetReference(buffer))
 			{
@@ -384,9 +405,9 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteToUnsafe([NotNull] Span<byte> buffer)
+		public void WriteToUnsafe(Span<byte> buffer)
 		{
-			WriteUnsafe(in m_packed, buffer);
+			Write(in m_packed, buffer);
 		}
 
 		#endregion
@@ -401,7 +422,7 @@ namespace System
 			unsafe
 			{
 				Span<byte> buffer = stackalloc byte[SizeOf];
-				WriteUnsafe(m_packed, buffer);
+				Write(in m_packed, buffer);
 				high = Uuid64.ReadUnsafe(buffer);
 				low = Uuid64.ReadUnsafe(buffer.Slice(8));
 			}
@@ -415,7 +436,7 @@ namespace System
 			unsafe
 			{
 				byte* buffer = stackalloc byte[SizeOf];
-				WriteUnsafe(m_packed, new Span<byte>(buffer, SizeOf));
+				Write(in m_packed, new Span<byte>(buffer, SizeOf));
 				a = UnsafeHelpers.LoadUInt64BE(buffer + 0);
 				b = UnsafeHelpers.LoadUInt64BE(buffer + 8);
 			}
@@ -430,7 +451,7 @@ namespace System
 			unsafe
 			{
 				byte* buffer = stackalloc byte[SizeOf];
-				WriteUnsafe(m_packed, new Span<byte>(buffer, SizeOf));
+				Write(in m_packed, new Span<byte>(buffer, SizeOf));
 				a = UnsafeHelpers.LoadUInt64BE(buffer + 0);
 				b = UnsafeHelpers.LoadUInt32BE(buffer + 8);
 				c = UnsafeHelpers.LoadUInt32BE(buffer + 12);
@@ -447,7 +468,7 @@ namespace System
 			unsafe
 			{
 				byte* buffer = stackalloc byte[SizeOf];
-				WriteUnsafe(m_packed, new Span<byte>(buffer, SizeOf));
+				Write(in m_packed, new Span<byte>(buffer, SizeOf));
 				a = UnsafeHelpers.LoadUInt32BE(buffer + 0);
 				b = UnsafeHelpers.LoadUInt32BE(buffer + 4);
 				c = UnsafeHelpers.LoadUInt32BE(buffer + 8);
@@ -470,7 +491,7 @@ namespace System
 		{
 			// We must use Big Endian when serializing the UUID
 			var res = new byte[SizeOf];
-			WriteUnsafe(in m_packed, res.AsSpan());
+			Write(in m_packed, res.AsSpan());
 			return res;
 		}
 
@@ -486,12 +507,12 @@ namespace System
 			return m_packed.ToString("D", null);
 		}
 
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return m_packed.ToString(format);
 		}
 
-		public string ToString(string format, IFormatProvider provider)
+		public string ToString(string? format, IFormatProvider? provider)
 		{
 			return m_packed.ToString(format, provider);
 		}
@@ -526,7 +547,7 @@ namespace System
 			{
 				// serialize GUID into High Endian format
 				byte* buf = stackalloc byte[SizeOf];
-				WriteUnsafe(in m_packed, new Span<byte>(buf, SizeOf));
+				Write(in m_packed, new Span<byte>(buf, SizeOf));
 
 				// Add the low 64 bits (in HE)
 				ulong sum = unchecked(UnsafeHelpers.LoadUInt64BE(buf + 8) + value);
@@ -536,7 +557,7 @@ namespace System
 				}
 				UnsafeHelpers.StoreUInt64BE(buf + 8, sum);
 				// deserialize back to GUID
-				return new Uuid128(ReadUnsafe(new ReadOnlySpan<byte>(buf, SizeOf)));
+				return new Uuid128(Read(new ReadOnlySpan<byte>(buf, SizeOf)));
 			}
 		}
 
@@ -564,7 +585,7 @@ namespace System
 
 		#region Equality / Comparison ...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj == null) return false;
 			if (obj is Uuid128 u128) return m_packed == u128.m_packed;
@@ -632,7 +653,7 @@ namespace System
 			return m_packed.CompareTo(other.m_packed);
 		}
 
-		public int CompareTo(object obj)
+		public int CompareTo(object? obj)
 		{
 			switch (obj)
 			{

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,20 +52,20 @@ namespace Doxense.Memory.Tests
 			Assert.That(cmp.Equals(Slice.Empty, Slice.Nil), Is.False);
 
 			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.FromByte(42)), Is.True);
-			Assert.That(cmp.Equals(Slice.FromByte(42), new byte[] { 42 }.AsMutableSlice()), Is.True);
+			Assert.That(cmp.Equals(Slice.FromByte(42), new byte[] { 42 }.AsSlice()), Is.True);
 			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.FromByte(77)), Is.False);
 
-			Assert.That(cmp.Equals(new byte[] { 65, 66, 67 }.AsMutableSlice(), Slice.FromString("ABC")), Is.True);
-			Assert.That(cmp.Equals(new byte[] { 65, 66, 67, 68 }.AsMutableSlice(), Slice.FromString("ABC")), Is.False);
+			Assert.That(cmp.Equals(new byte[] { 65, 66, 67 }.AsSlice(), Slice.FromString("ABC")), Is.True);
+			Assert.That(cmp.Equals(new byte[] { 65, 66, 67, 68 }.AsSlice(), Slice.FromString("ABC")), Is.False);
 
 			var buf1 = Encoding.ASCII.GetBytes("ABBAABA");
 			var buf2 = Encoding.ASCII.GetBytes("ABBAABA");
-			Assert.That(cmp.Equals(buf1.AsMutableSlice(0, 2), buf1.AsMutableSlice(0, 2)), Is.True);
-			Assert.That(cmp.Equals(buf1.AsMutableSlice(0, 2), buf1.AsMutableSlice(0, 3)), Is.False);
-			Assert.That(cmp.Equals(buf1.AsMutableSlice(0, 2), buf1.AsMutableSlice(4, 2)), Is.True);
-			Assert.That(cmp.Equals(buf1.AsMutableSlice(0, 3), buf1.AsMutableSlice(4, 3)), Is.False);
-			Assert.That(cmp.Equals(buf1.AsMutableSlice(0, 2), buf2.AsMutableSlice(4, 2)), Is.True);
-			Assert.That(cmp.Equals(buf1.AsMutableSlice(0, 3), buf2.AsMutableSlice(4, 3)), Is.False);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf1.AsSlice(0, 2)), Is.True);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf1.AsSlice(0, 3)), Is.False);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf1.AsSlice(4, 2)), Is.True);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 3), buf1.AsSlice(4, 3)), Is.False);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 2), buf2.AsSlice(4, 2)), Is.True);
+			Assert.That(cmp.Equals(buf1.AsSlice(0, 3), buf2.AsSlice(4, 3)), Is.False);
 		}
 
 		[Test]

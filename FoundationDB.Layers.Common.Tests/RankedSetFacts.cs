@@ -46,14 +46,16 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "ranked_set");
+				var location = db.Root["ranked_set"];
+				await CleanLocation(db, location);
 
-				var vector = new FdbRankedSet(location);
+				var rankedSet = new FdbRankedSet(location);
 
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
-					await vector.OpenAsync(tr);
-					await PrintRankedSet(vector, tr);
+					await rankedSet.OpenAsync(tr);
+					var state = await rankedSet.Resolve(tr);
+					await PrintRankedSet(state, tr);
 				}, this.Cancellation);
 
 				Log();
@@ -61,25 +63,33 @@ namespace FoundationDB.Layers.Collections.Tests
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < 100; i++)
 				{
-					Console.Write("\rInserting " + i);
-					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, TuPack.EncodeKey(rnd.Next())), this.Cancellation);
+					Log("\rInserting " + i);
+					await db.WriteAsync(async tr =>
+					{
+						var state = await rankedSet.Resolve(tr);
+						await state.InsertAsync(tr, TuPack.EncodeKey(rnd.Next()));
+					}, this.Cancellation);
 				}
 				sw.Stop();
 				Log($"\rDone in {sw.Elapsed.TotalSeconds:N3} sec");
 
-				Log(await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation));
+				Log(await db.ReadAsync(async tr =>
+				{
+					var state = await rankedSet.Resolve(tr);
+					return await PrintRankedSet(state, tr);
+				}, this.Cancellation));
 			}
 		}
 
-		private static async Task<string> PrintRankedSet(FdbRankedSet rs, IFdbReadOnlyTransaction tr)
+		private static async Task<string> PrintRankedSet(FdbRankedSet.State rs, IFdbReadOnlyTransaction tr)
 		{
 			var sb = new StringBuilder();
 			for (int l = 0; l < 6; l++)
 			{
 				sb.AppendFormat("Level {0}:\r\n", l);
-				await tr.GetRange(rs.Subspace.Partition.ByKey(l).Keys.ToRange()).ForEachAsync((kvp) =>
+				await tr.GetRange(rs.Subspace.Partition.ByKey(l).ToRange()).ForEachAsync((kvp) =>
 				{
-					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Keys.Unpack(kvp.Key), kvp.Value.ToInt64());
+					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Unpack(kvp.Key), kvp.Value.ToInt64());
 				});
 			}
 			return sb.ToString();

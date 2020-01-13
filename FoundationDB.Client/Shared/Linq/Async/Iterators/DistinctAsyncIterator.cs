@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ namespace Doxense.Linq.Async.Iterators
 	{
 
 		private readonly IEqualityComparer<TSource> m_comparer;
-		private HashSet<TSource> m_set;
+		private HashSet<TSource>? m_set;
 
 		public DistinctAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
 			: base(source)
@@ -68,18 +68,23 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected override async ValueTask<bool> OnNextAsync()
 		{
-			while (!m_ct.IsCancellationRequested)
+			var iterator = m_iterator;
+			var set = m_set;
+			var ct = m_ct;
+			Contract.Requires(iterator != null && set != null);
+
+			while (!ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+				if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					m_set = null;
 					return await Completed();
 				}
 
-				if (m_ct.IsCancellationRequested) break;
+				if (ct.IsCancellationRequested) break;
 
-				TSource current = m_iterator.Current;
-				if (!m_set.Add(current))
+				TSource current = iterator.Current;
+				if (!set.Add(current))
 				{ // this item has already been seen
 					continue;
 				}
@@ -141,7 +146,7 @@ namespace Doxense.Linq.Async.Iterators
 				}
 			}
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ct.ThrowIfCancellationRequested();
 		}
 
 	}

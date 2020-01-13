@@ -4,7 +4,8 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1;net472</TargetFrameworks>
     <RootNamespace>FoundationDB.Linq.Providers</RootNamespace>
     <AssemblyName>FoundationDB.Linq.Providers</AssemblyName>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <PackageTags>foundationdb fdb nosql</PackageTags>

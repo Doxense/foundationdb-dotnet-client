@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,8 +36,6 @@ namespace Doxense.Memory.Tests
 	[TestFixture]
 	public class MutableSliceComparerFacts : FdbTest
 	{
-
-		#region SliceComparer...
 
 		[Test]
 		public void Test_MutableSliceComparer_Equals()
@@ -111,8 +109,6 @@ namespace Doxense.Memory.Tests
 			Assert.That(cmp.Compare(MutableSlice.FromString("hell"), MutableSlice.FromString("hello")), Is.LessThan(0));
 			Assert.That(cmp.Compare(MutableSlice.FromString("help"), MutableSlice.FromString("hello")), Is.GreaterThan(0));
 		}
-
-		#endregion
 
 	}
 }

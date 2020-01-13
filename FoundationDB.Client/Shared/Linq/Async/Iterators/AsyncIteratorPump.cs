@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			catch (Exception e)
 			{
-				LogDebug("failed... (" + m_state + ") : " + e.Message);
+				LogDebug($"failed... ({m_state}) : {e.Message}");
 				if (m_state == STATE_FAILED)
 				{ // already signaled the target, just throw
 					throw;
@@ -129,7 +129,7 @@ namespace Doxense.Linq.Async.Iterators
 			finally
 			{
 				if (m_state != STATE_FAILED) m_state = STATE_DONE;
-				LogDebug("stopped (" + m_state + ")");
+				LogDebug($"stopped ({m_state})");
 			}
 		}
 
@@ -142,7 +142,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			catch(Exception x)
 			{
-				LogDebug("failed to push error to target: " + x.Message);
+				LogDebug($"failed to push error to target: {x.Message}");
 				//TODO ?
 			}
 		}

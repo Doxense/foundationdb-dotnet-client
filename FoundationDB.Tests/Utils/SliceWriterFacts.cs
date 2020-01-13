@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,442 +72,425 @@ namespace Doxense.Memory.Tests
 		public void Test_WriteBytes()
 		{
 			{
-				TestHandler<byte[]> test = (ref SliceWriter writer, byte[] value) => writer.WriteBytes(value);
+				static void Test(ref SliceWriter writer, byte[] value) => writer.WriteBytes(value);
 
-				PerformWriterTest(test, null, "");
-				PerformWriterTest(test, new byte[0], "");
-				PerformWriterTest(test, new byte[] {66}, "42");
-				PerformWriterTest(test, new byte[] {65, 66, 67}, "41 42 43");
+				PerformWriterTest((TestHandler<byte[]>) Test, null, "");
+				PerformWriterTest(Test, new byte[0], "");
+				PerformWriterTest(Test, new byte[] {66}, "42");
+				PerformWriterTest(Test, new byte[] {65, 66, 67}, "41 42 43");
 			}
 			{
-				TestHandler<Slice> test = (ref SliceWriter writer, Slice value) => writer.WriteBytes(value);
+				static void Test(ref SliceWriter writer, Slice value) => writer.WriteBytes(value);
 
-				PerformWriterTest(test, Slice.Nil, "");
-				PerformWriterTest(test, Slice.Empty, "");
-				PerformWriterTest(test, Slice.FromByte(66), "42");
-				PerformWriterTest(test, new byte[] { 65, 66, 67 }.AsSlice(), "41 42 43");
-				PerformWriterTest(test, new byte[] { 65, 66, 67, 68, 69 }.AsSlice(1, 3), "42 43 44");
-			}
-			{
-				TestHandler<MutableSlice> test = (ref SliceWriter writer, MutableSlice value) => writer.WriteBytes(value);
-
-				PerformWriterTest(test, MutableSlice.Nil, "");
-				PerformWriterTest(test, MutableSlice.Empty, "");
-				PerformWriterTest(test, MutableSlice.FromByte(66), "42");
-				PerformWriterTest(test, new byte[] { 65, 66, 67 }.AsMutableSlice(), "41 42 43");
-				PerformWriterTest(test, new byte[] { 65, 66, 67, 68, 69 }.AsMutableSlice(1, 3), "42 43 44");
-			}
-			{
-				TestHandler<Memory<byte>> test = (ref SliceWriter writer, Memory<byte> value) => writer.WriteBytes(value.Span);
-
-				PerformWriterTest(test, default, "");
-				PerformWriterTest(test, new byte[] { 66 }.AsMemory(), "42");
-				PerformWriterTest(test, new byte[] { 65, 66, 67 }.AsMemory(), "41 42 43");
-				PerformWriterTest(test, new byte[] { 65, 66, 67, 68, 69 }.AsMemory(1, 3), "42 43 44");
+				PerformWriterTest(Test, Slice.Nil, "");
+				PerformWriterTest(Test, Slice.Empty, "");
+				PerformWriterTest(Test, Slice.FromByte(66), "42");
+				PerformWriterTest(Test, new byte[] { 65, 66, 67 }.AsSlice(), "41 42 43");
+				PerformWriterTest(Test, new byte[] { 65, 66, 67, 68, 69 }.AsSlice(1, 3), "42 43 44");
 			}
 		}
 
 		[Test]
 		public void Test_WriteByte_Unsigned()
 		{
-			TestHandler<byte> test = (ref SliceWriter writer, byte value) => writer.WriteByte(value);
+			static void Test(ref SliceWriter writer, byte value) => writer.WriteByte(value);
 
-			PerformWriterTest<byte>(test, 0, "00");
-			PerformWriterTest<byte>(test, 1, "01");
-			PerformWriterTest<byte>(test, 42, "2A");
-			PerformWriterTest<byte>(test, 255, "FF");
+			PerformWriterTest<byte>(Test, 0, "00");
+			PerformWriterTest<byte>(Test, 1, "01");
+			PerformWriterTest<byte>(Test, 42, "2A");
+			PerformWriterTest<byte>(Test, 255, "FF");
 		}
 
 		[Test]
 		public void Test_WriteByte_Signed()
 		{
-			TestHandler<sbyte> test = (ref SliceWriter writer, sbyte value) => writer.WriteByte(value);
+			static void Test(ref SliceWriter writer, sbyte value) => writer.WriteByte(value);
 
-			PerformWriterTest<sbyte>(test, 0, "00");
-			PerformWriterTest<sbyte>(test, 1, "01");
-			PerformWriterTest<sbyte>(test, 42, "2A");
-			PerformWriterTest<sbyte>(test, sbyte.MaxValue, "7F");
-			PerformWriterTest<sbyte>(test, -1, "FF");
-			PerformWriterTest<sbyte>(test, sbyte.MinValue, "80");
+			PerformWriterTest<sbyte>(Test, 0, "00");
+			PerformWriterTest<sbyte>(Test, 1, "01");
+			PerformWriterTest<sbyte>(Test, 42, "2A");
+			PerformWriterTest<sbyte>(Test, sbyte.MaxValue, "7F");
+			PerformWriterTest<sbyte>(Test, -1, "FF");
+			PerformWriterTest<sbyte>(Test, sbyte.MinValue, "80");
 		}
 
 		[Test]
 		public void Test_WriteFixed16_Unsigned()
 		{
-			TestHandler<ushort> test = (ref SliceWriter writer, ushort value) => writer.WriteFixed16(value);
+			static void Test(ref SliceWriter writer, ushort value) => writer.WriteFixed16(value);
 
-			PerformWriterTest<ushort>(test, 0, "00 00");
-			PerformWriterTest<ushort>(test, 1, "01 00");
-			PerformWriterTest<ushort>(test, 0x12, "12 00");
-			PerformWriterTest<ushort>(test, 0x1234, "34 12");
-			PerformWriterTest<ushort>(test, ushort.MaxValue, "FF FF");
+			PerformWriterTest<ushort>(Test, 0, "00 00");
+			PerformWriterTest<ushort>(Test, 1, "01 00");
+			PerformWriterTest<ushort>(Test, 0x12, "12 00");
+			PerformWriterTest<ushort>(Test, 0x1234, "34 12");
+			PerformWriterTest<ushort>(Test, ushort.MaxValue, "FF FF");
 		}
 
 		[Test]
 		public void Test_WriteFixed16_Signed()
 		{
-			TestHandler<short> test = (ref SliceWriter writer, short value) => writer.WriteFixed16(value);
+			static void Test(ref SliceWriter writer, short value) => writer.WriteFixed16(value);
 
-			PerformWriterTest<short>(test, 0, "00 00");
-			PerformWriterTest<short>(test, 1, "01 00");
-			PerformWriterTest<short>(test, 0x12, "12 00");
-			PerformWriterTest<short>(test, 0x1234, "34 12");
-			PerformWriterTest<short>(test, short.MaxValue, "FF 7F");
-			PerformWriterTest<short>(test, -1, "FF FF");
-			PerformWriterTest<short>(test, short.MinValue, "00 80");
+			PerformWriterTest<short>(Test, 0, "00 00");
+			PerformWriterTest<short>(Test, 1, "01 00");
+			PerformWriterTest<short>(Test, 0x12, "12 00");
+			PerformWriterTest<short>(Test, 0x1234, "34 12");
+			PerformWriterTest<short>(Test, short.MaxValue, "FF 7F");
+			PerformWriterTest<short>(Test, -1, "FF FF");
+			PerformWriterTest<short>(Test, short.MinValue, "00 80");
 		}
 
 		[Test]
 		public void Test_WriteFixed16BE_Unsigned()
 		{
-			TestHandler<ushort> test = (ref SliceWriter writer, ushort value) => writer.WriteFixed16BE(value);
+			static void Test(ref SliceWriter writer, ushort value) => writer.WriteFixed16BE(value);
 
-			PerformWriterTest<ushort>(test, 0, "00 00");
-			PerformWriterTest<ushort>(test, 1, "00 01");
-			PerformWriterTest<ushort>(test, 0x12, "00 12");
-			PerformWriterTest<ushort>(test, 0x1234, "12 34");
-			PerformWriterTest<ushort>(test, ushort.MaxValue, "FF FF");
+			PerformWriterTest<ushort>(Test, 0, "00 00");
+			PerformWriterTest<ushort>(Test, 1, "00 01");
+			PerformWriterTest<ushort>(Test, 0x12, "00 12");
+			PerformWriterTest<ushort>(Test, 0x1234, "12 34");
+			PerformWriterTest<ushort>(Test, ushort.MaxValue, "FF FF");
 		}
 
 		[Test]
 		public void Test_WriteFixed16BE_Signed()
 		{
-			TestHandler<short> test = (ref SliceWriter writer, short value) => writer.WriteFixed16BE(value);
+			static void Test(ref SliceWriter writer, short value) => writer.WriteFixed16BE(value);
 
-			PerformWriterTest<short>(test, 0, "00 00");
-			PerformWriterTest<short>(test, 1, "00 01");
-			PerformWriterTest<short>(test, 0x12, "00 12");
-			PerformWriterTest<short>(test, 0x1234, "12 34");
-			PerformWriterTest<short>(test, short.MaxValue, "7F FF");
-			PerformWriterTest<short>(test, -1, "FF FF");
-			PerformWriterTest<short>(test, short.MinValue, "80 00");
+			PerformWriterTest<short>(Test, 0, "00 00");
+			PerformWriterTest<short>(Test, 1, "00 01");
+			PerformWriterTest<short>(Test, 0x12, "00 12");
+			PerformWriterTest<short>(Test, 0x1234, "12 34");
+			PerformWriterTest<short>(Test, short.MaxValue, "7F FF");
+			PerformWriterTest<short>(Test, -1, "FF FF");
+			PerformWriterTest<short>(Test, short.MinValue, "80 00");
 		}
 
 		[Test]
 		public void Test_WriteFixed32_Unsigned()
 		{
-			TestHandler<uint> test = (ref SliceWriter writer, uint value) => writer.WriteFixed32(value);
+			static void Test(ref SliceWriter writer, uint value) => writer.WriteFixed32(value);
 
-			PerformWriterTest<uint>(test, 0U, "00 00 00 00");
-			PerformWriterTest<uint>(test, 1U, "01 00 00 00");
-			PerformWriterTest<uint>(test, 0x12U, "12 00 00 00");
-			PerformWriterTest<uint>(test, 0x1234U, "34 12 00 00");
-			PerformWriterTest<uint>(test, ushort.MaxValue, "FF FF 00 00");
-			PerformWriterTest<uint>(test, 0x123456U, "56 34 12 00");
-			PerformWriterTest<uint>(test, 0xDEADBEEF, "EF BE AD DE");
-			PerformWriterTest<uint>(test, uint.MaxValue, "FF FF FF FF");
+			PerformWriterTest<uint>(Test, 0U, "00 00 00 00");
+			PerformWriterTest<uint>(Test, 1U, "01 00 00 00");
+			PerformWriterTest<uint>(Test, 0x12U, "12 00 00 00");
+			PerformWriterTest<uint>(Test, 0x1234U, "34 12 00 00");
+			PerformWriterTest<uint>(Test, ushort.MaxValue, "FF FF 00 00");
+			PerformWriterTest<uint>(Test, 0x123456U, "56 34 12 00");
+			PerformWriterTest<uint>(Test, 0xDEADBEEF, "EF BE AD DE");
+			PerformWriterTest<uint>(Test, uint.MaxValue, "FF FF FF FF");
 		}
 
 		[Test]
 		public void Test_WriteFixed32_Signed()
 		{
-			TestHandler<int> test = (ref SliceWriter writer, int value) => writer.WriteFixed32(value);
+			static void Test(ref SliceWriter writer, int value) => writer.WriteFixed32(value);
 
-			PerformWriterTest<int>(test, 0, "00 00 00 00");
-			PerformWriterTest<int>(test, 1, "01 00 00 00");
-			PerformWriterTest<int>(test, 0x12, "12 00 00 00");
-			PerformWriterTest<int>(test, 0x1234, "34 12 00 00");
-			PerformWriterTest<int>(test, short.MaxValue, "FF 7F 00 00");
-			PerformWriterTest<int>(test, ushort.MaxValue, "FF FF 00 00");
-			PerformWriterTest<int>(test, 0x123456, "56 34 12 00");
-			PerformWriterTest<int>(test, unchecked((int)0xDEADBEEF), "EF BE AD DE");
-			PerformWriterTest<int>(test, int.MaxValue, "FF FF FF 7F");
-			PerformWriterTest<int>(test, -1, "FF FF FF FF");
-			PerformWriterTest<int>(test, short.MinValue, "00 80 FF FF");
-			PerformWriterTest<int>(test, int.MinValue, "00 00 00 80");
+			PerformWriterTest<int>(Test, 0, "00 00 00 00");
+			PerformWriterTest<int>(Test, 1, "01 00 00 00");
+			PerformWriterTest<int>(Test, 0x12, "12 00 00 00");
+			PerformWriterTest<int>(Test, 0x1234, "34 12 00 00");
+			PerformWriterTest<int>(Test, short.MaxValue, "FF 7F 00 00");
+			PerformWriterTest<int>(Test, ushort.MaxValue, "FF FF 00 00");
+			PerformWriterTest<int>(Test, 0x123456, "56 34 12 00");
+			PerformWriterTest<int>(Test, unchecked((int)0xDEADBEEF), "EF BE AD DE");
+			PerformWriterTest<int>(Test, int.MaxValue, "FF FF FF 7F");
+			PerformWriterTest<int>(Test, -1, "FF FF FF FF");
+			PerformWriterTest<int>(Test, short.MinValue, "00 80 FF FF");
+			PerformWriterTest<int>(Test, int.MinValue, "00 00 00 80");
 
 		}
 
 		[Test]
 		public void Test_WriteFixed32BE_Unsigned()
 		{
-			TestHandler<uint> test = (ref SliceWriter writer, uint value) => writer.WriteFixed32BE(value);
+			static void Test(ref SliceWriter writer, uint value) => writer.WriteFixed32BE(value);
 
-			PerformWriterTest<uint>(test, 0U, "00 00 00 00");
-			PerformWriterTest<uint>(test, 1U, "00 00 00 01");
-			PerformWriterTest<uint>(test, 0x12U, "00 00 00 12");
-			PerformWriterTest<uint>(test, 0x1234U, "00 00 12 34");
-			PerformWriterTest<uint>(test, ushort.MaxValue, "00 00 FF FF");
-			PerformWriterTest<uint>(test, 0x123456U, "00 12 34 56");
-			PerformWriterTest<uint>(test, 0xDEADBEEF, "DE AD BE EF");
-			PerformWriterTest<uint>(test, uint.MaxValue, "FF FF FF FF");
+			PerformWriterTest<uint>(Test, 0U, "00 00 00 00");
+			PerformWriterTest<uint>(Test, 1U, "00 00 00 01");
+			PerformWriterTest<uint>(Test, 0x12U, "00 00 00 12");
+			PerformWriterTest<uint>(Test, 0x1234U, "00 00 12 34");
+			PerformWriterTest<uint>(Test, ushort.MaxValue, "00 00 FF FF");
+			PerformWriterTest<uint>(Test, 0x123456U, "00 12 34 56");
+			PerformWriterTest<uint>(Test, 0xDEADBEEF, "DE AD BE EF");
+			PerformWriterTest<uint>(Test, uint.MaxValue, "FF FF FF FF");
 		}
 
 		[Test]
 		public void Test_WriteFixed32BE_Signed()
 		{
-			TestHandler<int> test = (ref SliceWriter writer, int value) => writer.WriteFixed32BE(value);
+			static void Test(ref SliceWriter writer, int value) => writer.WriteFixed32BE(value);
 
-			PerformWriterTest<int>(test, 0, "00 00 00 00");
-			PerformWriterTest<int>(test, 1, "00 00 00 01");
-			PerformWriterTest<int>(test, 0x12, "00 00 00 12");
-			PerformWriterTest<int>(test, 0x1234, "00 00 12 34");
-			PerformWriterTest<int>(test, short.MaxValue, "00 00 7F FF");
-			PerformWriterTest<int>(test, ushort.MaxValue, "00 00 FF FF");
-			PerformWriterTest<int>(test, 0x123456, "00 12 34 56");
-			PerformWriterTest<int>(test, unchecked((int)0xDEADBEEF), "DE AD BE EF");
-			PerformWriterTest<int>(test, int.MaxValue, "7F FF FF FF");
-			PerformWriterTest<int>(test, -1, "FF FF FF FF");
-			PerformWriterTest<int>(test, short.MinValue, "FF FF 80 00");
-			PerformWriterTest<int>(test, int.MinValue, "80 00 00 00");
+			PerformWriterTest<int>(Test, 0, "00 00 00 00");
+			PerformWriterTest<int>(Test, 1, "00 00 00 01");
+			PerformWriterTest<int>(Test, 0x12, "00 00 00 12");
+			PerformWriterTest<int>(Test, 0x1234, "00 00 12 34");
+			PerformWriterTest<int>(Test, short.MaxValue, "00 00 7F FF");
+			PerformWriterTest<int>(Test, ushort.MaxValue, "00 00 FF FF");
+			PerformWriterTest<int>(Test, 0x123456, "00 12 34 56");
+			PerformWriterTest<int>(Test, unchecked((int)0xDEADBEEF), "DE AD BE EF");
+			PerformWriterTest<int>(Test, int.MaxValue, "7F FF FF FF");
+			PerformWriterTest<int>(Test, -1, "FF FF FF FF");
+			PerformWriterTest<int>(Test, short.MinValue, "FF FF 80 00");
+			PerformWriterTest<int>(Test, int.MinValue, "80 00 00 00");
 
 		}
 
 		[Test]
 		public void Test_WriteFixed64_Unsigned()
 		{
-			TestHandler<ulong> test = (ref SliceWriter writer, ulong value) => writer.WriteFixed64(value);
+			static void Test(ref SliceWriter writer, ulong value) => writer.WriteFixed64(value);
 
-			PerformWriterTest<ulong>(test, 0UL, "00 00 00 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, 1UL, "01 00 00 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, 0x12UL, "12 00 00 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, 0x1234UL, "34 12 00 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, ushort.MaxValue, "FF FF 00 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, 0x123456UL, "56 34 12 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, 0x12345678UL, "78 56 34 12 00 00 00 00");
-			PerformWriterTest<ulong>(test, uint.MaxValue, "FF FF FF FF 00 00 00 00");
-			PerformWriterTest<ulong>(test, 0x123456789AUL, "9A 78 56 34 12 00 00 00");
-			PerformWriterTest<ulong>(test, 0x123456789ABCUL, "BC 9A 78 56 34 12 00 00");
-			PerformWriterTest<ulong>(test, 0x123456789ABCDEUL, "DE BC 9A 78 56 34 12 00");
-			PerformWriterTest<ulong>(test, 0xBADC0FFEE0DDF00DUL, "0D F0 DD E0 FE 0F DC BA");
-			PerformWriterTest<ulong>(test, ulong.MaxValue, "FF FF FF FF FF FF FF FF");
+			PerformWriterTest<ulong>(Test, 0UL, "00 00 00 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 1UL, "01 00 00 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 0x12UL, "12 00 00 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 0x1234UL, "34 12 00 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, ushort.MaxValue, "FF FF 00 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 0x123456UL, "56 34 12 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 0x12345678UL, "78 56 34 12 00 00 00 00");
+			PerformWriterTest<ulong>(Test, uint.MaxValue, "FF FF FF FF 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 0x123456789AUL, "9A 78 56 34 12 00 00 00");
+			PerformWriterTest<ulong>(Test, 0x123456789ABCUL, "BC 9A 78 56 34 12 00 00");
+			PerformWriterTest<ulong>(Test, 0x123456789ABCDEUL, "DE BC 9A 78 56 34 12 00");
+			PerformWriterTest<ulong>(Test, 0xBADC0FFEE0DDF00DUL, "0D F0 DD E0 FE 0F DC BA");
+			PerformWriterTest<ulong>(Test, ulong.MaxValue, "FF FF FF FF FF FF FF FF");
 		}
 
 		[Test]
 		public void Test_WriteFixed64_Signed()
 		{
-			TestHandler<long> test = (ref SliceWriter writer, long value) => writer.WriteFixed64(value);
+			static void Test(ref SliceWriter writer, long value) => writer.WriteFixed64(value);
 
-			PerformWriterTest<long>(test, 0L, "00 00 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, 1L, "01 00 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, 0x12L, "12 00 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, 0x1234L, "34 12 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, short.MaxValue, "FF 7F 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, ushort.MaxValue, "FF FF 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, 0x123456L, "56 34 12 00 00 00 00 00");
-			PerformWriterTest<long>(test, 0x12345678L, "78 56 34 12 00 00 00 00");
-			PerformWriterTest<long>(test, int.MaxValue, "FF FF FF 7F 00 00 00 00");
-			PerformWriterTest<long>(test, uint.MaxValue, "FF FF FF FF 00 00 00 00");
-			PerformWriterTest<long>(test, 0x123456789AL, "9A 78 56 34 12 00 00 00");
-			PerformWriterTest<long>(test, 0x123456789ABCL, "BC 9A 78 56 34 12 00 00");
-			PerformWriterTest<long>(test, 0x123456789ABCDEL, "DE BC 9A 78 56 34 12 00");
-			PerformWriterTest<long>(test, unchecked((long) 0xBADC0FFEE0DDF00D), "0D F0 DD E0 FE 0F DC BA");
-			PerformWriterTest<long>(test, long.MaxValue, "FF FF FF FF FF FF FF 7F");
-			PerformWriterTest<long>(test, -1L, "FF FF FF FF FF FF FF FF");
-			PerformWriterTest<long>(test, short.MinValue, "00 80 FF FF FF FF FF FF");
-			PerformWriterTest<long>(test, int.MinValue, "00 00 00 80 FF FF FF FF");
-			PerformWriterTest<long>(test, long.MinValue, "00 00 00 00 00 00 00 80");
+			PerformWriterTest<long>(Test, 0L, "00 00 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 1L, "01 00 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 0x12L, "12 00 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 0x1234L, "34 12 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, short.MaxValue, "FF 7F 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, ushort.MaxValue, "FF FF 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 0x123456L, "56 34 12 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 0x12345678L, "78 56 34 12 00 00 00 00");
+			PerformWriterTest<long>(Test, int.MaxValue, "FF FF FF 7F 00 00 00 00");
+			PerformWriterTest<long>(Test, uint.MaxValue, "FF FF FF FF 00 00 00 00");
+			PerformWriterTest<long>(Test, 0x123456789AL, "9A 78 56 34 12 00 00 00");
+			PerformWriterTest<long>(Test, 0x123456789ABCL, "BC 9A 78 56 34 12 00 00");
+			PerformWriterTest<long>(Test, 0x123456789ABCDEL, "DE BC 9A 78 56 34 12 00");
+			PerformWriterTest<long>(Test, unchecked((long) 0xBADC0FFEE0DDF00D), "0D F0 DD E0 FE 0F DC BA");
+			PerformWriterTest<long>(Test, long.MaxValue, "FF FF FF FF FF FF FF 7F");
+			PerformWriterTest<long>(Test, -1L, "FF FF FF FF FF FF FF FF");
+			PerformWriterTest<long>(Test, short.MinValue, "00 80 FF FF FF FF FF FF");
+			PerformWriterTest<long>(Test, int.MinValue, "00 00 00 80 FF FF FF FF");
+			PerformWriterTest<long>(Test, long.MinValue, "00 00 00 00 00 00 00 80");
 		}
 
 		[Test]
 		public void Test_WriteFixed64BE_Unsigned()
 		{
-			TestHandler<ulong> test = (ref SliceWriter writer, ulong value) => writer.WriteFixed64BE(value);
+			static void Test(ref SliceWriter writer, ulong value) => writer.WriteFixed64BE(value);
 
-			PerformWriterTest<ulong>(test, 0UL, "00 00 00 00 00 00 00 00");
-			PerformWriterTest<ulong>(test, 1UL, "00 00 00 00 00 00 00 01");
-			PerformWriterTest<ulong>(test, 0x12UL, "00 00 00 00 00 00 00 12");
-			PerformWriterTest<ulong>(test, 0x1234UL, "00 00 00 00 00 00 12 34");
-			PerformWriterTest<ulong>(test, ushort.MaxValue, "00 00 00 00 00 00 FF FF");
-			PerformWriterTest<ulong>(test, 0x123456UL, "00 00 00 00 00 12 34 56");
-			PerformWriterTest<ulong>(test, 0x12345678UL, "00 00 00 00 12 34 56 78");
-			PerformWriterTest<ulong>(test, uint.MaxValue, "00 00 00 00 FF FF FF FF");
-			PerformWriterTest<ulong>(test, 0x123456789AUL, "00 00 00 12 34 56 78 9A");
-			PerformWriterTest<ulong>(test, 0x123456789ABCUL, "00 00 12 34 56 78 9A BC");
-			PerformWriterTest<ulong>(test, 0x123456789ABCDEUL, "00 12 34 56 78 9A BC DE");
-			PerformWriterTest<ulong>(test, 0xBADC0FFEE0DDF00DUL, "BA DC 0F FE E0 DD F0 0D");
-			PerformWriterTest<ulong>(test, ulong.MaxValue, "FF FF FF FF FF FF FF FF");
+			PerformWriterTest<ulong>(Test, 0UL, "00 00 00 00 00 00 00 00");
+			PerformWriterTest<ulong>(Test, 1UL, "00 00 00 00 00 00 00 01");
+			PerformWriterTest<ulong>(Test, 0x12UL, "00 00 00 00 00 00 00 12");
+			PerformWriterTest<ulong>(Test, 0x1234UL, "00 00 00 00 00 00 12 34");
+			PerformWriterTest<ulong>(Test, ushort.MaxValue, "00 00 00 00 00 00 FF FF");
+			PerformWriterTest<ulong>(Test, 0x123456UL, "00 00 00 00 00 12 34 56");
+			PerformWriterTest<ulong>(Test, 0x12345678UL, "00 00 00 00 12 34 56 78");
+			PerformWriterTest<ulong>(Test, uint.MaxValue, "00 00 00 00 FF FF FF FF");
+			PerformWriterTest<ulong>(Test, 0x123456789AUL, "00 00 00 12 34 56 78 9A");
+			PerformWriterTest<ulong>(Test, 0x123456789ABCUL, "00 00 12 34 56 78 9A BC");
+			PerformWriterTest<ulong>(Test, 0x123456789ABCDEUL, "00 12 34 56 78 9A BC DE");
+			PerformWriterTest<ulong>(Test, 0xBADC0FFEE0DDF00DUL, "BA DC 0F FE E0 DD F0 0D");
+			PerformWriterTest<ulong>(Test, ulong.MaxValue, "FF FF FF FF FF FF FF FF");
 		}
 
 		[Test]
 		public void Test_WriteFixed64BE_Signed()
 		{
-			TestHandler<long> test = (ref SliceWriter writer, long value) => writer.WriteFixed64BE(value);
+			static void Test(ref SliceWriter writer, long value) => writer.WriteFixed64BE(value);
 
-			PerformWriterTest<long>(test, 0L, "00 00 00 00 00 00 00 00");
-			PerformWriterTest<long>(test, 1L, "00 00 00 00 00 00 00 01");
-			PerformWriterTest<long>(test, 0x12L, "00 00 00 00 00 00 00 12");
-			PerformWriterTest<long>(test, 0x1234L, "00 00 00 00 00 00 12 34");
-			PerformWriterTest<long>(test, short.MaxValue, "00 00 00 00 00 00 7F FF");
-			PerformWriterTest<long>(test, ushort.MaxValue, "00 00 00 00 00 00 FF FF");
-			PerformWriterTest<long>(test, 0x123456L, "00 00 00 00 00 12 34 56");
-			PerformWriterTest<long>(test, 0x12345678L, "00 00 00 00 12 34 56 78");
-			PerformWriterTest<long>(test, int.MaxValue, "00 00 00 00 7F FF FF FF");
-			PerformWriterTest<long>(test, uint.MaxValue, "00 00 00 00 FF FF FF FF");
-			PerformWriterTest<long>(test, 0x123456789AL, "00 00 00 12 34 56 78 9A");
-			PerformWriterTest<long>(test, 0x123456789ABCL, "00 00 12 34 56 78 9A BC");
-			PerformWriterTest<long>(test, 0x123456789ABCDEL, "00 12 34 56 78 9A BC DE");
-			PerformWriterTest<long>(test, unchecked((long)0xBADC0FFEE0DDF00D), "BA DC 0F FE E0 DD F0 0D");
-			PerformWriterTest<long>(test, long.MaxValue, "7F FF FF FF FF FF FF FF");
-			PerformWriterTest<long>(test, -1L, "FF FF FF FF FF FF FF FF");
-			PerformWriterTest<long>(test, short.MinValue, "FF FF FF FF FF FF 80 00");
-			PerformWriterTest<long>(test, int.MinValue, "FF FF FF FF 80 00 00 00");
-			PerformWriterTest<long>(test, long.MinValue, "80 00 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 0L, "00 00 00 00 00 00 00 00");
+			PerformWriterTest<long>(Test, 1L, "00 00 00 00 00 00 00 01");
+			PerformWriterTest<long>(Test, 0x12L, "00 00 00 00 00 00 00 12");
+			PerformWriterTest<long>(Test, 0x1234L, "00 00 00 00 00 00 12 34");
+			PerformWriterTest<long>(Test, short.MaxValue, "00 00 00 00 00 00 7F FF");
+			PerformWriterTest<long>(Test, ushort.MaxValue, "00 00 00 00 00 00 FF FF");
+			PerformWriterTest<long>(Test, 0x123456L, "00 00 00 00 00 12 34 56");
+			PerformWriterTest<long>(Test, 0x12345678L, "00 00 00 00 12 34 56 78");
+			PerformWriterTest<long>(Test, int.MaxValue, "00 00 00 00 7F FF FF FF");
+			PerformWriterTest<long>(Test, uint.MaxValue, "00 00 00 00 FF FF FF FF");
+			PerformWriterTest<long>(Test, 0x123456789AL, "00 00 00 12 34 56 78 9A");
+			PerformWriterTest<long>(Test, 0x123456789ABCL, "00 00 12 34 56 78 9A BC");
+			PerformWriterTest<long>(Test, 0x123456789ABCDEL, "00 12 34 56 78 9A BC DE");
+			PerformWriterTest<long>(Test, unchecked((long)0xBADC0FFEE0DDF00D), "BA DC 0F FE E0 DD F0 0D");
+			PerformWriterTest<long>(Test, long.MaxValue, "7F FF FF FF FF FF FF FF");
+			PerformWriterTest<long>(Test, -1L, "FF FF FF FF FF FF FF FF");
+			PerformWriterTest<long>(Test, short.MinValue, "FF FF FF FF FF FF 80 00");
+			PerformWriterTest<long>(Test, int.MinValue, "FF FF FF FF 80 00 00 00");
+			PerformWriterTest<long>(Test, long.MinValue, "80 00 00 00 00 00 00 00");
 		}
 
 		[Test]
 		public void Test_WriteVarint32()
 		{
-			TestHandler<uint> test = (ref SliceWriter writer, uint value) => writer.WriteVarInt32(value);
+			static void Test(ref SliceWriter writer, uint value) => writer.WriteVarInt32(value);
 
-			PerformWriterTest(test, 0U, "00");
-			PerformWriterTest(test, 1U, "01");
-			PerformWriterTest(test, 127U, "7F");
-			PerformWriterTest(test, 128U, "80 01");
-			PerformWriterTest(test, 255U, "FF 01");
-			PerformWriterTest(test, 256U, "80 02");
-			PerformWriterTest(test, 16383U, "FF 7F");
-			PerformWriterTest(test, 16384U, "80 80 01");
-			PerformWriterTest(test, 2097151U, "FF FF 7F");
-			PerformWriterTest(test, 2097152U, "80 80 80 01");
-			PerformWriterTest(test, 268435455U, "FF FF FF 7F");
-			PerformWriterTest(test, 268435456U, "80 80 80 80 01");
-			PerformWriterTest(test, uint.MaxValue, "FF FF FF FF 0F");
+			PerformWriterTest(Test, 0U, "00");
+			PerformWriterTest(Test, 1U, "01");
+			PerformWriterTest(Test, 127U, "7F");
+			PerformWriterTest(Test, 128U, "80 01");
+			PerformWriterTest(Test, 255U, "FF 01");
+			PerformWriterTest(Test, 256U, "80 02");
+			PerformWriterTest(Test, 16383U, "FF 7F");
+			PerformWriterTest(Test, 16384U, "80 80 01");
+			PerformWriterTest(Test, 2097151U, "FF FF 7F");
+			PerformWriterTest(Test, 2097152U, "80 80 80 01");
+			PerformWriterTest(Test, 268435455U, "FF FF FF 7F");
+			PerformWriterTest(Test, 268435456U, "80 80 80 80 01");
+			PerformWriterTest(Test, uint.MaxValue, "FF FF FF FF 0F");
 		}
 
 		[Test]
 		public void Test_WriteVarint64()
 		{
-			TestHandler<ulong> test = (ref SliceWriter writer, ulong value) => writer.WriteVarInt64(value);
+			static void Test(ref SliceWriter writer, ulong value) => writer.WriteVarInt64(value);
 
-			PerformWriterTest(test, 0UL, "00");
-			PerformWriterTest(test, 1UL, "01");
-			PerformWriterTest(test, 127UL, "7F");
-			PerformWriterTest(test, 128UL, "80 01");
-			PerformWriterTest(test, 255UL, "FF 01");
-			PerformWriterTest(test, 256UL, "80 02");
-			PerformWriterTest(test, 16383UL, "FF 7F");
-			PerformWriterTest(test, 16384UL, "80 80 01");
-			PerformWriterTest(test, 2097151UL, "FF FF 7F");
-			PerformWriterTest(test, 2097152UL, "80 80 80 01");
-			PerformWriterTest(test, 268435455UL, "FF FF FF 7F");
-			PerformWriterTest(test, 268435456UL, "80 80 80 80 01");
-			PerformWriterTest(test, 34359738367UL, "FF FF FF FF 7F");
-			PerformWriterTest(test, 34359738368UL, "80 80 80 80 80 01");
-			PerformWriterTest(test, 4398046511103UL, "FF FF FF FF FF 7F");
-			PerformWriterTest(test, 4398046511104UL, "80 80 80 80 80 80 01");
-			PerformWriterTest(test, 562949953421311UL, "FF FF FF FF FF FF 7F");
-			PerformWriterTest(test, 562949953421312UL, "80 80 80 80 80 80 80 01");
-			PerformWriterTest(test, 72057594037927935UL, "FF FF FF FF FF FF FF 7F");
-			PerformWriterTest(test, 72057594037927936UL, "80 80 80 80 80 80 80 80 01");
-			PerformWriterTest(test, 9223372036854775807UL, "FF FF FF FF FF FF FF FF 7F");
-			PerformWriterTest(test, 9223372036854775808UL, "80 80 80 80 80 80 80 80 80 01");
-			PerformWriterTest(test, ulong.MaxValue, "FF FF FF FF FF FF FF FF FF 01");
+			PerformWriterTest(Test, 0UL, "00");
+			PerformWriterTest(Test, 1UL, "01");
+			PerformWriterTest(Test, 127UL, "7F");
+			PerformWriterTest(Test, 128UL, "80 01");
+			PerformWriterTest(Test, 255UL, "FF 01");
+			PerformWriterTest(Test, 256UL, "80 02");
+			PerformWriterTest(Test, 16383UL, "FF 7F");
+			PerformWriterTest(Test, 16384UL, "80 80 01");
+			PerformWriterTest(Test, 2097151UL, "FF FF 7F");
+			PerformWriterTest(Test, 2097152UL, "80 80 80 01");
+			PerformWriterTest(Test, 268435455UL, "FF FF FF 7F");
+			PerformWriterTest(Test, 268435456UL, "80 80 80 80 01");
+			PerformWriterTest(Test, 34359738367UL, "FF FF FF FF 7F");
+			PerformWriterTest(Test, 34359738368UL, "80 80 80 80 80 01");
+			PerformWriterTest(Test, 4398046511103UL, "FF FF FF FF FF 7F");
+			PerformWriterTest(Test, 4398046511104UL, "80 80 80 80 80 80 01");
+			PerformWriterTest(Test, 562949953421311UL, "FF FF FF FF FF FF 7F");
+			PerformWriterTest(Test, 562949953421312UL, "80 80 80 80 80 80 80 01");
+			PerformWriterTest(Test, 72057594037927935UL, "FF FF FF FF FF FF FF 7F");
+			PerformWriterTest(Test, 72057594037927936UL, "80 80 80 80 80 80 80 80 01");
+			PerformWriterTest(Test, 9223372036854775807UL, "FF FF FF FF FF FF FF FF 7F");
+			PerformWriterTest(Test, 9223372036854775808UL, "80 80 80 80 80 80 80 80 80 01");
+			PerformWriterTest(Test, ulong.MaxValue, "FF FF FF FF FF FF FF FF FF 01");
 		}
 
 		[Test]
 		public void Test_WriteVarBytes()
 		{
-			TestHandler<Slice> test = (ref SliceWriter writer, Slice value) => writer.WriteVarBytes(value);
+			static void Test(ref SliceWriter writer, Slice value) => writer.WriteVarBytes(value);
 
-			PerformWriterTest(test, Slice.Nil, "00");
-			PerformWriterTest(test, Slice.Empty, "00");
-			PerformWriterTest(test, Slice.FromByte(42), "01 2A");
-			PerformWriterTest(test, Slice.FromByte(255), "01 FF");
-			PerformWriterTest(test, Slice.FromString("ABC"), "03 41 42 43");
-			PerformWriterTest(test, Slice.FromFixedU32(0xDEADBEEF), "04 EF BE AD DE");
+			PerformWriterTest(Test, Slice.Nil, "00");
+			PerformWriterTest(Test, Slice.Empty, "00");
+			PerformWriterTest(Test, Slice.FromByte(42), "01 2A");
+			PerformWriterTest(Test, Slice.FromByte(255), "01 FF");
+			PerformWriterTest(Test, Slice.FromString("ABC"), "03 41 42 43");
+			PerformWriterTest(Test, Slice.FromFixedU32(0xDEADBEEF), "04 EF BE AD DE");
 		}
 
 		[Test]
 		public void Test_WriteBase10_Signed()
 		{
-			TestHandler<int> test = (ref SliceWriter writer, int value) => writer.WriteBase10(value);
+			static void Test(ref SliceWriter writer, int value) => writer.WriteBase10(value);
 
 			// positive numbers
-			PerformWriterTest(test, 0, "30");
-			PerformWriterTest(test, 1, "31");
-			PerformWriterTest(test, 9, "39");
-			PerformWriterTest(test, 10, "31 30");
-			PerformWriterTest(test, 42, "34 32");
-			PerformWriterTest(test, 99, "39 39");
-			PerformWriterTest(test, 100, "31 30 30");
-			PerformWriterTest(test, 123, "31 32 33");
-			PerformWriterTest(test, 999, "39 39 39");
-			PerformWriterTest(test, 1000, "31 30 30 30");
-			PerformWriterTest(test, 1234, "31 32 33 34");
-			PerformWriterTest(test, 9999, "39 39 39 39");
-			PerformWriterTest(test, 10000, "31 30 30 30 30");
-			PerformWriterTest(test, 12345, "31 32 33 34 35");
-			PerformWriterTest(test, 99999, "39 39 39 39 39");
-			PerformWriterTest(test, 100000, "31 30 30 30 30 30");
-			PerformWriterTest(test, 123456, "31 32 33 34 35 36");
-			PerformWriterTest(test, 999999, "39 39 39 39 39 39");
-			PerformWriterTest(test, 1000000, "31 30 30 30 30 30 30");
-			PerformWriterTest(test, 1234567, "31 32 33 34 35 36 37");
-			PerformWriterTest(test, 9999999, "39 39 39 39 39 39 39");
-			PerformWriterTest(test, 10000000, "31 30 30 30 30 30 30 30");
-			PerformWriterTest(test, 12345678, "31 32 33 34 35 36 37 38");
-			PerformWriterTest(test, 99999999, "39 39 39 39 39 39 39 39");
-			PerformWriterTest(test, 100000000, "31 30 30 30 30 30 30 30 30");
-			PerformWriterTest(test, 123456789, "31 32 33 34 35 36 37 38 39");
-			PerformWriterTest(test, 999999999, "39 39 39 39 39 39 39 39 39");
-			PerformWriterTest(test, int.MaxValue, "32 31 34 37 34 38 33 36 34 37");
+			PerformWriterTest(Test, 0, "30");
+			PerformWriterTest(Test, 1, "31");
+			PerformWriterTest(Test, 9, "39");
+			PerformWriterTest(Test, 10, "31 30");
+			PerformWriterTest(Test, 42, "34 32");
+			PerformWriterTest(Test, 99, "39 39");
+			PerformWriterTest(Test, 100, "31 30 30");
+			PerformWriterTest(Test, 123, "31 32 33");
+			PerformWriterTest(Test, 999, "39 39 39");
+			PerformWriterTest(Test, 1000, "31 30 30 30");
+			PerformWriterTest(Test, 1234, "31 32 33 34");
+			PerformWriterTest(Test, 9999, "39 39 39 39");
+			PerformWriterTest(Test, 10000, "31 30 30 30 30");
+			PerformWriterTest(Test, 12345, "31 32 33 34 35");
+			PerformWriterTest(Test, 99999, "39 39 39 39 39");
+			PerformWriterTest(Test, 100000, "31 30 30 30 30 30");
+			PerformWriterTest(Test, 123456, "31 32 33 34 35 36");
+			PerformWriterTest(Test, 999999, "39 39 39 39 39 39");
+			PerformWriterTest(Test, 1000000, "31 30 30 30 30 30 30");
+			PerformWriterTest(Test, 1234567, "31 32 33 34 35 36 37");
+			PerformWriterTest(Test, 9999999, "39 39 39 39 39 39 39");
+			PerformWriterTest(Test, 10000000, "31 30 30 30 30 30 30 30");
+			PerformWriterTest(Test, 12345678, "31 32 33 34 35 36 37 38");
+			PerformWriterTest(Test, 99999999, "39 39 39 39 39 39 39 39");
+			PerformWriterTest(Test, 100000000, "31 30 30 30 30 30 30 30 30");
+			PerformWriterTest(Test, 123456789, "31 32 33 34 35 36 37 38 39");
+			PerformWriterTest(Test, 999999999, "39 39 39 39 39 39 39 39 39");
+			PerformWriterTest(Test, int.MaxValue, "32 31 34 37 34 38 33 36 34 37");
 
 			// negative numbers
-			PerformWriterTest(test, -1, "2D 31");
-			PerformWriterTest(test, -9, "2D 39");
-			PerformWriterTest(test, -10, "2D 31 30");
-			PerformWriterTest(test, -42, "2D 34 32");
-			PerformWriterTest(test, -99, "2D 39 39");
-			PerformWriterTest(test, -100, "2D 31 30 30");
-			PerformWriterTest(test, -123, "2D 31 32 33");
-			PerformWriterTest(test, -999, "2D 39 39 39");
-			PerformWriterTest(test, -1000, "2D 31 30 30 30");
-			PerformWriterTest(test, -1234, "2D 31 32 33 34");
-			PerformWriterTest(test, -9999, "2D 39 39 39 39");
-			PerformWriterTest(test, -10000, "2D 31 30 30 30 30");
-			PerformWriterTest(test, -12345, "2D 31 32 33 34 35");
-			PerformWriterTest(test, -99999, "2D 39 39 39 39 39");
-			PerformWriterTest(test, -100000, "2D 31 30 30 30 30 30");
-			PerformWriterTest(test, -123456, "2D 31 32 33 34 35 36");
-			PerformWriterTest(test, -999999, "2D 39 39 39 39 39 39");
-			PerformWriterTest(test, -1000000, "2D 31 30 30 30 30 30 30");
-			PerformWriterTest(test, -1234567, "2D 31 32 33 34 35 36 37");
-			PerformWriterTest(test, -9999999, "2D 39 39 39 39 39 39 39");
-			PerformWriterTest(test, -10000000, "2D 31 30 30 30 30 30 30 30");
-			PerformWriterTest(test, -12345678, "2D 31 32 33 34 35 36 37 38");
-			PerformWriterTest(test, -99999999, "2D 39 39 39 39 39 39 39 39");
-			PerformWriterTest(test, -100000000, "2D 31 30 30 30 30 30 30 30 30");
-			PerformWriterTest(test, -123456789, "2D 31 32 33 34 35 36 37 38 39");
-			PerformWriterTest(test, -999999999, "2D 39 39 39 39 39 39 39 39 39");
-			PerformWriterTest(test, int.MinValue, "2D 32 31 34 37 34 38 33 36 34 38");
+			PerformWriterTest(Test, -1, "2D 31");
+			PerformWriterTest(Test, -9, "2D 39");
+			PerformWriterTest(Test, -10, "2D 31 30");
+			PerformWriterTest(Test, -42, "2D 34 32");
+			PerformWriterTest(Test, -99, "2D 39 39");
+			PerformWriterTest(Test, -100, "2D 31 30 30");
+			PerformWriterTest(Test, -123, "2D 31 32 33");
+			PerformWriterTest(Test, -999, "2D 39 39 39");
+			PerformWriterTest(Test, -1000, "2D 31 30 30 30");
+			PerformWriterTest(Test, -1234, "2D 31 32 33 34");
+			PerformWriterTest(Test, -9999, "2D 39 39 39 39");
+			PerformWriterTest(Test, -10000, "2D 31 30 30 30 30");
+			PerformWriterTest(Test, -12345, "2D 31 32 33 34 35");
+			PerformWriterTest(Test, -99999, "2D 39 39 39 39 39");
+			PerformWriterTest(Test, -100000, "2D 31 30 30 30 30 30");
+			PerformWriterTest(Test, -123456, "2D 31 32 33 34 35 36");
+			PerformWriterTest(Test, -999999, "2D 39 39 39 39 39 39");
+			PerformWriterTest(Test, -1000000, "2D 31 30 30 30 30 30 30");
+			PerformWriterTest(Test, -1234567, "2D 31 32 33 34 35 36 37");
+			PerformWriterTest(Test, -9999999, "2D 39 39 39 39 39 39 39");
+			PerformWriterTest(Test, -10000000, "2D 31 30 30 30 30 30 30 30");
+			PerformWriterTest(Test, -12345678, "2D 31 32 33 34 35 36 37 38");
+			PerformWriterTest(Test, -99999999, "2D 39 39 39 39 39 39 39 39");
+			PerformWriterTest(Test, -100000000, "2D 31 30 30 30 30 30 30 30 30");
+			PerformWriterTest(Test, -123456789, "2D 31 32 33 34 35 36 37 38 39");
+			PerformWriterTest(Test, -999999999, "2D 39 39 39 39 39 39 39 39 39");
+			PerformWriterTest(Test, int.MinValue, "2D 32 31 34 37 34 38 33 36 34 38");
 		}
 
 		[Test]
 		public void Test_WriteBase10_Unsigned()
 		{
-			TestHandler<uint> test = (ref SliceWriter writer, uint value) => writer.WriteBase10(value);
+			static void Test(ref SliceWriter writer, uint value) => writer.WriteBase10(value);
 
 			// positive numbers
-			PerformWriterTest<uint>(test, 0, "30");
-			PerformWriterTest<uint>(test, 1, "31");
-			PerformWriterTest<uint>(test, 9, "39");
-			PerformWriterTest<uint>(test, 10, "31 30");
-			PerformWriterTest<uint>(test, 42, "34 32");
-			PerformWriterTest<uint>(test, 99, "39 39");
-			PerformWriterTest<uint>(test, 100, "31 30 30");
-			PerformWriterTest<uint>(test, 123, "31 32 33");
-			PerformWriterTest<uint>(test, 999, "39 39 39");
-			PerformWriterTest<uint>(test, 1000, "31 30 30 30");
-			PerformWriterTest<uint>(test, 1234, "31 32 33 34");
-			PerformWriterTest<uint>(test, 9999, "39 39 39 39");
-			PerformWriterTest<uint>(test, 10000, "31 30 30 30 30");
-			PerformWriterTest<uint>(test, 12345, "31 32 33 34 35");
-			PerformWriterTest<uint>(test, 99999, "39 39 39 39 39");
-			PerformWriterTest<uint>(test, 100000, "31 30 30 30 30 30");
-			PerformWriterTest<uint>(test, 123456, "31 32 33 34 35 36");
-			PerformWriterTest<uint>(test, 999999, "39 39 39 39 39 39");
-			PerformWriterTest<uint>(test, 1000000, "31 30 30 30 30 30 30");
-			PerformWriterTest<uint>(test, 1234567, "31 32 33 34 35 36 37");
-			PerformWriterTest<uint>(test, 9999999, "39 39 39 39 39 39 39");
-			PerformWriterTest<uint>(test, 10000000, "31 30 30 30 30 30 30 30");
-			PerformWriterTest<uint>(test, 12345678, "31 32 33 34 35 36 37 38");
-			PerformWriterTest<uint>(test, 99999999, "39 39 39 39 39 39 39 39");
-			PerformWriterTest<uint>(test, 100000000, "31 30 30 30 30 30 30 30 30");
-			PerformWriterTest<uint>(test, 123456789, "31 32 33 34 35 36 37 38 39");
-			PerformWriterTest<uint>(test, 999999999, "39 39 39 39 39 39 39 39 39");
-			PerformWriterTest<uint>(test, int.MaxValue, "32 31 34 37 34 38 33 36 34 37");
-			PerformWriterTest<uint>(test, uint.MaxValue, "34 32 39 34 39 36 37 32 39 35");
+			PerformWriterTest<uint>(Test, 0, "30");
+			PerformWriterTest<uint>(Test, 1, "31");
+			PerformWriterTest<uint>(Test, 9, "39");
+			PerformWriterTest<uint>(Test, 10, "31 30");
+			PerformWriterTest<uint>(Test, 42, "34 32");
+			PerformWriterTest<uint>(Test, 99, "39 39");
+			PerformWriterTest<uint>(Test, 100, "31 30 30");
+			PerformWriterTest<uint>(Test, 123, "31 32 33");
+			PerformWriterTest<uint>(Test, 999, "39 39 39");
+			PerformWriterTest<uint>(Test, 1000, "31 30 30 30");
+			PerformWriterTest<uint>(Test, 1234, "31 32 33 34");
+			PerformWriterTest<uint>(Test, 9999, "39 39 39 39");
+			PerformWriterTest<uint>(Test, 10000, "31 30 30 30 30");
+			PerformWriterTest<uint>(Test, 12345, "31 32 33 34 35");
+			PerformWriterTest<uint>(Test, 99999, "39 39 39 39 39");
+			PerformWriterTest<uint>(Test, 100000, "31 30 30 30 30 30");
+			PerformWriterTest<uint>(Test, 123456, "31 32 33 34 35 36");
+			PerformWriterTest<uint>(Test, 999999, "39 39 39 39 39 39");
+			PerformWriterTest<uint>(Test, 1000000, "31 30 30 30 30 30 30");
+			PerformWriterTest<uint>(Test, 1234567, "31 32 33 34 35 36 37");
+			PerformWriterTest<uint>(Test, 9999999, "39 39 39 39 39 39 39");
+			PerformWriterTest<uint>(Test, 10000000, "31 30 30 30 30 30 30 30");
+			PerformWriterTest<uint>(Test, 12345678, "31 32 33 34 35 36 37 38");
+			PerformWriterTest<uint>(Test, 99999999, "39 39 39 39 39 39 39 39");
+			PerformWriterTest<uint>(Test, 100000000, "31 30 30 30 30 30 30 30 30");
+			PerformWriterTest<uint>(Test, 123456789, "31 32 33 34 35 36 37 38 39");
+			PerformWriterTest<uint>(Test, 999999999, "39 39 39 39 39 39 39 39 39");
+			PerformWriterTest<uint>(Test, int.MaxValue, "32 31 34 37 34 38 33 36 34 37");
+			PerformWriterTest<uint>(Test, uint.MaxValue, "34 32 39 34 39 36 37 32 39 35");
 		}
 
 		[Test]
@@ -729,17 +712,20 @@ namespace Doxense.Memory.Tests
 			Assert.That(writer.ToSlice().ToStringUtf8(), Is.EqualTo("hello world!foobar"));
 
 			var baz = Slice.FromString("baz");
-			slice = writer.AppendBytes(baz.Array, baz.Offset, baz.Count);
+			unsafe
+			{
+				fixed (byte* ptr = &baz.DangerousGetPinnableReference())
+				{
+					slice = writer.AppendBytes(new ReadOnlySpan<byte>(ptr, 3));
+				}
+			}
 			Assert.That(slice.Array, Is.SameAs(writer.Buffer));
 			Assert.That(slice.Offset, Is.EqualTo(18));
 			Assert.That(slice.Count, Is.EqualTo(3));
 			Assert.That(slice.ToStringUtf8(), Is.EqualTo("baz"));
 			Assert.That(writer.ToSlice().ToStringUtf8(), Is.EqualTo("hello world!foobarbaz"));
 
-			unsafe
-			{
-				slice = writer.AppendBytes(null);
-			}
+			slice = writer.AppendBytes(ReadOnlySpan<byte>.Empty);
 			//note: slice.Array is not guaranteed to be equal to writer.Buffer
 			Assert.That(slice.Offset, Is.EqualTo(0)); //REVIEW: should we return (Buffer, Position, 0) instead of (EmptyArray, 0, 0) ?
 			Assert.That(slice.Count, Is.EqualTo(0));

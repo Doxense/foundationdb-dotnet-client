@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,15 @@ namespace FoundationDB.Client
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation
 
+		/// <summary>The context from which this subspace came from</summary>
+		/// <remarks>
+		/// The context is usually the directory or global subspace of the database.
+		/// It can also be the <see cref="SubspaceContext.Default"/> context for keys created outside of any context
+		/// The context is used to track the origin of a subspace, and optionally revoke access to it once the context becomes invalid (ex: cached context no longer being valid)
+		/// </remarks>
+		[NotNull]
+		ISubspaceContext Context { get; }
+
 		/// <summary>Returns the prefix of this subspace</summary>
 		Slice GetPrefix();
 
@@ -61,19 +70,12 @@ namespace FoundationDB.Client
 		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>
-		Slice this[Slice relativeKey] { [Pure] get; }
+		Slice Append(ReadOnlySpan<byte> relativeKey);
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="absoluteKey">Key to test</param>
 		/// <returns>True if the key can exist inside the current subspace.</returns>
-		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
-		[Pure]
-		bool Contains(Slice absoluteKey); //REVIEW: should this be renamed to "ContainsKey" ?
-
-		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
-		/// <param name="absoluteKey">Key to test</param>
-		/// <returns>True if the key can exist inside the current subspace.</returns>
-		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
+		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not outside the range of keys defined by the subspace.</remarks>
 		[Pure]
 		bool Contains(ReadOnlySpan<byte> absoluteKey);
 
@@ -93,11 +95,13 @@ namespace FoundationDB.Client
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> if the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns <see cref="Slice.Nil"/></returns>
-		/// <remarks>This is the inverse operation of <see cref="this[Slice]"/></remarks>
+		/// <remarks>This is the inverse operation of <see cref="Append"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]
 		Slice ExtractKey(Slice absoluteKey, bool boundCheck = false);
 
+		/// <summary>Return a human-friendly string representation of a key, as encoded by this subspace</summary>
+		/// <param name="packedKey">Key that was generated from this subspace</param>
+		string PrettyPrint(Slice packedKey);
 	}
-
 }

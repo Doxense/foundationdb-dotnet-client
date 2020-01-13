@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Directories
+namespace FoundationDB.Client
 {
 	using System;
-	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
-	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
 	public class FdbDirectoryPartition : FdbDirectorySubspace
@@ -40,49 +39,46 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public static Slice LayerId => Slice.FromString("partition");
 
-		internal FdbDirectoryPartition([NotNull] IVarTuple location, [NotNull] IVarTuple relativeLocation, Slice prefix, [NotNull] FdbDirectoryLayer directoryLayer, [NotNull] IKeyEncoding keyEncoding)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FromKey(prefix + FdbKey.Directory).AsDynamic(keyEncoding), FromKey(prefix).AsDynamic(keyEncoding), location), LayerId, keyEncoding)
+		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, [NotNull] IDynamicKeyEncoder keyEncoder, [CanBeNull] ISubspaceContext context)
+			: base(descriptor, keyEncoder, context)
 		{
-			this.ParentDirectoryLayer = directoryLayer;
+			Contract.NotNull(parent, nameof(parent));
+			this.Parent = parent;
 		}
 
-		internal FdbDirectoryLayer ParentDirectoryLayer { get; }
-
-		protected override Slice GetKeyPrefix()
+		internal static FdbDirectoryLayer.DirectoryDescriptor MakePartition(FdbDirectoryLayer.DirectoryDescriptor descriptor)
 		{
-			throw new InvalidOperationException("Cannot create keys in the root of a directory partition.");
+			var partition = new FdbDirectoryLayer.PartitionDescriptor(descriptor.Path, KeySubspace.CreateDynamic(descriptor.Prefix), descriptor.Partition);
+			return new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, descriptor.Layer, partition);
 		}
 
-		protected override KeyRange GetKeyRange()
+		/// <summary>Descriptor of the partition directory in its parent partition</summary>
+		internal FdbDirectoryLayer.PartitionDescriptor Parent { get; }
+
+		protected override Slice GetKeyPrefix() => throw new InvalidOperationException($"Cannot create keys in the root of directory partition {this.Path}.");
+
+		protected override KeyRange GetKeyRange() => throw new InvalidOperationException($"Cannot create a key range in the root of directory partition {this.Path}.");
+
+		public override bool Contains(ReadOnlySpan<byte> key) => throw new InvalidOperationException($"Cannot check whether a key belongs to the root of directory partition {this.Path}");
+
+		internal override FdbDirectoryLayer.PartitionDescriptor GetEffectivePartition()
 		{
-			throw new InvalidOperationException("Cannot create a key range in the root of a directory partition.");
+			return this.Parent;
 		}
 
-		public override bool Contains(Slice key)
+		internal override FdbDirectorySubspace ChangeContext(ISubspaceContext context)
 		{
-			throw new InvalidOperationException("Cannot check whether a key belongs to the root of a directory partition.");
+			Contract.NotNull(context, nameof(context));
+
+			if (context == this.Context) return this;
+			return new FdbDirectoryPartition(this.Descriptor, this.Parent, this.KeyEncoder, context);
 		}
 
-		protected override IVarTuple ToRelativePath(IVarTuple location)
-		{
-			return location ?? STuple.Empty;
-		}
-
-		protected override FdbDirectoryLayer GetLayerForPath(IVarTuple relativeLocation)
-		{
-			if (relativeLocation.Count == 0)
-			{ // Forward all actions on the Partition itself (empty path) to its parent's DL
-				return this.ParentDirectoryLayer;
-			}
-			else
-			{ // For everything else, use the Partition's DL
-				return this.DirectoryLayer;
-			}
-		}
+		public override bool IsPartition => true;
 
 		public override string ToString()
 		{
-			return $"DirectoryPartition(path={this.FullName}, prefix={GetPrefixUnsafe():K})";
+			return $"DirectoryPartition(path={this.FullName}, prefix={FdbKey.Dump(GetPrefixUnsafe())})";
 		}
 
 	}

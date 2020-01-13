@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples
 {
 	using System;
 	using System.Collections;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -44,8 +45,8 @@ namespace Doxense.Collections.Tuples
 		/// <param name="fromIncluded">Start offset of the section (included)</param>
 		/// <param name="toExcluded">End offset of the section (included)</param>
 		/// <returns>New tuple only containing items inside this section</returns>
-		[NotNull]
-		public static IVarTuple Splice([NotNull] IVarTuple tuple, int? fromIncluded, int? toExcluded)
+		[Pure]
+		public static IVarTuple Splice(IVarTuple tuple, int? fromIncluded, int? toExcluded)
 		{
 			Contract.Requires(tuple != null);
 			int count = tuple.Count;
@@ -61,28 +62,65 @@ namespace Doxense.Collections.Tuples
 			switch (len)
 			{
 				case 1:
-					return new ListTuple(new[] { tuple[start] }, 0, 1);
+					return new ListTuple<object?>(new[] { tuple[start] });
 				case 2:
-					return new ListTuple(new[] { tuple[start], tuple[start + 1] }, 0, 2);
+					return new ListTuple<object?>(new[] { tuple[start], tuple[start + 1] });
 				default:
 				{
-					var items = new object[len];
+					var items = new object?[len];
 					//note: can be slow for tuples using linked-lists, but hopefully they will have their own Slice implementation...
 					int q = start;
 					for (int p = 0; p < items.Length; p++)
 					{
 						items[p] = tuple[q++];
 					}
-					return new ListTuple(items, 0, len);
+					return new ListTuple<object>(items.AsMemory());
 				}
 			}
 		}
+
+#if USE_RANGE_API
+
+		/// <summary>Default (non-optimized) implementation of ITuple.this[Range]</summary>
+		/// <param name="tuple">Tuple to slice</param>
+		/// <param name="range">Range to select</param>
+		/// <returns>New tuple only containing items inside this section</returns>
+		[Pure]
+		public static IVarTuple Splice(IVarTuple tuple, Range range)
+		{
+			Contract.Requires(tuple != null);
+			int count = tuple.Count;
+
+			(int start, int len) = range.GetOffsetAndLength(count);
+			if (len == 0) return STuple.Empty;
+			if (start == 0 && len == count) return tuple;
+			switch (len)
+			{
+				case 1:
+					return new ListTuple<object?>(new[] { tuple[start] });
+				case 2:
+					return new ListTuple<object?>(new[] { tuple[start], tuple[start + 1] });
+				default:
+				{
+					var items = new object?[len];
+					//note: can be slow for tuples using linked-lists, but hopefully they will have their own Slice implementation...
+					int q = start;
+					for (int p = 0; p < items.Length; p++)
+					{
+						items[p] = tuple[q++];
+					}
+					return new ListTuple<object?>(items.AsMemory());
+				}
+			}
+		}
+
+#endif
 
 		/// <summary>Default (non-optimized) implementation for ITuple.StartsWith()</summary>
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
-		public static bool StartsWith([NotNull] IVarTuple a, [NotNull] IVarTuple b)
+		public static bool StartsWith(IVarTuple a, IVarTuple b)
 		{
 			Contract.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
@@ -103,7 +141,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
-		public static bool EndsWith([NotNull] IVarTuple a, [NotNull] IVarTuple b)
+		public static bool EndsWith(IVarTuple a, IVarTuple b)
 		{
 			Contract.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
@@ -123,7 +161,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Helper to copy the content of a tuple at a specific position in an array</summary>
 		/// <returns>Updated offset just after the last element of the copied tuple</returns>
-		public static int CopyTo([NotNull] IVarTuple tuple, [NotNull] object[] array, int offset)
+		public static int CopyTo(IVarTuple tuple, object?[] array, int offset)
 		{
 			Contract.Requires(tuple != null && array != null && offset >= 0);
 
@@ -139,6 +177,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="count">Size of the tuple</param>
 		/// <returns>Absolute index from the start of the tuple, or exception if outside of the tuple</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside of the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
+		[Pure]
 		public static int MapIndex(int index, int count)
 		{
 			int offset = index;
@@ -147,28 +186,56 @@ namespace Doxense.Collections.Tuples
 			return offset;
 		}
 
+#if USE_RANGE_API
+
+		/// <summary>Maps a relative index into an absolute index</summary>
+		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
+		/// <param name="count">Size of the tuple</param>
+		/// <returns>Absolute index from the start of the tuple, or exception if outside of the tuple</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside of the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
+		[Pure]
+		public static int MapIndex(Index index, int count)
+		{
+			int offset = index.GetOffset(count);
+			if (offset < 0 || offset >= count) return FailIndexOutOfRange<int>(index, count);
+			return offset;
+		}
+
+#endif
+
 		/// <summary>Maps a relative index into an absolute index</summary>
 		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
 		/// <param name="count">Size of the tuple</param>
 		/// <returns>Absolute index from the start of the tuple. Truncated to 0 if index is before the start of the tuple, or to <paramref name="count"/> if the index is after the end of the tuple</returns>
+		[Pure]
 		public static int MapIndexBounded(int index, int count)
 		{
 			if (index < 0) index += count;
 			return Math.Max(Math.Min(index, count), 0);
 		}
 
-		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static T FailIndexOutOfRange<T>(int index, int count)
 		{
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
-		public static bool Equals(IVarTuple left, object other, [NotNull] IEqualityComparer comparer)
+#if USE_RANGE_API
+
+		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
+		public static T FailIndexOutOfRange<T>(Index index, int count)
+		{
+			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
+		}
+
+#endif
+
+		public static bool Equals(IVarTuple? left, object? other, IEqualityComparer comparer)
 		{
 			return object.ReferenceEquals(left, null) ? other == null : Equals(left, other as IVarTuple, comparer);
 		}
 
-		public static bool Equals(IVarTuple x, IVarTuple y, [NotNull] IEqualityComparer comparer)
+		public static bool Equals(IVarTuple? x, IVarTuple? y, IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(x, y)) return true;
 			if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -176,7 +243,7 @@ namespace Doxense.Collections.Tuples
 			return x.Count == y.Count && DeepEquals(x, y, comparer);
 		}
 
-		public static bool DeepEquals([NotNull] IVarTuple x, [NotNull] IVarTuple y, [NotNull] IEqualityComparer comparer)
+		public static bool DeepEquals(IVarTuple x, IVarTuple y, IEqualityComparer comparer)
 		{
 			Contract.Requires(x != null && y != null && comparer != null);
 
@@ -193,7 +260,7 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
-		public static int StructuralGetHashCode(IVarTuple tuple, [NotNull] IEqualityComparer comparer)
+		public static int StructuralGetHashCode(IVarTuple? tuple, IEqualityComparer comparer)
 		{
 			Contract.Requires(comparer != null);
 
@@ -210,7 +277,7 @@ namespace Doxense.Collections.Tuples
 			return h;
 		}
 
-		public static int StructuralCompare(IVarTuple x, IVarTuple y, [NotNull] IComparer comparer)
+		public static int StructuralCompare(IVarTuple? x, IVarTuple? y, IComparer comparer)
 		{
 			Contract.Requires(comparer != null);
 

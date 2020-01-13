@@ -32,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 	using Doxense.Collections.Tuples;
-	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
@@ -43,9 +42,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	{
 
-		private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>("Foos.ByBar", KeySubspace.FromKey(TuPack.EncodeKey("Foos", 1)));
+		private readonly FdbIndex<int, string> FooBarIndex = new FdbIndex<int, string>(DynamicKeySubspaceLocation.Root.ByKey("Foos", 1));
 
-		private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>("Foos.ByBaz", KeySubspace.FromKey(TuPack.EncodeKey("Foos", 2)));
+		private readonly FdbIndex<int, long> FooBazIndex = new FdbIndex<int, long>(DynamicKeySubspaceLocation.Root.ByKey("Foos", 2));
 
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression()

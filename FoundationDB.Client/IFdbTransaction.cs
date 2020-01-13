@@ -112,7 +112,18 @@ namespace FoundationDB.Client
 		[Pure]
 		long GetCommittedVersion();
 
-		//TODO: description!
+		/// <summary>Bump the value of a metadata key of the database snapshot represented by the current transaction.</summary>
+		/// <remarks>Key to mutate. If <see cref="Slice.Nil"/>, mutate the global <c>\xff/metadataVersion</c> key</remarks>
+		/// <remarks>
+		/// The value of the key will be updated to a value higher than any previous value, once the transaction commits.
+		/// Until this happens, any additional call to <see cref="IFdbReadOnlyTransaction.GetMetadataVersionKeyAsync"/> will return <c>null</c>.
+		/// If the value of the <paramref name="key"/> is read via a regular <see cref="IFdbReadOnlyTransaction.GetAsync"/> or <see cref="IFdbReadOnlyTransaction.GetRange"/> call, the transaction will fail to commit!
+		/// This method requires API version 610 or greater.
+		/// </remarks>
+		void TouchMetadataVersionKey(Slice key = default);
+
+		//TODO: better message!
+		/// <summary>Return the approximate size of the mutation list that this transaction will sent to the server.</summary>
 		Task<long> GetApproximateSizeAsync();
 
 		/// <summary>Returns the <see cref="VersionStamp"/> which was used by VersionStamped operations in this transaction.</summary>
@@ -127,7 +138,8 @@ namespace FoundationDB.Client
 		/// <summary>Return a place-holder 80-bit <see cref="VersionStamp"/>, whose value is not yet known, but will be filled by the database at commit time.</summary>
 		/// <returns>This value can used to generate temporary keys or value, for use with the <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> mutations</returns>
 		/// <remarks>
-		/// The generate placeholder will use a random value that is unique per transaction (and changes at reach retry).
+		/// The generate placeholder will use a random value that is unique per transaction (and changes at each retry).
+		/// If you need to generate multiple different stamps per transaction (ex: adding multiple items to the same subspace), either call <see cref="CreateVersionStamp(int)"/> or <see cref="CreateUniqueVersionStamp()"/>!
 		/// If the key contains the exact 80-bit byte signature of this token, the corresponding location will be tagged and replaced with the actual VersionStamp at commit time.
 		/// If another part of the key contains (by random chance) the same exact byte sequence, then an error will be triggered, and hopefully the transaction will retry with another byte sequence.
 		/// </remarks>
@@ -144,9 +156,12 @@ namespace FoundationDB.Client
 		[Pure]
 		VersionStamp CreateVersionStamp(int userVersion);
 
-		/// <summary>
-		/// Watch a key for any change in the database.
-		/// </summary>
+		/// <summary>Return a place-holder 96-bit <see cref="VersionStamp"/> with a unique user version _per_ transaction.</summary>
+		/// <remarks>Use this method, instead of <see cref="CreateVersionStamp()"/> if you intend add multiple stamped keys to the same subspace, inside the same transaction!</remarks>
+		[Pure]
+		VersionStamp CreateUniqueVersionStamp();
+
+		/// <summary>Watch a key for any change in the database.</summary>
 		/// <param name="key">Key to watch</param>
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>

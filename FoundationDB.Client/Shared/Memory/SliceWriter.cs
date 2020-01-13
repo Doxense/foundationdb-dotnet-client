@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-//#define ENABLE_ARRAY_POOL
-
 #if !USE_SHARED_FRAMEWORK
 
 namespace Doxense.Memory
 {
 	using System;
+	using System.Buffers;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
@@ -40,12 +39,13 @@ namespace Doxense.Memory
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 	using System.Runtime.InteropServices;
+	using Doxense.Serialization;
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>
 	[PublicAPI, DebuggerDisplay("Position={Position}, Capacity={Capacity}"), DebuggerTypeProxy(typeof(SliceWriter.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public struct SliceWriter
+	public struct SliceWriter : IBufferWriter<byte>, ISliceSerializable
 	{
 		// Invariant
 		// * Valid data always start at offset 0
@@ -55,10 +55,12 @@ namespace Doxense.Memory
 		#region Private Members...
 
 		/// <summary>Buffer holding the data</summary>
-		public byte[] Buffer;
+		public byte[]? Buffer;
 
 		/// <summary>Position in the buffer ( == number of already written bytes)</summary>
 		public int Position;
+
+		public readonly ArrayPool<byte>? Pool;
 
 		#endregion
 
@@ -66,34 +68,50 @@ namespace Doxense.Memory
 
 		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
 		/// <param name="capacity">Initial capacity of the buffer</param>
-		public SliceWriter(int capacity)
+		public SliceWriter([Positive] int capacity)
 		{
 			Contract.Positive(capacity, nameof(capacity));
 
-#if ENABLE_ARRAY_POOL
-			this.Buffer = capacity == 0 ? Array.Empty<byte>() : ArrayPool<byte>.Shared.Rent(capacity);
-#else
-			this.Buffer = capacity == 0 ? Array.Empty<byte>() : new byte[capacity];
-#endif
+			this.Buffer = capacity == 0 ? Array.Empty<byte>() : ArrayPool<byte>.Shared.Rent(capacity); //REVIEW: BUGBUG: est-ce une bonne idée d'utiliser un pool ici?
 			this.Position = 0;
+			this.Pool = null;
+		}
+
+		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
+		/// <param name="capacity">Initial capacity of the buffer</param>
+		/// <param name="pool">Pool qui sera utilisé pour la gestion des buffers</param>
+		public SliceWriter([Positive] int capacity, ArrayPool<byte> pool)
+		{
+			Contract.Positive(capacity, nameof(capacity));
+			Contract.NotNull(pool, nameof(pool));
+
+			this.Buffer = capacity == 0 ? Array.Empty<byte>() : pool.Rent(capacity);
+			this.Position = 0;
+			this.Pool = pool;
 		}
 
 		/// <summary>Create a new binary writer using an existing buffer</summary>
 		/// <param name="buffer">Initial buffer</param>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
-		public SliceWriter([NotNull] byte[] buffer)
-			: this(buffer, 0)
-		{ }
+		public SliceWriter(byte[] buffer)
+		{
+			Contract.NotNull(buffer, nameof(buffer));
+
+			this.Buffer = buffer;
+			this.Position = 0;
+			this.Pool = null;
+		}
 
 		/// <summary>Create a new binary buffer using an existing buffer and with the cursor to a specific location</summary>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
-		public SliceWriter([NotNull] byte[] buffer, int index)
+		public SliceWriter(byte[] buffer, int index)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			Contract.Between(index, 0, buffer.Length, nameof(index));
 
 			this.Buffer = buffer;
 			this.Position = index;
+			this.Pool = null;
 		}
 
 		/// <summary>Creates a new binary buffer, initialized by copying pre-existing data</summary>
@@ -105,6 +123,7 @@ namespace Doxense.Memory
 			prefix.EnsureSliceIsValid();
 			Contract.Positive(capacity, nameof(capacity));
 
+			var pool = ArrayPool<byte>.Shared;
 			int n = prefix.Count;
 			Contract.Assert(n >= 0);
 
@@ -117,15 +136,12 @@ namespace Doxense.Memory
 				capacity = BitHelpers.AlignPowerOfTwo(Math.Max(capacity, n), 16);
 			}
 
-#if ENABLE_ARRAY_POOL
-			var buffer = ArrayPool<byte>.Shared.Rent(capacity);
-#else
-			var buffer = new byte[capacity];
-#endif
+			var buffer = pool.Rent(capacity);
 			if (n > 0) prefix.CopyTo(buffer, 0);
 
 			this.Buffer = buffer;
 			this.Position = n;
+			this.Pool = pool;
 		}
 
 		#endregion
@@ -133,10 +149,18 @@ namespace Doxense.Memory
 		#region Public Properties...
 
 		/// <summary>Returns true if the buffer contains at least some data</summary>
-		public bool HasData => this.Position > 0;
+		public bool HasData
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Position > 0;
+		}
 
 		/// <summary>Capacity of the internal buffer</summary>
-		public int Capacity => this.Buffer?.Length ?? 0;
+		public int Capacity
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Buffer?.Length ?? 0;
+		}
 
 		/// <summary>Return the byte at the specified index</summary>
 		/// <param name="index">Index in the buffer (0-based if positive, from the end if negative)</param>
@@ -178,15 +202,23 @@ namespace Doxense.Memory
 
 				// chop chop
 				int count = until - from;
-				return count > 0 ? new Slice(this.Buffer, from, count) : Slice.Empty;
+				return count > 0 ? new Slice(this.Buffer!, from, count) : Slice.Empty;
 			}
 		}
+
+#if USE_RANGE_API
+
+		public byte this[Index index] => this[index.GetOffset(this.Position)];
+
+		public Slice this[Range range] => Substring(range);
+
+#endif
 
 		#endregion
 
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
-		[Pure, NotNull]
+		[Pure]
 		public byte[] GetBytes()
 		{
 			int p = this.Position;
@@ -201,6 +233,20 @@ namespace Doxense.Memory
 			return ToSlice();
 		}
 
+		/// <summary>Returns a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see> pointing to the content of the buffer</summary>
+		[Pure]
+		public ReadOnlySpan<byte> ToSpan()
+		{
+			var buffer = this.Buffer;
+			var p = this.Position;
+			if (buffer == null || p == 0)
+			{ // empty buffer
+				return default;
+			}
+			Contract.Assert(buffer.Length >= p, "Current position is outside of the buffer");
+			return new ReadOnlySpan<byte>(buffer, 0, p);
+		}
+
 		/// <summary>Returns a <see cref="Slice"/> pointing to the content of the buffer</summary>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		[Pure]
@@ -208,7 +254,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
-			if (buffer == null | p == 0)
+			if (buffer == null || p == 0)
 			{ // empty buffer
 				return Slice.Empty;
 			}
@@ -223,7 +269,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
-			if (buffer == null | p == 0)
+			if (buffer == null || p == 0)
 			{ // empty buffer
 				return MutableSlice.Empty;
 			}
@@ -246,7 +292,7 @@ namespace Doxense.Memory
 		{
 			if (count == 0) return Slice.Empty;
 			if ((uint) count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, 0, count);
+			return new Slice(this.Buffer!, 0, count);
 		}
 
 		/// <summary>Returns a slice pointing to the first <paramref name="count"/> bytes of the buffer</summary>
@@ -264,7 +310,7 @@ namespace Doxense.Memory
 		{
 			if (count == 0) return Slice.Empty;
 			if (count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, 0, (int) count);
+			return new Slice(this.Buffer!, 0, (int) count);
 		}
 
 		/// <summary>Returns a slice pointer to the last <paramref name="count"/> bytes of the buffer</summary>
@@ -282,7 +328,7 @@ namespace Doxense.Memory
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
 			if ((uint) count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, p - count, count);
+			return new Slice(this.Buffer!, p - count, count);
 		}
 
 		/// <summary>Returns a slice pointer to the last <paramref name="count"/> bytes of the buffer</summary>
@@ -300,7 +346,7 @@ namespace Doxense.Memory
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
 			if (count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, p - (int) count, (int) count);
+			return new Slice(this.Buffer!, p - (int) count, (int) count);
 		}
 
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
@@ -308,12 +354,12 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less then zero, or after the current position</exception>
 		[Pure]
-		public Slice Substring(int offset)
+		public Slice Substring(int offset) //REVIEW: => Slice(offset)
 		{
 			int p = this.Position;
 			if (offset < 0 || offset > p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
 			int count = p - offset;
-			return count > 0 ? new Slice(this.Buffer, offset, p - offset) : Slice.Empty;
+			return count > 0 ? new Slice(this.Buffer!, offset, p - offset) : Slice.Empty;
 		}
 
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
@@ -322,14 +368,28 @@ namespace Doxense.Memory
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
 		[Pure]
-		public Slice Substring(int offset, int count)
+		public Slice Substring(int offset, int count) //REVIEW: => Slice(offset, count)
 		{
 			int p = this.Position;
 			if ((uint) offset >= p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
 			if (count < 0 | offset + count > p) throw ThrowHelper.ArgumentException(nameof(count), "The buffer is too small");
 
-			return count > 0 ? new Slice(this.Buffer, offset, count) : Slice.Empty;
+			return count > 0 ? new Slice(this.Buffer!, offset, count) : Slice.Empty;
 		}
+
+#if USE_RANGE_API
+
+		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
+		/// <param name="range">Range to return</param>
+		/// <remarks>Any change to the slice will change the buffer !</remarks>
+		/// <exception cref="ArgumentException">If the <paramref name="range"/> does not fit inside the current buffer</exception>
+		public Slice Substring(Range range)
+		{
+			(int offset, int count) = range.GetOffsetAndLength(this.Position);
+			return count > 0 ? new Slice(this.Buffer!, offset, count) : Slice.Empty;
+		}
+
+#endif
 
 		/// <summary>Truncate the buffer by setting the cursor to the specified position.</summary>
 		/// <param name="position">New size of the buffer</param>
@@ -373,27 +433,38 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Empties the current buffer after a succesful write</summary>
+		/// <summary>Empties the current buffer after a successful write</summary>
 		/// <param name="zeroes">If true, fill the existing buffer with zeroes, if it is reused, to ensure that no previous data can leak.</param>
 		/// <remarks>If the current buffer is large enough, and less than 1/8th was used, then it will be discarded and a new smaller one will be allocated as needed</remarks>
 		public void Reset(bool zeroes = false)
 		{
 			if (this.Position != 0)
 			{
-				Contract.Assert(this.Buffer != null && this.Buffer.Length >= this.Position);
+				var buffer = this.Buffer;
+				Contract.Assert(buffer != null && buffer.Length >= this.Position);
 				// reduce size ?
 				// If the buffer exceeds 64K and we used less than 1/8 of it the last time, we will "shrink" the buffer
-				if (this.Buffer.Length > 65536 && this.Position <= (this.Buffer.Length >> 3))
+				if (buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
 				{ // kill the buffer
+					this.Pool?.Return(buffer, zeroes);
 					this.Buffer = null;
-					//TODO: return to a central buffer pool?
 				}
 				else if (zeroes)
 				{ // Clear it
-					this.Buffer.AsSpan(0, this.Position).Clear();
+					buffer.AsSpan(0, this.Position).Clear();
 				}
 				this.Position = 0;
 			}
+		}
+
+		/// <summary>Retourne le buffer actuel dans le pool utilisé par ce writer</summary>
+		/// <remarks>ATTENTION: l'appelant ne doit PLUS accéder (en read ou write) au buffer exposé par ce writer avant l'appel à cette méthode!</remarks>
+		public void Release()
+		{
+			var buffer = this.Buffer;
+			if (buffer != null) this.Pool?.Return(buffer);
+			this.Buffer = Array.Empty<byte>();
+			this.Position = 0;
 		}
 
 		/// <summary>Advance the cursor of the buffer without writing anything, and return the previous position</summary>
@@ -418,13 +489,27 @@ namespace Doxense.Memory
 		/// <param name="pad">Pad value (0xFF by default)</param>
 		/// <returns>Slice that corresponds to the reserved segment in the buffer</returns>
 		/// <remarks>Will fill the reserved segment with <paramref name="pad"/> and the cursor will be positioned immediately after the segment.</remarks>
-		public MutableSlice Allocate(int count, byte pad = 0xFF)
+		public MutableSlice Allocate(int count, byte pad)
 		{
 			Contract.Positive(count, nameof(count));
 			if (count == 0) return MutableSlice.Empty;
 
 			int offset = Skip(count, pad);
-			return new MutableSlice(this.Buffer, offset, count);
+			return new MutableSlice(this.Buffer!, offset, count);
+		}
+
+		/// <summary>Advance the cursor by the specified amount, and return the skipped over chunk (that can be filled later by the caller)</summary>
+		/// <param name="count">Number of bytes to allocate</param>
+		/// <returns>Slice that corresponds to the reserved segment in the buffer</returns>
+		public MutableSlice Allocate(int count)
+		{
+			Contract.Positive(count, nameof(count));
+			if (count == 0) return MutableSlice.Empty;
+
+			var buffer = EnsureBytes(count);
+			int p = this.Position;
+			this.Position = p + count;
+			return new MutableSlice(buffer, p, count);
 		}
 
 		/// <summary>Advance the cursor by the amount required end up on an aligned byte position</summary>
@@ -627,7 +712,7 @@ namespace Doxense.Memory
 
 		/// <summary>Write a byte array to the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteBytes([CanBeNull] byte[] data)
+		public void WriteBytes(byte[]? data)
 		{
 			if (data != null)
 			{
@@ -637,6 +722,7 @@ namespace Doxense.Memory
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public void WriteBytes(byte[] data, int offset, int count)
 		{
 			if (count > 0)
@@ -672,6 +758,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer, with a prefix</summary>
+		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public void WriteBytes(byte prefix, byte[] data, int offset, int count)
 		{
 			WriteBytes(prefix, count != 0 ? data.AsSpan(offset, count) : default);
@@ -708,14 +795,26 @@ namespace Doxense.Memory
 		/// Failure to do so may introduce memory correction (buffer overflow!).
 		/// This should ONLY be used in performance-sensitive code paths that have been audited thoroughly!
 		/// </remarks>
-		public unsafe void UnsafeWriteBytes(ReadOnlySpan<byte> data)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void UnsafeWriteBytes(Slice data)
+		{
+			UnsafeWriteBytes(data.Span);
+		}
+
+		/// <summary>Dangerously write a segment of bytes at the end of the buffer, without any capacity checks!</summary>
+		/// <remarks>
+		/// This method DOES NOT check the buffer capacity before writing, and caller MUST have resized the buffer beforehand!
+		/// Failure to do so may introduce memory correction (buffer overflow!).
+		/// This should ONLY be used in performance-sensitive code paths that have been audited thoroughly!
+		/// </remarks>
+		public void UnsafeWriteBytes(ReadOnlySpan<byte> data)
 		{
 			if (data.Length != 0)
 			{
 				int p = this.Position;
 				Contract.Requires(this.Buffer != null && p >= 0 && data != null && p + data.Length <= this.Buffer.Length);
 
-				int q = checked((int) (p + data.Length));
+				int q = checked(p + data.Length);
 				data.CopyTo(this.Buffer.AsSpan(p));
 				this.Position = q;
 			}
@@ -724,7 +823,7 @@ namespace Doxense.Memory
 		/// <summary>Write a byte array to the end of the buffer, in reverse order</summary>
 		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteBytesReversed([CanBeNull] byte[] data)
+		public void WriteBytesReversed(byte[]? data)
 		{
 			if (data != null && data.Length > 0)
 			{
@@ -740,6 +839,7 @@ namespace Doxense.Memory
 
 		/// <summary>Write a chunk of a byte array to the end of the buffer, in reverse order</summary>
 		/// <remarks>The last byte will be written first, and the first byte will be written last</remarks>
+		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public void WriteBytesReversed(byte[] data, int offset, int count)
 		{
 			if (count > 0)
@@ -816,13 +916,14 @@ namespace Doxense.Memory
 
 		/// <summary>Append a byte array to the end of the buffer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice AppendBytes(byte[] data)
+		public Slice AppendBytes(byte[]? data)
 		{
 			return data != null ? AppendBytes(data.AsSpan()) : Slice.Empty;
 		}
 
 		/// <summary>Append a chunk of a byte array to the end of the buffer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public Slice AppendBytes(byte[] data, int offset, int count)
 		{
 			return count != 0 ? AppendBytes(data.AsSpan(offset, count)) : Slice.Empty;
@@ -1289,7 +1390,7 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteVarBytes([NotNull] byte[] bytes)
+		public void WriteVarBytes(byte[] bytes)
 		{
 			Contract.Requires(bytes != null);
 			WriteVarBytes(bytes.AsSpan());
@@ -1297,7 +1398,8 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteVarBytes([NotNull] byte[] bytes, int offset, int count)
+		[Obsolete("Use ReadOnlySpan<byte> instead.")]
+		public void WriteVarBytes(byte[] bytes, int offset, int count)
 		{
 			Contract.Requires(count == 0 || bytes != null);
 			WriteVarBytes(bytes.AsSpan(offset, count));
@@ -1329,8 +1431,10 @@ namespace Doxense.Memory
 
 			var buffer = EnsureBytes(n + 1);
 			int p = this.Position;
+
 			// write the count (single byte)
 			buffer[p] = (byte)n;
+
 			// write the bytes
 			if (n > 0) value.CopyTo(buffer.AsSpan(p + 1));
 			this.Position = checked(p + n + 1);
@@ -1343,7 +1447,7 @@ namespace Doxense.Memory
 
 			// write the count
 			WriteVarInt32((uint) n);
-			Contract.Assert(this.Buffer == null);
+			Contract.Assert(this.Buffer == buffer);
 
 			// write the bytes
 			int p = this.Position;
@@ -1360,29 +1464,35 @@ namespace Doxense.Memory
 		// => the string's length is NOT stored!
 
 		/// <summary>Write a variable-sized string, using the specified encoding</summary>
-		public void WriteVarString(string value, Encoding encoding = null)
+		public void WriteVarString(string? value, Encoding? encoding = null)
 		{
 			if (encoding == null)
 			{
 				WriteVarStringUtf8(value);
 				return;
 			}
-			int byteCount = encoding.GetByteCount(value);
+			uint byteCount = checked((uint) encoding.GetByteCount(value));
 			if (byteCount == 0)
 			{
 				WriteByte(0);
 				return;
 			}
-			WriteVarInt32((uint) byteCount);
+			var buffer = EnsureBytes(byteCount + UnsafeHelpers.SizeOfVarBytes(byteCount));
+
+			// write the count
+			WriteVarInt32(byteCount);
+			Contract.Assert(this.Buffer == buffer);
+
+			// write the chars
 			int p = this.Position;
-			int n = encoding.GetBytes(s: value, charIndex: 0, charCount: value.Length, bytes: this.Buffer, byteIndex: p);
+			int n = encoding.GetBytes(s: value, charIndex: 0, charCount: value.Length, bytes: buffer, byteIndex: p);
 			this.Position = checked(p + n);
 		}
 
 		/// <summary>Write a variable-sized string, encoded using UTF-8</summary>
 		/// <param name="value">String to append</param>
 		/// <remarks>The null and empty string will be stored the same way. Caller must use a different technique if they must be stored differently.</remarks>
-		public void WriteVarStringUtf8(string value)
+		public void WriteVarStringUtf8(string? value)
 		{
 			// Format:
 			// - VarInt     Number of following bytes
@@ -1411,17 +1521,17 @@ namespace Doxense.Memory
 		private void WriteVarStringUtf8Internal(string value, int byteCount)
 		{
 			Contract.Assert(value != null && byteCount > 0 && byteCount >= value.Length);
-			EnsureBytes(byteCount + UnsafeHelpers.SizeOfVarBytes(byteCount));
+			var buffer = EnsureBytes(byteCount + UnsafeHelpers.SizeOfVarBytes(byteCount));
 			WriteVarInt32((uint)byteCount);
 			int p = this.Position;
-			int n = Encoding.UTF8.GetBytes(s: value, charIndex: 0, charCount: value.Length, bytes: this.Buffer, byteIndex: p);
+			int n = Encoding.UTF8.GetBytes(s: value, charIndex: 0, charCount: value.Length, bytes: buffer, byteIndex: p);
 			this.Position = checked(p + n);
 		}
 
 		/// <summary>Write a variable-sized string, which is known to only contain ASCII characters (0..127)</summary>
 		/// <remarks>This is faster than <see cref="WriteVarString(string, Encoding)"/> when the caller KNOWS that the string is ASCII only. This should only be used with keywords and constants, NOT with user input!</remarks>
 		/// <exception cref="ArgumentException">If the string contains characters above 127</exception>
-		public void WriteVarStringAscii(string value)
+		public void WriteVarStringAscii(string? value)
 		{
 			if (string.IsNullOrEmpty(value))
 			{
@@ -1498,7 +1608,7 @@ namespace Doxense.Memory
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int WriteString(string value)
+		public int WriteString(string? value)
 		{
 			return WriteStringUtf8(value);
 		}
@@ -1516,7 +1626,7 @@ namespace Doxense.Memory
 		/// <param name="value">Text to write</param>
 		/// <param name="encoding">Encoding used to convert the text to bytes</param>
 		/// <returns>Number of bytes written</returns>
-		public int WriteString(string value, Encoding encoding)
+		public int WriteString(string? value, Encoding encoding)
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
 
@@ -1533,7 +1643,7 @@ namespace Doxense.Memory
 		/// <summary>Write a string using UTF-8</summary>
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
-		public int WriteStringUtf8(string value)
+		public int WriteStringUtf8(string? value)
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
 
@@ -1551,6 +1661,7 @@ namespace Doxense.Memory
 
 		/// <summary>Write a string using UTF-8</summary>
 		/// <returns>Number of bytes written</returns>
+		[Obsolete("Use ReadOnlySpan<char> instead.")]
 		public int WriteStringUtf8(char[] chars, int offset, int count)
 		{
 			return WriteStringUtf8(new ReadOnlySpan<char>(chars, offset, count));
@@ -1568,7 +1679,7 @@ namespace Doxense.Memory
 				fixed (char* inp = &MemoryMarshal.GetReference(chars))
 				{
 					// pour estimer la capacité, on fait une estimation a la louche pour des petites strings, mais on va calculer la bonne valeur pour des string plus grandes,
-					// afin d'éviter de gaspiller trop de mémoire (potentiellement jusqu'a 6 fois la taille)
+					// afin d'éviter de gaspiller trop de mémoire (potentiellement jusqu'à 6 fois la taille)
 					var buffer = EnsureBytes(count > 128
 						? Encoding.UTF8.GetByteCount(inp, count)
 						: Encoding.UTF8.GetMaxByteCount(count));
@@ -1584,7 +1695,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidUtf8CodePoint()
 		{
 			return new DecoderFallbackException("Failed to encode invalid Unicode CodePoint into UTF-8");
@@ -1594,9 +1705,9 @@ namespace Doxense.Memory
 		/// <param name="value">String with characters only in the 0..127 range</param>
 		/// <remarks>Faster than <see cref="WriteString(string, Encoding)"/> when writing Magic Strings or ascii keywords</remarks>
 		/// <returns>Number of bytes written</returns>
-		public int WriteStringAscii(string value)
+		public int WriteStringAscii(string? value)
 		{
-			Contract.Requires(value != null);
+			if (string.IsNullOrEmpty(value)) return 0;
 
 			var buffer = EnsureBytes(value.Length);
 			int p = this.Position;
@@ -1794,23 +1905,35 @@ namespace Doxense.Memory
 		public void PatchBytes(int index, Slice data)
 		{
 			if (index + data.Count > this.Position) throw ThrowHelper.IndexOutOfRangeException();
-			data.CopyTo(this.Buffer, index);
+			data.Span.CopyTo(this.Buffer.AsSpan(index));
+		}
+
+		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
+		/// <param name="index">Offset from the start of the buffer where to start replacing</param>
+		/// <param name="data">Data that will overwrite the buffer at the specified <paramref name="index"/></param>
+		/// <remarks>You must ensure that replaced section does not overlap with the current position!</remarks>
+		public void PatchBytes(int index, ReadOnlySpan<byte> data)
+		{
+			if (index + data.Length > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			data.CopyTo(this.Buffer.AsSpan(index));
 		}
 
 		/// <summary>Overwrite a section of the buffer that was already written, with the specified data</summary>
 		/// <remarks>You must ensure that replaced section does not overlap with the current position!</remarks>
+		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public void PatchBytes(int index, byte[] buffer, int offset, int count)
 		{
 			if (index + count > this.Position) throw ThrowHelper.IndexOutOfRangeException();
-			System.Buffer.BlockCopy(buffer, offset, this.Buffer, index, count);
+			buffer.AsSpan(offset, count).CopyTo(this.Buffer.AsSpan(index));
 		}
 
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
 		/// <remarks>You must ensure that replaced byte is before the current position!</remarks>
 		public void PatchByte(int index, byte value)
 		{
-			if ((uint) index >= this.Position) throw ThrowHelper.IndexOutOfRangeException();
-			this.Buffer[index] = value;
+			var buffer = this.Buffer;
+			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			buffer[index] = value;
 		}
 
 		/// <summary>Overwrite a byte of the buffer that was already written</summary>
@@ -1818,8 +1941,9 @@ namespace Doxense.Memory
 		public void PatchByte(int index, int value)
 		{
 			//note: convenience method, because C# compiler likes to produce 'int' when combining bits together
-			if ((uint) index >= this.Position) throw ThrowHelper.IndexOutOfRangeException();
-			this.Buffer[index] = (byte) value;
+			var buffer = this.Buffer;
+			if ((uint) index >= this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
+			buffer[index] = (byte) value;
 		}
 
 		#endregion
@@ -1830,10 +1954,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchInt16(int index, short value)
 		{
-			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed16Unsafe(ptr, (ushort) value);
 				}
@@ -1844,10 +1969,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchUInt16(int index, ushort value)
 		{
-			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed16Unsafe(ptr, value);
 				}
@@ -1858,10 +1984,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchInt16BE(int index, short value)
 		{
-			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed16BEUnsafe(ptr, (ushort) value);
 				}
@@ -1872,10 +1999,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced word is before the current position!</remarks>
 		public void PatchUInt16BE(int index, ushort value)
 		{
-			if (index + 2 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 2 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed16BEUnsafe(ptr, value);
 				}
@@ -1890,10 +2018,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchInt32(int index, int value)
 		{
-			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed32Unsafe(ptr, (uint) value);
 				}
@@ -1904,10 +2033,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchUInt32(int index, uint value)
 		{
-			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed32Unsafe(ptr, value);
 				}
@@ -1918,10 +2048,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchInt32BE(int index, int value)
 		{
-			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed32BEUnsafe(ptr, (uint) value);
 				}
@@ -1932,10 +2063,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced dword is before the current position!</remarks>
 		public void PatchUInt32BE(int index, uint value)
 		{
-			if (index + 4 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 4 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed32BEUnsafe(ptr, value);
 				}
@@ -1950,10 +2082,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchInt64(int index, long value)
 		{
-			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed64Unsafe(ptr, (ulong) value);
 				}
@@ -1964,10 +2097,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchUInt64(int index, ulong value)
 		{
-			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed64Unsafe(ptr, value);
 				}
@@ -1978,10 +2112,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchInt64BE(int index, long value)
 		{
-			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed64BEUnsafe(ptr, (ulong) value);
 				}
@@ -1992,10 +2127,11 @@ namespace Doxense.Memory
 		/// <remarks>You must ensure that replaced qword is before the current position!</remarks>
 		public void PatchUInt64BE(int index, ulong value)
 		{
-			if (index + 8 > this.Position) throw ThrowHelper.IndexOutOfRangeException();
+			var buffer = this.Buffer;
+			if (index + 8 > this.Position || buffer == null) throw ThrowHelper.IndexOutOfRangeException();
 			unsafe
 			{
-				fixed (byte* ptr = &this.Buffer[index])
+				fixed (byte* ptr = &buffer[index])
 				{
 					UnsafeHelpers.WriteFixed64BEUnsafe(ptr, value);
 				}
@@ -2009,6 +2145,7 @@ namespace Doxense.Memory
 		/// <summary>Return the remaining capacity in the current underlying buffer</summary>
 		public int RemainingCapacity
 		{
+			[Pure]
 			get
 			{
 				var buffer = this.Buffer;
@@ -2020,7 +2157,7 @@ namespace Doxense.Memory
 		/// <summary>Ensures that we can fit the specified amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(int count)
 		{
 			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
@@ -2029,7 +2166,7 @@ namespace Doxense.Memory
 			var buffer = this.Buffer;
 			if (buffer == null || this.Position + count > buffer.Length)
 			{
-				buffer = GrowBuffer(ref this.Buffer, this.Position + count);
+				buffer = GrowBuffer(ref this.Buffer, this.Position + count, this.Pool);
 				Contract.Ensures(buffer != null && buffer.Length >= this.Position + count);
 			}
 			return buffer;
@@ -2038,12 +2175,12 @@ namespace Doxense.Memory
 		public void Advance(int count)
 		{
 			int newPos = checked(this.Position + count);
-			if (newPos > this.Buffer.Length) throw ErrorCannotAdvancePaseEndOfBuffer();
+			if (newPos > this.Capacity) throw ErrorCannotAdvancePastEndOfBuffer();
 			this.Position = newPos;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception ErrorCannotAdvancePaseEndOfBuffer()
+		private static Exception ErrorCannotAdvancePastEndOfBuffer()
 		{
 			return new InvalidOperationException("Cannot advance past the end of the allocated buffer.");
 		}
@@ -2104,13 +2241,11 @@ namespace Doxense.Memory
 			return buffer.AsMemory(pos, count);
 		}
 
-#if ENABLE_ARRAY_POOL
-
 		/// <summary>Ensures that we can fit the specified amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <param name="pool"></param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(int count, ArrayPool<byte> pool)
 		{
 			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
@@ -2125,12 +2260,10 @@ namespace Doxense.Memory
 			return buffer;
 		}
 
-#endif
-
 		/// <summary>Ensures that we can fit the specified  amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(uint count)
 		{
 			return EnsureBytes(checked((int) count));
@@ -2146,22 +2279,21 @@ namespace Doxense.Memory
 			Contract.Requires(offset >= 0 && count >= 0);
 			if (this.Buffer == null || offset + count > this.Buffer.Length)
 			{
-				GrowBuffer(ref this.Buffer, offset + count);
+				GrowBuffer(ref this.Buffer, offset + count, this.Pool);
 			}
 		}
 
 		/// <summary>Resize a buffer by doubling its capacity</summary>
 		/// <param name="buffer">Reference to the variable holding the buffer to create/resize. If null, a new buffer will be allocated. If not, the content of the buffer will be copied into the new buffer.</param>
 		/// <param name="minimumCapacity">Minimum guaranteed buffer size after resizing.</param>
+		/// <param name="pool">Optional pool used by this buffer</param>
 		/// <remarks>The buffer will be resized to the maximum between the previous size multiplied by 2, and <paramref name="minimumCapacity"/>. The capacity will always be rounded to a multiple of 16 to reduce memory fragmentation</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		public static byte[] GrowBuffer(
-			ref byte[] buffer,
-			int minimumCapacity = 0
-#if ENABLE_ARRAY_POOL
-			, ArrayPool<byte> pool = null
-#endif
-			)
+			ref byte[]? buffer,
+			int minimumCapacity = 0,
+			ArrayPool<byte>? pool = null
+		)
 		{
 			Contract.Requires(minimumCapacity >= 0);
 
@@ -2171,25 +2303,57 @@ namespace Doxense.Memory
 			// .NET (as of 4.5) cannot allocate an array with more than 2^31 - 1 items...
 			if (newSize > 0x7fffffffL) throw FailCannotGrowBuffer();
 
-			// round up to 16 bytes, to reduce fragmentation
-			int size = BitHelpers.AlignPowerOfTwo((int) newSize, 16);
-
-#if ENABLE_ARRAY_POOL
 			if (pool == null)
-			{
+			{ // use the heap
+				int size = BitHelpers.AlignPowerOfTwo((int) newSize, 16); // round up to 16 bytes, to reduce fragmentation
 				Array.Resize(ref buffer, size);
 			}
 			else
 			{ // use the pool to resize the buffer
-				pool.Resize(ref buffer, size);
+				int size = Math.Max((int) newSize, 64); // with a pool, we can ask for more bytes initially
+				ResizeUsingPool(pool, ref buffer, size);
 			}
-#else
-			Array.Resize(ref buffer, size);
-#endif
 			return buffer;
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		/// <summary>Resize a buffer obtained from this pool, using another (larger) buffer from the same pool</summary>
+		/// <param name="pool">Buffer pool</param>
+		/// <param name="array">IN: Buffer previously obtained from <see cref="pool"/>; OUT: new buffer with the same content</param>
+		/// <param name="newSize">New size for the buffer</param>
+		/// <remarks>
+		/// If <paramref name="array"/> is null, a new buffer is allocated.
+		/// If <paramref name="array"/> is already large enough, no copy is performed.
+		/// Else, a new buffer is allocated from the <paramref name="pool"/>, and the content is copied other.
+		/// </remarks>
+		private static void ResizeUsingPool(ArrayPool<byte> pool, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? array, int newSize)
+		{
+			Contract.NotNull(pool, nameof(pool));
+			Contract.Positive(newSize, nameof(newSize));
+
+			var larray = array;
+			if (larray == null)
+			{
+				array = pool.Rent(newSize);
+				return;
+			}
+
+			if (larray.Length != newSize)
+			{
+				byte[] newArray = pool.Rent(newSize);
+				if (larray.Length > 0)
+				{
+					larray.AsSpan().CopyTo(newArray);
+				}
+				//note: we don't return empty buffers, because we may return Array.Empty<byte>() by mistake!
+				if (larray.Length != 0)
+				{
+					pool.Return(larray);
+				}
+				array = newArray;
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailCannotGrowBuffer()
 		{
 #if DEBUG
@@ -2201,15 +2365,25 @@ namespace Doxense.Memory
 			return new OutOfMemoryException("Buffer cannot be resized, because it would exceed the maximum allowed size");
 		}
 
+		#region ISliceSerializable
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void WriteTo(ref SliceWriter writer)
+		{
+			writer.WriteBytes(ToSpan());
+		}
+
+		#endregion
+
 		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 		private sealed class DebugView
 		{
 
 			public DebugView(SliceWriter writer)
 			{
-				this.Data = new Slice(writer.Buffer, 0, writer.Position);
+				this.Data = writer.ToSlice();
 				this.Position = writer.Position;
-				this.Capacity = writer.Buffer.Length;
+				this.Capacity = writer.Capacity;
 			}
 
 			public Slice Data { get; }

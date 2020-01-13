@@ -61,9 +61,26 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => m_items.Length;
 
-		public object this[int index] => m_items[TupleHelpers.MapIndex(index, m_items.Length)];
+		public object? this[int index] => m_items[TupleHelpers.MapIndex(index, m_items.Length)];
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
+
+#if USE_RANGE_API
+
+		public object? this[Index index] => m_items[TupleHelpers.MapIndex(index, m_items.Length)];
+
+		public IVarTuple this[Range range]
+		{
+			get
+			{
+				(int offset, int count) = range.GetOffsetAndLength(m_items.Length);
+				if (count == 0) return STuple.Empty;
+				if (offset == 0 && count == m_items.Length) return this;
+				return new ListTuple<object?>(m_items.AsMemory(offset, count));
+			}
+		}
+
+#endif
 
 		public void PackTo(ref TupleWriter writer)
 		{

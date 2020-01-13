@@ -127,7 +127,7 @@ namespace FoundationDB.Samples
 			bool stop = false;
 
 			string clusterFile = null;
-			var partition = new string[0];
+			var partition = FdbDirectoryPath.Empty;
 
 			int pStart = 0;
 			string startCommand = null;
@@ -145,13 +145,13 @@ namespace FoundationDB.Samples
 						}
 						case "P": case "p":
 						{
-							partition = args[pStart + 1].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+							partition = FdbDirectoryPath.Parse(args[pStart + 1].Trim());
 							pStart += 2;
 							break;
 						}
 						default:
 						{
-							Console.WriteLine(string.Format("Unknown option : '{0}'", args[pStart]));
+							Console.WriteLine($"Unknown option : '{args[pStart]}'");
 							pStart++;
 							break;
 						}
@@ -177,7 +177,7 @@ namespace FoundationDB.Samples
 				var options = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
-					PartitionPath = partition,
+					Root = partition,
 				};
 				Db = Fdb.OpenAsync(options, go.Token).GetAwaiter().GetResult();
 

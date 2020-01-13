@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Blobs
 	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
-	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Subspace) + "}")]
+	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Location) + "}")]
 	public class FdbBlob
 	{
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
@@ -51,50 +51,24 @@ namespace FoundationDB.Layers.Blobs
 		/// Create a new object representing a binary large object (blob).
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
-		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
-		public FdbBlob([NotNull] IKeySubspace subspace)
+		/// <param name="location">Subspace to be used for storing the blob data and metadata</param>
+		public FdbBlob([NotNull] ISubspaceLocation location)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			if (location == null) throw new ArgumentNullException(nameof(location));
 
-			this.Subspace = subspace.AsDynamic();
+			this.Location = location.AsDynamic();
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		[NotNull]
-		public IDynamicKeySubspace Subspace { get; }
-
-		/// <summary>Returns the key for data chunk at the specified offset</summary>
-		/// <param name="offset"></param>
-		/// <returns>123 => (subspace, 'D', "             123")</returns>
-		protected virtual Slice DataKey(long offset)
-		{
-			//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
-			return this.Subspace.Keys.Encode(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
-		}
-
-		protected virtual long DataKeyOffset(Slice key)
-		{
-			long offset = Int64.Parse(this.Subspace.Keys.DecodeLast<string>(key), CultureInfo.InvariantCulture);
-			if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
-			return offset;
-		}
-
-		protected virtual Slice SizeKey()
-		{
-			return this.Subspace.Keys.Encode(SizeSuffix);
-		}
-
-		protected virtual Slice AttributeKey(string name)
-		{
-			return this.Subspace.Keys.Encode(AttributesSuffix, name);
-		}
-
-		#region Internal Helpers...
+		public DynamicKeySubspaceLocation Location { get; }
 
 		private readonly struct Chunk
 		{
 			public readonly Slice Key;
+
 			public readonly Slice Data;
+
 			public readonly long Offset;
 
 			public Chunk(Slice key, Slice data, long offset)
@@ -105,234 +79,302 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private async Task<Chunk> GetChunkAtAsync([NotNull] IFdbTransaction trans, long offset)
+		public async ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			Contract.Requires(trans != null && offset >= 0);
-
-			var chunkKey = await trans.GetKeyAsync(KeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
-			if (chunkKey.IsNull)
-			{ // nothing before (sparse)
-				return default(Chunk);
-			}
-
-			if (chunkKey < DataKey(0))
-			{ // off beginning
-				return default(Chunk);
-			}
-
-			long chunkOffset = DataKeyOffset(chunkKey);
-
-			var chunkData = await trans.GetAsync(chunkKey).ConfigureAwait(false);
-
-			if (chunkOffset + chunkData.Count <= offset)
-			{ // in sparse region after chunk
-				return default(Chunk);
-			}
-
-			return new Chunk(chunkKey, chunkData, chunkOffset);
+			var subspace = await this.Location.Resolve(tr);
+			return new Metadata(subspace);
 		}
 
-		private async Task MakeSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
+		public sealed class Metadata
 		{
-			Contract.Requires(trans != null && offset >= 0);
 
-			var chunk = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
-			if (chunk.Key == Slice.Nil) return; // already sparse
-			if (chunk.Offset == offset) return; // already a split point
+			public IDynamicKeySubspace Subspace { get; }
 
-			int splitPoint;
-			checked { splitPoint = (int)(offset - chunk.Offset); }
-			trans.Set(DataKey(chunk.Offset), chunk.Data.Substring(0, splitPoint));
-			trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
-		}
-
-		private async Task MakeSparseAsync([NotNull] IFdbTransaction trans, long start, long end)
-		{
-			await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
-			await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
-			trans.ClearRange(DataKey(start), DataKey(end));
-		}
-
-		private async Task<bool> TryRemoteSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
-		{
-			Contract.Requires(trans != null && offset >= 0);
-
-			var b = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
-			if (b.Offset == 0 || b.Key == Slice.Nil) return false; // in sparse region, or at beginning
-
-			var a = await GetChunkAtAsync(trans, b.Offset - 1).ConfigureAwait(false);
-			if (a.Key == Slice.Nil) return false; // no previous chunk
-
-			if (a.Offset + a.Data.Count != b.Offset) return false; // chunks can't be joined
-			if (a.Data.Count + b.Data.Count > CHUNK_SMALL) return false;  // chunks shouldn't be joined
-			// yay--merge chunks
-			trans.Clear(b.Key);
-			trans.Set(a.Key, a.Data + b.Data);
-			return true;
-		}
-
-		private void WriteToSparse([NotNull] IFdbTransaction trans, long offset, ReadOnlySpan<byte> data)
-		{
-			Contract.Requires(trans != null && offset >= 0);
-
-			if (data.Length == 0) return;
-
-			int chunks = (int)((data.Length + CHUNK_LARGE - 1) / CHUNK_LARGE);
-			int chunkSize = (data.Length + chunks) / chunks;
-
-			for (int n = 0; n < data.Length; n += chunkSize)
+			public Metadata(IDynamicKeySubspace subspace)
 			{
-				int r = Math.Min(chunkSize, data.Length - n);
-				trans.Set(DataKey(offset + n), data.Slice(n, r));
+				Contract.Requires(subspace != null);
+				this.Subspace = subspace;
 			}
-		}
 
-		private void SetSize([NotNull] IFdbTransaction trans, long size)
-		{
-			Contract.Requires(trans != null && size >= 0);
+			/// <summary>Returns the key for data chunk at the specified offset</summary>
+			/// <returns>123 => (subspace, 'D', "             123")</returns>
+			private Slice DataKey(long offset)
+			{
+				//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
+				return this.Subspace.Encode(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
+			}
 
-			//note: python code converts the size into a string
-			trans.Set(SizeKey(), Slice.FromString(size.ToString()));
-		}
+			private long DataKeyOffset(Slice key)
+			{
+				long offset = Int64.Parse(this.Subspace.DecodeLast<string>(key), CultureInfo.InvariantCulture);
+				if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
+				return offset;
+			}
 
-		#endregion
+			private Slice SizeKey()
+			{
+				return this.Subspace.Encode(SizeSuffix);
+			}
 
-		/// <summary>
-		/// Delete all key-value pairs associated with the blob.
-		/// </summary>
-		public void Delete([NotNull] IFdbTransaction trans)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			private Slice AttributeKey(string name)
+			{
+				return this.Subspace.Encode(AttributesSuffix, name);
+			}
 
-			trans.ClearRange(this.Subspace);
-		}
+			#region Internal Helpers...
 
-		/// <summary>
-		/// Get the size (in bytes) of the blob.
-		/// </summary>
-		/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
-		public async Task<long?> GetSizeAsync([NotNull] IFdbReadOnlyTransaction trans)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			private async Task<Chunk> GetChunkAtAsync([NotNull] IFdbTransaction trans, long offset)
+			{
+				Contract.Requires(trans != null && offset >= 0);
 
-			Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
+				var chunkKey = await trans.GetKeyAsync(KeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
+				if (chunkKey.IsNull || !this.Subspace.Contains(chunkKey))
+				{ // nothing before (sparse)
+					return default(Chunk);
+				}
 
-			if (value.IsNullOrEmpty) return default(long?);
+				if (chunkKey < DataKey(0))
+				{ // off beginning
+					return default(Chunk);
+				}
 
-			//note: python code stores the size as a string
-			long size = Int64.Parse(value.ToString());
-			if (size < 0) throw new InvalidOperationException("The internal blob size cannot be negative");
-			return size;
-		}
+				long chunkOffset = DataKeyOffset(chunkKey);
 
-		/// <summary>
-		/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
-		/// </summary>
-		public async Task<Slice> ReadAsync([NotNull] IFdbReadOnlyTransaction trans, long offset, int n)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (offset < 0) throw new ArgumentNullException(nameof(offset), "Offset cannot be less than zero");
+				var chunkData = await trans.GetAsync(chunkKey).ConfigureAwait(false);
 
-			long? size = await GetSizeAsync(trans).ConfigureAwait(false);
-			if (size == null) return Slice.Nil; // not found
+				if (chunkOffset + chunkData.Count <= offset)
+				{ // in sparse region after chunk
+					return default(Chunk);
+				}
 
-			if (offset >= size.Value)
-				return Slice.Empty;
+				return new Chunk(chunkKey, chunkData, chunkOffset);
+			}
 
-			// read all chunks matching the segment we need, and copy them in our buffer
-			var buffer = new byte[Math.Min(n, size.Value - offset)];
+			private async Task MakeSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
+			{
+				Contract.Requires(trans != null && offset >= 0);
 
-			await trans
-				.GetRange(
-					KeySelector.LastLessOrEqual(DataKey(offset)),
-					KeySelector.FirstGreaterOrEqual(DataKey(offset + n))
-				)
-				.ForEachAsync((chunk) =>
+				var chunk = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
+				if (chunk.Key == Slice.Nil) return; // already sparse
+				if (chunk.Offset == offset) return; // already a split point
+
+				int splitPoint;
+				checked
 				{
-					// get offset of this chunk
-					long chunkOffset = DataKeyOffset(chunk.Key);
-					var chunkData = chunk.Value;
+					splitPoint = (int) (offset - chunk.Offset);
+				}
 
-					checked
-					{
-						// intersect chunk bounds with output
-						int delta = (int)(chunkOffset - offset);
-						int start = delta;
-						int end = delta + chunkData.Count;
-						if (start < 0) start = 0;
-						if (end > n) end = n;
-
-						// compute the relative offsets in the chunk
-						int rStart = start - delta;
-						int rEnd = end - delta;
-
-						var intersect = chunkData[rStart, rEnd];
-						if (intersect.IsPresent)
-						{ // copy the data that fits
-							intersect.CopyTo(buffer, start);
-						}
-					}
-				})
-				.ConfigureAwait(false);
-
-			return buffer.AsSlice(0, buffer.Length);
-		}
-
-		/// <summary>
-		/// Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.
-		/// </summary>
-		public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
-
-			if (data.Length == 0) return;
-
-			long end = offset + data.Length;
-			await MakeSparseAsync(trans, offset, end).ConfigureAwait(false);
-			WriteToSparse(trans, offset, data.Span);
-			await TryRemoteSplitPointAsync(trans, offset).ConfigureAwait(false);
-
-			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
-			if (end > oldLength)
-			{ // lengthen file if necessary
-				SetSize(trans, end);
+				trans.Set(DataKey(chunk.Offset), chunk.Data.Substring(0, splitPoint));
+				trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
 			}
-			else
-			{ // write end needs to be merged
-				await TryRemoteSplitPointAsync(trans, end).ConfigureAwait(false);
-			}
-		}
 
-		/// <summary>
-		/// Append the contents of <paramref name="data"/> onto the end of the blob.
-		/// </summary>
-		public async Task AppendAsync([NotNull] IFdbTransaction trans, ReadOnlyMemory<byte> data)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-
-			if (data.Length == 0) return;
-
-			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
-			WriteToSparse(trans, oldLength, data.Span);
-			await TryRemoteSplitPointAsync(trans, oldLength).ConfigureAwait(false);
-			SetSize(trans, oldLength + data.Length);
-		}
-
-		/// <summary>
-		/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
-		/// </summary>
-		public async Task TruncateAsync([NotNull] IFdbTransaction trans, long newLength)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (newLength < 0) throw new ArgumentOutOfRangeException(nameof(newLength), "Length cannot be less than zero");
-
-			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
-			if (length != null)
+			private async Task MakeSparseAsync([NotNull] IFdbTransaction trans, long start, long end)
 			{
-				await MakeSparseAsync(trans, newLength, length.Value).ConfigureAwait(false);
+				await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
+				await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
+				trans.ClearRange(DataKey(start), DataKey(end));
 			}
-			SetSize(trans, newLength);
+
+			private async Task<bool> TryRemoteSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
+			{
+				Contract.Requires(trans != null && offset >= 0);
+
+				var b = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
+				if (b.Offset == 0 || b.Key == Slice.Nil) return false; // in sparse region, or at beginning
+
+				var a = await GetChunkAtAsync(trans, b.Offset - 1).ConfigureAwait(false);
+				if (a.Key == Slice.Nil) return false; // no previous chunk
+
+				if (a.Offset + a.Data.Count != b.Offset) return false; // chunks can't be joined
+				if (a.Data.Count + b.Data.Count > CHUNK_SMALL) return false; // chunks shouldn't be joined
+				// yay--merge chunks
+				trans.Clear(b.Key);
+				trans.Set(a.Key, a.Data + b.Data);
+				return true;
+			}
+
+			private void WriteToSparse([NotNull] IFdbTransaction trans, long offset, ReadOnlySpan<byte> data)
+			{
+				Contract.Requires(trans != null && offset >= 0);
+
+				if (data.Length == 0) return;
+
+				int chunks = (int) ((data.Length + CHUNK_LARGE - 1) / CHUNK_LARGE);
+				int chunkSize = (data.Length + chunks) / chunks;
+
+				for (int n = 0; n < data.Length; n += chunkSize)
+				{
+					int r = Math.Min(chunkSize, data.Length - n);
+					trans.Set(DataKey(offset + n), data.Slice(n, r));
+				}
+			}
+
+			private void SetSize([NotNull] IFdbTransaction trans, long size)
+			{
+				Contract.Requires(trans != null && size >= 0);
+
+				//note: python code converts the size into a string
+				trans.Set(SizeKey(), Slice.FromString(size.ToString()));
+			}
+
+			#endregion
+
+			/// <summary>
+			/// Delete all key-value pairs associated with the blob.
+			/// </summary>
+			public void Delete([NotNull] IFdbTransaction trans)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+
+				trans.ClearRange(this.Subspace.ToRange());
+			}
+
+			/// <summary>
+			/// Get the size (in bytes) of the blob.
+			/// </summary>
+			/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
+			public Task<long?> GetSizeAsync([NotNull] IFdbReadOnlyTransaction trans)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				return GetSizeInternalAsync(trans);
+			}
+
+			private async Task<long?> GetSizeInternalAsync(IFdbReadOnlyTransaction trans)
+			{
+
+				Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
+
+				if (value.IsNullOrEmpty) return default(long?);
+
+				//note: python code stores the size as a string
+				long size = Int64.Parse(value.ToString());
+				if (size < 0) throw new InvalidOperationException("The internal blob size cannot be negative");
+				return size;
+			}
+
+			/// <summary>
+			/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
+			/// </summary>
+			public async Task<Slice> ReadAsync([NotNull] IFdbReadOnlyTransaction trans, long offset, int n)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (offset < 0) throw new ArgumentNullException(nameof(offset), "Offset cannot be less than zero");
+
+				long? size = await GetSizeInternalAsync(trans).ConfigureAwait(false);
+				if (size == null) return Slice.Nil; // not found
+
+				if (offset >= size.Value)
+					return Slice.Empty;
+
+				// read all chunks matching the segment we need, and copy them in our buffer
+				var buffer = new byte[Math.Min(n, size.Value - offset)];
+
+				await trans
+					.GetRange(
+						KeySelector.LastLessOrEqual(DataKey(offset)),
+						KeySelector.FirstGreaterOrEqual(DataKey(offset + n))
+					)
+					.ForEachAsync((chunk) =>
+					{
+						// get offset of this chunk
+						long chunkOffset = DataKeyOffset(chunk.Key);
+						var chunkData = chunk.Value;
+
+						checked
+						{
+							// intersect chunk bounds with output
+							int delta = (int) (chunkOffset - offset);
+							int start = delta;
+							int end = delta + chunkData.Count;
+							if (start < 0) start = 0;
+							if (end > n) end = n;
+
+							// compute the relative offsets in the chunk
+							int rStart = start - delta;
+							int rEnd = end - delta;
+
+							var intersect = chunkData[rStart, rEnd];
+							if (intersect.IsPresent)
+							{ // copy the data that fits
+								intersect.CopyTo(buffer, start);
+							}
+						}
+					})
+					.ConfigureAwait(false);
+
+				return buffer.AsSlice(0, buffer.Length);
+			}
+
+			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
+
+				if (data.Length == 0) return;
+
+				long end = offset + data.Length;
+				await MakeSparseAsync(trans, offset, end).ConfigureAwait(false);
+				WriteToSparse(trans, offset, data.Span);
+				await TryRemoteSplitPointAsync(trans, offset).ConfigureAwait(false);
+
+				long oldLength = (await GetSizeInternalAsync(trans).ConfigureAwait(false)) ?? 0;
+				if (end > oldLength)
+				{ // lengthen file if necessary
+					SetSize(trans, end);
+				}
+				else
+				{ // write end needs to be merged
+					await TryRemoteSplitPointAsync(trans, end).ConfigureAwait(false);
+				}
+			}
+
+			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			public Task WriteAsync([NotNull] IFdbTransaction trans, long offset, Slice data)
+			{
+				return WriteAsync(trans, offset, data.Memory);
+			}
+
+			/// <summary>
+			/// Append the contents of <paramref name="data"/> onto the end of the blob.
+			/// </summary>
+			public async Task AppendAsync([NotNull] IFdbTransaction trans, ReadOnlyMemory<byte> data)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+
+				if (data.Length == 0) return;
+
+				long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
+				WriteToSparse(trans, oldLength, data.Span);
+				await TryRemoteSplitPointAsync(trans, oldLength).ConfigureAwait(false);
+				SetSize(trans, oldLength + data.Length);
+			}
+
+			/// <summary>
+			/// Append the contents of <paramref name="data"/> onto the end of the blob.
+			/// </summary>
+			public Task AppendAsync([NotNull] IFdbTransaction trans, Slice data)
+			{
+				return AppendAsync(trans, data.Memory);
+			}
+
+			/// <summary>
+			/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
+			/// </summary>
+			public async Task TruncateAsync([NotNull] IFdbTransaction trans, long newLength)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (newLength < 0) throw new ArgumentOutOfRangeException(nameof(newLength), "Length cannot be less than zero");
+
+				long? length = await GetSizeAsync(trans).ConfigureAwait(false);
+				if (length != null)
+				{
+					await MakeSparseAsync(trans, newLength, length.Value).ConfigureAwait(false);
+				}
+
+				SetSize(trans, newLength);
+			}
+
 		}
 
 	}

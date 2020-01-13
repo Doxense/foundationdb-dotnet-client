@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Doxense.Memory.Tests
 {
+
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
 
 	using NUnit.Framework;
@@ -37,6 +38,7 @@ namespace Doxense.Memory.Tests
 	using System.IO;
 	using System.Linq;
 	using System.Text;
+	using System.Threading.Tasks;
 	using FoundationDB.Client.Tests;
 
 	[TestFixture]
@@ -109,6 +111,96 @@ namespace Doxense.Memory.Tests
 			Assert.That(slice.ToByteString(), Is.EqualTo("ABC"));
 			Assert.That(slice.ToUnicode(), Is.EqualTo("ABC"));
 			Assert.That(slice.PrettyPrint(), Is.EqualTo("'ABC'"));
+		}
+
+		[Test]
+		public void Test_Slice_Zero_With_Capacity()
+		{
+			Assert.That(Slice.Zero(0).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(Slice.Zero(16).GetBytes(), Is.EqualTo(new byte[16]));
+
+			Assert.That(() => Slice.Zero(-1), Throws.InstanceOf<ArgumentException>());
+		}
+
+		[Test]
+		public void Test_Slice_Create_With_Byte_Array()
+		{
+			Assert.That(default(byte[]).AsSlice().GetBytes(), Is.EqualTo(null));
+			Assert.That(new byte[0].AsSlice().GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(new byte[] { 1, 2, 3 }.AsSlice().GetBytes(), Is.EqualTo(new byte[] { 1, 2, 3 }));
+
+			// the array return by GetBytes() should not be the same array that was passed to Create !
+			byte[] tmp = Guid.NewGuid().ToByteArray(); // create a 16-byte array
+			var slice = tmp.AsSlice();
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(tmp.Length));
+			// they should be equal, but not the same !
+			Assert.That(slice.GetBytes(), Is.EqualTo(tmp));
+			Assert.That(slice.GetBytes(), Is.Not.SameAs(tmp));
+
+			// create from a slice of the array
+			slice = tmp.AsSlice(4, 7);
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(4));
+			Assert.That(slice.Count, Is.EqualTo(7));
+			var buf = new byte[7];
+			Array.Copy(tmp, 4, buf, 0, 7);
+			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
+
+			Assert.That(default(byte[]).AsSlice(), Is.EqualTo(Slice.Nil));
+			Assert.That(new byte[0].AsSlice(), Is.EqualTo(Slice.Empty));
+		}
+
+		[Test]
+		public void Test_Slice_Create_Validates_Arguments()
+		{
+			// null array only allowed with offset=0 and count=0
+			// ReSharper disable AssignNullToNotNullAttribute
+			Assert.That(() => default(byte[]).AsSlice(0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => default(byte[]).AsSlice(1, 0), Throws.Nothing, "Count 0 ignores offset");
+			Assert.That(() => default(byte[]).AsSlice(1, 1), Throws.InstanceOf<ArgumentException>());
+			// ReSharper restore AssignNullToNotNullAttribute
+
+			// empty array only allowed with offset=0 and count=0
+			Assert.That(() => new byte[0].AsSlice(0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[0].AsSlice(1, 0), Throws.Nothing, "Count 0 ignores offset");
+			Assert.That(() => new byte[0].AsSlice(1, 1), Throws.InstanceOf<ArgumentException>());
+
+			// last item must fit in the buffer
+			Assert.That(() => new byte[3].AsSlice(0, 4), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(1, 3), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(3, 1), Throws.InstanceOf<ArgumentException>());
+
+			// negative arguments
+			Assert.That(() => new byte[3].AsSlice(-1, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(0, -1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => new byte[3].AsSlice(-1, -1), Throws.InstanceOf<ArgumentException>());
+		}
+
+		[Test]
+		public void Test_Slice_Create_With_ArraySegment()
+		{
+			byte[] tmp = Guid.NewGuid().ToByteArray();
+
+			Slice slice = new ArraySegment<byte>(tmp).AsSlice();
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(tmp.Length));
+			// they should be equal, but not the same !
+			Assert.That(slice.GetBytes(), Is.EqualTo(tmp));
+			Assert.That(slice.GetBytes(), Is.Not.SameAs(tmp));
+
+			slice = new ArraySegment<byte>(tmp, 4, 7).AsSlice();
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(4));
+			Assert.That(slice.Count, Is.EqualTo(7));
+			var buf = new byte[7];
+			Array.Copy(tmp, 4, buf, 0, 7);
+			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
+
+			Assert.That(default(ArraySegment<byte>).AsSlice(), Is.EqualTo(Slice.Nil));
+			Assert.That(new ArraySegment<byte>(new byte[0]).AsSlice(), Is.EqualTo(Slice.Empty));
 		}
 
 		[Test]
@@ -1588,7 +1680,7 @@ namespace Doxense.Memory.Tests
 		[Test]
 		public void Test_Slice_FromBase64()
 		{
-			// numl string is Nil slice
+			// null string is Nil slice
 			var slice = Slice.FromBase64(default(string));
 			Assert.That(slice, Is.EqualTo(Slice.Nil));
 
@@ -1956,6 +2048,40 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
+		public async Task Test_Slice_FromStreamAsync()
+		{
+			Slice slice;
+
+			// Reading from a MemoryStream should use the non-async path
+			using (var ms = new MemoryStream(UNICODE_BYTES))
+			{
+				slice = await Slice.FromStreamAsync(ms, this.Cancellation);
+			}
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
+
+			// Reading from a FileStream should use the async path
+			var tmp = Path.GetTempFileName();
+			try
+			{
+				File.WriteAllBytes(tmp, UNICODE_BYTES);
+				using(var fs = File.OpenRead(tmp))
+				{
+					slice = await Slice.FromStreamAsync(fs, this.Cancellation);
+				}
+			}
+			finally
+			{
+				File.Delete(tmp);
+			}
+
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
+		}
+
+		[Test]
 		public void Test_Slice_Substring()
 		{
 			Assert.That(Slice.Empty.Substring(0), Is.EqualTo(Slice.Empty));
@@ -2054,10 +2180,10 @@ namespace Doxense.Memory.Tests
 			Assert.That(a + bc, Is.EqualTo(Value("abc")));
 
 			// Slice + byte
-			Assert.That(a + 0, Is.EqualTo(Slice.FromByteString("a\x00")));
-			Assert.That(a + 1, Is.EqualTo(Slice.FromByteString("a\x01")));
-			Assert.That(b + (byte)'A', Is.EqualTo(Slice.FromByteString("bA")));
-			Assert.That(abc + 255, Is.EqualTo(Slice.FromByteString("abc\xff")));
+			Assert.That(a + 0, Is.EqualTo(Key("a\x00")));
+			Assert.That(a + 1, Is.EqualTo(Key("a\x01")));
+			Assert.That(b + (byte)'A', Is.EqualTo(Key("bA")));
+			Assert.That(abc + 255, Is.EqualTo(Key("abc\xff")));
 		}
 
 		[Test]
@@ -2210,6 +2336,42 @@ namespace Doxense.Memory.Tests
 			// multi-bytes separator with an offset
 			var sep = Value("!<@>!").Substring(1, 3);
 			Assert.That(Value("A<@>BB<@>CCC").Split(sep), Is.EqualTo(new[] { a, b, c }));
+		}
+
+		[Test]
+		public void Test_Slice_As_ReadOnlySpan()
+		{
+			var span = Slice.Nil.Span;
+			Assert.That(span.Length, Is.Zero, "Slice.Nil => empty span");
+
+			span = Slice.Empty.Span;
+			Assert.That(span.Length, Is.Zero, "Slice.Empty => empty span");
+
+			var buffer = Encoding.ASCII.GetBytes("$$$Hello, World!$$$$$");
+			var x = buffer.AsSlice(3, 13);
+			Assume.That(x.ToStringUtf8(), Is.EqualTo("Hello, World!"));
+			var bytes = x.GetBytesOrEmpty();
+
+			span = x.Span;
+			Assert.That(span.Length, Is.EqualTo(13));
+			Assert.That((char)span[0], Is.EqualTo('H'));
+			Assert.That(span.ToArray(), Is.EqualTo(bytes));
+
+			span = x.Substring(7).Span;
+			Assert.That(span.Length, Is.EqualTo(6));
+			Assert.That((char)span[0], Is.EqualTo('W'));
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("World!")));
+
+			span = x.Substring(7, 5).Span;
+			Assert.That(span.Length, Is.EqualTo(5));
+			Assert.That((char)span[0], Is.EqualTo('W'));
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("World")));
+
+			//note: mutating the slice behind our back should be visible via the span
+			span = x.Substring(0, 5).Span;
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("Hello")));
+			buffer[4] = (byte) '3';
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("H3llo")));
 		}
 
 		#region Black Magic Incantations...

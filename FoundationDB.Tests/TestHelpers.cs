@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,20 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Filters.Logging;
-	using FoundationDB.Layers.Directories;
-	using JetBrains.Annotations;
-	using NUnit.Framework;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
+	using FoundationDB.Filters.Logging;
+	using JetBrains.Annotations;
+	using NUnit.Framework;
 
 	internal static class TestHelpers
 	{
 		public const string TestClusterFile = null;
-		public static readonly Slice TestGlobalPrefix = Slice.FromByte('T');
-		public static readonly string[] TestPartition = { "Tests", Environment.MachineName };
+		public static readonly Slice TestGlobalPrefix = new byte[] { 0x2, (byte)'T', (byte) 'E', (byte)'S', (byte)'T', 0x0 }.AsSlice();
 		public const int DefaultTimeout = 15_000;
 
 		//TODO: move these methods to FdbTest ?
@@ -52,64 +50,126 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				GlobalSpace = KeySubspace.FromKey(TestGlobalPrefix),
+				Root = FdbDirectoryPath.Empty, // core tests cannot rely on the DirectoryLayer!
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
 		}
 
-		/// <summary>Connect to the local test database</summary>
+		/// <summary>Connect to the local test partition</summary>
 		public static Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
 		{
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				PartitionPath = TestPartition,
+				Root = FdbDirectoryPath.Combine("Tests", "Fdb", Environment.MachineName),
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
 		}
 
-		public static async Task<FdbDirectorySubspace> GetCleanDirectory([NotNull] IFdbDatabase db, [NotNull] string[] path, CancellationToken ct)
+		public static Task CleanSubspace([NotNull] IFdbDatabase db, IKeySubspace subspace, CancellationToken ct)
+		{
+			Assert.That(subspace, Is.Not.Null, "null db");
+			Assert.That(subspace.GetPrefix(), Is.Not.EqualTo(Slice.Empty), "Cannot clean the root of the database!");
+
+			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), ct);
+		}
+
+		public static async Task CleanLocation<TSubspace>([NotNull] IFdbDatabase db, ISubspaceLocation<TSubspace> location, CancellationToken ct)
+			where TSubspace : IKeySubspace
 		{
 			Assert.That(db, Is.Not.Null, "null db");
-			Assert.That(path, Is.Not.Null.And.Length.GreaterThan(0), "invalid path");
-
-			// do not log
-			db = db.WithoutLogging();
-
-			var subspace = await db.ReadWriteAsync(async tr =>
+			if (location.Path.Count == 0 && location.Prefix.Count == 0)
 			{
-				// remove previous
-				await db.Directory.TryRemoveAsync(tr, path);
-				// create new
-				return await db.Directory.CreateAsync(tr, path);
+				Assert.Fail("Cannot clean the root of the database!");
+			}
+
+			// if the prefix part is empty, then we simply recursively remove the corresponding sub-directory tree
+			// If it is not empty, we only remove the corresponding subspace (without touching the sub-directories!)
+
+			await db.WithoutLogging().WriteAsync(async tr =>
+			{
+				if (location.Path.Count == 0)
+				{ // subspace under the root of the partition
+
+					// get and clear subspace
+					tr.ClearRange(KeyRange.StartsWith(location.Prefix));
+				}
+				else if (location.Prefix.Count == 0)
+				{
+					// remove previous
+					await db.DirectoryLayer.TryRemoveAsync(tr, location.Path);
+
+					// create new
+					_ = await db.DirectoryLayer.CreateAsync(tr, location.Path);
+				}
+				else
+				{ // subspace under a directory subspace
+
+					// make sure the parent path exists!
+					var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, location.Path);
+
+					// get and clear subspace
+					tr.ClearRange(subspace.Partition[location.Prefix].ToRange());
+				}
 			}, ct);
 
-			Assert.That(subspace, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True);
-			return subspace;
 		}
 
 		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.GetPrefix()), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			// do not log
 			db = db.WithoutLogging();
 
-			using (var tr = db.BeginTransaction(ct))
+			using (var tr = await db.BeginTransactionAsync(ct))
 			{
 				await DumpSubspace(tr, subspace).ConfigureAwait(false);
+			}
+		}
+
+		public static async Task DumpLocation<TSubspace>([NotNull] IFdbDatabase db, [NotNull] ISubspaceLocation<TSubspace> path, CancellationToken ct)
+			where TSubspace : IKeySubspace
+		{
+			Assert.That(db, Is.Not.Null);
+
+			// do not log
+			db = db.WithoutLogging();
+
+			using (var tr = await db.BeginTransactionAsync(ct))
+			{
+				var subspace = await path.Resolve(tr);
+				if (subspace == null)
+				{
+					FdbTest.Log($"Dumping content of subspace {path}:");
+					FdbTest.Log("> EMPTY!");
+					return;
+				}
+
+				await DumpSubspace(tr, subspace).ConfigureAwait(false);
+
+				if (path.Prefix.Count == 0)
+				{
+					foreach(var name in await db.DirectoryLayer.TryListAsync(tr, path.Path))
+					{
+						var child = await db.DirectoryLayer.TryOpenAsync(tr, path.Path[name]);
+						if (child != null)
+						{
+							await DumpSubspace(tr, child);
+						}
+					}
+				}
 			}
 		}
 
 		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IKeySubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
+			Assert.That(subspace, Is.Not.Null);
 
-			FdbTest.Log("Dumping content of subspace " + subspace.ToString() + " :");
+			FdbTest.Log($"Dumping content of {subspace} at {subspace.GetPrefix():K}:");
 			int count = 0;
 			await tr
 				.GetRange(KeyRange.StartsWith(subspace.GetPrefix()))

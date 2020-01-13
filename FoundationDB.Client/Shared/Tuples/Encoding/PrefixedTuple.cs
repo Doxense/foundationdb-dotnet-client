@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -77,15 +78,26 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public int Count => m_items.Count;
 
-		public object this[int index] => m_items[index];
+		public object? this[int index] => m_items[index];
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => m_items[fromIncluded, toExcluded];
+		//REVIEW: should we allow this? this silently drops the prefix from the result...
+
+#if USE_RANGE_API
+
+		public object? this[Index index] => m_items[index];
+
+		public IVarTuple this[Range range] => m_items[range];
+		//REVIEW: should we allow this? this silently drops the prefix from the result...
+
+#endif
 
 		public T Get<T>(int index)
 		{
 			return m_items.Get<T>(index);
 		}
 
+		[return: MaybeNull]
 		public T Last<T>()
 		{
 			return m_items.Last<T>();
@@ -101,14 +113,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Concat(tuple);
 		}
 
-		[NotNull]
-		public PrefixedTuple Append<T>(T value)
+		public PrefixedTuple Append<T>([AllowNull] T value)
 		{
 			return new PrefixedTuple(m_prefix, m_items.Append<T>(value));
 		}
 
-		[Pure, NotNull]
-		public PrefixedTuple Concat([NotNull] IVarTuple tuple)
+		[Pure]
+		public PrefixedTuple Concat(IVarTuple tuple)
 		{
 			Contract.NotNull(tuple, nameof(tuple));
 			if (tuple.Count == 0) return this;
@@ -116,12 +127,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return new PrefixedTuple(m_prefix, m_items.Concat(tuple));
 		}
 
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			m_items.CopyTo(array, offset);
 		}
 
-		public IEnumerator<object> GetEnumerator()
+		public IEnumerator<object?> GetEnumerator()
 		{
 			return m_items.GetEnumerator();
 		}
@@ -138,12 +149,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return STuple.Formatter.ToString(this);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -153,13 +164,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var linked = other as PrefixedTuple;
-			if (!object.ReferenceEquals(linked, null))
+			if (other is PrefixedTuple linked)
 			{
 				// Should all of these tuples be considered equal ?
 				// * Head=(A,B) + Tail=(C,)

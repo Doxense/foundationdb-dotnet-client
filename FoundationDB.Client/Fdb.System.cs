@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,11 @@ namespace FoundationDB.Client
 			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
 			/// <summary>"\xFF/metadataVersion"</summary>
-			public static readonly Slice MetadataVersion = Slice.FromByteString("\xff/metadataVersion");
+			public static readonly Slice MetadataVersionKey = Slice.FromByteString("\xff/metadataVersion");
+
+			/// <summary>"\xFF/metadataVersion\x00"</summary>
+			/// <remarks>Used to add a read conflict range on the metadataVersion key</remarks>
+			internal static readonly Slice MetadataVersionKeyEnd = Slice.FromByteString("\xff/metadataVersion\x00");
 
 			/// <summary>Placeholder value used when updating the metadataVersion key (80-bit version stamp + 32 bit offset)</summary>
 			internal static readonly Slice MetadataVersionValue = Slice.Zero(14);
@@ -116,35 +120,22 @@ namespace FoundationDB.Client
 			}
 
 			[ItemCanBeNull]
-			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			public static Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
 
 				// we should not retry the read to the status key!
-				using (var trans = db.BeginReadOnlyTransaction(ct))
+				return db.ReadAsync(tr =>
 				{
-					trans.WithPrioritySystemImmediate();
+					tr.WithPrioritySystemImmediate();
 					//note: in v3.x, the status key does not need the access to system key option.
 
 					//TODO: set a custom timeout?
-					return await GetStatusAsync(trans);
-				}
+					return GetStatusAsync(tr);
+				}, ct);
 			}
 
 			#endregion
-
-			/// <summary>Return the current value of the metadata version of the database.</summary>
-			/// <remarks>
-			/// Please note that by the time the value has been read, it may have already changed in the database!
-			/// It is highly recommended to read the key as part as the same transaction that would read or update any metadata.
-			/// This method requires API version 610 or greater.
-			/// </remarks>
-			public static Task<Slice> GetMetadataVersionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
-			{
-				Contract.NotNull(db, nameof(db));
-				if (Fdb.ApiVersion < 610) throw new NotSupportedException($"The metadata version system key is only available on version 6.1 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You will need to select API version 610 or greater.");
-				return db.ReadAsync(tr => tr.GetAsync(System.MetadataVersion), ct);
-			}
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>
@@ -257,16 +248,17 @@ namespace FoundationDB.Client
 				Contract.NotNull(trans, nameof(trans));
 				Contract.Requires(trans.Context?.Database != null);
 
-				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
+				var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);
+
+				// We don't want to change the state of the transaction, so we will create another one at the same read version
+				return await trans.Context.Database.ReadAsync(shadow =>
 				{
-					// We don't want to change the state of the transaction, so we will create another one at the same read version
-					var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);
 					shadow.SetReadVersion(readVersion);
 
 					//TODO: we may need to also copy options like RetryLimit and Timeout ?
 
-					return await GetBoundaryKeysInternalAsync(shadow, beginInclusive, endExclusive).ConfigureAwait(false);
-				}
+					return GetBoundaryKeysInternalAsync(shadow, beginInclusive, endExclusive);
+				}, trans.Cancellation);
 			}
 
 			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
@@ -470,7 +462,7 @@ namespace FoundationDB.Client
 				var cursor = beginInclusive.Memoize();
 				var end = endExclusive.Memoize();
 
-				using (var tr = db.BeginReadOnlyTransaction(ct))
+				using (var tr = await db.BeginReadOnlyTransactionAsync(ct))
 				{
 #if TRACE_COUNTING
 					tr.Annotate("Estimating number of keys in range {0}", KeyRange.Create(beginInclusive, endExclusive));

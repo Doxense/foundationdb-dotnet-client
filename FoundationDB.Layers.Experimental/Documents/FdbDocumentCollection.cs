@@ -42,24 +42,20 @@ namespace FoundationDB.Layers.Documents
 
 		public const int DefaultChunkSize = 1 << 20; // 1 MB
 
-		public FdbDocumentCollection(IKeySubspace subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
+		public FdbDocumentCollection(ISubspaceLocation subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
 			: this(subspace.AsTyped<TId, int>(), selector, valueEncoder)
 		{ }
 
-		public FdbDocumentCollection(ITypedKeySubspace<TId, int> subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
+		public FdbDocumentCollection(TypedKeySubspaceLocation<TId, int> subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-			if (selector == null) throw new ArgumentNullException(nameof(selector));
-			if (valueEncoder == null) throw new ArgumentNullException(nameof(valueEncoder));
-
-			this.Subspace = subspace;
-			this.IdSelector = selector;
-			this.ValueEncoder = valueEncoder;
+			this.Location = subspace ?? throw new ArgumentNullException(nameof(subspace));
+			this.IdSelector = selector ?? throw new ArgumentNullException(nameof(selector));
+			this.ValueEncoder = valueEncoder ?? throw new ArgumentNullException(nameof(valueEncoder));
 		}
 
-		protected virtual Task<List<Slice>> LoadPartsAsync(IFdbReadOnlyTransaction trans, TId id)
+		protected virtual Task<List<Slice>> LoadPartsAsync(ITypedKeySubspace<TId, int> subspace, IFdbReadOnlyTransaction trans, TId id)
 		{
-			var key = this.Subspace.Keys.EncodePartial(id);
+			var key = subspace.EncodePartial(id);
 
 			return trans
 				.GetRange(KeyRange.StartsWith(key)) //TODO: options ?
@@ -74,7 +70,7 @@ namespace FoundationDB.Layers.Documents
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public ITypedKeySubspace<TId, int> Subspace { get; }
+		public TypedKeySubspaceLocation<TId, int> Location { get; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; }
@@ -86,7 +82,7 @@ namespace FoundationDB.Layers.Documents
 		public int ChunkSize { get; private set; }
 
 		/// <summary>Insert a new document in the collection</summary>
-		public void Insert(IFdbTransaction trans, TDocument document)
+		public async Task InsertAsync(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (document == null) throw new ArgumentNullException(nameof(document));
@@ -97,8 +93,10 @@ namespace FoundationDB.Layers.Documents
 			// encode the document
 			var packed = this.ValueEncoder.EncodeValue(document);
 
+			var subspace = await this.Location.Resolve(trans);
+
 			// Key Prefix = ...(id,)
-			var key = this.Subspace.Keys.EncodePartial(id);
+			var key = subspace.EncodePartial(id);
 
 			// clear previous value
 			trans.ClearRange(KeyRange.StartsWith(key));
@@ -119,7 +117,7 @@ namespace FoundationDB.Layers.Documents
 				while (remaining > 0)
 				{
 					int sz = Math.Max(remaining, this.ChunkSize);
-					trans.Set(this.Subspace.Keys[id, index], packed.Substring(p, sz));
+					trans.Set(subspace[id, index], packed.Substring(p, sz));
 					++index;
 					p += sz;
 					remaining -= sz;
@@ -136,7 +134,9 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id)); // only for ref types
 
-			var parts = await LoadPartsAsync(trans, id).ConfigureAwait(false);
+			var subspace = await this.Location.Resolve(trans);
+
+			var parts = await LoadPartsAsync(subspace, trans, id).ConfigureAwait(false);
 
 			return DecodeParts(parts);
 		}
@@ -150,7 +150,9 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
-			var results = await Task.WhenAll(ids.Select(id => LoadPartsAsync(trans, id)));
+			var subspace = await this.Location.Resolve(trans);
+
+			var results = await Task.WhenAll(ids.Select(id => LoadPartsAsync(subspace, trans, id)));
 
 			return results.Select(parts => DecodeParts(parts)).ToList();
 		}
@@ -158,12 +160,14 @@ namespace FoundationDB.Layers.Documents
 		/// <summary>Delete a document from the collection</summary>
 		/// <param name="trans"></param>
 		/// <param name="id"></param>
-		public void Delete(IFdbTransaction trans, TId id)
+		public async Task DeleteAsync(IFdbTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
-			var key = this.Subspace.Keys.EncodePartial(id);
+			var subspace = await this.Location.Resolve(trans);
+
+			var key = subspace.EncodePartial(id);
 			trans.ClearRange(KeyRange.StartsWith(key));
 		}
 
@@ -171,14 +175,16 @@ namespace FoundationDB.Layers.Documents
 		/// <summary>Delete a document from the collection</summary>
 		/// <param name="trans"></param>
 		/// <param name="ids"></param>
-		public void DeleteMultiple(IFdbTransaction trans, IEnumerable<TId> ids)
+		public async Task DeleteMultipleAsync(IFdbTransaction trans, IEnumerable<TId> ids)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
+			var subspace = await this.Location.Resolve(trans);
+
 			foreach (var id in ids)
 			{
-				var key = this.Subspace.Keys.EncodePartial(id);
+				var key = subspace.EncodePartial(id);
 				trans.ClearRange(KeyRange.StartsWith(key));
 			}
 		}
@@ -186,7 +192,7 @@ namespace FoundationDB.Layers.Documents
 		/// <summary>Delete a document from the collection</summary>
 		/// <param name="trans"></param>
 		/// <param name="document"></param>
-		public void Delete(IFdbTransaction trans, TDocument document)
+		public Task DeleteAsync(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (document == null) throw new ArgumentNullException(nameof(document));
@@ -194,18 +200,18 @@ namespace FoundationDB.Layers.Documents
 			var id = this.IdSelector(document);
 			if (id == null) throw new InvalidOperationException();
 
-			Delete(trans, id);
+			return DeleteAsync(trans, id);
 		}
 
 		/// <summary>Delete a document from the collection</summary>
 		/// <param name="trans"></param>
 		/// <param name="documents"></param>
-		public void DeleteMultiple(IFdbTransaction trans, IEnumerable<TDocument> documents)
+		public Task DeleteMultipleAsync(IFdbTransaction trans, IEnumerable<TDocument> documents)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (documents == null) throw new ArgumentNullException(nameof(documents));
 
-			DeleteMultiple(trans, documents.Select(document => this.IdSelector(document)));
+			return DeleteMultipleAsync(trans, documents.Select(document => this.IdSelector(document)));
 		}
 
 	}

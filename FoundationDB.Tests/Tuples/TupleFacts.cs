@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,16 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t0.ToArray(), Is.EqualTo(new object[0]));
 			Assert.That(t0.ToString(), Is.EqualTo("()"));
 			Assert.That(t0, Is.InstanceOf<STuple>());
+			Assert.That(((IVarTuple) t0)[0, 0], Is.EqualTo(STuple.Empty));
+#if USE_RANGE_API
+			Assert.That(((IVarTuple) t0)[..], Is.EqualTo(STuple.Empty));
+#endif
+			Assert.That(() => ((IVarTuple) t0)[0], Throws.Exception);
+
+			using (var it = t0.GetEnumerator())
+			{
+				Assert.That(it.MoveNext(), Is.False);
+			}
 		}
 
 		[Test]
@@ -65,6 +75,12 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t1.ToArray(), Is.EqualTo(new object[] { "hello world" }));
 			Assert.That(t1.ToString(), Is.EqualTo("(\"hello world\",)"));
 			Assert.That(t1, Is.InstanceOf<STuple<string>>());
+			Assert.That(t1[0, 1], Is.EqualTo(t1));
+#if USE_RANGE_API
+			Assert.That(t1[..], Is.EqualTo(t1));
+			Assert.That(t1[..0], Is.EqualTo(STuple.Empty));
+			Assert.That(t1[1..], Is.EqualTo(STuple.Empty));
+#endif
 
 			Assert.That(STuple.Create(123).GetHashCode(), Is.EqualTo(STuple.Create("Hello", 123).Tail.GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123).GetHashCode(), Is.EqualTo(STuple.Create(123L).GetHashCode()), "Hashcode should be stable");
@@ -75,6 +91,17 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(STuple.Create(123) != STuple.Create(123), Is.False, "op_Inequality should work for struct tuples");
 			Assert.That(STuple.Create(123) == STuple.Create(456), Is.False, "op_Equality should work for struct tuples");
 			Assert.That(STuple.Create(123) != STuple.Create(456), Is.True, "op_Inequality should work for struct tuples");
+
+			Assert.That(STuple.Create(123) == ValueTuple.Create(123), Is.True, "op_Equality should work for struct tuples");
+			Assert.That(STuple.Create(123) != ValueTuple.Create(123), Is.False, "op_Inequality should work for struct tuples");
+			Assert.That(STuple.Create(123) == ValueTuple.Create(456), Is.False, "op_Equality should work for struct tuples");
+			Assert.That(STuple.Create(123) != ValueTuple.Create(456), Is.True, "op_Inequality should work for struct tuples");
+
+			Assert.That(ValueTuple.Create(123) == STuple.Create(123), Is.True, "op_Equality should work for struct tuples");
+			Assert.That(ValueTuple.Create(123) != STuple.Create(123), Is.False, "op_Inequality should work for struct tuples");
+			Assert.That(ValueTuple.Create(123) == STuple.Create(456), Is.False, "op_Equality should work for struct tuples");
+			Assert.That(ValueTuple.Create(123) != STuple.Create(456), Is.True, "op_Inequality should work for struct tuples");
+
 			// ReSharper restore EqualExpressionComparison
 			// ReSharper restore CannotApplyEqualityOperatorToType
 
@@ -82,6 +109,24 @@ namespace Doxense.Collections.Tuples.Tests
 				t1.Deconstruct(out string item1);
 				Assert.That(item1, Is.EqualTo("hello world"));
 			}
+
+			Assert.That((ValueTuple<string>) t1, Is.EqualTo(ValueTuple.Create("hello world")));
+			Assert.That(t1.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world")));
+			Assert.That((STuple<string>) Tuple.Create("hello world"), Is.EqualTo(t1));
+
+			Assert.That(t1.Append(123), Is.InstanceOf<STuple<string, int>>().And.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t1.Append(123, false), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
+
+			Assert.That(t1.Concat(STuple.Create(123)), Is.InstanceOf<STuple<string, int>>().And.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t1.Concat(STuple.Create(123, false)), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t1.Concat(STuple.Create(123, false, 1234L)), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t1.Concat(STuple.Create(123, false, 1234L, -1234)), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+
+			Assert.That(t1.Concat(ValueTuple.Create(123)), Is.InstanceOf<STuple<string, int>>().And.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t1.Concat((123, false)), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t1.Concat((123, false, 1234L)), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t1.Concat((123, false, 1234L, -1234)), Is.InstanceOf<STuple<string, int, bool, long, int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t1.Concat((123, false, 1234L, -1234, Math.PI)), Is.InstanceOf<STuple<string, int, bool, long, int, double>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
 		}
 
 		[Test]
@@ -98,6 +143,14 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t2.ToArray(), Is.EqualTo(new object[] { "hello world", 123 }));
 			Assert.That(t2.ToString(), Is.EqualTo("(\"hello world\", 123)"));
 			Assert.That(t2, Is.InstanceOf<STuple<string, int>>());
+			Assert.That(t2[0, 2], Is.EqualTo(t2));
+			Assert.That(t2[0, 1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t2[1, 2], Is.EqualTo(STuple.Create(123)));
+#if USE_RANGE_API
+			Assert.That(t2[..], Is.EqualTo(t2));
+			Assert.That(t2[..1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t2[1..], Is.EqualTo(STuple.Create(123)));
+#endif
 
 			Assert.That(t2.Tail.Count, Is.EqualTo(1));
 			Assert.That(t2.Tail.Item1, Is.EqualTo(123));
@@ -126,6 +179,13 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item1, Is.EqualTo("hello world"));
 				Assert.That(item2, Is.EqualTo(123));
 			}
+
+			Assert.That(((string, int)) t2, Is.EqualTo(ValueTuple.Create("hello world", 123)));
+			Assert.That(t2.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123)));
+			Assert.That((STuple<string, int>) Tuple.Create("hello world", 123), Is.EqualTo(t2));
+
+			Assert.That(t2.Append(false), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t2.Append(false, 1234L), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
 		}
 
 		[Test]
@@ -145,6 +205,24 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t3.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false }));
 			Assert.That(t3.ToString(), Is.EqualTo(@"(""hello world"", 123, false)"));
 			Assert.That(t3, Is.InstanceOf<STuple<string, int, bool>>());
+
+			Assert.That(t3[0, 3], Is.EqualTo(t3));
+			Assert.That(t3[0, 1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t3[0, 2], Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t3[1, 2], Is.EqualTo(STuple.Create(123)));
+			Assert.That(t3[1, 3], Is.EqualTo(STuple.Create(123, false)));
+
+#if USE_RANGE_API
+			Assert.That(((IVarTuple) t3)[^1], Is.EqualTo(false));
+			Assert.That(((IVarTuple) t3)[^2], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t3)[^3], Is.EqualTo("hello world"));
+			Assert.That(() => ((IVarTuple) t3)[^4], Throws.Exception);
+			Assert.That(t3[..], Is.EqualTo(t3));
+			Assert.That(t3[..1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t3[..2], Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t3[1..2], Is.EqualTo(STuple.Create(123)));
+			Assert.That(t3[1..], Is.EqualTo(STuple.Create(123, false)));
+#endif
 
 			Assert.That(t3.Tail.Count, Is.EqualTo(2));
 			Assert.That(t3.Tail.Item1, Is.EqualTo(123));
@@ -178,6 +256,14 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item2, Is.EqualTo(123));
 				Assert.That(item3, Is.False);
 			}
+
+			Assert.That(((string, int, bool)) t3, Is.EqualTo(ValueTuple.Create("hello world", 123, false)));
+			Assert.That(t3.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123, false)));
+			Assert.That((STuple<string, int, bool>) Tuple.Create("hello world", 123, false), Is.EqualTo(t3));
+
+			Assert.That(t3.Append(1234L), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t3.Append(1234L, -1234), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t3.Append(1234L, -1234, Math.PI), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
 		}
 
 		[Test]
@@ -200,6 +286,24 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t4.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L}));
 			Assert.That(t4.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234)"));
 			Assert.That(t4, Is.InstanceOf<STuple<string, int, bool, long>>());
+
+#if USE_RANGE_API
+			Assert.That(((IVarTuple) t4)[^1], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t4)[^2], Is.EqualTo(false));
+			Assert.That(((IVarTuple) t4)[^3], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t4)[^4], Is.EqualTo("hello world"));
+			Assert.That(() => ((IVarTuple) t4)[^5], Throws.Exception);
+
+			Assert.That(t4[..], Is.EqualTo(t4));
+			Assert.That(t4[..1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t4[..2], Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t4[..3], Is.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t4[1..], Is.EqualTo(STuple.Create(123, false, 1234L)));
+			Assert.That(t4[2..], Is.EqualTo(STuple.Create(false, 1234L)));
+			Assert.That(t4[3..], Is.EqualTo(STuple.Create(1234L)));
+			Assert.That(t4[1..3], Is.EqualTo(STuple.Create(123, false)));
+			Assert.That(t4[2..3], Is.EqualTo(STuple.Create(false)));
+#endif
 
 			Assert.That(t4.Tail.Count, Is.EqualTo(3));
 			Assert.That(t4.Tail.Item1, Is.EqualTo(123));
@@ -238,6 +342,13 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item3, Is.False);
 				Assert.That(item4, Is.EqualTo(1234L));
 			}
+
+			Assert.That(((string, int, bool, long)) t4, Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t4.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L)));
+			Assert.That((STuple<string, int, bool, long>) Tuple.Create("hello world", 123, false, 1234L), Is.EqualTo(t4));
+
+			Assert.That(t4.Append(-1234), Is.InstanceOf<LinkedTuple<int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t4.Append(-1234, Math.PI), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
 		}
 
 		[Test]
@@ -264,6 +375,28 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t5.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234)"));
 			Assert.That(t5, Is.InstanceOf<STuple<string, int, bool, long, int>>());
 
+#if USE_RANGE_API
+			Assert.That(((IVarTuple) t5)[^1], Is.EqualTo(-1234));
+			Assert.That(((IVarTuple) t5)[^2], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t5)[^3], Is.EqualTo(false));
+			Assert.That(((IVarTuple) t5)[^4], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t5)[^5], Is.EqualTo("hello world"));
+			Assert.That(() => ((IVarTuple) t5)[^6], Throws.Exception);
+
+			Assert.That(t5[..], Is.EqualTo(t5));
+			Assert.That(t5[1..], Is.EqualTo(STuple.Create(123, false, 1234L, -1234)));
+			Assert.That(t5[2..], Is.EqualTo(STuple.Create(false, 1234L, -1234)));
+			Assert.That(t5[3..], Is.EqualTo(STuple.Create(1234L, -1234)));
+			Assert.That(t5[4..], Is.EqualTo(STuple.Create(-1234)));
+			Assert.That(t5[..4], Is.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t5[..3], Is.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t5[..2], Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t5[..1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t5[1..4], Is.EqualTo(STuple.Create(123, false, 1234L)));
+			Assert.That(t5[2..4], Is.EqualTo(STuple.Create(false, 1234L)));
+			Assert.That(t5[2..3], Is.EqualTo(STuple.Create(false)));
+#endif
+
 			Assert.That(t5.Tail.Count, Is.EqualTo(4));
 			Assert.That(t5.Tail.Item1, Is.EqualTo(123));
 			Assert.That(t5.Tail.Item2, Is.False);
@@ -289,6 +422,13 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item4, Is.EqualTo(1234L));
 				Assert.That(item5, Is.EqualTo(-1234L));
 			}
+
+			Assert.That(((string, int, bool, long, int)) t5, Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t5.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That((STuple<string, int, bool, long, int>) Tuple.Create("hello world", 123, false, 1234L, -1234), Is.EqualTo(t5));
+
+			Assert.That(t5.Append("six"), Is.InstanceOf<LinkedTuple<string>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
+			Assert.That(t5.Append("six", "seven"), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
 		}
 
 		[Test]
@@ -316,6 +456,32 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(t6.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six" }));
 			Assert.That(t6.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234, ""six"")"));
 			Assert.That(t6, Is.InstanceOf<STuple<string, int, bool, long, int, string>>());
+
+#if USE_RANGE_API
+			Assert.That(((IVarTuple) t6)[^1], Is.EqualTo("six"));
+			Assert.That(((IVarTuple) t6)[^2], Is.EqualTo(-1234));
+			Assert.That(((IVarTuple) t6)[^3], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t6)[^4], Is.EqualTo(false));
+			Assert.That(((IVarTuple) t6)[^5], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t6)[^6], Is.EqualTo("hello world"));
+			Assert.That(() => ((IVarTuple) t6)[^7], Throws.Exception);
+
+			Assert.That(t6[..], Is.EqualTo(t6));
+			Assert.That(t6[1..], Is.EqualTo(STuple.Create(123, false, 1234L, -1234, "six")));
+			Assert.That(t6[2..], Is.EqualTo(STuple.Create(false, 1234L, -1234, "six")));
+			Assert.That(t6[3..], Is.EqualTo(STuple.Create(1234L, -1234, "six")));
+			Assert.That(t6[4..], Is.EqualTo(STuple.Create(-1234, "six")));
+			Assert.That(t6[5..], Is.EqualTo(STuple.Create("six")));
+			Assert.That(t6[..5], Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t6[..4], Is.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t6[..3], Is.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t6[..2], Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t6[..1], Is.EqualTo(STuple.Create("hello world")));
+			Assert.That(t6[1..5], Is.EqualTo(STuple.Create(123, false, 1234L, -1234)));
+			Assert.That(t6[1..4], Is.EqualTo(STuple.Create(123, false, 1234L)));
+			Assert.That(t6[2..4], Is.EqualTo(STuple.Create(false, 1234L)));
+			Assert.That(t6[2..3], Is.EqualTo(STuple.Create(false)));
+#endif
 
 			Assert.That(t6.Tail.Count, Is.EqualTo(5));
 			Assert.That(t6.Tail.Item1, Is.EqualTo(123));
@@ -362,17 +528,16 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tn.Get<bool>(6), Is.True);
 			Assert.That(tn.Get<double>(7), Is.EqualTo(Math.PI));
 			Assert.That(tn.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI }));
+			Assert.That(tn.ToString(), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", true, " + Math.PI.ToString("R", CultureInfo.InvariantCulture) + ")"));
+			Assert.That(tn, Is.InstanceOf<ListTuple<object?>>());
 
-			//note: ToString("R")'s behavior is slightly different between NETFX and .NET Core!
-			// - .NET Core now returns the shortest string that will roundtrip back to the original, while NETFX may use more characters
-			// - In the case of Math.PI, NETFX will output "3.1415926535897931" while .NET Core will output "3.141592653589793"
-			// - Both strings, once parsed back into a double, will return the exacte same double which will be == Math.PI, so the differences is only "costmetic"!
-			// => this still mean that depending on the framework used by the unit test, we have to tweak the expected textual representation at runtime
-			string pi = Math.PI.ToString("R", CultureInfo.InvariantCulture);
-			Assume.That(double.Parse(pi, CultureInfo.InvariantCulture), Is.EqualTo(Math.PI), "Something is wrong with double roundtripping on the selected framework!");
-
-			Assert.That(tn.ToString(), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", true, " + pi + ")"));
-			Assert.That(tn, Is.InstanceOf<ListTuple>());
+#if USE_RANGE_API
+			Assert.That(tn[^1], Is.EqualTo(Math.PI));
+			Assert.That(tn[^2], Is.EqualTo(true));
+			Assert.That(tn[^8], Is.EqualTo("hello world"));
+			Assert.That(tn[..], Is.EqualTo(tn));
+			Assert.That(tn[2..6], Is.EqualTo(STuple.Create(false, 1234L, -1234, "six")));
+#endif
 
 			{ // Deconstruct
 				string item1;
@@ -402,6 +567,8 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(item7, Is.True);
 				Assert.That(item8, Is.EqualTo(Math.PI));
 			}
+
+			Assert.That(tn.Concat(STuple.Create("foo", "bar")), Is.EqualTo(STuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI, "foo", "bar" })));
 		}
 
 		[Test]
@@ -544,12 +711,21 @@ namespace Doxense.Collections.Tuples.Tests
 			var t1 = STuple.Create("hello world");
 			Assert.That(t1.Get<string>(-1), Is.EqualTo("hello world"));
 			Assert.That(((IVarTuple) t1)[-1], Is.EqualTo("hello world"));
+#if USE_RANGE_API
+			Assert.That(((IVarTuple) t1)[^1], Is.EqualTo("hello world"));
+#endif
 
 			var t2 = STuple.Create("hello world", 123);
 			Assert.That(t2.Get<int>(-1), Is.EqualTo(123));
 			Assert.That(t2.Get<string>(-2), Is.EqualTo("hello world"));
 			Assert.That(((IVarTuple) t2)[-1], Is.EqualTo(123));
 			Assert.That(((IVarTuple) t2)[-2], Is.EqualTo("hello world"));
+#if USE_RANGE_API
+			Assert.That(t2.Get<int>(^1), Is.EqualTo(123));
+			Assert.That(t2.Get<string>(^2), Is.EqualTo("hello world"));
+			Assert.That(((IVarTuple) t2)[^1], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t2)[^2], Is.EqualTo("hello world"));
+#endif
 
 			var t3 = STuple.Create("hello world", 123, false);
 			Assert.That(t3.Get<bool>(-1), Is.False);
@@ -558,6 +734,14 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(((IVarTuple) t3)[-1], Is.False);
 			Assert.That(((IVarTuple) t3)[-2], Is.EqualTo(123));
 			Assert.That(((IVarTuple) t3)[-3], Is.EqualTo("hello world"));
+#if USE_RANGE_API
+			Assert.That(t3.Get<bool>(^1), Is.False);
+			Assert.That(t3.Get<int>(^2), Is.EqualTo(123));
+			Assert.That(t3.Get<String>(^3), Is.EqualTo("hello world"));
+			Assert.That(((IVarTuple) t3)[^1], Is.False);
+			Assert.That(((IVarTuple) t3)[^2], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t3)[^3], Is.EqualTo("hello world"));
+#endif
 
 			var t4 = STuple.Create("hello world", 123, false, 1234L);
 			Assert.That(t4.Get<long>(-1), Is.EqualTo(1234L));
@@ -568,6 +752,16 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(((IVarTuple) t4)[-2], Is.False);
 			Assert.That(((IVarTuple) t4)[-3], Is.EqualTo(123));
 			Assert.That(((IVarTuple) t4)[-4], Is.EqualTo("hello world"));
+#if USE_RANGE_API
+			Assert.That(t4.Get<long>(^1), Is.EqualTo(1234L));
+			Assert.That(t4.Get<bool>(^2), Is.False);
+			Assert.That(t4.Get<int>(^3), Is.EqualTo(123));
+			Assert.That(t4.Get<String>(^4), Is.EqualTo("hello world"));
+			Assert.That(((IVarTuple) t4)[^1], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t4)[^2], Is.False);
+			Assert.That(((IVarTuple) t4)[^3], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t4)[^4], Is.EqualTo("hello world"));
+#endif
 
 			var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
 			Assert.That(t5.Get<long>(-1), Is.EqualTo(-1234));
@@ -580,6 +774,18 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(((IVarTuple) t5)[-3], Is.False);
 			Assert.That(((IVarTuple) t5)[-4], Is.EqualTo(123));
 			Assert.That(((IVarTuple) t5)[-5], Is.EqualTo("hello world"));
+#if USE_RANGE_API
+			Assert.That(t5.Get<long>(^1), Is.EqualTo(-1234));
+			Assert.That(t5.Get<long>(^2), Is.EqualTo(1234L));
+			Assert.That(t5.Get<bool>(^3), Is.False);
+			Assert.That(t5.Get<int>(^4), Is.EqualTo(123));
+			Assert.That(t5.Get<String>(^5), Is.EqualTo("hello world"));
+			Assert.That(((IVarTuple) t5)[^1], Is.EqualTo(-1234));
+			Assert.That(((IVarTuple) t5)[^2], Is.EqualTo(1234L));
+			Assert.That(((IVarTuple) t5)[^3], Is.False);
+			Assert.That(((IVarTuple) t5)[^4], Is.EqualTo(123));
+			Assert.That(((IVarTuple) t5)[^5], Is.EqualTo("hello world"));
+#endif
 
 			// ReSharper disable once RedundantExplicitParamsArrayCreation
 			var tn = STuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
@@ -595,6 +801,20 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tn[-4], Is.False);
 			Assert.That(tn[-5], Is.EqualTo(123));
 			Assert.That(tn[-6], Is.EqualTo("hello world"));
+#if USE_RANGE_API
+			Assert.That(tn.Get<string>(^1), Is.EqualTo("six"));
+			Assert.That(tn.Get<int>(^2), Is.EqualTo(-1234));
+			Assert.That(tn.Get<long>(^3), Is.EqualTo(1234));
+			Assert.That(tn.Get<bool>(^4), Is.False);
+			Assert.That(tn.Get<int>(^5), Is.EqualTo(123));
+			Assert.That(tn.Get<string>(^6), Is.EqualTo("hello world"));
+			Assert.That(tn[^1], Is.EqualTo("six"));
+			Assert.That(tn[^2], Is.EqualTo(-1234));
+			Assert.That(tn[^3], Is.EqualTo(1234));
+			Assert.That(tn[^4], Is.False);
+			Assert.That(tn[^5], Is.EqualTo(123));
+			Assert.That(tn[^6], Is.EqualTo("hello world"));
+#endif
 		}
 
 		[Test]
@@ -687,7 +907,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// using the instance method that returns a STuple<T1, T2, T3>
 			IVarTuple z = x.Append(y);
-			Dump(z);
+			Log(z);
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z.Count, Is.EqualTo(3));
 			Assert.That(z[0], Is.EqualTo("A"));
@@ -701,7 +921,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 			// casted down to the interface ITuple
 			z = ((IVarTuple)x).Append((IVarTuple)y);
-			Dump(z);
+			Log(z);
 			Assert.That(z, Is.Not.Null);
 			Assert.That(z.Count, Is.EqualTo(3));
 			Assert.That(z[0], Is.EqualTo("A"));
@@ -718,7 +938,7 @@ namespace Doxense.Collections.Tuples.Tests
 			IVarTuple value = STuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
 			const string ID = "Doc123";
 			z = subspace.Append(value, ID);
-			Dump(z);
+			Log(z);
 			Assert.That(z.Count, Is.EqualTo(4));
 		}
 
@@ -1201,11 +1421,11 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(STuple.Create("Hello", 123, "World", '!', false).ToString(), Is.EqualTo(@"(""Hello"", 123, ""World"", '!', false)"));
 		}
 
-		#endregion
+#endregion
 
 		#region Splicing...
 
-		private static void VerifyTuple(string message, IVarTuple t, object[] expected)
+		private static void VerifyTuple(string message, IVarTuple t, object?[] expected)
 		{
 			// count
 			if (t.Count != expected.Length)
@@ -1213,7 +1433,7 @@ namespace Doxense.Collections.Tuples.Tests
 #if DEBUG
 				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
 #endif
-				Assert.Fail("{0}: Count mismatch between observed {1} and expected {2} for tuple of type {3}", message, t, STuple.Formatter.ToString(expected), t.GetType().Name);
+				Assert.Fail("{0}: Count mismatch between observed {1} and expected {2} for tuple of type {3}", message, t, STuple.Formatter.ToString(expected.AsSpan()), t.GetType().Name);
 			}
 
 			// direct access
@@ -1230,7 +1450,7 @@ namespace Doxense.Collections.Tuples.Tests
 				Assert.That(ComparisonHelper.AreSimilar(obj, expected[p]), Is.True, "{0}: Iterator[{1}], {2} ~= {3}", message, p, obj, expected[p]);
 				++p;
 			}
-			Assert.That(p, Is.EqualTo(expected.Length), "{0}: t.GetEnumerator() returned only {1} elements out of {2} exected", message, p, expected.Length);
+			Assert.That(p, Is.EqualTo(expected.Length), "{0}: t.GetEnumerator() returned only {1} elements out of {2} expected", message, p, expected.Length);
 
 			// CopyTo
 			var tmp = new object[expected.Length];
@@ -1267,7 +1487,7 @@ namespace Doxense.Collections.Tuples.Tests
 			//                            0        1      2     3     4     5
 			//                           -6       -5     -4    -3    -2    -1
 
-			var tuple = new ListTuple(items);
+			var tuple = new ListTuple<object?>(items);
 			Assert.That(tuple.Count, Is.EqualTo(6));
 
 			// get all

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ namespace FoundationDB.Filters
 	using FoundationDB.Client;
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -61,16 +62,17 @@ namespace FoundationDB.Filters
 			m_owner = ownsTransaction;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void ThrowIfDisposed()
 		{
 			// this should be inlined by the caller
-			if (m_disposed) ThrowFilterAlreadyDisposed(this);
+			if (m_disposed) throw FilterAlreadyDisposed(this);
 		}
 
-		[ContractAnnotation("=> halt")]
-		private static void ThrowFilterAlreadyDisposed([NotNull] FdbTransactionFilter filter)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static Exception FilterAlreadyDisposed([NotNull] FdbTransactionFilter filter)
 		{
-			throw new ObjectDisposedException(filter.GetType().Name);
+			return new ObjectDisposedException(filter.GetType().Name);
 		}
 
 		public void Dispose()
@@ -146,20 +148,20 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			return GetRange(beginInclusive, endExclusive, kv => kv, options);
 		}
 
 		/// <inheritdoc />
-		public virtual FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		public virtual FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetRange<TResult>(beginInclusive, endExclusive, selector, options);
@@ -177,6 +179,20 @@ namespace FoundationDB.Filters
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetReadVersionAsync();
+		}
+
+		/// <inheritdoc />
+		public virtual Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			ThrowIfDisposed();
+			return m_transaction.GetMetadataVersionKeyAsync(key);
+		}
+
+		/// <inheritdoc />
+		public virtual void TouchMetadataVersionKey(Slice key = default)
+		{
+			ThrowIfDisposed();
+			m_transaction.TouchMetadataVersionKey(key);
 		}
 
 		/// <inheritdoc />
@@ -281,6 +297,14 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
+		public virtual VersionStamp CreateUniqueVersionStamp()
+		{
+			ThrowIfDisposed();
+			return m_transaction.CreateUniqueVersionStamp();
+		}
+
+
+		/// <inheritdoc />
 		public virtual void SetReadVersion(long version)
 		{
 			ThrowIfDisposed();
@@ -332,7 +356,7 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public int Timeout
 		{
-			get { return m_transaction.Timeout; }
+			get => m_transaction.Timeout;
 			set
 			{
 				ThrowIfDisposed();
@@ -343,7 +367,7 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public int RetryLimit
 		{
-			get { return m_transaction.RetryLimit; }
+			get => m_transaction.RetryLimit;
 			set
 			{
 				ThrowIfDisposed();
@@ -354,7 +378,7 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public int MaxRetryDelay
 		{
-			get { return m_transaction.MaxRetryDelay; }
+			get => m_transaction.MaxRetryDelay;
 			set
 			{
 				ThrowIfDisposed();
@@ -421,19 +445,19 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endInclusive, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endInclusive, FdbRangeOptions? options = null)
 		{
 			return GetRange(beginInclusive, endInclusive, kv => kv, options);
 		}
 
 		/// <inheritdoc />
-		public virtual FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endInclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		public virtual FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endInclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 		{
 			return m_transaction.GetRange(beginInclusive, endInclusive, selector, options);
 		}
@@ -448,6 +472,12 @@ namespace FoundationDB.Filters
 		public virtual Task<long> GetReadVersionAsync()
 		{
 			return m_transaction.GetReadVersionAsync();
+		}
+
+		/// <inheritdoc />
+		public virtual Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			return m_transaction.GetMetadataVersionKeyAsync(key);
 		}
 
 		/// <inheritdoc />
@@ -501,22 +531,22 @@ namespace FoundationDB.Filters
 		/// <inheritdoc />
 		public virtual int Timeout
 		{
-			get { return m_transaction.Timeout; }
-			set { m_transaction.Timeout = value; }
+			get => m_transaction.Timeout;
+			set => m_transaction.Timeout = value;
 		}
 
 		/// <inheritdoc />
 		public virtual int RetryLimit
 		{
-			get { return m_transaction.RetryLimit; }
-			set { m_transaction.RetryLimit = value; }
+			get => m_transaction.RetryLimit;
+			set => m_transaction.RetryLimit = value;
 		}
 
 		/// <inheritdoc />
 		public virtual int MaxRetryDelay
 		{
-			get { return m_transaction.MaxRetryDelay; }
-			set { m_transaction.MaxRetryDelay = value; }
+			get => m_transaction.MaxRetryDelay;
+			set => m_transaction.MaxRetryDelay = value;
 		}
 
 		public void Dispose()
@@ -529,6 +559,7 @@ namespace FoundationDB.Filters
 		{
 			//NOP?
 		}
+
 	}
 
 }

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ namespace Doxense.Linq.Async.Iterators
 	public sealed class SelectManyAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
-		private IEnumerator<TResult> m_batch;
+		private IEnumerator<TResult>? m_batch;
 
 		public SelectManyAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 			: base(source)
@@ -64,13 +64,16 @@ namespace Doxense.Linq.Async.Iterators
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
 
+			var iterator = m_iterator;
+			Contract.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
 
 				if (m_batch == null)
 				{
 
-					if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
 						return await Completed();
 					}
@@ -80,11 +83,11 @@ namespace Doxense.Linq.Async.Iterators
 					IEnumerable<TResult> sequence;
 					if (!m_selector.Async)
 					{
-						sequence = m_selector.Invoke(m_iterator.Current);
+						sequence = m_selector.Invoke(iterator.Current);
 					}
 					else
 					{
-						sequence = await m_selector.InvokeAsync(m_iterator.Current, m_ct).ConfigureAwait(false);
+						sequence = await m_selector.InvokeAsync(iterator.Current, m_ct).ConfigureAwait(false);
 					}
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
@@ -128,12 +131,12 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TCollection>> m_collectionSelector;
 		private readonly Func<TSource, TCollection, TResult> m_resultSelector;
 		private TSource m_sourceCurrent;
-		private IEnumerator<TCollection> m_batch;
+		private IEnumerator<TCollection>? m_batch;
 
 		public SelectManyAsyncIterator(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
-			[NotNull] Func<TSource, TCollection, TResult> resultSelector
+			Func<TSource, TCollection, TResult> resultSelector
 		)
 			: base(source)
 		{
@@ -153,20 +156,23 @@ namespace Doxense.Linq.Async.Iterators
 			// if we are in a batch, iterate over it
 			// if not, wait for the next batch
 
+			var iterator = m_iterator;
+			Contract.Requires(iterator != null);
+
 			while (!m_ct.IsCancellationRequested)
 			{
 				var batch = m_batch;
 				if (batch == null)
 				{
 
-					if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+					if (!await iterator.MoveNextAsync().ConfigureAwait(false))
 					{ // inner completed
 						return await Completed();
 					}
 
 					if (m_ct.IsCancellationRequested) break;
 
-					m_sourceCurrent = m_iterator.Current;
+					m_sourceCurrent = iterator.Current;
 
 					IEnumerable<TCollection> sequence;
 
@@ -188,7 +194,7 @@ namespace Doxense.Linq.Async.Iterators
 				{ // the current batch is exhausted, move to the next
 					batch.Dispose();
 					m_batch = null;
-					m_sourceCurrent = default(TSource);
+					m_sourceCurrent = default!;
 					continue;
 				}
 

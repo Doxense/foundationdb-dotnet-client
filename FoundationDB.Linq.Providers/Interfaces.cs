@@ -82,13 +82,14 @@ namespace FoundationDB.Linq
 		Task<R> ExecuteAsync<R>([NotNull] FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
 	}
 
-	/// <summary>Queryable database</summary>
-	public interface IFdbDatabaseQueryable : IFdbAsyncQueryable
+	/// <summary>Queryable transaction</summary>
+	public interface IFdbTransactionQueryable : IFdbAsyncQueryable
 	{
-		// Note: this interface is only used to hook extension methods specific to database queries
+		// Note: this interface is only used to hook extension methods specific to transaction queries
 
-		/// <summary>Database used by this query</summary>
-		IFdbDatabase Database { [NotNull] get; }
+		/// <summary>Transaction used by this query</summary>
+		[NotNull]
+		IFdbReadOnlyTransaction Transaction { get; }
 
 	}
 

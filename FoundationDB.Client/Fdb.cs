@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
@@ -495,7 +494,7 @@ namespace FoundationDB.Client
 		#region Database...
 
 		[ItemNotNull]
-		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync([CanBeNull] string clusterFile, IKeySubspace globalSpace, bool readOnly, CancellationToken ct)
+		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync([CanBeNull] string clusterFile, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken ct)
 		{
 			EnsureIsStarted();
 			ct.ThrowIfCancellationRequested();
@@ -508,7 +507,7 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			var handler = await FdbNativeDatabase.CreateDatabaseAsync(clusterFile, ct).ConfigureAwait(false);
-			return FdbDatabase.Create(handler, globalSpace, null, readOnly);
+			return FdbDatabase.Create(handler, root, readOnly);
 		}
 
 		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file.</summary>
@@ -544,17 +543,17 @@ namespace FoundationDB.Client
 
 			string clusterFile = options.ClusterFile;
 			bool readOnly = options.ReadOnly;
-			IKeySubspace globalSpace = options.GlobalSpace ?? KeySubspace.Empty;
-			string[] partitionPath = options.PartitionPath?.ToArray();
-			bool hasPartition = partitionPath != null && partitionPath.Length > 0;
+			var directory = new FdbDirectoryLayer(SubspaceLocation.Empty);
+			var root = new FdbDirectorySubspaceLocation(directory, options.Root, FdbDirectoryPartition.LayerId);
+			bool hasPartition = root.Path.Count != 0;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile}' and subspace '{globalSpace}' ...");
+			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile}' and root '{root}' ...");
 
 			FdbDatabase db = null;
 			bool success = false;
 			try
 			{
-				db = await CreateDatabaseInternalAsync(clusterFile, globalSpace, !hasPartition && readOnly, ct).ConfigureAwait(false);
+				db = await CreateDatabaseInternalAsync(clusterFile, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
 
 				// set the default options
 				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
@@ -565,7 +564,7 @@ namespace FoundationDB.Client
 
 				if (hasPartition)
 				{ // open the partition, and switch the root of the db
-					await Fdb.Directory.SwitchToNamedPartitionAsync(db, partitionPath, readOnly, ct);
+					await Fdb.Directory.SwitchToNamedPartitionAsync(db, root, readOnly, ct);
 				}
 
 				success = true;
@@ -662,7 +661,7 @@ namespace FoundationDB.Client
 			}
 #pragma warning restore 618
 
-			if (Fdb.Options.TLSCertificateBytes.IsPresent)
+			if (Fdb.Options.TLSCertificateBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from memory ({Fdb.Options.TLSCertificateBytes.Count} bytes)");
 
@@ -675,7 +674,7 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertPath, Fdb.Options.TLSCertificatePath));
 			}
 
-			if (Fdb.Options.TLSPrivateKeyBytes.IsPresent)
+			if (Fdb.Options.TLSPrivateKeyBytes.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from memory ({Fdb.Options.TLSPrivateKeyBytes.Count} bytes)");
 
@@ -688,7 +687,7 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyPath, Fdb.Options.TLSPrivateKeyPath));
 			}
 
-			if (Fdb.Options.TLSVerificationPattern.IsPresent)
+			if (Fdb.Options.TLSVerificationPattern.Count != 0)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will verify TLS peers with pattern '{Fdb.Options.TLSVerificationPattern}'");
 
@@ -733,6 +732,12 @@ namespace FoundationDB.Client
 					return FdbNative.NetworkSetOption(option, ptr, data.Count);
 				}
 			}
+		}
+
+		/// <summary>Set the value of a network option on the database handler</summary>
+		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
+		{
+			return SetNetworkOption(option, value.Span);
 		}
 
 		/// <summary>Set the value of a network option on the database handler</summary>

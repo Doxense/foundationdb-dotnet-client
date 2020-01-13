@@ -177,7 +177,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Returns a textual representation of expression</summary>
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index['{0}'].Lookup({1}, {2})", this.Index.Name, this.Operator, this.Value);
+			return String.Format(CultureInfo.InvariantCulture, "Index[{0}].Lookup({1}, {2})", this.Index.Location, this.Operator, this.Value);
 		}
 
 		/// <summary>Create a lookup expression on an index</summary>

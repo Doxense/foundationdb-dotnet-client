@@ -78,6 +78,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
 		[ItemNotNull]
 		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys);
+		//REVIEW: => ReadOnlySpan<Slice>
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
@@ -89,6 +90,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
 		[ItemNotNull]
 		Task<Slice[]> GetKeysAsync([NotNull] KeySelector[] selectors);
+		//REVIEW: => ReadOnlySpan<KeySelector>
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
@@ -100,7 +102,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0);
+		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0);
 
 		/// <summary>
 		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
@@ -110,7 +112,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, NotNull, LinqTunnel]
-		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null);
+		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null);
 
 		/// <summary>
 		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction, and transform them into a result of type <typeparamref name="TResult"/>
@@ -121,7 +123,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		[Pure, NotNull, LinqTunnel]
-		FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null);
+		FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null);
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
@@ -131,6 +133,18 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync();
+
+		/// <summary>Safely read a key containing a <see cref="VersionStamp"/> representing the version of some metadata or schema information stored in the database.</summary>
+		/// <param name="key">Key to read. If <see cref="Slice.Nil"/>, read the global <c>\xff/metadataVersion</c> key</param>
+		/// <remarks>Either the current value of the key, or <see cref="Slice.Nil"/> if the key has already changed in this transaction</remarks>
+		/// <remarks>
+		/// This should be used when implementing caching layers that use one or more "metadata version" keys to detect local changes.
+		/// If the same key has already been changed within the transaction (via <see cref="IFdbTransaction.TouchMetadataVersionKey"/>) this method will return <c>null</c>.
+		/// When this happens, the caller must consider that any previous cached state is invalid, and should not construct any new cache state inside this transaction!
+		/// Please note that attempting to read or write this key using regular <see cref="GetAsync"/> or <see cref="FdbMutationType.VersionStampedValue"/> atomic operations can render the transaction unable to commit.
+		/// If the key does not exist in the database, the zero <see cref="VersionStamp"/> will be returned instead.
+		/// </remarks>
+		Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default);
 
 		/// <summary>
 		/// Sets the snapshot read version used by a transaction. This is not needed in simple cases.

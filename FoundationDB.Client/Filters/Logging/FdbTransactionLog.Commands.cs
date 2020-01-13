@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@ namespace FoundationDB.Filters.Logging
 	using Doxense;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
@@ -112,7 +111,7 @@ namespace FoundationDB.Filters.Logging
 						? "[" + fdbEx.Code.ToString() + "] " + fdbEx.Message
 						: "[" + this.Error.GetType().Name + "] " + this.Error.Message;
 				}
-				return String.Empty;
+				return string.Empty;
 			}
 
 			/// <summary>Return the mode of the operation (Read, Write, Metadata, Watch, ...)</summary>
@@ -301,7 +300,8 @@ namespace FoundationDB.Filters.Logging
 			[ItemNotNull]
 			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 			{
-				var location = directory.NodeSubspace.Keys;
+				var metadata = await directory.Resolve(tr);
+				var location = metadata.Partition.Nodes;
 
 				//HACKHACK: for now, we will simply poke inside the node subspace of the directory layer, which is brittle (if the structure changes in future versions!)
 				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix
@@ -503,7 +503,7 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
-		public sealed class AtomicCommand : Command
+		public class AtomicCommand : Command
 		{
 			/// <summary>Type of mutation performed on the key</summary>
 			public FdbMutationType Mutation { get; }
@@ -847,6 +847,50 @@ namespace FoundationDB.Filters.Logging
 			public override Operation Op => Operation.GetReadVersion;
 		}
 
+		public sealed class GetMetadataVersionCommand : Command<VersionStamp?>
+		{
+			/// <summary>Key read from the database</summary>
+			public Slice Key { get; }
+
+			public override Operation Op => Operation.Get;
+
+			public GetMetadataVersionCommand(Slice key)
+			{
+				this.Key = key;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count;
+
+			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : 10;
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return resolver.Resolve(this.Key);
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.Result.HasValue)
+				{
+					if (this.Result.Value == null) return "<null>";
+				}
+				return base.GetResult(resolver);
+			}
+
+			protected override string Dump(VersionStamp? value)
+			{
+				return value?.ToString() ?? "<null>";
+			}
+		}
+
+		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand
+		{
+			public TouchMetadataVersionKeyCommand(Slice key)
+				: base(key, Fdb.System.MetadataVersionValue, FdbMutationType.VersionStampedValue)
+			{ }
+
+		}
+
 		public sealed class CancelCommand : Command
 		{
 			public override Operation Op => Operation.Cancel;
@@ -860,6 +904,15 @@ namespace FoundationDB.Filters.Logging
 		public sealed class CommitCommand : Command
 		{
 			public override Operation Op => Operation.Commit;
+
+			/// <summary>Receives the commit version if it succeed</summary>
+			public long? CommitVersion { get; internal set; }
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.CommitVersion != null) return "@" + this.CommitVersion;
+				return base.GetResult(resolver);
+			}
 		}
 
 		public sealed class OnErrorCommand : Command

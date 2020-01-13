@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Directories
+namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections;
@@ -34,7 +34,8 @@ namespace FoundationDB.Layers.Directories
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using Doxense.Collections.Tuples;
+	using System.Runtime.InteropServices;
+	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
@@ -42,110 +43,178 @@ namespace FoundationDB.Layers.Directories
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbDirectoryPath : IReadOnlyList<string>, IEquatable<FdbDirectoryPath>
 	{
-		public static readonly FdbDirectoryPath Empty = new FdbDirectoryPath(Array.Empty<string>());
+		public static readonly FdbDirectoryPath Empty = new FdbDirectoryPath(default);
 
-		internal readonly string[] Segments;
+		/// <summary>Segments of this path</summary>
+		public readonly ReadOnlyMemory<string> Segments;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbDirectoryPath(string[] segments)
+		internal FdbDirectoryPath(ReadOnlyMemory<string> path)
 		{
-			this.Segments = segments;
+			this.Segments = path;
 		}
 
 		public bool IsEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Segments == null || this.Segments.Length == 0;
+			get => this.Segments.Length == 0;
 		}
 
-		public int Count => GetSegments().Length;
+		public int Count => this.Segments.Length;
 
-		public string this[int index] => GetSegments()[index];
+		public string this[int index] => this.Segments.Span[index];
 
+		/// <summary>Returns the name of the last segment of this path</summary>
+		/// <example><see cref="Combine(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
 		public string Name
 		{
-			[Pure, NotNull]
+			[Pure]
 			get
 			{
-				var segments = GetSegments();
-				return segments.Length != 0 ? segments[segments.Length - 1] : string.Empty;
+				var path = this.Segments.Span;
+				return path.Length != 0 ? path[path.Length - 1] : string.Empty;
 			}
 		}
 
+		/// <summary>Returns the parent path of the current path</summary>
+		/// <example><see cref="Combine(string[])"/>Combine("Foo", "Bar", "Baz").GetParent() => { "Foo", "Bar" }</example>
 		[Pure]
-		public FdbDirectoryPath Concat(FdbDirectoryPath path)
+		public FdbDirectoryPath GetParent()
 		{
-			if (path.IsEmpty) return this;
-			if (this.IsEmpty) return path;
-
 			var segments = this.Segments;
-			int n = segments.Length;
-			Array.Resize(ref segments, checked(n + path.Segments.Length));
-			path.Segments.CopyTo(segments, n);
-			return new FdbDirectoryPath(segments);
+			if (segments.Length == 0) throw new InvalidOperationException("The root path does not have a parent path.");
+			return new FdbDirectoryPath(segments.Slice(0, segments.Length - 1));
 		}
 
-		[Pure]
-		public FdbDirectoryPath Concat([NotNull] string segment)
+		/// <summary>Append a new segment to the curent path</summary>
+		public FdbDirectoryPath this[[NotNull] string segment] => Add(segment);
+
+		/// <summary>Append one or more new segments to the curent path</summary>
+		public FdbDirectoryPath this[ReadOnlySpan<string> segments] => Add(segments);
+
+		private static ReadOnlyMemory<string> AppendSegment(ReadOnlySpan<string> head, [NotNull] string segment)
 		{
-			if (this.IsEmpty) return Create(segment);
-			var segments = this.Segments;
-			int n = segments.Length;
-			Array.Resize(ref segments,  checked(n + 1));
-			segments[n] = segment;
-			return new FdbDirectoryPath(segments);
+			Contract.NotNull(segment, nameof(segment));
+			int n = head.Length;
+			var tmp = new string[n + 1];
+			head.CopyTo(tmp);
+			tmp[n] = segment;
+			return tmp;
 		}
 
-#if NETCOREAPP || NETSTANDARD2_1
-		[Pure]
-		public FdbDirectoryPath Concat(ReadOnlySpan<char> segment)
+		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, [NotNull] string segment1, [NotNull] string segment2)
 		{
-			return Concat(segment.ToString());
-		}
-#endif
-
-		[Pure]
-		public FdbDirectoryPath Concat([NotNull, ItemNotNull] params string[] path)
-		{
-			if (this.IsEmpty) return Create(path);
-			var segments = this.Segments;
-			int n = segments.Length;
-			Array.Resize(ref segments, checked(n + path.Length));
-			path.CopyTo(segments, n);
-			return new FdbDirectoryPath(segments);
+			Contract.NotNull(segment1, nameof(segment1));
+			Contract.NotNull(segment2, nameof(segment2));
+			int n = head.Length;
+			var tmp = new string[n + 2];
+			head.CopyTo(tmp);
+			tmp[n] = segment1;
+			tmp[n + 1] = segment2;
+			return tmp;
 		}
 
-		[Pure]
-		public FdbDirectoryPath Concat([NotNull, ItemNotNull] IEnumerable<string> segments)
+		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, ReadOnlySpan<string> tail)
 		{
-			Contract.NotNull(segments, nameof(segments));
-			if (this.IsEmpty) return Create(segments);
-			var after = new List<string>();
-			after.AddRange(this.Segments);
-			after.AddRange(segments);
-			return new FdbDirectoryPath(after.ToArray());
+			var tmp = new string[head.Length + tail.Length];
+			head.CopyTo(tmp);
+			tail.CopyTo(tmp.AsSpan(head.Length));
+			return tmp;
 		}
 
-		[Pure]
-		public FdbDirectoryPath Concat([NotNull] IVarTuple segments)
+		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, IEnumerable<string> suffix)
 		{
-			Contract.NotNull(segments, nameof(segments));
-			if (this.IsEmpty) return Create(segments);
-			var after = new List<string>();
-			after.AddRange(this.Segments);
-			after.AddRange(segments.ToArray<string>());
-			return new FdbDirectoryPath(after.ToArray());
+			var list = new List<string>(head.Length + ((suffix as ICollection<string>)?.Count ?? 4));
+			foreach (var segment in head) list.Add(segment);
+			foreach (var segment in suffix) list.Add(segment);
+			return list.ToArray();
+		}
+
+		/// <summary>Append a new segment to the curent path</summary>
+		[Pure]
+		public FdbDirectoryPath Add([NotNull] string segment) => new FdbDirectoryPath(AppendSegment(this.Segments.Span, segment));
+
+		/// <summary>Append a new segment to the curent path</summary>
+		[Pure]
+		public FdbDirectoryPath Add([NotNull] string segment1, string segment2) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segment1, segment2));
+
+		/// <summary>Append a new segment to the curent path</summary>
+		[Pure]
+		public FdbDirectoryPath Add(ReadOnlySpan<char> segment) => new FdbDirectoryPath(AppendSegment(this.Segments.Span, segment.ToString()));
+
+		/// <summary>Add new segments to the current path</summary>
+		[Pure]
+		public FdbDirectoryPath Add(ReadOnlySpan<string> segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments));
+
+		/// <summary>Add new segments to the current path</summary>
+		[Pure]
+		public FdbDirectoryPath Add([NotNull] params string[] segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments.AsSpan()));
+
+		/// <summary>Add new segments to the current path</summary>
+		[Pure]
+		public FdbDirectoryPath Add([NotNull] IEnumerable<string> segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments));
+
+		/// <summary>Add a path to the current path</summary>
+		[Pure]
+		public FdbDirectoryPath Add(FdbDirectoryPath path) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, path.Segments.Span));
+
+		/// <summary>Return a suffix of the current path</summary>
+		/// <param name="offset">Number of segments to skip</param>
+		[Pure]
+		public FdbDirectoryPath Substring(int offset) => new FdbDirectoryPath(this.Segments.Slice(offset));
+
+		/// <summary>Return a suffix of the current path</summary>
+		/// <param name="offset">Number of segments to skip</param>
+		/// <param name="count">Number of segments to keep</param>
+		[Pure]
+		public FdbDirectoryPath Substring(int offset, int count) => new FdbDirectoryPath(this.Segments.Slice(offset, count));
+
+		/// <summary>Test if the current path is a child of another path</summary>
+		/// <remarks>This differs from <see cref="StartsWith"/> in that a path is not a child of itself</remarks>
+		[Pure]
+		public bool IsChildOf(FdbDirectoryPath prefix)
+		{
+			return prefix.Count < this.Count && this.Segments.Span.StartsWith(prefix.Segments.Span);
+		}
+
+		/// <summary>Test if the current path is the same, or a child of another path</summary>
+		/// <remarks>This differs from <see cref="IsChildOf"/> in that a path always starts with itself</remarks>
+		[Pure]
+		public bool StartsWith(FdbDirectoryPath prefix)
+		{
+			return this.Segments.Span.StartsWith(prefix.Segments.Span);
+		}
+
+		/// <summary>Test if the current path is a parent of another path</summary>
+		/// <remarks>This differs from <see cref="EndsWith"/> in that a path is not a parent of itself</remarks>
+		[Pure]
+		public bool IsParentOf(FdbDirectoryPath suffix)
+		{
+			return suffix.Count > this.Count && this.Segments.Span.EndsWith(suffix.Segments.Span);
+		}
+
+		/// <summary>Test if the current path is the same or a parent of another path</summary>
+		/// <remarks>This differs from <see cref="IsParentOf"/> in that a path always ends with itself</remarks>
+		[Pure]
+		public bool EndsWith(FdbDirectoryPath suffix)
+		{
+			return this.Segments.Span.EndsWith(suffix.Segments.Span);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerator<string> GetEnumerator()
 		{
-			return ((IEnumerable<string>) GetSegments()).GetEnumerator();
+			//note: ReadOnlyMemory<> does not implement IEnumerable<> and we can't foreach(...) on a span inside an enumerator...
+			var segments = this.Segments;
+			for (int i = 0; i < segments.Length; i++)
+			{
+				yield return segments.Span[i];
+			}
 		}
 
 		public override string ToString()
 		{
-			return FormatPath(GetSegments());
+			return FormatPath(this.Segments.Span);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
@@ -153,64 +222,45 @@ namespace FoundationDB.Layers.Directories
 			return GetEnumerator();
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal string[] GetSegments() => this.Segments ?? Array.Empty<string>();
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string[] ToArray()
+		private static void EnsureCompatibleType<T>()
 		{
-			return GetSegments().ToArray();
-		}
-
-#if NETCOREAPP || NETSTANDARD2_1
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public ReadOnlySpan<string> AsSpan()
-		{
-			return GetSegments().AsSpan();
-		}
-#endif
-		public void CopyTo(string[] array, int offset)
-		{
-			GetSegments().CopyTo(array, offset);
+			// test against easy mistakes
+			if (typeof(T) == typeof(FdbDirectoryPath)) throw new InvalidOperationException($"You must call {nameof(Combine)}() to append paths!");
 		}
 
 		[Pure]
-		public static FdbDirectoryPath Create([NotNull, ItemNotNull] IEnumerable<string> segments)
-		{
-			Contract.NotNull(segments, nameof(segments));
-			return new FdbDirectoryPath(segments.ToArray());
-		}
-
-		[Pure]
-		public static FdbDirectoryPath Create([NotNull] string segment)
+		public static FdbDirectoryPath Combine(string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
 			return new FdbDirectoryPath(new [] { segment });
 		}
 
-#if NETCOREAPP || NETSTANDARD2_1
 		[Pure]
-		public static FdbDirectoryPath Create(ReadOnlySpan<char> segment)
-		{
-			return Create(segment.ToString());
-		}
-#endif
-
-		/// <summary>Convert a tuple representing a path, into a string array</summary>
-		/// <param name="path">Tuple that should only contain strings</param>
-		/// <returns>Array of strings</returns>
-		[Pure]
-		public static FdbDirectoryPath Create([NotNull] IVarTuple path)
-		{
-			Contract.NotNull(path, nameof(path));
-			return Create(path.ToArray<string>());
-		}
-
-		[Pure]
-		public static FdbDirectoryPath Create([NotNull, ItemNotNull] params string[] segments)
+		public static FdbDirectoryPath Combine([NotNull] params string[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbDirectoryPath(segments);
+		}
+
+		[Pure]
+		public static FdbDirectoryPath Combine(ReadOnlySpan<string> segments)
+		{
+			// we have to copy the buffer!
+			return new FdbDirectoryPath(segments.ToArray());
+		}
+
+
+		[Pure]
+		public static FdbDirectoryPath Combine(ReadOnlyMemory<string> segments)
+		{
+			return new FdbDirectoryPath(segments);
+		}
+
+		[Pure]
+		public static FdbDirectoryPath Combine([NotNull, ItemNotNull] IEnumerable<string> segments)
+		{
+			Contract.NotNull(segments, nameof(segments));
+			return new FdbDirectoryPath(segments.ToArray());
 		}
 
 		[Pure]
@@ -218,8 +268,8 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (string.IsNullOrEmpty(path)) return Empty;
 
-			var paths = new List<string>();
-			var sb = new System.Text.StringBuilder();
+			var segments = new List<string>();
+			var sb = new StringBuilder();
 			bool escaped = false;
 			foreach (var c in path)
 			{
@@ -239,11 +289,12 @@ namespace FoundationDB.Layers.Directories
 					}
 					case '/':
 					{
-						if (sb.Length == 0 && paths.Count == 0)
+						if (sb.Length == 0 && segments.Count == 0)
 						{ // ignore the first '/'
 							continue;
 						}
-						paths.Add(sb.ToString());
+
+						segments.Add(sb.ToString());
 						sb.Clear();
 						break;
 					}
@@ -254,88 +305,82 @@ namespace FoundationDB.Layers.Directories
 					}
 				}
 			}
+
 			if (sb.Length > 0)
 			{
-				paths.Add(sb.ToString());
+				segments.Add(sb.ToString());
 			}
-			return new FdbDirectoryPath(paths.ToArray());
-		}
 
+			return new FdbDirectoryPath(segments.ToArray());
+		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator FdbDirectoryPath([NotNull] string segment)
 		{
-			return Create(segment);
+			return Combine(segment);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator FdbDirectoryPath([NotNull, ItemNotNull] string[] segments)
 		{
-			return Create(segments);
+			return Combine(segments);
 		}
 
 		[Pure, NotNull]
-		internal static string FormatPath([NotNull, ItemNotNull] string[] paths)
+		internal static string FormatPath(ReadOnlySpan<string> paths)
 		{
-			Contract.NotNull(paths, nameof(paths));
-
-			return string.Join("/", paths.Select(path => path.Contains('\\') || path.Contains('/')
-				? path.Replace("\\", "\\\\").Replace("/", "\\/")
-				: path));
-		}
-
-		[Pure, NotNull]
-		internal IVarTuple ToTuple()
-		{
-			return this.IsEmpty ? STuple.Empty : STuple.FromArray(this.Segments);
+			var sb = new StringBuilder();
+			foreach(var seg in paths)
+			{
+				if (sb.Length != 0) sb.Append('/');
+				if (seg.Contains('\\') || seg.Contains('/'))
+				{
+					sb.Append(seg.Replace("\\", "\\\\").Replace("/", "\\/"));
+				}
+				else
+				{
+					sb.Append(seg);
+				}
+			}
+			return sb.ToString();
 		}
 
 		public override int GetHashCode()
 		{
-			var segments = GetSegments();
-			int h = segments.Length;
-			foreach (var s in segments)
+			//this must be fast because we will use paths as keys in directories a lot (cache context)
+
+			//note: we cannot use this.Segments.GetHashCode() because it will vary depending on the underlying backing store!
+			// => we will use the head, middle point and tail of the segment to compute the hash
+
+			var segments = this.Segments.Span;
+			switch (segments.Length)
 			{
-				h = (h * 31) ^ s.GetHashCode();
+				case 0: return 0;
+				case 1: return HashCodes.Combine(1, segments[0]?.GetHashCode() ?? -1);
+				case 2: return HashCodes.Combine(2, segments[0]?.GetHashCode() ?? -1, segments[1]?.GetHashCode() ?? -1);
+				default: return HashCodes.Combine(3, segments[0]?.GetHashCode() ?? -1, segments[segments.Length >> 1]?.GetHashCode() ?? -1, segments[segments.Length - 1]?.GetHashCode() ?? -1);
 			}
-			return h;
 		}
 
 		public override bool Equals(object obj)
 		{
-			return obj is FdbDirectoryPath path && Equals(path);
+			return obj is FdbDirectoryPath other && this.Segments.Span.SequenceEqual(other.Segments.Span);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(FdbDirectoryPath other)
 		{
-			return this == other;
+			return this.Segments.Span.SequenceEqual(other.Segments.Span);
 		}
 
 		public static bool operator ==(FdbDirectoryPath left, FdbDirectoryPath right)
 		{
-			var l = left.GetSegments();
-			var r = right.GetSegments();
-			if (l.Length != r.Length) return false;
-			for (int i = 0; i < l.Length; i++)
-			{
-				if (l[i] != r[i]) return false;
-			}
-			return true;
+			return left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
 
 		public static bool operator !=(FdbDirectoryPath left, FdbDirectoryPath right)
 		{
-			var l = left.GetSegments();
-			var r = right.GetSegments();
-			if (l.Length != r.Length) return true;
-			for (int i = 0; i < l.Length; i++)
-			{
-				if (l[i] != r[i]) return true;
-			}
-			return false;
+			return !left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
-
 	}
-
 }

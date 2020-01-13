@@ -46,18 +46,22 @@ namespace FoundationDB.Layers.Counters.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "counters", "simple");
+				var location = db.Root["counters"]["simple"];
+				await CleanLocation(db, location);
 
-				var counter = new FdbHighContentionCounter(db, location);
+				var counter = new FdbHighContentionCounter(location);
 
-				await counter.AddAsync(100, this.Cancellation);
-				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(100));
+				await db.WriteAsync(async tr => await counter.Add(tr, 100), this.Cancellation);
+				var res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
+				Assert.That(res, Is.EqualTo(100));
 
-				await counter.AddAsync(-10, this.Cancellation);
-				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(90));
+				await db.WriteAsync(async tr => await counter.Add(tr, -10), this.Cancellation);
+				res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
+				Assert.That(res, Is.EqualTo(90));
 
-				await counter.SetTotalAsync(500, this.Cancellation);
-				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(500));
+				await db.WriteAsync(async tr => await counter.SetTotal(tr, 500), this.Cancellation);
+				res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
+				Assert.That(res, Is.EqualTo(500));
 			}
 		}
 
@@ -68,16 +72,17 @@ namespace FoundationDB.Layers.Counters.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "counters", "big");
+				var location = db.Root["counters"]["big"];
+				await CleanLocation(db, location);
 
-				var c = new FdbHighContentionCounter(db, location);
+				var c = new FdbHighContentionCounter(location);
 
 				Log("Doing " + N + " inserts in one thread...");
 
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < N; i++)
 				{
-					await c.AddAsync(1, this.Cancellation);
+					await db.WriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
 				}
 				sw.Stop();
 
@@ -87,7 +92,8 @@ namespace FoundationDB.Layers.Counters.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N));
+				var res = await db.ReadAsync(async tr => await c.GetSnapshot(tr), this.Cancellation);
+				Assert.That(res, Is.EqualTo(N));
 			}
 
 		}
@@ -104,9 +110,10 @@ namespace FoundationDB.Layers.Counters.Tests
 
 				using (var db = await OpenTestPartitionAsync())
 				{
-					var location = await GetCleanDirectory(db, "counters", "big", W.ToString());
+					var location = db.Root["counters"]["big"][W.ToString()];
+					await CleanLocation(db, location);
 
-					var c = new FdbHighContentionCounter(db, location);
+					var c = new FdbHighContentionCounter(location);
 
 					Log("Doing " + W + " x " + B + " inserts in " + W + " threads...");
 
@@ -118,7 +125,7 @@ namespace FoundationDB.Layers.Counters.Tests
 							await signal.Task.ConfigureAwait(false);
 							for (int i = 0; i < B; i++)
 							{
-								await c.AddAsync(1, this.Cancellation).ConfigureAwait(false);
+								await db.WriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
 							}
 						}).ToArray();
 
@@ -130,7 +137,7 @@ namespace FoundationDB.Layers.Counters.Tests
 					sw.Stop();
 					Log("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
 
-					long n = await c.GetSnapshotAsync(this.Cancellation);
+					long n = await db.ReadAsync(tr => c.GetSnapshot(tr), this.Cancellation);
 					if (n != N)
 					{ // fail
 						await DumpSubspace(db, location);
@@ -139,7 +146,8 @@ namespace FoundationDB.Layers.Counters.Tests
 
 					// wait a bit, in case there was some coalesce still running...
 					await Task.Delay(200);
-					n = await c.GetSnapshotAsync(this.Cancellation);
+
+					n = await db.ReadAsync(tr => c.GetSnapshot(tr), this.Cancellation);
 					if (n != N)
 					{ // fail
 						await DumpSubspace(db, location);

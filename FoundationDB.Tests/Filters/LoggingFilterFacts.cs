@@ -47,37 +47,42 @@ namespace FoundationDB.Filters.Logging.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// get a tuple view of the directory
-				var location = (await GetCleanDirectory(db, "Logging")).Keys;
+				var location = db.Root["Logging"];
+				await CleanLocation(db, location);
 
 				// note: ensure that all methods are JITed
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
+					var subspace = await location.Resolve(tr);
+
 					await tr.GetReadVersionAsync();
-					tr.Set(location.Encode("Warmup", 0), Slice.FromInt32(1));
-					tr.Clear(location.Encode("Warmup", 1));
-					await tr.GetAsync(location.Encode("Warmup", 2));
-					await tr.GetRange(KeyRange.StartsWith(location.Encode("Warmup", 3))).ToListAsync();
-					tr.ClearRange(location.Encode("Warmup", 4), location.Encode("Warmup", 5));
+					tr.Set(subspace.Encode("Warmup", 0), Slice.FromInt32(1));
+					tr.Clear(subspace.Encode("Warmup", 1));
+					await tr.GetAsync(subspace.Encode("Warmup", 2));
+					await tr.GetRange(KeyRange.StartsWith(subspace.Encode("Warmup", 3))).ToListAsync();
+					tr.ClearRange(subspace.Encode("Warmup", 4), subspace.Encode("Warmup", 5));
 				}, this.Cancellation);
 
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
+					var subspace = await location.Resolve(tr);
+
 					var rnd = new Random();
-					tr.Set(location.Encode("One"), Value("111111"));
-					tr.Set(location.Encode("Two"), Value("222222"));
+					tr.Set(subspace.Encode("One"), Value("111111"));
+					tr.Set(subspace.Encode("Two"), Value("222222"));
 					for (int j = 0; j < 4; j++)
 					{
 						for (int i = 0; i < 100; i++)
 						{
-							tr.Set(location.Encode("Range", j, rnd.Next(1000)), Slice.Empty);
+							tr.Set(subspace.Encode("Range", j, rnd.Next(1000)), Slice.Empty);
 						}
 					}
 					for (int j = 0; j < N; j++)
 					{
-						tr.Set(location.Encode("X", j), Slice.FromInt32(j));
-						tr.Set(location.Encode("Y", j), Slice.FromInt32(j));
-						tr.Set(location.Encode("Z", j), Slice.FromInt32(j));
-						tr.Set(location.Encode("W", j), Slice.FromInt32(j));
+						tr.Set(subspace.Encode("X", j), Slice.FromInt32(j));
+						tr.Set(subspace.Encode("Y", j), Slice.FromInt32(j));
+						tr.Set(subspace.Encode("Z", j), Slice.FromInt32(j));
+						tr.Set(subspace.Encode("W", j), Slice.FromInt32(j));
 					}
 				}, this.Cancellation);
 
@@ -101,57 +106,59 @@ namespace FoundationDB.Filters.Logging.Tests
 					Log("==== " + k + " ==== ");
 					Log();
 
-					await logged.ReadWriteAsync(async (tr) =>
+					await logged.WriteAsync(async (tr) =>
 					{
 						Assert.That(tr, Is.InstanceOf<FdbLoggedTransaction>());
+
+						var subspace = await location.Resolve(tr);
 
 						//tr.SetOption(FdbTransactionOption.CausalReadRisky);
 
 						long ver = await tr.GetReadVersionAsync().ConfigureAwait(false);
 
-						await tr.GetAsync(location.Encode("One")).ConfigureAwait(false);
-						await tr.GetAsync(location.Encode("NotFound")).ConfigureAwait(false);
+						await tr.GetAsync(subspace.Encode("One")).ConfigureAwait(false);
+						await tr.GetAsync(subspace.Encode("NotFound")).ConfigureAwait(false);
 
-						tr.Set(location.Encode("Write"), Value("abcdef" + k.ToString()));
+						tr.Set(subspace.Encode("Write"), Value("abcdef" + k.ToString()));
 
 						//tr.Annotate("BEFORE");
 						//await Task.Delay(TimeSpan.FromMilliseconds(10));
 						//tr.Annotate("AFTER");
 
-						//await tr.Snapshot.GetAsync(location.Pack("Snap")).ConfigureAwait(false);
+						//await tr.Snapshot.GetAsync(folder.Pack("Snap")).ConfigureAwait(false);
 
 						tr.Annotate("This is a comment");
 
-						//await tr.GetRangeAsync(KeySelector.LastLessOrEqual(location.Pack("A")), KeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
+						//await tr.GetRangeAsync(KeySelector.LastLessOrEqual(folder.Pack("A")), KeySelector.FirstGreaterThan(folder.Pack("Z"))).ConfigureAwait(false);
 
 						await Task.WhenAll(
-							tr.GetRange(KeyRange.StartsWith(location.Encode("Range", 0))).ToListAsync(),
-							tr.GetRange(location.Encode("Range", 1, 0), location.Encode("Range", 1, 200)).ToListAsync(),
-							tr.GetRange(location.Encode("Range", 2, 400), location.Encode("Range", 2, 600)).ToListAsync(),
-							tr.GetRange(location.Encode("Range", 3, 800), location.Encode("Range", 3, 1000)).ToListAsync()
+							tr.GetRange(KeyRange.StartsWith(subspace.Encode("Range", 0))).ToListAsync(),
+							tr.GetRange(subspace.Encode("Range", 1, 0), subspace.Encode("Range", 1, 200)).ToListAsync(),
+							tr.GetRange(subspace.Encode("Range", 2, 400), subspace.Encode("Range", 2, 600)).ToListAsync(),
+							tr.GetRange(subspace.Encode("Range", 3, 800), subspace.Encode("Range", 3, 1000)).ToListAsync()
 						).ConfigureAwait(false);
 
-						await tr.GetAsync(location.Encode("Two")).ConfigureAwait(false);
+						await tr.GetAsync(subspace.Encode("Two")).ConfigureAwait(false);
 
-						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Encode("X", x))).ConfigureAwait(false);
+						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => subspace.Encode("X", x))).ConfigureAwait(false);
 
 						for (int i = 0; i < N; i++)
 						{
-							await tr.GetAsync(location.Encode("Z", i)).ConfigureAwait(false);
+							await tr.GetAsync(subspace.Encode("Z", i)).ConfigureAwait(false);
 						}
 
-						await Task.WhenAll(Enumerable.Range(0, N / 2).Select(x => tr.GetAsync(location.Encode("Y", x)))).ConfigureAwait(false);
-						await Task.WhenAll(Enumerable.Range(N / 2, N / 2).Select(x => tr.GetAsync(location.Encode("Y", x)))).ConfigureAwait(false);
+						await Task.WhenAll(Enumerable.Range(0, N / 2).Select(x => tr.GetAsync(subspace.Encode("Y", x)))).ConfigureAwait(false);
+						await Task.WhenAll(Enumerable.Range(N / 2, N / 2).Select(x => tr.GetAsync(subspace.Encode("Y", x)))).ConfigureAwait(false);
 
 						await Task.WhenAll(
-							tr.GetAsync(location.Encode("W", 1)),
-							tr.GetAsync(location.Encode("W", 2)),
-							tr.GetAsync(location.Encode("W", 3))
+							tr.GetAsync(subspace.Encode("W", 1)),
+							tr.GetAsync(subspace.Encode("W", 2)),
+							tr.GetAsync(subspace.Encode("W", 3))
 						).ConfigureAwait(false);
 
-						tr.Set(location.Encode("Write2"), Value("ghijkl" + k.ToString()));
-						tr.Clear(location.Encode("Clear", "0"));
-						tr.ClearRange(location.Encode("Clear", "A"), location.Encode("Clear", "Z"));
+						tr.Set(subspace.Encode("Write2"), Value("ghijkl" + k.ToString()));
+						tr.Clear(subspace.Encode("Clear", "0"));
+						tr.ClearRange(subspace.Encode("Clear", "A"), subspace.Encode("Clear", "Z"));
 
 						if (tr.Context.Retries == 0)
 						{

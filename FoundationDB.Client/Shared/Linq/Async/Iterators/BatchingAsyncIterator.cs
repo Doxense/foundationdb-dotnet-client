@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ namespace Doxense.Linq.Async.Iterators
 		// ITERATOR
 
 		// buffer storing the items in the current window
-		private List<TInput> m_buffer;
+		private List<TInput>? m_buffer;
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
@@ -59,8 +59,6 @@ namespace Doxense.Linq.Async.Iterators
 			: base(source)
 		{
 			Contract.Requires(batchSize > 0);
-
-			m_source = source;
 			m_batchSize = batchSize;
 		}
 
@@ -86,6 +84,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			var iterator = m_iterator;
 			var buffer = m_buffer;
+			Contract.Assert(iterator != null && buffer != null);
 
 			bool hasMore = await iterator.MoveNextAsync().ConfigureAwait(false);
 

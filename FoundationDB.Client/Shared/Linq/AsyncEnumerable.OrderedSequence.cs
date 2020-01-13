@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,21 +49,21 @@ namespace Doxense.Linq
 			// If an instance of the derived <TSource, TKey> class is constructed, then it will sort the a key extracted the each item (sing a Comparer<TKey>)
 
 			protected readonly IAsyncEnumerable<TSource> m_source;
-			private readonly IComparer<TSource> m_comparer; // null if comparing using keys
+			private readonly IComparer<TSource>? m_comparer; // null if comparing using keys
 			protected readonly bool m_descending;
-			protected readonly OrderedSequence<TSource> m_parent;// null if primary sort key
+			protected readonly OrderedSequence<TSource>? m_parent;// null if primary sort key
 
-			public OrderedSequence(IAsyncEnumerable<TSource> source, IComparer<TSource> comparer, bool descending, OrderedSequence<TSource> parent)
+			public OrderedSequence(IAsyncEnumerable<TSource> source, IComparer<TSource>? comparer, bool descending, OrderedSequence<TSource>? parent)
 			{
 				Contract.Requires(source != null);
 
 				m_source = source;
 				m_descending = descending;
-				m_comparer = comparer ?? Comparer<TSource>.Default;
+				m_comparer = comparer;
 				m_parent = parent;
 			}
 
-			protected OrderedSequence(IAsyncEnumerable<TSource> source, bool descending, OrderedSequence<TSource> parent)
+			protected OrderedSequence(IAsyncEnumerable<TSource> source, bool descending, OrderedSequence<TSource>? parent)
 			{
 				Contract.Requires(source != null);
 
@@ -73,11 +73,10 @@ namespace Doxense.Linq
 			}
 
 			[NotNull]
-			internal virtual SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource> next)
+			internal virtual SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource>? next)
 			{
-				var sorter = new SequenceByElementSorter<TSource>(m_comparer, m_descending, next);
-				if (m_parent == null) return sorter;
-				return m_parent.GetEnumerableSorter(sorter);
+				var sorter = new SequenceByElementSorter<TSource>(m_comparer ?? Comparer<TSource>.Default, m_descending, next);
+				return m_parent == null ? sorter : m_parent.GetEnumerableSorter(sorter);
 			}
 
 			public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken ct) => GetAsyncEnumerator(ct, AsyncIterationHint.Default);
@@ -100,7 +99,7 @@ namespace Doxense.Linq
 				}
 			}
 
-			public IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending)
+			public IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending)
 			{
 				Contract.NotNull(keySelector, nameof(keySelector));
 
@@ -117,7 +116,7 @@ namespace Doxense.Linq
 			private readonly Func<TSource, TKey> m_keySelector;
 			private readonly IComparer<TKey> m_keyComparer;
 
-			public OrderedSequence(IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, OrderedSequence<TSource> parent)
+			public OrderedSequence(IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending, OrderedSequence<TSource>? parent)
 				: base(source, descending, parent)
 			{
 				Contract.Requires(keySelector != null);
@@ -125,11 +124,10 @@ namespace Doxense.Linq
 				m_keyComparer = comparer ?? Comparer<TKey>.Default;
 			}
 
-			internal override SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource> next)
+			internal override SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource>? next)
 			{
 				var sorter = new SequenceByKeySorter<TSource, TKey>(m_keySelector, m_keyComparer, m_descending, next);
-				if (m_parent == null) return sorter;
-				return m_parent.GetEnumerableSorter(sorter);
+				return m_parent == null ? sorter : m_parent.GetEnumerableSorter(sorter);
 			}
 
 		}
@@ -144,8 +142,8 @@ namespace Doxense.Linq
 			private readonly IAsyncEnumerator<TSource> m_inner;
 			private readonly SequenceSorter<TSource> m_sorter;
 
-			private TSource[] m_items;
-			private int[] m_map;
+			private TSource[]? m_items;
+			private int[]? m_map;
 			private int m_offset;
 			private TSource m_current;
 			private readonly CancellationToken m_ct;
@@ -196,7 +194,7 @@ namespace Doxense.Linq
 
 			public ValueTask<bool> MoveNextAsync()
 			{
-				// Firt call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
+				// First call will be slow (and async), but the rest of the calls will use the results already sorted in memory, and should be as fast as possible!
 
 				if (m_map == null)
 				{
@@ -225,7 +223,7 @@ namespace Doxense.Linq
 
 			private void Completed()
 			{
-				m_current = default;
+				m_current = default!;
 				m_offset = -1;
 				m_items = null;
 				m_map = null;

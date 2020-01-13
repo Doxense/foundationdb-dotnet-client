@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint _)
 			{
-				IEnumerator<TSource> inner = null;
+				IEnumerator<TSource>? inner = null;
 				try
 				{
 					inner = this.Source.GetEnumerator();

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ namespace Doxense.Linq.Async
 	using System.Collections.Generic;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
@@ -42,9 +41,10 @@ namespace Doxense.Linq.Async
 	internal sealed class AsyncSequence<TSource, TResult> : IConfigurableAsyncEnumerable<TResult>
 	{
 		public readonly IAsyncEnumerable<TSource> Source;
+
 		public readonly Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> Factory;
 
-		public AsyncSequence([NotNull] IAsyncEnumerable<TSource> source, [NotNull] Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> factory)
+		public AsyncSequence(IAsyncEnumerable<TSource> source, Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> factory)
 		{
 			Contract.Requires(source != null && factory != null);
 			this.Source = source;
@@ -56,7 +56,7 @@ namespace Doxense.Linq.Async
 		public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint mode)
 		{
 			ct.ThrowIfCancellationRequested();
-			IAsyncEnumerator<TSource> inner = null;
+			IAsyncEnumerator<TSource>? inner = null;
 			try
 			{
 				inner = this.Source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : this.Source.GetAsyncEnumerator(ct);

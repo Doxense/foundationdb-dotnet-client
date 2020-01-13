@@ -39,7 +39,7 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
 				// open the folder where we will store everything
-				var subspace = await db.Directory.CreateOrOpenAsync(tr, new [] { "Benchmarks", "LeakTest" });
+				var subspace = await db.Root["Benchmarks"]["LeakTest"].CreateOrOpenAsync(tr);
 
 				// clear all previous values
 				await db.ClearRangeAsync(subspace, ct);
@@ -85,7 +85,7 @@ namespace FoundationDB.Samples.Benchmarks
 					if (tr.Context.Retries > 0) Console.Write("!");
 					for (int j = 0; j < values.Length; j++)
 					{
-						tr.Set(location.Keys.Encode(j, now), Slice.FromString(values[j] + new string('A', 100)));
+						tr.Set(location.Encode(j, now), Slice.FromString(values[j] + new string('A', 100)));
 					}
 				}, ct);
 				Console.Write(".");

@@ -1,5 +1,5 @@
-#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+﻿#region BSD License
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,34 +29,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
-	using Doxense.Serialization.Encoders;
 	using JetBrains.Annotations;
 
-	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size.</summary>
-	/// <remarks>This is usefull when dealing with subspaces that store keys of different types and shapes.</remarks>
-	/// <example>In pseudo code, we obtain a dynamic subspace that wraps a prefix, and uses the <see cref="Doxense.Collections.Tuples.TuPack">Tuple Encoder Format</see> to encode variable-size tuples into binary:
-	/// <code>
-	/// subspace = {...}.OpenOrCreate(..., "/some/path/to/data", TypeSystem.Tuples)
-	/// subspace.GetPrefix() => {prefix}
-	/// subspace.Keys.Pack(("Hello", "World")) => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
-	/// subspace.Keys.Encode("Hello", "World") => (PREFIX, 'Hello', 'World') => {prefix}.'\x02Hello\x00\x02World\x00'
-	/// subspace.Keys.Decode({prefix}'\x02Hello\x00\x15\x42') => ('Hello', 0x42)
-	/// </code>
-	/// </example>
-	[PublicAPI]
-	public interface IDynamicKeySubspace : IKeySubspace
+	/// <summary>Represents a context in which keyspaces are valid</summary>
+	public interface ISubspaceContext
 	{
 
-		/// <summary>View of the keys of this subspace</summary>
+		/// <summary>Check if this context is still valid for use</summary>
+		/// <remarks>Should throw an exception if the context is in an invalid state</remarks>
+		void EnsureIsValid();
+
 		[NotNull]
-		DynamicKeys Keys { get; }
-
-		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		[NotNull]
-		DynamicPartition Partition { get; }
-
-		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
-		[NotNull] IKeyEncoding Encoding { get; }
-
+		string Name { get; }
 	}
+
+	public class SubspaceContext : ISubspaceContext
+	{
+		private SubspaceContext() { }
+
+		[NotNull]
+		public static readonly ISubspaceContext Default = new SubspaceContext();
+
+		public void EnsureIsValid()
+		{
+			// the default context is always valid
+		}
+
+		public string Name => string.Empty;
+	}
+
 }

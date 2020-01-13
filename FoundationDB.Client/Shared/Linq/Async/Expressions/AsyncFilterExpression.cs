@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,20 +30,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Doxense.Linq.Async.Expressions
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
+	using JetBrains.Annotations;
 
-	/// <summary>Expression that evalute a condition on each item</summary>
+	/// <summary>Expression that evaluate a condition on each item</summary>
 	/// <typeparam name="TSource">Type of the filtered elements</typeparam>
 	[PublicAPI]
 	public sealed class AsyncFilterExpression<TSource>
 	{
-		private readonly Func<TSource, bool> m_filter;
-		private readonly Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
+		private readonly Func<TSource, bool>? m_filter;
+		private readonly Func<TSource, CancellationToken, Task<bool>>? m_asyncFilter;
 
 		public AsyncFilterExpression(Func<TSource, bool> filter)
 		{
@@ -61,7 +61,7 @@ namespace Doxense.Linq.Async.Expressions
 
 		public bool Invoke(TSource item)
 		{
-			if (m_filter == null) FailInvalidOperation();
+			if (m_filter == null) throw FailInvalidOperation();
 			return m_filter(item);
 		}
 
@@ -73,14 +73,15 @@ namespace Doxense.Linq.Async.Expressions
 			}
 			else
 			{
+				Contract.Requires(m_filter != null);
 				return Task.FromResult(m_filter(item));
 			}
 		}
 
-		[ContractAnnotation("=> halt")]
-		private static void FailInvalidOperation()
+		[Pure]
+		private static InvalidOperationException FailInvalidOperation()
 		{
-			throw new InvalidOperationException("Cannot invoke asynchronous filter synchronously.");
+			return new InvalidOperationException("Cannot invoke asynchronous filter synchronously.");
 		}
 
 		[NotNull]
@@ -121,14 +122,17 @@ namespace Doxense.Linq.Async.Expressions
 			else
 			{ // we are async
 				var f = left.m_asyncFilter;
+				Contract.Assert(f != null);
 				if (right.m_asyncFilter != null)
 				{ // so is the next one
 					var g = right.m_asyncFilter;
+					Contract.Assert(g != null);
 					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && (await g(x, ct).ConfigureAwait(false)));
 				}
 				else
 				{
 					var g = right.m_filter;
+					Contract.Assert(g != null);
 					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && g(x));
 				}
 			}
@@ -146,20 +150,24 @@ namespace Doxense.Linq.Async.Expressions
 			if (left.m_filter != null)
 			{ // we are async
 				var f = left.m_filter;
+				Contract.Assert(f != null);
 				if (right.m_filter != null)
 				{ // so is the next one
 					var g = right.m_filter;
+					Contract.Assert(g != null);
 					return new AsyncFilterExpression<TSource>((x) => f(x) || g(x));
 				}
 				else
 				{ // next one is async
 					var g = right.m_asyncFilter;
+					Contract.Assert(g != null);
 					return new AsyncFilterExpression<TSource>((x, ct) => f(x) ? TaskHelpers.True : g(x, ct));
 				}
 			}
 			else
 			{ // we are async
 				var f = left.m_asyncFilter;
+				Contract.Assert(f != null);
 				if (right.m_asyncFilter != null)
 				{ // so is the next one
 					var g = left.m_asyncFilter;

@@ -76,7 +76,8 @@ namespace FoundationDB.Layers.Documents.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Books", "JSON");
+				var location = db.Root["Books"]["JSON"];
+				await CleanLocation(db, location);
 
 				var docs = new FdbDocumentCollection<Book, int>(
 					location,
@@ -88,7 +89,7 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store a document
 				var book1 = books[0];
-				await db.WriteAsync((tr) => docs.Insert(tr, book1), this.Cancellation);
+				await db.WriteAsync((tr) => docs.InsertAsync(tr, book1), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -105,7 +106,7 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store another document
 				var book2 = books[1];
-				await db.WriteAsync((tr) => docs.Insert(tr, book2), this.Cancellation);
+				await db.WriteAsync((tr) => docs.InsertAsync(tr, book2), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -117,7 +118,8 @@ namespace FoundationDB.Layers.Documents.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Books", "ProtoBuf");
+				var location = db.Root["Books"]["ProtoBuf"];
+				await CleanLocation(db, location);
 
 				// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere
 				var metaType = ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof(Book), false);
@@ -134,7 +136,7 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store a document
 				var book1 = books[0];
-				await db.WriteAsync((tr) => docs.Insert(tr, book1), this.Cancellation);
+				await db.WriteAsync((tr) => docs.InsertAsync(tr, book1), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -151,7 +153,7 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store another document
 				var book2 = books[1];
-				await db.WriteAsync((tr) => docs.Insert(tr, book2), this.Cancellation);
+				await db.WriteAsync((tr) => docs.InsertAsync(tr, book2), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif

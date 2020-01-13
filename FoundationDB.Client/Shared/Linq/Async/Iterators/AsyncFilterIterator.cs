@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	public abstract class AsyncFilterIterator<TSource, TResult> : AsyncIterator<TResult>
 	{
@@ -43,10 +42,10 @@ namespace Doxense.Linq.Async.Iterators
 		protected IAsyncEnumerable<TSource> m_source;
 
 		/// <summary>Active iterator on the source (when in iterator mode)</summary>
-		protected IAsyncEnumerator<TSource> m_iterator;
+		protected IAsyncEnumerator<TSource>? m_iterator;
 		protected bool m_innerHasCompleted;
 
-		protected AsyncFilterIterator([NotNull] IAsyncEnumerable<TSource> source)
+		protected AsyncFilterIterator(IAsyncEnumerable<TSource> source)
 		{
 			Contract.Requires(source != null);
 			m_source = source;
@@ -81,7 +80,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			// on the first call to MoveNext, we have to hook up with the source iterator
 
-			IAsyncEnumerator<TSource> iterator = null;
+			IAsyncEnumerator<TSource>? iterator = null;
 			try
 			{
 				iterator = StartInner(m_ct);

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ namespace Doxense.Linq.Async.Iterators
 	public class PrefetchingAsyncIterator<TInput> : AsyncFilterIterator<TInput, TInput>
 	{
 		// This iterator can be used to already ask for the next few items, while they are being processed somewhere down the line of the query.
-		// This can be usefull, when combined with Batching or Windowing, to maximize the throughput of db queries that read pages of results at a time.
+		// This can be useful, when combined with Batching or Windowing, to maximize the throughput of db queries that read pages of results at a time.
 
 		// ITERABLE
 
@@ -52,9 +52,9 @@ namespace Doxense.Linq.Async.Iterators
 		// ITERATOR
 
 		// buffer storing the items in the current window
-		private Queue<TInput> m_buffer;
+		private Queue<TInput>? m_buffer;
 		// holds on to the last pending call to m_iterator.MoveNext() when our buffer is full
-		private Task<bool> m_nextTask;
+		private Task<bool>? m_nextTask;
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
@@ -83,7 +83,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (buffer != null && buffer.Count > 0)
 			{
 				var nextTask = m_nextTask;
-				if (nextTask == null || !m_nextTask.IsCompleted)
+				if (nextTask == null || !nextTask.IsCompleted)
 				{
 					return new ValueTask<bool>(Publish(buffer.Dequeue()));
 				}
@@ -95,12 +95,14 @@ namespace Doxense.Linq.Async.Iterators
 		protected virtual async ValueTask<bool> PrefetchNextItemsAsync()
 		{
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our prefetch buffer, then returns the first item in the buffer.
+			var iterator = m_iterator;
+			Contract.Requires(m_innerHasCompleted || iterator != null);
 
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return await Completed();
-				ft = m_iterator.MoveNextAsync().AsTask();
+				ft = iterator.MoveNextAsync().AsTask();
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -111,10 +113,10 @@ namespace Doxense.Linq.Async.Iterators
 
 			while (hasMore && !m_ct.IsCancellationRequested)
 			{
-				if (m_buffer == null) m_buffer = new Queue<TInput>(m_prefetchCount);
-				m_buffer.Enqueue(m_iterator.Current);
+				m_buffer ??= new Queue<TInput>(m_prefetchCount);
+				m_buffer.Enqueue(iterator.Current);
 
-				var vt = m_iterator.MoveNextAsync();
+				var vt = iterator.MoveNextAsync();
 				if (m_buffer.Count >= m_prefetchCount || !vt.IsCompleted)
 				{ // save it for next time
 					m_nextTask = vt.AsTask();

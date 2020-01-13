@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,8 +76,8 @@ namespace Doxense.Linq
 
 		/// <summary>Create a new async sequence from a factory method</summary>
 		public static IAsyncEnumerable<TResult> Create<TResult>(
-			Func<object, CancellationToken, IAsyncEnumerator<TResult>> factory,
-			object state = null)
+			Func<object?, CancellationToken, IAsyncEnumerator<TResult>> factory,
+			object? state = null)
 		{
 			return new AnonymousIterable<TResult>(factory, state);
 		}
@@ -85,10 +85,10 @@ namespace Doxense.Linq
 		internal sealed class AnonymousIterable<T> : IAsyncEnumerable<T>
 		{
 
-			private readonly Func<object, CancellationToken, IAsyncEnumerator<T>> m_factory;
-			private readonly object m_state;
+			private readonly Func<object?, CancellationToken, IAsyncEnumerator<T>> m_factory;
+			private readonly object? m_state;
 
-			public AnonymousIterable(Func<object, CancellationToken, IAsyncEnumerator<T>> factory, object state)
+			public AnonymousIterable(Func<object?, CancellationToken, IAsyncEnumerator<T>> factory, object? state)
 			{
 				Contract.Requires(factory != null);
 				m_factory = factory;
@@ -105,6 +105,21 @@ namespace Doxense.Linq
 				ct.ThrowIfCancellationRequested();
 				return m_factory(m_state, ct);
 			}
+		}
+
+		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
+		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult>(Func<CancellationToken, Task<IAsyncEnumerable<TResult>>> factory)
+		{
+			Contract.NotNull(factory, nameof(factory));
+			return new DeferredAsyncIterator<TResult, IAsyncEnumerable<TResult>>(factory);
+		}
+
+		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
+		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult, TCollection>(Func<CancellationToken, Task<TCollection>> factory)
+			where TCollection: IAsyncEnumerable<TResult>
+		{
+			Contract.NotNull(factory, nameof(factory));
+			return new DeferredAsyncIterator<TResult, TCollection>(factory);
 		}
 
 		#endregion
@@ -333,7 +348,7 @@ namespace Doxense.Linq
 					return first;
 				}
 				if (!orDefault) throw new InvalidOperationException("The sequence was empty");
-				return default(TSource);
+				return default!;
 			}
 		}
 
@@ -349,7 +364,7 @@ namespace Doxense.Linq
 		// We want to avoid growing the same array again and again !
 		// Instead, we grow list of chunks, that grow in size (until a max), and concatenate all the chunks together at the end, once we know the final size
 
-		/// <summary>Default intial capacity, if not specified</summary>
+		/// <summary>Default initial capacity, if not specified</summary>
 		const int DefaultCapacity = 16;
 		//REVIEW: should we use a power of 2 or of 10 for initial capacity?
 		// Since humans prefer the decimal system, it is more likely that query limit count be set to something like 10, 50, 100 or 1000
@@ -393,7 +408,7 @@ namespace Doxense.Linq
 		{
 			// Growth rate:
 			// - newly created chunk is always half the total size
-			// - except the first chunk who is set to the inital capacity
+			// - except the first chunk who is set to the initial capacity
 
 			Array.Resize(ref this.Chunks, this.Chunks.Length + 1);
 			this.Current = new T[Math.Min(this.Count, MaxChunkSize)];
@@ -503,7 +518,7 @@ namespace Doxense.Linq
 		/// <summary>Return the content of the buffer</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
 		[NotNull]
-		public HashSet<T> ToHashSet(IEqualityComparer<T> comparer = null)
+		public HashSet<T> ToHashSet(IEqualityComparer<T>? comparer = null)
 		{
 			int count = this.Count;
 			var hashset = new HashSet<T>(comparer);

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
@@ -199,7 +200,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()}");
 
-			m_handler.SetOption(option, Slice.Nil);
+			m_handler.SetOption(option, default);
 		}
 
 		/// <inheritdoc />
@@ -210,7 +211,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
-			m_handler.SetOption(option, data);
+			m_handler.SetOption(option, data.Span);
 		}
 
 		/// <inheritdoc />
@@ -221,7 +222,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			m_handler.SetOption(option, data);
+			m_handler.SetOption(option, data.Span);
 		}
 
 		/// <inheritdoc />
@@ -232,22 +233,32 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
-			var data = Slice.FromFixed64(value);
-
-			m_handler.SetOption(option, data);
+			Span<byte> tmp = stackalloc byte[8];
+			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
+			m_handler.SetOption(option, tmp);
 		}
 
 		#endregion
 
 		#region Versions...
 
+		private Task<long> CachedReadVersion;
+
 		/// <inheritdoc />
 		public Task<long> GetReadVersionAsync()
 		{
 			// can be called after the transaction has been committed
 			EnsureCanRetry();
+			return this.CachedReadVersion ?? GetReadVersionSlow();
+		}
 
-			return m_handler.GetReadVersionAsync(m_cancellation);
+		/// <summary>Get the read version when it is not in cache</summary>
+		private Task<long> GetReadVersionSlow()
+		{
+			lock (this)
+			{
+				return this.CachedReadVersion ??= m_handler.GetReadVersionAsync(m_cancellation);
+			}
 		}
 
 		/// <inheritdoc />
@@ -265,6 +276,144 @@ namespace FoundationDB.Client
 			EnsureCanRead();
 
 			m_handler.SetReadVersion(version);
+		}
+
+		/// <inheritdoc />
+		public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			return GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: false);
+		}
+
+		/// <inheritdoc />
+		public void TouchMetadataVersionKey(Slice key = default)
+		{
+			SetMetadataVersionKey(key.IsNull ? Fdb.System.MetadataVersionKey : key);
+		}
+
+		// all access to this should be made under lock!
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> MetadataVersionKeysCache;
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCache()
+		{
+			return this.MetadataVersionKeysCache ?? GetMetadataVersionKeysCacheSlow();
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCacheSlow()
+		{
+			lock(this)
+			{
+				return this.MetadataVersionKeysCache ??= new Dictionary<Slice, (Task<VersionStamp?>, bool)>(Slice.Comparer.Default);
+			}
+		}
+
+		private static readonly Task<VersionStamp?> PoisonedMetadataVersion = Task.FromResult<VersionStamp?>(null);
+
+		/// <summary>Fetch and parse the metadataVersion system key</summary>
+		/// <param name="key">Key to read</param>
+		/// <param name="snapshot">If false, add a read conflict range on the key.</param>
+		internal Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key, bool snapshot)
+		{
+			if (key.IsNull) throw new ArgumentNullException(nameof(key));
+
+			EnsureCanRetry();
+
+			(Task<VersionStamp?> Task, bool Snapshot) t;
+
+			// only add the range if we read in non-snapshot isolation for the first time
+			bool mustAddConflictRange = false;
+
+			// note: we have to lock because there could be another thread calling TouchMetadataVersionKey at the same time!
+			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent write from causing us to throw error code 1036
+
+			lock (this)
+			{
+				var cache = GetMetadataVersionKeysCache();
+				if (!cache.TryGetValue(key, out t) || t.Task == null)
+				{
+					mustAddConflictRange = !snapshot;
+					t = (ReadAndParseMetadataVersionSlow(key), snapshot);
+					cache[key] = t;
+				}
+				else if (t.Snapshot)
+				{ // previous reads were done in snapshot isolation
+
+					if (!snapshot)
+					{ // but this read is not, so we have to add the conflict range!
+						mustAddConflictRange = true;
+						t.Snapshot = false;
+						cache[key] = t;
+					}
+				}
+			}
+
+			// for non-snapshot reads on writable transactions, we have to add the conflict range ourselves.
+			if (mustAddConflictRange && !this.IsReadOnly)
+			{
+				//TODO: only on the first non-snapshot read!!!
+				var range = KeyRange.FromKey(key);
+				AddConflictRange(range.Begin.Span, range.End.Span, FdbConflictRangeType.Read);
+			}
+			return t.Task;
+		}
+
+
+		private async Task<VersionStamp?> ReadAndParseMetadataVersionSlow(Slice key)
+		{
+			Contract.Requires(!key.IsNull);
+
+			Slice value;
+			try
+			{
+				// this can fail if the value has been changed earlier in the transaction!
+				value = await m_handler.GetAsync(key.Span, snapshot: true, m_cancellation).ConfigureAwait(false);
+			}
+			catch (FdbException e)
+			{
+				if (e.Code == FdbError.AccessedUnreadable)
+				{ // happens whenever the value has already been changed in the transaction!
+					// Basically this means "we don't know yet", and the caller should decide on a case by case how to deal with it
+
+					//note: the transaction will FAIL to commit! this only helps for transactions that decide to not commit given this result.
+					lock (this)
+					{
+						// poison this key!
+						GetMetadataVersionKeysCache()[key] = (FdbTransaction.PoisonedMetadataVersion, false);
+					}
+
+					return null;
+				}
+				throw;
+			}
+
+			// if the db is new, it is possible that the version is not yet present, we will return the empty stamp
+			return value.IsNullOrEmpty ? VersionStamp.Complete(0, 0) : VersionStamp.Parse(value);
+		}
+
+		internal void SetMetadataVersionKey(Slice key)
+		{
+			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
+			EnsureMutationTypeIsSupported(FdbMutationType.VersionStampedValue, Fdb.ApiVersion);
+
+			// note: we have to lock because there could be another thread calling GetMetadataVersionKey at the same time!
+			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent read from throwing error code 1036
+
+			lock (this)
+			{
+				var cache = GetMetadataVersionKeysCache();
+				if (cache.TryGetValue(key, out var t) && t.Task == PoisonedMetadataVersion)
+				{ // already done!
+					return;
+				}
+
+				// mark this key as dirty to prevent any future read
+				cache[key] = (PoisonedMetadataVersion, false);
+
+				// update the key with a new versionstamp
+				m_handler.Atomic(key.Span, Fdb.System.MetadataVersionValue.Span, FdbMutationType.VersionStampedValue);
+			}
+
 		}
 
 		/// <inheritdoc />
@@ -329,6 +478,18 @@ namespace FoundationDB.Client
 			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), userVersion, incomplete: true);
 		}
 
+		/// <summary>Counter used to generated a unique unique versionstamps for this transaction.</summary>
+		private int m_versionStampCounter;
+
+		/// <inheritdoc />
+		[Pure]
+		public VersionStamp CreateUniqueVersionStamp()
+		{
+			int userVersion = Interlocked.Increment(ref m_versionStampCounter);
+			if (userVersion > 0xFFF) throw new InvalidOperationException("Cannot generate more than 65535 unique VersionStamps per transaction!");
+			return CreateVersionStamp(userVersion);
+		}
+
 		#endregion
 
 		#region Get...
@@ -338,7 +499,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -360,7 +521,7 @@ namespace FoundationDB.Client
 
 			EnsureCanRead();
 
-			m_database.EnsureKeysAreValid(keys);
+			FdbKey.EnsureKeysAreValid(keys);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -374,12 +535,12 @@ namespace FoundationDB.Client
 		#region GetRangeAsync...
 
 		/// <inheritdoc />
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(in beginInclusive.Key);
-			m_database.EnsureKeyIsValid(in endExclusive.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -400,8 +561,8 @@ namespace FoundationDB.Client
 			Contract.Requires(selector != null);
 
 			EnsureCanRead();
-			this.Database.EnsureKeyIsValid(in begin.Key);
-			this.Database.EnsureKeyIsValid(in end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(begin.Key);
+			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 			options.EnsureLegalValues();
@@ -414,13 +575,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, (kv) => kv);
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 		{
 			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, selector);
 		}
@@ -430,20 +591,17 @@ namespace FoundationDB.Client
 		#region GetKey...
 
 		/// <inheritdoc />
-		public async Task<Slice> GetKeyAsync(KeySelector selector)
+		public Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(in selector.Key);
+			FdbKey.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-			var key = await m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation).ConfigureAwait(false);
-
-			// don't forget to truncate keys that would fall outside of the database's globalspace !
-			return m_database.BoundCheck(key);
+			return m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation);
 		}
 
 		#endregion
@@ -457,7 +615,7 @@ namespace FoundationDB.Client
 
 			foreach (var selector in selectors)
 			{
-				m_database.EnsureKeyIsValid(in selector.Key);
+				FdbKey.EnsureKeyIsValid(selector.Key);
 			}
 
 #if DEBUG
@@ -476,8 +634,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
-			m_database.EnsureValueIsValid(value);
+			FdbKey.EnsureKeyIsValid(key);
+			FdbKey.EnsureValueIsValid(value);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
@@ -612,8 +770,8 @@ namespace FoundationDB.Client
 
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
-			m_database.EnsureValueIsValid(param);
+			FdbKey.EnsureKeyIsValid(key);
+			FdbKey.EnsureValueIsValid(param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
 			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
@@ -634,7 +792,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
@@ -652,8 +810,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginKeyInclusive);
+			FdbKey.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
@@ -671,8 +829,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginKeyInclusive);
+			FdbKey.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
@@ -690,7 +848,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
@@ -759,7 +917,7 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			FdbKey.EnsureKeyIsValid(key);
 
 			// keep a copy of the key
 			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
@@ -803,7 +961,6 @@ namespace FoundationDB.Client
 		{
 			// resetting the state of a transaction automatically clears the RetryLimit and Timeout settings
 			// => we need to set the again!
-
 			m_timeout = 0;
 			m_retryLimit = 0;
 			m_maxRetryDelay = 0;
@@ -825,6 +982,12 @@ namespace FoundationDB.Client
 			// => this ensure that if the error was due to a collision between the token and another part of the key,
 			//    a transaction retry will hopefully use a different token that does not collide.
 			m_versionStampToken = 0;
+			m_versionStampCounter = 0;
+
+			// clear any cached local data!
+			this.CachedReadVersion = null;
+			this.MetadataVersionKeysCache = null;
+			m_context.ClearAllLocalData();
 		}
 
 		/// <inheritdoc />
@@ -886,7 +1049,7 @@ namespace FoundationDB.Client
 		public void EnsureCanRead()
 		{
 			// note: read operations are async, so they can NOT be called from the network without deadlocking the system !
-			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: false);
+			EnsureStillValid(allowFromNetworkThread: false, allowFailedState: false);
 		}
 
 		/// <summary>Throws if the transaction is not in a valid state (for writing) and that we can proceed with a write operation</summary>
@@ -895,13 +1058,13 @@ namespace FoundationDB.Client
 		{
 			if (m_readOnly) throw ThrowReadOnlyTransaction(this);
 			// note: write operations are not async, and cannnot block, so it is (somewhat) safe to call them from the network thread itself.
-			EnsureStilValid(allowFromNetworkThread: true, allowFailedState: false);
+			EnsureStillValid(allowFromNetworkThread: true, allowFailedState: false);
 		}
 
 		/// <summary>Throws if the transaction is not safely retryable</summary>
 		public void EnsureCanRetry()
 		{
-			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: true);
+			EnsureStillValid(allowFromNetworkThread: false, allowFailedState: true);
 		}
 
 		/// <summary>Throws if the transaction is not in a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
@@ -909,7 +1072,7 @@ namespace FoundationDB.Client
 		/// <param name="allowFailedState">If true, this operation can run even if the transaction is in a failed state.</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
-		internal void EnsureStilValid(bool allowFromNetworkThread = false, bool allowFailedState = false)
+		internal void EnsureStillValid(bool allowFromNetworkThread = false, bool allowFailedState = false)
 		{
 			// We must not be disposed
 			if (allowFailedState ? this.State == STATE_DISPOSED : this.State != STATE_READY)
@@ -1000,7 +1163,13 @@ namespace FoundationDB.Client
 							if (Logging.On) Logging.Error(this, "Dispose", $"Transaction #{m_id} failed to dispose the transaction handler: [{e.GetType().Name}] {e.Message}");
 						}
 					}
-					if (!m_context.Shared) m_context.Dispose();
+
+					var context = m_context;
+					context.ReleaseTransaction(this);
+					if (!context.Shared)
+					{
+						context.Dispose();
+					}
 					m_cts.Dispose();
 				}
 			}

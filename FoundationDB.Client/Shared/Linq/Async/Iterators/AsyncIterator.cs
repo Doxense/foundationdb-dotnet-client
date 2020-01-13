@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			get
 			{
-				if (Volatile.Read(ref m_state) != STATE_ITERATING) ThrowInvalidState();
+				if (Volatile.Read(ref m_state) != STATE_ITERATING) EnsureIsIterating();
 				return m_current;
 			}
 		}
@@ -106,7 +106,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 			if (state != STATE_INIT && state != STATE_ITERATING)
 			{
-				ThrowInvalidState();
+				EnsureIsIterating();
 				return false;
 			}
 
@@ -143,56 +143,49 @@ namespace Doxense.Linq.Async.Iterators
 
 		#region LINQ...
 
-		[NotNull]
-		public virtual AsyncIterator<TResult> Where([NotNull] Func<TResult, bool> predicate)
+		public virtual AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(predicate, nameof(predicate));
 
 			return AsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(predicate));
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TResult> Where([NotNull] Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		public virtual AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			Contract.NotNull(asyncPredicate, nameof(asyncPredicate));
 
 			return AsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(asyncPredicate));
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TNew> Select<TNew>([NotNull] Func<TResult, TNew> selector)
+		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			Contract.NotNull(selector, nameof(selector));
 
 			return AsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(selector));
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TNew> Select<TNew>([NotNull] Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
 
 			return AsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(asyncSelector));
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TNew> SelectMany<TNew>([NotNull] Func<TResult, IEnumerable<TNew>> selector)
+		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
 		{
 			Contract.NotNull(selector, nameof(selector));
 
 			return AsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(selector));
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TNew> SelectMany<TNew>([NotNull] Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
 
 			return AsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(asyncSelector));
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>([NotNull] Func<TResult, IEnumerable<TCollection>> collectionSelector, [NotNull] Func<TResult, TCollection, TNew> resultSelector)
+		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
 		{
 			Contract.NotNull(collectionSelector, nameof(collectionSelector));
 			Contract.NotNull(resultSelector, nameof(resultSelector));
@@ -200,8 +193,7 @@ namespace Doxense.Linq.Async.Iterators
 			return AsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(collectionSelector), resultSelector);
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>([NotNull] Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TResult, TCollection, TNew> resultSelector)
+		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
 		{
 			Contract.NotNull(asyncCollectionSelector, nameof(asyncCollectionSelector));
 			Contract.NotNull(resultSelector, nameof(resultSelector));
@@ -209,33 +201,28 @@ namespace Doxense.Linq.Async.Iterators
 			return AsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
 		}
 
-		[NotNull]
 		public virtual AsyncIterator<TResult> Take(int count)
 		{
 			return AsyncEnumerable.Limit<TResult>(this, count);
 		}
 
-		[NotNull]
-		public virtual AsyncIterator<TResult> TakeWhile([NotNull] Func<TResult, bool> condition)
+		public virtual AsyncIterator<TResult> TakeWhile(Func<TResult, bool> condition)
 		{
 			return AsyncEnumerable.Limit<TResult>(this, condition);
 		}
 
-		[NotNull]
 		public virtual AsyncIterator<TResult> Skip(int count)
 		{
 			return AsyncEnumerable.Offset<TResult>(this, count);
 		}
 
 		/// <summary>Execute an action on the result of this async sequence</summary>
-		[NotNull]
-		public virtual Task ExecuteAsync([NotNull] Action<TResult> action, CancellationToken ct)
+		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{
 			return AsyncEnumerable.Run<TResult>(this, AsyncIterationHint.All, action, ct);
 		}
 
-		[NotNull]
-		public virtual Task ExecuteAsync([NotNull] Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
+		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
 			return AsyncEnumerable.Run<TResult>(this, AsyncIterationHint.All, asyncAction, ct);
 		}
@@ -286,22 +273,23 @@ namespace Doxense.Linq.Async.Iterators
 			return false; //note: should not be reached
 		}
 
-		protected void ThrowInvalidState()
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		protected void EnsureIsIterating()
 		{
 			switch (Volatile.Read(ref m_state))
 			{
 				case STATE_SEQ:
-					throw new InvalidOperationException("The async iterator should have been initialized with a call to GetEnumerator()");
+					throw ThrowHelper.InvalidOperationException("The async iterator should have been initialized with a call to GetEnumerator()");
 
 				case STATE_ITERATING:
 					break;
 
 				case STATE_DISPOSED:
-					throw new ObjectDisposedException(null, "The async iterator has already been closed");
+					throw ThrowHelper.ObjectDisposedException(this, "The async iterator has already been closed");
 
 				default:
 				{
-					throw new InvalidOperationException();
+					throw ThrowHelper.InvalidOperationException("Unexpected state");
 				}
 			}
 		}
@@ -322,7 +310,7 @@ namespace Doxense.Linq.Async.Iterators
 				}
 				finally
 				{
-					m_current = default;
+					m_current = default!;
 				}
 			}
 		}

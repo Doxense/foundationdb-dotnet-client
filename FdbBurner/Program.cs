@@ -74,7 +74,7 @@ namespace FdbBurner
 
 			var folder = await db.ReadWriteAsync(async tr =>
 			{
-				var x = await db.Directory.CreateOrOpenAsync(tr, new[] { "Benchmarks", "Burner", "Sequential" });
+				var x = await db.Root["Benchmarks"]["Burner"]["Sequential"].CreateOrOpenAsync(tr);
 				tr.ClearRange(x);
 				return x;
 			}, ct);
@@ -87,7 +87,7 @@ namespace FdbBurner
 				rnd = new Random(Rnd.Next());
 			}
 
-			using (var tr = db.BeginTransaction(ct))
+			using (var tr = await db.BeginTransactionAsync(ct))
 			{
 				while (!ct.IsCancellationRequested)
 				{
@@ -102,7 +102,7 @@ namespace FdbBurner
 								? rnd.Next()
 								: pos + i;
 
-							tr.Set(folder.Keys.Encode(x, Suffix), Value);
+							tr.Set(folder.Encode(x, Suffix), Value);
 							Interlocked.Increment(ref Keys);
 						}
 						pos += N;

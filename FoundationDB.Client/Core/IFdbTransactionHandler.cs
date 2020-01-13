@@ -45,7 +45,7 @@ namespace FoundationDB.Client.Core
 
 		/// <summary>Set an option on this transaction</summary>
 		/// <param name="option">Option to set</param>
-		/// <param name="data">Parameter value (or <see cref="Slice.Nil"/> for parameter-less options)</param>
+		/// <param name="data">Parameter value (empty for parameter-less options)</param>
 		void SetOption(FdbTransactionOption option, ReadOnlySpan<byte> data);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
@@ -82,7 +82,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or <see cref="Slice.Nil"/> if that key does not exist.</returns>
 		[ItemNotNull]
-		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys, bool snapshot, CancellationToken ct);
+		Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ namespace Doxense.Linq
 		public int? MaxConcurrency { get; set; }
 
 		/// <summary>Task Scheduler to use when executing async tasks</summary>
-		public TaskScheduler Scheduler { get; set; }
+		public TaskScheduler? Scheduler { get; set; }
 
 	}
 

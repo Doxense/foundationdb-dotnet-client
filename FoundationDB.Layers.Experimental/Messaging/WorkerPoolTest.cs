@@ -30,7 +30,7 @@ namespace FoundationDB.Layers.Messaging
 				{
 					var location = await db.ReadWriteAsync(async tr =>
 					{
-						var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "T", "WorkerPool" });
+						var subspace = await db.Root["T"]["WorkerPool"].CreateOrOpenAsync(tr);
 						tr.ClearRange(subspace);
 						return subspace;
 					}, cts.Token);
@@ -138,13 +138,13 @@ namespace FoundationDB.Layers.Messaging
 				Func<string, Task> dump = async (label) =>
 				{
 					Console.WriteLine($"<dump label=\'{label}\' key=\'{location.GetPrefix():P}\'>");
-					using (var tr = db.BeginTransaction(ct))
+					using (var tr = await db.BeginTransactionAsync(ct))
 					{
 						await tr.Snapshot
 							.GetRange(KeyRange.StartsWith(location.GetPrefix()))
 							.ForEachAsync((kvp) =>
 							{
-								Console.WriteLine($" - {location.Keys.Unpack(kvp.Key)} = {kvp.Value:V}");
+								Console.WriteLine($" - {location.PrettyPrint(kvp.Key)} = {kvp.Value:V}");
 							}).ConfigureAwait(false);
 					}
 					Console.WriteLine("</dump>");

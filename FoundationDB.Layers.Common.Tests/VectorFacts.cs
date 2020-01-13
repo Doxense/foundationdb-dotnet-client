@@ -45,133 +45,135 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "vector");
+				var location = db.Root["vector"];
+				await CleanLocation(db, location);
 
 				var vector = new FdbVector<Slice>(location, Slice.Empty, BinaryEncoding.SliceEncoder);
 
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
+					var xs = await vector.ResolveState(tr);
 
 					Log("Clearing any previous values in the vector");
-					vector.Clear(tr);
+					xs.Clear(tr);
 
 					Log();
 					Log("MODIFIERS");
 
 					// Set + Push
-					vector.Set(tr, 0, Slice.FromInt32(1));
-					vector.Set(tr, 1, Slice.FromInt32(2));
-					await vector.PushAsync(tr, Slice.FromInt32(3));
-					await PrintVector(vector, tr);
+					xs.Set(tr, 0, Slice.FromInt32(1));
+					xs.Set(tr, 1, Slice.FromInt32(2));
+					await xs.PushAsync(tr, Slice.FromInt32(3));
+					await PrintVector(xs, tr);
 
 					// Swap
-					await vector.SwapAsync(tr, 0, 2);
-					await PrintVector(vector, tr);
+					await xs.SwapAsync(tr, 0, 2);
+					await PrintVector(xs, tr);
 
 					// Pop
-					Log("> Popped: " + await vector.PopAsync(tr));
-					await PrintVector(vector, tr);
+					Log("> Popped: " + await xs.PopAsync(tr));
+					await PrintVector(xs, tr);
 
 					// Clear
-					vector.Clear(tr);
+					xs.Clear(tr);
 
-					Log("> Pop empty: " + await vector.PopAsync(tr));
-					await PrintVector(vector, tr);
+					Log("> Pop empty: " + await xs.PopAsync(tr));
+					await PrintVector(xs, tr);
 
-					await vector.PushAsync(tr, Value("foo"));
-					Log("> Pop size 1: " + await vector.PopAsync(tr));
-					await PrintVector(vector, tr);
+					await xs.PushAsync(tr, Value("foo"));
+					Log("> Pop size 1: " + await xs.PopAsync(tr));
+					await PrintVector(xs, tr);
 
 					Log();
 					Log("CAPACITY OPERATIONS");
 
-					Log("> Size: " + await vector.SizeAsync(tr));
-					Log("> Empty: " + await vector.EmptyAsync(tr));
+					Log("> Size: " + await xs.SizeAsync(tr));
+					Log("> Empty: " + await xs.EmptyAsync(tr));
 
 					Log("> Resizing to length 5");
-					await vector.ResizeAsync(tr, 5);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.ResizeAsync(tr, 5);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("Settings values");
-					vector.Set(tr, 0, Value("Portez"));
-					vector.Set(tr, 1, Value("ce vieux"));
-					vector.Set(tr, 2, Value("whisky"));
-					vector.Set(tr, 3, Value("au juge"));
-					vector.Set(tr, 4, Value("blond qui"));
-					vector.Set(tr, 5, Value("fume"));
-					await PrintVector(vector, tr);
+					xs.Set(tr, 0, Value("Portez"));
+					xs.Set(tr, 1, Value("ce vieux"));
+					xs.Set(tr, 2, Value("whisky"));
+					xs.Set(tr, 3, Value("au juge"));
+					xs.Set(tr, 4, Value("blond qui"));
+					xs.Set(tr, 5, Value("fume"));
+					await PrintVector(xs, tr);
 
 					Log("FRONT");
-					Log("> " + await vector.FrontAsync(tr));
+					Log("> " + await xs.FrontAsync(tr));
 
 					Log("BACK");
-					Log("> " + await vector.BackAsync(tr));
+					Log("> " + await xs.BackAsync(tr));
 
 					Log();
 					Log("ELEMENT ACCESS");
-					Log("> Index 0: " + await vector.GetAsync(tr, 0));
-					Log("> Index 5: " + await vector.GetAsync(tr, 5));
-					Log("> Size: " + await vector.SizeAsync(tr));
+					Log("> Index 0: " + await xs.GetAsync(tr, 0));
+					Log("> Index 5: " + await xs.GetAsync(tr, 5));
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log();
 					Log("RESIZING");
 					Log("> Resizing to 3");
-					await vector.ResizeAsync(tr, 3);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.ResizeAsync(tr, 3);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Resizing to 3 again");
-					await vector.ResizeAsync(tr, 3);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.ResizeAsync(tr, 3);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Resizing to 6");
-					await vector.ResizeAsync(tr, 6);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.ResizeAsync(tr, 6);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log();
 					Log("SPARSE TEST");
 
 					Log("> Popping sparse vector");
-					await vector.PopAsync(tr);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.PopAsync(tr);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Resizing to 4");
-					await vector.ResizeAsync(tr, 4);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.ResizeAsync(tr, 4);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Adding 'word' to index 10, resize to 25");
-					vector.Set(tr, 10, Value("word"));
-					await vector.ResizeAsync(tr, 25);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					xs.Set(tr, 10, Value("word"));
+					await xs.ResizeAsync(tr, 25);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Swapping with sparse element");
-					await vector.SwapAsync(tr, 10, 15);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.SwapAsync(tr, 10, 15);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 
 					Log("> Swapping sparse elements");
-					await vector.SwapAsync(tr, 12, 13);
-					await PrintVector(vector, tr);
-					Log("> Size: " + await vector.SizeAsync(tr));
+					await xs.SwapAsync(tr, 12, 13);
+					await PrintVector(xs, tr);
+					Log("> Size: " + await xs.SizeAsync(tr));
 				}
 			}
 		}
 
-		private static async Task PrintVector<T>(FdbVector<T> vector, IFdbReadOnlyTransaction tr)
+		private static async Task PrintVector<T>(FdbVector<T>.State vector, IFdbReadOnlyTransaction tr)
 		{
 			bool first = true;
 			var sb = new StringBuilder();
 
-			await tr.GetRange(vector.Subspace.Keys.ToRange()).ForEachAsync((kvp) =>
+			await tr.GetRange(vector.Subspace.ToRange()).ForEachAsync((kvp) =>
 			{
 				if (!first) sb.Append(", "); else first = false;
-				sb.Append($"{vector.Subspace.Keys.DecodeLast<long>(kvp.Key)}:{kvp.Value:P}");
+				sb.Append($"{vector.Subspace.DecodeLast<long>(kvp.Key)}:{kvp.Value:P}");
 			});
 
 			Log("> Vector: (" + sb.ToString() + ")");

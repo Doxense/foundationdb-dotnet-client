@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -297,14 +297,22 @@ namespace Doxense.Memory.Tests
 			Assume.That(hi, Is.EqualTo(0x1E2D));
 			Assume.That(lo, Is.EqualTo(0x0123456789ABCDEF));
 
+			// ReadOnlySpan<byte>
+			Assert.That(Uuid80.Read(buf.AsSpan(4, 10)), Is.EqualTo(original));
+
 			// Slice
 			Assert.That(Uuid80.Read(buf.AsSlice(4, 10)), Is.EqualTo(original));
 
 			// byte[]
 			Assert.That(Uuid80.Read(buf.AsSlice(4, 10).GetBytesOrEmpty()), Is.EqualTo(original));
 
-			// ReadOnlySpan<byte>
-			Assert.That(Uuid80.Read(buf.AsSpan(4, 10)), Is.EqualTo(original));
+			unsafe
+			{
+				fixed (byte* ptr = &buf[4])
+				{
+					Assert.That(Uuid80.Read(new ReadOnlySpan<byte>(ptr, 10)), Is.EqualTo(original));
+				}
+			}
 		}
 
 		[Test]
@@ -335,14 +343,21 @@ namespace Doxense.Memory.Tests
 			original.WriteTo(scratch.Substring(4, 10).Span);
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
 
+			unsafe
+			{
+				Span<byte> buf = stackalloc byte[20];
+				buf.Fill(0xAA);
+				original.WriteToUnsafe(buf.Slice(3));
+				Assert.That(buf.ToArray().AsSlice().ToString("X"), Is.EqualTo("AA AA AA 1E 2D 01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA"));
+			}
+
 			// errors
 
-			Assert.That(() => original.WriteTo(MutableSlice.Empty.Span), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");
+			Assert.That(() => original.WriteTo(Span<byte>.Empty), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");
 
 			scratch = MutableSlice.Repeat(0xAA, 16);
 			Assert.That(() => original.WriteTo(scratch.Substring(0, 9).Span), Throws.InstanceOf<ArgumentException>(), "Target buffer is too small");
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA AA"), "Buffer should not have been overwritten!");
-
 		}
 
 		[Test]
@@ -375,7 +390,7 @@ namespace Doxense.Memory.Tests
 
 			// errors
 
-			Assert.That(original.TryWriteTo(MutableSlice.Empty.Span), Is.False, "Target buffer is empty");
+			Assert.That(original.TryWriteTo(Span<byte>.Empty), Is.False, "Target buffer is empty");
 
 			scratch = MutableSlice.Repeat(0xAA, 20);
 			Assert.That(original.TryWriteTo(scratch.Substring(0, 9).Span), Is.False, "Target buffer is too small");

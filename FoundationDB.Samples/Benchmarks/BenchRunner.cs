@@ -51,7 +51,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.ReadWriteAsync(tr => db.Directory.CreateOrOpenAsync(tr, "Benchmarks"), ct);
+			this.Subspace = await db.ReadWriteAsync(tr => db.Root["Benchmarks"].CreateOrOpenAsync(tr), ct);
 		}
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
@@ -79,7 +79,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 			var duration = Stopwatch.StartNew();
 
-			var foo = this.Subspace.Keys.Encode("foo");
+			var foo = this.Subspace.Encode("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 

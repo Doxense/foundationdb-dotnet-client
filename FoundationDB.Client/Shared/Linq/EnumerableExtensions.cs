@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,12 @@ namespace Doxense.Linq
 	public static class EnumerableExtensions
 	{
 
-		//TODO: ajouter Batch(...) ?
-		//TODO: peut-être merger avec les CollectionExtensions.cs?
+		//TODO: add Batch(...) ?
+		//TODO: maybe merge with CollectionExtensions.cs?
 
-		/// <summary>Determines wether a sequence contains no elements at all.</summary>
+		/// <summary>Determines whether a sequence contains no elements at all.</summary>
 		/// <remarks>This is the logical equivalent to "source.Count() == 0" or "!source.Any()" but can be better optimized by some providers</remarks>
-		public static bool None<T>([NotNull, InstantHandle] this IEnumerable<T> source)
+		public static bool None<T>([InstantHandle] this IEnumerable<T> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -56,7 +56,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Determines whether none of the elements of a sequence satisfies a condition.</summary>
-		public static bool None<T>([NotNull, InstantHandle] this IEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate)
+		public static bool None<T>([InstantHandle] this IEnumerable<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -77,8 +77,8 @@ namespace Doxense.Linq
 
 		/// <summary>Measure the number of items that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TSource> WithCountStatistics<TSource>([NotNull] this IEnumerable<TSource> source, out QueryStatistics<int> counter)
+		[LinqTunnel]
+		public static IEnumerable<TSource> WithCountStatistics<TSource>(this IEnumerable<TSource> source, out QueryStatistics<int> counter)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -86,19 +86,17 @@ namespace Doxense.Linq
 			counter = signal;
 
 			// to count, we just increment the signal each type a value flows through here
-			Func<TSource, TSource> wrapped = (x) =>
+			return source.Select((x) =>
 			{
 				signal.Update(checked(signal.Value + 1));
 				return x;
-			};
-
-			return source.Select(wrapped);
+			});
 		}
 
 		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics([NotNull] this IEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
+		[LinqTunnel]
+		public static IEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -106,19 +104,17 @@ namespace Doxense.Linq
 			statistics = new QueryStatistics<KeyValueSizeStatistics>(data);
 
 			// to count, we just increment the signal each type a value flows through here
-			Func<KeyValuePair<Slice, Slice>, KeyValuePair<Slice, Slice>> wrapped = (kvp) =>
+			return source.Select((kvp) =>
 			{
 				data.Add(kvp.Key.Count, kvp.Value.Count);
 				return kvp;
-			};
-
-			return source.Select(wrapped);
+			});
 		}
 
 		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<Slice> WithSizeStatistics([NotNull] this IEnumerable<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
+		[LinqTunnel]
+		public static IEnumerable<Slice> WithSizeStatistics(this IEnumerable<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -126,13 +122,11 @@ namespace Doxense.Linq
 			statistics = new QueryStatistics<DataSizeStatistics>(data);
 
 			// to count, we just increment the signal each type a value flows through here
-			Func<Slice, Slice> wrapped = (x) =>
+			return source.Select((x) =>
 			{
 				data.Add(x.Count);
 				return x;
-			};
-
-			return source.Select(wrapped);
+			});
 		}
 
 		#endregion

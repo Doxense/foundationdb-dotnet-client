@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,8 +40,8 @@ namespace System.Collections.Generic
 	/// <typeparam name="TSource"></typeparam>
 	public interface IAsyncOrderedEnumerable<out TSource> : IAsyncEnumerable<TSource>
 	{
-		[NotNull, LinqTunnel]
-		IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending);
+		[LinqTunnel]
+		IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending);
 
 	}
 

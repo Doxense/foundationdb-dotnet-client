@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,6 +56,7 @@ namespace FoundationDB.Client
 		/// <summary>Wrapper on a transaction, that will use Snapshot mode on all read operations</summary>
 		private sealed class Snapshotted : IFdbReadOnlyTransaction
 		{
+
 			private readonly FdbTransaction m_parent;
 
 			public Snapshotted([NotNull] FdbTransaction parent)
@@ -84,6 +85,11 @@ namespace FoundationDB.Client
 				return m_parent.GetReadVersionAsync();
 			}
 
+			public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+			{
+				return m_parent.GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: true);
+			}
+
 			void IFdbReadOnlyTransaction.SetReadVersion(long version)
 			{
 				throw new NotSupportedException("You cannot set the read version on the Snapshot view of a transaction");
@@ -93,7 +99,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(key);
+				FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -108,7 +114,7 @@ namespace FoundationDB.Client
 
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeysAreValid(keys);
+				FdbKey.EnsureKeysAreValid(keys);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -117,21 +123,17 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
-			public async Task<Slice> GetKeyAsync(KeySelector selector)
+			public Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(in selector.Key);
+				FdbKey.EnsureKeyIsValid(selector.Key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: m_parent.m_cancellation).ConfigureAwait(false);
-
-				// don't forget to truncate keys that would fall outside of the database's globalspace !
-				return m_parent.m_database.BoundCheck(key);
-
+				return m_parent.m_handler.GetKeyAsync(selector, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
 			public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
@@ -140,7 +142,7 @@ namespace FoundationDB.Client
 
 				for(int i = 0; i < selectors.Length; i++)
 				{
-					m_parent.m_database.EnsureKeyIsValid(in selectors[i].Key);
+					FdbKey.EnsureKeyIsValid(selectors[i].Key);
 				}
 
 #if DEBUG
@@ -154,8 +156,8 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(in beginInclusive.Key);
-				m_parent.m_database.EnsureKeyIsValid(in endExclusive.Key);
+				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+				FdbKey.EnsureKeyIsValid(endExclusive.Key);
 
 				options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
 				options.EnsureLegalValues();
@@ -166,12 +168,12 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
-			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 			{
 				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, kv => kv);
 			}
 
-			public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+			public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 			{
 				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, selector);
 			}

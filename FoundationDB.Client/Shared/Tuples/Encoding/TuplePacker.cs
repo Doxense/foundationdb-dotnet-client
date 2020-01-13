@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,17 +31,14 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System;
 	using System.Runtime.CompilerServices;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
 	public static class TuplePacker<T>
 	{
 
-		[NotNull]
-		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true);
+		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true)!;
 
-		[NotNull]
 		internal static readonly Func<Slice, T> Decoder = TuplePackers.GetDeserializer<T>(required: true);
 
 		/// <summary>Serialize a <typeparamref name="T"/> using a Tuple Writer</summary>
@@ -67,7 +64,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="value">Value that will be serialized</param>
 		/// <remarks>
 		/// The buffer does not need to be pre-allocated.
-		/// This method DOES NOT support embedded tupels, and assumes that we are serializing a top-level Tuple!
+		/// This method DOES NOT support embedded tuples, and assumes that we are serializing a top-level Tuple!
 		/// If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!
 		/// </remarks>
 		public static void SerializeTo(ref SliceWriter writer, T value)

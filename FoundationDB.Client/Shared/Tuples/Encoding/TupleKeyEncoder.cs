@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,9 @@ namespace Doxense.Collections.Tuples.Encoding
 		private TupleKeyEncoder()
 		{ }
 
-		public IKeyEncoding Encoding => TuPack.Encoding;
+		IKeyEncoding IKeyEncoder.Encoding => TuPack.Encoding;
+
+		public IDynamicKeyEncoding Encoding => TuPack.Encoding;
 
 		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items)
 			where TTuple : IVarTuple

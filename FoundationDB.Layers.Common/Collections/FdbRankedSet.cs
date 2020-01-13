@@ -46,257 +46,280 @@ namespace FoundationDB.Layers.Collections
 		private const int MAX_LEVELS = 6;
 		private const int LEVEL_FAN_POW = 4; // 2^X per level
 
-		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
-		private readonly Random Rng = new Random();
+		public FdbRankedSet([NotNull] ISubspaceLocation location)
+			: this(location?.AsDynamic())
+		{ }
 
 		/// <summary>Initializes a new ranked set at a given location</summary>
-		/// <param name="subspace">Subspace where the set will be stored</param>
-		public FdbRankedSet([NotNull] IKeySubspace subspace)
+		/// <param name="location">Subspace where the set will be stored</param>
+		public FdbRankedSet([NotNull] DynamicKeySubspaceLocation location)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
-
-			this.Subspace = subspace.AsDynamic();
-		}
-
-		public Task OpenAsync([NotNull] IFdbTransaction trans)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			return SetupLevelsAsync(trans);
+			this.Location = location ?? throw new ArgumentNullException(nameof(location));
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public IDynamicKeySubspace Subspace { [NotNull] get; private set; }
+		public DynamicKeySubspaceLocation Location { get; }
 
-		/// <summary>Returns the number of items in the set.</summary>
-		/// <param name="trans"></param>
-		/// <returns></returns>
-		public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction trans)
+		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
+		private readonly Random Rng = new Random();
+
+		/// <summary>Make sure that the set is initialized</summary>
+		public async Task OpenAsync([NotNull] IFdbTransaction trans)
 		{
+			//TODO: BUGBUG: this should be cached!
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
+			var state = await Resolve(trans);
 
-			return trans
-				.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).Keys.ToRange())
-				.Select(kv => DecodeCount(kv.Value))
-				.SumAsync();
+			// ensure that the levels are set up properly
+			await state.SetupLevelsAsync(trans);
 		}
 
-		public async Task InsertAsync([NotNull] IFdbTransaction trans, Slice key)
+		public sealed class State
 		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			if (await ContainsAsync(trans, key).ConfigureAwait(false))
+			public IDynamicKeySubspace Subspace { get;}
+
+			public State(IDynamicKeySubspace subspace)
 			{
-				return;
+				this.Subspace = subspace;
 			}
 
-			int keyHash = key.GetHashCode(); //TODO: proper hash function?
-			//Console.WriteLine("Inserting " + key + " with hash " + keyHash.ToString("x"));
-			for(int level = 0; level < MAX_LEVELS; level++)
+			/// <summary>Returns the number of items in the set.</summary>
+			/// <param name="trans"></param>
+			/// <returns></returns>
+			public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction trans)
 			{
-				var prevKey = await GetPreviousNodeAsync(trans, level, key);
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-				if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
+				return trans
+					.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).ToRange())
+					.Select(kv => DecodeCount(kv.Value))
+					.SumAsync();
+			}
+
+			public async Task InsertAsync([NotNull] IFdbTransaction trans, Slice key)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+
+				if (await ContainsAsync(trans, key).ConfigureAwait(false))
 				{
-					//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
-					trans.AtomicIncrement64(this.Subspace.Keys.Encode(level, prevKey));
+					return;
 				}
-				else
+
+				int keyHash = key.GetHashCode(); //TODO: proper hash function?
+				//Console.WriteLine("Inserting " + key + " with hash " + keyHash.ToString("x"));
+				for(int level = 0; level < MAX_LEVELS; level++)
 				{
-					//Console.WriteLine("> [" + level + "] inserting and updating previous key: " + FdbKey.Dump(prevKey));
-					// Insert into this level by looking at the count of the previous
-					// key in the level and recounting the next lower level to correct
-					// the counts
-					var prevCount = DecodeCount(await trans.GetAsync(this.Subspace.Keys.Encode(level, prevKey)).ConfigureAwait(false));
-					var newPrevCount = await SlowCountAsync(trans, level - 1, prevKey, key);
-					var count = checked((prevCount - newPrevCount) + 1);
+					var prevKey = await GetPreviousNodeAsync(trans, level, key);
 
-					// print "insert", key, "level", level, "count", count,
-					// "splits", prevKey, "oldC", prevCount, "newC", newPrevCount
-					trans.Set(this.Subspace.Keys.Encode(level, prevKey), EncodeCount(newPrevCount));
-					trans.Set(this.Subspace.Keys.Encode(level, key), EncodeCount(count));
-				}
-			}
-		}
-
-		public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, Slice key)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
-
-			return (await trans.GetAsync(this.Subspace.Keys.Encode(0, key)).ConfigureAwait(false)).HasValue;
-		}
-
-		public async Task EraseAsync([NotNull] IFdbTransaction trans, Slice key)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-
-			if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
-			{
-				return;
-			}
-
-			for (int level = 0; level < MAX_LEVELS; level++)
-			{
-				// This could be optimized with hash
-				var k = this.Subspace.Keys.Encode(level, key);
-				var c = await trans.GetAsync(k).ConfigureAwait(false);
-				if (c.HasValue) trans.Clear(k);
-				if (level == 0) continue;
-
-				var prevKey = await GetPreviousNodeAsync(trans, level, key);
-				Contract.Assert(prevKey != key);
-				long countChange = -1;
-				if (c.HasValue) countChange += DecodeCount(c);
-
-				trans.AtomicAdd64(this.Subspace.Keys.Encode(level, prevKey), countChange);
-			}
-		}
-
-		public async Task<long?> Rank([NotNull] IFdbReadOnlyTransaction trans, Slice key)
-		{
-			if (trans == null) throw new ArgumentNullException(nameof(trans));
-			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
-
-			if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
-			{
-				return default(long?);
-			}
-
-			long r = 0;
-			var rankKey = Slice.Empty;
-			for(int level = MAX_LEVELS - 1; level >= 0; level--)
-			{
-				var lss = this.Subspace.Partition.ByKey(level);
-				long lastCount = 0;
-				var kcs = await trans.GetRange(
-					KeySelector.FirstGreaterOrEqual(lss.Keys.Encode(rankKey)),
-					KeySelector.FirstGreaterThan(lss.Keys.Encode(key))
-				).ToListAsync().ConfigureAwait(false);
-				foreach (var kc in kcs)
-				{
-					rankKey = lss.Keys.Decode<Slice>(kc.Key);
-					lastCount = DecodeCount(kc.Value);
-					r += lastCount;
-				}
-				r -= lastCount;
-				if (rankKey == key)
-				{
-					break;
-				}
-			}
-			return r;
-		}
-
-		public async Task<Slice> GetNthAsync([NotNull] IFdbReadOnlyTransaction trans, long rank)
-		{
-			if (rank < 0) return Slice.Nil;
-
-			long r = rank;
-			var key = Slice.Empty;
-			for (int level = MAX_LEVELS - 1; level >= 0; level--)
-			{
-				var lss = this.Subspace.Partition.ByKey(level);
-				var kcs = await trans.GetRange(lss.Keys.Encode(key), lss.Keys.ToRange().End).ToListAsync().ConfigureAwait(false);
-
-				if (kcs.Count == 0) break;
-
-				foreach(var kc in kcs)
-				{
-					key = lss.Keys.Decode<Slice>(kc.Key);
-					long count = DecodeCount(kc.Value);
-					if (key.IsPresent && r == 0)
+					if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
 					{
-						return key;
+						//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
+						trans.AtomicIncrement64(this.Subspace.Encode(level, prevKey));
 					}
-					if (count > r)
+					else
+					{
+						//Console.WriteLine("> [" + level + "] inserting and updating previous key: " + FdbKey.Dump(prevKey));
+						// Insert into this level by looking at the count of the previous
+						// key in the level and recounting the next lower level to correct
+						// the counts
+						var prevCount = DecodeCount(await trans.GetAsync(this.Subspace.Encode(level, prevKey)).ConfigureAwait(false));
+						var newPrevCount = await SlowCountAsync(trans, level - 1, prevKey, key);
+						var count = checked((prevCount - newPrevCount) + 1);
+
+						// print "insert", key, "level", level, "count", count,
+						// "splits", prevKey, "oldC", prevCount, "newC", newPrevCount
+						trans.Set(this.Subspace.Encode(level, prevKey), EncodeCount(newPrevCount));
+						trans.Set(this.Subspace.Encode(level, key), EncodeCount(count));
+					}
+				}
+			}
+
+			public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, Slice key)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
+
+				return (await trans.GetAsync(this.Subspace.Encode(0, key)).ConfigureAwait(false)).HasValue;
+			}
+
+			public async Task EraseAsync([NotNull] IFdbTransaction trans, Slice key)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+
+				if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
+				{
+					return;
+				}
+
+				for (int level = 0; level < MAX_LEVELS; level++)
+				{
+					// This could be optimized with hash
+					var k = this.Subspace.Encode(level, key);
+					var c = await trans.GetAsync(k).ConfigureAwait(false);
+					if (c.HasValue) trans.Clear(k);
+					if (level == 0) continue;
+
+					var prevKey = await GetPreviousNodeAsync(trans, level, key);
+					Contract.Assert(prevKey != key);
+					long countChange = -1;
+					if (c.HasValue) countChange += DecodeCount(c);
+
+					trans.AtomicAdd64(this.Subspace.Encode(level, prevKey), countChange);
+				}
+			}
+
+			public async Task<long?> Rank([NotNull] IFdbReadOnlyTransaction trans, Slice key)
+			{
+				if (trans == null) throw new ArgumentNullException(nameof(trans));
+				if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
+
+				if (!(await ContainsAsync(trans, key).ConfigureAwait(false)))
+				{
+					return default(long?);
+				}
+
+				long r = 0;
+				var rankKey = Slice.Empty;
+				for(int level = MAX_LEVELS - 1; level >= 0; level--)
+				{
+					var lss = this.Subspace.Partition.ByKey(level);
+					long lastCount = 0;
+					var kcs = await trans.GetRange(
+						KeySelector.FirstGreaterOrEqual(lss.Encode(rankKey)),
+						KeySelector.FirstGreaterThan(lss.Encode(key))
+					).ToListAsync().ConfigureAwait(false);
+					foreach (var kc in kcs)
+					{
+						rankKey = lss.Decode<Slice>(kc.Key);
+						lastCount = DecodeCount(kc.Value);
+						r += lastCount;
+					}
+					r -= lastCount;
+					if (rankKey == key)
 					{
 						break;
 					}
-					r -= count;
+				}
+				return r;
+			}
+
+			public async Task<Slice> GetNthAsync([NotNull] IFdbReadOnlyTransaction trans, long rank)
+			{
+				if (rank < 0) return Slice.Nil;
+
+				long r = rank;
+				var key = Slice.Empty;
+				for (int level = MAX_LEVELS - 1; level >= 0; level--)
+				{
+					var lss = this.Subspace.Partition.ByKey(level);
+					var kcs = await trans.GetRange(lss.Encode(key), lss.ToRange().End).ToListAsync().ConfigureAwait(false);
+
+					if (kcs.Count == 0) break;
+
+					foreach(var kc in kcs)
+					{
+						key = lss.Decode<Slice>(kc.Key);
+						long count = DecodeCount(kc.Value);
+						if (key.IsPresent && r == 0)
+						{
+							return key;
+						}
+						if (count > r)
+						{
+							break;
+						}
+						r -= count;
+					}
+				}
+				return Slice.Nil;
+			}
+
+			//TODO: get_range
+
+			/// <summary>Clears the entire set.</summary>
+			public Task ClearAllAsync([NotNull] IFdbTransaction trans)
+			{
+				trans.ClearRange(this.Subspace.ToRange());
+				return SetupLevelsAsync(trans);
+			}
+
+			#region Private Helpers...
+
+			private static Slice EncodeCount(long c)
+			{
+				return Slice.FromFixed64(c);
+			}
+
+			private static long DecodeCount(Slice v)
+			{
+				return v.ToInt64();
+			}
+
+			private Task<long> SlowCountAsync(IFdbReadOnlyTransaction trans, int level, Slice beginKey, Slice endKey)
+			{
+				if (level == -1)
+				{
+					return Task.FromResult<long>(beginKey.IsPresent ? 1 : 0);
+				}
+
+				return trans
+					.GetRange(this.Subspace.Encode(level, beginKey), this.Subspace.Encode(level, endKey))
+					.Select(kv => DecodeCount(kv.Value))
+					.SumAsync();
+			}
+
+			internal async Task SetupLevelsAsync(IFdbTransaction trans)
+			{
+				var ks = Enumerable.Range(0, MAX_LEVELS)
+					.Select((l) => this.Subspace.Encode(l, Slice.Empty))
+					.ToList();
+
+				var res = await trans.GetValuesAsync(ks).ConfigureAwait(false);
+				for (int l = 0; l < res.Length; l++)
+				{
+					if (res[l].IsNull) trans.Set(ks[l], EncodeCount(0));
 				}
 			}
-			return Slice.Nil;
-		}
 
-		//TODO: get_range
-
-		/// <summary>Clears the entire set.</summary>
-		public Task ClearAllAsync([NotNull] IFdbTransaction trans)
-		{
-			trans.ClearRange(this.Subspace.Keys.ToRange());
-			return SetupLevelsAsync(trans);
-		}
-
-		#region Private Helpers...
-
-		private static Slice EncodeCount(long c)
-		{
-			return Slice.FromFixed64(c);
-		}
-
-		private static long DecodeCount(Slice v)
-		{
-			return v.ToInt64();
-		}
-
-		private Task<long> SlowCountAsync(IFdbReadOnlyTransaction trans, int level, Slice beginKey, Slice endKey)
-		{
-			if (level == -1)
+			private async Task<Slice> GetPreviousNodeAsync(IFdbTransaction trans, int level, Slice key)
 			{
-				return Task.FromResult<long>(beginKey.IsPresent ? 1 : 0);
+				// GetPreviousNodeAsync looks for the previous node on a level, but "doesn't care"
+				// about the contents of that node. It therefore uses a non-isolated (snaphot)
+				// read and explicitly adds a conflict range that is exclusive of the actual,
+				// found previous node. This allows an increment of that node not to trigger
+				// a transaction conflict. We also add a conflict key on the found previous
+				// key in level 0. This allows detection of erasures.
+
+				var k = this.Subspace.Encode(level, key);
+				//Console.WriteLine(k);
+				//Console.WriteLine("GetPreviousNode(" + level + ", " + key + ")");
+				//Console.WriteLine(KeySelector.LastLessThan(k) + " <= x < " + KeySelector.FirstGreaterOrEqual(k));
+				var kv = await trans
+					.Snapshot
+					.GetRange(
+						KeySelector.LastLessThan(k),
+						KeySelector.FirstGreaterOrEqual(k)
+					)
+					.FirstAsync()
+					.ConfigureAwait(false);
+				//Console.WriteLine("Found " + FdbKey.Dump(kv.Key));
+
+				var prevKey = this.Subspace.DecodeLast<Slice>(kv.Key);
+				trans.AddReadConflictRange(kv.Key + FdbKey.MinValue, k);
+				trans.AddReadConflictKey(this.Subspace.Encode(0, prevKey));
+				return prevKey;
 			}
 
-			return trans
-				.GetRange(this.Subspace.Keys.Encode(level, beginKey), this.Subspace.Keys.Encode(level, endKey))
-				.Select(kv => DecodeCount(kv.Value))
-				.SumAsync();
+			#endregion
+
 		}
 
-		private async Task SetupLevelsAsync(IFdbTransaction trans)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			var ks = Enumerable.Range(0, MAX_LEVELS)
-				.Select((l) => this.Subspace.Keys.Encode(l, Slice.Empty))
-				.ToList();
-
-			var res = await trans.GetValuesAsync(ks).ConfigureAwait(false);
-			for (int l = 0; l < res.Length; l++)
-			{
-				//Console.WriteLine(ks[l]);
-				if (res[l].IsNull) trans.Set(ks[l], EncodeCount(0));
-			}
+			var subspace = await this.Location.Resolve(tr);
+			return new State(subspace);
 		}
-
-		private async Task<Slice> GetPreviousNodeAsync(IFdbTransaction trans, int level, Slice key)
-		{
-			// GetPreviousNodeAsync looks for the previous node on a level, but "doesn't care"
-			// about the contents of that node. It therefore uses a non-isolated (snaphot)
-			// read and explicitly adds a conflict range that is exclusive of the actual,
-			// found previous node. This allows an increment of that node not to trigger
-			// a transaction conflict. We also add a conflict key on the found previous
-			// key in level 0. This allows detection of erasures.
-
-			var k = this.Subspace.Keys.Encode(level, key);
-			//Console.WriteLine(k);
-			//Console.WriteLine("GetPreviousNode(" + level + ", " + key + ")");
-			//Console.WriteLine(KeySelector.LastLessThan(k) + " <= x < " + KeySelector.FirstGreaterOrEqual(k));
-			var kv = await trans
-				.Snapshot
-				.GetRange(
-					KeySelector.LastLessThan(k),
-					KeySelector.FirstGreaterOrEqual(k)
-				)
-				.FirstAsync()
-				.ConfigureAwait(false);
-			//Console.WriteLine("Found " + FdbKey.Dump(kv.Key));
-
-			var prevKey = this.Subspace.Keys.DecodeLast<Slice>(kv.Key);
-			trans.AddReadConflictRange(kv.Key + FdbKey.MinValue, k);
-			trans.AddReadConflictKey(this.Subspace.Keys.Encode(0, prevKey));
-			return prevKey;
-		}
-
-		#endregion
-
 	}
 
 }

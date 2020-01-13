@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 
 	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>
 	/// <typeparam name="TOutput">Type of the items produced by this generator</typeparam>

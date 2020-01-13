@@ -32,14 +32,12 @@ namespace FdbShell
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
-	using System.Net;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Directories;
 	using Mono.Options;
 	using Mono.Terminal;
 
@@ -166,7 +164,7 @@ namespace FdbShell
 					Console.WindowHeight = 60;
 				}
 			}
-			catch (Exception e)
+			catch
 			{
 				// this sometimes fail on small screen sizes
 			}
@@ -193,7 +191,7 @@ namespace FdbShell
 			#region Options Parsing...
 
 			string clusterFile = null;
-			var partition = new string[0];
+			var partition = FdbDirectoryPath.Empty;
 			bool showHelp = false;
 			int timeout = 30;
 			int maxRetries = 10;
@@ -209,7 +207,7 @@ namespace FdbShell
 				{ 
 					"p|partition=",
 					"The name of the database partition to open.",
-					v => partition = v.Trim().Split('/')
+					v => partition = FdbDirectoryPath.Parse(v.Trim())
 				},
 				{
 					"t|timeout=",
@@ -261,7 +259,7 @@ namespace FdbShell
 				var cnxOptions = new FdbConnectionOptions
 				{
 					ClusterFile = clusterFile,
-					PartitionPath = partition
+					Root = partition
 				};
 				Db = await ChangeDatabase(cnxOptions, cancel);
 				Db.DefaultTimeout = Math.Max(0, timeout) * 1000;
@@ -501,7 +499,10 @@ namespace FdbShell
 								if (!string.IsNullOrEmpty(prm))
 								{
 									var newPath = CombinePath(CurrentDirectoryPath, prm);
-									var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(newPath), db, ct), cancel);
+									var res = await RunAsyncCommand(
+										(db, log, ct) => db.ReadAsync(tr => BasicCommands.TryOpenCurrentDirectoryAsync(tr, ParsePath(newPath)), ct),
+										cancel
+									);
 									if (res.Failed)
 									{
 										StdErr($"# Failed to open Directory {newPath}: {res.Error.Message}", ConsoleColor.Red);
@@ -520,7 +521,10 @@ namespace FdbShell
 								}
 								else
 								{
-									var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(CurrentDirectoryPath), db, ct), cancel);
+									var res = await RunAsyncCommand(
+										(db, log, ct) => db.ReadAsync(tr => BasicCommands.TryOpenCurrentDirectoryAsync(tr, ParsePath(CurrentDirectoryPath)), ct),
+										cancel
+									);
 									if (res.Failed)
 									{
 										StdErr($"# Failed to query Directory {Program.CurrentDirectoryPath}: {res.Error.Message}", ConsoleColor.Red);
@@ -688,14 +692,14 @@ namespace FdbShell
 									break;
 								}
 
-								var newPartition = prm.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+								var newPartition = FdbDirectoryPath.Parse(prm.Trim());
 								IFdbDatabase newDb = null;
 								try
 								{
 									var options = new FdbConnectionOptions
 									{
 										ClusterFile = clusterFile,
-										PartitionPath = newPartition
+										Root = newPartition
 									};
 									newDb = await ChangeDatabase(options, cancel);
 								}
@@ -864,19 +868,20 @@ namespace FdbShell
 			return "/" + string.Join("/", s);
 		}
 
-		private static string[] ParsePath(string path)
+		private static FdbDirectorySubspaceLocation ParsePath(string path)
 		{
-			path = path.Replace("\\", "/").Trim();
-			return path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+			return Db.Root[FdbDirectoryPath.Parse(path)];
+			//path = path.Replace("\\", "/").Trim();
+			//return path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 		}
 
 		private static async Task<string[]> AutoCompleteDirectories(string prm, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var path = ParsePath(prm);
-			var parent = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct).ConfigureAwait(false);
+			var parent = await db.ReadAsync(tr => BasicCommands.TryOpenCurrentDirectoryAsync(tr, path), ct);
 			if (parent == null) return null;
 
-			var names = await parent.ListAsync(db, ct).ConfigureAwait(false);
+			var names = await db.ReadAsync(tr => parent.ListAsync(tr), ct);
 			return names.ToArray();
 		}
 

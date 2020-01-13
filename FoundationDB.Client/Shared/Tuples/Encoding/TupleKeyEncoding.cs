@@ -1,5 +1,5 @@
 #region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Serialization.Encoders;
 
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>
-	public sealed class TupleKeyEncoding : ITypeSystem
+	public sealed class TupleKeyEncoding : IDynamicTypeSystem
 	{
 
 		public static readonly TupleKeyEncoding Instance = new TupleKeyEncoding();

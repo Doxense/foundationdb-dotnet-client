@@ -45,40 +45,43 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_AsyncQueryable_Basics()
 		{
-
 			using(var db = await OpenTestPartitionAsync())
 			{
+				var location = db.Root.ByKey("Linq");
+				await CleanLocation(db, location);
 
-				var location = db.Partition.ByKey("Linq");
-
-				await db.ClearRangeAsync(location, this.Cancellation);
-
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
-					tr.Set(location.Keys.Encode("Hello"), Value("World!"));
-					tr.Set(location.Keys.Encode("Narf"), Value("Zort"));
+					var subspace = await location.Resolve(tr);
+					tr.Set(subspace.Encode("Hello"), Value("World!"));
+					tr.Set(subspace.Encode("Narf"), Value("Zort"));
 				}, this.Cancellation);
 
-				var range = db.Query().RangeStartsWith(location.GetPrefix());
-				Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());
-				Assert.That(range.Expression, Is.InstanceOf<FdbQueryRangeExpression>());
-				Log(range.Expression.DebugView);
+				await db.ReadAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
 
-				var projection = range.Select(kvp => kvp.Value.ToString());
-				Assert.That(projection, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
-				Assert.That(projection.Expression, Is.InstanceOf<FdbQueryTransformExpression<KeyValuePair<Slice, Slice>, string>>());
-				Log(projection.Expression.DebugView);
+					var range = tr.Query().RangeStartsWith(subspace.GetPrefix());
+					Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());
+					Assert.That(range.Expression, Is.InstanceOf<FdbQueryRangeExpression>());
+					Log(range.Expression.GetDebugView());
 
-				var results = await projection.ToListAsync();
-				Log("ToListAsync() => [ " + String.Join(", ", results) + " ]");
+					var projection = range.Select(kvp => kvp.Value.ToString());
+					Assert.That(projection, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
+					Assert.That(projection.Expression, Is.InstanceOf<FdbQueryTransformExpression<KeyValuePair<Slice, Slice>, string>>());
+					Log(projection.Expression.GetDebugView());
 
-				var count = await projection.CountAsync();
-				Log("CountAsync() => " + count); 
-				Assert.That(count, Is.EqualTo(2));
+					var results = await projection.ToListAsync();
+					Log("ToListAsync() => [ " + String.Join(", ", results) + " ]");
 
-				var first = await projection.FirstAsync();
-				Log("FirstAsync() => " + first);
-				Assert.That(first, Is.EqualTo("World!"));
+					var count = await projection.CountAsync();
+					Log("CountAsync() => " + count);
+					Assert.That(count, Is.EqualTo(2));
+
+					var first = await projection.FirstAsync();
+					Log("FirstAsync() => " + first);
+					Assert.That(first, Is.EqualTo("World!"));
+				}, this.Cancellation);
 			}
 		}
 
@@ -88,28 +91,32 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition.ByKey("Linq");
+				var location = db.Root["Linq"];
+				await CleanLocation(db, location);
 
-				await db.ClearRangeAsync(location, this.Cancellation);
+				var indexFoos = new FdbIndex<long, string>(location.ByKey("Foos", "ByColor"));
 
-				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition.ByKey("Foos", "ByColor"));
-
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
-					index.Add(tr, 1, "red");
-					index.Add(tr, 2, "green");
-					index.Add(tr, 3, "blue");
-					index.Add(tr, 4, "red");
+					var foos = await indexFoos.ResolveState(tr);
+					foos.Add(tr, 1, "red");
+					foos.Add(tr, 2, "green");
+					foos.Add(tr, 3, "blue");
+					foos.Add(tr, 4, "red");
 				}, this.Cancellation);
 
 				// find all elements that are read
-				var lookup = index.Query(db).Lookup(x => x == "red");
+				var ids = await db.ReadAsync(async tr =>
+				{
+					var lookup = indexFoos.Query(db).Lookup(x => x == "red");
 
-				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<long>>());
-				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<long, string>>());
-				Log(lookup.Expression.DebugView);
+					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<long>>());
+					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<long, string>>());
+					Log(lookup.Expression.GetDebugView());
 
-				var ids = await lookup.ToListAsync();
+					return await lookup.ToListAsync();
+				}, this.Cancellation);
+
 				Log("=> [ " + String.Join(", ", ids) + " ]");
 
 			}
@@ -121,32 +128,31 @@ namespace FoundationDB.Linq.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
+				var location = db.Root["Linq"];
+				await CleanLocation(db, location);
 
-				var location = db.Partition.ByKey("Linq");
+				var index = new FdbIndex<string, int>(location.ByKey("Foos", "ByScore"));
 
-				await db.ClearRangeAsync(location, this.Cancellation);
-
-				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition.ByKey("Foos", "ByScore"));
-
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
-					index.Add(tr, "alpha", 10);
-					index.Add(tr, "bravo", 16);
-					index.Add(tr, "charly", 12);
-					index.Add(tr, "echo", 666);
-					index.Add(tr, "foxtrot", 54321);
-					index.Add(tr, "golf", 768);
-					index.Add(tr, "tango", 12345);
-					index.Add(tr, "sierra", 667);
-					index.Add(tr, "victor", 1234);
-					index.Add(tr, "whisky", 9001);
+					var foos = await index.ResolveState(tr);
+					foos.Add(tr, "alpha", 10);
+					foos.Add(tr, "bravo", 16);
+					foos.Add(tr, "charly", 12);
+					foos.Add(tr, "echo", 666);
+					foos.Add(tr, "foxtrot", 54321);
+					foos.Add(tr, "golf", 768);
+					foos.Add(tr, "tango", 12345);
+					foos.Add(tr, "sierra", 667);
+					foos.Add(tr, "victor", 1234);
+					foos.Add(tr, "whisky", 9001);
 				}, this.Cancellation);
 
 				// find all up to 100
 				var lookup = index.Query(db).Lookup(x => x <= 100);
 				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
 				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-				Log(lookup.Expression.DebugView);
+				Log(lookup.Expression.GetDebugView());
 
 				var ids = await lookup.ToListAsync();
 				Log("=> [ " + String.Join(", ", ids) + " ]");
@@ -155,7 +161,7 @@ namespace FoundationDB.Linq.Tests
 				lookup = index.Query(db).Lookup(x => x >= 9000);
 				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
 				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-				Log(lookup.Expression.DebugView);
+				Log(lookup.Expression.GetDebugView());
 
 				ids = await lookup.ToListAsync();
 				Log("=> [ " + String.Join(", ", ids) + " ]");

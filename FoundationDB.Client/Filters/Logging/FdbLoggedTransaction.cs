@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,6 +66,9 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Handler that will be called when this transaction commits successfully</summary>
 		public Action<FdbLoggedTransaction> Committed { get; private set; }
+
+		/// <summary>If non-null, at least one VersionStamped operation in the last attempt</summary>
+		private Task<VersionStamp> VersionStamp { get; set; }
 
 		/// <summary>Wrap an existing transaction and log all operations performed</summary>
 		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions options)
@@ -298,6 +301,7 @@ namespace FoundationDB.Filters.Logging
 
 		public override void Reset()
 		{
+			this.VersionStamp = null;
 			Execute(
 				new FdbTransactionLog.ResetCommand(),
 				(tr, cmd) => tr.Reset()
@@ -322,19 +326,25 @@ namespace FoundationDB.Filters.Logging
 			this.Log.TotalCommitSize += size;
 			this.Log.Attempts++;
 
+			var cmd = new FdbTransactionLog.CommitCommand();
 			return ExecuteAsync(
-				new FdbTransactionLog.CommitCommand(),
+				cmd,
 				(tr, _) => tr.CommitAsync(),
 				(self, tr) =>
 				{
 					self.Log.CommittedUtc = DateTimeOffset.UtcNow;
-					self.Log.CommittedVersion = tr.GetCommittedVersion();
+					var cv = tr.GetCommittedVersion();
+					self.Log.CommittedVersion = cv;
+					cmd.CommitVersion = cv;
+
+					if (this.VersionStamp != null) self.Log.VersionStamp = this.VersionStamp.GetAwaiter().GetResult();
 				}
 			);
 		}
 
 		public override Task OnErrorAsync(FdbError code)
 		{
+			this.VersionStamp = null;
 			return ExecuteAsync(
 				new FdbTransactionLog.OnErrorCommand(code),
 				(_tr, _cmd) => _tr.OnErrorAsync(_cmd.Code)
@@ -376,6 +386,10 @@ namespace FoundationDB.Filters.Logging
 
 		public override void Atomic(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType mutation)
 		{
+			if (mutation == FdbMutationType.VersionStampedKey || mutation == FdbMutationType.VersionStampedValue)
+			{
+				this.VersionStamp ??= m_transaction.GetVersionStampAsync();
+			}
 			Execute(
 				new FdbTransactionLog.AtomicCommand(Grab(key), Grab(param), mutation),
 				(_tr, _cmd) => _tr.Atomic(_cmd.Key, _cmd.Param, _cmd.Mutation)
@@ -390,6 +404,14 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
+		public override void TouchMetadataVersionKey(Slice key = default)
+		{
+			Execute(
+				new FdbTransactionLog.TouchMetadataVersionKeyCommand(key.IsNull ? Fdb.System.MetadataVersionKey : Grab(key)),
+				(tr, cmd) => tr.TouchMetadataVersionKey(cmd.Key)
+			);
+		}
+
 		#endregion
 
 		#region Read...
@@ -399,6 +421,14 @@ namespace FoundationDB.Filters.Logging
 			return ExecuteAsync(
 				new FdbTransactionLog.GetReadVersionCommand(),
 				(tr, cmd) => tr.GetReadVersionAsync()
+			);
+		}
+
+		public override Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+		{
+			return ExecuteAsync(
+				new FdbTransactionLog.GetMetadataVersionCommand(key.IsNull ? Fdb.System.MetadataVersionKey : Grab(key)),
+				(tr, cmd) => tr.GetMetadataVersionKeyAsync(cmd.Key)
 			);
 		}
 
@@ -436,7 +466,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetRangeCommand(Grab(in beginInclusive), Grab(in endExclusive), options, iteration),
@@ -444,7 +474,7 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 		{
 			ThrowIfDisposed();
 
@@ -503,6 +533,14 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
+			public override Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
+			{
+				return ExecuteAsync(
+					new FdbTransactionLog.GetMetadataVersionCommand(key.IsNull ? Fdb.System.MetadataVersionKey : m_parent.Grab(key)), 
+					(tr, cmd) => tr.GetMetadataVersionKeyAsync(cmd.Key)
+				);
+			}
+
 			public override Task<Slice> GetAsync(ReadOnlySpan<byte> key)
 			{
 				return ExecuteAsync(
@@ -537,7 +575,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+			public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(in beginInclusive), m_parent.Grab(in endExclusive), options, iteration),
@@ -545,7 +583,7 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+			public override FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 			{
 				m_parent.ThrowIfDisposed();
 				var query = m_transaction.GetRange(beginInclusive, endExclusive, selector, options);

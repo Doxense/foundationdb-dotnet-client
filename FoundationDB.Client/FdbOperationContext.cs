@@ -29,8 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -47,7 +50,6 @@ namespace FoundationDB.Client
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
 
 		/// <summary>The database used by the operation</summary>
-		[NotNull]
 		public IFdbDatabase Database { get; }
 
 		/// <summary>Cancellation token associated with the operation</summary>
@@ -87,14 +89,17 @@ namespace FoundationDB.Client
 		public FdbTransactionMode Mode { get; }
 
 		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
-		[CanBeNull]
-		internal CancellationTokenSource TokenSource { get; }
+		internal CancellationTokenSource? TokenSource { get; }
+
+		/// <summary>Transaction instance currently being used by this context</summary>
+		private IFdbTransaction? Transaction;
+		//note: field accessed via interlocked operations!
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
 		/// <param name="mode">Operation mode of the retry loop</param>
 		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
-		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
+		public FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 
@@ -113,96 +118,333 @@ namespace FoundationDB.Client
 			this.Cancellation = token;
 		}
 
-		/// <summary>List of one or more success handlers</summary>
-		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
-		private object SuccessHandlers { get; set; }
+		#region Sucess Handlers...
 
-		private void RegisterSuccessHandler(object handler)
+		/// <summary>List of one or more state change callback</summary>
+		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
+		private object? StateCallbacks; // interlocked!
+
+		private void RegisterStateCallback(object callback)
 		{
-			Contract.Requires(handler is Delegate || handler is IHandleTransactionSuccess);
+			Contract.Requires(callback is Delegate || callback is IHandleTransactionLifecycle);
 			lock (this)
 			{
-				var previous = this.SuccessHandlers;
+				var previous = this.StateCallbacks;
 				if (previous == null)
 				{ // first handler for this context
-					this.SuccessHandlers = handler;
+					this.StateCallbacks = callback;
 				}
 				else if (previous is object[] arr)
 				{ // one more 
 					Array.Resize(ref arr, arr.Length + 1);
-					arr[arr.Length - 1] = handler;
-					this.SuccessHandlers = arr;
+					arr[arr.Length - 1] = callback;
+					this.StateCallbacks = arr;
 				}
 				else
 				{ // second handler
-					this.SuccessHandlers = new [] { previous, handler };
+					this.StateCallbacks = new [] { previous, callback };
 				}
 			}
 		}
 
-		private Task ExecuteSuccessHandlers()
+		private Task ExecuteHandlers(ref object handlers, FdbOperationContext ctx, FdbTransactionState state)
 		{
-			var handlers = this.SuccessHandlers;
-			if (handlers == null) return Task.CompletedTask;
-
-			return handlers is object[] arr
-				? ExecuteMultipleHandlers(arr, this.Cancellation)
-				: ExecuteSingleHandler(handlers, this.Cancellation);
+			var cbk = Interlocked.Exchange(ref handlers, null);
+			switch (cbk)
+			{
+				case null: return Task.CompletedTask;
+				case object[] arr: return ExecuteMultipleHandlers(arr, ctx, state, this.Cancellation);
+				default: return ExecuteSingleHandler(cbk, ctx, state, this.Cancellation);
+			}
 		}
 
-		private static Task ExecuteSingleHandler(object del, CancellationToken ct)
+		private static Task ExecuteSingleHandler(object del, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
 		{
 			switch (del)
 			{
-				case IHandleTransactionSuccess hts:
+				case IHandleTransactionLifecycle htl:
 				{
-					hts.OnTransactionSuccessful();
+					htl.OnTransactionStateChanged(arg);
 					return Task.CompletedTask;
 				}
-				case IHandleTransactionFailure htf:
+				case Action<FdbOperationContext, FdbTransactionState> act:
 				{
-					htf.OnTransactionFailed();
+					act(ctx, arg);
 					return Task.CompletedTask;
 				}
-				case Action act:
+				case Func<FdbOperationContext, FdbTransactionState, CancellationToken, Task> fct:
 				{
-					act();
-					return Task.CompletedTask;
-				}
-				case Func<CancellationToken, Task> fct:
-				{
-					return fct(ct);
+					return fct(ctx, arg, ct);
 				}
 			}
 
 			throw new NotSupportedException("Unexpected handler delegate type.");
 		}
 
-		private static async Task ExecuteMultipleHandlers(object[] arr, CancellationToken ct)
+		private static async Task ExecuteMultipleHandlers(object[] arr, FdbOperationContext ctx, FdbTransactionState arg, CancellationToken ct)
 		{
 			foreach (object del in arr)
 			{
-				if (del != null) await ExecuteSingleHandler(del, ct).ConfigureAwait(false);
+				if (del != null) await ExecuteSingleHandler(del, ctx, arg, ct).ConfigureAwait(false);
 			}
 		}
 
 		/// <summary>Register a callback that will only be called once the transaction has been successfully committed</summary>
 		/// <remarks>NOTE: there are _no_ guarantees that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
-		public void OnSuccess([NotNull] Action callback)
+		public void OnSuccess(Action<FdbOperationContext, FdbTransactionState> callback)
 		{
-			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
+			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
 
-		public void OnSuccess([NotNull] Func<CancellationToken, Task> callback)
+		public void OnSuccess(Func<FdbOperationContext, FdbTransactionState, CancellationToken, Task> callback)
 		{
-			RegisterSuccessHandler(callback ?? throw new ArgumentNullException(nameof(callback)));
+			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
 		}
+
+		#endregion
+
+		#region Local Data...
+
+		// To help build a caching layer on top of transactions, it is necessary to be able to attach cached instance to each transaction
+		// The intent is that a layer implementation will use to build a "per-transaction state" on the first call to the layer within this transaction,
+		// and then reuse the same instance if the layer is called multiple times within the same transaction.
+
+		// The convention is that each layer uses its own type has the "key" of the cached instances.
+		// But since a layer can have multiple "instances" (ex: multiple indexes, multiple queues, ...) each instance is also coupled with a "token" key
+		// If a layer can only have a single instance, it can use the example the empty string has its "token" key.
+		// If not, the layer can use any type of key, if it can guarantee that it is unique. For exemple: for a record table "Users", the key can be the name
+		// itself, IF IT IS NOT POSSIBLE TO HAVE A DIFFERENT "Users" TABLE IN THE APPLICATION! If there can be collisions, then the key should be prefixed by
+		// some other "namespace" to make it globally unique.
+
+		/// <summary>Stores contextual data that can be added and retrieved at any step of the transaction's processing</summary>
+		/// <remarks>Access to this collection must be performed under lock, because a transaction can be used concurrently from multiple threads!</remarks>
+		/// map[ typeof(TState) => map[ TToken => TState ] ]
+		private Dictionary<Type, object>? LocalData { get; set; }
+
+		[Pure, ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private Dictionary<Type, object>? GetLocalDataContainer(bool createIfMissing)
+		{
+			return this.LocalData ?? GetLocalDataContainerSlow(createIfMissing);
+		}
+
+		[ContractAnnotation("createIfMissing:true => notnull"), MethodImpl(MethodImplOptions.NoInlining)]
+		private Dictionary<Type, object>? GetLocalDataContainerSlow(bool createIfMissing)
+		{
+			var container = this.LocalData;
+			if (container == null && createIfMissing)
+			{
+				container = new Dictionary<Type, object>();
+				this.LocalData = container;
+			}
+			return container;
+		}
+
+		/// <summary>Clear any local data currently attached on this transaction</summary>
+		internal void ClearAllLocalData()
+		{
+			lock (this)
+			{
+				var container = GetLocalDataContainer(false);
+				if (container != null)
+				{
+					lock (container)
+					{
+						container.Clear();
+					}
+				}
+			}
+		}
+
+		/// <summary>Set the value of a cached instance attached to the transaction</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="newState">New instance that must be attached to the transaction</param>
+		/// <returns>If there was already a cached instance for this key, it will be discarded</returns>
+		public void SetLocalData<TState, TToken>(TToken key, TState newState)
+			where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(newState, nameof(newState));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(true)!;
+				if (!container.TryGetValue(typeof(TState), out var slot))
+				{
+					slot = new Dictionary<string, object>(StringComparer.Ordinal);
+					container[typeof(TState)] = slot;
+				}
+				var items = (Dictionary<TToken, TState>) slot;
+				items[key] = newState;
+			}
+		}
+
+		/// <summary>Replace the value of a cached instance attached to the transaction, and return the previous one</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="newState">New instance that must be attached to the transaction</param>
+		/// <returns>Previous cached instance, or null if none was found.</returns>
+		[return: MaybeNull]
+		public TState ReplaceLocalData<TState, TToken>(TToken key, TState newState)
+			where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(newState, nameof(newState));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(true)!;
+				if (!container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items =  new Dictionary<TToken, TState>
+					{
+						[key] = newState
+					};
+					container[typeof(TState)] = items;
+					return default!;
+				}
+				else
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					items.TryGetValue(key, out var previous);
+					items[key] = newState;
+					return previous;
+				}
+			}
+		}
+
+		/// <summary>Remove a cached instance previously attached to the transaction</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key to remove. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <returns>Returns <c>true</c> if the value was found and removed; otherwise, false.</returns>
+		public bool RemoveLocalData<TState, TToken>(TToken key) where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(false);
+				if (container != null && container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					return items.Remove(key);
+				}
+				return false;
+			}
+		}
+
+		/// <summary>Return the corresponding instance attached to the transaction, if it exists.</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="state">Receive the value if it was found; otherwise, <c>default(<typeparamref name="TState"/>)</c></param>
+		/// <returns>Returns <c>true</c> if the value was found; otherwise, <c>false</c>.</returns>
+		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
+		public bool TryGetLocalData<TState, TToken>(TToken key, [MaybeNullWhen(false)] out TState state)
+			where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(false);
+				if (container != null && container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					if (items.TryGetValue(key, out var value))
+					{
+						state = (TState) value;
+						return true;
+					}
+				}
+				state = default!;
+				return false;
+			}
+		}
+
+		/// <summary>Return the corresponding instance attached to the transaction, or use the specified instance no value was found.</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="newState">Instance that will be used if no value already exists in this transaction.</param>
+		/// <returns>Either the existing value, or <paramref name="newState"/>.</returns>
+		public TState GetOrCreateLocalData<TState, TToken>(TToken key, TState newState)
+			where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(newState, nameof(newState));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(true)!;
+				TState result;
+				if (container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					if (!items.TryGetValue(key, out result))
+					{
+						result = newState;
+						items[key] = result;
+					}
+				}
+				else
+				{
+					result = newState;
+					slot = new Dictionary<TToken, TState>
+					{
+						[key] = result
+					};
+					container[typeof(TState)] = slot;
+				}
+				return result;
+			}
+		}
+
+		/// <summary>Return the corresponding instance attached to the transaction, or invoke the specified factory if it was not already specified.</summary>
+		/// <typeparam name="TState">Type of the instance</typeparam>
+		/// <typeparam name="TToken">Type of the key used to distinguish multiple instance of the same "type"</typeparam>
+		/// <param name="key">Value of the key. If there can be only one instance per <typeparamref name="TState"/>, use a constant such as the <c>string.Empty</c></param>
+		/// <param name="factory">Handler called to generate a new <typeparamref name="TState"/> instance if there is no match.</param>
+		/// <returns>Either the existing value, or the value returned by invoking <paramref name="factory"/>.</returns>
+		//REVIEW: should we return a tuple (TState Data, bool Created) instead ?
+		public TState GetOrCreateLocalData<TState, TToken>(TToken key, Func<TState> factory)
+			where TState : class
+		{
+			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNull(factory, nameof(factory));
+			lock (this)
+			{
+				var container = GetLocalDataContainer(true)!;
+				TState result;
+				if (container.TryGetValue(typeof(TState), out var slot))
+				{
+					var items = (Dictionary<TToken, TState>) slot;
+					if (!items.TryGetValue(key, out result))
+					{
+						result = factory() ?? throw new InvalidOperationException("Constructed state cannot be null");
+						items[key] = result;
+					}
+				}
+				else
+				{
+					result = factory() ?? throw new InvalidOperationException("Constructed state cannot be null");
+					slot = new Dictionary<TToken, TState>
+					{
+						[key] = result
+					};
+					container[typeof(TState)] = slot;
+				}
+				return result;
+			}
+		}
+
+		#endregion
 
 		/// <summary>Execute a retry loop on this context</summary>
-		internal static async Task ExecuteInternal([NotNull] IFdbDatabase db, [NotNull] FdbOperationContext context, [NotNull] Delegate handler, Delegate success)
+		internal static async Task<TResult> ExecuteInternal<TState, TIntermediate, TResult>(FdbOperationContext context, [AllowNull] TState state, Delegate handler, Delegate? success)
 		{
-			Contract.Requires(db != null && context != null && handler != null);
-			Contract.Requires(context.Shared);
+			Contract.Requires(context != null && handler != null && context.Shared);
+
+			var db = context.Database;
+			Contract.Requires(db != null);
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
@@ -217,30 +459,269 @@ namespace FoundationDB.Client
 				// => algorithms that monitor the elapsed duration to rate limit themselves may think that the trans is older than it really is...
 				// => we would need to plug into the transaction handler itself to be notified when exactly a read op starts...
 
-				using (var trans = db.BeginTransaction(context.Mode, CancellationToken.None, context))
+				TResult result = default!;
+
+				using (var trans = await db.BeginTransactionAsync(context.Mode, CancellationToken.None, context))
 				{
+					//note: trans may be different from context.Transaction if it has been filtered!
+					Contract.Assert(context.Transaction != null);
+
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
+						bool hasResult = false;
+						result = default!;
+
 						try
 						{
+							TIntermediate intermediate;
+
+							// call the user provided lambda
 							switch (handler)
 							{
-								// call the user provided lambda
-								case Func<IFdbReadOnlyTransaction, Task> funcReadOnly:
+								#region Read Only...
+
+								#region With State...
+
+								case Func<IFdbReadOnlyTransaction, TState, Task<TResult>> f:
 								{
-									await funcReadOnly(trans).ConfigureAwait(false);
+									intermediate = default!;
+									result = await f(trans, state).ConfigureAwait(false);
+									hasResult = true;
 									break;
 								}
-								case Func<IFdbTransaction, Task> funcWritable:
+								case Func<IFdbReadOnlyTransaction, TState, ValueTask<TResult>> f:
 								{
-									await funcWritable(trans).ConfigureAwait(false);
+									intermediate = default!;
+									result = await f(trans, state).ConfigureAwait(false);
+									hasResult = true;
 									break;
 								}
-								case Action<IFdbTransaction> action:
+								case Func<IFdbReadOnlyTransaction, TState, TResult> f:
 								{
-									action(trans);
+									intermediate = default!;
+									result = f(trans, state);
+									hasResult = true;
 									break;
 								}
+								case Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> f:
+								{
+									intermediate = await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, TState, ValueTask<TIntermediate>> f:
+								{
+									intermediate = await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, TState, TIntermediate> f:
+								{
+									intermediate = f(trans, state);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, TState, Task> f:
+								{
+									intermediate = default!;
+									await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, TState, ValueTask> f:
+								{
+									intermediate = default!;
+									await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Action<IFdbReadOnlyTransaction, TState> a:
+								{
+									intermediate = default!;
+									a(trans, state);
+									break;
+								}
+
+								#endregion
+
+								#region w/o State...
+
+								case Func<IFdbReadOnlyTransaction, Task<TResult>> f:
+								{
+									intermediate = default!;
+									result = await f(trans).ConfigureAwait(false);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, ValueTask<TResult>> f:
+								{
+									intermediate = default!;
+									result = await f(trans).ConfigureAwait(false);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, TResult> f:
+								{
+									intermediate = default!;
+									result = f(trans);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, Task<TIntermediate>> f:
+								{
+									intermediate = await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, ValueTask<TIntermediate>> f:
+								{
+									intermediate = await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, TIntermediate> f:
+								{
+									intermediate = f(trans);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, Task> f:
+								{
+									intermediate = default!;
+									await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbReadOnlyTransaction, ValueTask> f:
+								{
+									intermediate = default!;
+									await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Action<IFdbReadOnlyTransaction> a:
+								{
+									intermediate = default!;
+									a(trans);
+									break;
+								}
+
+								#endregion
+
+								#endregion
+
+								#region Read/Write...
+
+								#region w/o state...
+
+								case Func<IFdbTransaction, Task<TResult>> f:
+								{
+									intermediate = default!;
+									result = await f(trans).ConfigureAwait(false);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbTransaction, ValueTask<TResult>> f:
+								{
+									intermediate = default!;
+									result = await f(trans).ConfigureAwait(false);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbTransaction, Task<TIntermediate>> f:
+								{
+									intermediate = await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, ValueTask<TIntermediate>> f:
+								{
+									intermediate = await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, Task> f:
+								{
+									intermediate = default!;
+									await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, ValueTask> f:
+								{
+									intermediate = default!;
+									await f(trans).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, TIntermediate> f:
+								{
+									intermediate = f(trans);
+									break;
+								}
+								case Func<IFdbTransaction, TResult> f:
+								{
+									intermediate = default!;
+									result = f(trans);
+									hasResult = true;
+									break;
+								}
+								case Action<IFdbTransaction> a:
+								{
+									intermediate = default!;
+									a(trans);
+									break;
+								}
+
+								#endregion
+
+								#region With state...
+
+								case Func<IFdbTransaction, TState, Task<TIntermediate>> f:
+								{
+									intermediate = await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, TState, ValueTask<TIntermediate>> f:
+								{
+									intermediate = await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, TState, Task<TResult>> f:
+								{
+									intermediate = default!;
+									result = await f(trans, state).ConfigureAwait(false);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbTransaction, TState, ValueTask<TResult>> f:
+								{
+									intermediate = default!;
+									result = await f(trans, state).ConfigureAwait(false);
+									hasResult = true;
+									break;
+								}
+								case Func<IFdbTransaction, TState, Task> f:
+								{
+									intermediate = default!;
+									await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, TState, ValueTask> f:
+								{
+									intermediate = default!;
+									await f(trans, state).ConfigureAwait(false);
+									break;
+								}
+								case Func<IFdbTransaction, TState, TIntermediate> f:
+								{
+									intermediate = f(trans, state);
+									break;
+								}
+								case Func<IFdbTransaction, TState, TResult> f:
+								{
+									intermediate = default!;
+									result = f(trans, state);
+									hasResult = true;
+									break;
+								}
+								case Action<IFdbTransaction, TState> a:
+								{
+									intermediate = default!;
+									a(trans, state);
+									break;
+								}
+
+								#endregion
+
+								#endregion
+
 								default:
 								{
 									throw new NotSupportedException($"Cannot execute handlers of type {handler.GetType().Name}");
@@ -261,54 +742,242 @@ namespace FoundationDB.Client
 							context.Committed = true;
 							context.PreviousError = FdbError.Success;
 
-							// execute any success handlers if there are any
-							if (context.SuccessHandlers != null)
+							// execute any state callbacks, if there are any
+							if (context.StateCallbacks != null)
 							{
-								await context.ExecuteSuccessHandlers().ConfigureAwait(false);
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Commit).ConfigureAwait(false);
 							}
 
 							// execute any final logic, if there is any
 							if (success != null)
 							{
+								// if TIntermediate == TResult, the order of delegate resolution may be impredictible
+								// => we will copy the result in both fields!
+								if (hasResult && typeof(TIntermediate) == typeof(TResult))
+								{
+									intermediate = (TIntermediate) (object) result;
+								}
+
 								switch (success)
 								{
-									case Action<IFdbReadOnlyTransaction> action1:
+									#region Read Only...
+
+									case Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> f:
 									{
-										action1(trans);
+										result = await f(trans, intermediate);
+										hasResult = true;
 										break;
 									}
-									case Action<IFdbTransaction> action2:
+									case Func<IFdbReadOnlyTransaction, TIntermediate, ValueTask<TResult>> f:
 									{
-										action2(trans);
+										result = await f(trans, intermediate);
+										hasResult = true;
 										break;
 									}
-									case Func<IFdbReadOnlyTransaction, Task> func1:
+									case Func<IFdbReadOnlyTransaction, TResult, Task> f:
 									{
-										await func1(trans).ConfigureAwait(false);
+										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
+										await f(trans, result);
 										break;
 									}
-									case Func<IFdbTransaction, Task> func2:
+									case Func<IFdbReadOnlyTransaction, TResult, ValueTask> f:
 									{
-										await func2(trans).ConfigureAwait(false);
+										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
+										await f(trans, result);
 										break;
 									}
+									case Func<IFdbReadOnlyTransaction, TIntermediate, TResult> f:
+									{
+										result = f(trans, intermediate);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbReadOnlyTransaction, Task<TResult>> f:
+									{
+										result = await f(trans);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbReadOnlyTransaction, ValueTask<TResult>> f:
+									{
+										result = await f(trans);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbReadOnlyTransaction, Task> f:
+									{
+										await f(trans);
+										result = default!;
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbReadOnlyTransaction, ValueTask> f:
+									{
+										await f(trans);
+										result = default!;
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbReadOnlyTransaction, TResult> f:
+									{
+										result = f(trans);
+										hasResult = true;
+										break;
+									}
+									case Action<IFdbReadOnlyTransaction, TResult> a:
+									{
+										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
+										a(trans, result);
+										break;
+									}
+									case Action<IFdbReadOnlyTransaction> a:
+									{
+										a(trans);
+										break;
+									}
+
+									#endregion
+
+									#region Read/Write...
+
+									case Func<IFdbTransaction, TIntermediate, Task<TResult>> f:
+									{
+										result = await f(trans, intermediate);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, TIntermediate, ValueTask<TResult>> f:
+									{
+										result = await f(trans, intermediate);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, TResult, Task> f:
+									{
+										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
+										await f(trans, result);
+										break;
+									}
+									case Func<IFdbTransaction, TResult, ValueTask> f:
+									{
+										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
+										await f(trans, result);
+										break;
+									}
+									case Func<IFdbTransaction, TIntermediate, TResult> f:
+									{
+										result = f(trans, intermediate);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, Task<TResult>> f:
+									{
+										result = await f(trans);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, ValueTask<TResult>> f:
+									{
+										result = await f(trans);
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, Task> f:
+									{
+										await f(trans);
+										result = default!;
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, ValueTask> f:
+									{
+										await f(trans);
+										result = default!;
+										hasResult = true;
+										break;
+									}
+									case Func<IFdbTransaction, TResult> f:
+									{
+										result = f(trans);
+										hasResult = true;
+										break;
+									}
+									case Action<IFdbTransaction, TResult> a:
+									{
+										if (!hasResult) throw new ArgumentException("Success handler requires the result to be computed by the loop handler.", nameof(success));
+										a(trans, result);
+										break;
+									}
+									case Action<IFdbTransaction> a:
+									{
+										a(trans);
+										break;
+									}
+
+									#endregion
+
 									default:
 									{
 										throw new NotSupportedException($"Cannot execute completion handler of type {handler.GetType().Name}");
 									}
 								}
 							}
+
+							if (!hasResult)
+							{
+								if (typeof(TResult) == typeof(TIntermediate))
+								{
+									result = (TResult) (object) intermediate;
+								}
+								else
+								{
+									throw new ArgumentException($"Success handler is required to convert intermediate type {typeof(TIntermediate).Name} into result type {typeof(TResult).Name}.");
+								
+								}
+							}
+
 						}
 						catch (FdbException e)
 						{
 							context.PreviousError = e.Code;
 
-							// reset any handler
-							context.SuccessHandlers = null;
+							// execute any state callbacks, if there are any
+							if (context.StateCallbacks != null)
+							{
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Faulted).ConfigureAwait(false);
+							}
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with error code {1}", trans.Id, e.Code));
-							await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
+
+							bool shouldRethrow = false;
+							try
+							{
+								await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
+							}
+							catch (FdbException e2)
+							{
+								if (Logging.On && Logging.IsError) Logging.Error(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with un-retryable error code {1}", trans.Id, e.Code));
+								// if the code is the same, we prefer re-throwing the original exception to keep the stacktrace intact!
+								if (e2.Code != e.Code) throw;
+								shouldRethrow = true;
+							}
+
+							// re-throw original exception because it is not retryable.
+							if (shouldRethrow) throw;
+
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
+						}
+						catch (Exception)
+						{
+							context.PreviousError = FdbError.UnknownError;
+
+							// execute any state callbacks, if there are any
+							if (context.StateCallbacks != null)
+							{
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Faulted).ConfigureAwait(false);
+							}
+
+							throw;
 						}
 
 						// update the base time for the next attempt
@@ -320,8 +989,16 @@ namespace FoundationDB.Client
 
 				if (context.Abort)
 				{
+					// execute any state callbacks, if there are any
+					if (context.StateCallbacks != null)
+					{
+						await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Aborted).ConfigureAwait(false);
+					}
+
 					throw new OperationCanceledException(context.Cancellation);
 				}
+
+				return result;
 
 			}
 			finally
@@ -335,6 +1012,20 @@ namespace FoundationDB.Client
 			}
 		}
 
+		internal void AttachTransaction(IFdbTransaction trans)
+		{
+			if (Interlocked.CompareExchange(ref this.Transaction, trans, null) != null)
+			{
+				throw new InvalidOperationException("Cannot attach another transaction to this context because another transaction is still attache");
+			}
+		}
+
+		internal void ReleaseTransaction(IFdbTransaction trans)
+		{
+			// only if this is still the current one!
+			Interlocked.CompareExchange(ref this.Transaction, null, trans);
+		}
+
 		public void Dispose()
 		{
 			this.Abort = true;
@@ -343,20 +1034,32 @@ namespace FoundationDB.Client
 
 		#region Read-Only operations...
 
+		public static Task<TResult> RunReadAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			return ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
+		}
+
+#if REFACTORED
+
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		[Obsolete("Will be removed soon.")]
-		public static Task RunReadAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
+		public static Task RunReadAsync(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, null);
+			return ExecuteInternal(context, handler, null);
 		}
 
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
+		public static async Task<TResult> RunReadWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -369,12 +1072,41 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, [NotNull] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
+		public static async Task RunReadWithResultAsync(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, handler, null).ConfigureAwait(false);
+		}
+
+		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunReadWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, ValueTask<TResult>> handler, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			async Task Handler(IFdbTransaction tr)
+			{
+				result = await handler(tr).ConfigureAwait(false);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunReadWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -392,12 +1124,35 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunReadWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		public static async Task<TResult> RunReadWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, ValueTask<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default;
+			async Task Handler(IFdbReadOnlyTransaction tr)
+			{
+				result = await handler(tr).ConfigureAwait(false);
+			}
+
+			void Complete(IFdbReadOnlyTransaction tr)
+			{
+				success(tr, result);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunReadWithResultAsync<TIntermediate, TResult>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -416,12 +1171,12 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbReadOnlyTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunReadWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		public static async Task<TResult> RunReadWithResultAsync<TIntermediate, TResult>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -440,50 +1195,62 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbReadOnlyTransaction, Task>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbReadOnlyTransaction, Task>) Complete).ConfigureAwait(false);
 			return result;
 		}
+
+#endif
 
 		#endregion
 
 		#region Read/Write operations...
 
+		public static Task<TResult> RunReadWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, TIntermediate> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			return ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
+		}
+
+		public static Task<TResult> RunWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, Task<TIntermediate>> handler, Func<TState, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			return ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
+		}
+
+#if REFACTORED
+
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, CancellationToken ct)
+		public static Task RunWriteAsync(IFdbDatabase db, Action<IFdbTransaction> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, null);
+			return ExecuteInternal(context, handler, null);
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails a with non retry-able error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, CancellationToken ct)
+		public static Task RunWriteAsync(IFdbDatabase db, Func<IFdbTransaction, Task> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, null);
+			return ExecuteInternal(context, handler, null);
 		}
 
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, [NotNull] Action<IFdbTransaction> success, CancellationToken ct)
-		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
-			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
-
-			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
-		}
-
-		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, [NotNull] Func<IFdbTransaction, Task> success, CancellationToken ct)
+		public static Task RunWriteAsync(IFdbDatabase db, Action<IFdbTransaction> handler, Action<IFdbTransaction> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -491,11 +1258,23 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunWriteAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, [NotNull] Func<IFdbTransaction, TResult> success, CancellationToken ct)
+		public static Task RunWriteAsync(IFdbDatabase db, Action<IFdbTransaction> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(success, nameof(success));
+			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			return ExecuteInternal(context, handler, success);
+		}
+
+		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunWriteAsync<TResult>(IFdbDatabase db, Action<IFdbTransaction> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -509,12 +1288,12 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Action<IFdbTransaction> success, CancellationToken ct)
+		public static Task RunWriteAsync(IFdbDatabase db, Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -522,11 +1301,11 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Func<IFdbTransaction, Task> success, CancellationToken ct)
+		public static Task RunWriteAsync(IFdbDatabase db, Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -534,11 +1313,11 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			return ExecuteInternal(db, context, handler, success);
+			return ExecuteInternal(context, handler, success);
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, TResult> handler, CancellationToken ct)
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbTransaction, TResult> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -551,12 +1330,12 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Action<IFdbTransaction>) Handler, null).ConfigureAwait(false);
+			await ExecuteInternal(context, (Action<IFdbTransaction>) Handler, null).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -569,12 +1348,12 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, null).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> handler, [NotNull] Action<IFdbTransaction, TResult> success, CancellationToken ct)
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbTransaction, Task<TResult>> handler, Action<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -593,77 +1372,121 @@ namespace FoundationDB.Client
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task<TResult>> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
 			Contract.NotNull(success, nameof(success));
 			ct.ThrowIfCancellationRequested();
 
-			TIntermediate tmp = default;
+			TResult result = default!;
+			async Task Complete(IFdbTransaction tr)
+			{
+				result = await success(tr);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, handler, (Func<IFdbTransaction, Task>) Complete).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunWriteWithResultAsync<TResult>(IFdbDatabase db, Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(success, nameof(success));
+			ct.ThrowIfCancellationRequested();
+
+			TResult result = default!;
+			void Complete(IFdbTransaction tr)
+			{
+				result = success(tr);
+			}
+
+			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			await ExecuteInternal(context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			return result;
+		}
+
+		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
+		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>(IFdbDatabase db, Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		{
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(success, nameof(success));
+			ct.ThrowIfCancellationRequested();
+
+			TIntermediate tmp = default!;
 			async Task Handler(IFdbTransaction tr)
 			{
 				tmp = await handler(tr).ConfigureAwait(false);
 			}
 
-			TResult result = default;
+			TResult result = default!;
 			void Complete(IFdbTransaction tr)
 			{
 				result = success(tr, tmp);
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
-		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>(IFdbDatabase db, Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
 			Contract.NotNull(success, nameof(success));
 			ct.ThrowIfCancellationRequested();
 
-			TIntermediate tmp = default;
+			TIntermediate tmp = default!;
 			async Task Handler(IFdbTransaction tr)
 			{
 				tmp = await handler(tr).ConfigureAwait(false);
 			}
 
-			TResult result = default;
+			TResult result = default!;
 			async Task Complete(IFdbTransaction tr)
 			{
 				result = await success(tr, tmp).ConfigureAwait(false);
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(db, context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbTransaction, Task>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, (Func<IFdbTransaction, Task>) Handler, (Func<IFdbTransaction, Task>) Complete).ConfigureAwait(false);
 			return result;
 		}
+
+#endif
 
 		#endregion
 
 	}
  
-	/// <summary>Marker interface for objects that need to 'activate' only once a transaction commits successful.</summary>
-	internal interface IHandleTransactionSuccess
+	/// <summary>Marker interface for objects that need to respond to transaction state change (commit, failure, ...)</summary>
+	public interface IHandleTransactionLifecycle
 	{
-		//REVIEW: for now internal only, we'll see if we make this public!
+		/// <summary>Called when the transaction state changes (reset, commit, rollback, ...)</summary>
+		/// <param name="state">Reason for the state change</param>
+		void OnTransactionStateChanged(FdbTransactionState state);
 
-		void OnTransactionSuccessful();
 	}
 
-	/// <summary>Marker interface for objects that need to 'self destruct' if a transaction fails to commit.</summary>
-	internal interface IHandleTransactionFailure
+	public enum FdbTransactionState
 	{
-		//REVIEW: for now internal only, we'll see if we make this public!
-
-		void OnTransactionFailed();
+		/// <summary>The last execution of the handler failed</summary>
+		Faulted,
+		/// <summary>The last execution of the handler successfully committed the transaction</summary>
+		Commit,
+		/// <summary>The last execution of the handler was aborted</summary>
+		Aborted,
 	}
+
 }

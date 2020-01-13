@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@ namespace Doxense.Linq
 
 			ValueTask<bool> IAsyncEnumerator<TSource>.MoveNextAsync() => new ValueTask<bool>(false);
 
-			TSource IAsyncEnumerator<TSource>.Current => default;
+			TSource IAsyncEnumerator<TSource>.Current => throw new InvalidOperationException();
 
 			ValueTask IAsyncDisposable.DisposeAsync() => default;
 
@@ -110,7 +110,7 @@ namespace Doxense.Linq
 					m_ct.ThrowIfCancellationRequested();
 					if (m_called)
 					{
-						m_current = default(TElement);
+						m_current = default!;
 						return false;
 					}
 
@@ -143,7 +143,7 @@ namespace Doxense.Linq
 				public ValueTask DisposeAsync()
 				{
 					m_called = true;
-					m_current = default;
+					m_current = default!;
 					return default;
 				}
 			}

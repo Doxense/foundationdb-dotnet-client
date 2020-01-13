@@ -5,6 +5,7 @@
     <RootNamespace>FoundationDB.Client</RootNamespace>
     <AssemblyName>FoundationDB.Client</AssemblyName>
     <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
     <SignAssembly Condition="'$(OS)' == 'Windows_NT'">true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <PackageTags>foundationdb fdb nosql</PackageTags>
@@ -27,8 +28,8 @@
     <DocumentationFile>bin\Release\$(TargetFramework)\FoundationDB.Client.xml</DocumentationFile>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1' Or '$(TargetFramework)'=='netcoreapp3.0'">
-    <DefineConstants>$(DefineConstants);USE_SPAN_API</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
+    <DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">

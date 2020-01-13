@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,8 @@ namespace Doxense.Linq.Async.Expressions
 	/// <typeparam name="TResult">Type of the transformed items</typeparam>
 	public sealed class AsyncTransformExpression<TSource, TResult>
 	{
-		private readonly Func<TSource, TResult> m_transform;
-		private readonly Func<TSource, CancellationToken, Task<TResult>> m_asyncTransform;
+		private readonly Func<TSource, TResult>? m_transform;
+		private readonly Func<TSource, CancellationToken, Task<TResult>>? m_asyncTransform;
 
 		public AsyncTransformExpression(Func<TSource, TResult> transform)
 		{
@@ -67,7 +67,7 @@ namespace Doxense.Linq.Async.Expressions
 
 		public TResult Invoke(TSource item)
 		{
-			if (m_transform == null) FailInvalidOperation();
+			if (m_transform == null) throw FailInvalidOperation();
 			return m_transform(item);
 		}
 
@@ -79,21 +79,21 @@ namespace Doxense.Linq.Async.Expressions
 			}
 			else
 			{
+				Contract.Requires(m_transform != null);
 				return Task.FromResult(m_transform(item));
 			}
 		}
 
-		[ContractAnnotation("=> halt")]
-		private static void FailInvalidOperation()
+		[Pure]
+		private static InvalidOperationException FailInvalidOperation()
 		{
-			throw new InvalidOperationException("Cannot invoke asynchronous transform synchronously");
+			return new InvalidOperationException("Cannot invoke asynchronous transform synchronously");
 		}
 
-		[NotNull]
 		public AsyncTransformExpression<TSource, TCasted> Cast<TCasted>()
 		{
 			if (typeof(TCasted) == typeof(TResult))
-			{ // we are alredy of the correct type, we just need to fool the compiler into believing it!
+			{ // we are already of the correct type, we just need to fool the compiler into believing it!
 				return (AsyncTransformExpression<TSource, TCasted>)(object)this;
 			}
 			else
@@ -102,24 +102,22 @@ namespace Doxense.Linq.Async.Expressions
 				if (m_transform != null)
 				{
 					var f = m_transform;
-					return new AsyncTransformExpression<TSource, TCasted>((x) => (TCasted)(object)f(x));
+					return new AsyncTransformExpression<TSource, TCasted>((x) => (TCasted) (object) f(x));
 				}
 				else
 				{
 					var f = m_asyncTransform;
-					return new AsyncTransformExpression<TSource, TCasted>(async (x, ct) => (TCasted)(object)(await f(x, ct).ConfigureAwait(false)));
+					return new AsyncTransformExpression<TSource, TCasted>(async (x, ct) => (TCasted) (object) (await f(x, ct).ConfigureAwait(false)));
 				}
 			}
 		}
 
-		[NotNull]
-		public AsyncTransformExpression<TSource, TOuter> Then<TOuter>([NotNull] AsyncTransformExpression<TResult, TOuter> expr)
+		public AsyncTransformExpression<TSource, TOuter> Then<TOuter>(AsyncTransformExpression<TResult, TOuter> expr)
 		{
 			return Then<TOuter>(this, expr);
 		}
 
-		[NotNull]
-		public static AsyncTransformExpression<TSource, TOuter> Then<TOuter>([NotNull] AsyncTransformExpression<TSource, TResult> left, [NotNull] AsyncTransformExpression<TResult, TOuter> right)
+		public static AsyncTransformExpression<TSource, TOuter> Then<TOuter>(AsyncTransformExpression<TSource, TResult> left, AsyncTransformExpression<TResult, TOuter> right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));
@@ -127,39 +125,45 @@ namespace Doxense.Linq.Async.Expressions
 			if (left.IsIdentity())
 			{ // we can optimize the left expression away, since we know that TSource == TResult !
 				//note: fool the compiler into believing that TSource == TResult
-				return (AsyncTransformExpression<TSource, TOuter>)(object)right;
+				return (AsyncTransformExpression<TSource, TOuter>) (object) right;
 			}
 
 			if (right.IsIdentity())
 			{ // we can optimize the right expression away, since we know that TResult == TOuter !
-				return (AsyncTransformExpression<TSource, TOuter>)(object)left;
+				return (AsyncTransformExpression<TSource, TOuter>) (object) left;
 			}
 
 			if (left.m_transform != null)
 			{
 				var f = left.m_transform;
+				Contract.Assert(f != null);
 				if (right.m_transform != null)
 				{
 					var g = right.m_transform;
+					Contract.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>((x) => g(f(x)));
 				}
 				else
 				{
 					var g = right.m_asyncTransform;
+					Contract.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>((x, ct) => g(f(x), ct));
 				}
 			}
 			else
 			{
 				var f = left.m_asyncTransform;
+				Contract.Assert(f != null);
 				if (right.m_asyncTransform != null)
 				{
 					var g = right.m_asyncTransform;
+					Contract.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>(async (x, ct) => await g(await f(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false));
 				}
 				else
 				{
 					var g = right.m_transform;
+					Contract.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>(async (x, ct) => g(await f(x, ct).ConfigureAwait(false)));
 				}
 			}

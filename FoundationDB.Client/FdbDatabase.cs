@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,18 +34,16 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization.Encoders;
+	using Doxense.Memory;
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
-	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
-	[DebuggerDisplay("GlobalSpace={m_globalSpace}")]
+	[DebuggerDisplay("Root={Root}")]
 	public class FdbDatabase : IFdbDatabase, IFdbDatabaseProvider
 	{
 		#region Private Fields...
@@ -68,11 +66,11 @@ namespace FoundationDB.Client
 		/// <summary>List of all "pending" transactions created from this database instance (and that have not yet been disposed)</summary>
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
 
-		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
-		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private IDynamicKeySubspace m_globalSpace;
-		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private IDynamicKeySubspace m_globalSpaceCopy;
+		/// <summary>Directory instance corresponding to the root of this database</summary>
+		private FdbDirectoryLayer m_directory;
+
+		/// <summary>The root location of this database</summary>
+		private FdbDirectorySubspaceLocation m_root;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -83,38 +81,33 @@ namespace FoundationDB.Client
 		/// <summary>Default Max Retry Delay value for all transactions</summary>
 		private int m_defaultMaxRetryDelay;
 
-		/// <summary>Instance of the DirectoryLayer used by this database (lazy initialized)</summary>
-		private IFdbDirectory m_directory;
-
 		#endregion
 
 		#region Constructors...
 
 		/// <summary>Create a new database instance</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
-		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
-		/// <param name="directory">Root directory of the database instance</param>
+		/// <param name="root">Root location of this database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		protected FdbDatabase(IFdbDatabaseHandler handler, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly)
+		protected FdbDatabase(IFdbDatabaseHandler handler, [NotNull] FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			Contract.Requires(handler != null && contentSubspace != null);
+			Contract.Requires(handler != null && root != null);
 
 			m_handler = handler;
 			m_readOnly = readOnly;
-			ChangeRoot(contentSubspace, directory, readOnly);
+			ChangeRoot(root, readOnly);
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
-		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
-		/// <param name="directory">Root directory of the database instance</param>
+		/// <param name="root">Root location of the database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] IKeySubspace contentSubspace, [CanBeNull] IFdbDirectory directory, bool readOnly)
+		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] FdbDirectorySubspaceLocation root, bool readOnly)
 		{
 			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(contentSubspace, nameof(contentSubspace));
+			Contract.NotNull(root, nameof(root));
 
-			return new FdbDatabase(handler, contentSubspace, directory, readOnly);
+			return new FdbDatabase(handler, root, readOnly);
 		}
 
 		#endregion
@@ -134,30 +127,11 @@ namespace FoundationDB.Client
 		public bool IsReadOnly => m_readOnly;
 
 		/// <summary>Root directory of this database instance</summary>
-		public IFdbDirectory Directory
-		{
-			get
-			{
-				if (m_directory == null)
-				{
-					lock(this)//TODO: don't use this for locking
-					{
-						if (m_directory == null)
-						{
-							m_directory = GetRootDirectory();
-							Contract.Assert(m_directory != null);
-						}
-					}
-				}
-				return m_directory;
-			}
-		}
+		/// <remarks>Starts at the same path as the <see cref="Root"/> location, meaning that <code>db.Directory["Foo"]</code> will point to the same location as db.Root.Path.Add("Foo").</remarks>
+		public IFdbDirectory Directory => m_root;
 
-		/// <summary>When overriden in a derived class, gets a database partition that wraps the root directory of this database instance</summary>
-		protected virtual IFdbDirectory GetRootDirectory()
-		{
-			return FdbDirectoryLayer.Create(m_globalSpaceCopy);
-		}
+		/// <summary>Return the DirectoryLayer instance used by this database</summary>
+		public FdbDirectoryLayer DirectoryLayer => m_directory;
 
 		#endregion
 
@@ -176,11 +150,11 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null)
+		public ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
 		{
 			ct.ThrowIfCancellationRequested();
 			if (context == null) context = new FdbOperationContext(this, mode, ct);
-			return CreateNewTransaction(context);
+			return new ValueTask<IFdbTransaction>(CreateNewTransaction(context));
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
@@ -197,13 +171,14 @@ namespace FoundationDB.Client
 			int id = Interlocked.Increment(ref s_transactionCounter);
 
 			// ensure that if anything happens, either we return a valid Transaction, or we dispose it immediately
-			FdbTransaction trans = null;
+			FdbTransaction? trans = null;
 			try
 			{
 				var transactionHandler = m_handler.CreateTransaction(context);
 
 				trans = new FdbTransaction(this, context, id, transactionHandler, mode);
 				RegisterTransaction(trans);
+				context.AttachTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
 				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
@@ -214,7 +189,11 @@ namespace FoundationDB.Client
 			}
 			catch (Exception)
 			{
-				trans?.Dispose();
+				if (trans != null)
+				{
+					context.ReleaseTransaction(trans);
+					trans.Dispose();
+				}
 				throw;
 			}
 		}
@@ -264,208 +243,186 @@ namespace FoundationDB.Client
 		// - NodeJS uses fdb.doTransaction(function(...) { ... })
 
 		// Conventions:
-		// - ReadAsync() => read-only
-		// - WriteAsync() => write-only
-		// - ReadWriteAsync() => read/write
+		// - ReadAsync() => read-only transactions, return something to the caller
+		// - WriteAsync() => writable transactions, does not return anything to the caller
+		// - ReadWriteAsync() => writable transactions, return something to the caller
 
-		#region IFdbReadOnlyTransactional methods...
+		#region IFdbReadOnlyRetryable...
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		private Task<TResult> ExecuteReadOnlyAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
+		{
+			Contract.NotNull(handler, nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+			ThrowIfDisposed();
+
+			var context = new FdbOperationContext(this, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
+		}
+
+		/// <inheritdoc/>
+		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
+		{
+			return ExecuteReadOnlyAsync<object?, object?, object?>(null, handler, null, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task ReadAsync<TState>(TState state, Func<IFdbReadOnlyTransaction, TState, Task> handler, CancellationToken ct)
+		{
+			return ExecuteReadOnlyAsync<TState, object?, object?>(state, handler, null, ct);
+		}
+
+		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, ct);
+			return ExecuteReadOnlyAsync<object?, TResult, TResult>(null, handler, null, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
-		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-only transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
+			return ExecuteReadOnlyAsync<TState, TResult, TResult>(state, handler, null, ct);
 		}
 
-		public Task<TResult> ReadAsync<TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, [InstantHandle] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, success, ct);
+			return ExecuteReadOnlyAsync<object?, TResult, TResult>(null, handler, success, ct);
 		}
 
-		public Task<TResult> ReadAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+			return ExecuteReadOnlyAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
 		}
 
-		public Task<TResult> ReadAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunReadWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+			return ExecuteReadOnlyAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return ExecuteReadOnlyAsync<TState, TIntermediate, TResult>(state, handler, success, ct);
 		}
 
 		#endregion
 
-		#region IFdbTransactional methods...
+		#region IFdbRetryable...
 
-		#region Write Only...
-
-		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
-		/// <param name="handler">Lambda function that is passed a new read-write transaction on each retry. It should only call non-async methods, such as Set, Clear or any atomic operation.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync(this, handler, ct);
-		}
-
-		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
-		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
-		/// <param name="handler">Lambda function that is passed a new read-write transaction on each retry. It should only call non-async methods, such as Set, Clear or any atomic operation.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync<TState>(TState state, [InstantHandle] Action<IFdbTransaction, TState> handler, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Action<IFdbTransaction> success, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task<TResult> WriteAsync<TResult>([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Func<IFdbTransaction, TResult> success, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync<TResult>(this, handler, success, ct);
-		}
-
-		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, CancellationToken ct)
-		{
-			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
-			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
-			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, handler, ct);
-		}
-
-		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
-		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task WriteAsync<TState>(TState state, [InstantHandle] Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
-		{
-			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
-			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
-			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, [InstantHandle] Action<IFdbTransaction> success, CancellationToken ct)
-		{
-			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
-			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
-			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
-		}
-
-		/// <summary>EXPERIMENTAL</summary>
-		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, [InstantHandle] Func<IFdbTransaction, Task> success, CancellationToken ct)
-		{
-			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
-			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
-			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
-		}
-
-		#endregion
-
-		#region Read+Write....
-
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, CancellationToken ct)
-		{
-			return FdbOperationContext.RunWriteAsync(this, handler, ct);
-		}
-
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task ReadWriteAsync<TState>(TState state, [InstantHandle] Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
+		private Task<TResult> ExecuteReadWriteAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
 		{
 			Contract.NotNull(handler, nameof(handler));
-			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+			ThrowIfDisposed();
+			if (m_readOnly) throw new InvalidOperationException("Cannot mutate a read-only database.");
+
+			var context = new FdbOperationContext(this, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
 		}
 
-		/// <summary>EXPERIMENTAL</summary>
-		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> handler, [InstantHandle] Action<IFdbTransaction> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, null, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, TResult> handler, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task WriteAsync<TState>(TState state, Action<IFdbTransaction, TState> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+			return ExecuteReadWriteAsync<TState, object?, object?>(state, handler, null, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, null, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="state">State that will be passed back to the <paramref name="handler"/></param>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TState, TResult>(TState state, [InstantHandle] Func<IFdbTransaction, TState, Task<TResult>> handler, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task WriteAsync<TState>(TState state, Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
+			return ExecuteReadWriteAsync<TState, object?, object?>(state, handler, null, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TResult>([InstantHandle] Func<IFdbTransaction, Task<TResult>> handler, [InstantHandle] Action<IFdbTransaction, TResult> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, success, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task WriteAsync(Action<IFdbTransaction> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
 		}
 
-		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>
-		/// <param name="handler">Asynchronous lambda function that is passed a new read-write transaction on each retry. The result of the task will also be the result of the transactional.</param>
-		/// <param name="success">Will be called at most once, and only if the transaction commits successfully. Any exception or crash that happens right after the commit may cause this callback not NOT be called, even if the transaction has committed!</param>
-		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
-		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>([InstantHandle] Func<IFdbTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Action<IFdbTransaction> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
-			return FdbOperationContext.RunWriteWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+			return ExecuteReadWriteAsync<object?, object?, TResult>(null, handler, success, ct);
 		}
 
-		#endregion
+		/// <inheritdoc/>
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, TResult, TResult>(null, handler, null, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TState, TResult>(TState state, Func<IFdbTransaction, TState, Task<TResult>> handler, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<TState, TResult, TResult>(state, handler, null, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, Action<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, TResult, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task<TResult>> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbTransaction, TState, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<TState, TIntermediate, TResult>(state, handler, success, ct);
+		}
 
 		#endregion
 
@@ -487,14 +444,14 @@ namespace FoundationDB.Client
 		/// <summary>Set an option on this database that takes a string value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter (can be null)</param>
-		public void SetOption(FdbDatabaseOption option, string value)
+		public void SetOption(FdbDatabaseOption option, string? value)
 		{
 			ThrowIfDisposed();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
-			m_handler.SetOption(option, data);
+			m_handler.SetOption(option, data.Span);
 		}
 
 		/// <summary>Set an option on this database that takes an integer value</summary>
@@ -507,8 +464,9 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
-			var data = Slice.FromFixed64(value);
-			m_handler.SetOption(option, data);
+			Span<byte> tmp = stackalloc byte[8];
+			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
+			m_handler.SetOption(option, tmp);
 		}
 
 		#endregion
@@ -517,206 +475,19 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(IKeySubspace subspace, IFdbDirectory directory, bool readOnly)
+		internal void ChangeRoot(FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			//REVIEW: rename to "ChangeRootSubspace" ?
-			subspace = subspace ?? KeySubspace.Empty;
+			Contract.NotNull(root, nameof(root));
+
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = subspace.Copy(TuPack.Encoding);
-				m_globalSpaceCopy = subspace.Copy(TuPack.Encoding); // keep another copy
-				m_directory = directory;
+				m_root = root;
+				m_directory = root.Directory;
 			}
 		}
 
-		/// <summary>Returns the global namespace used by this database instance</summary>
-		public IDynamicKeySubspace GlobalSpace
-		{
-			//REVIEW: rename to just "Subspace" ?
-			[NotNull]
-			get
-			{
-				// return a copy of the subspace, to be sure that nobody can change the real globalspace and read elsewhere.
-				return m_globalSpaceCopy;
-			}
-		}
-
-		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
-		/// <param name="database"></param>
-		/// <param name="key">Key to verify</param>
-		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <param name="ignoreError"></param>
-		/// <param name="error"></param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(IFdbDatabase database, in Slice key, bool endExclusive, bool ignoreError, out Exception error)
-		{
-			// null keys are not allowed
-			if (key.IsNull)
-			{
-				error = ignoreError ? null : Fdb.Errors.KeyCannotBeNull();
-				return false;
-			}
-			return ValidateKey(database, key.Span, endExclusive, ignoreError, out error);
-		}
-
-		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
-		/// <param name="database"></param>
-		/// <param name="key">Key to verify</param>
-		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <param name="ignoreError"></param>
-		/// <param name="error"></param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(IFdbDatabase database, ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception error)
-		{
-			error = null;
-
-			// null or empty keys are not allowed
-			if (key.Length == 0)
-			{
-				if (!ignoreError) error = Fdb.Errors.KeyCannotBeNull();
-				return false;
-			}
-
-			// key cannot be larger than maximum allowed key size
-			if (key.Length > Fdb.MaxKeySize)
-			{
-				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(key);
-				return false;
-			}
-
-			// special case for system keys
-			if (IsSystemKey(key))
-			{
-				// note: it will fail later if the transaction does not have access to the system keys!
-				return true;
-			}
-
-			// first, it MUST start with the root prefix of this database (if any)
-			if (!database.Contains(key))
-			{
-				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
-				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
-				if (!endExclusive
-				 || !key.SequenceEqual(FdbKey.Increment(database.GlobalSpace.GetPrefix()))) //TODO: cache this?
-				{
-					if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(database, key);
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		/// <summary>Test if a key is contained by this database instance.</summary>
-		/// <param name="key">Key to test</param>
-		/// <returns>True if the key is not null and contained inside the global subspace</returns>
-		public bool Contains(Slice key)
-		{
-			return key.HasValue && m_globalSpace.Contains(key);
-		}
-
-		/// <summary>Test if a key is contained by this database instance.</summary>
-		/// <param name="key">Key to test</param>
-		/// <returns>True if the key is not null and contained inside the global subspace</returns>
-		public bool Contains(ReadOnlySpan<byte> key)
-		{
-			return key.Length != 0 && m_globalSpace.Contains(key);
-		}
-
-		public Slice BoundCheck(Slice key, bool allowSystemKeys)
-		{
-			return m_globalSpace.BoundCheck(key, allowSystemKeys);
-		}
-
-		public ReadOnlySpan<byte> BoundCheck(ReadOnlySpan<byte> key, bool allowSystemKeys)
-		{
-			return m_globalSpace.BoundCheck(key, allowSystemKeys);
-		}
-
-		Slice IKeySubspace.this[Slice relativeKey] => m_globalSpace[relativeKey];
-
-		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		Slice IKeySubspace.ExtractKey(Slice key, bool boundCheck)
-		{
-			return m_globalSpace.ExtractKey(key, boundCheck);
-		}
-
-		Slice IKeySubspace.GetPrefix()
-		{
-			return m_globalSpace.GetPrefix();
-		}
-
-		KeyRange IKeySubspace.ToRange()
-		{
-			return m_globalSpace.ToRange();
-		}
-
-		public DynamicPartition Partition => m_globalSpace.Partition;
-		//REVIEW: should we hide this on the main db?
-
-		IKeyEncoding IDynamicKeySubspace.Encoding => m_globalSpace.Encoding;
-
-		public DynamicKeys Keys => m_globalSpace.Keys;
-
-		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
-		internal static bool IsSystemKey(in Slice key)
-		{
-			return key.IsPresent && key[0] == 0xFF;
-		}
-
-		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
-		internal static bool IsSystemKey(ReadOnlySpan<byte> key)
-		{
-			return key.Length != 0 && key[0] == 0xFF;
-		}
-
-		/// <summary>Ensures that a serialized value is valid</summary>
-		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
-		internal void EnsureValueIsValid(ref Slice value)
-		{
-			var ex = ValidateValue(ref value);
-			if (ex != null) throw ex;
-		}
-
-		internal Exception ValidateValue(ref Slice value)
-		{
-			if (value.IsNull)
-			{
-				return Fdb.Errors.ValueCannotBeNull(value);
-			}
-
-			if (value.Count > Fdb.MaxValueSize)
-			{
-				return Fdb.Errors.ValueIsTooBig(value);
-			}
-
-			return null;
-		}
-
-		/// <summary>Ensures that a serialized value is valid</summary>
-		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
-		internal void EnsureValueIsValid(ReadOnlySpan<byte> value)
-		{
-			var ex = ValidateValue(value);
-			if (ex != null) throw ex;
-		}
-
-		internal Exception ValidateValue(ReadOnlySpan<byte> value)
-		{
-			if (value.Length > Fdb.MaxValueSize)
-			{
-				return Fdb.Errors.ValueIsTooBig(value);
-			}
-
-			return null;
-		}
-
-		internal Slice BoundCheck(Slice key)
-		{
-			//REVIEW: should we always allow access to system keys ?
-			return m_globalSpace.BoundCheck(key, allowSystemKeys: true);
-		}
+		public FdbDirectorySubspaceLocation Root => m_root;
 
 		#endregion
 

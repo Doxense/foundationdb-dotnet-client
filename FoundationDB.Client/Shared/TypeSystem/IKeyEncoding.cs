@@ -33,7 +33,7 @@ namespace Doxense.Serialization.Encoders
 	using System;
 	using JetBrains.Annotations;
 
-	/// <summary>Type system that handles encoding and decoding of differnt types of keys</summary>
+	/// <summary>Type system that handles encoding and decoding of different types of keys</summary>
 	/// <remarks>
 	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.
 	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.
@@ -80,6 +80,12 @@ namespace Doxense.Serialization.Encoders
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys of size 4</exception>
 		[NotNull]
 		ICompositeKeyEncoder<T1, T2, T3, T4> GetKeyEncoder<T1, T2, T3, T4>();
+
+	}
+
+	/// <summary>Type system that only handles encoding and decoding of dynamically typed of keys</summary>
+	public interface IDynamicKeyEncoding : IKeyEncoding
+	{
 
 	}
 }

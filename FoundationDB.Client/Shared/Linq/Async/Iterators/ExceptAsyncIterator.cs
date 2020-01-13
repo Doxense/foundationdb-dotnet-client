@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace Doxense.Linq.Async.Iterators
 {
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
@@ -51,7 +52,9 @@ namespace Doxense.Linq.Async.Iterators
 		protected override bool FindNext(out int index, out TSource current)
 		{
 			index = -1;
-			current = default(TSource);
+			current = default!;
+			var iterators = m_iterators;
+			Contract.Requires(iterators != null);
 
 			// we only returns values of the first that are not in the others
 
@@ -64,21 +67,21 @@ namespace Doxense.Linq.Async.Iterators
 			// - if flag_output is true then output X
 			// - if flag_found is true then Advance iterator[0]
 
-			if (!m_iterators[0].Active)
+			if (!iterators[0].Active)
 			{ // primary sequence is complete
 				return false;
 			}
 
 
-			TKey x = m_iterators[0].Current;
+			TKey x = iterators[0].Current;
 			bool output = true;
 			bool discard = false;
 
-			for (int i = 1; i < m_iterators.Length; i++)
+			for (int i = 1; i < iterators.Length; i++)
 			{
-				if (!m_iterators[i].Active) continue;
+				if (!iterators[i].Active) continue;
 
-				int cmp = m_keyComparer.Compare(m_iterators[i].Current, x);
+				int cmp = m_keyComparer.Compare(iterators[i].Current, x);
 				if (cmp <= 0)
 				{
 					output = false;
@@ -89,7 +92,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			if (output)
 			{
-				current = m_iterators[0].Iterator.Current;
+				current = iterators[0].Iterator.Current;
 				index = 0;
 			}
 

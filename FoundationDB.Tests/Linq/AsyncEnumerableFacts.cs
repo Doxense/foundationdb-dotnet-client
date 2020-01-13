@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // ReSharper disable AccessToDisposedClosure
+// ReSharper disable AccessToModifiedClosure
 namespace Doxense.Linq.Tests
 {
 	using System;
@@ -38,7 +39,6 @@ namespace Doxense.Linq.Tests
 	using System.Threading.Tasks;
 	using Doxense;
 	using Doxense.Async;
-	using Doxense.Collections.Tuples;
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 	using FoundationDB.Client.Tests;
@@ -139,13 +139,15 @@ namespace Doxense.Linq.Tests
 
 			await using (var it = empty.GetAsyncEnumerator(this.Cancellation))
 			{
-				// initial value of Current should be default(int)
-				Assert.That(it.Current, Is.Zero);
+				// accessing "Current" should always fail
+				Assert.That(() => it.Current, Throws.InvalidOperationException);
 
 				// MoveNext should return an already completed 'false' result
 				var next = it.MoveNextAsync();
 				Assert.That(next.IsCompleted, Is.True);
 				Assert.That(next.Result, Is.False);
+
+				Assert.That(() => it.Current, Throws.InvalidOperationException);
 			}
 
 			var results = await empty.ToListAsync();
@@ -1284,17 +1286,17 @@ namespace Doxense.Linq.Tests
 				return Task.FromResult(Maybe.Return((int)index));
 			});
 
-			Func<int, (int Value, int Called, TimeSpan Elapsed)> record = (x) =>
+			(int Value, int Called, TimeSpan Elapsed) Record(int x)
 			{
 				var res = (x, Volatile.Read(ref called), sw.Elapsed);
 				sw.Restart();
 				return res;
-			};
+			}
 
 			// without pre-fetching, the number of calls should match for the producer and the consumer
 			called = 0;
 			sw.Restart();
-			var withoutPrefetching = await source.Select(record).ToListAsync(this.Cancellation);
+			var withoutPrefetching = await source.Select(Record).ToListAsync(this.Cancellation);
 			Log($"P0: {string.Join(", ", withoutPrefetching)}");
 			Assert.That(withoutPrefetching.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
 
@@ -1304,21 +1306,21 @@ namespace Doxense.Linq.Tests
 			{
 				called = 0;
 				sw.Restart();
-				var withPrefetchingK = await source.Prefetch(K).Select(record).ToListAsync(this.Cancellation);
-				Log($"P{K}: {String.Join(", ", withPrefetchingK)}");
-				Assert.That(withPrefetchingK.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
-				Assert.That(withPrefetchingK[0].Item2, Is.EqualTo(K + 1), "Generator must have {0} call(s) in advance!", K);
-				Assert.That(withPrefetchingK.Select(x => x.Item2), Is.All.LessThanOrEqualTo(11));
+				var withPrefetchingK = await source.Prefetch(K).Select(Record).ToListAsync(this.Cancellation);
+				Log($"P{K}: {string.Join(", ", withPrefetchingK)}");
+				Assert.That(withPrefetchingK.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
+				Assert.That(withPrefetchingK[0].Called, Is.EqualTo(K + 1), "Generator must have {0} call(s) in advance!", K);
+				Assert.That(withPrefetchingK.Select(x => x.Called), Is.All.LessThanOrEqualTo(11));
 			}
 
 			// if pre-fetching more than the period of the producer, we should not have any perf gain
 			called = 0;
 			sw.Restart();
-			var withPrefetching5 = await source.Prefetch(5).Select(record).ToListAsync(this.Cancellation);
+			var withPrefetching5 = await source.Prefetch(5).Select(Record).ToListAsync(this.Cancellation);
 			Log($"P5: {string.Join(", ", withPrefetching5)}");
-			Assert.That(withPrefetching5.Select(x => x.Item1), Is.EqualTo(Enumerable.Range(0, 10)));
-			Assert.That(withPrefetching5[0].Item2, Is.EqualTo(5), "Generator must have only 4 calls in advance because it only produces 4 items at a time!");
-			Assert.That(withPrefetching5.Select(x => x.Item2), Is.All.LessThanOrEqualTo(11));
+			Assert.That(withPrefetching5.Select(x => x.Value), Is.EqualTo(Enumerable.Range(0, 10)));
+			Assert.That(withPrefetching5[0].Called, Is.EqualTo(5), "Generator must have only 4 calls in advance because it only produces 4 items at a time!");
+			Assert.That(withPrefetching5.Select(x => x.Called), Is.All.LessThanOrEqualTo(11));
 		}
 
 		[Test]

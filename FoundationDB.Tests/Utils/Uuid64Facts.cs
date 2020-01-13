@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(d.ToInt64(), Is.EqualTo(-4982089500409860083L));
 			Assert.That(e.ToInt64(), Is.EqualTo(-1L));
 
-			// explict
+			// explicit
 			Assert.That((long)a, Is.EqualTo(0));
 			Assert.That((long)b, Is.EqualTo(42));
 			Assert.That((long)c, Is.EqualTo(0xDEADBEEF));
@@ -196,7 +196,7 @@ namespace Doxense.Memory.Tests
 
 			// 4 digits
 			var rnd = new Random();
-			for (int i = 0; i < 100 * 1000; i++)
+			for (int i = 0; i < 100_000; i++)
 			{
 				var a = rnd.Next(2) == 0 ? 0 : rnd.Next(62);
 				var b = rnd.Next(2) == 0 ? 0 : rnd.Next(62);
@@ -311,7 +311,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(a.ToUInt64(), Is.Not.EqualTo(b.ToUInt64()));
 			Assert.That(a, Is.Not.EqualTo(b));
 
-			const int N = 1 * 1000;
+			const int N = 1_000;
 			var uids = new HashSet<ulong>();
 			for (int i = 0; i < N; i++)
 			{
@@ -323,7 +323,7 @@ namespace Doxense.Memory.Tests
 		}
 
 		[Test]
-		public void Test_Uuid64RangomGenerator_NewUid()
+		public void Test_Uuid64RandomGenerator_NewUid()
 		{
 			var gen = Uuid64.RandomGenerator.Default;
 			Assert.That(gen, Is.Not.Null);
@@ -333,7 +333,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(a.ToUInt64(), Is.Not.EqualTo(b.ToUInt64()));
 			Assert.That(a, Is.Not.EqualTo(b));
 
-			const int N = 1 * 1000;
+			const int N = 1_000;
 			var uids = new HashSet<ulong>();
 			for (int i = 0; i < N; i++)
 			{
@@ -487,6 +487,14 @@ namespace Doxense.Memory.Tests
 
 			// byte[]
 			Assert.That(Uuid64.Read(buf.AsSlice(4, 8).GetBytesOrEmpty()), Is.EqualTo(original));
+
+			unsafe
+			{
+				fixed (byte* ptr = &buf[4])
+				{
+					Assert.That(Uuid64.Read(new ReadOnlySpan<byte>(ptr, 8)), Is.EqualTo(original));
+				}
+			}
 		}
 
 		[Test]
@@ -502,7 +510,7 @@ namespace Doxense.Memory.Tests
 
 			// span with no offset and exact size
 			scratch = MutableSlice.Repeat(0xAA, 16);
-			original.WriteTo(scratch.Span);
+			original.WriteTo(scratch.Span.Slice(0, 8));
 			Assert.That(scratch.ToString("X"), Is.EqualTo("01 23 45 67 89 AB CD EF AA AA AA AA AA AA AA AA"));
 
 			// span with offset
@@ -514,6 +522,15 @@ namespace Doxense.Memory.Tests
 			scratch = MutableSlice.Repeat(0xAA, 16);
 			original.WriteTo(scratch.Span.Slice(4, 8));
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
+
+			unsafe
+			{
+				Span<byte> buf = stackalloc byte[16];
+				buf.Fill(0xAA);
+
+				original.WriteToUnsafe(buf.Slice(2));
+				Assert.That(buf.ToArray().AsSlice().ToString("X"), Is.EqualTo("AA AA 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
+			}
 
 			// errors
 

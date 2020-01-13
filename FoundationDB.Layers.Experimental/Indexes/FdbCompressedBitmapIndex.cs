@@ -83,7 +83,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			if (this.IndexNullValues || value != null)
 			{
-				var key = this.Subspace.Keys[value];
+				var key = this.Subspace[value];
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
 				var builder = data.HasValue ? new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data)) : CompressedBitmapBuilder.Empty;
 
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					var key = this.Subspace.Keys[previousValue];
+					var key = this.Subspace[previousValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
@@ -126,7 +126,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					var key = this.Subspace.Keys[newValue];
+					var key = this.Subspace[newValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					var builder = data.HasValue ? new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data)) : CompressedBitmapBuilder.Empty;
 					builder.Set((int)id); //BUGBUG: 64 bit id!
@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-			var key = this.Subspace.Keys[value];
+			var key = this.Subspace[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
@@ -166,7 +166,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
 		public async Task<IEnumerable<long>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var key = this.Subspace.Keys[value];
+			var key = this.Subspace[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.IsNull) return null;
 			if (data.IsEmpty) return Enumerable.Empty<long>();

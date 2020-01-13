@@ -161,7 +161,7 @@ namespace FoundationDB.Linq.Providers
 				if (trans == null)
 				{
 					owned = true;
-					trans = this.Database.BeginTransaction(ct);
+					trans = await this.Database.BeginTransactionAsync(ct);
 				}
 
 				T result = await generator(trans, ct).ConfigureAwait(false);
@@ -171,7 +171,7 @@ namespace FoundationDB.Linq.Providers
 			}
 			finally
 			{
-				if (owned && trans != null) trans.Dispose();
+				if (owned) trans?.Dispose();
 			}
 
 		}
@@ -217,7 +217,8 @@ namespace FoundationDB.Linq.Providers
 			bool success = true;
 			try
 			{
-				trans = sequence.Database.BeginTransaction(ct);
+#warning Fix async begin transaction!
+				trans = sequence.Database.BeginTransactionAsync(ct).GetAwaiter().GetResult(); //HACKHACK: BUGBUG: async!
 				var source = generator(trans);
 				Contract.Assert(source != null);
 				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct);
@@ -285,7 +286,7 @@ namespace FoundationDB.Linq.Providers
 				if (trans == null)
 				{
 					owned = true;
-					trans = this.Database.BeginTransaction(ct);
+					trans = await this.Database.BeginTransactionAsync(ct);
 				}
 
 				var enumerable = generator(trans);

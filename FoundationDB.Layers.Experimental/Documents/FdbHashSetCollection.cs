@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Blobs
 		protected virtual Slice GetKey(IVarTuple id)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
-			return this.Subspace.Keys.Pack(id);
+			return this.Subspace.Pack(id);
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Blobs
 		protected virtual Slice GetFieldKey(IVarTuple id, string field)
 		{
 			//REVIEW: should the id be encoded as a an embedded tuple or not?
-			return this.Subspace.Keys.Pack(id.Append(field));
+			return this.Subspace.Pack(id.Append(field));
 		}
 
 		protected virtual string ParseFieldKey(IVarTuple key)
@@ -108,7 +108,7 @@ namespace FoundationDB.Layers.Blobs
 				.GetRange(KeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
-					string field = this.Subspace.Keys.DecodeLast<string>(kvp.Key);
+					string field = this.Subspace.DecodeLast<string>(kvp.Key);
 					results[field] = kvp.Value;
 				})
 				.ConfigureAwait(false);

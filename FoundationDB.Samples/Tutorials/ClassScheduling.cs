@@ -34,17 +34,17 @@ namespace FoundationDB.Samples.Tutorials
 
 		protected Slice ClassKey(string c)
 		{
-			return this.Subspace.Keys.Encode("class", c);
+			return this.Subspace.Encode("class", c);
 		}
 
 		protected Slice AttendsKey(string s, string c)
 		{
-			return this.Subspace.Keys.Encode("attends", s, c);
+			return this.Subspace.Encode("attends", s, c);
 		}
 
 		protected KeyRange AttendsKeys(string s)
 		{
-			return this.Subspace.Keys.PackRange(STuple.Create("attends", s));
+			return this.Subspace.PackRange(STuple.Create("attends", s));
 		}
 
 		/// <summary>
@@ -55,7 +55,7 @@ namespace FoundationDB.Samples.Tutorials
 			// open the folder where we will store everything
 			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
-				var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "Tutorials", "ClassScheduling" });
+				var subspace = await db.Root["Tutorials"]["ClassScheduling"].CreateOrOpenAsync(tr);
 
 				// clear all previous values
 				tr.ClearRange(subspace);
@@ -75,9 +75,9 @@ namespace FoundationDB.Samples.Tutorials
 		/// </summary>
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
-			return tr.GetRange(this.Subspace.Keys.PackRange(STuple.Create("class")))
+			return tr.GetRange(this.Subspace.PackRange(STuple.Create("class")))
 				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToStringAscii(), out _); }) // (step 3)
-				.Select(kvp => this.Subspace.Keys.Decode<string>(kvp.Key))
+				.Select(kvp => this.Subspace.Decode<string>(kvp.Key))
 				.ToListAsync();
 		}
 
@@ -162,14 +162,14 @@ namespace FoundationDB.Samples.Tutorials
 						case "add":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Signup(tr, student, @class), ct);
+							await db.WriteAsync((tr) => Signup(tr, student, @class), ct);
 							myClasses.Add(@class);
 							break;
 						}
 						case "drop":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Drop(tr, student, @class), ct);
+							await db.WriteAsync((tr) => Drop(tr, student, @class), ct);
 							myClasses.Remove(@class);
 							break;
 						}
@@ -177,7 +177,7 @@ namespace FoundationDB.Samples.Tutorials
 						{
 							string oldClass = allClasses[rnd.Next(allClasses.Count)];
 							string newClass = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
+							await db.WriteAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
 							myClasses.Remove(oldClass);
 							myClasses.Add(newClass);
 							break;

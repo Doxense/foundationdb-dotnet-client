@@ -55,21 +55,21 @@ namespace FoundationDB.Linq
 
 		#region Database Queries...
 
-		/// <summary>Start a query on a database</summary>
-		/// <param name="db">Source database</param>
-		/// <returns>Query that will use this database as a source</returns>
-		public static IFdbDatabaseQueryable Query(this IFdbDatabase db)
+		/// <summary>Start a query on a transaction</summary>
+		/// <param name="tr">Source transaction</param>
+		/// <returns>Query that will use this transaction as a source</returns>
+		public static IFdbTransactionQueryable Query(this IFdbReadOnlyTransaction tr)
 		{
-			if (db == null) throw new ArgumentNullException(nameof(db));
+			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
-			return new FdbDatabaseQuery(db);
+			return new FdbTransactionQuery(tr);
 		}
 
 		/// <summary>Return a range of keys</summary>
 		/// <param name="query">Source database query</param>
 		/// <param name="range">Pair of key selectors</param>
 		/// <returns>Query that will return the keys from the specified <paramref name="range"/></returns>
-		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbDatabaseQueryable query, KeySelectorPair range)
+		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbTransactionQueryable query, KeySelectorPair range)
 		{
 			if (query == null) throw new ArgumentNullException(nameof(query));
 
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq
 		/// <param name="query">Source database query</param>
 		/// <param name="prefix">Shared prefix</param>
 		/// <returns>Query that will return the keys that share the specified <paramref name="prefix"/></returns>
-		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> RangeStartsWith(this IFdbDatabaseQueryable query, Slice prefix)
+		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> RangeStartsWith(this IFdbTransactionQueryable query, Slice prefix)
 		{
 			if (query == null) throw new ArgumentNullException(nameof(query));
 
