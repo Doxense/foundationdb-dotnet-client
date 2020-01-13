@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,7 @@ namespace System
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>
 	{
-		//REVIEW: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
-		// => Should we keep the uppercase 'S' or not ?
+		//note: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
 
 		private const ulong PLACEHOLDER_VERSION = ulong.MaxValue;
 		private const ushort PLACEHOLDER_ORDER = ushort.MaxValue;
@@ -146,7 +145,7 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static VersionStamp Custom(ulong version, ushort order, bool incomplete)
+		public static VersionStamp Custom(ulong version, ushort order, bool incomplete)
 		{
 			return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
 		}
@@ -166,7 +165,7 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static VersionStamp Custom(ulong version, ushort order, int userVersion, bool incomplete)
+		public static VersionStamp Custom(ulong version, ushort order, int userVersion, bool incomplete)
 		{
 			Contract.Between(userVersion, 0, 0xFFFF, nameof(userVersion), "Local version must fit in 16-bits.");
 			return new VersionStamp(version, order, (ushort) userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
@@ -302,6 +301,14 @@ namespace System
 			WriteUnsafe(buffer.Slice(0, len), in this);
 		}
 
+		public bool TryWriteTo(Span<byte> buffer)
+		{
+			int len = GetLength(); // 10 or 12
+			if (buffer.Length < len) return false;
+			WriteUnsafe(buffer.Slice(0, len), in this);
+			return true;
+		}
+
 		public void WriteTo(MutableSlice buffer)
 		{
 			int len = GetLength(); // 10 or 12
@@ -351,11 +358,31 @@ namespace System
 				vs = default;
 				return false;
 			}
+			ReadUnsafe(data.Span, out vs);
+			return true;
+		}
+
+		/// <summary>Parse a VersionStamp from a sequence of 10 bytes</summary>
+		/// <exception cref="FormatException">If the buffer length is not exactly 12 bytes</exception>
+		[Pure]
+		public static VersionStamp Parse(ReadOnlySpan<byte> data)
+		{
+			return TryParse(data, out var vs) ? vs : throw new FormatException("A VersionStamp is either 10 or 12 bytes.");
+		}
+
+		/// <summary>Try parsing a VersionStamp from a sequence of bytes</summary>
+		public static bool TryParse(ReadOnlySpan<byte> data, out VersionStamp vs)
+		{
+			if (data.Length != 10 && data.Length != 12)
+			{
+				vs = default;
+				return false;
+			}
 			ReadUnsafe(data, out vs);
 			return true;
 		}
 
-		internal static unsafe void ReadUnsafe(ReadOnlySpan<byte> buf, out VersionStamp vs)
+		public static unsafe void ReadUnsafe(ReadOnlySpan<byte> buf, out VersionStamp vs)
 		{
 			// reads a complete 10 or 12 bytes VersionStamp
 			Contract.Debug.Assert(buf.Length == 10 || buf.Length == 12);

@@ -86,13 +86,11 @@ namespace Doxense.Linq
 			counter = signal;
 
 			// to count, we just increment the signal each type a value flows through here
-			Func<TSource, TSource> wrapped = (x) =>
+			return source.Select((x) =>
 			{
 				signal.Update(checked(signal.Value + 1));
 				return x;
-			};
-
-			return source.Select(wrapped);
+			});
 		}
 
 		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
@@ -106,13 +104,11 @@ namespace Doxense.Linq
 			statistics = new QueryStatistics<KeyValueSizeStatistics>(data);
 
 			// to count, we just increment the signal each type a value flows through here
-			Func<KeyValuePair<Slice, Slice>, KeyValuePair<Slice, Slice>> wrapped = (kvp) =>
+			return source.Select((kvp) =>
 			{
 				data.Add(kvp.Key.Count, kvp.Value.Count);
 				return kvp;
-			};
-
-			return source.Select(wrapped);
+			});
 		}
 
 		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
@@ -126,13 +122,11 @@ namespace Doxense.Linq
 			statistics = new QueryStatistics<DataSizeStatistics>(data);
 
 			// to count, we just increment the signal each type a value flows through here
-			Func<Slice, Slice> wrapped = (x) =>
+			return source.Select((x) =>
 			{
 				data.Add(x.Count);
 				return x;
-			};
-
-			return source.Select(wrapped);
+			});
 		}
 
 		#endregion

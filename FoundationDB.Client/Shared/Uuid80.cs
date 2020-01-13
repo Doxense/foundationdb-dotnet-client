@@ -593,7 +593,7 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal unsafe void WriteToUnsafe([NotNull] Span<byte> buf)
+		internal void WriteToUnsafe(Span<byte> buf)
 		{
 			WriteUnsafe(this.Hi, this.Lo, buf);
 		}

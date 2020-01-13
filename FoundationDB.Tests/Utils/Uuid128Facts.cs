@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,34 +48,36 @@ namespace Doxense.Memory.Tests
 		[Test]
 		public void Test_Uuid_Parse()
 		{
-			Uuid128 uuid;
-
-			uuid = Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f");
-			Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-			Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
-
-			uuid = Uuid128.Parse("{00010203-0405-0607-0809-0a0b0c0d0e0f}");
-			Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-			Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
+			{
+				var uuid = Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f");
+				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
+			{
+				var uuid = Uuid128.Parse("{00010203-0405-0607-0809-0a0b0c0d0e0f}");
+				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
 		}
 
 		[Test]
 		public void Test_Uuid_From_Bytes()
 		{
-			Uuid128 uuid;
-
-			uuid = new Uuid128(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
-			Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
-			Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
-
-			uuid = new Uuid128(new byte[16]);
-			Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+			{
+				var uuid = new Uuid128(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
+				Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
+				Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}));
+			}
+			{
+				var uuid = new Uuid128(new byte[16]);
+				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+			}
 		}
 
 		[Test]
 		public void Test_Uuid_Vs_Guid()
 		{
-			Guid guid = Guid.NewGuid();
+			var guid = Guid.NewGuid();
 
 			var uuid = new Uuid128(guid);
 			Assert.That(uuid.ToString(), Is.EqualTo(guid.ToString()));
@@ -84,7 +86,7 @@ namespace Doxense.Memory.Tests
 			Assert.That((Uuid128)guid, Is.EqualTo(uuid));
 			Assert.That(Uuid128.Parse(guid.ToString()), Is.EqualTo(uuid));
 			Assert.That(uuid.Equals(guid), Is.True);
-			Assert.That(uuid.Equals((object)guid), Is.True);
+			Assert.That(uuid.Equals((object) guid), Is.True);
 			Assert.That(uuid == guid, Is.True);
 			Assert.That(guid == uuid, Is.True);
 
@@ -130,36 +132,36 @@ namespace Doxense.Memory.Tests
 		public void Test_Uuid_Increment()
 		{
 			var @base = Uuid128.Parse("6be5d394-03a6-42ab-aac2-89b7d9312402");
-			Dump(@base);
+			Log(@base);
 			//DumpHexa(@base.ToByteArray());
 
 			{ // +1
 				var uuid = @base.Increment(1);
-				Dump(uuid);
+				Log(uuid);
 				//DumpHexa(uuid.ToByteArray());
 				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ab-aac2-89b7d9312403"));
 			}
 			{ // +256
 				var uuid = @base.Increment(256);
-				Dump(uuid);
+				Log(uuid);
 				//DumpHexa(uuid.ToByteArray());
 				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ab-aac2-89b7d9312502"));
 			}
 			{ // almost overflow (low)
 				var uuid = @base.Increment(0x553D764826CEDBFDUL); // delta nécessaire pour avoir 0xFFFFFFFFFFFFFFFF a la fin
-				Dump(uuid);
+				Log(uuid);
 				//DumpHexa(uuid.ToByteArray());
 				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ab-ffff-ffffffffffff"));
 			}
 			{ // overflow (low)
 				var uuid = @base.Increment(0x553D764826CEDBFEUL); // encore 1 de plus pour trigger l'overflow
-				Dump(uuid);
+				Log(uuid);
 				//DumpHexa(uuid.ToByteArray());
 				Assert.That(uuid.ToString(), Is.EqualTo("6be5d394-03a6-42ac-0000-000000000000"));
 			}
 			{ // overflow (cascade)
 				var uuid = Uuid128.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff").Increment(1);
-				Dump(uuid);
+				Log(uuid);
 				//DumpHexa(uuid.ToByteArray());
 				Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
 			}
@@ -183,19 +185,10 @@ namespace Doxense.Memory.Tests
 		{
 			//note: these UUIDs are from http://docs.python.org/2/library/uuid.html
 
-			Uuid128 uuid;
-
-			uuid = Uuid128.Parse("a8098c1a-f86e-11da-bd1a-00112444be1e");
-			Assert.That(uuid.Version, Is.EqualTo(1));
-
-			uuid = Uuid128.Parse("6fa459ea-ee8a-3ca4-894e-db77e160355e");
-			Assert.That(uuid.Version, Is.EqualTo(3));
-
-			uuid = Uuid128.Parse("16fd2706-8baf-433b-82eb-8c7fada847da");
-			Assert.That(uuid.Version, Is.EqualTo(4));
-
-			uuid = Uuid128.Parse("886313e1-3b8a-5372-9b90-0c9aee199e5d");
-			Assert.That(uuid.Version, Is.EqualTo(5));
+			Assert.That(Uuid128.Parse("a8098c1a-f86e-11da-bd1a-00112444be1e").Version, Is.EqualTo(1));
+			Assert.That(Uuid128.Parse("6fa459ea-ee8a-3ca4-894e-db77e160355e").Version, Is.EqualTo(3));
+			Assert.That(Uuid128.Parse("16fd2706-8baf-433b-82eb-8c7fada847da").Version, Is.EqualTo(4));
+			Assert.That(Uuid128.Parse("886313e1-3b8a-5372-9b90-0c9aee199e5d").Version, Is.EqualTo(5));
 		}
 
 		[Test]

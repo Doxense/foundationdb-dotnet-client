@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,17 +43,18 @@ namespace System
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
+	using Doxense.Serialization;
 	using JetBrains.Annotations;
 
 	/// <summary>Delimits a read-only section of a byte array</summary>
 	/// <remarks>
 	/// A <c>Slice</c> is the logical equivalent to a <see cref="ReadOnlyMemory{T}">ReadOnlyMemory&lt;byte&gt;</see>. It represents a segment of bytes backed by an array, at a certain offset.
-	/// It is considered "read-only", in a sense that <i>comsumers</i> of this type should SHOULD NOT attempt to modify the content of the slice. Though, it is <b>NOT</b> guaranteed the content of a slice will not change, if the backing array is mutated directly.
+	/// It is considered "read-only", in a sense that <i>consumers</i> of this type should SHOULD NOT attempt to modify the content of the slice. Though, it is <b>NOT</b> guaranteed the content of a slice will not change, if the backing array is mutated directly.
 	/// This type as several advantages over <see cref="ReadOnlyMemory{T}"/> or <see cref="Span{T}"/> when working with legacy APIs that don't support spans directly, and can also be stored one the heap.
 	/// </remarks>
 	[PublicAPI, ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable
+	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable
 	{
 		#region Static Members...
 
@@ -213,7 +214,6 @@ namespace System
 			return Copy((byte*) source, count);
 		}
 
-
 		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
 		/// <param name="source">Pointer to unmanaged buffer</param>
 		/// <param name="count">Number of bytes in the buffer</param>
@@ -252,6 +252,29 @@ namespace System
 			return Copy(MemoryMarshal.AsBytes(items), ref buffer);
 		}
 
+		/// <summary>Try to convert a <see cref="ReadOnlyMemory{T}"/> into a Slice if it is backed by a managed byte array.</summary>
+		/// <param name="buffer">Buffer that maps a region of memory</param>
+		/// <param name="slice">If the methods returns <c>true</c>, a slice that maps the same region of managed memory.</param>
+		/// <returns>True if the memory was backed by a managed array; otherwise, false.</returns>
+		public static bool TryGetSlice(ReadOnlyMemory<byte> buffer, out Slice slice)
+		{
+			if (!MemoryMarshal.TryGetArray(buffer, out var segment))
+			{
+				slice = default;
+				return false;
+			}
+
+			if (segment.Count == 0)
+			{
+				slice = Slice.Empty;
+			}
+			else
+			{
+				slice = new Slice(segment.Array, segment.Offset, segment.Count);
+			}
+			return true;
+		}
+
 		/// <summary>Implicitly converts a <see cref="Slice"/> into an <see cref="ArraySegment{T}">ArraySegment&lt;byte&gt;</see></summary>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator ArraySegment<byte>(Slice value)
@@ -265,22 +288,6 @@ namespace System
 		{
 			if (value.Count == 0) return value.Array == null ? default : Empty;
 			return new Slice(value.Array, value.Offset, value.Count);
-		}
-
-		/// <summary>Implicitly converts a <see cref="Slice"/> into an <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see></summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator ReadOnlySpan<byte>(Slice value)
-		{
-			//note: implicit because casting to non-writable ReadOnlySpan<byte> is safe
-			return new ReadOnlySpan<byte>(value.Array, value.Offset, value.Count);
-		}
-
-		/// <summary>Implicitly converts a <see cref="Slice"/> into an <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see></summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator ReadOnlyMemory<byte>(Slice value)
-		{
-			//note: implicit because casting to non-writable ReadOnlySpan<byte> is safe
-			return new ReadOnlyMemory<byte>(value.Array, value.Offset, value.Count);
 		}
 
 		/// <summary>Returns a <see cref="ReadOnlySpan{T}">ReadOnlySpan&lt;byte&gt;</see> that wraps the content of this slice</summary>
@@ -302,7 +309,7 @@ namespace System
 		public bool HasValue
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Array != null;
+			get => this.Array != null ? true : false;
 		}
 
 		/// <summary>Returns true if the slice is null</summary>
@@ -310,7 +317,7 @@ namespace System
 		public bool IsNull
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Array == null;
+			get => this.Array == null ? true : false;
 		}
 
 		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
@@ -318,21 +325,21 @@ namespace System
 		public bool IsEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Count == 0 && this.Array != null;
+			get => this.Count == 0 && this.Array != null ? true : false;
 		}
 
 		/// <summary>Returns true if the slice is null or empty, or false if it contains at least one byte</summary>
 		public bool IsNullOrEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Count == 0;
+			get => this.Count == 0 ? true : false;
 		}
 
 		/// <summary>Returns true if the slice contains at least one byte, or false if it is null or empty</summary>
 		public bool IsPresent
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Count > 0;
+			get => this.Count != 0 ? true : false;
 		}
 
 		/// <summary>Replace <see cref="Nil"/> with <see cref="Empty"/></summary>
@@ -340,7 +347,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice OrEmpty()
 		{
-			return this.Count > 0? this : Empty;
+			return this.Count != 0? this : Empty;
 		}
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
@@ -348,7 +355,7 @@ namespace System
 		[Pure]
 		public byte[]? GetBytes()
 		{
-			return this.Array == null ? null : this.Span.ToArray();
+			return this.Count != 0 ? this.Span.ToArray() : this.Array != null ? System.Array.Empty<byte>() : null;
 		}
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
@@ -357,7 +364,7 @@ namespace System
 		public byte[] GetBytesOrEmpty()
 		{
 			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
-			return this.Count == 0 ? System.Array.Empty<byte>() : this.Span.ToArray();
+			return this.Count != 0 ? this.Span.ToArray() : System.Array.Empty<byte>();
 		}
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
@@ -416,9 +423,20 @@ namespace System
 		private int MapToOffset(int index)
 		{
 			int p = NormalizeIndex(index);
-			if ((uint) p >= (uint) this.Count) UnsafeHelpers.Errors.ThrowIndexOutOfBound(index);
+			if ((uint) p >= (uint) this.Count) throw UnsafeHelpers.Errors.IndexOutOfBound();
 			return checked(this.Offset + p);
 		}
+
+#if USE_RANGE_API
+
+		private int MapIndexToOffset(Index index)
+		{
+			int p = index.GetOffset(this.Count);
+			if ((uint) p >= (uint) this.Count) throw UnsafeHelpers.Errors.IndexOutOfBound();
+			return checked(this.Offset + p);
+		}
+
+#endif
 
 		/// <summary>Normalize negative index values into offset from the start</summary>
 		/// <param name="index">Relative offset (negative values mean from the end)</param>
@@ -467,6 +485,14 @@ namespace System
 			}
 		}
 
+#if USE_RANGE_API
+
+		public byte this[Index index] => this.Array[MapIndexToOffset(index)];
+
+		public Slice this[Range range] => Substring(range);
+
+#endif
+
 		/// <summary>
 		/// Returns a reference to the first byte in the slice.
 		/// If the slice is empty, returns a reference to the location where the first character would have been stored.
@@ -512,21 +538,25 @@ namespace System
 			return buffer.Slice(this.Count);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void CopyTo(MutableSlice destination)
 		{
 			this.Span.CopyTo(destination.Span);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryCopyTo(MutableSlice destination)
 		{
 			return this.Span.TryCopyTo(destination.Span);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void CopyTo(Span<byte> destination)
 		{
 			this.Span.CopyTo(destination);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryCopyTo(Span<byte> destination)
 		{
 			return this.Span.TryCopyTo(destination);
@@ -536,7 +566,7 @@ namespace System
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="offset">Offset into the destination buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void CopyTo([NotNull] byte[] buffer, int offset)
+		public void CopyTo(byte[] buffer, int offset)
 		{
 			this.Span.CopyTo(buffer.AsSpan(offset));
 		}
@@ -545,7 +575,7 @@ namespace System
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="offset">Offset into the destination buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCopyTo([NotNull] byte[] buffer, int offset)
+		public bool TryCopyTo(byte[] buffer, int offset)
 		{
 			return this.Span.TryCopyTo(buffer.AsSpan(offset));
 		}
@@ -658,6 +688,28 @@ namespace System
 			return new Slice(this.Array, this.Offset + offset, count);
 		}
 
+#if USE_RANGE_API
+
+		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.</summary>
+		/// <param name="range">The range to return</param>
+		/// <returns>A slice that is equivalent to the substring that starts from <paramref name="range"/>.Start and ends before <paramref name="range"/>.End in this instance, or Slice.Empty if range is empty.</returns>
+		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
+		/// <example>{"ABCDE"}.Substring(0, 3) => {"ABC"}
+		/// {"ABCDE"}.Substring(1..4} => {"BCD"}
+		/// {"ABCDE"}.Substring(^2..} => {"DE"}
+		/// Slice.Empty.Substring(0..0) => Slice.Empty
+		/// Slice.Nil.Substring(0..0) => Slice.Empty
+		/// </example>
+		[Pure]
+		public Slice Substring(Range range)
+		{
+			(int offset, int count) = range.GetOffsetAndLength(this.Count);
+			if (count == 0) return Empty;
+			return new Slice(this.Array, this.Offset + offset, count);
+		}
+
+#endif
+
 		/// <summary>Truncate the slice if its size exceeds the specified length.</summary>
 		/// <param name="maxSize">Maximum size.</param>
 		/// <returns>Slice of at most the specified size, or smaller if the original slice does not exceed the size.</returns>
@@ -701,6 +753,15 @@ namespace System
 			return this.Span.IndexOf(value.Span);
 		}
 
+		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance.</summary>
+		/// <param name="value">The slice to seek</param>
+		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOf(ReadOnlySpan<byte> value)
+		{
+			return this.Span.IndexOf(value);
+		}
+
 		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance. The search starts at a specified position.</summary>
 		/// <param name="value">The slice to seek</param>
 		/// <param name="startIndex">The search starting position</param>
@@ -708,13 +769,24 @@ namespace System
 		[Pure]
 		public int IndexOf(Slice value, int startIndex)
 		{
-			int idx = this.Span.Slice(startIndex).IndexOf(value);
+			int idx = this.Span.Slice(startIndex).IndexOf(value.Span);
 			return idx >= 0 ? checked(startIndex + idx) : - 1;
 		}
 
-		/// <summary>Reports the zero-based index of the first occurence of the specified byte in this instance.</summary>
-		/// <param name="value">The byte to seek</param>
-		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not.</returns>
+		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance. The search starts at a specified position.</summary>
+		/// <param name="value">The slice to seek</param>
+		/// <param name="startIndex">The search starting position</param>
+		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is startIndex</returns>
+		[Pure]
+		public int IndexOf(ReadOnlySpan<byte> value, int startIndex)
+		{
+			int idx = this.Span.Slice(startIndex).IndexOf(value);
+			return idx >= 0 ? checked(startIndex + idx) : -1;
+		}
+
+		/// <summary>Searches for the specified value and returns the index of its first occurrence.</summary>
+		/// <param name="value">The byte to search for</param>
+		/// <returns>The index of the occurrence of the value in the span. If not found, returns -1.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int IndexOf(byte value)
 		{
@@ -730,6 +802,30 @@ namespace System
 		{
 			int idx = this.Span.Slice(startIndex).IndexOf(value);
 			return idx >= 0 ? checked(startIndex + idx) : -1;
+		}
+
+		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOfAny(byte value0, byte value1)
+		{
+			return this.Span.IndexOfAny(value0, value1);
+		}
+
+		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOfAny(byte value0, byte value1, byte value2)
+		{
+			return this.Span.IndexOfAny(value0, value1, value2);
+		}
+
+		/// <summary>Searches for the first index of any of the specified values similar to calling IndexOf several times with the logical OR operator.</summary>
+		/// <returns>The first index of the occurrence of any of the values in the span. If not found, returns -1.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int IndexOfAny(ReadOnlySpan<byte> values)
+		{
+			return this.Span.IndexOfAny(values);
 		}
 
 		/// <summary>Determines whether the beginning of this slice instance matches a specified slice.</summary>
@@ -788,7 +884,7 @@ namespace System
 			return this.Span.StartsWith(parent.Span);
 		}
 
-		/// <summary>Equivalent of EndsWith, but the returns false if both slices are identical</summary>
+		/// <summary>Equivalent of EndsWith, but will return false if both slices are identical</summary>
 		[Pure]
 		public bool SuffixedBy(Slice parent)
 		{
@@ -873,7 +969,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
@@ -900,7 +996,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Append a sequence of slice at the end of the current slice, all sharing the same buffer</summary>
@@ -926,8 +1022,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer, 0, next);
-
+			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
@@ -936,8 +1031,7 @@ namespace System
 		/// <param name="endOffsets">Array containing, for each segment, the offset of the following segment</param>
 		/// <returns>Array of segments</returns>
 		/// <example>SplitIntoSegments("HelloWorld", 0, [5, 10]) => [{"Hello"}, {"World"}]</example>
-		[NotNull]
-		public static Slice[] SplitIntoSegments([NotNull] byte[] buffer, int start, [NotNull] List<int> endOffsets)
+		public static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
 		{
 			Contract.Requires(buffer != null && endOffsets != null);
 			var result = new Slice[endOffsets.Count];
@@ -1024,6 +1118,47 @@ namespace System
 			}
 			Contract.Assert(buf.Length == 0);
 			return new Slice(tmp);
+		}
+
+		public static Slice Concat(IEnumerable<Slice> args)
+		{
+			switch (args)
+			{
+				case Slice[] array:
+				{
+					return Concat(array);
+				}
+				case ICollection<Slice> coll:
+				{
+					if (coll.Count == 0) return Empty;
+					int count = 0;
+					foreach(var arg in coll) count = checked(count + arg.Count);
+					if (count == 0) return Empty;
+
+					var tmp = new byte[count];
+					Span<byte> buf = tmp;
+					foreach (var arg in coll)
+					{
+						if (arg.Count > 0)
+						{
+							arg.Span.CopyTo(buf);
+							buf = buf.Slice(arg.Count);
+						}
+					}
+					Contract.Assert(buf.Length == 0);
+					return new Slice(tmp);
+				}
+				default:
+				{
+					var sw = new SliceWriter();
+					foreach(var arg in args)
+					{
+						sw.WriteBytes(arg);
+					}
+					return sw.ToSlice();
+				}
+					
+			}
 		}
 
 		/// <summary>Adds a prefix to a list of slices</summary>
@@ -1190,7 +1325,7 @@ namespace System
 				if (i > 0) writer.WriteBytes(separator);
 				writer.WriteBytes(values[i]);
 			}
-			Contract.Assert(writer.Buffer.Length == size);
+			Contract.Assert(writer.Buffer?.Length == size);
 			return writer.ToSlice();
 		}
 
@@ -1404,7 +1539,7 @@ namespace System
 			var next = new List<int>(keys.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
-			bool hasPrefix = prefix.IsPresent;
+			bool hasPrefix = prefix.Count != 0;
 			foreach (var key in keys)
 			{
 				if (hasPrefix) writer.WriteBytes(prefix);
@@ -1412,7 +1547,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -1469,7 +1604,7 @@ namespace System
 
 			//TODO: use multiple buffers if item count is huge ?
 
-			bool hasPrefix = prefix.IsPresent;
+			bool hasPrefix = prefix.Count != 0;
 			foreach (var key in keys)
 			{
 				if (hasPrefix) writer.WriteBytes(prefix);
@@ -1477,7 +1612,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer, 0, next);
+			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Creates a new slice that contains the same byte repeated</summary>
@@ -1793,6 +1928,15 @@ namespace System
 		{
 			// note: makes "slice + null" work!
 			return a.GetValueOrDefault().Concat(b.GetValueOrDefault());
+		}
+
+		#endregion
+
+		#region ISliceSerializable
+
+		public void WriteTo(ref SliceWriter writer)
+		{
+			writer.WriteBytes(this.Span);
 		}
 
 		#endregion
@@ -2498,8 +2642,8 @@ namespace System
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset)
 		{
 			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
-			Contract.NotNull(bytes, nameof(bytes));
-			if ((uint) offset > (uint) bytes.Length) UnsafeHelpers.Errors.ThrowBufferArrayToSmall();
+			if (bytes == null) return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
+			if ((uint) offset > (uint) bytes.Length) throw UnsafeHelpers.Errors.BufferArrayToSmall();
 			return bytes.Length != 0 ? new Slice(bytes, offset, bytes.Length - offset) : Slice.Empty;
 		}
 
@@ -2509,13 +2653,13 @@ namespace System
 		/// <param name="count">Number of bytes to take</param>
 		/// <returns>
 		/// Slice that maps the corresponding sub-section of the array.
-		/// If <paramref name="count"/> then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
+		/// If <paramref name="count"/> is 0 then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
-			if (bytes == null | count == 0) return EmptyOrNil(bytes, count);
+			if (bytes == null || count == 0) return EmptyOrNil(bytes, count);
 
 			// bound check
 			// ReSharper disable once PossibleNullReferenceException
@@ -2530,19 +2674,49 @@ namespace System
 		/// <param name="count">Number of bytes to take</param>
 		/// <returns>
 		/// Slice that maps the corresponding sub-section of the array.
-		/// If <paramref name="count"/> then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
+		/// If <paramref name="count"/> is 0, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, uint offset, uint count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
-			if (bytes == null | count == 0) return EmptyOrNil(bytes, (int) count);
+			if (bytes == null || count == 0) return EmptyOrNil(bytes, (int) count);
 
 			// bound check
-			if (offset >= (uint) bytes.Length || count > ((uint) bytes.Length - offset)) UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
+			if (offset >= (uint) bytes.Length || count > ((uint) bytes.Length - offset)) throw UnsafeHelpers.Errors.OffsetOutsideSlice();
 
 			return new Slice(bytes, (int) offset, (int) count);
 		}
+
+#if USE_RANGE_API
+
+		/// <summary>Return a slice from the sub-section of the byte array</summary>
+		/// <param name="bytes">Underlying buffer to slice</param>
+		/// <param name="range">Range of the array to return</param>
+		/// <returns>
+		/// Slice that maps the corresponding sub-section of the array.
+		/// If <paramref name="range"/> is empty, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
+		/// </returns>
+		public static Slice AsSlice(this byte[]? bytes, Range range)
+		{
+			if (bytes == null)
+			{
+				var startIndex = range.Start;
+				var endIndex = range.End;
+
+				if (!startIndex.Equals(Index.Start) || !endIndex.Equals(Index.Start))
+					throw UnsafeHelpers.Errors.BufferArrayNotNull();
+
+				return Slice.Nil;
+			}
+			else
+			{
+				(int offset, int count) = range.GetOffsetAndLength(bytes.Length);
+				return count != 0 ? new Slice(bytes, offset, count) : Slice.Empty;
+			}
+		}
+
+#endif
 
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self)
@@ -2561,6 +2735,17 @@ namespace System
 			return AsSlice(self).Substring(offset, count);
 		}
 
+#if USE_RANGE_API
+
+		/// <summary>Return a slice from the sub-section of an array segment</summary>
+		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this ArraySegment<byte> self, Range range)
+		{
+			return AsSlice(self).Substring(range);
+		}
+
+#endif
+
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self)
 		{
@@ -2578,6 +2763,16 @@ namespace System
 		{
 			return new SliceReader(self, offset, count);
 		}
+
+#if USE_RANGE_API
+
+		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SliceReader ToSliceReader(this byte[] self, Range range)
+		{
+			return AsSlice(self, range).ToSliceReader();
+		}
+
+#endif
 
 		[Pure, NotNull, DebuggerNonUserCode]
 		public static SliceStream AsStream(this Slice slice) //REVIEW: => ToStream() ?

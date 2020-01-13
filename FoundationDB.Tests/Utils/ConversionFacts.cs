@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,78 +39,78 @@ namespace Doxense.Runtime.Converters.Tests
 		[Test]
 		public void Test_Values_Of_Same_Types_Are_Always_Similar()
 		{
-			Action<object, object> test = (x, y) =>
+			void Test(object x, object y)
 			{
 				bool expected = x == null ? y == null : y != null && x.Equals(y);
 				Assert.That(ComparisonHelper.AreSimilar(x, y), Is.EqualTo(expected), expected ? "{0} == {1}" : "{0} != {1}", x, y);
-			};
+			}
 
-			test(null, null);
+			Test(null, null);
 
-			test("hello", "world");
-			test("hello", "hello");
-			test("hello", "Hello");
-			test("hello", null);
-			test(null, "world");
+			Test("hello", "world");
+			Test("hello", "hello");
+			Test("hello", "Hello");
+			Test("hello", null);
+			Test(null, "world");
 
-			test(123, 123);
-			test(123, 456);
-			test(123, null);
-			test(null, 456);
+			Test(123, 123);
+			Test(123, 456);
+			Test(123, null);
+			Test(null, 456);
 
-			test(123L, 123L);
-			test(123L, 456L);
-			test(123L, null);
-			test(null, 456L);
+			Test(123L, 123L);
+			Test(123L, 456L);
+			Test(123L, null);
+			Test(null, 456L);
 
 		}
 
 		[Test]
 		public void Test_Values_Of_Similar_Types_Are_Similar()
 		{
-			Action<object, object> similar = (x, y) =>
+			void Similar(object x, object y)
 			{
 				if (!ComparisonHelper.AreSimilar(x, y))
 				{
 					Assert.Fail("({0}) {1} ~= ({2}) {3}", x == null ? "object" : x.GetType().Name, x, y == null ? "object" : y.GetType().Name, y);
 				}
-			};
+			}
 
-			Action<object, object> different = (x, y) =>
+			void Different(object x, object y)
 			{
 				if (ComparisonHelper.AreSimilar(x, y))
 				{
 					Assert.Fail("({0}) {1} !~= ({2}) {3}", x == null ? "object" : x.GetType().Name, x, y == null ? "object" : y.GetType().Name, y);
 				}
-			};
+			}
 
-			different("hello", 123);
-			different(123, "hello");
+			Different("hello", 123);
+			Different(123, "hello");
 
-			similar("A", 'A');
-			similar('A', "A");
-			different("AA", 'A');
-			different('A', "AA");
-			different("A", 'B');
-			different('A', "B");
+			Similar("A", 'A');
+			Similar('A', "A");
+			Different("AA", 'A');
+			Different('A', "AA");
+			Different("A", 'B');
+			Different('A', "B");
 
-			similar("123", 123);
-			similar("123", 123L);
-			similar("123.4", 123.4f);
-			similar("123.4", 123.4d);
+			Similar("123", 123);
+			Similar("123", 123L);
+			Similar("123.4", 123.4f);
+			Similar("123.4", 123.4d);
 
-			similar(123, "123");
-			similar(123L, "123");
-			similar(123.4f, "123.4");
-			similar(123.4d, "123.4");
+			Similar(123, "123");
+			Similar(123L, "123");
+			Similar(123.4f, "123.4");
+			Similar(123.4d, "123.4");
 
 			var g = Guid.NewGuid();
 
-			similar(g, g.ToString());
-			similar(g.ToString(), g);
+			Similar(g, g.ToString());
+			Similar(g.ToString(), g);
 
-			different(g.ToString(), Guid.Empty);
-			different(Guid.Empty, g.ToString());
+			Different(g.ToString(), Guid.Empty);
+			Different(Guid.Empty, g.ToString());
 
 		}
 

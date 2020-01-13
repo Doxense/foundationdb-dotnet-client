@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Memory
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -42,7 +43,7 @@ namespace Doxense.Memory
 	{
 		private Slice m_slice;
 		private int m_position;
-		private Task<int> m_lastTask;
+		private Task<int>? m_lastTask;
 
 		/// <summary>Creates a new stream that reads from an underlying slice</summary>
 		public SliceStream(Slice slice)
@@ -62,7 +63,7 @@ namespace Doxense.Memory
 			set => Seek(value, SeekOrigin.Begin);
 		}
 
-		/// <summary>Getes the length of the underlying slice</summary>
+		/// <summary>Gets the length of the underlying slice</summary>
 		public override long Length => m_slice.Count;
 
 		/// <summary>Seeks to a specific location in the underlying slice</summary>
@@ -119,7 +120,7 @@ namespace Doxense.Memory
 		/// <summary>Returns true unless the current position is after the end of the underlying slice</summary>
 		public override bool CanRead => m_position < m_slice.Count;
 
-		/// <summary>Reads from byte from the underyling slice and advances the position within the slice by one byte, or returns -1 if the end of the slice has been reached.</summary>
+		/// <summary>Reads from byte from the underlying slice and advances the position within the slice by one byte, or returns -1 if the end of the slice has been reached.</summary>
 		public override int ReadByte()
 		{
 			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
@@ -202,7 +203,7 @@ namespace Doxense.Memory
 			// simulate the read
 			m_position += remaining;
 
-			// we can write everyting in one go, so just call WriteAsync and return that
+			// we can write everything in one go, so just call WriteAsync and return that
 			return destination.WriteAsync(m_slice.Array, m_slice.Offset, remaining, ct);
 		}
 
@@ -252,7 +253,7 @@ namespace Doxense.Memory
 			if ((uint) offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Buffer is too small.");
 		}
 
-		[ContractAnnotation("=> halt")]
+		[DoesNotReturn, ContractAnnotation("=> halt")]
 		private static void StreamIsClosed()
 		{
 			throw ThrowHelper.ObjectDisposedException("The stream was already closed");

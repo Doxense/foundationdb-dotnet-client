@@ -175,7 +175,57 @@ namespace Doxense.Memory
 			return new ArgumentOutOfRangeException(nameof(minCapacity), minCapacity, "Cannot allocate buffer larger than 2GB.");
 		}
 
-		internal static int Unescape(ReadOnlySpan<char> value, ref byte[] buffer)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool SameBytesUnsafe(void* left, void* right, int count)
+		{
+			return new ReadOnlySpan<byte>(left, count).SequenceEqual(new ReadOnlySpan<byte>(right, count));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool SameBytesUnsafe(void* left, void* right, uint count)
+		{
+			int length = checked((int) count);
+			return new ReadOnlySpan<byte>(left, length).SequenceEqual(new ReadOnlySpan<byte>(right, length));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CompareUnsafe(void* left, void* right, int count)
+		{
+			return new ReadOnlySpan<byte>(left, count).SequenceCompareTo(new ReadOnlySpan<byte>(right, count));
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static int CompareUnsafe(void* left, void* right, uint count)
+		{
+			int length = checked((int) count);
+			return new ReadOnlySpan<byte>(left, length).SequenceCompareTo(new ReadOnlySpan<byte>(right, length));
+		}
+
+		/// <summary>Fill the content of an unmanaged array with zeroes, without checking the arguments</summary>
+		public static void ClearUnsafe(byte* bytes, int count)
+		{
+			new Span<byte>(bytes, count).Clear();
+		}
+
+		/// <summary>Fill the content of an unmanaged array with zeroes, without checking the arguments</summary>
+		public static void ClearUnsafe(byte* bytes, uint count)
+		{
+			new Span<byte>(bytes, checked((int) count)).Clear();
+		}
+
+		/// <summary>Fill the content of a managed segment with the same byte repeated</summary>
+		public static void FillUnsafe(byte* bytes, int count, byte filler)
+		{
+			new Span<byte>(bytes, count).Fill(filler);
+		}
+
+		/// <summary>Fill the content of a managed segment with the same byte repeated</summary>
+		public static void FillUnsafe(byte* bytes, uint count, byte filler)
+		{
+			new Span<byte>(bytes, checked((int) count)).Fill(filler);
+		}
+
+		internal static int Unescape(ReadOnlySpan<char> value, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer)
 		{
 			// decode size will always be less or equal to buffer size!
 			buffer = EnsureCapacity(ref buffer, value.Length);
@@ -234,13 +284,9 @@ namespace Doxense.Memory
 			return ThrowHelper.FormatException("Input is not a valid hexadecimal digit");
 		}
 
-
-		/// <summary>Compute the hash code of a byte buffer</summary>
-		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		public static int ComputeHashCode(ReadOnlySpan<byte> bytes)
+		public static int ComputeHashCode(byte* bytes, uint count)
 		{
-			//note: callers should have handled the case where bytes == null, but they can call us with count == 0
-			Contract.Requires(bytes != null);
+			if (count != 0 && bytes == null) throw new ArgumentNullException(nameof(bytes));
 
 			//TODO: use a better hash algorithm? (xxHash, CityHash, SipHash, ...?)
 			// => will be called a lot when Slices are used as keys in an hash-based dictionary (like Dictionary<Slice, ...>)
@@ -250,16 +296,29 @@ namespace Doxense.Memory
 
 			// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
 			uint h = 2166136261; // FNV1 32 bits offset basis
-			for(int i = 0; i < bytes.Length; i++)
+			byte* ptr = bytes;
+			byte* end = bytes + count;
+			while(ptr < end)
 			{
-				h = unchecked ((h ^ bytes[i]) * 16777619); // FNV1 32 prime
+				h = unchecked((h ^ *ptr++) * 16777619); // FNV1 32 prime
 			}
 			return unchecked((int) h);
 			// </HACKHACK>
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteBytesUnsafe([NotNull] byte* cursor, [NotNull] byte* data, uint count)
+		/// <summary>Compute the hash code of a byte buffer</summary>
+		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
+		public static int ComputeHashCode(ReadOnlySpan<byte> bytes)
+		{
+			//note: callers should have handled the case where bytes == null, but they can call us with count == 0
+			fixed(byte* ptr = bytes)
+			{
+				return ComputeHashCode(ptr, checked((uint) bytes.Length));
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte* WriteBytesUnsafe(byte* cursor, byte* data, uint count)
 		{
 			Contract.Requires(cursor != null && data != null);
 			if (count > 0) System.Buffer.MemoryCopy(data, cursor, count, count);
@@ -436,8 +495,32 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 3 bytes from the input</remarks>
-		[NotNull]
-		public static byte* ReadVarint16Unsafe([NotNull] byte* cursor, out ushort value)
+		public static ReadOnlySpan<byte> ReadVarint16(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return buffer.Slice(1);
+			}
+			return ReadVarint16Slow(buffer, out value);
+		}
+
+		private static ReadOnlySpan<byte> ReadVarint16Slow(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length == 0)
+			{
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+			fixed(byte* cursor = buffer)
+			{
+				byte* next = ReadVarint16Slow(cursor, cursor + buffer.Length, out value);
+				return buffer.Slice(checked((int) (next - cursor)));
+			}
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 3 bytes from the input</remarks>
+		public static byte* ReadVarint16Unsafe(byte* cursor, out ushort value)
 		{
 			Contract.Requires(cursor != null);
 			uint n = 1;
@@ -658,6 +741,31 @@ namespace Doxense.Memory
 		overflow:
 			value = 0;
 			throw Errors.VarIntTruncated();
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 5 bytes from the input</remarks>
+		public static ReadOnlySpan<byte> ReadVarint32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return buffer.Slice(1);
+			}
+			return ReadVarint32Slow(buffer, out value);
+		}
+
+		private static ReadOnlySpan<byte> ReadVarint32Slow(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length == 0)
+			{
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+			fixed (byte* cursor = buffer)
+			{
+				byte* next = ReadVarint32Slow(cursor, cursor + buffer.Length, out value);
+				return buffer.Slice(checked((int) (next - cursor)));
+			}
 		}
 
 		/// <summary>Append a variable sized number to the output buffer</summary>
@@ -935,6 +1043,39 @@ namespace Doxense.Memory
 			throw Errors.VarIntTruncated();
 		}
 
+		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint64') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 10 bytes from the input</remarks>
+		public static ReadOnlySpan<byte> ReadVarint64(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return buffer.Slice(1);
+			}
+			return ReadVarint64Slow(buffer, out value);
+		}
+
+		private static ReadOnlySpan<byte> ReadVarint64Slow(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length == 0)
+			{
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+			fixed (byte* cursor = buffer)
+			{
+				byte* next = ReadVarint64Slow(cursor, cursor + buffer.Length, out value);
+				return buffer.Slice(checked((int) (next - cursor)));
+			}
+		}
+
+		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte* WriteVarBytes(byte* ptr, byte* stop, byte* data, int count)
+		{
+			return WriteVarBytes(ptr, stop, data, checked((uint) count));
+		}
+
 		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
 		/// <remarks>This method performs bound checking.</remarks>
 		public static byte* WriteVarBytes(byte* ptr, byte* stop, byte* data, uint count)
@@ -954,11 +1095,29 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteZeroTerminatedVarBytes(byte* ptr, byte* stop, byte* data, int count)
 		{
+			return WriteZeroTerminatedVarBytes(ptr, stop, data, checked((uint) count));
+		}
+
+		/// <summary>Append a variable size byte sequence with an extra 0 at the end, using the VarInt encoding</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		public static byte* WriteZeroTerminatedVarBytes(byte* ptr, byte* stop, byte* data, uint count)
+		{
 			var cursor = WriteVarInt32(ptr, stop, count + 1);
 			cursor = WriteBytes(cursor, stop, data, count);
 			if (cursor >= stop) throw Errors.BufferOutOfBound();
 			*cursor = 0;
 			return cursor + 1;
+		}
+
+		/// <summary>Read a variable size byte sequence</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		public static byte* ReadVarBytes(byte* ptr, byte* stop, out byte* data, out uint count)
+		{
+			var cursor = ReadVarint32(ptr, stop, out var len);
+			if (cursor + len > stop) throw Errors.VarIntTruncated();
+			data = cursor;
+			count = len;
+			return cursor + len;
 		}
 
 		#endregion
@@ -1456,6 +1615,30 @@ namespace Doxense.Memory
 			return cursor + 2;
 		}
 
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteFixed16(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt16LE((ushort*) ptr, value);
+			}
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteFixed16(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) return false;
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt16LE((ushort*) ptr, value);
+			}
+			return true;
+		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ushort ReadFixed16(byte* p)
@@ -1470,9 +1653,41 @@ namespace Doxense.Memory
 			return p + 2;
 		}
 
-		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed16BEUnsafe([NotNull] byte* cursor, ushort value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadFixed16(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				return LoadUInt16LE((ushort*) ptr);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed16(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt16LE((ushort*) ptr);
+			}
+			return buffer.Slice(2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed16(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) { value = 0; return false; }
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt16LE((ushort*) ptr);
+			}
+			return true;
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte* WriteFixed16BEUnsafe(byte* cursor, ushort value)
 		{
 			Contract.Requires(cursor != null);
 			StoreUInt16BE((ushort*) cursor, value);
@@ -1488,6 +1703,31 @@ namespace Doxense.Memory
 			if (cursor + 2 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt16BE((ushort*) cursor, value);
 			return cursor + 2;
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteFixed16BE(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt16BE((ushort*) ptr, value);
+			}
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteFixed16BE(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) return false;
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt16BE((ushort*) ptr, value);
+			}
+			return true;
 		}
 
 		/// <summary>Write a 16-bit zero</summary>
@@ -1510,6 +1750,38 @@ namespace Doxense.Memory
 		{
 			value = LoadUInt16BE((ushort*) p);
 			return p + 2;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadFixed16BE(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				return LoadUInt16BE((ushort*) ptr);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed16BE(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt16BE((ushort*) ptr);
+			}
+			return buffer.Slice(2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed16BE(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) { value = 0; return false; }
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt16BE((ushort*) ptr);
+			}
+			return true;
 		}
 
 		#endregion
@@ -1536,6 +1808,29 @@ namespace Doxense.Memory
 			return cursor + 4;
 		}
 
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static void WriteFixed32(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt32LE((uint*) ptr, value);
+			}
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static bool TryWriteFixed32(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) return false;
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt32LE((uint*) ptr, value);
+			}
+			return true;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint ReadFixed32(byte* p)
 		{
@@ -1549,9 +1844,41 @@ namespace Doxense.Memory
 			return p + 4;
 		}
 
-		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed32BEUnsafe([NotNull] byte* cursor, uint value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint ReadFixed32(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				return LoadUInt32LE((uint*) ptr);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt32LE((uint*) ptr);
+			}
+			return buffer.Slice(4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) { value = 0; return false; }
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt32LE((uint*) ptr);
+			}
+			return false;
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte* WriteFixed32BEUnsafe(byte* cursor, uint value)
 		{
 			Contract.Requires(cursor != null);
 			StoreUInt32BE((uint*) cursor, value);
@@ -1567,6 +1894,29 @@ namespace Doxense.Memory
 			if (cursor + 4 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt32BE((uint*) cursor, value);
 			return cursor + 4;
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static void WriteFixed32BE(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt32BE((uint*) ptr, value);
+			}
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static bool TryWriteFixed32BE(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) return false;
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt32BE((uint*) ptr, value);
+			}
+			return true;
 		}
 
 		/// <summary>Write a 32-bit zero</summary>
@@ -1589,6 +1939,38 @@ namespace Doxense.Memory
 		{
 			value = LoadUInt32BE((uint*) p);
 			return p + 4;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint ReadFixed32BE(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				return LoadUInt32BE((uint*) ptr);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed32BE(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt32BE((uint*) ptr);
+			}
+			return buffer.Slice(4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed32BE(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) { value = 0; return false; }
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt32BE((uint*) ptr);
+			}
+			return true;
 		}
 
 		#endregion
@@ -1615,6 +1997,31 @@ namespace Doxense.Memory
 			return cursor + 8;
 		}
 
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteFixed64(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt64LE((ulong*) ptr, value);
+			}
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteFixed64(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) return false;
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt64LE((ulong*) ptr, value);
+			}
+			return true;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong ReadFixed64(byte* p)
 		{
@@ -1628,9 +2035,41 @@ namespace Doxense.Memory
 			return p + 8;
 		}
 
-		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed64BEUnsafe([NotNull] byte* cursor, ulong value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ReadFixed64(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				return LoadUInt64LE((ulong*) ptr);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed64(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt64LE((ulong*) ptr);
+			}
+			return buffer.Slice(8);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed64(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) { value = 0; return false; }
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt64LE((ulong*) ptr);
+			}
+			return true;
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte* WriteFixed64BEUnsafe(byte* cursor, ulong value)
 		{
 			Contract.Requires(cursor != null);
 			StoreUInt64BE((ulong*) cursor, value);
@@ -1646,6 +2085,29 @@ namespace Doxense.Memory
 			if (cursor + 8 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt64BE((ulong*) cursor, value);
 			return cursor + 8;
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static void WriteFixed64BE(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt64BE((ulong*) ptr, value);
+			}
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static bool TryWriteFixed64BE(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) return false;
+			fixed (byte* ptr = buffer)
+			{
+				StoreUInt64BE((ulong*) ptr, value);
+			}
+			return true;
 		}
 
 		/// <summary>Write a 64-bit zero</summary>
@@ -1668,6 +2130,38 @@ namespace Doxense.Memory
 		{
 			value = LoadUInt64BE((ulong*) p);
 			return p + 8;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ReadFixed64BE(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				return LoadUInt64BE((ulong*) ptr);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed64BE(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt64BE((ulong*) ptr);
+			}
+			return buffer.Slice(8);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed64BE(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) { value = 0; return false; }
+			fixed (byte* ptr = buffer)
+			{
+				value = LoadUInt64BE((ulong*) ptr);
+			}
+			return true;
 		}
 
 		#endregion
@@ -2629,28 +3123,6 @@ namespace Doxense.Memory
 
 		#endregion
 
-		[SuppressUnmanagedCodeSecurity]
-		[SecurityCritical]
-		internal static class NativeMethods
-		{
-			// C/C++		.NET
-			// ---------------------------------
-			// void*		byte* (or IntPtr)
-			// size_t		UIntPtr (or IntPtr)
-			// int			int
-			// char			byte
-
-			/// <summary>Sets buffers to a specified character.</summary>
-			/// <param name="dest">Pointer to destination</param>
-			/// <param name="ch">Character to set</param>
-			/// <param name="count">Number of characters</param>
-			/// <returns>memset returns the value of dest.</returns>
-			/// <remarks>The memset function sets the first count bytes of dest to the character c.</remarks>
-			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern byte* memset(byte* dest, int ch, UIntPtr count);
-
-		}
-
 		[DebuggerNonUserCode]
 		internal static class Errors
 		{
@@ -2717,10 +3189,10 @@ namespace Doxense.Memory
 				return ThrowHelper.ArgumentOutOfRangeException("offset", "Offset is outside the bounds of the slice.");
 			}
 
-			[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowIndexOutOfBound(int index)
+			[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static void ThrowIndexOutOfBound()
 			{
-				throw IndexOutOfBound(index);
+				throw IndexOutOfBound();
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
