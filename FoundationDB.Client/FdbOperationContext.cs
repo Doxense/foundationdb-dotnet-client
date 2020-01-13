@@ -569,10 +569,23 @@ namespace FoundationDB.Client
 								if (e2.Code != e.Code) throw;
 								shouldRethrow = true;
 							}
+
 							// re-throw original exception because it is not retryable.
 							if (shouldRethrow) throw;
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
+						}
+						catch (Exception)
+						{
+							context.PreviousError = FdbError.UnknownError;
+
+							// execute any state callbacks, if there are any
+							if (context.StateCallbacks != null)
+							{
+								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Faulted).ConfigureAwait(false);
+							}
+
+							throw;
 						}
 
 						// update the base time for the next attempt
@@ -942,13 +955,13 @@ namespace FoundationDB.Client
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
-			async void Complete(IFdbTransaction tr)
+			async Task Complete(IFdbTransaction tr)
 			{
 				result = await success(tr);
 			}
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
-			await ExecuteInternal(context, handler, (Action<IFdbTransaction>) Complete).ConfigureAwait(false);
+			await ExecuteInternal(context, handler, (Func<IFdbTransaction, Task>) Complete).ConfigureAwait(false);
 			return result;
 		}
 
