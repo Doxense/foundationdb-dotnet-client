@@ -342,7 +342,7 @@ namespace FoundationDB.Client.Tests
 
 		protected static Slice Key(string text)
 		{
-			return Slice.FromStringUtf8(text);
+			return Slice.FromByteString(text);
 		}
 
 		protected static Slice Value(string text)

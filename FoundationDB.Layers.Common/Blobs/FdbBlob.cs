@@ -329,6 +329,12 @@ namespace FoundationDB.Layers.Blobs
 				}
 			}
 
+			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
+			public Task WriteAsync([NotNull] IFdbTransaction trans, long offset, Slice data)
+			{
+				return WriteAsync(trans, offset, data.Memory);
+			}
+
 			/// <summary>
 			/// Append the contents of <paramref name="data"/> onto the end of the blob.
 			/// </summary>
@@ -342,6 +348,14 @@ namespace FoundationDB.Layers.Blobs
 				WriteToSparse(trans, oldLength, data.Span);
 				await TryRemoteSplitPointAsync(trans, oldLength).ConfigureAwait(false);
 				SetSize(trans, oldLength + data.Length);
+			}
+
+			/// <summary>
+			/// Append the contents of <paramref name="data"/> onto the end of the blob.
+			/// </summary>
+			public Task AppendAsync([NotNull] IFdbTransaction trans, Slice data)
+			{
+				return AppendAsync(trans, data.Memory);
 			}
 
 			/// <summary>

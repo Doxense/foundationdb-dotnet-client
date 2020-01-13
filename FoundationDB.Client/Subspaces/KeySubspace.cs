@@ -210,6 +210,7 @@ namespace FoundationDB.Client
 			return this.Range;
 		}
 
+		/// <summary>Return a key range that contains all the keys in a sub-partition of this subspace</summary>
 		public virtual KeyRange ToRange(ReadOnlySpan<byte> suffix)
 		{
 			return KeyRange.StartsWith(Append(suffix));

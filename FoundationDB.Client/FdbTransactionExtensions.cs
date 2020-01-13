@@ -235,13 +235,44 @@ namespace FoundationDB.Client
 
 		#region Set...
 
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
 		public static void Set([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
-
 			trans.Set(key.Span, value.Span);
+		}
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, Slice value)
+		{
+			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
+			trans.Set(key, value.Span);
+		}
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set([NotNull] this IFdbTransaction trans, Slice key, ReadOnlySpan<byte> value)
+		{
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			trans.Set(key.Span, value);
 		}
 
 		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
@@ -1420,6 +1451,21 @@ namespace FoundationDB.Client
 
 			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
+		}
+
+		#endregion
+
+		#region
+
+		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose location is to be queried.</param>
+		/// <returns>Task that will return an array of strings, or an exception</returns>
+		[ItemNotNull]
+		public static Task<string[]> GetAddressesForKeyAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice key)
+		{
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return trans.GetAddressesForKeyAsync(key.Span);
 		}
 
 		#endregion

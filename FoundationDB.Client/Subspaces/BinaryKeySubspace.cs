@@ -97,4 +97,19 @@ namespace FoundationDB.Client
 		}
 
 	}
+
+	public static class BinaryKeySubspaceExtensions
+	{
+
+		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace's prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Child subspace</returns>
+		public static IBinaryKeySubspace Partition(this IBinaryKeySubspace subspace, Slice relativeKey)
+		{
+			if (relativeKey.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+			return subspace.Partition(relativeKey.Span);
+		}
+
+	}
 }

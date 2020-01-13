@@ -294,6 +294,13 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		/// <summary>Return a key range that contains all the keys in a sub-partition of this subspace</summary>
+		public static KeyRange ToRange(this KeySubspace subspace, Slice suffix)
+		{
+			if (suffix.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(suffix));
+			return subspace.ToRange(suffix.Span);
+		}
+
 		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
@@ -303,7 +310,6 @@ namespace FoundationDB.Client
 			//REVIEW: how do we handle Slice.Nil?
 			return subspace.Append(relativeKey.Span);
 		}
-
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="subspace">Subspace used for the test</param>

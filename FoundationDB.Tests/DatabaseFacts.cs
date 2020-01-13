@@ -133,29 +133,21 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_FdbDatabase_Key_Validation()
+		public void Test_FdbDatabase_Key_Validation()
 		{
-			using(var db = await Fdb.OpenAsync(this.Cancellation))
-			{
-				Assert.That(db, Is.InstanceOf<FdbDatabase>());
+			// IsKeyValid
+			Assert.That(FdbKey.IsKeyValid(Slice.Nil), Is.False, "Null key is invalid");
+			Assert.That(FdbKey.IsKeyValid(Slice.Empty), Is.True, "Empty key is allowed");
+			Assert.That(FdbKey.IsKeyValid(Slice.FromString("hello")), Is.True);
+			Assert.That(FdbKey.IsKeyValid(Slice.Zero(Fdb.MaxKeySize + 1)), Is.False, "Key is too large");
+			Assert.That(FdbKey.IsKeyValid(Fdb.System.Coordinators), Is.True, "System keys are valid");
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
-				{
-					// IsKeyValid
-					Assert.That(tr.IsKeyValid(Slice.Nil), Is.False, "Null key is invalid");
-					Assert.That(tr.IsKeyValid(Slice.Empty), Is.True, "Empty key is allowed");
-					Assert.That(tr.IsKeyValid(Slice.FromString("hello")), Is.True);
-					Assert.That(tr.IsKeyValid(Slice.Zero(Fdb.MaxKeySize + 1)), Is.False, "Key is too large");
-					Assert.That(tr.IsKeyValid(Fdb.System.Coordinators), Is.True, "System keys are valid");
-
-					// EnsureKeyIsValid
-					Assert.That(() => tr.EnsureKeyIsValid(Slice.Nil), Throws.InstanceOf<ArgumentException>());
-					Assert.That(() => tr.EnsureKeyIsValid(Slice.Empty), Throws.Nothing);
-					Assert.That(() => tr.EnsureKeyIsValid(Slice.FromString("hello")), Throws.Nothing);
-					Assert.That(() => tr.EnsureKeyIsValid(Slice.Zero(Fdb.MaxKeySize + 1)), Throws.InstanceOf<ArgumentException>());
-					Assert.That(() => tr.EnsureKeyIsValid(Fdb.System.Coordinators), Throws.Nothing);
-				}
-			}
+			// EnsureKeyIsValid
+			Assert.That(() => FdbKey.EnsureKeyIsValid(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => FdbKey.EnsureKeyIsValid(Slice.Empty), Throws.Nothing);
+			Assert.That(() => FdbKey.EnsureKeyIsValid(Slice.FromString("hello")), Throws.Nothing);
+			Assert.That(() => FdbKey.EnsureKeyIsValid(Slice.Zero(Fdb.MaxKeySize + 1)), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => FdbKey.EnsureKeyIsValid(Fdb.System.Coordinators), Throws.Nothing);
 		}
 
 		[Test]
@@ -273,7 +265,15 @@ namespace FoundationDB.Client.Tests
 				var dl = db.DirectoryLayer;
 				Assert.That(dl, Is.Not.Null);
 				Assert.That(dl.Content, Is.Not.Null);
-				Assert.That(dl.Content, Is.EqualTo(db.Root));
+				Assert.That(dl.Content, Is.EqualTo(SubspaceLocation.Empty), "Root DL should be located at the top");
+
+				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
+				{
+					var root = await db.Root.Resolve(tr);
+					Assert.That(root, Is.Not.Null);
+					Assert.That(root.Path, Is.EqualTo(db.Root.Path));
+					Assert.That(root.DirectoryLayer, Is.SameAs(dl));
+				}
 			}
 		}
 
@@ -322,7 +322,7 @@ namespace FoundationDB.Client.Tests
 				ClusterFile = "X:\\some\\path\\to\\fdb.cluster",
 				Root = FdbDirectoryPath.Combine("Hello", "World"),
 			};
-			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; root=[Hello/World]"));
+			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; root=/Hello/World"));
 
 			options = new FdbConnectionOptions
 			{

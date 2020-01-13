@@ -346,7 +346,6 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("Hello"), Value(secret));
-					await tr.CommitAsync();
 				}, this.Cancellation);
 
 				int called = 0;
@@ -385,7 +384,6 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("Hello"), Value(secret));
-					await tr.CommitAsync();
 				}, this.Cancellation);
 
 				int called = 0;
@@ -417,115 +415,78 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// Cannot set a key after commit
+				//note: we assume that nobody will move the directories during the test execution!
+				Slice key = await db.ReadAsync(async tr => (await location.Resolve(tr)).Encode("hello"), this.Cancellation);
+				Log("Using key: " + key);
+
 				Assert.That(
 					async () => await db.WriteAsync(
-						async (tr) =>
-						{
-							var subspace = await location.Resolve(tr);
-							tr.Set(subspace.Encode("Hello"), Value("Set"));
-						},
-						async (tr) =>
-						{
-							var subspace = await location.Resolve(tr);
-							tr.Set(subspace.Encode("Hello"), Slice.Empty);
-						},
+						(tr) => tr.Set(key, Value("Set")),
+						(tr) => tr.Set(key, Slice.Empty),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
 					"Trying to write in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(async tr =>
-				{
-					var subspace = await location.Resolve(tr);
-					return tr.GetAsync(subspace.Encode("Hello"));
-				}, this.Cancellation), Is.EqualTo(Slice.FromString("Set")));
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Set")));
 
 				// Cannot double-commit!
 				Assert.That(
-					async () => await db.ReadWriteAsync(
-						async (tr) =>
-						{
-							var subspace = await location.Resolve(tr);
-							tr.Set(subspace.Encode("Hello"), Value("Commit"));
-						},
+					async () => await db.WriteAsync(
+						(tr) => tr.Set(key, Value("Commit")),
 						(tr) => tr.CommitAsync(),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
 					"Trying to double-Commit in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(async tr =>
-				{
-					var subspace = await location.Resolve(tr);
-					return tr.GetAsync(subspace.Encode("Hello"));
-				}, this.Cancellation), Is.EqualTo(Slice.FromString("Commit")));
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Commit")));
 
 				// Cannot read a key after commit
 				Assert.That(
-					async () => await db.ReadWriteAsync(
-						async (tr) =>
+					async () => await db.ReadWriteAsync( //TODO: replace with a simpler variant!
+						(tr) =>
 						{
-							var subspace = await location.Resolve(tr);
-							tr.Set(subspace.Encode("Hello"), Value("Get"));
+							tr.Set(key, Value("Get"));
+							return Task.CompletedTask;
 						},
-						async (tr) =>
-						{
-							var subspace = await location.Resolve(tr);
-							return await tr.GetAsync(subspace.Encode("Hello"));
-						},
+						async (tr) => await tr.GetAsync(key),
 						this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>().With.Message.EqualTo("The transaction has already been committed"),
 					"Trying to read a key in success handler should fail"
 				);
 				//note: since the transaction is already committed, we should observe its result
-				Assert.That(await db.ReadAsync(async tr =>
-				{
-					var subspace = await location.Resolve(tr);
-					return tr.GetAsync(subspace.Encode("Hello"));
-				}, this.Cancellation), Is.EqualTo(Slice.FromString("Get")));
+				Assert.That(await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation), Is.EqualTo(Slice.FromString("Get")));
 
 				// GetCommitVersion() is allowed to be executed AFTER the commit!
-				var cv = await db.ReadWriteAsync(
-					async (tr) =>
+				var cv = await db.ReadWriteAsync( //TODO: replace with a simpler variant!
+					(tr) =>
 					{
-						var subspace = await location.Resolve(tr);
-						tr.Set(subspace.Encode("Hello"), Value("GetCommitVersion"));
+						tr.Set(key, Value("GetCommitVersion"));
+						return Task.CompletedTask;
 					},
 					(tr) => tr.GetCommittedVersion(),
 					this.Cancellation
 				);
 				Assert.That(cv, Is.GreaterThan(0));
 				Assert.That(
-					await db.ReadAsync(async tr =>
-					{
-						var subspace = await location.Resolve(tr);
-						return tr.GetAsync(subspace.Encode("Hello"));
-					}, this.Cancellation),
+					await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation),
 					Is.EqualTo(Slice.FromString("GetCommitVersion"))
 				);
 
-				// GetCommitVersion() is allowed to be executed AFTER the commit!
-				var rv = await db.WriteAsync(
-					async (tr) =>
-					{
-						var subspace = await location.Resolve(tr);
-						tr.Set(subspace.Encode("Hello"), Value("GetReadVersion"));
-					},
+				// GetReadVersionAsync() is allowed to be executed AFTER the commit!
+				var rv = await db.ReadWriteAsync( //TODO: replace with a simpler variant!
 					(tr) =>
 					{
-						var rvt = tr.GetReadVersionAsync();
-						Assert.That(rvt.Status, Is.EqualTo(TaskStatus.RanToCompletion), "GetReadVersionAsync() should complete immediately after commit");
-						return rvt.Result;
+						tr.Set(key, Value("GetReadVersion"));
+						return Task.CompletedTask;
 					},
+					(tr) => tr.GetReadVersionAsync(),
 					this.Cancellation
 				);
 				Assert.That(rv, Is.GreaterThan(0));
 				Assert.That(
-					await db.ReadAsync(async tr =>
-					{
-						var subspace = await location.Resolve(tr);
-						return tr.GetAsync(subspace.Encode("Hello"));
-					}, this.Cancellation),
+					await db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation),
 					Is.EqualTo(Slice.FromString("GetReadVersion"))
 				);
 			}
@@ -558,7 +519,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(await db.ReadAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					return tr.GetAsync(subspace.Encode("Hello"));
+					return await tr.GetAsync(subspace.Encode("Hello"));
 				}, this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp")));
 
 				// but getting stamp before commit and awaiting it after should work
@@ -580,7 +541,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(await db.ReadAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					return tr.GetAsync(subspace.Encode("Hello"));
+					return await tr.GetAsync(subspace.Encode("Hello"));
 				}, this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp2")));
 			}
 		}

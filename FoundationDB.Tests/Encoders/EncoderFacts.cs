@@ -38,7 +38,7 @@ namespace Doxense.Collections.Tuples.Tests
 	{
 
 		[Test]
-		public void Test_Order_Int32Encoder()
+		public void Test_Ordered_Int32Encoder()
 		{
 			// The current ordered int32 encoder uses the Tuple encoding
 
