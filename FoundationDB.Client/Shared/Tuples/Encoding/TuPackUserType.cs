@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,17 +32,14 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Diagnostics;
-	using JetBrains.Annotations;
 
 	/// <summary>Represent a custom user type for the TuPack encoding</summary>
 	[DebuggerDisplay("{ToString()},nq")]
 	public sealed class TuPackUserType : IEquatable<TuPackUserType>
 	{
 
-		[NotNull]
 		public static readonly TuPackUserType Directory = new TuPackUserType(0xFE);
 
-		[NotNull]
 		public static readonly TuPackUserType System = new TuPackUserType(0xFF);
 
 		public TuPackUserType(int type)
@@ -77,12 +74,12 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Equality...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is TuPackUserType ut && Equals(ut);
 		}
 
-		public bool Equals(TuPackUserType other)
+		public bool Equals(TuPackUserType? other)
 		{
 			if (other == null) return false;
 			if (ReferenceEquals(this, other)) return true;

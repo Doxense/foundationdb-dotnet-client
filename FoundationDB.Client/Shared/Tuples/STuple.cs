@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,9 +33,11 @@ namespace Doxense.Collections.Tuples
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
@@ -50,23 +52,40 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Empty tuple</summary>
 		/// <remarks>Not to be mistaken with a 1-tuple containing 'null' !</remarks>
-		[NotNull]
 		public static readonly IVarTuple Empty = new STuple();
 
 		#region Empty Tuple
 
 		public int Count => 0;
 
-		object IReadOnlyList<object>.this[int index] => throw new InvalidOperationException("Tuple is empty");
+		object? IReadOnlyList<object?>.this[int index] => throw new InvalidOperationException("Tuple is empty");
+
+		object? IVarTuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
-		public IVarTuple this[int? from, int? to] => this;
+		IVarTuple IVarTuple.this[int? from, int? to] => this;
 
-		public TItem Get<TItem>(int index)
+#if USE_RANGE_API
+
+		object? IVarTuple.this[Index index] => TupleHelpers.FailIndexOutOfRange<object>(index, 0);
+
+		IVarTuple IVarTuple.this[Range range]
+		{
+			get
+			{
+				_ = range.GetOffsetAndLength(0);
+				return this;
+			}
+		}
+
+#endif
+
+		TItem IVarTuple.Get<TItem>(int index)
 		{
 			throw new InvalidOperationException("Tuple is empty");
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IVarTuple Append<T1>(T1 value) => new STuple<T1>(value);
 
 		public IVarTuple Concat(IVarTuple tuple)
@@ -76,12 +95,12 @@ namespace Doxense.Collections.Tuples
 			return tuple;
 		}
 
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			//NO-OP
 		}
 
-		public IEnumerator<object> GetEnumerator()
+		public IEnumerator<object?> GetEnumerator()
 		{
 			yield break;
 		}
@@ -101,17 +120,17 @@ namespace Doxense.Collections.Tuples
 			return 0;
 		}
 
-		public bool Equals(IVarTuple value)
+		public bool Equals(IVarTuple? value)
 		{
 			return value != null && value.Count == 0;
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return Equals(obj as IVarTuple);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
 			return other is IVarTuple tuple && tuple.Count == 0;
 		}
@@ -140,42 +159,42 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1> Create<T1>(T1 item1)
+		public static STuple<T1> Create<T1>([AllowNull] T1 item1)
 		{
 			return new STuple<T1>(item1);
 		}
 
 		/// <summary>Create a new 2-tuple, holding two items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
+		public static STuple<T1, T2> Create<T1, T2>([AllowNull] T1 item1, [AllowNull] T2 item2)
 		{
 			return new STuple<T1, T2>(item1, item2);
 		}
 
 		/// <summary>Create a new 3-tuple, holding three items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+		public static STuple<T1, T2, T3> Create<T1, T2, T3>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
 		{
 			return new STuple<T1, T2, T3>(item1, item2, item3);
 		}
 
 		/// <summary>Create a new 4-tuple, holding four items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4)
 		{
 			return new STuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
 		/// <summary>Create a new 5-tuple, holding five items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Create a new 6-tuple, holding six items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(item1, item2, item3, item4, item5, item6);
 		}
@@ -183,185 +202,225 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
-		[NotNull]
-		public static IVarTuple Create([NotNull] params object[] items)
+		[Pure]
+		public static IVarTuple Create(params object?[] items)
 		{
 			Contract.NotNull(items, nameof(items));
 
 			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
 
-			if (items.Length == 0) return new STuple();
+			if (items.Length == 0) return STuple.Empty;
 
 			// We don't copy the array, and rely on the fact that the array was created by the compiler and that nobody will get a reference on it.
-			return new ListTuple(items, 0, items.Length);
-		}
-
-		/// <summary>Create a new N-tuple, from N items</summary>
-		/// <param name="items">Items to wrap in a tuple</param>
-		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
-		[NotNull]
-		public static IVarTuple Create(ReadOnlySpan<object> items)
-		{
-			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
-
-			if (items.Length == 0) return new STuple();
-
-			// we have to copy the items :(
-			var tmp = items.ToArray();
-			return new ListTuple(tmp, 0, tmp.Length);
+			return new ListTuple<object?>(items.AsMemory());
 		}
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		/// <remarks>This is the non-generic equivalent of STuple.Create&lt;object&gt;()</remarks>
-		[NotNull]
-		public static IVarTuple CreateBoxed(object item)
+		[Pure]
+		public static IVarTuple CreateBoxed(object? item)
 		{
 			return new STuple<object>(item);
 		}
 
+		/// <summary>Create a new N-tuple that wraps an sequence of untyped items</summary>
+		/// <remarks>If the original sequence is mutated, the tuple will reflect the changes!</remarks>
+		[Pure]
+		public static IVarTuple Wrap(ReadOnlyMemory<object?> items)
+		{
+			//note: this method only exists to differentiate between Create(ROM<object>) and Create<ROM<object>>()
+			if (items.Length == 0) return STuple.Empty;
+			return new ListTuple<object?>(items);
+		}
+
 		/// <summary>Create a new N-tuple that wraps an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
-		[NotNull]
-		public static IVarTuple Wrap([NotNull] object[] items)
+		[Pure]
+		public static IVarTuple Wrap(object?[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
 			Contract.NotNull(items, nameof(items));
-			return FromObjects(items, 0, items.Length, copy: false);
+			if (items.Length == 0) return STuple.Empty;
+			return new ListTuple<object?>(items.AsMemory());
 		}
 
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
-		[NotNull]
-		public static IVarTuple Wrap([NotNull] object[] items, int offset, int count)
+		[Pure]
+		public static IVarTuple Wrap(object?[] items, int offset, int count)
 		{
-			return FromObjects(items, offset, count, copy: false);
+			if (count == 0) return STuple.Empty;
+			return new ListTuple<object?>(items.AsMemory(offset, count));
 		}
 
 		/// <summary>Create a new N-tuple by copying the content of an array of untyped items</summary>
-		[NotNull]
-		public static IVarTuple FromObjects([NotNull] object[] items)
+		[Pure]
+		public static IVarTuple FromObjects(ReadOnlyMemory<object?> items)
+		{
+			return new ListTuple<object?>(items.ToArray().AsMemory());
+		}
+
+		/// <summary>Create a new N-tuple by copying the content of an array of untyped items</summary>
+		[Pure]
+		public static IVarTuple FromObjects(ReadOnlySpan<object?> items)
+		{
+			return new ListTuple<object?>(items.ToArray().AsMemory());
+		}
+
+		/// <summary>Create a new N-tuple by copying the content of an array of untyped items</summary>
+		[Pure]
+		public static IVarTuple FromObjects(object?[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
 			Contract.NotNull(items, nameof(items));
-			return FromObjects(items, 0, items.Length, copy: true);
+			if (items.Length == 0) return STuple.Empty;
+			return new ListTuple<object?>(items.ToArray().AsMemory());
 		}
 
 		/// <summary>Create a new N-tuple by copying a section of an array of untyped items</summary>
-		[NotNull]
-		public static IVarTuple FromObjects([NotNull] object[] items, int offset, int count)
+		public static IVarTuple FromObjects(object?[] items, int offset, int count)
 		{
-			return FromObjects(items, offset, count, copy: true);
+			if (count == 0) return STuple.Empty;
+			return new ListTuple<object?>(items.AsMemory(offset, count).ToArray().AsMemory());
 		}
 
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If <paramref name="copy"/> is true, and the original array is mutated, the tuple will reflect the changes!</remarks>
-		[NotNull]
-		public static IVarTuple FromObjects([NotNull] object[] items, int offset, int count, bool copy)
+		[Pure]
+		public static IVarTuple FromObjects(ReadOnlyMemory<object?> items, bool copy)
+		{
+			if (items.Length == 0) return STuple.Empty;
+			return new ListTuple<object?>(copy ? items.ToArray().AsMemory() : items);
+		}
+
+		public static IVarTuple WrapArray<T>(T[] items)
 		{
 			Contract.NotNull(items, nameof(items));
-			Contract.Positive(offset, nameof(offset));
-			Contract.Positive(count, nameof(count));
-			Contract.LessOrEqual(offset + count, items.Length, nameof(count), "Source array is too small");
+			if (items.Length == 0) return STuple.Empty;
+			return new ListTuple<T>(items.AsMemory());
+		}
 
+		public static IVarTuple WrapArray<T>(T[] items, int offset, int count)
+		{
 			if (count == 0) return STuple.Empty;
+			return new ListTuple<T>(items.AsMemory(offset, count));
+		}
 
-			if (copy)
-			{
-				var tmp = new object[count];
-				Array.Copy(items, offset, tmp, 0, count);
-				return new ListTuple(tmp, 0, count);
-			}
-			else
-			{
-				// can mutate if passed a pre-allocated array: { var foo = new object[123]; Create(foo); foo[42] = "bad"; }
-				return new ListTuple(items, offset, count);
-			}
+		public static IVarTuple WrapArray<T>(ReadOnlyMemory<T> items)
+		{
+			if (items.Length == 0) return STuple.Empty;
+			return new ListTuple<T>(items);
 		}
 
 		/// <summary>Create a new tuple, from an array of typed items</summary>
 		/// <param name="items">Array of items</param>
 		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
-		[NotNull]
-		public static IVarTuple FromArray<T>([NotNull] T[] items)
+		[Pure]
+		public static IVarTuple FromArray<T>(T[] items)
 		{
 			Contract.NotNull(items, nameof(items));
 
-			return FromSpan<T>(items.AsSpan());
+			return FromArray<T>(items.AsSpan());
 		}
 
 		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
-		[NotNull]
-		public static IVarTuple FromArray<T>([NotNull] T[] items, int offset, int count)
+		[Pure]
+		public static IVarTuple FromArray<T>(T[] items, int offset, int count)
 		{
-			Contract.NotNull(items, nameof(items));
-			Contract.Positive(offset, nameof(offset));
-			Contract.Positive(count, nameof(count));
-			Contract.LessOrEqual(offset + count, items.Length, nameof(count), "Source array is too small");
-
-			return FromSpan<T>(items.AsSpan(offset, count));
+			return FromArray<T>(items.AsSpan(offset, count));
 		}
 
-		/// <summary>Create a new tuple, from a span of typed items</summary>
-		/// <param name="items">Span of items</param>
-		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
-		[NotNull]
-		public static IVarTuple FromSpan<T>(ReadOnlySpan<T> items)
+		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
+		[Pure]
+		public static IVarTuple FromArray<T>(ReadOnlySpan<T> items)
 		{
 			switch (items.Length)
 			{
-				case 0: return new STuple();
-				case 1: return new STuple<T>(items[0]);
-				case 2: return new STuple<T, T>(items[0], items[1]);
-				case 3: return new STuple<T, T, T>(items[0], items[1], items[2]);
-				case 4: return new STuple<T, T, T, T>(items[0], items[1], items[2], items[3]);
-				case 5: return new STuple<T, T, T, T, T>(items[0], items[1], items[2], items[3], items[4]);
-				case 6: return new STuple<T, T, T, T, T, T>(items[0], items[1], items[2], items[3], items[4], items[5]);
+				case 0: return STuple.Empty;
+				case 1: return Create<T>(items[0]);
+				case 2: return Create<T, T>(items[0], items[1]);
+				case 3: return Create<T, T, T>(items[0], items[1], items[2]);
 				default:
 				{ // copy the items in a temp array
-					var tmp = new object[items.Length];
-					int i = 0;
-					foreach(var item in items)
-					{
-						tmp[i++] = item;
-					}
-					return new ListTuple(tmp, 0, items.Length);
-					//TODO: PERF: we would probably benefit from having a ListTuple<T> here!
+					return new ListTuple<T>(items.ToArray().AsMemory());
 				}
 			}
 		}
 
 		/// <summary>Create a new tuple from a sequence of typed items</summary>
-		[NotNull]
-		public static IVarTuple FromEnumerable<T>([NotNull] IEnumerable<T> items)
+		[Pure]
+		public static IVarTuple FromEnumerable<T>(IEnumerable<T> items)
 		{
 			Contract.NotNull(items, nameof(items));
 
 			if (items is T[] arr)
 			{
-				return FromSpan<T>(arr);
+				return FromArray<T>(arr.AsSpan());
+			}
+
+			if (items is ListTuple<T> lt)
+			{
+				return lt;
 			}
 
 			// may already be a tuple (because it implements IE<obj>)
-			if (items is IVarTuple tuple)
+			if (typeof(T) == typeof(object) && items is IVarTuple vt)
 			{
-				return tuple;
+				return vt;
 			}
 
-			object[] tmp = items.Cast<object>().ToArray();
-			//TODO: we would probably benefit from having an ListTuple<T> here!
-			return new ListTuple(tmp, 0, tmp.Length);
+			if (items is IList<T> list)
+			{
+				switch (list.Count)
+				{
+					case 0: return STuple.Empty;
+					case 1: return Create<T>(list[0]);
+					case 2: return Create<T, T>(list[0], list[1]);
+					case 3: return Create<T, T, T>(list[0], list[1], list[2]);
+					default:
+					{ // copy the items in a temp array
+						return new ListTuple<T>(items.ToArray().AsMemory());
+					}
+				}
+			}
+
+			return new ListTuple<T>(items.ToArray().AsMemory());
 		}
 
 		/// <summary>Concatenates two tuples together</summary>
-		[NotNull]
-		public static IVarTuple Concat([NotNull] IVarTuple head, [NotNull] IVarTuple tail)
+		[Pure]
+		public static IVarTuple Concat(IVarTuple head, IVarTuple tail)
 		{
 			Contract.NotNull(head, nameof(head));
 			Contract.NotNull(tail, nameof(tail));
 
-			return head.Count == 0 ? tail
-			     : tail.Count == 0 ? head
+			return tail.Count == 0 ? head
+			     : head.Count == 0 ? tail
 			     : new JoinedTuple(head, tail);
+		}
+
+		/// <summary>Concatenates two tuples together</summary>
+		[Pure]
+		public static IVarTuple Concat(IVarTuple head, IVarTuple middle, IVarTuple tail)
+		{
+			Contract.NotNull(head, nameof(head));
+			Contract.NotNull(middle, nameof(middle));
+			Contract.NotNull(tail, nameof(tail));
+
+			int numA = head.Count;
+			int numB = middle.Count;
+			int numC = tail.Count;
+
+			if (numC == 0) return Concat(head, middle);
+			if (numB == 0) return Concat(head, tail);
+			if (numA == 0) return Concat(middle, tail);
+
+			var tmp = new object?[checked(numA + numB + numC)];
+			head.CopyTo(tmp, 0);
+			middle.CopyTo(tmp, numA);
+			tail.CopyTo(tmp, numA + numB);
+
+			return new ListTuple<object?>(tmp.AsMemory());
 		}
 
 		[Pure]
@@ -481,7 +540,7 @@ namespace Doxense.Collections.Tuples
 			/// Stringify&lt;Slice&gt;((...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify<T>(T item)
+			public static string Stringify<T>([AllowNull] T item)
 			{
 				if (default(T) == null)
 				{
@@ -502,10 +561,10 @@ namespace Doxense.Collections.Tuples
 				if (typeof(T) == typeof(Uuid128)) return Stringify((Uuid128) (object) item);
 				if (typeof(T) == typeof(Uuid64)) return Stringify((Uuid64) (object) item);
 				// </JIT_HACK>
-				if (typeof(T) == typeof(string)) return Stringify((string) (object) item);
+				if (item is string s) return Stringify(s);
 
 				// some other type
-				return StringifyInternal(item);
+				return StringifyInternal(item!);
 			}
 
 			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
@@ -520,8 +579,7 @@ namespace Doxense.Collections.Tuples
 			/// Stringify('Z') => "'Z'"
 			/// Stringify((Slice)...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
-			[NotNull]
-			internal static string StringifyBoxed(object item)
+			internal static string StringifyBoxed(object? item)
 			{
 				switch (item)
 				{
@@ -543,13 +601,15 @@ namespace Doxense.Collections.Tuples
 				}
 
 				// some other type
-				return StringifyInternal(item);
+				return StringifyInternal(item!);
 			}
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			private static string StringifyInternal(object item)
 			{
 				switch (item)
 				{
+					case string s: return Stringify(s);
 					case byte[] bytes: return Stringify(bytes.AsSlice());
 					case Slice slice: return Stringify(slice);
 					case MutableSlice slice: return Stringify(slice);
@@ -563,7 +623,7 @@ namespace Doxense.Collections.Tuples
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
-			public static string Stringify(string item) => TokenDoubleQuote + item + TokenDoubleQuote; /* "hello" */
+			public static string Stringify(string? item) => TokenDoubleQuote + item + TokenDoubleQuote; /* "hello" */
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(bool item) => item ? TokenTrue : TokenFalse;
@@ -590,13 +650,16 @@ namespace Doxense.Collections.Tuples
 			public static string Stringify(char item) => TokenSingleQuote + new string(item, 1) + TokenSingleQuote; /* 'X' */
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(Slice item) => item.IsNull ? "null" : '`' + Slice.Dump(item, item.Count) + '`';
+			public static string Stringify(ReadOnlySpan<byte> item) => item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static string Stringify(Slice item) => item.IsNull ? "null" : item.Count == 0 ? "``" : ('`' + Slice.Dump(item, item.Count) + '`');
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(MutableSlice item) => item.IsNull ? "null" : '`' + Slice.Dump(item, item.Count) + '`';
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(byte[] item) => Stringify(item.AsSlice());
+			public static string Stringify(byte[]? item) => item == null ? "null" : item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ArraySegment<byte> item) => Stringify(item.AsSlice());
@@ -611,32 +674,64 @@ namespace Doxense.Collections.Tuples
 			public static string Stringify(Uuid64 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxxxxxx} */
 
 			/// <summary>Converts a list of object into a displaying string, for loggin/debugging purpose</summary>
-			/// <param name="items">Array containing items to stringfy</param>
+			/// <param name="items">Array containing items to stringify</param>
 			/// <param name="offset">Start offset of the items to convert</param>
 			/// <param name="count">Number of items to convert</param>
 			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
 			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
-			[NotNull]
-			public static string ToString(object[] items, int offset, int count)
+			public static string ToString(object?[]? items, int offset, int count)
 			{
-				if (items == null) return String.Empty;
 				Contract.Requires(offset >= 0 && count >= 0);
+				if (items == null) return string.Empty;
+				return ToString(items.AsSpan(offset, count));
+			}
 
-				if (count <= 0)
+			public static string ToString<T>(ReadOnlySpan<T> items)
+			{
+				if (items.Length == 0)
 				{ // empty tuple: "()"
 					return TokenTupleEmpty;
 				}
+
+				bool boxed = typeof(T) == typeof(object);
+
+				int offset = 0;
+
+				var sb = new StringBuilder();
+				sb.Append('(');
+				sb.Append(boxed ? StringifyBoxed(items[offset++]) : Stringify<T>(items[offset++]));
+
+				if (items.Length == 1)
+				{ // singleton tuple : "(X,)"
+					return sb.Append(TokenTupleSingleClose).ToString();
+				}
+
+				while (offset < items.Length)
+				{
+					sb.Append(TokenTupleSep /* ", " */).Append(boxed ? StringifyBoxed(items[offset++]) : Stringify<T>(items[offset++]));
+				}
+				return sb.Append(TokenTupleClose /* ",)" */).ToString();
+			}
+
+			public static string ToString(ReadOnlySpan<object?> items)
+			{
+				if (items.Length == 0)
+				{ // empty tuple: "()"
+					return TokenTupleEmpty;
+				}
+
+				int offset = 0;
 
 				var sb = new StringBuilder();
 				sb.Append('(');
 				sb.Append(StringifyBoxed(items[offset++]));
 
-				if (count == 1)
+				if (items.Length == 1)
 				{ // singleton tuple : "(X,)"
 					return sb.Append(TokenTupleSingleClose).ToString();
 				}
 
-				while (--count > 0)
+				while (offset < items.Length)
 				{
 					sb.Append(TokenTupleSep /* ", " */).Append(StringifyBoxed(items[offset++]));
 				}
@@ -644,11 +739,10 @@ namespace Doxense.Collections.Tuples
 			}
 
 			/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>
-			/// <param name="items">Sequence of items to stringfy</param>
+			/// <param name="items">Sequence of items to stringify</param>
 			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
 			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
-			[NotNull]
-			public static string ToString(IEnumerable<object> items)
+			public static string ToString(IEnumerable<object?> items)
 			{
 				if (items == null) return string.Empty;
 
@@ -676,13 +770,13 @@ namespace Doxense.Collections.Tuples
 
 		}
 
-		/// <summary>Hleper to parse strings back into tuples</summary>
+		/// <summary>Helper to parse strings back into tuples</summary>
 		public static class Deformatter
 		{
 
 
-			[Pure, NotNull]
-			public static IVarTuple Parse([NotNull] string expression)
+			[Pure]
+			public static IVarTuple Parse(string expression)
 			{
 				Contract.NotNullOrWhiteSpace(expression, nameof(expression));
 				var parser = new Parser(expression.Trim());
@@ -694,7 +788,7 @@ namespace Doxense.Collections.Tuples
 			/// <summary>Parse a tuple expression at the start of a string</summary>
 			/// <param name="expression">String that starts with a valid Tuple expression, with optional extra characters</param>
 			/// <returns>First item is the parsed tuple, and the second item is the rest of the string (or null if we consumed the whole expression)</returns>
-			public static void ParseNext(string expression, out IVarTuple tuple, out string tail)
+			public static void ParseNext(string expression, out IVarTuple? tuple, out string? tail)
 			{
 				Contract.NotNullOrWhiteSpace(expression, nameof(expression));
 				if (string.IsNullOrWhiteSpace(expression))
@@ -706,7 +800,7 @@ namespace Doxense.Collections.Tuples
 
 				var parser = new Parser(expression.Trim());
 				tuple = parser.ParseExpression();
-				string s = parser.GetTail();
+				string? s = parser.GetTail();
 				tail = string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 			}
 
@@ -726,8 +820,7 @@ namespace Doxense.Collections.Tuples
 
 				public bool HasMore => this.Cursor < this.Expression.Length;
 
-				[CanBeNull]
-				public string GetTail() => this.Cursor < this.Expression.Length ? this.Expression.Substring(this.Cursor) : null;
+				public string? GetTail() => this.Cursor < this.Expression.Length ? this.Expression.Substring(this.Cursor) : null;
 
 				private char ReadNext()
 				{
@@ -769,7 +862,7 @@ namespace Doxense.Collections.Tuples
 				}
 
 				/// <summary>Parse a tuple</summary>
-				[Pure, NotNull]
+				[Pure]
 				public IVarTuple ParseExpression()
 				{
 
@@ -792,7 +885,7 @@ namespace Doxense.Collections.Tuples
 								//note: we accept a terminal ',' without the last item, to allow "(123,)" as a valid tuple.
 								if (expectItem && items.Count > 1) throw new FormatException("Missing item before last ',' in Tuple expression");
 								Advance();
-								return items.Count == 0 ? STuple.Empty : new ListTuple(items);
+								return FromEnumerable(items);
 							}
 							case EOF:
 							{

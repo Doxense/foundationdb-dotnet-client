@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq;
 	using System.Linq.Expressions;
@@ -47,26 +48,28 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Serializers...
 
-		public delegate void Encoder<in T>(ref TupleWriter writer, T value);
+		public delegate void Encoder<in T>(ref TupleWriter writer, [AllowNull] T value);
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or that throws an exception if the type is not supported</returns>
-		[CanBeNull, ContractAnnotation("true => notnull")]
-		internal static Encoder<T> GetSerializer<T>(bool required)
+		[ContractAnnotation("required:true => notnull")]
+		internal static Encoder<T>? GetSerializer<T>(bool required)
 		{
 			//note: this method is only called once per initializing of TuplePackers<T> to create the cached delegate.
 
-			var encoder = (Encoder<T>) GetSerializerFor(typeof(T));
-			if (encoder == null && required)
-			{
-				encoder = delegate { throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys"); };
-			}
-			return encoder;
+			var encoder = (Encoder<T>?) GetSerializerFor(typeof(T));
+
+			return encoder ?? (required ? MakeNotSupportedSerializer<T>() : null);
 		}
 
-		[CanBeNull]
-		private static Delegate GetSerializerFor([NotNull] Type type)
+		[Pure]
+		private static Encoder<T> MakeNotSupportedSerializer<T>()
+		{
+			return (ref TupleWriter writer, T value) => throw new InvalidOperationException($"Does not know how to serialize values of type '{typeof(T).Name}' into keys");
+		}
+
+		private static Delegate? GetSerializerFor(Type type)
 		{
 			Contract.NotNull(type, nameof(type));
 
@@ -185,10 +188,10 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
+		internal static void SerializeTo<T>(ref TupleWriter writer, [AllowNull] T value)
 		{
 			//<JIT_HACK>
-			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invokatino of the correct WriteXYZ method
+			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
 			// - In Debug builds, we have to disabled this, because it would be too slow
 			//IMPORTANT: only ValueTypes and they must have a corresponding Write$TYPE$(ref TupleWriter, $TYPE) in TupleParser!
 #if !DEBUG
@@ -261,7 +264,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// May throw at runtime if the type is not supported.
 		/// This method will be very slow! Please consider using typed tuples instead!
 		/// </remarks>
-		public static void SerializeObjectTo(ref TupleWriter writer, object value)
+		public static void SerializeObjectTo(ref TupleWriter writer, object? value)
 		{
 			if (value == null)
 			{ // null value
@@ -775,15 +778,14 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static readonly Dictionary<Type, Delegate> WellKnownUnpackers = InitializeDefaultUnpackers();
 
-		[NotNull]
 		private static Dictionary<Type, Delegate> InitializeDefaultUnpackers()
 		{
 			var map = new Dictionary<Type, Delegate>
 			{
 				[typeof(Slice)] = new Func<Slice, Slice>(TuplePackers.DeserializeSlice),
-				[typeof(byte[])] = new Func<Slice, byte[]>(TuplePackers.DeserializeBytes),
+				[typeof(byte[])] = new Func<Slice, byte[]?>(TuplePackers.DeserializeBytes),
 				[typeof(bool)] = new Func<Slice, bool>(TuplePackers.DeserializeBoolean),
-				[typeof(string)] = new Func<Slice, string>(TuplePackers.DeserializeString),
+				[typeof(string)] = new Func<Slice, string?>(TuplePackers.DeserializeString),
 				[typeof(char)] = new Func<Slice, char>(TuplePackers.DeserializeChar),
 				[typeof(sbyte)] = new Func<Slice, sbyte>(TuplePackers.DeserializeSByte),
 				[typeof(short)] = new Func<Slice, short>(TuplePackers.DeserializeInt16),
@@ -803,10 +805,10 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64),
 				[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan),
 				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
-				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(TuplePackers.DeserializeIpAddress),
+				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress?>(TuplePackers.DeserializeIpAddress),
 				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
-				[typeof(IVarTuple)] = new Func<Slice, IVarTuple>(TuplePackers.DeserializeTuple),
-				[typeof(TuPackUserType)] = new Func<Slice, TuPackUserType>(TuplePackers.DeserializeUserType)
+				[typeof(IVarTuple)] = new Func<Slice, IVarTuple?>(TuplePackers.DeserializeTuple),
+				[typeof(TuPackUserType)] = new Func<Slice, TuPackUserType?>(TuplePackers.DeserializeUserType)
 			};
 
 			// add Nullable versions for all these types
@@ -816,7 +818,6 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
-		[NotNull]
 		internal static Func<Slice, T> GetDeserializer<T>(bool required)
 		{
 			Type type = typeof(T);
@@ -837,7 +838,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(IVarTuple).IsAssignableFrom(type))
 			{
 				if (type.IsValueType && type.IsGenericType && type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal))
-				return (Func<Slice, T>) MakeSTupleDeserializer(type);
+					return (Func<Slice, T>) MakeSTupleDeserializer(type);
 			}
 
 			if ((type.Name == nameof(ValueTuple) || type.Name.StartsWith(nameof(ValueTuple) + "`", StringComparison.Ordinal)) && type.Namespace == "System")
@@ -853,13 +854,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			return MakeConvertBoxedDeserializer<T>();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static Func<Slice, T> MakeNotSupportedDeserializer<T>()
 		{
 			return (_) => throw new InvalidOperationException($"Does not know how to deserialize keys into values of type {typeof(T).Name}");
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static Func<Slice, T> MakeConvertBoxedDeserializer<T>()
 		{
 			return (value) => TypeConverters.ConvertBoxed<T>(DeserializeBoxed(value));
@@ -872,8 +873,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			return slice.IsNullOrEmpty || slice[0] == TupleTypes.Nil;
 		}
 
-		[Pure, NotNull]
-		private static Delegate MakeNullableDeserializer([NotNull] Type nullableType, [NotNull] Type type, [NotNull] Delegate decoder)
+		[Pure]
+		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
 		{
 			Contract.Requires(nullableType != null && type != null && decoder != null);
 			// We have a Decoder of T, but we have to transform it into a Decoder for Nullable<T>, which returns null if the slice is "nil", or falls back to the underlying decoder if the slice contains something
@@ -891,7 +892,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Expression.Lambda(body, prmSlice).Compile();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static Delegate MakeSTupleDeserializer(Type type)
 		{
 			Contract.Requires(type != null);
@@ -917,7 +918,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Expression.Lambda(body, prmSlice).Compile();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static Delegate MakeValueTupleDeserializer(Type type)
 		{
 			Contract.Requires(type != null);
@@ -947,8 +948,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>Decoded element, in the type that is the best fit.</returns>
 		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large integers as Int64 or even UInt64.</remarks>
-		[CanBeNull]
-		public static object DeserializeBoxed(Slice slice)
+		public static object? DeserializeBoxed(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
@@ -1031,13 +1031,13 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Deserialize a tuple segment into a byte array</summary>
-		[CanBeNull, MethodImpl(MethodImplOptions.AggressiveInlining)] //REVIEW: because of Slice.GetBytes()
-		public static byte[] DeserializeBytes(Slice slice)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)] //REVIEW: because of Slice.GetBytes()
+		public static byte[]? DeserializeBytes(Slice slice)
 		{
 			return DeserializeSlice(slice).GetBytes();
 		}
 
-		public static TuPackUserType DeserializeUserType(Slice slice)
+		public static TuPackUserType? DeserializeUserType(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null; //TODO: fail ?
 
@@ -1056,8 +1056,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
-		[CanBeNull]
-		public static IVarTuple DeserializeTuple(Slice slice)
+		public static IVarTuple? DeserializeTuple(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
@@ -1124,7 +1123,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static ValueTuple<T1> DeserializeValueTuple<T1>(Slice slice)
 		{
 			ValueTuple<T1> res = default;
-			if (slice.IsPresent)
+			if (slice.Count != 0)
 			{
 				byte type = slice[0];
 				switch (type)
@@ -1158,7 +1157,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static ValueTuple<T1, T2> DeserializeValueTuple<T1, T2>(Slice slice)
 		{
 			var res = default(ValueTuple<T1, T2>);
-			if (slice.IsPresent)
+			if (slice.Count != 0)
 			{
 				byte type = slice[0];
 				switch (type)
@@ -1192,7 +1191,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static ValueTuple<T1, T2, T3> DeserializeValueTuple<T1, T2, T3>(Slice slice)
 		{
 			var res = default(ValueTuple<T1, T2, T3>);
-			if (slice.IsPresent)
+			if (slice.Count != 0)
 			{
 				byte type = slice[0];
 				switch (type)
@@ -1227,7 +1226,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static ValueTuple<T1, T2, T3, T4> DeserializeValueTuple<T1, T2, T3, T4>(Slice slice)
 		{
 			var res = default(ValueTuple<T1, T2, T3, T4>);
-			if (slice.IsPresent)
+			if (slice.Count != 0)
 			{
 				byte type = slice[0];
 				switch (type)
@@ -1262,7 +1261,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static ValueTuple<T1, T2, T3, T4, T5> DeserializeValueTuple<T1, T2, T3, T4, T5>(Slice slice)
 		{
 			var res = default(ValueTuple<T1, T2, T3, T4, T5>);
-			if (slice.IsPresent)
+			if (slice.Count != 0)
 			{
 				byte type = slice[0];
 				switch (type)
@@ -1296,7 +1295,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static ValueTuple<T1, T2, T3, T4, T5, T6> DeserializeValueTuple<T1, T2, T3, T4, T5, T6>(Slice slice)
 		{
 			var res = default(ValueTuple<T1, T2, T3, T4, T5, T6>);
-			if (slice.IsPresent)
+			if (slice.Count != 0)
 			{
 				byte type = slice[0];
 				switch (type)
@@ -1687,8 +1686,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Deserialize a tuple segment into a Unicode string</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		[CanBeNull]
-		public static string DeserializeString(Slice slice)
+		public static string? DeserializeString(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
@@ -1900,8 +1898,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		[CanBeNull]
-		public static System.Net.IPAddress DeserializeIpAddress(Slice slice)
+		public static System.Net.IPAddress? DeserializeIpAddress(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
@@ -1937,7 +1934,6 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
 		/// <param name="embedded"></param>
 		/// <returns>Decoded tuple</returns>
-		[NotNull]
 		internal static SlicedTuple Unpack(Slice buffer, bool embedded)
 		{
 			var reader = new TupleReader(buffer);

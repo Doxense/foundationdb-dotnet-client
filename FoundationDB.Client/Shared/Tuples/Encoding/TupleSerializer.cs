@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,11 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
-	using JetBrains.Annotations;
 
 	public sealed class TupleSerializer<T1> : ITupleSerializer<STuple<T1>>
 	{
-		public static TupleSerializer<T1> Default { [NotNull] get; } = new TupleSerializer<T1>();
+		public static TupleSerializer<T1> Default { get; } = new TupleSerializer<T1>();
 
 		public void PackTo(ref TupleWriter writer, in STuple<T1> tuple)
 		{
@@ -48,7 +47,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2> : ITupleSerializer<STuple<T1, T2>>
 	{
-		public static TupleSerializer<T1, T2> Default { [NotNull] get; } = new TupleSerializer<T1, T2>();
+		public static TupleSerializer<T1, T2> Default { get; } = new TupleSerializer<T1, T2>();
 
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2> tuple)
 		{
@@ -64,7 +63,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3> : ITupleSerializer<STuple<T1, T2, T3>>
 	{
-		public static TupleSerializer<T1, T2, T3> Default { [NotNull] get; } = new TupleSerializer<T1, T2, T3>();
+		public static TupleSerializer<T1, T2, T3> Default { get; } = new TupleSerializer<T1, T2, T3>();
 
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3> tuple)
 		{
@@ -81,7 +80,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3, T4> : ITupleSerializer<STuple<T1, T2, T3, T4>>
 	{
-		public static TupleSerializer<T1, T2, T3, T4> Default { [NotNull] get; } = new TupleSerializer<T1, T2, T3, T4>();
+		public static TupleSerializer<T1, T2, T3, T4> Default { get; } = new TupleSerializer<T1, T2, T3, T4>();
 
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4> tuple)
 		{
@@ -99,7 +98,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3, T4, T5> : ITupleSerializer<STuple<T1, T2, T3, T4, T5>>
 	{
-		public static TupleSerializer<T1, T2, T3, T4, T5> Default { [NotNull] get; } = new TupleSerializer<T1, T2, T3, T4, T5>();
+		public static TupleSerializer<T1, T2, T3, T4, T5> Default { get; } = new TupleSerializer<T1, T2, T3, T4, T5>();
 
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
@@ -118,7 +117,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 	public sealed class TupleSerializer<T1, T2, T3, T4, T5, T6> : ITupleSerializer<STuple<T1, T2, T3, T4, T5, T6>>
 	{
-		public static TupleSerializer<T1, T2, T3, T4, T5, T6> Default { [NotNull] get; } = new TupleSerializer<T1, T2, T3, T4, T5, T6>();
+		public static TupleSerializer<T1, T2, T3, T4, T5, T6> Default { get; } = new TupleSerializer<T1, T2, T3, T4, T5, T6>();
 
 		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,33 +29,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	/// <summary>Type codec that uses the Tuple Encoding format</summary>
 	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
 	public sealed class TupleCodec<T> : TypeCodec<T>, IValueEncoder<T>
 	{
 
-		private static volatile TupleCodec<T> s_defaultSerializer;
+		private static volatile TupleCodec<T>? s_defaultSerializer;
 
-		[NotNull]
 		public static TupleCodec<T> Default => s_defaultSerializer ??= new TupleCodec<T>(default);
 
+		[MaybeNull]
 		private readonly T m_missingValue;
 
-		public TupleCodec(T missingValue)
+		public TupleCodec([AllowNull] T missingValue)
 		{
 			m_missingValue = missingValue;
 		}
 
-		public override Slice EncodeOrdered(T value)
+		public override Slice EncodeOrdered([AllowNull] T value)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), value);
 		}
 
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
+		public override void EncodeOrderedSelfTerm(ref SliceWriter output, [AllowNull] T value)
 		{
 			//HACKHACK: we lose the current depth!
 			var writer = new TupleWriter(output);
@@ -68,6 +68,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.DecodeKey<T>(input);
 		}
 
+		[return: MaybeNull]
 		public override T DecodeOrderedSelfTerm(ref SliceReader input)
 		{
 			//HACKHACK: we lose the current depth!
@@ -77,11 +78,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return res ? value : m_missingValue;
 		}
 
-		public Slice EncodeValue(T value)
+		public Slice EncodeValue([AllowNull] T value)
 		{
 			return EncodeUnordered(value);
 		}
 
+		[return: MaybeNull]
 		public T DecodeValue(Slice encoded)
 		{
 			return DecodeUnordered(encoded);

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1925,26 +1925,26 @@ namespace Doxense.Collections.Tuples.Tests
 		{
 
 			var packed = TuPack.EncodeKey("hello world");
-			Dump(packed);
+			Log(packed);
 
 			var tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
-			Dump(tuple);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 
 			packed = TuPack.EncodeKey("hello world", 123);
-			Dump(packed);
+			Log(packed);
 
 			tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
-			Dump(tuple);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(2));
 			Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tuple.Get<int>(1), Is.EqualTo(123));
 
 			packed = TuPack.EncodeKey(1, 256, 257, 65536, int.MaxValue, long.MaxValue);
-			Dump(packed);
+			Log(packed);
 
 			tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
@@ -1957,12 +1957,12 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MaxValue));
 
 			packed = TuPack.EncodeKey(-1, -256, -257, -65536, int.MinValue, long.MinValue);
-			Dump(packed);
+			Log(packed);
 
 			tuple = TuPack.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
 			Assert.That(tuple, Is.InstanceOf<SlicedTuple>());
-			Dump(tuple);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(6));
 			Assert.That(tuple.Get<int>(0), Is.EqualTo(-1));
 			Assert.That(tuple.Get<int>(1), Is.EqualTo(-256));

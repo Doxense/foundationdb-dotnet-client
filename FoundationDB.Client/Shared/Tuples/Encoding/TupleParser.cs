@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,12 +30,10 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Buffers;
-	using System.Buffers.Text;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
@@ -173,9 +171,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			// determine the number of bytes needed to encode the absolute value
 			int bytes = NumberOfBytes(value);
 
-			writer.Output.EnsureBytes(bytes + 1);
-
-			var buffer = writer.Output.Buffer;
+			var buffer = writer.Output.EnsureBytes(bytes + 1);
 			int p = writer.Output.Position;
 
 			ulong v;
@@ -273,13 +269,11 @@ namespace Doxense.Collections.Tuples.Encoding
 			// determine the number of bytes needed to encode the value
 			int bytes = NumberOfBytes(value);
 
-			writer.Output.EnsureBytes(bytes + 1);
-
-			var buffer = writer.Output.Buffer;
+			var buffer = writer.Output.EnsureBytes(bytes + 1);
 			int p = writer.Output.Position;
 
 			// simple case (ulong can only be positive)
-			buffer[p++] = (byte)(TupleTypes.IntZero + bytes);
+			buffer[p++] = (byte) (TupleTypes.IntZero + bytes);
 
 			if (bytes > 0)
 			{
@@ -321,7 +315,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				bits = ~bits;
 			}
 			else
-			{ // postive
+			{ // positive
 				bits |= 0x80000000U;
 			}
 			var buffer = writer.Output.Allocate(5);
@@ -361,7 +355,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				bits = ~bits;
 			}
 			else
-			{ // postive
+			{ // positive
 				bits |= 0x8000000000000000UL;
 			}
 			var buffer = writer.Output.AllocateSpan(9);
@@ -472,10 +466,10 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			// Several observations:
 			// * Most strings will be keywords or ASCII-only with no zeroes. These can be copied directly to the buffer
-			// * We will only attempt to optimze strings that don't have any 00 to escape to 00 FF. For these, we will fallback to converting to byte[] then escaping.
+			// * We will only attempt to optimize strings that don't have any 00 to escape to 00 FF. For these, we will fallback to converting to byte[] then escaping.
 			// * Since .NET's strings are UTF-16, the max possible UNICODE value to encode is 0xFFFF, which takes 3 bytes in UTF-8 (EF BF BF)
 			// * Most western europe languages have only a few non-ASCII chars here and there, and most of them will only use 2 bytes (ex: 'é' => 'C3 A9')
-			// * More complex scripts with dedicated symbol pages (kanjis, arabic, ....) will take 2 or 3 bytes for each charecter.
+			// * More complex scripts with dedicated symbol pages (kanjis, arabic, ....) will take 2 or 3 bytes for each character.
 
 			// We will first do a pass to check for the presence of 00 and non-ASCII chars
 			// => if we find at least on 00, we fallback to escaping the result of Encoding.UTF8.GetBytes()
@@ -506,7 +500,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			#region Second pass: encode the string to UTF-8, in chunks
 
 			// Here we know that there is at least one unicode char, and that there are no \0
-			// We will tterate through the string, filling as much of the buffer as possible
+			// We will iterate through the string, filling as much of the buffer as possible
 
 			bool done;
 			int remaining = count;
@@ -521,7 +515,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			// We can not really predict the final size of the encoded string, but:
 			// * Western languages have a few chars that usually need 2 bytes. If we pre-allocate 50% more bytes, it should fit most of the time, without too much waste
-			// * Eastern langauges will have all chars encoded to 3 bytes. If we also pre-allocated 50% more, we should only need one resize of the buffer (150% x 2 = 300%), which is acceptable
+			// * Eastern languages will have all chars encoded to 3 bytes. If we also pre-allocated 50% more, we should only need one resize of the buffer (150% x 2 = 300%), which is acceptable
 			writer.Output.EnsureBytes(checked(2 + count + (count >> 1))); // preallocate 150% of the string + 2 bytes
 			writer.Output.UnsafeWriteByte(TupleTypes.Utf8);
 
@@ -583,7 +577,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref TupleWriter writer, byte[] value)
+		public static void WriteBytes(ref TupleWriter writer, byte[]? value)
 		{
 			if (value == null)
 			{
@@ -596,7 +590,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref TupleWriter writer, [NotNull] byte[] value, int offset, int count)
+		public static void WriteBytes(ref TupleWriter writer, byte[] value, int offset, int count)
 		{
 			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.AsSpan(offset, count));
 		}
@@ -640,8 +634,14 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(ref TupleWriter writer, ReadOnlySpan<byte> value)
+		{
+			WriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);
+		}
+
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, [NotNull] ReadOnlySpan<byte> value)
+		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, ReadOnlySpan<byte> value)
 		{
 			int n = value.Length;
 
@@ -653,8 +653,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				if (b == 0) ++n;
 			}
 
-			writer.Output.EnsureBytes(n + 2);
-			var buffer = writer.Output.Buffer;
+			var buffer = writer.Output.EnsureBytes(n + 2);
 			int p = writer.Output.Position;
 			buffer[p++] = type;
 			if (n > 0)
@@ -752,16 +751,16 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static void WriteVersionStamp(ref TupleWriter writer, in VersionStamp value)
 		{
 			if (value.HasUserVersion)
-			{ // 96-bits Versionstamp
+			{ // 96-bits VersionStamp
 				var span = writer.Output.AllocateSpan(13);
 				span[0] = TupleTypes.VersionStamp96;
-				value.WriteToUnsafe(span.Slice(1));
+				VersionStamp.WriteUnsafe(span.Slice(1), in value);
 			}
 			else
-			{ // 80-bits Versionstamp
+			{ // 80-bits VersionStamp
 				var span = writer.Output.AllocateSpan(11);
 				span[0] = TupleTypes.VersionStamp80;
-				value.WriteToUnsafe(span.Slice(1));
+				VersionStamp.WriteUnsafe(span.Slice(1), in value);
 			}
 		}
 
@@ -825,7 +824,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 
 			if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
-			long value = (long)slice.ReadUInt64BE(1, bytes);
+			long value = (long) slice.ReadUInt64BE(1, bytes);
 
 			if (neg)
 			{ // the value is encoded as the one's complement of the absolute value
@@ -879,22 +878,23 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static Slice ParseBytes(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[slice.Count - 1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
 			var chunk = slice.Substring(1, slice.Count - 2);
-			if (!ShouldUnescapeByteString(chunk))
+			if (!ShouldUnescapeByteString(chunk.Span))
 			{
 				return chunk;
 			}
 
 			var span = new byte[chunk.Count];
-			if (!TryUnescapeByteString(chunk, span, out int written))
+			if (!TryUnescapeByteString(chunk.Span, span, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
+			Contract.Requires(written <= span.Length);
 
-			return span.AsSlice(0, written);
+			return new Slice(span, 0, written);
 		}
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
@@ -912,18 +912,22 @@ namespace Doxense.Collections.Tuples.Encoding
 				return Encoding.Default.GetString(chunk);
 			}
 			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
-#else
-			var chunk = slice.Substring(1, slice.Count - 2);
-			if (!ShouldUnescapeByteString(chunk))
-			{
-				return Encoding.Default.GetString(chunk.Array, chunk.Offset, chunk.Count);
-			}
-			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
-#endif
 			if (!TryUnescapeByteString(chunk, span, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
+#else
+			var chunk = slice.Substring(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk.Span))
+			{
+				return Encoding.Default.GetString(chunk.Array, chunk.Offset, chunk.Count);
+			}
+			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
+			if (!TryUnescapeByteString(chunk.Span, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+#endif
 			string s = Encoding.Default.GetString(span, 0, written);
 			ArrayPool<byte>.Shared.Return(span);
 			return s;
@@ -944,18 +948,22 @@ namespace Doxense.Collections.Tuples.Encoding
 				return Encoding.UTF8.GetString(chunk);
 			}
 			var span = ArrayPool<byte>.Shared.Rent(chunk.Length);
-#else
-			var chunk = slice.Substring(1, slice.Count - 2);
-			if (!ShouldUnescapeByteString(chunk))
-			{
-				return Encoding.UTF8.GetString(chunk.Array, chunk.Offset, chunk.Count);
-			}
-			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
-#endif
 			if (!TryUnescapeByteString(chunk, span, out int written))
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
+#else
+			var chunk = slice.Substring(1, slice.Count - 2);
+			if (!ShouldUnescapeByteString(chunk.Span))
+			{
+				return Encoding.UTF8.GetString(chunk.Array, chunk.Offset, chunk.Count);
+			}
+			var span = ArrayPool<byte>.Shared.Rent(chunk.Count);
+			if (!TryUnescapeByteString(chunk.Span, span, out int written))
+			{ // should never happen since decoding can only reduce the size!?
+				throw new InvalidOperationException();
+			}
+#endif
 			string s = Encoding.UTF8.GetString(span, 0, written);
 			ArrayPool<byte>.Shared.Return(span);
 			return s;
@@ -1273,7 +1281,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			while (count-- > 0)
 			{
 				if (!reader.Input.HasMore) return false;
-				var token = TupleParser.ParseNext(ref reader);
+				var token = ParseNext(ref reader);
 				if (token.IsNull) return false;
 			}
 			return true;
@@ -1286,11 +1294,11 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, TupleSegmentType, T> visitor)
 		{
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
-			var token = TupleParser.ParseNext(ref reader);
+			var token = ParseNext(ref reader);
 			return visitor(token, TupleTypes.DecodeSegmentType(token));
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static Exception FailLegacyTupleNotSupported()
 		{
 			throw new FormatException("Old style embedded tuples (0x03) are not supported anymore.");

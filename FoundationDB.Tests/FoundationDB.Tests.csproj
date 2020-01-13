@@ -30,6 +30,10 @@
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066,NU1605</WarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1' OR '$(TargetFramework)'=='netcoreapp3.1'">
+    <DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj" />
     <PackageReference Include="MathNet.Numerics.Signed" Version="4.9.0" />

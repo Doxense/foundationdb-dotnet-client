@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ namespace Doxense.Collections.Tuples
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
@@ -51,17 +52,20 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First and only item in the tuple</summary>
+		[AllowNull]
 		public readonly T1 Item1;
 
 		[DebuggerStepThrough]
-		public STuple(T1 item1)
+		public STuple([AllowNull] T1 item1)
 		{
 			this.Item1 = item1;
 		}
 
 		public int Count => 1;
 
-		object IReadOnlyList<object>.this[int index]
+		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
+
+		object? IVarTuple.this[int index]
 		{
 			get
 			{
@@ -72,30 +76,60 @@ namespace Doxense.Collections.Tuples
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
+#if USE_RANGE_API
+
+		object? IVarTuple.this[Index index] => index.GetOffset(1) switch
+		{
+			0 => this.Item1,
+			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 1)
+		};
+
+		public IVarTuple this[Range range]
+		{
+			get
+			{
+				(int offset, int count) = range.GetOffsetAndLength(1);
+				return count == 0 ? STuple.Empty : this;
+			}
+		}
+
+#endif
+
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
+		[return:MaybeNull]
 		public TItem Get<TItem>(int index)
 		{
 			if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
 			return TypeConverters.Convert<T1, TItem>(this.Item1);
 		}
 
-		IVarTuple IVarTuple.Append<T2>(T2 value)
+		IVarTuple IVarTuple.Append<T2>([AllowNull] T2 value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
 
-		/// <summary>Appends a tuple as a single new item at the end of the current tuple.</summary>
-		/// <param name="value">Tuple that will be added as an embedded item</param>
+		/// <summary>Appends a single new item at the end of the current tuple.</summary>
+		/// <param name="value">Value that will be added as an embedded item</param>
 		/// <returns>New tuple with one extra item</returns>
-		/// <remarks>If you want to append the *items*  of <paramref name="value"/>, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2> Append<T2>(T2 value)
+		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2> Append<T2>([AllowNull] T2 value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
+		}
+
+		/// <summary>Appends two new items at the end of the current tuple.</summary>
+		/// <param name="value1">Value that will be added as an embedded item</param>
+		/// <param name="value2">Value that will be added as an embedded item</param>
+		/// <returns>New tuple with one extra item</returns>
+		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2, T3> Append<T2, T3>([AllowNull] T2 value1, [AllowNull] T3 value2)
+		{
+			return new STuple<T1, T2, T3>(this.Item1, value1, value2);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -107,15 +141,33 @@ namespace Doxense.Collections.Tuples
 			return STuple.Concat(this, tuple);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2> Concat<T2>(STuple<T2> tuple)
+		{
+			return new STuple<T1, T2>(this.Item1, tuple.Item1);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2, T3> Concat<T2, T3>(STuple<T2, T3> tuple)
+		{
+			return new STuple<T1, T2, T3>(this.Item1, tuple.Item1, tuple.Item2);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2, T3, T4> Concat<T2, T3, T4>(STuple<T2, T3, T4> tuple)
+		{
+			return new STuple<T1, T2, T3, T4>(this.Item1, tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
 		/// <summary>Copy the item of this singleton into an array at the specified offset</summary>
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			array[offset] = this.Item1;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct(out T1 item1)
+		public void Deconstruct([MaybeNull] out T1 item1)
 		{
 			item1 = this.Item1;
 		}
@@ -123,7 +175,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void With([NotNull] Action<T1> lambda)
+		public void With(Action<T1> lambda)
 		{
 			lambda(this.Item1);
 		}
@@ -132,7 +184,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TItem With<TItem>([NotNull] Func<T1, TItem> lambda)
+		public TItem With<TItem>(Func<T1, TItem> lambda)
 		{
 			return lambda(this.Item1);
 		}
@@ -142,7 +194,7 @@ namespace Doxense.Collections.Tuples
 			TuplePackers.SerializeTo<T1>(ref writer, this.Item1);
 		}
 
-		public IEnumerator<object> GetEnumerator()
+		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
 		}
@@ -158,12 +210,12 @@ namespace Doxense.Collections.Tuples
 			return "(" + STuple.Formatter.Stringify(this.Item1) + ",)";
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
 			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -189,7 +241,7 @@ namespace Doxense.Collections.Tuples
 			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
 		}
 
-		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (other == null) return false;
 			if (other is STuple<T1> stuple)
@@ -209,13 +261,13 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[Pure]
-		public static implicit operator STuple<T1>([NotNull] Tuple<T1> t)
+		public static implicit operator STuple<T1>(Tuple<T1> t)
 		{
 			Contract.NotNull(t, nameof(t));
 			return new STuple<T1>(t.Item1);
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public static explicit operator Tuple<T1>(STuple<T1> t)
 		{
 			return new Tuple<T1>(t.Item1);
@@ -321,7 +373,7 @@ namespace Doxense.Collections.Tuples
 
 		public sealed class Comparer : IComparer<STuple<T1>>
 		{
-			public static Comparer Default { [NotNull] get; } = new Comparer();
+			public static Comparer Default { get; } = new Comparer();
 
 			private static readonly Comparer<T1> Comparer1 = Comparer<T1>.Default;
 
@@ -335,7 +387,7 @@ namespace Doxense.Collections.Tuples
 
 		public sealed class EqualityComparer : IEqualityComparer<STuple<T1>>
 		{
-			public static EqualityComparer Default { [NotNull] get; } = new EqualityComparer();
+			public static EqualityComparer Default { get; } = new EqualityComparer();
 
 			private static readonly EqualityComparer<T1> Comparer1 = EqualityComparer<T1>.Default;
 

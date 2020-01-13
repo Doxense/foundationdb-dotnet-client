@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace Doxense.Collections.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Runtime.Converters;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -75,12 +76,12 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => m_count;
 
-		public object this[int index]
+		public object? this[int index]
 		{
 			get
 			{
-				index = TupleHelpers.MapIndex(index, m_count);
-				return index < m_split ? this.Head[index] : this.Tail[index - m_split];
+				int p = TupleHelpers.MapIndex(index, m_count);
+				return p < m_split ? this.Head[p] : this.Tail[p - m_split];
 			}
 		}
 
@@ -107,6 +108,40 @@ namespace Doxense.Collections.Tuples
 			}
 		}
 
+#if USE_RANGE_API
+
+		public object? this[Index index]
+		{
+			get
+			{
+				int p = TupleHelpers.MapIndex(index, m_count);
+				return p < m_split ? this.Head[p] : this.Tail[p - m_split];
+			}
+		}
+
+		public IVarTuple this[Range range]
+		{
+			get
+			{
+				int lenHead = this.Head.Count;
+				int lenTail = this.Tail.Count;
+				(int offset, int count) = range.GetOffsetAndLength(lenHead + lenTail);
+				if (count == 0) return STuple.Empty;
+				if (offset == 0)
+				{
+					if (count == lenHead + lenTail) return this;
+					if (count == lenHead) return this.Head;
+				}
+				if (offset == lenHead && count == lenTail)
+				{
+					return this.Tail;
+				}
+				return TupleHelpers.Splice(this, range);
+			}
+		}
+
+#endif
+
 		public T Get<T>(int index)
 		{
 			index = TupleHelpers.MapIndex(index, m_count);
@@ -118,8 +153,7 @@ namespace Doxense.Collections.Tuples
 			return new LinkedTuple<T>(this, value);
 		}
 
-		[NotNull]
-		public LinkedTuple<T> Append<T>(T value)
+		public LinkedTuple<T> Append<T>([AllowNull] T value)
 		{
 			return new LinkedTuple<T>(this, value);
 		}
@@ -135,19 +169,19 @@ namespace Doxense.Collections.Tuples
 
 			if (n1 + n2 >= 10)
 			{ // it's getting big, merge to a new List tuple
-				return new ListTuple(this.Head, this.Tail, tuple);
+				return STuple.Concat(this.Head, this.Tail, tuple);
 			}
 			// REVIEW: should we always concat with the tail?
-			return new JoinedTuple(this.Head, this.Tail.Concat(tuple));
+			return STuple.Concat(this.Head, this.Tail.Concat(tuple));
 		}
 
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			this.Head.CopyTo(array, offset);
 			this.Tail.CopyTo(array, offset + m_split);
 		}
 
-		public IEnumerator<object> GetEnumerator()
+		public IEnumerator<object?> GetEnumerator()
 		{
 			foreach (var item in this.Head)
 			{
@@ -164,12 +198,12 @@ namespace Doxense.Collections.Tuples
 			return this.GetEnumerator();
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -179,7 +213,7 @@ namespace Doxense.Collections.Tuples
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
@@ -208,10 +242,13 @@ namespace Doxense.Collections.Tuples
 
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
-			return HashCodes.Combine(
-				HashCodes.Compute(this.Head, comparer),
-				HashCodes.Compute(this.Tail, comparer)
-			);
+			int h = this.Head.GetHashCode(comparer);
+			// we can't combine with the hashcode of the tail because Combine(H(head), H(tail)) != Combine(H(this[0]), H(this[1]), ... H(this[N-1]))
+			foreach (var item in this.Tail)
+			{
+				h = HashCodes.Combine(h, comparer.GetHashCode(item));
+			}
+			return h;
 		}
 	}
 

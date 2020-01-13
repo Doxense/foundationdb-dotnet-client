@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ namespace Doxense.Collections.Tuples
 				m_comparer = comparer;
 			}
 
-			public bool Equals(IVarTuple x, IVarTuple y)
+			public bool Equals(IVarTuple? x, IVarTuple? y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
 				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
@@ -69,7 +69,7 @@ namespace Doxense.Collections.Tuples
 				return HashCodes.Compute(obj, m_comparer);
 			}
 
-			public new bool Equals(object x, object y)
+			public new bool Equals(object? x, object? y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;
@@ -99,8 +99,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="offset">Offset of the item to compare (can be negative)</param>
 		/// <param name="comparer">Comparer for the item's type</param>
 		/// <returns>New comparer instance</returns>
-		[NotNull]
-		public static CompositeComparer<T1> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
+		public static CompositeComparer<T1> Composite<T1>(int offset = 0, IComparer<T1>? comparer = null)
 		{
 			return new CompositeComparer<T1>(offset, comparer);
 		}
@@ -112,8 +111,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer1">Comparer for the first item's type</param>
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
-		[NotNull]
-		public static CompositeComparer<T1, T2> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		public static CompositeComparer<T1, T2> Composite<T1, T2>(int offset = 0, IComparer<T1>? comparer1 = null, IComparer<T2>? comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
 		}
@@ -127,8 +125,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <param name="comparer3">Comparer for the third item's type</param>
 		/// <returns>New comparer instance</returns>
-		[NotNull]
-		public static CompositeComparer<T1, T2, T3> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
+		public static CompositeComparer<T1, T2, T3> Composite<T1, T2, T3>(int offset = 0, IComparer<T1>? comparer1 = null, IComparer<T2>? comparer2 = null, IComparer<T3>? comparer3 = null)
 		{
 			return new CompositeComparer<T1, T2, T3>(offset, comparer1, comparer2, comparer3);
 		}
@@ -147,14 +144,14 @@ namespace Doxense.Collections.Tuples
 			{ }
 
 			/// <summary>Constructor for a new tuple comparer</summary>
-			public CompositeComparer(IComparer<T1> comparer)
+			public CompositeComparer(IComparer<T1>? comparer)
 				: this(0, comparer)
 			{ }
 
 			/// <summary>Constructor for a new tuple comparer</summary>
 			/// <param name="offset">Offset in the tuples of the element to compare (can be negative)</param>
 			/// <param name="comparer">Comparer for the element type</param>
-			public CompositeComparer(int offset, IComparer<T1> comparer)
+			public CompositeComparer(int offset, IComparer<T1>? comparer)
 			{
 				this.Offset = offset;
 				this.Comparer = comparer ?? Comparer<T1>.Default;
@@ -171,7 +168,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(IVarTuple x, IVarTuple y)
+			public int Compare(IVarTuple? x, IVarTuple? y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;
@@ -221,7 +218,7 @@ namespace Doxense.Collections.Tuples
 			{ }
 
 			/// <summary>Constructor for a new tuple comparer</summary>
-			public CompositeComparer(IComparer<T1> comparer1, IComparer<T2> comparer2)
+			public CompositeComparer(IComparer<T1>? comparer1, IComparer<T2>? comparer2)
 				: this(0, comparer1, comparer2)
 			{ }
 
@@ -229,7 +226,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="offset">Offset in the tuples of the first element to compare (can be negative)</param>
 			/// <param name="comparer1">Comparer for the first element type</param>
 			/// <param name="comparer2">Comparer for the second element type</param>
-			public CompositeComparer(int offset, IComparer<T1> comparer1, IComparer<T2> comparer2)
+			public CompositeComparer(int offset, IComparer<T1>? comparer1, IComparer<T2>? comparer2)
 			{
 				this.Offset = offset;
 				this.Comparer1 = comparer1 ?? Comparer<T1>.Default;
@@ -312,7 +309,7 @@ namespace Doxense.Collections.Tuples
 			{ }
 
 			/// <summary>Constructor for a new tuple comparer</summary>
-			public CompositeComparer(IComparer<T1> comparer1, IComparer<T2> comparer2, IComparer<T3> comparer3)
+			public CompositeComparer(IComparer<T1>? comparer1, IComparer<T2>? comparer2, IComparer<T3>? comparer3)
 				: this(0, comparer1, comparer2, comparer3)
 			{ }
 
@@ -321,7 +318,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="comparer1">Comparer for the first element type</param>
 			/// <param name="comparer2">Comparer for the second element type</param>
 			/// <param name="comparer3">Comparer for the third element type</param>
-			public CompositeComparer(int offset, IComparer<T1> comparer1, IComparer<T2> comparer2, IComparer<T3> comparer3)
+			public CompositeComparer(int offset, IComparer<T1>? comparer1, IComparer<T2>? comparer2, IComparer<T3>? comparer3)
 			{
 				this.Offset = offset;
 				this.Comparer1 = comparer1 ?? Comparer<T1>.Default;

@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,8 @@ namespace Doxense.Collections.Tuples
 	using JetBrains.Annotations;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 
@@ -49,6 +51,7 @@ namespace Doxense.Collections.Tuples
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
 		/// <summary>Value of the last element of the tuple</summary>
+		[MaybeNull]
 		public readonly T Tail;
 
 		/// <summary>Link to the parent tuple that contains the head.</summary>
@@ -58,7 +61,7 @@ namespace Doxense.Collections.Tuples
 		public readonly int Depth;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		public LinkedTuple([NotNull] IVarTuple head, T tail)
+		public LinkedTuple(IVarTuple head, [AllowNull] T tail)
 		{
 			Contract.NotNull(head, nameof(head));
 
@@ -70,7 +73,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Returns the number of elements in this tuple</summary>
 		public int Count => this.Depth + 1;
 
-		public object this[int index]
+		public object? this[int index]
 		{
 			get
 			{
@@ -82,6 +85,37 @@ namespace Doxense.Collections.Tuples
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
+#if USE_RANGE_API
+
+		public object? this[Index index]
+		{
+			get
+			{
+				int p = TupleHelpers.MapIndex(index, this.Depth + 1);
+				if (p == this.Depth) return this.Tail;
+				return this.Head[p];
+			}
+		}
+
+		public IVarTuple this[Range range]
+		{
+			get
+			{
+				int d = this.Depth;
+				(int offset, int count) = range.GetOffsetAndLength(d + 1);
+				if (count == 0) return STuple.Empty;
+				if (count == 1 && offset == d) return new STuple<T>(this.Tail);
+				if (offset == 0)
+				{
+					if (count == d + 1) return this;
+					if (count == d) return this.Head;
+				}
+				return TupleHelpers.Splice(this, range);
+			}
+		}
+
+#endif
+
 		public TItem Get<TItem>(int index)
 		{
 			if (index == this.Depth || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
@@ -91,19 +125,14 @@ namespace Doxense.Collections.Tuples
 
 		public T Last
 		{
-			[Pure]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[return: MaybeNull]
 			get => this.Tail;
 		}
 
-		IVarTuple IVarTuple.Append<TItem>(TItem value)
+		public IVarTuple Append<TItem>(TItem value)
 		{
-			return this.Append<TItem>(value);
-		}
-
-		[NotNull]
-		public LinkedTuple<TItem> Append<TItem>(TItem value)
-		{
-			return new LinkedTuple<TItem>(this, value);
+			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail, value));
 		}
 
 		public IVarTuple Concat(IVarTuple tuple)
@@ -111,13 +140,13 @@ namespace Doxense.Collections.Tuples
 			return STuple.Concat(this, tuple);
 		}
 
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			this.Head.CopyTo(array, offset);
 			array[offset + this.Depth] = this.Tail;
 		}
 
-		public IEnumerator<object> GetEnumerator()
+		public IEnumerator<object?> GetEnumerator()
 		{
 			foreach (var item in this.Head)
 			{
@@ -136,12 +165,12 @@ namespace Doxense.Collections.Tuples
 			return STuple.Formatter.ToString(this);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj != null && ((System.Collections.IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
 			return !object.ReferenceEquals(other, null) && ((System.Collections.IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -151,13 +180,12 @@ namespace Doxense.Collections.Tuples
 			return ((System.Collections.IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var linked = other as LinkedTuple<T>;
-			if (!object.ReferenceEquals(linked, null))
+			if (other is LinkedTuple<T> linked)
 			{
 				// must have same length
 				if (linked.Count != this.Count) return false;

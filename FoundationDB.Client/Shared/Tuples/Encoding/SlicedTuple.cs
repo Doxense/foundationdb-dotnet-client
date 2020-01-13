@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2019, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,8 @@ namespace Doxense.Collections.Tuples.Encoding
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
+	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples;
 	using Doxense.Runtime.Converters;
 
@@ -66,7 +68,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public int Count => m_slices.Length;
 
-		public object this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
+		public object? this[int index] => TuplePackers.DeserializeBoxed(GetSlice(index));
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
@@ -83,11 +85,30 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
+#if USE_RANGE_API
+
+		public object? this[Index index] => TuplePackers.DeserializeBoxed(m_slices.Span[index.GetOffset(m_slices.Length)]);
+
+		public IVarTuple this[Range range]
+		{
+			get
+			{
+				int len = this.Count;
+				(int offset, int count) = range.GetOffsetAndLength(len);
+				if (count == 0) return STuple.Empty;
+				if (offset == 0 && count == len) return this;
+				return new SlicedTuple(m_slices.Slice(offset, count));
+			}
+		}
+
+#endif
+
 		public T Get<T>(int index)
 		{
 			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 
+		[return: MaybeNull]
 		public T Last<T>()
 		{
 			int count = m_slices.Length;
@@ -95,10 +116,23 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuplePacker<T>.Deserialize(m_slices.Span[count - 1]);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice GetSlice(int index)
 		{
-			return m_slices.Span[TupleHelpers.MapIndex(index, m_slices.Length)];
+			var slices = m_slices;
+			return slices.Span[TupleHelpers.MapIndex(index, slices.Length)];
 		}
+
+#if USE_RANGE_API
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice GetSlice(Index index)
+		{
+			var slices = m_slices;
+			return slices.Span[index.GetOffset(slices.Length)];
+		}
+
+#endif
 
 		IVarTuple IVarTuple.Append<T>(T value)
 		{
@@ -110,7 +144,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			throw new NotSupportedException();
 		}
 
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			var slices = m_slices.Span;
 			for (int i = 0; i < slices.Length;i++)
@@ -119,7 +153,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		public IEnumerator<object> GetEnumerator()
+		public IEnumerator<object?> GetEnumerator()
 		{
 			//note: I'm not sure if we're allowed to use a local variable of type Span<..> in here?
 			for (int i = 0; i < m_slices.Length; i++)
@@ -140,12 +174,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return STuple.Formatter.ToString(this);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
 			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
@@ -155,13 +189,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var sliced = other as SlicedTuple;
-			if (!object.ReferenceEquals(sliced, null))
+			if (other is SlicedTuple sliced)
 			{
 				// compare slices!
 				var left = m_slices.Span;
