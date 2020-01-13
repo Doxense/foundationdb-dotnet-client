@@ -55,7 +55,7 @@ namespace Doxense.Memory
 		#region Private Members...
 
 		/// <summary>Buffer holding the data</summary>
-		public byte[] Buffer;
+		public byte[]? Buffer;
 
 		/// <summary>Position in the buffer ( == number of already written bytes)</summary>
 		public int Position;
@@ -87,7 +87,7 @@ namespace Doxense.Memory
 
 		/// <summary>Create a new binary buffer using an existing buffer and with the cursor to a specific location</summary>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
-		public SliceWriter([NotNull] byte[] buffer, int index)
+		public SliceWriter(byte[] buffer, int index)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			Contract.Between(index, 0, buffer.Length, nameof(index));
@@ -178,7 +178,7 @@ namespace Doxense.Memory
 
 				// chop chop
 				int count = until - from;
-				return count > 0 ? new Slice(this.Buffer, from, count) : Slice.Empty;
+				return count > 0 ? new Slice(this.Buffer!, from, count) : Slice.Empty;
 			}
 		}
 
@@ -186,7 +186,7 @@ namespace Doxense.Memory
 
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
-		[Pure, NotNull]
+		[Pure]
 		public byte[] GetBytes()
 		{
 			int p = this.Position;
@@ -208,7 +208,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
-			if (buffer == null | p == 0)
+			if (buffer == null || p == 0)
 			{ // empty buffer
 				return Slice.Empty;
 			}
@@ -223,7 +223,7 @@ namespace Doxense.Memory
 		{
 			var buffer = this.Buffer;
 			var p = this.Position;
-			if (buffer == null | p == 0)
+			if (buffer == null || p == 0)
 			{ // empty buffer
 				return MutableSlice.Empty;
 			}
@@ -246,7 +246,7 @@ namespace Doxense.Memory
 		{
 			if (count == 0) return Slice.Empty;
 			if ((uint) count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, 0, count);
+			return new Slice(this.Buffer!, 0, count);
 		}
 
 		/// <summary>Returns a slice pointing to the first <paramref name="count"/> bytes of the buffer</summary>
@@ -264,7 +264,7 @@ namespace Doxense.Memory
 		{
 			if (count == 0) return Slice.Empty;
 			if (count > this.Position) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, 0, (int) count);
+			return new Slice(this.Buffer!, 0, (int) count);
 		}
 
 		/// <summary>Returns a slice pointer to the last <paramref name="count"/> bytes of the buffer</summary>
@@ -282,7 +282,7 @@ namespace Doxense.Memory
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
 			if ((uint) count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, p - count, count);
+			return new Slice(this.Buffer!, p - count, count);
 		}
 
 		/// <summary>Returns a slice pointer to the last <paramref name="count"/> bytes of the buffer</summary>
@@ -300,7 +300,7 @@ namespace Doxense.Memory
 			if (count == 0) return Slice.Empty;
 			int p = this.Position;
 			if (count > p) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Buffer is too small");
-			return new Slice(this.Buffer, p - (int) count, (int) count);
+			return new Slice(this.Buffer!, p - (int) count, (int) count);
 		}
 
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
@@ -313,7 +313,7 @@ namespace Doxense.Memory
 			int p = this.Position;
 			if (offset < 0 || offset > p) throw ThrowHelper.ArgumentException(nameof(offset), "Offset must be inside the buffer");
 			int count = p - offset;
-			return count > 0 ? new Slice(this.Buffer, offset, p - offset) : Slice.Empty;
+			return count > 0 ? new Slice(this.Buffer!, offset, p - offset) : Slice.Empty;
 		}
 
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
@@ -373,7 +373,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Empties the current buffer after a succesful write</summary>
+		/// <summary>Empties the current buffer after a successful write</summary>
 		/// <param name="zeroes">If true, fill the existing buffer with zeroes, if it is reused, to ensure that no previous data can leak.</param>
 		/// <remarks>If the current buffer is large enough, and less than 1/8th was used, then it will be discarded and a new smaller one will be allocated as needed</remarks>
 		public void Reset(bool zeroes = false)
@@ -424,7 +424,7 @@ namespace Doxense.Memory
 			if (count == 0) return MutableSlice.Empty;
 
 			int offset = Skip(count, pad);
-			return new MutableSlice(this.Buffer, offset, count);
+			return new MutableSlice(this.Buffer!, offset, count);
 		}
 
 		/// <summary>Advance the cursor by the amount required end up on an aligned byte position</summary>
@@ -627,7 +627,7 @@ namespace Doxense.Memory
 
 		/// <summary>Write a byte array to the end of the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteBytes([CanBeNull] byte[] data)
+		public void WriteBytes(byte[]? data)
 		{
 			if (data != null)
 			{
@@ -816,7 +816,7 @@ namespace Doxense.Memory
 
 		/// <summary>Append a byte array to the end of the buffer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice AppendBytes(byte[] data)
+		public Slice AppendBytes(byte[]? data)
 		{
 			return data != null ? AppendBytes(data.AsSpan()) : Slice.Empty;
 		}
@@ -1289,7 +1289,7 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteVarBytes([NotNull] byte[] bytes)
+		public void WriteVarBytes(byte[] bytes)
 		{
 			Contract.Requires(bytes != null);
 			WriteVarBytes(bytes.AsSpan());
@@ -1297,7 +1297,7 @@ namespace Doxense.Memory
 
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteVarBytes([NotNull] byte[] bytes, int offset, int count)
+		public void WriteVarBytes(byte[] bytes, int offset, int count)
 		{
 			Contract.Requires(count == 0 || bytes != null);
 			WriteVarBytes(bytes.AsSpan(offset, count));
@@ -1343,7 +1343,7 @@ namespace Doxense.Memory
 
 			// write the count
 			WriteVarInt32((uint) n);
-			Contract.Assert(this.Buffer == null);
+			Contract.Assert(this.Buffer == buffer);
 
 			// write the bytes
 			int p = this.Position;
@@ -1360,7 +1360,7 @@ namespace Doxense.Memory
 		// => the string's length is NOT stored!
 
 		/// <summary>Write a variable-sized string, using the specified encoding</summary>
-		public void WriteVarString(string value, Encoding encoding = null)
+		public void WriteVarString(string? value, Encoding? encoding = null)
 		{
 			if (encoding == null)
 			{
@@ -1382,7 +1382,7 @@ namespace Doxense.Memory
 		/// <summary>Write a variable-sized string, encoded using UTF-8</summary>
 		/// <param name="value">String to append</param>
 		/// <remarks>The null and empty string will be stored the same way. Caller must use a different technique if they must be stored differently.</remarks>
-		public void WriteVarStringUtf8(string value)
+		public void WriteVarStringUtf8(string? value)
 		{
 			// Format:
 			// - VarInt     Number of following bytes
@@ -1421,7 +1421,7 @@ namespace Doxense.Memory
 		/// <summary>Write a variable-sized string, which is known to only contain ASCII characters (0..127)</summary>
 		/// <remarks>This is faster than <see cref="WriteVarString(string, Encoding)"/> when the caller KNOWS that the string is ASCII only. This should only be used with keywords and constants, NOT with user input!</remarks>
 		/// <exception cref="ArgumentException">If the string contains characters above 127</exception>
-		public void WriteVarStringAscii(string value)
+		public void WriteVarStringAscii(string? value)
 		{
 			if (string.IsNullOrEmpty(value))
 			{
@@ -1498,7 +1498,7 @@ namespace Doxense.Memory
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int WriteString(string value)
+		public int WriteString(string? value)
 		{
 			return WriteStringUtf8(value);
 		}
@@ -1516,7 +1516,7 @@ namespace Doxense.Memory
 		/// <param name="value">Text to write</param>
 		/// <param name="encoding">Encoding used to convert the text to bytes</param>
 		/// <returns>Number of bytes written</returns>
-		public int WriteString(string value, Encoding encoding)
+		public int WriteString(string? value, Encoding encoding)
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
 
@@ -1533,7 +1533,7 @@ namespace Doxense.Memory
 		/// <summary>Write a string using UTF-8</summary>
 		/// <param name="value">Text to write</param>
 		/// <returns>Number of bytes written</returns>
-		public int WriteStringUtf8(string value)
+		public int WriteStringUtf8(string? value)
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
 
@@ -1584,7 +1584,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidUtf8CodePoint()
 		{
 			return new DecoderFallbackException("Failed to encode invalid Unicode CodePoint into UTF-8");
@@ -1594,7 +1594,7 @@ namespace Doxense.Memory
 		/// <param name="value">String with characters only in the 0..127 range</param>
 		/// <remarks>Faster than <see cref="WriteString(string, Encoding)"/> when writing Magic Strings or ascii keywords</remarks>
 		/// <returns>Number of bytes written</returns>
-		public int WriteStringAscii(string value)
+		public int WriteStringAscii(string? value)
 		{
 			Contract.Requires(value != null);
 
@@ -2020,7 +2020,7 @@ namespace Doxense.Memory
 		/// <summary>Ensures that we can fit the specified amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(int count)
 		{
 			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
@@ -2110,7 +2110,7 @@ namespace Doxense.Memory
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <param name="pool"></param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(int count, ArrayPool<byte> pool)
 		{
 			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
@@ -2130,7 +2130,7 @@ namespace Doxense.Memory
 		/// <summary>Ensures that we can fit the specified  amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <remarks>If the buffer is too small, it will be resized, and all previously written data will be copied</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] EnsureBytes(uint count)
 		{
 			return EnsureBytes(checked((int) count));

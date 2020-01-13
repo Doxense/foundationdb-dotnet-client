@@ -145,7 +145,7 @@ namespace FoundationDB.Layers.Collections
 			/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 			/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 			[NotNull]
-			public IAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
+			public IAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions? options = null)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 

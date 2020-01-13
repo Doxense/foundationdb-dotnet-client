@@ -40,8 +40,8 @@ namespace Doxense.Linq.Async.Expressions
 	/// <typeparam name="TSource">Type of observed items</typeparam>
 	public sealed class AsyncObserverExpression<TSource>
 	{
-		private readonly Action<TSource> m_handler;
-		private readonly Func<TSource, CancellationToken, Task> m_asyncHandler;
+		private readonly Action<TSource>? m_handler;
+		private readonly Func<TSource, CancellationToken, Task>? m_asyncHandler;
 
 		public AsyncObserverExpression(Action<TSource> handler)
 		{
@@ -85,14 +85,12 @@ namespace Doxense.Linq.Async.Expressions
 			return new InvalidOperationException("Cannot invoke asynchronous observer synchronously");
 		}
 
-		[NotNull]
-		public AsyncObserverExpression<TSource> Then([NotNull] AsyncObserverExpression<TSource> expr)
+		public AsyncObserverExpression<TSource> Then(AsyncObserverExpression<TSource> expr)
 		{
 			return Then(this, expr);
 		}
 
-		[NotNull]
-		public static AsyncObserverExpression<TSource> Then([NotNull] AsyncObserverExpression<TSource> left, [NotNull] AsyncObserverExpression<TSource> right)
+		public static AsyncObserverExpression<TSource> Then(AsyncObserverExpression<TSource> left, AsyncObserverExpression<TSource> right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));

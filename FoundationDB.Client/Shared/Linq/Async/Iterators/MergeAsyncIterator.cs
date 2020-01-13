@@ -55,7 +55,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected Func<TSource, TResult> m_resultSelector;
 		protected int? m_limit;
 
-		protected IteratorState[] m_iterators;
+		protected IteratorState[]? m_iterators;
 		protected int? m_remaining;
 
 		protected struct IteratorState
@@ -67,7 +67,7 @@ namespace Doxense.Linq.Async.Iterators
 			public TKey Current;
 		}
 
-		protected MergeAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+		protected MergeAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer)
 		{
 			Contract.Requires(sources != null && (limit == null || limit >= 0) && keySelector != null && resultSelector != null);
 			m_sources = sources;
@@ -89,7 +89,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (mode == AsyncIterationHint.Head) mode = AsyncIterationHint.Iterator;
 
 			var sources = m_sources.ToArray();
-			var iterators = new IteratorState[sources.Length];
+			IteratorState[]? iterators = new IteratorState[sources.Length];
 			try
 			{
 				// start all the iterators
@@ -148,7 +148,7 @@ namespace Doxense.Linq.Async.Iterators
 						if (!await iterators[i].Next.ConfigureAwait(false))
 						{ // this one is done, remove it
 							await iterators[i].Iterator.DisposeAsync();
-							iterators[i] = default(IteratorState);
+							iterators[i] = default;
 							continue;
 						}
 
@@ -187,15 +187,15 @@ namespace Doxense.Linq.Async.Iterators
 			var iterators = m_iterators;
 			Contract.Requires(iterators != null);
 			iterators[index].HasCurrent = false;
-			iterators[index].Current = default(TKey);
+			iterators[index].Current = default!;
 			iterators[index].Next = iterators[index].Iterator.MoveNextAsync();
 		}
 
-		private static async ValueTask Cleanup(IteratorState[] iterators)
+		private static async ValueTask Cleanup(IteratorState[]? iterators)
 		{
 			if (iterators != null)
 			{
-				List<Exception> errors = null;
+				List<Exception>? errors = null;
 
 				for (int i = 0; i < iterators.Length; i++)
 				{

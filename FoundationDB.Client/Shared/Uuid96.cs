@@ -24,7 +24,7 @@ namespace System
 	{
 
 		/// <summary>Uuid with all bits set to 0</summary>
-		public static readonly Uuid96 Empty = default(Uuid96);
+		public static readonly Uuid96 Empty = default;
 
 		/// <summary>Uuid with all bits set to 1</summary>
 		public static readonly Uuid96 MaxValue = new Uuid96(uint.MaxValue, ulong.MaxValue);
@@ -90,13 +90,13 @@ namespace System
 			this.Lo = ((ulong) (uint) b) << 32 | (uint) c;
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
 		{
 			return ThrowHelper.ArgumentException(arg, "Value must be 12 bytes long");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidFormat()
 		{
 			return ThrowHelper.FormatException("Invalid " + nameof(Uuid96) + " format");
@@ -179,7 +179,7 @@ namespace System
 		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid96.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid96 Parse([NotNull] string buffer)
+		public static Uuid96 Parse(string buffer)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			if (!TryParse(buffer, out var value))
@@ -201,7 +201,7 @@ namespace System
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
-		public static bool TryParse([NotNull] string buffer, out Uuid96 result)
+		public static bool TryParse(string buffer, out Uuid96 result)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			return TryParse(buffer.AsSpan(), out result);
@@ -257,7 +257,7 @@ namespace System
 			return writer.ToSlice();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public byte[] ToByteArray()
 		{
 			var tmp = new byte[SizeOf];
@@ -285,7 +285,7 @@ namespace System
 		/// <returns>The value of this <see cref="Uuid96"/>, using the specified format.</returns>
 		/// <remarks>See <see cref="ToString(string, IFormatProvider)"/> for a description of the different formats</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
@@ -299,7 +299,7 @@ namespace System
 		/// <p>The <b>X</b> and <b>N</b> format encodes the value as a single group of 24 hexadecimal digits: "aaaaaaaabbbbbbbbcccccccc" (24 characters).</p>
 		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with '{' and '}': "{aaaaaaaa-bbbbbbbb-cccccccc}" (28 characters).</p>
 		/// </example>
-		public string ToString(string format, IFormatProvider formatProvider)
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
 			if (string.IsNullOrEmpty(format)) format = "D";
 
@@ -343,7 +343,7 @@ namespace System
 
 		#region IEquatable / IComparable...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			switch (obj)
 			{
@@ -384,8 +384,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* Hex32ToLowerChars([NotNull] char* ptr, uint a)
+		private static unsafe char* Hex32ToLowerChars([System.Diagnostics.CodeAnalysis.NotNull] char* ptr, uint a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
@@ -406,8 +405,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'A') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* Hex32ToUpperChars([NotNull] char* ptr, uint a)
+		private static unsafe char* Hex32ToUpperChars([System.Diagnostics.CodeAnalysis.NotNull] char* ptr, uint a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);
@@ -421,7 +419,7 @@ namespace System
 			return ptr + 8;
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static unsafe string Encode16(uint hi, ulong lo, bool separator, bool quotes, bool upper)
 		{
 			int size = SizeOf * 2 + (separator ? 2 : 0) + (quotes ? 2 : 0);
@@ -520,7 +518,7 @@ namespace System
 			}
 		}
 
-		internal static void WriteUnsafe(uint hi, ulong lo, [NotNull] Span<byte> destination)
+		internal static void WriteUnsafe(uint hi, ulong lo, Span<byte> destination)
 		{
 			//Paranoid.Requires(destination.Length >= SizeOf);
 			unsafe
@@ -697,13 +695,10 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			[NotNull]
 			public static readonly Uuid96.RandomGenerator Default = new Uuid96.RandomGenerator();
 
-			[NotNull] 
 			private RandomNumberGenerator Rng { get; }
 
-			[NotNull] 
 			private readonly byte[] Scratch = new byte[SizeOf];
 
 			/// <summary>Create a new instance of a random UUID generator</summary>
@@ -712,7 +707,7 @@ namespace System
 			{ }
 
 			/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
-			public RandomGenerator(RandomNumberGenerator generator)
+			public RandomGenerator(RandomNumberGenerator? generator)
 			{
 				this.Rng = generator ?? RandomNumberGenerator.Create();
 			}

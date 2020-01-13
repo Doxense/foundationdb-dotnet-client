@@ -111,10 +111,10 @@ namespace Doxense.Linq
 			private readonly IComparer<TSource> m_comparer;
 			private readonly bool m_descending;
 
-			private readonly SequenceSorter<TSource> m_next;
+			private readonly SequenceSorter<TSource>? m_next;
 			private TSource[] m_items;
 
-			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource> next)
+			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
 				Contract.Requires(comparer != null);
 
@@ -134,7 +134,7 @@ namespace Doxense.Linq
 				int c = m_comparer.Compare(items[index1], items[index2]);
 				if (c == 0)
 				{
-					SequenceSorter<TSource> next;
+					SequenceSorter<TSource>? next;
 					return (next = m_next) == null ? (index1 - index2) : next.CompareKeys(index1, index2);
 				}
 				return !m_descending ? c : -c;
@@ -151,10 +151,10 @@ namespace Doxense.Linq
 			private readonly IComparer<TKey> m_comparer;
 			private readonly bool m_descending;
 
-			private readonly SequenceSorter<TSource> m_next;
+			private readonly SequenceSorter<TSource>? m_next;
 			private TKey[] m_keys;
 
-			public SequenceByKeySorter(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, SequenceSorter<TSource> next)
+			public SequenceByKeySorter(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
 				Contract.Requires(keySelector != null && comparer != null);
 
@@ -184,7 +184,7 @@ namespace Doxense.Linq
 				int c = m_comparer.Compare(keys[index1], keys[index2]);
 				if (c == 0)
 				{
-					SequenceSorter<TSource> next;
+					SequenceSorter<TSource>? next;
 					return (next = m_next) == null ? (index1 - index2) : next.CompareKeys(index1, index2);
 				}
 				return !m_descending ? c : -c;

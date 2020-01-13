@@ -59,7 +59,7 @@ namespace Doxense.Linq
 
 			public IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken ct, AsyncIterationHint _)
 			{
-				IEnumerator<TSource> inner = null;
+				IEnumerator<TSource>? inner = null;
 				try
 				{
 					inner = this.Source.GetEnumerator();

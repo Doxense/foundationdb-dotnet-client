@@ -52,7 +52,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected override bool FindNext(out int index, out TSource current)
 		{
 			index = -1;
-			current = default(TSource);
+			current = default!;
 			var iterators = m_iterators;
 			Contract.Requires(iterators != null);
 

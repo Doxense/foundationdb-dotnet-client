@@ -76,8 +76,8 @@ namespace Doxense.Linq
 
 		/// <summary>Create a new async sequence from a factory method</summary>
 		public static IAsyncEnumerable<TResult> Create<TResult>(
-			Func<object, CancellationToken, IAsyncEnumerator<TResult>> factory,
-			object state = null)
+			Func<object?, CancellationToken, IAsyncEnumerator<TResult>> factory,
+			object? state = null)
 		{
 			return new AnonymousIterable<TResult>(factory, state);
 		}
@@ -85,10 +85,10 @@ namespace Doxense.Linq
 		internal sealed class AnonymousIterable<T> : IAsyncEnumerable<T>
 		{
 
-			private readonly Func<object, CancellationToken, IAsyncEnumerator<T>> m_factory;
-			private readonly object m_state;
+			private readonly Func<object?, CancellationToken, IAsyncEnumerator<T>> m_factory;
+			private readonly object? m_state;
 
-			public AnonymousIterable(Func<object, CancellationToken, IAsyncEnumerator<T>> factory, object state)
+			public AnonymousIterable(Func<object?, CancellationToken, IAsyncEnumerator<T>> factory, object? state)
 			{
 				Contract.Requires(factory != null);
 				m_factory = factory;
@@ -348,7 +348,7 @@ namespace Doxense.Linq
 					return first;
 				}
 				if (!orDefault) throw new InvalidOperationException("The sequence was empty");
-				return default(TSource);
+				return default!;
 			}
 		}
 
@@ -518,7 +518,7 @@ namespace Doxense.Linq
 		/// <summary>Return the content of the buffer</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
 		[NotNull]
-		public HashSet<T> ToHashSet(IEqualityComparer<T> comparer = null)
+		public HashSet<T> ToHashSet(IEqualityComparer<T>? comparer = null)
 		{
 			int count = this.Count;
 			var hashset = new HashSet<T>(comparer);

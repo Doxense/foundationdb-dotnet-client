@@ -43,7 +43,7 @@ namespace Doxense.Linq.Async.Iterators
 	public sealed class SelectManyAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
-		private IEnumerator<TResult> m_batch;
+		private IEnumerator<TResult>? m_batch;
 
 		public SelectManyAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 			: base(source)
@@ -131,12 +131,12 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TCollection>> m_collectionSelector;
 		private readonly Func<TSource, TCollection, TResult> m_resultSelector;
 		private TSource m_sourceCurrent;
-		private IEnumerator<TCollection> m_batch;
+		private IEnumerator<TCollection>? m_batch;
 
 		public SelectManyAsyncIterator(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
-			[NotNull] Func<TSource, TCollection, TResult> resultSelector
+			Func<TSource, TCollection, TResult> resultSelector
 		)
 			: base(source)
 		{
@@ -194,7 +194,7 @@ namespace Doxense.Linq.Async.Iterators
 				{ // the current batch is exhausted, move to the next
 					batch.Dispose();
 					m_batch = null;
-					m_sourceCurrent = default(TSource);
+					m_sourceCurrent = default!;
 					continue;
 				}
 

@@ -43,7 +43,7 @@ namespace Doxense.Linq.Async.Iterators
 	{
 
 		private readonly IEqualityComparer<TSource> m_comparer;
-		private HashSet<TSource> m_set;
+		private HashSet<TSource>? m_set;
 
 		public DistinctAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
 			: base(source)

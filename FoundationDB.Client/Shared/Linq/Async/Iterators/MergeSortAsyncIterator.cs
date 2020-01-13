@@ -53,8 +53,8 @@ namespace Doxense.Linq.Async.Iterators
 		protected override bool FindNext(out int index, out TSource current)
 		{
 			index = -1;
-			current = default(TSource);
-			TKey min = default(TKey);
+			current = default!;
+			TKey min = default!;
 
 			var iterators = m_iterators;
 			var keyComparer = m_keyComparer;

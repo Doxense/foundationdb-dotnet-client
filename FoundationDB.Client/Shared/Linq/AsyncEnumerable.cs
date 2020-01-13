@@ -49,53 +49,53 @@ namespace Doxense.Linq
 		#region Entering the Monad...
 
 		/// <summary>Returns an empty async sequence</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static IAsyncEnumerable<T> Empty<T>()
 		{
 			return EmptySequence<T>.Default;
 		}
 
 		/// <summary>Returns an async sequence with a single element, which is a constant</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static IAsyncEnumerable<T> Singleton<T>(T value)
 		{
-			//note: we can't call this method Single<T>(T), because then Single<T>(Func<T>) would be ambigous with Single<Func<T>>(T)
+			//note: we can't call this method Single<T>(T), because then Single<T>(Func<T>) would be ambiguous with Single<Func<T>>(T)
 			return new SingletonSequence<T>(() => value);
 		}
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="lambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
+		/// <param name="lambda">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="lambda"/> will be called once for each iteration.</remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<T> Single<T>([NotNull] Func<T> lambda)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<T> Single<T>(Func<T> lambda)
 		{
 			Contract.NotNull(lambda, nameof(lambda));
 			return new SingletonSequence<T>(lambda);
 		}
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
+		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="asyncLambda"/> will be called once for each iteration.</remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<T> Single<T>([NotNull] Func<Task<T>> asyncLambda)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<T> Single<T>(Func<Task<T>> asyncLambda)
 		{
 			Contract.NotNull(asyncLambda, nameof(asyncLambda));
 			return new SingletonSequence<T>(asyncLambda);
 		}
 
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
-		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
+		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequence</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="asyncLambda"/> will be called once for each iteration.</remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<T> Single<T>([NotNull] Func<CancellationToken, Task<T>> asyncLambda)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<T> Single<T>(Func<CancellationToken, Task<T>> asyncLambda)
 		{
 			Contract.NotNull(asyncLambda, nameof(asyncLambda));
 			return new SingletonSequence<T>(asyncLambda);
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TOutput> ToAsyncEnumerable<TInput, TOutput>([NotNull] this IEnumerable<TInput> source, [NotNull] Func<TInput, Task<TOutput>> lambda)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TOutput> ToAsyncEnumerable<TInput, TOutput>(this IEnumerable<TInput> source, Func<TInput, Task<TOutput>> lambda)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(lambda, nameof(lambda));
@@ -104,8 +104,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>([NotNull] this IEnumerable<T> source)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -113,20 +113,20 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Wraps an async lambda into an async sequence that will return the result of the lambda</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<T> FromTask<T>([NotNull] Func<Task<T>> asyncLambda)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<T> FromTask<T>(Func<Task<T>> asyncLambda)
 		{
 			//TODO: create a custom iterator for this ?
 			return ToAsyncEnumerable(new [] { asyncLambda }).Select(x => x());
 		}
 
 		/// <summary>Split a sequence of items into several batches</summary>
-		/// <typeparam name="T">Type of the elemenst in <paramref name="source"/></typeparam>
+		/// <typeparam name="T">Type of the elements in <paramref name="source"/></typeparam>
 		/// <param name="source">Source sequence</param>
 		/// <param name="batchSize">Maximum size of each batch</param>
-		/// <returns>Sequence of batches, whose size will always we <paramref name="batchSize"/>, except for the last batch that will only hold the remaning items. If the source is empty, an empty sequence is returned.</returns>
-		[Pure, NotNull, LinqTunnel]
-		public static IEnumerable<List<T>> Buffered<T>([NotNull] this IEnumerable<T> source, int batchSize)
+		/// <returns>Sequence of batches, whose size will always we <paramref name="batchSize"/>, except for the last batch that will only hold the remaining items. If the source is empty, an empty sequence is returned.</returns>
+		[Pure, LinqTunnel]
+		public static IEnumerable<List<T>> Buffered<T>(this IEnumerable<T> source, int batchSize)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (batchSize <= 0) throw new ArgumentException("Batch size must be greater than zero.", nameof(batchSize));
@@ -154,8 +154,8 @@ namespace Doxense.Linq
 		#region SelectMany...
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, IEnumerable<TResult>> selector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -169,8 +169,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, Task<IEnumerable<TResult>>> asyncSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, Task<IEnumerable<TResult>>> asyncSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
@@ -179,8 +179,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
@@ -194,8 +194,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, IEnumerable<TCollection>> collectionSelector, [NotNull] Func<TSource, TCollection, TResult> resultSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(collectionSelector, nameof(collectionSelector));
@@ -210,8 +210,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TSource, TCollection, TResult> resultSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncCollectionSelector, nameof(asyncCollectionSelector));
@@ -221,8 +221,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TSource, TCollection, TResult> resultSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncCollectionSelector, nameof(asyncCollectionSelector));
@@ -241,8 +241,8 @@ namespace Doxense.Linq
 		#region Select...
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Select<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TResult> selector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> Select<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, TResult> selector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -256,8 +256,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Select<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, Task<TResult>> asyncSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> Select<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, Task<TResult>> asyncSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
@@ -266,8 +266,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Select<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<TResult>> asyncSelector)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> Select<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
@@ -285,8 +285,8 @@ namespace Doxense.Linq
 		#region Where...
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Where<TResult>([NotNull] this IAsyncEnumerable<TResult> source, [NotNull] Func<TResult, bool> predicate)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> Where<TResult>(this IAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -300,8 +300,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<T> Where<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull] Func<T, Task<bool>> asyncPredicate)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<T> Where<T>(this IAsyncEnumerable<T> source, Func<T, Task<bool>> asyncPredicate)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncPredicate, nameof(asyncPredicate));
@@ -310,8 +310,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> Where<TResult>([NotNull] this IAsyncEnumerable<TResult> source, [NotNull] Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> Where<TResult>(this IAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncPredicate, nameof(asyncPredicate));
@@ -329,8 +329,8 @@ namespace Doxense.Linq
 		#region Take...
 
 		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Take<TSource>([NotNull] this IAsyncEnumerable<TSource> source, int count)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> Take<TSource>(this IAsyncEnumerable<TSource> source, int count)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be less than zero");
@@ -348,8 +348,8 @@ namespace Doxense.Linq
 		#region TakeWhile...
 
 		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> TakeWhile<TSource>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> TakeWhile<TSource>(this IAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(condition, nameof(condition));
@@ -362,8 +362,8 @@ namespace Doxense.Linq
 			return Limit<TSource>(source, condition);
 		}
 
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> TakeWhile<TSource>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> TakeWhile<TSource>(this IAsyncEnumerable<TSource> source, Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(condition, nameof(condition));
@@ -387,8 +387,8 @@ namespace Doxense.Linq
 		#region Skip...
 
 		/// <summary>Skips the first elements of an async sequence.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Skip<TSource>([NotNull] this IAsyncEnumerable<TSource> source, int count)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> Skip<TSource>(this IAsyncEnumerable<TSource> source, int count)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), count, "Count cannot be less than zero");
@@ -406,8 +406,8 @@ namespace Doxense.Linq
 		#region SelectAsync
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TResult> SelectAsync<TSource, TResult>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<TResult>> asyncSelector, ParallelAsyncQueryOptions options = null)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, ParallelAsyncQueryOptions? options = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncSelector, nameof(asyncSelector));
@@ -418,30 +418,30 @@ namespace Doxense.Linq
 		/// <summary>Always prefetch the next item from the inner sequence.</summary>
 		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
 		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
-		/// <returns>Sequence that prefetch the next item, when outputing the current item.</returns>
+		/// <returns>Sequence that prefetch the next item, when outputting the current item.</returns>
 		/// <remarks>
 		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
 		/// Avoid pre-fetching from a source that is already reading from a buffer of results.
 		/// </remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Prefetch<TSource>([NotNull] this IAsyncEnumerable<TSource> source)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> Prefetch<TSource>(this IAsyncEnumerable<TSource> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
 			return new PrefetchingAsyncIterator<TSource>(source, 1);
 		}
 
-		/// <summary>Prefetch a certain number of items from the inner sequence, before outputing the results one by one.</summary>
+		/// <summary>Prefetch a certain number of items from the inner sequence, before outputting the results one by one.</summary>
 		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
 		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
 		/// <param name="prefetchCount">Maximum number of items to buffer from the source before they are consumed by the rest of the query.</param>
-		/// <returns>Sequence that returns items from a buffer of prefetched list.</returns>
+		/// <returns>Sequence that returns items from a buffer of pre-fetched list.</returns>
 		/// <remarks>
 		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
-		/// Avoid prefetching from a source that is already reading from a buffer of results.
+		/// Avoid pre-fetching from a source that is already reading from a buffer of results.
 		/// </remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Prefetch<TSource>([NotNull] this IAsyncEnumerable<TSource> source, int prefetchCount)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> Prefetch<TSource>(this IAsyncEnumerable<TSource> source, int prefetchCount)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (prefetchCount <= 0) throw new ArgumentOutOfRangeException(nameof(prefetchCount), prefetchCount, "Prefetch count must be at least one.");
@@ -458,8 +458,8 @@ namespace Doxense.Linq
 		/// This should only be called on bursty asynchronous sequences, and when you want to process items in batches, without incurring the cost of latency between two pages of results.
 		/// You should avoid using this operator on sequences where each call to MoveNext() is asynchronous, since it would only produce batchs with only a single item.
 		/// </remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource[]> Window<TSource>([NotNull] this IAsyncEnumerable<TSource> source, int maxWindowSize)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource[]> Window<TSource>(this IAsyncEnumerable<TSource> source, int maxWindowSize)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (maxWindowSize <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(maxWindowSize), maxWindowSize, "Window size must be at least one.");
@@ -473,11 +473,11 @@ namespace Doxense.Linq
 		/// <param name="batchSize">Number of items per batch. The last batch may contain less items, but should never be empty.</param>
 		/// <returns>Sequence of arrays of size <paramref name="batchSize"/>, except the last batch which can have less items.</returns>
 		/// <remarks>
-		/// This operator does not care about the latency of each item, and will always try to fill each batch completely, before outputing a result.
-		/// If you are working on an inner sequence that is bursty in nature, where items arrives in waves, you should use <see cref="Window{TSource}"/> which attempts to minimize the latency by outputing incomplete batches if needed.
+		/// This operator does not care about the latency of each item, and will always try to fill each batch completely, before outputting a result.
+		/// If you are working on an inner sequence that is bursty in nature, where items arrives in waves, you should use <see cref="Window{TSource}"/> which attempts to minimize the latency by outputting incomplete batches if needed.
 		/// </remarks>
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource[]> Batch<TSource>([NotNull] this IAsyncEnumerable<TSource> source, int batchSize)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource[]> Batch<TSource>(this IAsyncEnumerable<TSource> source, int batchSize)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (batchSize <= 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(batchSize), batchSize, "Batch size must be at least one.");
@@ -489,8 +489,8 @@ namespace Doxense.Linq
 
 		#region Distinct...
 
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Distinct<TSource>([NotNull] this IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
+		[Pure, LinqTunnel]
+		public static IAsyncEnumerable<TSource> Distinct<TSource>(this IAsyncEnumerable<TSource> source, IEqualityComparer<TSource>? comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			return new DistinctAsyncIterator<TSource>(source, comparer ?? EqualityComparer<TSource>.Default);
@@ -500,8 +500,8 @@ namespace Doxense.Linq
 
 		#region OrderBy...
 
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> OrderBy<TSource, TKey>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		[Pure, LinqTunnel]
+		public static IAsyncOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -509,8 +509,8 @@ namespace Doxense.Linq
 			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer ?? Comparer<TKey>.Default, descending: false, parent: null);
 		}
 
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		[Pure, LinqTunnel]
+		public static IAsyncOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -518,15 +518,15 @@ namespace Doxense.Linq
 			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer ?? Comparer<TKey>.Default, descending: true, parent: null);
 		}
 
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> ThenBy<TSource, TKey>([NotNull] this IAsyncOrderedEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		[Pure, LinqTunnel]
+		public static IAsyncOrderedEnumerable<TSource> ThenBy<TSource, TKey>(this IAsyncOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			return source.CreateOrderedEnumerable(keySelector, comparer, descending: false);
 		}
 
-		[Pure, NotNull, LinqTunnel]
-		public static IAsyncOrderedEnumerable<TSource> ThenByDescending<TSource, TKey>([NotNull] this IAsyncOrderedEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		[Pure, LinqTunnel]
+		public static IAsyncOrderedEnumerable<TSource> ThenByDescending<TSource, TKey>(this IAsyncOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer = null)
 		{
 			Contract.NotNull(source, nameof(source));
 			return source.CreateOrderedEnumerable(keySelector, comparer, descending: true);
@@ -545,7 +545,7 @@ namespace Doxense.Linq
 		#region Leaving the Monad...
 
 		/// <summary>Execute an action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Action<T> action, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Action<T> action, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(action, nameof(action));
@@ -558,7 +558,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, Task> asyncAction, CancellationToken ct = default)
 		{
 			Contract.NotNull(asyncAction, nameof(asyncAction));
 
@@ -571,7 +571,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncAction, nameof(asyncAction));
@@ -587,8 +587,7 @@ namespace Doxense.Linq
 		#region ToList/Array/Dictionary/HashSet...
 
 		/// <summary>Create a list from an async sequence.</summary>
-		[ItemNotNull]
-		public static async Task<List<T>> ToListAsync<T>([NotNull] this IAsyncEnumerable<T> source)
+		public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -598,8 +597,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Create a list from an async sequence.</summary>
-		[ItemNotNull]
-		public static async Task<List<T>> ToListAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct)
+		public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -609,8 +607,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
-		[ItemNotNull]
-		public static async Task<T[]> ToArrayAsync<T>([NotNull] this IAsyncEnumerable<T> source)
+		public static async Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -620,8 +617,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
-		[ItemNotNull]
-		public static async Task<T[]> ToArrayAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct)
+		public static async Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -631,8 +627,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
-		[ItemNotNull]
-		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -646,8 +641,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function, a comparer, and an element selector function.</summary>
-		[ItemNotNull]
-		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TKey> keySelector, [NotNull, InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TKey> keySelector, [InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -662,8 +656,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence of pairs of keys and values.</summary>
-		[ItemNotNull]
-		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>([NotNull] this IAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -677,8 +670,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Create an Hashset from an async sequence.</summary>
-		[ItemNotNull]
-		public static Task<HashSet<T>> ToHashSetAsync<T>([NotNull] this IAsyncEnumerable<T> source, IEqualityComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static Task<HashSet<T>> ToHashSetAsync<T>(this IAsyncEnumerable<T> source, IEqualityComparer<T>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -697,7 +689,7 @@ namespace Doxense.Linq
 		#region Aggregate...
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TSource> AggregateAsync<TSource>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TSource, TSource> aggregator, CancellationToken ct = default(CancellationToken))
+		public static async Task<TSource> AggregateAsync<TSource>(this IAsyncEnumerable<TSource> source, [InstantHandle] Func<TSource, TSource, TSource> aggregator, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(aggregator, nameof(aggregator));
@@ -723,7 +715,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>([NotNull] this IAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken ct = default(CancellationToken))
+		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(aggregator, nameof(aggregator));
@@ -735,7 +727,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>([NotNull] this IAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Action<TAccumulate, TSource> aggregator, CancellationToken ct = default(CancellationToken))
+		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Action<TAccumulate, TSource> aggregator, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(aggregator, nameof(aggregator));
@@ -746,7 +738,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>([NotNull] this IAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, [NotNull, InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken ct = default(CancellationToken))
+		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, [InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(aggregator, nameof(aggregator));
@@ -758,7 +750,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>([NotNull] this IAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Action<TAccumulate, TSource> aggregator, [NotNull, InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken ct = default(CancellationToken))
+		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(this IAsyncEnumerable<TSource> source, TAccumulate seed, [InstantHandle] Action<TAccumulate, TSource> aggregator, [InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(aggregator, nameof(aggregator));
@@ -774,7 +766,7 @@ namespace Doxense.Linq
 		#region First/Last/Single...
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
-		public static Task<T> FirstAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static Task<T> FirstAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -787,7 +779,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
-		public static Task<T> FirstAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static Task<T> FirstAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -802,7 +794,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
-		public static Task<T> FirstOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		[ItemCanBeNull]
+		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -815,7 +808,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
-		public static Task<T> FirstOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		[ItemCanBeNull]
+		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -831,7 +825,7 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static Task<T> SingleAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -845,7 +839,7 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static Task<T> SingleAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -861,7 +855,8 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		[ItemCanBeNull]
+		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -875,7 +870,8 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		public static Task<T> SingleOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		[ItemCanBeNull]
+		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -889,7 +885,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
-		public static async Task<T> LastAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> LastAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -899,7 +895,7 @@ namespace Doxense.Linq
 			//if (rq != null) return await rq.LastAsync();
 
 			bool found = false;
-			T last = default(T);
+			T last = default!;
 
 			await ForEachAsync<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
@@ -908,7 +904,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
-		public static async Task<T> LastAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> LastAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -919,7 +915,7 @@ namespace Doxense.Linq
 			//if (rq != null) return await rq.LastAsync();
 
 			bool found = false;
-			T last = default(T);
+			T last = default!;
 
 			await ForEachAsync<T>(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
 
@@ -928,7 +924,8 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
-		public static async Task<T> LastOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		[ItemCanBeNull]
+		public static async Task<T> LastOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -938,15 +935,16 @@ namespace Doxense.Linq
 			//if (rq != null) return await rq.LastOrDefaultAsync();
 
 			bool found = false;
-			T last = default(T);
+			T last = default!;
 
 			await ForEachAsync<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
-			return found ? last : default(T);
+			return found ? last : default!;
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
-		public static async Task<T> LastOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		[ItemCanBeNull]
+		public static async Task<T> LastOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -957,15 +955,15 @@ namespace Doxense.Linq
 			//if (rq != null) return await rq.LastOrDefaultAsync();
 
 			bool found = false;
-			T last = default(T);
+			T last = default!;
 
 			await ForEachAsync<T>(source, (x) => { if (predicate(x)) { found = true; last = x; } }, ct).ConfigureAwait(false);
 
-			return found ? last : default(T);
+			return found ? last : default!;
 		}
 
 		/// <summary>Returns the element at a specific location of an async sequence, or an exception if there are not enough elements</summary>
-		public static async Task<T> ElementAtAsync<T>([NotNull] this IAsyncEnumerable<T> source, int index, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> ElementAtAsync<T>(this IAsyncEnumerable<T> source, int index, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
@@ -976,7 +974,7 @@ namespace Doxense.Linq
 			//if (rq != null) return await rq.Skip(index).SingleAsync();
 
 			int counter = index;
-			T item = default(T);
+			T item = default!;
 			await Run<T>(
 				source,
 				AsyncIterationHint.All,
@@ -993,7 +991,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the element at a specific location of an async sequence, or the default value for the type if it there are not enough elements</summary>
-		public static async Task<T> ElementAtOrDefaultAsync<T>([NotNull] this IAsyncEnumerable<T> source, int index, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> ElementAtOrDefaultAsync<T>(this IAsyncEnumerable<T> source, int index, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
@@ -1004,7 +1002,7 @@ namespace Doxense.Linq
 			//if (rq != null) return await rq.Skip(index).SingleAsync();
 
 			int counter = index;
-			T item = default(T);
+			T item = default!;
 
 			//TODO: use ExecuteAsync() if the source is an Iterator!
 			await Run<T>(
@@ -1018,7 +1016,7 @@ namespace Doxense.Linq
 				ct
 			).ConfigureAwait(false);
 
-			if (counter >= 0) return default(T);
+			if (counter >= 0) return default!;
 			return item;
 		}
 
@@ -1027,7 +1025,7 @@ namespace Doxense.Linq
 		#region Count/Sum...
 
 		/// <summary>Returns the number of elements in an async sequence.</summary>
-		public static async Task<int> CountAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<int> CountAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -1040,7 +1038,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
-		public static async Task<int> CountAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<int> CountAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -1054,7 +1052,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<uint> SumAsync([NotNull] this IAsyncEnumerable<uint> source, CancellationToken ct = default(CancellationToken))
+		public static Task<uint> SumAsync(this IAsyncEnumerable<uint> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1062,7 +1060,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<uint> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, uint> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<uint> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, uint> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1071,7 +1069,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<ulong> SumAsync([NotNull] this IAsyncEnumerable<ulong> source, CancellationToken ct = default(CancellationToken))
+		public static Task<ulong> SumAsync(this IAsyncEnumerable<ulong> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1079,7 +1077,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<ulong> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, ulong> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<ulong> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, ulong> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1088,7 +1086,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<int> SumAsync([NotNull] this IAsyncEnumerable<int> source, CancellationToken ct = default(CancellationToken))
+		public static Task<int> SumAsync(this IAsyncEnumerable<int> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1096,7 +1094,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<int> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, int> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<int> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, int> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1105,7 +1103,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<long> SumAsync([NotNull] this IAsyncEnumerable<long> source, CancellationToken ct = default(CancellationToken))
+		public static Task<long> SumAsync(this IAsyncEnumerable<long> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1113,7 +1111,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<long> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, long> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<long> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, long> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1122,7 +1120,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<float> SumAsync([NotNull] this IAsyncEnumerable<float> source, CancellationToken ct = default(CancellationToken))
+		public static Task<float> SumAsync(this IAsyncEnumerable<float> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1130,7 +1128,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<float> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, float> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<float> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, float> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1139,7 +1137,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<double> SumAsync([NotNull] this IAsyncEnumerable<double> source, CancellationToken ct = default(CancellationToken))
+		public static Task<double> SumAsync(this IAsyncEnumerable<double> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1147,7 +1145,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<double> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, double> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<double> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, double> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1156,7 +1154,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
-		public static Task<decimal> SumAsync([NotNull] this IAsyncEnumerable<decimal> source, CancellationToken ct = default(CancellationToken))
+		public static Task<decimal> SumAsync(this IAsyncEnumerable<decimal> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1164,7 +1162,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static Task<decimal> SumAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, decimal> selector, CancellationToken ct = default(CancellationToken))
+		public static Task<decimal> SumAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, decimal> selector, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(selector, nameof(selector));
@@ -1177,14 +1175,14 @@ namespace Doxense.Linq
 		#region Min/Max...
 
 		/// <summary>Returns the smallest value in the specified async sequence</summary>
-		public static async Task<T> MinAsync<T>([NotNull] this IAsyncEnumerable<T> source, IComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> MinAsync<T>(this IAsyncEnumerable<T> source, IComparer<T>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
-			comparer = comparer ?? Comparer<T>.Default;
+			comparer ??= Comparer<T>.Default;
 
 			//REVIEW: use C#7 tuples
 			bool found = false;
-			T min = default(T);
+			T min = default!;
 
 			await ForEachAsync<T>(
 				source,
@@ -1204,15 +1202,15 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the smallest value in the specified async sequence</summary>
-		public static async Task<T> MinAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, IComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> MinAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, IComparer<T>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
-			comparer = comparer ?? Comparer<T>.Default;
+			comparer ??= Comparer<T>.Default;
 
 			//REVIEW: use C#7 tuples
 			bool found = false;
-			T min = default(T);
+			T min = default!;
 
 			await ForEachAsync<T>(
 				source,
@@ -1232,14 +1230,14 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the largest value in the specified async sequence</summary>
-		public static async Task<T> MaxAsync<T>([NotNull] this IAsyncEnumerable<T> source, IComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> MaxAsync<T>(this IAsyncEnumerable<T> source, IComparer<T>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
-			comparer = comparer ?? Comparer<T>.Default;
+			comparer ??= Comparer<T>.Default;
 
 			//REVIEW: use C#7 tuples
 			bool found = false;
-			T max = default(T);
+			T max = default!;
 
 			await ForEachAsync<T>(
 				source,
@@ -1259,15 +1257,15 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the largest value in the specified async sequence</summary>
-		public static async Task<T> MaxAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, IComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		public static async Task<T> MaxAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, IComparer<T>? comparer = null, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
-			comparer = comparer ?? Comparer<T>.Default;
+			comparer ??= Comparer<T>.Default;
 
 			//REVIEW: use C#7 tuples
 			bool found = false;
-			T max = default(T);
+			T max = default!;
 
 			await ForEachAsync<T>(
 				source,
@@ -1292,7 +1290,7 @@ namespace Doxense.Linq
 
 		/// <summary>Determines whether an async sequence contains any elements.</summary>
 		/// <remarks>This is the logical equivalent to "source.Count() > 0" but can be better optimized by some providers</remarks>
-		public static async Task<bool> AnyAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<bool> AnyAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -1304,7 +1302,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
-		public static async Task<bool> AnyAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<bool> AnyAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -1320,9 +1318,9 @@ namespace Doxense.Linq
 			return false;
 		}
 
-		/// <summary>Determines wether an async sequence contains no elements at all.</summary>
+		/// <summary>Determines whether an async sequence contains no elements at all.</summary>
 		/// <remarks>This is the logical equivalent to "source.Count() == 0" or "!source.Any()" but can be better optimized by some providers</remarks>
-		public static async Task<bool> NoneAsync<T>([NotNull] this IAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<bool> NoneAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			ct.ThrowIfCancellationRequested();
@@ -1334,7 +1332,7 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Determines whether none of the elements of an async sequence satisfies a condition.</summary>
-		public static async Task<bool> NoneAsync<T>([NotNull] this IAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<bool> NoneAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(predicate, nameof(predicate));
@@ -1360,8 +1358,8 @@ namespace Doxense.Linq
 
 		/// <summary>Measure the number of items that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
-		[NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> WithCountStatistics<TSource>([NotNull] this IAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
+		[LinqTunnel]
+		public static IAsyncEnumerable<TSource> WithCountStatistics<TSource>(this IAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1378,8 +1376,8 @@ namespace Doxense.Linq
 
 		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
-		[NotNull, LinqTunnel]
-		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics([NotNull] this IAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
+		[LinqTunnel]
+		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1396,8 +1394,8 @@ namespace Doxense.Linq
 
 		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
-		[NotNull, LinqTunnel]
-		public static IAsyncEnumerable<Slice> WithSizeStatistics([NotNull] this IAsyncEnumerable<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
+		[LinqTunnel]
+		public static IAsyncEnumerable<Slice> WithSizeStatistics(this IAsyncEnumerable<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
 		{
 			Contract.NotNull(source, nameof(source));
 
@@ -1414,8 +1412,8 @@ namespace Doxense.Linq
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
-		[NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Observe<TSource>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Action<TSource> handler)
+		[LinqTunnel]
+		public static IAsyncEnumerable<TSource> Observe<TSource>(this IAsyncEnumerable<TSource> source, Action<TSource> handler)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(handler, nameof(handler));
@@ -1425,8 +1423,8 @@ namespace Doxense.Linq
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="asyncHandler"/> is execute inline before passing the item down the line, and should not block</remarks>
-		[NotNull, LinqTunnel]
-		public static IAsyncEnumerable<TSource> Observe<TSource>([NotNull] this IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task> asyncHandler)
+		[LinqTunnel]
+		public static IAsyncEnumerable<TSource> Observe<TSource>(this IAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task> asyncHandler)
 		{
 			Contract.NotNull(source, nameof(source));
 			Contract.NotNull(asyncHandler, nameof(asyncHandler));

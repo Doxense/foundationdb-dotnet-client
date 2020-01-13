@@ -110,7 +110,7 @@ namespace Doxense.Linq
 					m_ct.ThrowIfCancellationRequested();
 					if (m_called)
 					{
-						m_current = default(TElement);
+						m_current = default!;
 						return false;
 					}
 
@@ -143,7 +143,7 @@ namespace Doxense.Linq
 				public ValueTask DisposeAsync()
 				{
 					m_called = true;
-					m_current = default;
+					m_current = default!;
 					return default;
 				}
 			}

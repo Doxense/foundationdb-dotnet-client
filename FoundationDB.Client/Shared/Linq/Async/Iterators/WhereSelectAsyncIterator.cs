@@ -43,7 +43,7 @@ namespace Doxense.Linq.Async.Iterators
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	public sealed class WhereSelectAsyncIterator<TSource, TResult> : AsyncFilterIterator<TSource, TResult>
 	{
-		private readonly AsyncFilterExpression<TSource> m_filter;
+		private readonly AsyncFilterExpression<TSource>? m_filter;
 		private readonly AsyncTransformExpression<TSource, TResult> m_transform;
 
 		//note: both limit and offset are applied AFTER filtering!
@@ -55,7 +55,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public WhereSelectAsyncIterator(
 			[NotNull] IAsyncEnumerable<TSource> source,
-			AsyncFilterExpression<TSource> filter,
+			AsyncFilterExpression<TSource>? filter,
 			AsyncTransformExpression<TSource, TResult> transform,
 			int? limit,
 			int? offset

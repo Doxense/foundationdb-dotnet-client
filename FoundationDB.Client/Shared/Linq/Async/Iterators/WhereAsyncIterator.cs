@@ -37,7 +37,6 @@ namespace Doxense.Linq.Async.Iterators
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
 	using Doxense.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>Filters an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
@@ -45,7 +44,7 @@ namespace Doxense.Linq.Async.Iterators
 	{
 		private readonly AsyncFilterExpression<TSource> m_filter;
 
-		public WhereAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, AsyncFilterExpression<TSource> filter)
+		public WhereAsyncIterator(IAsyncEnumerable<TSource> source, AsyncFilterExpression<TSource> filter)
 			: base(source)
 		{
 			Contract.Requires(filter != null, "there can be only one kind of filter specified");

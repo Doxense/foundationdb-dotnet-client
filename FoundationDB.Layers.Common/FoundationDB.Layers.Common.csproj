@@ -5,6 +5,7 @@
     <RootNamespace>FoundationDB.Layers.Common</RootNamespace>
     <AssemblyName>FoundationDB.Layers.Common</AssemblyName>
     <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <PackageTags>foundationdb fdb nosql</PackageTags>

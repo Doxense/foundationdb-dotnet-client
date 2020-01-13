@@ -336,7 +336,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns all the keys inside of a subspace</summary>
 		[Pure, NotNull]
 		[Obsolete("This method will be removed soon. Replace with 'trans.GetRange(subspace.ToRange(), ...)'")]
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, [NotNull] IKeySubspace subspace, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, [NotNull] IKeySubspace subspace, FdbRangeOptions? options = null)
 		{
 			//REVIEW: should we remove this method?
 			Contract.Requires(trans != null && subspace != null);

@@ -174,7 +174,7 @@ namespace System
 			return new Uuid128(guid);
 		}
 
-		public static readonly Uuid128 Empty = default(Uuid128);
+		public static readonly Uuid128 Empty = default;
 
 		/// <summary>Size is 16 bytes</summary>
 		public const int SizeOf = 16;
@@ -188,7 +188,7 @@ namespace System
 
 		public static Guid Convert(ReadOnlySpan<byte> input)
 		{
-			if (input.Length == 0) return default(Guid);
+			if (input.Length == 0) return default;
 			if (input.Length != 16) throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
 			return ReadUnsafe(input);
 		}
@@ -225,12 +225,12 @@ namespace System
 			}
 		}
 
-		public static Uuid128 Parse([NotNull] string input)
+		public static Uuid128 Parse(string input)
 		{
 			return new Uuid128(Guid.Parse(input));
 		}
 
-		public static Uuid128 ParseExact([NotNull] string input, string format)
+		public static Uuid128 ParseExact(string input, string format)
 		{
 			return new Uuid128(Guid.ParseExact(input, format));
 		}
@@ -239,7 +239,7 @@ namespace System
 		{
 			if (!Guid.TryParse(input, out Guid guid))
 			{
-				result = default(Uuid128);
+				result = default;
 				return false;
 			}
 			result = new Uuid128(guid);
@@ -250,7 +250,7 @@ namespace System
 		{
 			if (!Guid.TryParseExact(input, format, out Guid guid))
 			{
-				result = default(Uuid128);
+				result = default;
 				return false;
 			}
 			result = new Uuid128(guid);
@@ -384,7 +384,7 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteToUnsafe([NotNull] Span<byte> buffer)
+		public void WriteToUnsafe(Span<byte> buffer)
 		{
 			WriteUnsafe(in m_packed, buffer);
 		}
@@ -486,12 +486,12 @@ namespace System
 			return m_packed.ToString("D", null);
 		}
 
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return m_packed.ToString(format);
 		}
 
-		public string ToString(string format, IFormatProvider provider)
+		public string ToString(string? format, IFormatProvider? provider)
 		{
 			return m_packed.ToString(format, provider);
 		}
@@ -564,7 +564,7 @@ namespace System
 
 		#region Equality / Comparison ...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj == null) return false;
 			if (obj is Uuid128 u128) return m_packed == u128.m_packed;
@@ -632,7 +632,7 @@ namespace System
 			return m_packed.CompareTo(other.m_packed);
 		}
 
-		public int CompareTo(object obj)
+		public int CompareTo(object? obj)
 		{
 			switch (obj)
 			{

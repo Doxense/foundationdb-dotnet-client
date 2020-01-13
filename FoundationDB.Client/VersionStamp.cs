@@ -385,7 +385,7 @@ namespace System
 
 		#region Equality, Comparision, ...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is VersionStamp vs && Equals(vs);
 		}

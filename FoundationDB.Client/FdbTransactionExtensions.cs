@@ -1156,7 +1156,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			return GetRange(trans, KeySelectorPair.Create(range), options);
 		}
@@ -1169,7 +1169,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1191,7 +1191,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1203,13 +1203,13 @@ namespace FoundationDB.Client
 		#region GetRange<T>...
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions options = null)
+		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
 			return GetRange(trans, KeySelectorPair.Create(range), transform, options);
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions options = null)
+		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1225,7 +1225,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions options = null)
+		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1247,7 +1247,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1260,7 +1260,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			var selectors = KeySelectorPair.Create(range);
@@ -1274,7 +1274,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1287,7 +1287,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1313,7 +1313,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1326,7 +1326,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			var selectors = KeySelectorPair.Create(range);
@@ -1340,7 +1340,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1353,7 +1353,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1378,7 +1378,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1395,7 +1395,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1414,7 +1414,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 

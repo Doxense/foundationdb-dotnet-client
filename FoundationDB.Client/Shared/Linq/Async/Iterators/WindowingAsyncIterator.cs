@@ -94,9 +94,9 @@ namespace Doxense.Linq.Async.Iterators
 		// ITERATOR
 
 		// buffer storing the items in the current window
-		private List<TInput> m_buffer;
+		private List<TInput>? m_buffer;
 		// holds on to the last pending call to m_iterator.MoveNext() when our buffer is full
-		private Task<bool> m_nextTask;
+		private Task<bool>? m_nextTask;
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>

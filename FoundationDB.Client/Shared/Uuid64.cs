@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -88,13 +88,13 @@ namespace System
 			m_value = ((ulong) a << 48) | ((ulong) b & ((1UL << 48) - 1));
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
 		{
 			return ThrowHelper.ArgumentException(arg, "Value must be 8 bytes long");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidFormat()
 		{
 			return ThrowHelper.FormatException("Invalid " + nameof(Uuid64) + " format");
@@ -182,7 +182,7 @@ namespace System
 		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid64.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 Parse([NotNull] string buffer)
+		public static Uuid64 Parse(string buffer)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			if (!TryParse(buffer.AsSpan(), out var value))
@@ -205,7 +205,7 @@ namespace System
 
 		/// <summary>Parse a Base62 encoded string representation of an UUid64</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64 FromBase62([NotNull] string buffer)
+		public static Uuid64 FromBase62(string buffer)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			if (!TryParseBase62(buffer.AsSpan(), out var value))
@@ -216,7 +216,7 @@ namespace System
 		}
 
 		/// <summary>Try parsing a string representation of an UUid64</summary>
-		public static bool TryParse([NotNull] string buffer, out Uuid64 result)
+		public static bool TryParse(string buffer, out Uuid64 result)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			return TryParse(buffer.AsSpan(), out result);
@@ -337,7 +337,7 @@ namespace System
 			return Slice.FromFixedU64BE(m_value);
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public byte[] ToByteArray()
 		{
 			var bytes = Slice.FromFixedU64BE(m_value).Array;
@@ -358,7 +358,7 @@ namespace System
 		/// <returns>The value of this <see cref="Uuid64"/>, using the specified format.</returns>
 		/// <remarks>See <see cref="ToString(string, IFormatProvider)"/> for a description of the different formats</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
@@ -375,7 +375,7 @@ namespace System
 		/// <p>The <b>C</b> format uses a compact base-62 encoding that preserves lexicographical ordering, composed of digits, uppercase alpha and lowercase alpha, suitable for compact representation that can fit in a querystring.</p>
 		/// <p>The <b>Z</b> format is equivalent to the <b>C</b> format, but with extra padding so that the string is always 11 characters long.</p>
 		/// </example>
-		public string ToString(string format, IFormatProvider formatProvider)
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
 			if (string.IsNullOrEmpty(format)) format = "D";
 
@@ -437,7 +437,7 @@ namespace System
 
 		#region IEquatable / IComparable...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			switch (obj)
 			{
@@ -512,7 +512,7 @@ namespace System
 			return ptr + 8;
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static unsafe string Encode16(ulong value, bool separator, bool quotes, bool upper)
 		{
 			int size = 16 + (separator ? 1 : 0) + (quotes ? 2 : 0);
@@ -700,7 +700,7 @@ namespace System
 			}
 		}
 
-		internal static void WriteUnsafe(ulong value, [NotNull] Span<byte> buffer)
+		internal static void WriteUnsafe(ulong value, Span<byte> buffer)
 		{
 			Contract.Requires(buffer.Length >= 8);
 			unsafe
@@ -713,7 +713,7 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void WriteToUnsafe([NotNull] Span<byte> buffer)
+		internal void WriteToUnsafe(Span<byte> buffer)
 		{
 			WriteUnsafe(m_value, buffer);
 		}
@@ -862,13 +862,10 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			[NotNull]
 			public static readonly Uuid64.RandomGenerator Default = new Uuid64.RandomGenerator();
 
-			[NotNull] 
 			private RandomNumberGenerator Rng { get; }
 
-			[NotNull] 
 			private readonly byte[] Scratch = new byte[SizeOf];
 
 			/// <summary>Create a new instance of a random UUID generator</summary>
@@ -877,7 +874,7 @@ namespace System
 			{ }
 
 			/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
-			public RandomGenerator(RandomNumberGenerator generator)
+			public RandomGenerator(RandomNumberGenerator? generator)
 			{
 				this.Rng = generator ?? RandomNumberGenerator.Create();
 			}

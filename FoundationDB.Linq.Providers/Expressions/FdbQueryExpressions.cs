@@ -65,21 +65,21 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
-		public static FdbQueryRangeExpression Range(KeySelectorPair range, FdbRangeOptions options = null)
+		public static FdbQueryRangeExpression Range(KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			return new FdbQueryRangeExpression(range, options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
-		public static FdbQueryRangeExpression Range(KeySelector start, KeySelector stop, FdbRangeOptions options = null)
+		public static FdbQueryRangeExpression Range(KeySelector start, KeySelector stop, FdbRangeOptions? options = null)
 		{
 			return Range(new KeySelectorPair(start, stop), options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
-		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix, FdbRangeOptions options = null)
+		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix, FdbRangeOptions? options = null)
 		{
 			// starts_with('A') means ['A', B')
 			return Range(KeySelectorPair.StartsWith(prefix), options);
@@ -88,7 +88,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
 		[Obsolete]
-		public static FdbQueryRangeExpression RangeStartsWith(IVarTuple tuple, FdbRangeOptions options = null)
+		public static FdbQueryRangeExpression RangeStartsWith(IVarTuple tuple, FdbRangeOptions? options = null)
 		{
 			return RangeStartsWith(TuPack.Pack(tuple), options);
 		}

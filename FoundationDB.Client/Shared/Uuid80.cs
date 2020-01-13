@@ -104,13 +104,13 @@ namespace System
 			this.Lo = ((ulong) b) << 48 | ((ulong) c) << 32 | ((ulong) d) << 16 | ((ulong) e);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
 		{
 			return ThrowHelper.ArgumentException(arg, "Value must be 10 bytes long");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidFormat()
 		{
 			return ThrowHelper.FormatException("Invalid " + nameof(Uuid80) + " format");
@@ -194,7 +194,7 @@ namespace System
 		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid80.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid80 Parse([NotNull] string buffer)
+		public static Uuid80 Parse(string buffer)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			if (!TryParse(buffer, out var value))
@@ -229,7 +229,7 @@ namespace System
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
-		public static bool TryParse([NotNull] string buffer, out Uuid80 result)
+		public static bool TryParse(string buffer, out Uuid80 result)
 		{
 			Contract.NotNull(buffer, nameof(buffer));
 			return TryParse(buffer.AsSpan(), out result);
@@ -285,7 +285,7 @@ namespace System
 			return writer.ToSlice();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public byte[] ToByteArray()
 		{
 			var tmp = new byte[SizeOf];
@@ -313,7 +313,7 @@ namespace System
 		/// <returns>The value of this <see cref="Uuid80"/>, using the specified format.</returns>
 		/// <remarks>See <see cref="ToString(string, IFormatProvider)"/> for a description of the different formats</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
@@ -327,7 +327,7 @@ namespace System
 		/// <p>The <b>X</b> and <b>N</b> format encodes the value as a single group of 20 hexadecimal digits: "aaaabbbbbbbbcccccccc" (20 characters).</p>
 		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with '{' and '}': "{aaaa-bbbbbbbb-cccccccc}" (24 characters).</p>
 		/// </example>
-		public string ToString(string format, IFormatProvider formatProvider)
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
 			if (string.IsNullOrEmpty(format)) format = "D";
 
@@ -371,7 +371,7 @@ namespace System
 
 		#region IEquatable / IComparable...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			switch (obj)
 			{
@@ -471,7 +471,7 @@ namespace System
 			return ptr + 8;
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static unsafe string Encode16(ushort hi, ulong lo, bool separator, bool quotes, bool upper)
 		{
 			int size = 20 + (separator ? 2 : 0) + (quotes ? 2 : 0);
@@ -579,7 +579,7 @@ namespace System
 			}
 		}
 
-		internal static void WriteUnsafe(ushort hi, ulong lo, [NotNull] Span<byte> buffer)
+		internal static void WriteUnsafe(ushort hi, ulong lo, Span<byte> buffer)
 		{
 			//Paranoid.Requires(buffer.Length >= 10);
 			unsafe
@@ -756,13 +756,10 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			[NotNull]
 			public static readonly Uuid80.RandomGenerator Default = new Uuid80.RandomGenerator();
 
-			[NotNull] 
 			private RandomNumberGenerator Rng { get; }
 
-			[NotNull] 
 			private readonly byte[] Scratch = new byte[SizeOf];
 
 			/// <summary>Create a new instance of a random UUID generator</summary>
@@ -771,7 +768,7 @@ namespace System
 			{ }
 
 			/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
-			public RandomGenerator(RandomNumberGenerator generator)
+			public RandomGenerator(RandomNumberGenerator? generator)
 			{
 				this.Rng = generator ?? RandomNumberGenerator.Create();
 			}

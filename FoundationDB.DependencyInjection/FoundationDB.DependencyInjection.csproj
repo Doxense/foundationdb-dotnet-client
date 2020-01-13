@@ -4,7 +4,8 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1;net472</TargetFrameworks>
     <RootNamespace>FoundationDB.DependencyInjection</RootNamespace>
     <AssemblyName>FoundationDB.DependencyInjection</AssemblyName>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
     <SignAssembly Condition="'$(OS)' == 'Windows_NT'">true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <PackageTags>foundationdb fdb nosql</PackageTags>

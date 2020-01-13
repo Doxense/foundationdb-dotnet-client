@@ -58,16 +58,16 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly Func<TSource, CancellationToken, Task<TResult>> m_taskSelector;
 		private readonly ParallelAsyncQueryOptions m_options;
 
-		private CancellationTokenSource m_cts;
+		private CancellationTokenSource? m_cts;
 		private CancellationToken m_token;
 		private volatile bool m_done;
 
 		/// <summary>Pump that reads values from the inner iterator</summary>
-		private AsyncIteratorPump<TSource> m_pump;
+		private AsyncIteratorPump<TSource>? m_pump;
 		/// <summary>Inner pump task</summary>
-		private Task m_pumpTask;
+		private Task? m_pumpTask;
 		/// <summary>Queue that holds items that are being processed</summary>
-		private AsyncTransformQueue<TSource, TResult> m_processingQueue;
+		private AsyncTransformQueue<TSource, TResult>? m_processingQueue;
 
 		public ParallelSelectAsyncIterator(
 			[NotNull] IAsyncEnumerable<TSource> source,

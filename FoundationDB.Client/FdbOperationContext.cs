@@ -556,7 +556,7 @@ namespace FoundationDB.Client
 							}
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with error code {1}", trans.Id, e.Code));
-							
+
 							bool shouldRethrow = false;
 							try
 							{
@@ -954,7 +954,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(success, nameof(success));
 			ct.ThrowIfCancellationRequested();
 
-			TResult result = default;
+			TResult result = default!;
 			async Task Complete(IFdbTransaction tr)
 			{
 				result = await success(tr);
@@ -973,7 +973,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(success, nameof(success));
 			ct.ThrowIfCancellationRequested();
 
-			TResult result = default;
+			TResult result = default!;
 			void Complete(IFdbTransaction tr)
 			{
 				result = success(tr);
@@ -992,13 +992,13 @@ namespace FoundationDB.Client
 			Contract.NotNull(success, nameof(success));
 			ct.ThrowIfCancellationRequested();
 
-			TIntermediate tmp = default;
+			TIntermediate tmp = default!;
 			async Task Handler(IFdbTransaction tr)
 			{
 				tmp = await handler(tr).ConfigureAwait(false);
 			}
 
-			TResult result = default;
+			TResult result = default!;
 			void Complete(IFdbTransaction tr)
 			{
 				result = success(tr, tmp);
@@ -1017,13 +1017,13 @@ namespace FoundationDB.Client
 			Contract.NotNull(success, nameof(success));
 			ct.ThrowIfCancellationRequested();
 
-			TIntermediate tmp = default;
+			TIntermediate tmp = default!;
 			async Task Handler(IFdbTransaction tr)
 			{
 				tmp = await handler(tr).ConfigureAwait(false);
 			}
 
-			TResult result = default;
+			TResult result = default!;
 			async Task Complete(IFdbTransaction tr)
 			{
 				result = await success(tr, tmp).ConfigureAwait(false);

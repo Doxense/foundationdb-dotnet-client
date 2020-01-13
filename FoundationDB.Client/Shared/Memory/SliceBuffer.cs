@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,13 +50,13 @@ namespace Doxense.Memory
 		/// <summary>Default initial size of pages (doubled every time until it reached the max page size)</summary>
 		private int m_pageSize;
 		/// <summary>Current buffer</summary>
-		private byte[] m_current;
+		private byte[]? m_current;
 		/// <summary>Position of the next free slot in the current buffer</summary>
 		private int m_pos;
 		/// <summary>Number of bytes remaining in the current buffer</summary>
 		private int m_remaining;
 		/// <summary>If non null, list of previously used buffers (excluding the current buffer)</summary>
-		private List<Slice> m_chunks;
+		private List<Slice>? m_chunks;
 		/// <summary>Running total of the length of of all previously used buffers, excluding the size of the current buffer</summary>
 		private int m_allocated;
 		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>

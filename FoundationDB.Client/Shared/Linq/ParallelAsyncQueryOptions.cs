@@ -41,7 +41,7 @@ namespace Doxense.Linq
 		public int? MaxConcurrency { get; set; }
 
 		/// <summary>Task Scheduler to use when executing async tasks</summary>
-		public TaskScheduler Scheduler { get; set; }
+		public TaskScheduler? Scheduler { get; set; }
 
 	}
 

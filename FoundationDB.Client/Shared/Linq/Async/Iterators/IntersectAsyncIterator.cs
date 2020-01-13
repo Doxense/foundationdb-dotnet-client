@@ -52,13 +52,13 @@ namespace Doxense.Linq.Async.Iterators
 		protected override bool FindNext(out int index, out TSource current)
 		{
 			index = -1;
-			current = default(TSource);
+			current = default!;
 
 			// we only returns a value if all are equal
 			// if not, find the current max, and advance all iterators that are lower
 
-			TKey min = default(TKey);
-			TKey max = default(TKey);
+			TKey min = default!;
+			TKey max = default!;
 			var iterators = m_iterators;
 			var keyComparer = m_keyComparer;
 			Contract.Requires(iterators != null && keyComparer != null);

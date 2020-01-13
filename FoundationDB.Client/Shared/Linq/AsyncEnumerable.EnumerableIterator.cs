@@ -45,8 +45,8 @@ namespace Doxense.Linq
 		internal sealed class EnumerableIterator<TSource, TResult> : IAsyncEnumerator<TResult>
 		{
 
-			private IEnumerator<TSource> m_iterator;
-			private Func<TSource, Task<TResult>> m_transform;
+			private IEnumerator<TSource>? m_iterator;
+			private Func<TSource, Task<TResult>>? m_transform;
 			private bool m_disposed;
 			private TResult m_current;
 			private CancellationToken m_ct;
@@ -76,7 +76,7 @@ namespace Doxense.Linq
 					return true;
 				}
 
-				m_current = default;
+				m_current = default!;
 				m_disposed = true;
 				return false;
 			}
@@ -96,7 +96,7 @@ namespace Doxense.Linq
 				m_iterator = null;
 				m_transform = null;
 				m_disposed = true;
-				m_current = default;
+				m_current = default!;
 				m_ct = default;
 				return default;
 			}

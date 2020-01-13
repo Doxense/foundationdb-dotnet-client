@@ -535,7 +535,7 @@ namespace FoundationDB.Client
 		#region GetRangeAsync...
 
 		/// <inheritdoc />
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			EnsureCanRead();
 
@@ -575,13 +575,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, (kv) => kv);
 		}
 
 		/// <inheritdoc />
-		public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions options = null)
+		public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 		{
 			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false, selector);
 		}
@@ -1049,7 +1049,7 @@ namespace FoundationDB.Client
 		public void EnsureCanRead()
 		{
 			// note: read operations are async, so they can NOT be called from the network without deadlocking the system !
-			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: false);
+			EnsureStillValid(allowFromNetworkThread: false, allowFailedState: false);
 		}
 
 		/// <summary>Throws if the transaction is not in a valid state (for writing) and that we can proceed with a write operation</summary>
@@ -1058,13 +1058,13 @@ namespace FoundationDB.Client
 		{
 			if (m_readOnly) throw ThrowReadOnlyTransaction(this);
 			// note: write operations are not async, and cannnot block, so it is (somewhat) safe to call them from the network thread itself.
-			EnsureStilValid(allowFromNetworkThread: true, allowFailedState: false);
+			EnsureStillValid(allowFromNetworkThread: true, allowFailedState: false);
 		}
 
 		/// <summary>Throws if the transaction is not safely retryable</summary>
 		public void EnsureCanRetry()
 		{
-			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: true);
+			EnsureStillValid(allowFromNetworkThread: false, allowFailedState: true);
 		}
 
 		/// <summary>Throws if the transaction is not in a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
@@ -1072,7 +1072,7 @@ namespace FoundationDB.Client
 		/// <param name="allowFailedState">If true, this operation can run even if the transaction is in a failed state.</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
-		internal void EnsureStilValid(bool allowFromNetworkThread = false, bool allowFailedState = false)
+		internal void EnsureStillValid(bool allowFromNetworkThread = false, bool allowFailedState = false)
 		{
 			// We must not be disposed
 			if (allowFailedState ? this.State == STATE_DISPOSED : this.State != STATE_READY)

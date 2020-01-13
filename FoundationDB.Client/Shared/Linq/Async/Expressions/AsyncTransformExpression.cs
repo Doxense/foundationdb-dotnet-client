@@ -42,8 +42,8 @@ namespace Doxense.Linq.Async.Expressions
 	/// <typeparam name="TResult">Type of the transformed items</typeparam>
 	public sealed class AsyncTransformExpression<TSource, TResult>
 	{
-		private readonly Func<TSource, TResult> m_transform;
-		private readonly Func<TSource, CancellationToken, Task<TResult>> m_asyncTransform;
+		private readonly Func<TSource, TResult>? m_transform;
+		private readonly Func<TSource, CancellationToken, Task<TResult>>? m_asyncTransform;
 
 		public AsyncTransformExpression(Func<TSource, TResult> transform)
 		{
@@ -90,7 +90,6 @@ namespace Doxense.Linq.Async.Expressions
 			return new InvalidOperationException("Cannot invoke asynchronous transform synchronously");
 		}
 
-		[NotNull]
 		public AsyncTransformExpression<TSource, TCasted> Cast<TCasted>()
 		{
 			if (typeof(TCasted) == typeof(TResult))
@@ -113,14 +112,12 @@ namespace Doxense.Linq.Async.Expressions
 			}
 		}
 
-		[NotNull]
-		public AsyncTransformExpression<TSource, TOuter> Then<TOuter>([NotNull] AsyncTransformExpression<TResult, TOuter> expr)
+		public AsyncTransformExpression<TSource, TOuter> Then<TOuter>(AsyncTransformExpression<TResult, TOuter> expr)
 		{
 			return Then<TOuter>(this, expr);
 		}
 
-		[NotNull]
-		public static AsyncTransformExpression<TSource, TOuter> Then<TOuter>([NotNull] AsyncTransformExpression<TSource, TResult> left, [NotNull] AsyncTransformExpression<TResult, TOuter> right)
+		public static AsyncTransformExpression<TSource, TOuter> Then<TOuter>(AsyncTransformExpression<TSource, TResult> left, AsyncTransformExpression<TResult, TOuter> right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));

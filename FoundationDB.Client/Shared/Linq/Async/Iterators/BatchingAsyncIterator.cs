@@ -50,7 +50,7 @@ namespace Doxense.Linq.Async.Iterators
 		// ITERATOR
 
 		// buffer storing the items in the current window
-		private List<TInput> m_buffer;
+		private List<TInput>? m_buffer;
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
