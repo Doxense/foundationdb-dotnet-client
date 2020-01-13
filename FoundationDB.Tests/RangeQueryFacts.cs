@@ -164,7 +164,7 @@ namespace FoundationDB.Client.Tests
 				Log($"Inserting {N:N0} keys...");
 
 				var insert = Stopwatch.StartNew();
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
@@ -240,7 +240,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
@@ -374,7 +374,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
@@ -535,7 +535,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// insert all values (batched)
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
@@ -839,7 +839,7 @@ namespace FoundationDB.Client.Tests
 				var dataSet = Enumerable.Range(0, 100).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
 
 				// import test data
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
 					foreach((var k, var v) in dataSet)
@@ -939,7 +939,7 @@ namespace FoundationDB.Client.Tests
 				var dataSet = Enumerable.Range(0, 300).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
 
 				// import test data
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var folder = await location.Resolve(tr);
 					foreach ((var k, var v) in dataSet)

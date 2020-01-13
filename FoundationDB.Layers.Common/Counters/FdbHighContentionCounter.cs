@@ -87,7 +87,7 @@ namespace FoundationDB.Layers.Counters
 
 		private Task Coalesce(IFdbDatabase db, int N, CancellationToken ct)
 		{
-			return db.ReadWriteAsync(async tr =>
+			return db.WriteAsync(async tr =>
 			{
 				long total = 0;
 				var subspace = await this.Location.Resolve(tr);

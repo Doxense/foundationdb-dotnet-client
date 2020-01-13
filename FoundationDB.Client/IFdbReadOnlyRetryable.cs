@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,58 +61,102 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		//REVIEW: that's a lot of things to implement! => maybe we should have a set of extension methods that hook into a more simple but generic version?
-
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
-		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task that succeeds if no error occurred during execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Since the method does not result any result, it should only be used to verify the content of the database.
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
+		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
 
-		Task ReadAsync([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
-
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
-		/// <param name="state">State that will be passed backed to the <paramref name="handler"/></param>
-		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="state">Caller-provided context or state that will be passed through to the <paramref name="handler"/></param>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task that succeeds if no error occurred during execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Since the method does not result any result, it should only be used to verify the content of the database.
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadAsync<TState, TResult>(TState state, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct);
+		Task ReadAsync<TState>(TState state, Func<IFdbReadOnlyTransaction, TState, Task> handler, CancellationToken ct);
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
-		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
-		/// <param name="success">Will be called at most once, and only if the transaction commits successfully.</param>
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadAsync<TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, [InstantHandle] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct);
+		Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
-		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
-		/// <param name="success">Will be called at most once, and only if the transaction commits successfully.</param>
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="state">Caller-provided context or state that will be passed through to the <paramref name="handler"/></param>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadAsync<TIntermediate, TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct);
+		Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct);
 
-		/// <summary>Runs a transactional lambda function inside a read-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
-		/// <param name="handler">Asynchronous handler that will be retried until it succeeds, or a non-recoverable error occurs.</param>
-		/// <param name="success">Will be called at most once, and only if the transaction commits successfully.</param>
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
-		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		Task<TResult> ReadAsync<TIntermediate, TResult>([NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [InstantHandle] Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
+		Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct);
+
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
+		/// <remarks>
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct);
+
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
+		/// <remarks>
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
+
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="state">Caller-provided context or state that will be passed through to the <paramref name="handler"/></param>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
+		/// <param name="success">Handler that will be called once the transaction executes successfully. The result from the last invocation of <paramref name="handler"/> will be passed as the seconde parameter.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
+		/// <remarks>
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		Task<TResult> ReadAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
 
 	}
 

@@ -829,7 +829,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// setup
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace["AAA"], Slice.FromFixed32(0));
@@ -840,7 +840,7 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// execute
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
 					tr.AtomicIncrement32(subspace["AAA"]);
@@ -2671,7 +2671,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(version3, Is.Not.Null.And.Not.EqualTo(version2), "Metadata version should have changed");
 
 				// changing the metadata version and then reading it back from the same transaction should return <null>
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					// We can read the version before
 					var before = await tr.GetMetadataVersionKeyAsync();
@@ -2733,7 +2733,7 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 
 				// changing the metadata version and then reading it back from the same transaction CANNOT WORK!
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
 

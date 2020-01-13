@@ -55,7 +55,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				string secret = "world:" + Guid.NewGuid().ToString();
 
 				// read non existing value
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var foos = await mapFoos.ResolveState(tr);
 
@@ -67,7 +67,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				}, this.Cancellation);
 
 				// write value
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var foos = await mapFoos.ResolveState(tr);
 					foos.Set(tr, "hello", secret);
@@ -101,7 +101,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				}, this.Cancellation);
 
 				// delete the value
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var foos = await mapFoos.ResolveState(tr);
 					foos.Remove(tr, "hello");
@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
 
 				// write a bunch of keys
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var foos = await mapFoos.ResolveState(tr);
 					foos.Set(tr, "foo", "foo_value");
@@ -206,7 +206,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var mapHosts = new FdbMap<IPEndPoint, string>(location.ByKey("Hosts").AsTyped<IPEndPoint>(keyEncoder), BinaryEncoding.StringEncoder);
 
 				// import all the rules
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var hosts = await mapHosts.ResolveState(tr);
 					foreach(var rule in rules)

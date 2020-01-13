@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Messaging
 			if (db == null) throw new ArgumentNullException(nameof(db));
 			var now = DateTime.UtcNow;
 
-			await db.ReadWriteAsync(async (tr) =>
+			await db.WriteAsync(async (tr) =>
 			{
 				Interlocked.Increment(ref m_schedulingAttempts);
 #if DEBUG
@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Messaging
 					ct.ThrowIfCancellationRequested();
 
 					var myId = Slice.Nil;
-					await db.ReadWriteAsync(
+					await db.WriteAsync(
 						async (tr) =>
 						{
 							tr.Annotate("I'm worker #{0} with id {1:P}", num, workerId);

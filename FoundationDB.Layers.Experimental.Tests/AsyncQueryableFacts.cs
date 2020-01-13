@@ -96,7 +96,7 @@ namespace FoundationDB.Linq.Tests
 
 				var indexFoos = new FdbIndex<long, string>(location.ByKey("Foos", "ByColor"));
 
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var foos = await indexFoos.ResolveState(tr);
 					foos.Add(tr, 1, "red");
@@ -133,7 +133,7 @@ namespace FoundationDB.Linq.Tests
 
 				var index = new FdbIndex<string, int>(location.ByKey("Foos", "ByScore"));
 
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var foos = await index.ResolveState(tr);
 					foos.Add(tr, "alpha", 10);

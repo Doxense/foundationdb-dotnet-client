@@ -51,15 +51,15 @@ namespace FoundationDB.Layers.Counters.Tests
 
 				var counter = new FdbHighContentionCounter(location);
 
-				await db.ReadWriteAsync(async tr => await counter.Add(tr, 100), this.Cancellation);
+				await db.WriteAsync(async tr => await counter.Add(tr, 100), this.Cancellation);
 				var res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
 				Assert.That(res, Is.EqualTo(100));
 
-				await db.ReadWriteAsync(async tr => await counter.Add(tr, -10), this.Cancellation);
+				await db.WriteAsync(async tr => await counter.Add(tr, -10), this.Cancellation);
 				res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
 				Assert.That(res, Is.EqualTo(90));
 
-				await db.ReadWriteAsync(async tr => await counter.SetTotal(tr, 500), this.Cancellation);
+				await db.WriteAsync(async tr => await counter.SetTotal(tr, 500), this.Cancellation);
 				res = await db.ReadAsync(tr => counter.GetSnapshot(tr), this.Cancellation);
 				Assert.That(res, Is.EqualTo(500));
 			}
@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Counters.Tests
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < N; i++)
 				{
-					await db.ReadWriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
+					await db.WriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
 				}
 				sw.Stop();
 
@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Counters.Tests
 							await signal.Task.ConfigureAwait(false);
 							for (int i = 0; i < B; i++)
 							{
-								await db.ReadWriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
+								await db.WriteAsync(async tr => await c.Add(tr, 1), this.Cancellation);
 							}
 						}).ToArray();
 

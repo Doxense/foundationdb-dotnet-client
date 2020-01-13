@@ -738,7 +738,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// create multiple lists
 			var location = db.Root.ByKey("MergeSort");
-			await db.ReadWriteAsync(async tr =>
+			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
 				tr.ClearRange(subspace);

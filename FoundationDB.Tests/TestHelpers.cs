@@ -88,7 +88,7 @@ namespace FoundationDB.Client.Tests
 			// if the prefix part is empty, then we simply recursively remove the corresponding sub-directory tree
 			// If it is not empty, we only remove the corresponding subspace (without touching the sub-directories!)
 
-			await db.WithoutLogging().ReadWriteAsync(async tr =>
+			await db.WithoutLogging().WriteAsync(async tr =>
 			{
 				if (location.Path.Count == 0)
 				{ // subspace under the root of the partition

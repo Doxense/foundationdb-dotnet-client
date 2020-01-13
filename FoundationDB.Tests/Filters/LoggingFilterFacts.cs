@@ -51,7 +51,7 @@ namespace FoundationDB.Filters.Logging.Tests
 				await CleanLocation(db, location);
 
 				// note: ensure that all methods are JITed
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -63,7 +63,7 @@ namespace FoundationDB.Filters.Logging.Tests
 					tr.ClearRange(subspace.Encode("Warmup", 4), subspace.Encode("Warmup", 5));
 				}, this.Cancellation);
 
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await location.Resolve(tr);
 
@@ -106,7 +106,7 @@ namespace FoundationDB.Filters.Logging.Tests
 					Log("==== " + k + " ==== ");
 					Log();
 
-					await logged.ReadWriteAsync(async (tr) =>
+					await logged.WriteAsync(async (tr) =>
 					{
 						Assert.That(tr, Is.InstanceOf<FdbLoggedTransaction>());
 

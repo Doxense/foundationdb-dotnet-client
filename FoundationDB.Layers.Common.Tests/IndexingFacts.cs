@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				var index = new FdbIndex<int, string>(subspace);
 
 				// add items to the index
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					await index.AddAsync(tr, 1, "red");
 					await index.AddAsync(tr, 2, "green");
@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				// update
 
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					await index.UpdateAsync(tr, 3, "indigo", "blue");
 					await index.RemoveAsync(tr, 5, "yellow");
@@ -149,7 +149,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				var indexAlignment = new FdbIndex<long, bool?>(location.ByKey("FriendsOrFoe"));
 
 				// index everything
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var indexBrandState = await indexBrand.ResolveState(tr);
 					var indexSuperHeroState = await indexSuperHero.ResolveState(tr);

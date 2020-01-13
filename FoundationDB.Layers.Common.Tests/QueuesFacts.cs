@@ -66,9 +66,9 @@ namespace FoundationDB.Layers.Collections.Tests
 				Log("Empty? " + await logged.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
 
 				Log("Push 10, 8, 6");
-				await logged.ReadWriteAsync((tr) => queue.PushAsync(tr, 10), this.Cancellation);
-				await logged.ReadWriteAsync((tr) => queue.PushAsync(tr, 8), this.Cancellation);
-				await logged.ReadWriteAsync((tr) => queue.PushAsync(tr, 6), this.Cancellation);
+				await logged.WriteAsync((tr) => queue.PushAsync(tr, 10), this.Cancellation);
+				await logged.WriteAsync((tr) => queue.PushAsync(tr, 8), this.Cancellation);
+				await logged.WriteAsync((tr) => queue.PushAsync(tr, 6), this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, location);
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				Assert.That(empty, Is.True);
 
 				Log("Push 5");
-				await logged.ReadWriteAsync(tr => queue.PushAsync(tr, 5), this.Cancellation);
+				await logged.WriteAsync(tr => queue.PushAsync(tr, 5), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				Assert.That(empty, Is.False);
 
 				Log("Popping 3 + 1 items in another transaction...");
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					// should be able to pop 3 items..
 
@@ -244,7 +244,7 @@ namespace FoundationDB.Layers.Collections.Tests
 							for (; i < NUM; i++)
 							{
 								var item = id.ToString() + "." + i.ToString();
-								await db.ReadWriteAsync((tr) => queue.PushAsync(tr, item), tok).ConfigureAwait(false);
+								await db.WriteAsync((tr) => queue.PushAsync(tr, item), tok).ConfigureAwait(false);
 
 								Interlocked.Increment(ref pushCount);
 								res.Add(item);

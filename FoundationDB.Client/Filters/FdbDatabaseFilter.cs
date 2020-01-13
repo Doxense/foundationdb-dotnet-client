@@ -118,7 +118,7 @@ namespace FoundationDB.Filters
 
 		#region Transactionals...
 
-		public virtual ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
+		public virtual ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext? context = null)
 		{
 			ThrowIfDisposed();
 
@@ -133,171 +133,181 @@ namespace FoundationDB.Filters
 			return m_database.BeginTransactionAsync(mode, ct, context);
 		}
 
-		#region ReadOnly...
+		#region IFdbReadOnlyRetryable...
 
-		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
+		private Task<TResult> ExecuteReadOnlyAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
 		{
+			Contract.NotNull(handler, nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, ct);
+
+			var context = new FdbOperationContext(this, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
 		}
 
+		/// <inheritdoc/>
 		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync(this, handler, ct);
+			return ExecuteReadOnlyAsync<object?, object?, object?>(null, handler, null, ct);
 		}
 
+		/// <inheritdoc/>
+		public Task ReadAsync<TState>(TState state, Func<IFdbReadOnlyTransaction, TState, Task> handler, CancellationToken ct)
+		{
+			return ExecuteReadOnlyAsync<TState, object?, object?>(state, handler, null, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
+		{
+			return ExecuteReadOnlyAsync<object?, TResult, TResult>(null, handler, null, ct);
+		}
+
+		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
+			return ExecuteReadOnlyAsync<TState, TResult, TResult>(state, handler, null, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<TResult>(this, handler, success, ct);
+			return ExecuteReadOnlyAsync<object?, TResult, TResult>(null, handler, success, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+			return ExecuteReadOnlyAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunReadWithResultAsync<TIntermediate, TResult>(this, handler, success, ct);
+			return ExecuteReadOnlyAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return ExecuteReadOnlyAsync<TState, TIntermediate, TResult>(state, handler, success, ct);
 		}
 
 		#endregion
 
-		#region Write Only...
+		#region IFdbRetryable...
 
+		private Task<TResult> ExecuteReadWriteAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
+		{
+			Contract.NotNull(handler, nameof(handler));
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+			ThrowIfDisposed();
+			if (m_readOnly) throw new InvalidOperationException("Cannot mutate a read-only database.");
+
+			var context = new FdbOperationContext(this, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
+		}
+
+		/// <inheritdoc/>
 		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, null, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task WriteAsync<TState>(TState state, Action<IFdbTransaction, TState> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
+			return ExecuteReadWriteAsync<TState, object?, object?>(state, handler, null, ct);
 		}
 
-		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> success, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
-		}
-
-		public Task WriteAsync(Action<IFdbTransaction> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
-		}
-
-		public Task<TResult> WriteAsync<TResult>(Action<IFdbTransaction> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync<TResult>(this, handler, success, ct);
-		}
-
+		/// <inheritdoc/>
 		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, null, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task WriteAsync<TState>(TState state, Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
+			return ExecuteReadWriteAsync<TState, object?, object?>(state, handler, null, ct);
 		}
 
+		/// <inheritdoc/>
+		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task WriteAsync(Action<IFdbTransaction> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Action<IFdbTransaction> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<object?, object?, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
 		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, success, ct);
+			return ExecuteReadWriteAsync<object?, object?, object?>(null, handler, success, ct);
 		}
 
-		#endregion
-
-		#region Read+Write...
-
-		public Task ReadWriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, ct);
-		}
-
-		public Task ReadWriteAsync<TState>(TState state, Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
-		}
-
-		public Task ReadWriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteAsync(this, handler, onDone, ct);
-		}
-
-		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, TResult> handler, CancellationToken ct)
-		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
-		}
-
+		/// <inheritdoc/>
 		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, ct);
+			return ExecuteReadWriteAsync<object?, TResult, TResult>(null, handler, null, ct);
 		}
 
+		/// <inheritdoc/>
 		public Task<TResult> ReadWriteAsync<TState, TResult>(TState state, Func<IFdbTransaction, TState, Task<TResult>> handler, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
+			return ExecuteReadWriteAsync<TState, TResult, TResult>(state, handler, null, ct);
 		}
 
-		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, Action<IFdbTransaction, TResult> onDone, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, Action<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, onDone, ct);
+			return ExecuteReadWriteAsync<object?, TResult, TResult>(null, handler, success, ct);
 		}
 
-		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, TResult> onDone, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task<TResult>> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, onDone, ct);
+			return ExecuteReadWriteAsync<object?, object?, TResult>(null, handler, success, ct);
 		}
 
-		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task<TResult>> onDone, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, handler, onDone, ct);
+			return ExecuteReadWriteAsync<object?, object?, TResult>(null, handler, success, ct);
 		}
 
-
-		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, TResult> onDone, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TIntermediate, TResult>(this, handler, onDone, ct);
+			return ExecuteReadWriteAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
 		}
 
-		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> onDone, CancellationToken ct)
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			ThrowIfDisposed();
-			return FdbOperationContext.RunWriteWithResultAsync<TIntermediate, TResult>(this, handler, onDone, ct);
+			return ExecuteReadWriteAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+		}
+
+		/// <inheritdoc/>
+		public Task<TResult> ReadWriteAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbTransaction, TState, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
+		{
+			return ExecuteReadWriteAsync<TState, TIntermediate, TResult>(state, handler, success, ct);
 		}
 
 		#endregion

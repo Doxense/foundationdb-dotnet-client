@@ -48,7 +48,7 @@ namespace FoundationDB.Client.Tests
 
 				string secret = Guid.NewGuid().ToString();
 
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("Hello"), Value(secret));
@@ -163,7 +163,7 @@ namespace FoundationDB.Client.Tests
 				var rnd = new Random();
 				for(int i = 0; i < 100; i++)
 				{
-					await db.ReadWriteAsync(async tr =>
+					await db.WriteAsync(async tr =>
 					{
 						var subspace = await location.Resolve(tr);
 						for (int j = 0; j < 1000; j++)
@@ -282,7 +282,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// setup the keys from 0 to 9
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await location.Resolve(tr);
 					for (int i = 0; i < 10; i++)
@@ -342,14 +342,14 @@ namespace FoundationDB.Client.Tests
 
 				string secret = Guid.NewGuid().ToString();
 
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("Hello"), Value(secret));
 				}, this.Cancellation);
 
 				int called = 0;
-				var result = await db.ReadWriteAsync<Slice>(
+				var result = await db.ReadWriteAsync(
 					async (tr) =>
 					{
 						if (tr.Context.Retries == 0) throw new FdbException(FdbError.NotCommitted, "Fake Not Committed!");
@@ -380,7 +380,7 @@ namespace FoundationDB.Client.Tests
 
 				string secret = Guid.NewGuid().ToString();
 
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("Hello"), Value(secret));

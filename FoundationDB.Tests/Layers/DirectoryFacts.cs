@@ -312,7 +312,7 @@ namespace FoundationDB.Client.Tests
 				// linear subtree "/Foo/Bar/Baz"
 				await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, new[] { "Foo", "Bar", "Baz" }), this.Cancellation);
 				// flat subtree "/numbers/0" to "/numbers/9"
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(tr, new[] { "numbers", i.ToString() });
 				}, this.Cancellation);
@@ -360,7 +360,7 @@ namespace FoundationDB.Client.Tests
 				var directory = FdbDirectoryLayer.Create(location);
 
 				// insert letters in random order
-				await db.ReadWriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var rnd = new Random();
 					var letters = Enumerable.Range(65, 10).Select(x => new string((char) x, 1)).ToList();
@@ -443,7 +443,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, "Foo"), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// opening the new path should succeed
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					var folder = await directory.OpenAsync(tr, "Bar");
 					Assert.That(folder, Is.Not.Null);
@@ -489,8 +489,8 @@ namespace FoundationDB.Client.Tests
 				await DumpSubspace(db, location);
 #endif
 
-				// removing an existing folder should succeeed
-				await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, path), this.Cancellation);
+				// removing an existing folder should succeed
+				await logged.WriteAsync(tr => directory.RemoveAsync(tr, path), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -498,7 +498,7 @@ namespace FoundationDB.Client.Tests
 
 				// Removing it a second time should fail
 				Assert.That(
-					async () => await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, path), this.Cancellation), 
+					async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, path), this.Cancellation), 
 					Throws.InstanceOf<InvalidOperationException>(), 
 					"Removing a non-existent directory should fail"
 				);
@@ -518,7 +518,7 @@ namespace FoundationDB.Client.Tests
 				// Corner Cases
 
 				// removing the root folder is not allowed (too dangerous)
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, FdbDirectoryPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>(), "Attempting to remove the root directory should fail");
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, FdbDirectoryPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>(), "Attempting to remove the root directory should fail");
 
 #if ENABLE_LOGGING
 				foreach (var log in list)
@@ -545,7 +545,7 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					var folder = await directory.CreateAsync(tr, "Test", layer: Slice.FromString("foo"));
 #if DEBUG
@@ -599,7 +599,7 @@ namespace FoundationDB.Client.Tests
 				var directory = FdbDirectoryLayer.Create(location);
 				Dump(directory);
 
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					Log("Creating partition /Foo$ ...");
 					var partition = await directory.CreateAsync(tr, "Foo$", Slice.FromStringAscii("partition"));
@@ -668,7 +668,7 @@ namespace FoundationDB.Client.Tests
 				var directory = FdbDirectoryLayer.Create(location);
 				Dump(directory);
 
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 
 					Log("Creating /Foo$ ...");
@@ -722,7 +722,7 @@ namespace FoundationDB.Client.Tests
 				var directory = FdbDirectoryLayer.Create(location);
 				Dump(directory);
 
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					Log("Create [Outer$]");
 					var outer = await directory.CreateAsync(tr, "Outer", Slice.FromStringAscii("partition"));
@@ -929,10 +929,10 @@ namespace FoundationDB.Client.Tests
 				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, new[] { "foo" }, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// Remove
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, new string[] { "Foo", " ", "Bar" }), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.RemoveAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, new string[] { "Foo", " ", "Bar" }), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
 
 				// List
 				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
@@ -969,7 +969,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(del, Throws.Nothing);
 				}
 
-				await logged.ReadWriteAsync(async tr =>
+				await logged.WriteAsync(async tr =>
 				{
 					var partition = await directory.CreateAsync(tr, "Foo", Slice.FromStringAscii("partition"));
 					Log($"Partition: {partition.Descriptor.Prefix:K}");

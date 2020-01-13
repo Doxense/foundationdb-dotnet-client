@@ -67,7 +67,7 @@ namespace FoundationDB.Client
 		/// <summary>Set an option on this database that takes a string value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter (can be null)</param>
-		void SetOption(FdbDatabaseOption option, string value);
+		void SetOption(FdbDatabaseOption option, string? value);
 
 		/// <summary>Set an option on this database that takes an integer value</summary>
 		/// <param name="option">Option to set</param>
@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext context = null);
+		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
 	}
 

@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var rankedSet = new FdbRankedSet(location);
 
-				await db.ReadWriteAsync(async (tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					await rankedSet.OpenAsync(tr);
 					var state = await rankedSet.Resolve(tr);
@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				for (int i = 0; i < 100; i++)
 				{
 					Log("\rInserting " + i);
-					await db.ReadWriteAsync(async tr =>
+					await db.WriteAsync(async tr =>
 					{
 						var state = await rankedSet.Resolve(tr);
 						await state.InsertAsync(tr, TuPack.EncodeKey(rnd.Next()));

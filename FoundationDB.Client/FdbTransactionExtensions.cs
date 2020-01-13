@@ -1803,15 +1803,12 @@ namespace FoundationDB.Client
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
 
-			return db.ReadAsync(
-				async (tr) =>
-				{
-					var query = await handler(tr);
-					if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
-					return await query.ToListAsync();
-				},
-				ct
-			);
+			return db.ReadAsync(async (tr) =>
+			{
+				var query = await handler(tr);
+				if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
+				return await query.ToListAsync();
+			}, ct);
 		}
 
 		#endregion

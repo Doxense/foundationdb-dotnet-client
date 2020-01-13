@@ -184,13 +184,13 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task ReadWriteAsync(
+		public static async Task WriteAsync(
 			[NotNull] this IFdbDatabaseScopeProvider provider,
 			[NotNull, InstantHandle] Func<IFdbTransaction, Task> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
-			await db.ReadWriteAsync(handler, ct).ConfigureAwait(false);
+			await db.WriteAsync(handler, ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -203,13 +203,13 @@ namespace FoundationDB.Client
 		/// Since the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
-		public static async Task ReadWriteAsync<TState>(
+		public static async Task WriteAsync<TState>(
 			[NotNull] this IFdbDatabaseScopeProvider<TState> provider,
 			[NotNull, InstantHandle] Func<IFdbTransaction, TState, Task> handler,
 			CancellationToken ct)
 		{
 			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
-			await db.ReadWriteAsync(state, handler, ct).ConfigureAwait(false);
+			await db.WriteAsync((tr) => handler(tr, state), ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run an idempotent transaction block inside a write-only transaction, which can be executed more than once if any retry-able error occurs.</summary>
@@ -245,7 +245,7 @@ namespace FoundationDB.Client
 			CancellationToken ct)
 		{
 			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
-			await db.WriteAsync(state, handler, ct).ConfigureAwait(false);
+			await db.WriteAsync((tr) => handler(tr, state), ct).ConfigureAwait(false);
 		}
 
 	}

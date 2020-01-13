@@ -162,14 +162,14 @@ namespace FoundationDB.Samples.Tutorials
 						case "add":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Signup(tr, student, @class), ct);
+							await db.WriteAsync((tr) => Signup(tr, student, @class), ct);
 							myClasses.Add(@class);
 							break;
 						}
 						case "drop":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Drop(tr, student, @class), ct);
+							await db.WriteAsync((tr) => Drop(tr, student, @class), ct);
 							myClasses.Remove(@class);
 							break;
 						}
@@ -177,7 +177,7 @@ namespace FoundationDB.Samples.Tutorials
 						{
 							string oldClass = allClasses[rnd.Next(allClasses.Count)];
 							string newClass = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
+							await db.WriteAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
 							myClasses.Remove(oldClass);
 							myClasses.Add(newClass);
 							break;

@@ -194,7 +194,7 @@ namespace FdbShell
 		public static async Task MoveDirectory(FdbDirectorySubspaceLocation source, FdbDirectorySubspaceLocation destination, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			Contract.Requires(source.Directory == destination.Directory);
-			await db.ReadWriteAsync(async tr =>
+			await db.WriteAsync(async tr =>
 			{
 				var folder = await source.Directory.TryOpenAsync(tr, source.Path);
 				if (folder == null)
@@ -235,7 +235,7 @@ namespace FdbShell
 
 		public static Task ChangeDirectoryLayer(FdbDirectorySubspaceLocation location, string layer, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			return db.ReadWriteAsync(async tr =>
+			return db.WriteAsync(async tr =>
 			{
 				var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(tr, location);
 				if (dir == null)
