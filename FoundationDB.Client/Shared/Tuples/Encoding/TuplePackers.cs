@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Serializers...
 
-		public delegate void Encoder<in T>(ref TupleWriter writer, [AllowNull] T value);
+		public delegate void Encoder<in T>(ref TupleWriter writer, T value);
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
@@ -188,7 +188,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void SerializeTo<T>(ref TupleWriter writer, [AllowNull] T value)
+		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
 		{
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method

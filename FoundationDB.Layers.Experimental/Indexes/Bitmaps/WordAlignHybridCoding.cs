@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	public static class WordAlignHybridEncoder
 	{
@@ -376,8 +375,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="size">Minimum logical size of the result (bits in the uncompressed bitmap)</param>
 		/// <returns>Compressed slice with the result of flipping all the bits in <paramref name="bitmap"/>, containing up to at least <paramref name="size"/> bits.</returns>
 		/// <remarks>If <paramref name="bitmap"/> is larger than <paramref name="size"/>, then the resulting bitmap will be larger.</remarks>
-		[NotNull]
-		public static CompressedBitmap Not([NotNull] this CompressedBitmap bitmap, int size)
+		public static CompressedBitmap Not(this CompressedBitmap bitmap, int size)
 		{
 			if (bitmap == null) throw new ArgumentNullException(nameof(bitmap));
 
@@ -414,8 +412,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		[NotNull]
-		public static CompressedBitmap And([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		public static CompressedBitmap And(this CompressedBitmap left, CompressedBitmap right)
 		{
 			if (left == null) throw new ArgumentNullException(nameof(left));
 			if (right == null) throw new ArgumentNullException(nameof(right));
@@ -428,8 +425,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		[NotNull]
-		public static CompressedBitmap Or([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		public static CompressedBitmap Or(this CompressedBitmap left, CompressedBitmap right)
 		{
 			if (left == null) throw new ArgumentNullException(nameof(left));
 			if (right == null) throw new ArgumentNullException(nameof(right));
@@ -443,8 +439,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		[NotNull]
-		public static CompressedBitmap Xor([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		public static CompressedBitmap Xor(this CompressedBitmap left, CompressedBitmap right)
 		{
 			if (left == null) throw new ArgumentNullException(nameof(left));
 			if (right == null) throw new ArgumentNullException(nameof(right));
@@ -458,8 +453,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND NOT(<paramref name="right"/>)</returns>
-		[NotNull]
-		public static CompressedBitmap AndNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		public static CompressedBitmap AndNot(this CompressedBitmap left, CompressedBitmap right)
 		{
 			if (left == null) throw new ArgumentNullException(nameof(left));
 			if (right == null) throw new ArgumentNullException(nameof(right));
@@ -472,8 +466,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> OR NOT(<paramref name="right"/>)</returns>
-		[NotNull]
-		public static CompressedBitmap OrNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		public static CompressedBitmap OrNot(this CompressedBitmap left, CompressedBitmap right)
 		{
 			if (left == null) throw new ArgumentNullException(nameof(left));
 			if (right == null) throw new ArgumentNullException(nameof(right));
@@ -487,8 +480,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> XOR NOT(<paramref name="right"/>)</returns>
-		[NotNull]
-		public static CompressedBitmap XorNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		public static CompressedBitmap XorNot(this CompressedBitmap left, CompressedBitmap right)
 		{
 			if (left == null) throw new ArgumentNullException(nameof(left));
 			if (right == null) throw new ArgumentNullException(nameof(right));
@@ -503,8 +495,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="right">Second compressed bitmap</param>
 		/// <param name="op">Type of operation to perform (And, Or, Xor, ...)</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		[NotNull]
-		internal static CompressedBitmap CompressedBinaryExpression([NotNull] CompressedBitmap left, [NotNull] CompressedBitmap right, LogicalOperation op)
+		internal static CompressedBitmap CompressedBinaryExpression(CompressedBitmap left, CompressedBitmap right, LogicalOperation op)
 		{
 			Contract.Requires(left != null && right != null && /*op != LogicalOperation.And &&*/ Enum.IsDefined(typeof(LogicalOperation), op));
 

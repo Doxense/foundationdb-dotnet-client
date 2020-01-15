@@ -25,16 +25,14 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
- 
+
 namespace FoundationDB.Linq.Expressions
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Linq;
 	using FoundationDB.Client;
 
 	/// <summary>Base class of all queries that return a sequence of elements (Ranges, Index lookups, ...)</summary>
@@ -42,17 +40,10 @@ namespace FoundationDB.Linq.Expressions
 	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IAsyncEnumerable<T>>
 	{
 		/// <summary>Type of elements returned by the sequence</summary>
-		public Type ElementType
-		{
-			[NotNull]
-			get { return typeof(T); }
-		}
+		public Type ElementType => typeof(T);
 
 		/// <summary>Always returns <see cref="FdbQueryShape.Sequence"/></summary>
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
+		public override FdbQueryShape Shape => FdbQueryShape.Sequence;
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		public abstract Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence();

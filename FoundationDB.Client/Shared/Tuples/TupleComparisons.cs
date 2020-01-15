@@ -59,7 +59,7 @@ namespace Doxense.Collections.Tuples
 			public bool Equals(IVarTuple? x, IVarTuple? y)
 			{
 				if (object.ReferenceEquals(x, y)) return true;
-				if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
+				if (x ==  null || y == null) return false;
 
 				return x.Equals(y, m_comparer);
 			}
@@ -74,10 +74,8 @@ namespace Doxense.Collections.Tuples
 				if (object.ReferenceEquals(x, y)) return true;
 				if (x == null || y == null) return false;
 
-				if (x is IVarTuple t) return t.Equals(y, m_comparer);
-
-				t = y as IVarTuple;
-				if (t != null) return t.Equals(x, m_comparer);
+				if (x is IVarTuple tx) return tx.Equals(y, m_comparer);
+				if (y is IVarTuple ty) return ty.Equals(x, m_comparer);
 
 				return false;
 			}
@@ -86,8 +84,7 @@ namespace Doxense.Collections.Tuples
 			{
 				if (obj == null) return 0;
 
-				var t = obj as IVarTuple;
-				if (!object.ReferenceEquals(t, null)) return t.GetHashCode(m_comparer);
+				if (obj is IVarTuple t) return t.GetHashCode(m_comparer);
 
 				// returns a hash base on the pointers
 				return RuntimeHelpers.GetHashCode(obj);

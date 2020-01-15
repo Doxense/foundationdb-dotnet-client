@@ -36,7 +36,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
-	using JetBrains.Annotations;
 
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
@@ -54,7 +53,7 @@ namespace Doxense.Linq.Async.Iterators
 		private int? m_skipped;
 
 		public WhereSelectAsyncIterator(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncFilterExpression<TSource>? filter,
 			AsyncTransformExpression<TSource, TResult> transform,
 			int? limit,

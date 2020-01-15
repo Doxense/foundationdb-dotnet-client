@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -39,7 +38,6 @@ namespace FoundationDB.Layers.Collections
 #if DEBUG
 	using FoundationDB.Filters.Logging;
 #endif
-	using JetBrains.Annotations;
 
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]
@@ -49,29 +47,27 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="location">Subspace where the queue will be stored</param>
 		/// <param name="encoder">Encoder for the values stored in this queue</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue([NotNull] ISubspaceLocation location, IValueEncoder<T> encoder = null)
+		public FdbQueue(ISubspaceLocation location, IValueEncoder<T>? encoder = null)
 			: this(location.AsTyped<VersionStamp>(), encoder)
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="location">Subspace where the queue will be stored</param>
 		/// <param name="encoder">Encoder for the values stored in this queue</param>
-		public FdbQueue([NotNull] TypedKeySubspaceLocation<VersionStamp> location, IValueEncoder<T> encoder = null)
+		public FdbQueue(TypedKeySubspaceLocation<VersionStamp> location, IValueEncoder<T>? encoder = null)
 		{
 			this.Location = location ?? throw new ArgumentNullException(nameof(location));
 			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		[NotNull]
 		public TypedKeySubspaceLocation<VersionStamp> Location { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		[NotNull]
 		public IValueEncoder<T> Encoder { get; }
 
 		/// <summary>Remove all items from the queue.</summary>
-		public async Task ClearAsync([NotNull] IFdbTransaction tr)
+		public async Task ClearAsync(IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -80,7 +76,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Push a single item onto the queue.</summary>
-		public async Task PushAsync([NotNull] IFdbTransaction tr, T value)
+		public async Task PushAsync(IFdbTransaction tr, T value)
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -96,7 +92,7 @@ namespace FoundationDB.Layers.Collections
 		private static readonly FdbRangeOptions SingleOptions = new FdbRangeOptions() { Limit = 1, Mode = FdbStreamingMode.Exact };
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public async Task<(T Value, bool HasValue)> PopAsync([NotNull] IFdbTransaction tr)
+		public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException(nameof(tr));
 #if DEBUG
@@ -121,7 +117,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Test whether the queue is empty.</summary>
-		public async Task<bool> EmptyAsync([NotNull] IFdbReadOnlyTransaction tr)
+		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 
@@ -130,7 +126,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<(T Value, bool HasValue)> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
+		public async Task<(T Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 

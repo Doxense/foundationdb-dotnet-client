@@ -34,30 +34,27 @@ namespace FoundationDB.Layers.Indexing
 	using System.Threading.Tasks;
 	using Doxense.Linq;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
-	[DebuggerDisplay("Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
+	[DebuggerDisplay("Location={Location}, IndexNullValues={IndexNullValues})")]
 	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbIndex([NotNull] ISubspaceLocation path, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex(ISubspaceLocation path, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 			: this(path.AsTyped<TValue, TId>(), valueComparer, indexNullValues)
 		{ }
 
-		public FdbIndex([NotNull] TypedKeySubspaceLocation<TValue, TId> subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues)
+		public FdbIndex(TypedKeySubspaceLocation<TValue, TId> subspace, IEqualityComparer<TValue>? valueComparer, bool indexNullValues)
 		{
 			this.Location = subspace ?? throw new ArgumentNullException(nameof(subspace));
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
 		}
 
-		[NotNull]
 		public TypedKeySubspaceLocation<TValue, TId> Location { get; }
 
-		[NotNull]
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
@@ -90,7 +87,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Update the indexed values of an entity</summary>
-			public bool Update([NotNull] IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+			public bool Update(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
 			{
 				if (!this.Schema.ValueComparer.Equals(newValue, previousValue))
 				{
@@ -113,13 +110,12 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Remove an entity from the index</summary>
-			public void Remove([NotNull] IFdbTransaction trans, TId id, TValue value)
+			public void Remove(IFdbTransaction trans, TId id, TValue value)
 			{
 				trans.Clear(this.Subspace[value, id]);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have the specified <paramref name="value"/></summary>
-			[NotNull]
 			public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
@@ -130,8 +126,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value greater than (or equal) a specified <paramref name="value"/></summary>
-			[NotNull]
-			public FdbRangeQuery<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+			public FdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
 				if (!orEqual) prefix = FdbKey.Increment(prefix);
@@ -147,8 +142,7 @@ namespace FoundationDB.Layers.Indexing
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
-			[NotNull]
-			public FdbRangeQuery<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+			public FdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
 				var prefix = this.Subspace.EncodePartial(value);
 				if (orEqual) prefix = FdbKey.Increment(prefix);
@@ -180,7 +174,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
 		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValues"/> is false)</returns>
-		public async Task<bool> AddAsync([NotNull] IFdbTransaction trans, TId id, TValue value)
+		public async Task<bool> AddAsync(IFdbTransaction trans, TId id, TValue value)
 		{
 			var state = await ResolveState(trans);
 			return state.Add(trans, id, value);
@@ -193,7 +187,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="previousValue">New value of this entity in the index</param>
 		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
-		public async Task<bool> UpdateAsync([NotNull] IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+		public async Task<bool> UpdateAsync(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
 		{
 			var state = await ResolveState(trans);
 			return state.Update(trans, id, newValue, previousValue);
@@ -203,7 +197,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
-		public async Task RemoveAsync([NotNull] IFdbTransaction trans, TId id, TValue value)
+		public async Task RemoveAsync(IFdbTransaction trans, TId id, TValue value)
 		{
 			var state = await ResolveState(trans);
 			state.Remove(trans, id, value);
@@ -214,7 +208,6 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>List of the ids of entities that match the value</returns>
-		[NotNull]
 		public IAsyncEnumerable<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -226,36 +219,31 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		[NotNull]
 		public async Task<FdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
 			var state = await ResolveState(trans);
 			return state.Lookup(trans, value, reverse);
 		}
 
-		[NotNull]
-		public IAsyncEnumerable<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public IAsyncEnumerable<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			return AsyncEnumerable.Defer<TId, FdbRangeQuery<TId>>((_) => CreateLookupGreaterThanQuery(trans, value, orEqual, reverse));
 		}
 
-		[NotNull]
-		public async Task<FdbRangeQuery<TId>> CreateLookupGreaterThanQuery([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public async Task<FdbRangeQuery<TId>> CreateLookupGreaterThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var state = await ResolveState(trans);
 			return state.LookupGreaterThan(trans, value, orEqual, reverse);
 		}
 
-		[NotNull]
-		public IAsyncEnumerable<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public IAsyncEnumerable<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			return AsyncEnumerable.Defer<TId, FdbRangeQuery<TId>>((_) => CreateLookupLessThanQuery(trans, value, orEqual, reverse));
 		}
 
-		[NotNull]
-		public async Task<FdbRangeQuery<TId>> CreateLookupLessThanQuery([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public async Task<FdbRangeQuery<TId>> CreateLookupLessThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var state = await ResolveState(trans);
 			return state.LookupLessThan(trans, value, orEqual, reverse);

@@ -87,12 +87,12 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Append a new segment to the curent path</summary>
-		public FdbDirectoryPath this[[NotNull] string segment] => Add(segment);
+		public FdbDirectoryPath this[string segment] => Add(segment);
 
 		/// <summary>Append one or more new segments to the curent path</summary>
 		public FdbDirectoryPath this[ReadOnlySpan<string> segments] => Add(segments);
 
-		private static ReadOnlyMemory<string> AppendSegment(ReadOnlySpan<string> head, [NotNull] string segment)
+		private static ReadOnlyMemory<string> AppendSegment(ReadOnlySpan<string> head, string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
 			int n = head.Length;
@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 			return tmp;
 		}
 
-		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, [NotNull] string segment1, [NotNull] string segment2)
+		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, string segment1, string segment2)
 		{
 			Contract.NotNull(segment1, nameof(segment1));
 			Contract.NotNull(segment2, nameof(segment2));
@@ -132,11 +132,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
-		public FdbDirectoryPath Add([NotNull] string segment) => new FdbDirectoryPath(AppendSegment(this.Segments.Span, segment));
+		public FdbDirectoryPath Add(string segment) => new FdbDirectoryPath(AppendSegment(this.Segments.Span, segment));
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
-		public FdbDirectoryPath Add([NotNull] string segment1, string segment2) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segment1, segment2));
+		public FdbDirectoryPath Add(string segment1, string segment2) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segment1, segment2));
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
@@ -148,11 +148,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbDirectoryPath Add([NotNull] params string[] segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments.AsSpan()));
+		public FdbDirectoryPath Add(params string[] segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments.AsSpan()));
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbDirectoryPath Add([NotNull] IEnumerable<string> segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments));
+		public FdbDirectoryPath Add(IEnumerable<string> segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments));
 
 		/// <summary>Add a path to the current path</summary>
 		[Pure]
@@ -236,7 +236,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure]
-		public static FdbDirectoryPath Combine([NotNull] params string[] segments)
+		public static FdbDirectoryPath Combine(params string[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbDirectoryPath(segments);
@@ -257,14 +257,14 @@ namespace FoundationDB.Client
 		}
 
 		[Pure]
-		public static FdbDirectoryPath Combine([NotNull, ItemNotNull] IEnumerable<string> segments)
+		public static FdbDirectoryPath Combine(IEnumerable<string> segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbDirectoryPath(segments.ToArray());
 		}
 
 		[Pure]
-		public static FdbDirectoryPath Parse([CanBeNull] string path)
+		public static FdbDirectoryPath Parse(string? path)
 		{
 			if (string.IsNullOrEmpty(path)) return Empty;
 
@@ -315,18 +315,18 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator FdbDirectoryPath([NotNull] string segment)
+		public static implicit operator FdbDirectoryPath(string segment)
 		{
 			return Combine(segment);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator FdbDirectoryPath([NotNull, ItemNotNull] string[] segments)
+		public static implicit operator FdbDirectoryPath(string[] segments)
 		{
 			return Combine(segments);
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		internal static string FormatPath(ReadOnlySpan<string> paths)
 		{
 			var sb = new StringBuilder();

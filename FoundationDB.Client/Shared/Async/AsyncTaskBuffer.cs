@@ -124,7 +124,7 @@ namespace Doxense.Async
 		}
 
 		/// <summary>Observe the completion of a task to wake up the consumer</summary>
-		private void ObserveTaskCompletion([NotNull] Task<T> task)
+		private void ObserveTaskCompletion(Task<T> task)
 		{
 			task.ContinueWith(
 				(t, state) =>
@@ -176,7 +176,7 @@ namespace Doxense.Async
 			WakeUpBlockedConsumer_NeedsLocking();
 		}
 
-		private async Task WaitForNextFreeSlotThenEnqueueAsync(Task<T> task, [NotNull] Task wait, CancellationToken ct)
+		private async Task WaitForNextFreeSlotThenEnqueueAsync(Task<T> task, Task wait, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -287,7 +287,7 @@ namespace Doxense.Async
 			return Task.FromResult(item);
 		}
 
-		private async Task<Maybe<T>> WaitForTaskToCompleteAsync([NotNull] Task<T> task, CancellationToken ct)
+		private async Task<Maybe<T>> WaitForTaskToCompleteAsync(Task<T> task, CancellationToken ct)
 		{
 			// we just need to wait for this task to complete, and return it
 
@@ -313,7 +313,7 @@ namespace Doxense.Async
 			}
 		}
 
-		private async Task<Maybe<T>> WaitForCompletionOrNextItemAsync([NotNull] Task wait, CancellationToken ct)
+		private async Task<Maybe<T>> WaitForCompletionOrNextItemAsync(Task wait, CancellationToken ct)
 		{
 			// we wait for any activity (new task or one that completes)
 

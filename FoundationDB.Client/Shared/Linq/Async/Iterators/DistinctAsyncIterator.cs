@@ -35,7 +35,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Filters duplicate items from an async sequence</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
@@ -45,7 +44,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly IEqualityComparer<TSource> m_comparer;
 		private HashSet<TSource>? m_set;
 
-		public DistinctAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
+		public DistinctAsyncIterator(IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
 			: base(source)
 		{
 			Contract.Requires(comparer != null);

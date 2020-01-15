@@ -998,7 +998,7 @@ namespace Doxense.Collections.Tuples.Encoding
 					: TuPack.DecodeKey<T>(reader.ReadToEnd());
 			}
 
-			public Slice EncodeValue([AllowNull] T key)
+			public Slice EncodeValue(T key)
 			{
 				return TupleEncoder.EncodeKey(default(Slice), key);
 			}
@@ -1006,7 +1006,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			[return:MaybeNull]
 			public T DecodeValue(Slice encoded)
 			{
-				if (encoded.IsNullOrEmpty) return default; //BUGBUG
+				if (encoded.IsNullOrEmpty) return default!; //BUGBUG
 				return TuPack.DecodeKey<T>(encoded);
 			}
 

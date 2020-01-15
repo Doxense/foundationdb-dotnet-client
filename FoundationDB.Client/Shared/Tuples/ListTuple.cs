@@ -34,7 +34,6 @@ namespace Doxense.Collections.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
 	using JetBrains.Annotations;
@@ -53,7 +52,7 @@ namespace Doxense.Collections.Tuples
 		private int? m_hashCode;
 
 		/// <summary>Create a new tuple from a sequence of items (copied)</summary>
-		public ListTuple([NotNull, InstantHandle] IEnumerable<T> items)
+		public ListTuple([InstantHandle] IEnumerable<T> items)
 			: this(items.ToArray().AsMemory())
 		{ }
 

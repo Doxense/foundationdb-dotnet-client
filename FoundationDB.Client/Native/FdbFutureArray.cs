@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -50,13 +49,13 @@ namespace FoundationDB.Client.Native
 		private int m_pending;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private readonly Func<FutureHandle, T> m_resultSelector;
+		private readonly Func<FutureHandle, T>? m_resultSelector;
 
 		#endregion
 
 		#region Constructors...
 
-		internal FdbFutureArray([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
+		internal FdbFutureArray(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			Contract.NotNullOrEmpty(handles, nameof(handles));
 			Contract.NotNull(selector, nameof(selector));
@@ -251,7 +250,7 @@ namespace FoundationDB.Client.Native
 			{
 				UnregisterCancellationRegistration();
 
-				List<Exception> errors = null;
+				List<Exception>? errors = null;
 				bool cancellation = false;
 				var selector = m_resultSelector;
 
@@ -269,7 +268,7 @@ namespace FoundationDB.Client.Native
 							if (err != FdbError.OperationCancelled)
 							{ // get the exception from the error code
 								var ex = Fdb.MapToException(err);
-								(errors ?? (errors = new List<Exception>())).Add(ex);
+								(errors ??= new List<Exception>()).Add(ex);
 							}
 							else
 							{
@@ -283,7 +282,7 @@ namespace FoundationDB.Client.Native
 							if (selector != null)
 							{
 								//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
-								results[i] = selector(handle);
+								results![i] = selector(handle);
 							}
 						}
 					}

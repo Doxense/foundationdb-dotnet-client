@@ -30,15 +30,13 @@ namespace FoundationDB.Linq.Expressions
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.Contracts;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using Doxense.Linq;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Base class of all queries that return a single element</summary>
 	/// <typeparam name="T">Type of the elements of the source sequence</typeparam>
@@ -58,13 +56,11 @@ namespace FoundationDB.Linq.Expressions
 		public override FdbQueryShape Shape => FdbQueryShape.Single;
 
 		/// <summary>Source sequence</summary>
-		[NotNull]
 		public FdbQuerySequenceExpression<T> Sequence { get; }
 
 		/// <summary>Name of this query</summary>
 		public string Name { get; }
 
-		[NotNull]
 		public Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> Handler { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>

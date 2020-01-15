@@ -23,7 +23,7 @@ namespace Doxense.Diagnostics.Contracts
 			base.HResult = -2146233022;
 		}
 
-		public ContractException(SDC.ContractFailureKind kind, string failure, string userMessage, string condition, Exception innerException)
+		public ContractException(SDC.ContractFailureKind kind, string failure, string? userMessage, string? condition, Exception? innerException)
 			: base(failure, innerException)
 		{
 			base.HResult = -2146233022;
@@ -44,11 +44,11 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region Public Properties...
 
-		public string Condition { get; }
+		public string? Condition { get; }
 
 		public SDC.ContractFailureKind Kind { get; }
 
-		public string UserMessage { get; }
+		public string? UserMessage { get; }
 
 		public string Failure => this.Message;
 

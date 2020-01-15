@@ -61,7 +61,7 @@ namespace Doxense.Collections.Tuples
 		public readonly int Depth;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		public LinkedTuple(IVarTuple head, [AllowNull] T tail)
+		public LinkedTuple(IVarTuple head, T tail)
 		{
 			Contract.NotNull(head, nameof(head));
 

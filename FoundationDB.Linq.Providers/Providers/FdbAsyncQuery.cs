@@ -47,14 +47,14 @@ namespace FoundationDB.Linq.Providers
 	{
 
 		/// <summary>Async LINQ query that will execute under a retry loop on a specific Database instance</summary>
-		protected FdbAsyncQuery([NotNull] IFdbDatabase db, FdbQueryExpression expression = null)
+		protected FdbAsyncQuery(IFdbDatabase db, FdbQueryExpression? expression = null)
 		{
 			this.Database = db;
 			this.Expression = expression;
 		}
 
 		/// <summary>Async LINQ query that will execute on a specific Transaction instance</summary>
-		protected FdbAsyncQuery([NotNull] IFdbReadOnlyTransaction trans, FdbQueryExpression expression = null)
+		protected FdbAsyncQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression? expression = null)
 		{
 			this.Transaction = trans;
 			this.Expression = expression;
@@ -64,13 +64,13 @@ namespace FoundationDB.Linq.Providers
 		public FdbQueryExpression Expression { get; }
 
 		/// <summary>Database used by the query (or null)</summary>
-		public IFdbDatabase Database { [CanBeNull] get; }
+		public IFdbDatabase? Database { get; }
 
 		/// <summary>Transaction used by the query (or null)</summary>
-		public IFdbReadOnlyTransaction Transaction { [CanBeNull] get; }
+		public IFdbReadOnlyTransaction? Transaction { get; }
 
 		/// <summary>Type of the elements returned by the query</summary>
-		public virtual Type Type => this.Expression.Type;
+		public virtual Type Type => this.Expression?.Type ?? (this.Transaction != null ? typeof(IFdbReadOnlyTransaction) : typeof(IFdbDatabase));
 
 		IFdbAsyncQueryProvider IFdbAsyncQueryable.Provider => this;
 
@@ -82,30 +82,30 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Create a new typed query from a query expression</summary>
-		public virtual IFdbAsyncQueryable<R> CreateQuery<R>([NotNull] FdbQueryExpression<R> expression)
+		public virtual IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 
 			if (this.Transaction != null)
 				return new FdbAsyncSingleQuery<R>(this.Transaction, expression);
 			else
-				return new FdbAsyncSingleQuery<R>(this.Database, expression);
+				return new FdbAsyncSingleQuery<R>(this.Database!, expression);
 		}
 
 		/// <summary>Create a new sequence query from a sequence expression</summary>
-		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>([NotNull] FdbQuerySequenceExpression<R> expression)
+		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 
 			if (this.Transaction != null)
 				return new FdbAsyncSequenceQuery<R>(this.Transaction, expression);
 			else
-				return new FdbAsyncSequenceQuery<R>(this.Database, expression);
+				return new FdbAsyncSequenceQuery<R>(this.Database!, expression);
 		}
 
 		/// <summary>Execute the query and return the result asynchronously</summary>
 		/// <typeparam name="R">Type of the expected result. Can be a <typeparamref name="T"/> for singleton queries or a <see cref="List{T}"/> for sequence queries</typeparam>
-		public async Task<R> ExecuteAsync<R>([NotNull] FdbQueryExpression expression, CancellationToken ct)
+		public async Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(ct));
 			ct.ThrowIfCancellationRequested();
@@ -115,13 +115,13 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Execute the query and return the result in the expected type</summary>
-		protected virtual Task<object> ExecuteInternal([NotNull] FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		protected virtual Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			switch(expression.Shape)
 			{
 				case FdbQueryShape.Single:
 				{
-					if (!expression.Type.IsAssignableFrom(resultType)) throw new InvalidOperationException(String.Format("Return type {0} does not match the sequence type {1}", resultType.Name, expression.Type.Name));
+					if (!expression.Type.IsAssignableFrom(resultType)) throw new InvalidOperationException($"Return type {resultType.Name} does not match the sequence type {expression.Type.Name}");
 					return ExecuteSingleInternal(expression, resultType, ct);
 				}
 
@@ -138,8 +138,7 @@ namespace FoundationDB.Linq.Providers
 
 		#region Single...
 
-		[NotNull]
-		private Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>> CompileSingle([NotNull] FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
 		{
 			//TODO: caching !
 
@@ -150,7 +149,7 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Execute the query and return a single element in the expected type</summary>
-		protected virtual async Task<object> ExecuteSingleInternal([NotNull] FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		protected virtual async Task<object> ExecuteSingleInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			var generator = CompileSingle(expression);
 
@@ -180,8 +179,7 @@ namespace FoundationDB.Linq.Providers
 
 		#region Sequence...
 
-		[NotNull]
-		private Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> CompileSequence([NotNull] FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> CompileSequence(FdbQueryExpression expression)
 		{
 #if false
 			//TODO: caching !
@@ -197,8 +195,7 @@ namespace FoundationDB.Linq.Providers
 			return expr.Compile();
 		}
 
-		[NotNull]
-		internal static IAsyncEnumerator<T> GetEnumerator([NotNull] FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
+		internal static IAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence, AsyncIterationHint mode)
 		{
 			var generator = sequence.CompileSequence(sequence.Expression);
 
@@ -212,8 +209,8 @@ namespace FoundationDB.Linq.Providers
 			//BUGBUG: how do we get a CancellationToken without a transaction?
 			var ct = CancellationToken.None;
 
-			IFdbTransaction trans = null;
-			IAsyncEnumerator<T> iterator = null;
+			IFdbTransaction? trans = null;
+			IAsyncEnumerator<T>? iterator = null;
 			bool success = true;
 			try
 			{
@@ -286,7 +283,7 @@ namespace FoundationDB.Linq.Providers
 				if (trans == null)
 				{
 					owned = true;
-					trans = await this.Database.BeginTransactionAsync(ct);
+					trans = await this.Database!.BeginTransactionAsync(ct);
 				}
 
 				var enumerable = generator(trans);

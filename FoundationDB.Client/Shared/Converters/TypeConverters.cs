@@ -32,6 +32,7 @@ namespace Doxense.Runtime.Converters
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -48,7 +49,6 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Cache used to make the JIT inline all converters from ValueType to ValueType</summary>
 		private static class Cache<TIn, TOut>
 		{
-			[NotNull]
 			public static readonly ITypeConverter<TIn, TOut> Converter = GetConverter<TIn, TOut>();
 		}
 
@@ -61,7 +61,7 @@ namespace Doxense.Runtime.Converters
 
 			public static readonly ITypeConverter<T, T> Default = new Identity<T>();
 
-			public static readonly Func<object, T> FromObject = (Func<object, T>)TypeConverters.CreateCaster(typeof(T));
+			public static readonly Func<object?, T> FromObject = (Func<object?, T>) TypeConverters.CreateCaster(typeof(T));
 
 			public Type Source => typeof(T);
 
@@ -72,7 +72,7 @@ namespace Doxense.Runtime.Converters
 				return value;
 			}
 
-			public object ConvertBoxed(object value)
+			public object? ConvertBoxed(object? value)
 			{
 				return FromObject(value);
 			}
@@ -88,10 +88,9 @@ namespace Doxense.Runtime.Converters
 		/// <typeparam name="TOutput">Destination type</typeparam>
 		private sealed class Anonymous<TInput, TOutput> : ITypeConverter<TInput, TOutput>
 		{
-			[NotNull]
 			private Func<TInput, TOutput> Converter { get; }
 
-			public Anonymous([NotNull] Func<TInput, TOutput> converter)
+			public Anonymous(Func<TInput, TOutput> converter)
 			{
 				Contract.NotNull(converter, nameof(converter));
 				this.Converter = converter;
@@ -106,7 +105,7 @@ namespace Doxense.Runtime.Converters
 				return this.Converter(value);
 			}
 
-			public object ConvertBoxed(object value)
+			public object? ConvertBoxed(object? value)
 			{
 				return this.Converter(Identity<TInput>.FromObject(value));
 			}
@@ -123,14 +122,14 @@ namespace Doxense.Runtime.Converters
 
 			public TOutput Convert(TInput value)
 			{
-				return (TOutput)(object)value;
+				return (TOutput) (object) value;
 			}
 
 			public Type Source => typeof(TInput);
 
 			public Type Destination => typeof(TOutput);
 
-			public object ConvertBoxed(object value)
+			public object? ConvertBoxed(object? value)
 			{
 				return value;
 			}
@@ -448,7 +447,7 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
 		/// <param name="source">Type of the source object</param>
 		/// <param name="destination">Target type of the conversion</param>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailCannotConvert(Type source, Type destination)
 		{
 			// prettyprint nullable type names to have something more useful than "Nullable`1"
@@ -463,8 +462,7 @@ namespace Doxense.Runtime.Converters
 
 		/// <summary>Create a new delegate that cast a boxed valued of type T (object) into a T</summary>
 		/// <returns>Delegate that is of type Func&lt;object, <param name="type"/>&gt;</returns>
-		[NotNull]
-		private static Delegate CreateCaster([NotNull] Type type)
+		private static Delegate CreateCaster(Type type)
 		{
 			var prm = Expression.Parameter(typeof(object), "value");
 			//TODO: valuetype vs ref type ?
@@ -477,7 +475,7 @@ namespace Doxense.Runtime.Converters
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="TInput"/> into a value of type <typeparamref name="TOutput"/></param>
-		internal static void RegisterUnsafe<TInput, TOutput>([NotNull] Func<TInput, TOutput> converter)
+		internal static void RegisterUnsafe<TInput, TOutput>(Func<TInput, TOutput> converter)
 		{
 			Contract.Requires(converter != null);
 			Converters[new ComparisonHelper.TypePair(typeof(TInput), typeof(TOutput))] = new Anonymous<TInput, TOutput>(converter);
@@ -487,7 +485,7 @@ namespace Doxense.Runtime.Converters
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="TInput"/> into a value of type <typeparamref name="TOutput"/></param>
-		public static void Register<TInput, TOutput>([NotNull] Func<TInput, TOutput> converter)
+		public static void Register<TInput, TOutput>(Func<TInput, TOutput> converter)
 		{
 			Contract.Requires(converter != null);
 			Register<TInput, TOutput>(new Anonymous<TInput, TOutput>(converter));
@@ -497,7 +495,7 @@ namespace Doxense.Runtime.Converters
 		/// <typeparam name="TInput">Source type</typeparam>
 		/// <typeparam name="TOutput">Destination type</typeparam>
 		/// <param name="converter">Instance that can convert values of type <typeparamref name="TInput"/> into a values of type <typeparamref name="TOutput"/></param>
-		public static void Register<TInput, TOutput>([NotNull] ITypeConverter<TInput, TOutput> converter)
+		public static void Register<TInput, TOutput>(ITypeConverter<TInput, TOutput> converter)
 		{
 			Contract.NotNull(converter, nameof(converter));
 			while (true)
@@ -519,7 +517,6 @@ namespace Doxense.Runtime.Converters
 		/// <typeparam name="TOutput">Destination type</typeparam>
 		/// <returns>Valid converter for this types, or an exception if there are no known conversions</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
-		[NotNull]
 		public static ITypeConverter<TInput, TOutput> GetConverter<TInput, TOutput>()
 		{
 			if (typeof(TInput) == typeof(TOutput))
@@ -561,12 +558,13 @@ namespace Doxense.Runtime.Converters
 		/// <summary>Convert a boxed value into type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Destination type</typeparam>
 		/// <param name="value">Boxed value</param>
-		/// <returns>Converted value, or an exception if there are no known convertions. The value null is converted into default(<typeparamref name="T"/>) by convention</returns>
+		/// <returns>Converted value, or an exception if there are no known conversions. The value null is converted into default(<typeparamref name="T"/>) by convention</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
-		[Pure, CanBeNull]
-		public static T ConvertBoxed<T>(object value)
+		[Pure]
+		[return:MaybeNull]
+		public static T ConvertBoxed<T>(object? value)
 		{
-			if (value == null) return default(T);
+			if (value == null) return default!;
 			var type = value.GetType();
 
 			var targetType = typeof(T);

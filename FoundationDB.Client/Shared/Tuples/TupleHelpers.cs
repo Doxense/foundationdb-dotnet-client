@@ -232,13 +232,13 @@ namespace Doxense.Collections.Tuples
 
 		public static bool Equals(IVarTuple? left, object? other, IEqualityComparer comparer)
 		{
-			return object.ReferenceEquals(left, null) ? other == null : Equals(left, other as IVarTuple, comparer);
+			return left == null ? other == null : Equals(left, other as IVarTuple, comparer);
 		}
 
 		public static bool Equals(IVarTuple? x, IVarTuple? y, IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(x, y)) return true;
-			if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
+			if (x == null || y == null) return false;
 
 			return x.Count == y.Count && DeepEquals(x, y, comparer);
 		}
@@ -264,7 +264,7 @@ namespace Doxense.Collections.Tuples
 		{
 			Contract.Requires(comparer != null);
 
-			if (object.ReferenceEquals(tuple, null))
+			if (tuple == null)
 			{
 				return comparer.GetHashCode(null);
 			}
@@ -282,8 +282,8 @@ namespace Doxense.Collections.Tuples
 			Contract.Requires(comparer != null);
 
 			if (object.ReferenceEquals(x, y)) return 0;
-			if (object.ReferenceEquals(x, null)) return -1;
-			if (object.ReferenceEquals(y, null)) return 1;
+			if (x ==  null) return -1;
+			if (y == null) return +1;
 
 			using (var xs = x.GetEnumerator())
 			using (var ys = y.GetEnumerator())

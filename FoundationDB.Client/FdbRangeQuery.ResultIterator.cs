@@ -37,7 +37,6 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Iterators;
-	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>
 	{
@@ -55,13 +54,13 @@ namespace FoundationDB.Client
 			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
+			private IAsyncEnumerator<KeyValuePair<Slice, Slice>[]>? m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;
 
 			/// <summary>Current chunk (may contain all records or only a segment at a time)</summary>
-			private KeyValuePair<Slice, Slice>[] m_chunk;
+			private KeyValuePair<Slice, Slice>[]? m_chunk;
 
 			/// <summary>Number of remaining items in the current batch</summary>
 			private int m_itemsRemainingInChunk;
@@ -71,7 +70,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator([NotNull] FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform)
+			public ResultIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction, Func<KeyValuePair<Slice, Slice>, T> transform)
 			{
 				Contract.Requires(query != null && transform != null);
 
@@ -122,6 +121,7 @@ namespace FoundationDB.Client
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				var iterator = m_chunkIterator;
+				Contract.Requires(iterator != null);
 
 				// start reading the next batch
 				if (await iterator.MoveNextAsync().ConfigureAwait(false))
@@ -160,8 +160,7 @@ namespace FoundationDB.Client
 			{
 				++m_currentOffsetInChunk;
 				--m_itemsRemainingInChunk;
-				var result = m_resultTransform(m_chunk[m_currentOffsetInChunk]);
-				return Publish(result);
+				return Publish(m_resultTransform(m_chunk[m_currentOffsetInChunk]));
 			}
 
 			#endregion

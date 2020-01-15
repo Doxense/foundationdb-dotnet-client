@@ -34,6 +34,7 @@ namespace System
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -78,7 +79,7 @@ namespace System
 		public readonly int Count;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal MutableSlice([NotNull] byte[] array, int offset, int count)
+		internal MutableSlice(byte[] array, int offset, int count)
 		{
 			//Paranoid.Requires(array != null && offset >= 0 && offset <= array.Length && count >= 0 && offset + count <= array.Length);
 			this.Array = array;
@@ -87,7 +88,7 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal MutableSlice([NotNull] byte[] array)
+		internal MutableSlice(byte[] array)
 		{
 			//Paranoid.Requires(array != null);
 			this.Array = array;
@@ -109,7 +110,7 @@ namespace System
 		/// The caller is responsible for handle that scenario if it is important!
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice CreateUnsafe([NotNull] byte[] buffer, [Positive] int offset, [Positive] int count)
+		public static MutableSlice CreateUnsafe(byte[] buffer, [Positive] int offset, [Positive] int count)
 		{
 			Contract.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
 			return new MutableSlice(buffer, offset, count);
@@ -129,7 +130,7 @@ namespace System
 		/// The caller is responsible for handle that scenario if it is important!
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice CreateUnsafe([NotNull] byte[] buffer, uint offset, uint count)
+		public static MutableSlice CreateUnsafe(byte[] buffer, uint offset, uint count)
 		{
 			Contract.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
 			return new MutableSlice(buffer, (int) offset, (int) count);
@@ -177,7 +178,7 @@ namespace System
 
 		/// <summary>Creates a new slice with a copy of the span, using a scratch buffer</summary>
 		[Pure]
-		public static MutableSlice Copy(ReadOnlySpan<byte> source, [CanBeNull] ref byte[] buffer)
+		public static MutableSlice Copy(ReadOnlySpan<byte> source, ref byte[]? buffer)
 		{
 			if (source.Length == 0) return Empty;
 			var tmp = UnsafeHelpers.EnsureCapacity(ref buffer, BitHelpers.NextPowerOfTwo(source.Length));
@@ -241,7 +242,7 @@ namespace System
 		}
 
 		/// <summary>Return a copy of the memory content of an array of item</summary>
-		public static MutableSlice CopyMemory<T>(ReadOnlySpan<T> items, [CanBeNull] ref byte[] buffer)
+		public static MutableSlice CopyMemory<T>(ReadOnlySpan<T> items, ref byte[]? buffer)
 			where T : struct
 		{
 			return Copy(MemoryMarshal.AsBytes(items), ref buffer);
@@ -340,15 +341,15 @@ namespace System
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of the slice, or null</returns>
-		[Pure, CanBeNull]
-		public byte[] GetBytes()
+		[Pure]
+		public byte[]? GetBytes()
 		{
 			return this.Array == null ? null : this.Span.ToArray();
 		}
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
 		/// <returns>Byte array with a copy of the slice</returns>
-		[Pure, NotNull]
+		[Pure]
 		public byte[] GetBytesOrEmpty()
 		{
 			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
@@ -357,7 +358,7 @@ namespace System
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
-		[Pure, NotNull]
+		[Pure]
 		public byte[] GetBytes(int offset, int count)
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
@@ -377,7 +378,7 @@ namespace System
 		/// You can use this method to convert text into specific encodings, load bitmaps (JPEG, PNG, ...), or any serialization format that requires a Stream or TextReader instance.
 		/// Disposing this stream will have no effect on the slice.
 		/// </remarks>
-		[Pure, NotNull]
+		[Pure]
 		public SliceStream ToSliceStream()
 		{
 			EnsureSliceIsValid();
@@ -500,7 +501,7 @@ namespace System
 		/// <summary>Copy this slice into another buffer, and move the cursor</summary>
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="cursor">Offset into the destination buffer</param>
-		public void WriteTo([NotNull] byte[] buffer, ref int cursor)
+		public void WriteTo(byte[] buffer, ref int cursor)
 		{
 			//note: CopyBytes will validate all the parameters
 			this.Span.CopyTo(buffer.AsSpan(cursor));
@@ -551,7 +552,7 @@ namespace System
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="offset">Offset into the destination buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void CopyTo([NotNull] byte[] buffer, int offset)
+		public void CopyTo(byte[] buffer, int offset)
 		{
 			this.Span.CopyTo(buffer.AsSpan(offset));
 		}
@@ -560,7 +561,7 @@ namespace System
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="offset">Offset into the destination buffer</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCopyTo([NotNull] byte[] buffer, int offset)
+		public bool TryCopyTo(byte[] buffer, int offset)
 		{
 			return this.Span.TryCopyTo(buffer.AsSpan(offset));
 		}
@@ -569,10 +570,10 @@ namespace System
 		/// <param name="ptr">Pointer where to copy this slice</param>
 		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
 		/// <remarks>Copy will fail if there is not enough space in the output buffer (ie: if it would writer at or after <paramref name="end"/>)</remarks>
-		[NotNull]
-		public unsafe byte* CopyToUnsafe([NotNull] byte* ptr, [NotNull] byte* end)
+		[return: System.Diagnostics.CodeAnalysis.NotNull]
+		public unsafe byte* CopyToUnsafe([DisallowNull] byte* ptr, [DisallowNull] byte* end)
 		{
-			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
+			if (ptr == null || end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
 			if (!this.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue))))
 			{
 				throw UnsafeHelpers.Errors.SliceBufferTooSmall();
@@ -584,17 +585,17 @@ namespace System
 		/// <param name="ptr">Pointer where to copy this slice</param>
 		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
 		/// <returns>Pointer to the advanced memory position, or null if the destination buffer was too small</returns>
-		[CanBeNull]
-		public unsafe byte* TryCopyToUnsafe([NotNull] byte* ptr, [NotNull] byte* end)
+		[return:MaybeNull]
+		public unsafe byte* TryCopyToUnsafe(byte* ptr, byte* end)
 		{
-			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
+			if (ptr == null || end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
 			return this.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue)))
 				? ptr + this.Count
 				: null;
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position.</summary>
-		/// <param name="offset">The starting position of the substring. Positive values mmeans from the start, negative values means from the end</param>
+		/// <param name="offset">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <returns>A slice that is equivalent to the substring that begins at <paramref name="offset"/> (from the start or the end depending on the sign) in this instance, or Slice.Empty if <paramref name="offset"/> is equal to the length of the slice.</returns>
 		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
 		/// <example>{"ABCDE"}.Substring(0) => {"ABC"}
@@ -862,7 +863,7 @@ namespace System
 		/// <param name="count">Number of random bytes to generate</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="prng"/></returns>
 		/// <remarks>Warning: <see cref="System.Random"/> is not thread-safe ! If the <paramref name="prng"/> instance is shared between threads, then it needs to be locked before calling this method.</remarks>
-		public static MutableSlice Random([NotNull] Random prng, int count)
+		public static MutableSlice Random(Random prng, int count)
 		{
 			Contract.NotNull(prng, nameof(prng));
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
@@ -879,7 +880,7 @@ namespace System
 		/// <param name="nonZeroBytes">If true, produce a sequence of non-zero bytes.</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="rng"/></returns>
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
-		public static MutableSlice Random([NotNull] System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
+		public static MutableSlice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
 			Contract.NotNull(rng, nameof(rng));
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
@@ -1105,13 +1106,13 @@ namespace System
 		#endregion
 
 		/// <summary>Returns a printable representation of the key</summary>
-		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="Slice.Unescape"/>(string) and get back the original slice.</remarks>
+		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="MutableSlice.Unescape"/>(string) and get back the original slice.</remarks>
 		public override string ToString()
 		{
 			return Slice.Dump(this);
 		}
 
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
@@ -1126,7 +1127,7 @@ namespace System
 		/// The format <b>X</b> (or <b>x</b>) produces an hexadecimal string with spaces between each bytes.
 		/// The format <b>P</b> is the equivalent of calling <see cref="PrettyPrint()"/>.
 		/// </remarks>
-		public string ToString(string format, IFormatProvider provider)
+		public string ToString(string? format, IFormatProvider? provider)
 		{
 			switch (format ?? "D")
 			{
@@ -1168,7 +1169,7 @@ namespace System
 		/// <returns>Slice containing the stream content (or <see cref="MutableSlice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="data"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
-		public static MutableSlice FromStream([NotNull] Stream data)
+		public static MutableSlice FromStream(Stream data)
 		{
 			Contract.NotNull(data, nameof(data));
 
@@ -1198,7 +1199,7 @@ namespace System
 		/// <returns>Slice containing the stream content (or <see cref="MutableSlice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="data"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
-		public static Task<MutableSlice> FromStreamAsync([NotNull] Stream data, CancellationToken ct)
+		public static Task<MutableSlice> FromStreamAsync(Stream data, CancellationToken ct)
 		{
 			Contract.NotNull(data, nameof(data));
 
@@ -1228,7 +1229,7 @@ namespace System
 		/// <param name="source">Source stream</param>
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static MutableSlice LoadFromNonBlockingStream([NotNull] Stream source, int length)
+		private static MutableSlice LoadFromNonBlockingStream(Stream source, int length)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
 
@@ -1263,7 +1264,7 @@ namespace System
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static MutableSlice LoadFromBlockingStream([NotNull] Stream source, int length, int chunkSize = 0)
+		private static MutableSlice LoadFromBlockingStream(Stream source, int length, int chunkSize = 0)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
@@ -1293,7 +1294,7 @@ namespace System
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <param name="ct">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static async Task<MutableSlice> LoadFromBlockingStreamAsync([NotNull] Stream source, int length, int chunkSize, CancellationToken ct)
+		private static async Task<MutableSlice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken ct)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
@@ -1443,7 +1444,7 @@ namespace System
 
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 		/// <param name="slice">Slice that is being naughty</param>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception MalformedSlice(MutableSlice slice)
 		{
 #if DEBUG
@@ -1469,7 +1470,7 @@ namespace System
 		/// <param name="prefix">Size of a prefix that would be added before each slice</param>
 		/// <param name="slices">Array of slices</param>
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
-		public static int GetTotalSize(int prefix, [NotNull] MutableSlice[] slices)
+		public static int GetTotalSize(int prefix, MutableSlice[] slices)
 		{
 			long size = prefix * slices.Length;
 			for (int i = 0; i < slices.Length; i++)
@@ -1483,7 +1484,7 @@ namespace System
 		/// <param name="prefix">Size of a prefix that would be added before each slice</param>
 		/// <param name="slices">Array of slices</param>
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
-		public static int GetTotalSize(int prefix, [NotNull] MutableSlice?[] slices)
+		public static int GetTotalSize(int prefix, MutableSlice?[] slices)
 		{
 			long size = prefix * slices.Length;
 			for (int i = 0; i < slices.Length; i++)
@@ -1497,7 +1498,7 @@ namespace System
 		/// <param name="prefix">Size of a prefix that would be added before each slice</param>
 		/// <param name="slices">Array of slices</param>
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
-		public static int GetTotalSize(int prefix, [NotNull] List<MutableSlice> slices)
+		public static int GetTotalSize(int prefix, List<MutableSlice> slices)
 		{
 			long size = prefix * slices.Count;
 			foreach (var val in slices)
@@ -1511,7 +1512,7 @@ namespace System
 		/// <param name="prefix">Size of a prefix that would be added before each slice</param>
 		/// <param name="slices">Array of slices</param>
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
-		public static int GetTotalSize(int prefix, [NotNull] List<MutableSlice?> slices)
+		public static int GetTotalSize(int prefix, List<MutableSlice?> slices)
 		{
 			long size = prefix * slices.Count;
 			foreach (var val in slices)
@@ -1526,7 +1527,7 @@ namespace System
 		/// <param name="slices">Array of slices</param>
 		/// <param name="commonStore">Receives null if at least two slices are stored in a different buffer. If not null, return the common buffer for all the keys</param>
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
-		public static int GetTotalSizeAndCommonStore(int prefix, [NotNull] MutableSlice[] slices, out byte[] commonStore)
+		public static int GetTotalSizeAndCommonStore(int prefix, MutableSlice[] slices, out byte[]? commonStore)
 		{
 			if (slices.Length == 0)
 			{
@@ -1556,7 +1557,7 @@ namespace System
 		/// <param name="slices">Array of slices</param>
 		/// <param name="commonStore">Receives null if at least two slices are stored in a different buffer. If not null, return the common buffer for all the keys</param>
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
-		public static int GetTotalSizeAndCommonStore(int prefix, [NotNull] List<MutableSlice> slices, out byte[] commonStore)
+		public static int GetTotalSizeAndCommonStore(int prefix, List<MutableSlice> slices, out byte[]? commonStore)
 		{
 			Contract.Requires(slices != null);
 			if (slices.Count == 0)
@@ -1594,11 +1595,11 @@ namespace System
 			internal GCHandle Handle;
 
 			/// <summary>Additional GC Handles (optional)</summary>
-			internal readonly GCHandle[] Handles;
+			internal readonly GCHandle[]? Handles;
 
-			internal object Owner;
+			internal object? Owner;
 
-			internal Pinned([NotNull] object owner, [NotNull] byte[] buffer, [CanBeNull] List<MutableSlice> extra)
+			internal Pinned(object owner, byte[] buffer, List<MutableSlice>? extra)
 			{
 				Contract.Requires(owner != null && buffer != null);
 
@@ -1653,7 +1654,7 @@ namespace System
 
 			public int Count => m_slice.Count;
 
-			public byte[] Data
+			public byte[]? Data
 			{
 				get
 				{
@@ -1668,10 +1669,9 @@ namespace System
 			public string Content => Slice.Dump(m_slice, maxSize: 1024);
 
 			/// <summary>Encoding using only for display purpose: we don't want to throw in the 'Text' property if the input is not text!</summary>
-			[NotNull]
 			private static readonly UTF8Encoding Utf8NoBomEncodingNoThrow = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
-			public string Text
+			public string? Text
 			{
 				get
 				{
@@ -1680,11 +1680,11 @@ namespace System
 				}
 			}
 
-			public string Hexa
+			public string? Hexa
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null ? null : String.Empty;
+					if (m_slice.Count == 0) return m_slice.Array == null ? null : string.Empty;
 					return m_slice.Count <= 1024
 						? m_slice.ToHexaString(' ')
 						: m_slice.Substring(0, 1024).ToHexaString(' ') + "[\u2026]";
@@ -1699,7 +1699,7 @@ namespace System
 	public static class MutableSliceExtensions
 	{
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
-		private static MutableSlice EmptyOrNil(byte[] array)
+		private static MutableSlice EmptyOrNil(byte[]? array)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
 			return array == null ? default(MutableSlice) : MutableSlice.Empty;
@@ -1707,7 +1707,7 @@ namespace System
 
 		/// <summary>Handle the Nil/Empty memoization</summary>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
-		private static MutableSlice EmptyOrNil([CanBeNull] byte[] array, int count)
+		private static MutableSlice EmptyOrNil(byte[]? array, int count)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
 			if (array == null) return count == 0 ? default(MutableSlice) : throw UnsafeHelpers.Errors.BufferArrayNotNull();
@@ -1716,7 +1716,7 @@ namespace System
 
 		/// <summary>Return a slice that wraps the whole array</summary>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice AsMutableSlice([CanBeNull] this byte[] bytes)
+		public static MutableSlice AsMutableSlice(this byte[]? bytes)
 		{
 			return bytes != null && bytes.Length > 0 ? new MutableSlice(bytes, 0, bytes.Length) : EmptyOrNil(bytes);
 		}
@@ -1726,7 +1726,7 @@ namespace System
 		/// <param name="offset">Offset to the first byte of the slice</param>
 		/// <returns></returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice AsMutableSlice([NotNull] this byte[] bytes, [Positive] int offset)
+		public static MutableSlice AsMutableSlice(this byte[] bytes, [Positive] int offset)
 		{
 			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
 			Contract.NotNull(bytes, nameof(bytes));
@@ -1743,10 +1743,10 @@ namespace System
 		/// If <paramref name="count"/> then either <see cref="MutableSlice.Empty">Slice.Empty</see> or <see cref="MutableSlice.Nil">Slice.Nil</see> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice AsMutableSlice([CanBeNull] this byte[] bytes, [Positive] int offset, [Positive] int count)
+		public static MutableSlice AsMutableSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
-			if (bytes == null | count == 0) return EmptyOrNil(bytes, count);
+			if (bytes == null || count == 0) return EmptyOrNil(bytes, count);
 
 			// bound check
 			// ReSharper disable once PossibleNullReferenceException
@@ -1764,10 +1764,10 @@ namespace System
 		/// If <paramref name="count"/> then either <see cref="MutableSlice.Empty">Slice.Empty</see> or <see cref="MutableSlice.Nil">Slice.Nil</see> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice AsMutableSlice([CanBeNull] this byte[] bytes, uint offset, uint count)
+		public static MutableSlice AsMutableSlice(this byte[]? bytes, uint offset, uint count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
-			if (bytes == null | count == 0) return EmptyOrNil(bytes, (int) count);
+			if (bytes == null || count == 0) return EmptyOrNil(bytes, (int) count);
 
 			// bound check
 			if (offset >= (uint) bytes.Length || count > ((uint) bytes.Length - offset)) UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
@@ -1810,7 +1810,7 @@ namespace System
 			return new SliceReader(self, offset, count);
 		}
 
-		[Pure, NotNull, DebuggerNonUserCode]
+		[Pure, DebuggerNonUserCode]
 		public static SliceStream AsStream(this MutableSlice slice) //REVIEW: => ToStream() ?
 		{
 			if (slice.IsNull) throw ThrowHelper.InvalidOperationException("Slice cannot be null");

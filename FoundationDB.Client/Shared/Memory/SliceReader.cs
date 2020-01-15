@@ -68,14 +68,14 @@ namespace Doxense.Memory
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public SliceReader([NotNull] byte[] buffer)
+		public SliceReader(byte[] buffer)
 		{
 			this.Buffer = new Slice(buffer, 0, buffer.Length);
 			this.Position = 0;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public SliceReader([NotNull] byte[] buffer, int offset, int count)
+		public SliceReader(byte[] buffer, int offset, int count)
 		{
 			this.Buffer = new Slice(buffer, offset, count);
 			this.Position = 0;
@@ -101,7 +101,7 @@ namespace Doxense.Memory
 			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw ThrowNotEnoughBytes(count);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		[DebuggerNonUserCode]
 		private static Exception ThrowNotEnoughBytes(int count)
 		{
@@ -187,7 +187,7 @@ namespace Doxense.Memory
 
 		/// <summary>Read until <paramref name="handler"/> returns true, or we reach the end of the buffer</summary>
 		[Pure]
-		public Slice ReadWhile([NotNull] Func<byte, int, bool> handler)
+		public Slice ReadWhile(Func<byte, int, bool> handler)
 		{
 			unsafe
 			{
@@ -385,7 +385,7 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Reads an utf-8 encoded string prefixed by a variable-sized length</summary>
-		[Pure, NotNull]
+		[Pure]
 		public string ReadVarString()
 		{
 			var str = ReadVarBytes();
@@ -394,8 +394,8 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a string prefixed by a variable-sized length, using the specified encoding</summary>
 		/// <remarks>Encoding used for this string (or UTF-8 if null)</remarks>
-		[Pure, NotNull]
-		public string ReadVarString([CanBeNull] Encoding encoding)
+		[Pure]
+		public string ReadVarString(Encoding? encoding)
 		{
 			if (encoding == null || encoding.Equals(Encoding.UTF8))
 			{ // optimized path for utf-8

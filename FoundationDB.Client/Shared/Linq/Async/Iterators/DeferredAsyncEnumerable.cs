@@ -30,12 +30,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Doxense.Linq.Async.Iterators
 {
-	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Iterator that will generate the underlying async sequence "just in time" when it is itself iterated</summary>
 	/// <typeparam name="TResult">Type of elements of the async sequence</typeparam>
@@ -46,9 +45,9 @@ namespace Doxense.Linq.Async.Iterators
 
 		public Func<CancellationToken, Task<TCollection>> Generator { get; }
 
-		private IAsyncEnumerator<TResult> Inner { get; set; }
+		private IAsyncEnumerator<TResult>? Inner { get; set; }
 
-		public DeferredAsyncIterator([NotNull] Func<CancellationToken, Task<TCollection>> generator)
+		public DeferredAsyncIterator(Func<CancellationToken, Task<TCollection>> generator)
 		{
 			Contract.NotNull(generator, nameof(generator));
 			this.Generator = generator;
@@ -86,7 +85,7 @@ namespace Doxense.Linq.Async.Iterators
 			{
 				return await Completed();
 			}
-			return Publish(this.Inner.Current);
+			return Publish(inner.Current);
 		}
 
 	}

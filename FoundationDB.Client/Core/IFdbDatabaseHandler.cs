@@ -36,7 +36,7 @@ namespace FoundationDB.Client.Core
 	public interface IFdbDatabaseHandler : IDisposable
 	{
 
-		string ClusterFile { get; }
+		string? ClusterFile { get; }
 
 		bool IsInvalid { get; }
 
@@ -44,7 +44,6 @@ namespace FoundationDB.Client.Core
 
 		void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data);
 
-		[NotNull]
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
 	}

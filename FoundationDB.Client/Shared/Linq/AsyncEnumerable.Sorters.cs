@@ -48,12 +48,11 @@ namespace Doxense.Linq
 			/// <summary>Fill the array with all the keys extracted from the source</summary>
 			/// <param name="items"></param>
 			/// <param name="count"></param>
-			internal abstract void ComputeKeys([NotNull] TSource[] items, int count);
+			internal abstract void ComputeKeys(TSource[] items, int count);
 
 			internal abstract int CompareKeys(int index1, int index2);
 
-			[NotNull]
-			internal int[] Sort([NotNull] TSource[] items, int count)
+			internal int[] Sort(TSource[] items, int count)
 			{
 				ComputeKeys(items, count);
 				var map = new int[count];
@@ -62,7 +61,7 @@ namespace Doxense.Linq
 				return map;
 			}
 
-			private void QuickSort([NotNull] int[] map, int left, int right)
+			private void QuickSort(int[] map, int left, int right)
 			{
 				do
 				{

@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
@@ -82,7 +83,7 @@ namespace FoundationDB.Client
 		private static int s_bindingVersion;
 
 		/// <summary>Event handler called when the AppDomain gets unloaded</summary>
-		private static EventHandler s_appDomainUnloadHandler;
+		private static EventHandler? s_appDomainUnloadHandler;
 
 		internal static readonly byte[] EmptyArray = new byte[0];
 		//TODO: move this somewhere else (Slice?)
@@ -222,7 +223,7 @@ namespace FoundationDB.Client
 		/// <summary>Throws an exception if the code represents a failure</summary>
 		internal static void DieOnError(FdbError code)
 		{
-			if (Failed(code)) throw MapToException(code);
+			if (Failed(code)) throw MapToException(code)!;
 		}
 
 		/// <summary>Return the error message matching the specified error code</summary>
@@ -234,7 +235,7 @@ namespace FoundationDB.Client
 		/// <summary>Maps an error code into an Exception (to be thrown)</summary>
 		/// <param name="code">Error code returned by a native fdb operation</param>
 		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
-		public static Exception MapToException(FdbError code)
+		public static Exception? MapToException(FdbError code)
 		{
 			if (code == FdbError.Success) return null;
 
@@ -254,7 +255,7 @@ namespace FoundationDB.Client
 
 		#region Network Thread / Event Loop...
 
-		private static Thread s_eventLoop;
+		private static Thread? s_eventLoop;
 		private static bool s_eventLoopStarted;
 		private static bool s_eventLoopRunning;
 		private static bool s_eventLoopStopRequested;
@@ -465,7 +466,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Throws if the current thread is the Network Thread.</summary>
 		/// <remarks>Should be used to ensure that we do not execute tasks continuations from the network thread, to avoid dead-locks.</remarks>
-		internal static void EnsureNotOnNetworkThread([CallerMemberName]string callerMethod = null)
+		internal static void EnsureNotOnNetworkThread([CallerMemberName] string? callerMethod = null)
 		{
 #if DEBUG_THREADS
 			if (Logging.On && Logging.IsVerbose)
@@ -480,7 +481,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[ContractAnnotation("=> halt")]
+		[DoesNotReturn]
 		private static void FailCannotExecuteOnNetworkThread()
 		{
 #if DEBUG_THREADS
@@ -493,8 +494,7 @@ namespace FoundationDB.Client
 
 		#region Database...
 
-		[ItemNotNull]
-		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync([CanBeNull] string clusterFile, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken ct)
+		private static async ValueTask<FdbDatabase> CreateDatabaseInternalAsync(string? clusterFile, FdbDirectorySubspaceLocation root, bool readOnly, CancellationToken ct)
 		{
 			EnsureIsStarted();
 			ct.ThrowIfCancellationRequested();
@@ -515,7 +515,6 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
-		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync(CancellationToken ct = default)
 		{
 			return OpenInternalAsync(new FdbConnectionOptions(), ct);
@@ -527,15 +526,13 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="InvalidOperationException">If <see name="FdbConnectionOptions.DbName"/> is anything other than 'DB'</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		[ItemNotNull]
-		public static Task<IFdbDatabase> OpenAsync([NotNull] FdbConnectionOptions options, CancellationToken ct)
+		public static Task<IFdbDatabase> OpenAsync(FdbConnectionOptions options, CancellationToken ct)
 		{
 			Contract.NotNull(options, nameof(options));
 			return OpenInternalAsync(options, ct);
 		}
 
 		/// <summary>Create a new database handler instance using the specified cluster file, database name, global subspace and read only settings</summary>
-		[ItemNotNull]
 		internal static async Task<IFdbDatabase> OpenInternalAsync(FdbConnectionOptions options, CancellationToken ct)
 		{
 			Contract.Requires(options != null);
@@ -549,7 +546,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile}' and root '{root}' ...");
 
-			FdbDatabase db = null;
+			FdbDatabase? db = null;
 			bool success = false;
 			try
 			{
@@ -613,7 +610,7 @@ namespace FoundationDB.Client
 			apiVersion = CheckApiVersion(apiVersion);
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", $"Selecting fdb API version {apiVersion}");
 
-			// we must know the actual version of the C binding in use, because it will change the methods we wiil call later.
+			// we must know the actual version of the C binding in use, because it will change the methods we will call later.
 			int bindingVersion = FdbNative.GetMaxApiVersion();
 
 			// select the appropriate API level that the binding will emulate (obviously, cannot be higher than `nativeVersion`
@@ -722,7 +719,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Set the value of a network option on the database handler</summary>
-		private static FdbError SetNetworkOption(FdbNetworkOption option, string value)
+		private static FdbError SetNetworkOption(FdbNetworkOption option, string? value)
 		{
 			unsafe
 			{
@@ -774,8 +771,8 @@ namespace FoundationDB.Client
 		/// <summary>Create a root <see cref="IFdbDatabaseScopeProvider">scope provider</see> that will use the provided database instance</summary>
 		/// <param name="db">Database instance that will be exposed</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider CreateRootScope([NotNull] IFdbDatabase db, CancellationToken lifetime = default)
+		[Pure]
+		public static IFdbDatabaseScopeProvider CreateRootScope(IFdbDatabase db, CancellationToken lifetime = default)
 		{
 			Contract.NotNull(db, nameof(db));
 
@@ -791,10 +788,10 @@ namespace FoundationDB.Client
 		/// <param name="db">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
+		[Pure]
 		public static IFdbDatabaseScopeProvider<TState> CreateRootScope<TState>(
-			[NotNull] IFdbDatabase db,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init,
+			IFdbDatabase db,
+			Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init,
 			CancellationToken lifetime = default
 		)
 		{
@@ -807,16 +804,16 @@ namespace FoundationDB.Client
 		/// <param name="db">Parent database</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
+		[Pure]
 		public static IFdbDatabaseScopeProvider CreateRootScope(
-			[NotNull] IFdbDatabase db, 
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			IFdbDatabase db, 
+			Func<IFdbDatabase, CancellationToken, Task> init,
 			CancellationToken lifetime = default)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(init, nameof(init));
 
-			return CreateRootScope(db).CreateScope<object>(async (database, cancel) =>
+			return CreateRootScope(db).CreateScope<object?>(async (database, cancel) =>
 			{
 				await init(database, cancel).ConfigureAwait(false);
 				return (db, null);
@@ -827,10 +824,10 @@ namespace FoundationDB.Client
 		/// <param name="parent">Parent scope that will provide a database instance to this scope</param>
 		/// <param name="handler">Handler that will be called once the parent provider becomes ready, and before any transactions started from this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
+		[Pure]
 		public static IFdbDatabaseScopeProvider CreateScope(
-			[NotNull] IFdbDatabaseScopeProvider parent,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> handler,
+			IFdbDatabaseScopeProvider parent,
+			Func<IFdbDatabase, CancellationToken, Task<IFdbDatabase>> handler,
 			CancellationToken lifetime = default
 		)
 		{
@@ -851,10 +848,10 @@ namespace FoundationDB.Client
 		/// <param name="parent">Parent scope that will provide a database instance to this scope</param>
 		/// <param name="handler">Handler that will be called once the parent provider becomes ready, and before any transactions started from this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
+		[Pure]
 		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(
-			[NotNull] IFdbDatabaseScopeProvider parent,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler,
+			IFdbDatabaseScopeProvider parent,
+			Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler,
 			CancellationToken lifetime = default
 
 		)
@@ -868,10 +865,10 @@ namespace FoundationDB.Client
 		/// <param name="parent">Parent scope that will provide a database instance to this scope</param>
 		/// <param name="handler">Handler that will be called once the parent provider becomes ready, and before any transactions started from this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
+		[Pure]
 		public static IFdbDatabaseScopeProvider<TState> CreateScope<TState>(
-			[NotNull] IFdbDatabaseScopeProvider parent,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task<TState>> handler,
+			IFdbDatabaseScopeProvider parent,
+			Func<IFdbDatabase, CancellationToken, Task<TState>> handler,
 			CancellationToken lifetime = default
 		)
 		{
@@ -892,16 +889,16 @@ namespace FoundationDB.Client
 		/// <param name="provider">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
+		[Pure]
 		public static IFdbDatabaseScopeProvider CreateScope(
-			[NotNull] IFdbDatabaseScopeProvider provider,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			IFdbDatabaseScopeProvider provider,
+			Func<IFdbDatabase, CancellationToken, Task> init,
 			CancellationToken lifetime = default
 		)
 		{
 			Contract.NotNull(provider, nameof(provider));
 			Contract.NotNull(init, nameof(init));
-			return provider.CreateScope<object>(async (db, cancel) =>
+			return provider.CreateScope<object?>(async (db, cancel) =>
 			{
 				await init(db, cancel).ConfigureAwait(false);
 				return (db, null);
@@ -912,8 +909,8 @@ namespace FoundationDB.Client
 		/// <typeparam name="TState">Unused in this case</typeparam>
 		/// <param name="error">Exception that will be thrown every time someone attempts to use this scope (or a child scope)</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider<TState> CreateFailedScope<TState>([NotNull] Exception error, CancellationToken lifetime = default)
+		[Pure]
+		public static IFdbDatabaseScopeProvider<TState> CreateFailedScope<TState>(Exception error, CancellationToken lifetime = default)
 		{
 			Contract.NotNull(error, nameof(error));
 			return new FdbDatabaseTombstoneProvider<TState>(null, error, lifetime);
@@ -922,8 +919,8 @@ namespace FoundationDB.Client
 		/// <summary>Create a poisoned <see cref="IFdbDatabaseScopeProvider">database provider</see> that will always throw the same error back to the caller</summary>
 		/// <param name="error">Exception that will be thrown every time someone attempts to use this scope (or a child scope)</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider CreateFailedScope([NotNull] Exception error, CancellationToken lifetime = default)
+		[Pure]
+		public static IFdbDatabaseScopeProvider CreateFailedScope(Exception error, CancellationToken lifetime = default)
 		{
 			Contract.NotNull(error, nameof(error));
 			return new FdbDatabaseTombstoneProvider<object>(null, error, lifetime);

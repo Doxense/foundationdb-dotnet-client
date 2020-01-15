@@ -56,7 +56,7 @@ namespace Doxense.Serialization
 		};
 
 		/// <summary>Convert an integer into a string</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static string ToString(int value)
 		{
 			var cache = StringConverters.SmallNumbers;
@@ -64,7 +64,7 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Convert an integer into a string</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static string ToString(uint value)
 		{
 			var cache = StringConverters.SmallNumbers;
@@ -72,7 +72,7 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Convert an integer into a string</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static string ToString(long value)
 		{
 			var cache = StringConverters.SmallNumbers;
@@ -80,7 +80,7 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Convert an integer into a string</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static string ToString(ulong value)
 		{
 			var cache = StringConverters.SmallNumbers;
@@ -88,25 +88,25 @@ namespace Doxense.Serialization
 		}
 
 		/// <summary>Convert a float into a string</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static string ToString(float value)
 		{
 			long x = unchecked((long) value);
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			return x != value
-					   ? value.ToString("R", CultureInfo.InvariantCulture)
-					   : (x >= 0 && x < StringConverters.SmallNumbers.Length ? StringConverters.SmallNumbers[(int) x] : x.ToString(NumberFormatInfo.InvariantInfo));
+				? value.ToString("R", CultureInfo.InvariantCulture)
+				: (x >= 0 && x < StringConverters.SmallNumbers.Length ? StringConverters.SmallNumbers[(int) x] : x.ToString(NumberFormatInfo.InvariantInfo));
 		}
 
 		/// <summary>Convert a double into a string</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static string ToString(double value)
 		{
 			long x = unchecked((long)value);
 			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			return x != value
-					   ? value.ToString("R", CultureInfo.InvariantCulture)
-					   : (x >= 0 && x < StringConverters.SmallNumbers.Length ? StringConverters.SmallNumbers[(int)x] : x.ToString(NumberFormatInfo.InvariantInfo));
+				? value.ToString("R", CultureInfo.InvariantCulture)
+				: (x >= 0 && x < StringConverters.SmallNumbers.Length ? StringConverters.SmallNumbers[(int)x] : x.ToString(NumberFormatInfo.InvariantInfo));
 		}
 
 		/// <summary>Convert a string into a boolean</summary>
@@ -164,7 +164,7 @@ namespace Doxense.Serialization
 		/// <param name="newpos">Stores the new position in the buffer (after the separator if found)</param>
 		/// <returns>true if an integer was found; otherwise, false (no more data, malformed integer, ...)</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="buffer"/> is null</exception>
-		public static unsafe bool FastTryGetInt([NotNull] char* buffer, int offset, int length, char separator, int defaultValue, out int result, out int newpos)
+		public static unsafe bool FastTryGetInt(char* buffer, int offset, int length, char separator, int defaultValue, out int result, out int newpos)
 		{
 			Contract.PointerNotNull(buffer, nameof(buffer));
 			result = defaultValue;
@@ -218,7 +218,7 @@ namespace Doxense.Serialization
 		/// <param name="newpos">Stores the new position in the buffer (after the separator if found)</param>
 		/// <returns>true if an integer was found; otherwise, false (no more data, malformed integer, ...)</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="buffer"/> is null</exception>
-		public static unsafe bool FastTryGetLong([NotNull] char* buffer, int offset, int length, char separator, long defaultValue, out long result, out int newpos)
+		public static unsafe bool FastTryGetLong(char* buffer, int offset, int length, char separator, long defaultValue, out long result, out int newpos)
 		{
 			Contract.PointerNotNull(buffer, nameof(buffer));
 			result = defaultValue;
@@ -481,7 +481,7 @@ namespace Doxense.Serialization
 		/// <summary>Convert a date into a string, using the "YYYYMMDDHHMMSS" format</summary>
 		/// <param name="date">Date to convert</param>
 		/// <returns>Formatted date with fixed length 14 and format 'YYYYMMDDHHMMSS'</returns>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateTimeString(DateTime date)
 		{
 			return date.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
@@ -490,7 +490,7 @@ namespace Doxense.Serialization
 		/// <summary>Convert a date into a string, using the "YYYYMMDD" format</summary>
 		/// <param name="date">Date to convert (only date will be used)</param>
 		/// <returns>Formatted date width fixed length 8 and format 'YYYYMMDDHHMMSS'</returns>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateString(DateTime date)
 		{
 			return date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
@@ -499,7 +499,7 @@ namespace Doxense.Serialization
 		/// <summary>Convert a time of day into a string, using the "HHMMSS" format</summary>
 		/// <param name="date">Date to convert (only time of day will be used)</param>
 		/// <returns>Formatted time width fixed length 6 and format 'HHMMSS'</returns>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToTimeString(DateTime date)
 		{
 			return date.ToString("HHmmss", CultureInfo.InvariantCulture);
@@ -527,7 +527,7 @@ namespace Doxense.Serialization
 			return result;
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidDateFormat()
 		{
 			// ReSharper disable once NotResolvedInText
@@ -575,7 +575,7 @@ namespace Doxense.Serialization
 		/// <param name="throwsFail">If <c>false</c>, no exception is thrown and <c>false</c> is returned instead.. If <c>true<c>, re-throw all exceptions</param>
 		/// <returns><c>true</c> if the date was correctly converted; otherwise, <c>false</c>.</returns>
 		[Pure]
-		public static bool TryParseDateTime(string date, CultureInfo culture, out DateTime result, bool throwsFail)
+		public static bool TryParseDateTime(string date, CultureInfo? culture, out DateTime result, bool throwsFail)
 		{
 			result = DateTime.MinValue;
 

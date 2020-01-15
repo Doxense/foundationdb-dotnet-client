@@ -32,9 +32,7 @@ namespace FoundationDB.Linq.Expressions
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Mode of execution of a merge operation</summary>
 	public enum FdbQueryMergeType
@@ -53,7 +51,7 @@ namespace FoundationDB.Linq.Expressions
 	{
 
 		/// <summary>Create a new merge expression</summary>
-		protected FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
+		protected FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T>? keyComparer)
 		{
 			Contract.Requires(expressions != null);
 			this.Expressions = expressions;
@@ -63,25 +61,13 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Type of the merge applied to the source sequences</summary>
 		public abstract FdbQueryMergeType MergeType { get; }
 
-		internal FdbQuerySequenceExpression<T>[] Expressions
-		{
-			[NotNull] get;
-			private set;
-		}
+		internal FdbQuerySequenceExpression<T>[] Expressions { get; }
 
 		/// <summary>Liste of the source sequences that are being merged</summary>
-		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms
-		{
-			[NotNull]
-			get { return this.Expressions; }
-		}
+		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms => this.Expressions;
 
 		/// <summary>Comparer used during merging</summary>
-		public IComparer<T> KeyComparer
-		{
-			[CanBeNull] get;
-			private set;
-		}
+		public IComparer<T>? KeyComparer { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -105,7 +91,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
 		{
 			// compile the key selector
@@ -142,7 +127,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 				default:
 				{
-					throw new InvalidOperationException(String.Format("Unsupported index merge mode {0}", this.MergeType.ToString()));
+					throw new InvalidOperationException($"Unsupported index merge mode {this.MergeType.ToString()}");
 				}
 			}
 
@@ -160,16 +145,12 @@ namespace FoundationDB.Linq.Expressions
 	public sealed class FdbQueryIntersectExpression<T> : FdbQueryMergeExpression<T>
 	{
 
-		internal FdbQueryIntersectExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
+		internal FdbQueryIntersectExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T>? keyComparer)
 			: base(expressions, keyComparer)
 		{ }
 
 		/// <summary>Returns <see cref="FdbQueryMergeType.Intersect"/></summary>
-		public override FdbQueryMergeType MergeType
-		{
-			get { return FdbQueryMergeType.Intersect; }
-		}
-
+		public override FdbQueryMergeType MergeType => FdbQueryMergeType.Intersect;
 	}
 
 	/// <summary>Union between two or more sequence</summary>
@@ -177,16 +158,12 @@ namespace FoundationDB.Linq.Expressions
 	public sealed class FdbQueryUnionExpression<T> : FdbQueryMergeExpression<T>
 	{
 
-		internal FdbQueryUnionExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
+		internal FdbQueryUnionExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T>? keyComparer)
 			: base(expressions, keyComparer)
 		{ }
 
 		/// <summary>Returns <see cref="FdbQueryMergeType.Union"/></summary>
-		public override FdbQueryMergeType MergeType
-		{
-			get { return FdbQueryMergeType.Union; }
-		}
-
+		public override FdbQueryMergeType MergeType => FdbQueryMergeType.Union;
 	}
 
 }

@@ -40,7 +40,6 @@ namespace FoundationDB.Client.Native
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Core;
-	using JetBrains.Annotations;
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Size={m_payloadBytes}, Closed={m_handle.IsClosed}")]
@@ -57,7 +56,7 @@ namespace FoundationDB.Client.Native
 		private StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeTransaction([NotNull] FdbNativeDatabase db, [NotNull] TransactionHandle handle)
+		public FdbNativeTransaction(FdbNativeDatabase db, TransactionHandle handle)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handle, nameof(handle));
@@ -208,7 +207,6 @@ namespace FoundationDB.Client.Native
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		[NotNull]
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
 			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
@@ -226,7 +224,6 @@ namespace FoundationDB.Client.Native
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		[NotNull]
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultKeysOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
 			var err = FdbNative.FutureGetKeyValueArrayKeysOnly(h, out var result, out more);
@@ -244,7 +241,6 @@ namespace FoundationDB.Client.Native
 		/// <param name="first">Receives the first key in the page, or default if page is empty</param>
 		/// <param name="last">Receives the last key in the page, or default if page is empty</param>
 		/// <returns>Array of key/value pairs, or an exception</returns>
-		[NotNull]
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultValuesOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
 			var err = FdbNative.FutureGetKeyValueArrayValuesOnly(h, out var result, out more, out first, out last);
@@ -392,8 +388,6 @@ namespace FoundationDB.Client.Native
 			Fdb.DieOnError(err);
 		}
 
-		/// <inheritdoc />
-		[NotNull]
 		private static string[] GetStringArrayResult(FutureHandle h)
 		{
 			Contract.Requires(h != null);
@@ -496,13 +490,13 @@ namespace FoundationDB.Client.Native
 		public Task CommitAsync(CancellationToken ct)
 		{
 			var future = FdbNative.TransactionCommit(m_handle);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+			return FdbFuture.CreateTaskFromHandle<object?>(future, (h) => null, ct);
 		}
 
 		public Task OnErrorAsync(FdbError code, CancellationToken ct)
 		{
 			var future = FdbNative.TransactionOnError(m_handle, code);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => { ResetInternal(); return null; }, ct);
+			return FdbFuture.CreateTaskFromHandle<object?>(future, (h) => { ResetInternal(); return null; }, ct);
 		}
 
 		public void Reset()

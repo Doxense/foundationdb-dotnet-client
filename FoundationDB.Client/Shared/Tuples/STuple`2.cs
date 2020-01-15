@@ -53,15 +53,13 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the pair</summary>
-		[MaybeNull]
 		public readonly T1 Item1;
 
-		/// <summary>Seconde element of the pair</summary>
-		[MaybeNull]
+		/// <summary>Second element of the pair</summary>
 		public readonly T2 Item2;
 
 		[DebuggerStepThrough]
-		public STuple([AllowNull] T1 item1, [AllowNull] T2 item2)
+		public STuple(T1 item1, T2 item2)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -148,7 +146,7 @@ namespace Doxense.Collections.Tuples
 			get => new STuple<T2>(this.Item2);
 		}
 
-		IVarTuple IVarTuple.Append<T3>([AllowNull] T3 value)
+		IVarTuple IVarTuple.Append<T3>(T3 value)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}
@@ -158,7 +156,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3> Append<T3>([AllowNull] T3 value)
+		public STuple<T1, T2, T3> Append<T3>(T3 value)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, this.Item2, value);
 			// Note: By create a STuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types).
@@ -172,7 +170,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with two extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3, T4> Append<T3, T4>([AllowNull] T3 value1, [AllowNull] T4 value2)
+		public STuple<T1, T2, T3, T4> Append<T3, T4>(T3 value1, T4 value2)
 		{
 			return new STuple<T1, T2, T3, T4>(this.Item1, this.Item2, value1, value2);
 			// Note: By create a STuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types).
@@ -247,7 +245,7 @@ namespace Doxense.Collections.Tuples
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			return this.GetEnumerator();
+			return GetEnumerator();
 		}
 
 		public override string ToString()

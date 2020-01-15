@@ -96,8 +96,7 @@ namespace FoundationDB.Client
 
 			private static readonly Slice StatusJsonKey = Slice.FromByteString("\xFF\xFF/status/json");
 
-			[ItemCanBeNull]
-			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
+			public static async Task<FdbSystemStatus?> GetStatusAsync(IFdbReadOnlyTransaction trans)
 			{
 				Contract.NotNull(trans, nameof(trans));
 
@@ -105,7 +104,7 @@ namespace FoundationDB.Client
 
 				if (data.IsNullOrEmpty) return null;
 
-				string jsonText = data.ToUnicode();
+				string jsonText = data.ToUnicode()!;
 
 				var doc = TinyJsonParser.ParseObject(jsonText);
 				if (doc == null) return null;
@@ -119,8 +118,7 @@ namespace FoundationDB.Client
 				return new FdbSystemStatus(doc, rv, jsonText);
 			}
 
-			[ItemCanBeNull]
-			public static Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			public static Task<FdbSystemStatus?> GetStatusAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
 
@@ -141,8 +139,7 @@ namespace FoundationDB.Client
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
-			[ItemNotNull]
-			public static async Task<FdbClusterFile> GetCoordinatorsAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			public static async Task<FdbClusterFile> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
 
@@ -157,7 +154,7 @@ namespace FoundationDB.Client
 
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
 
-				return FdbClusterFile.Parse(coordinators.ToStringAscii());
+				return FdbClusterFile.Parse(coordinators.ToStringAscii()!);
 			}
 
 			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
@@ -165,7 +162,7 @@ namespace FoundationDB.Client
 			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
-			public static Task<Slice> GetConfigParameterAsync([NotNull] IFdbDatabase db, [NotNull] string name, CancellationToken ct)
+			public static Task<Slice> GetConfigParameterAsync(IFdbDatabase db, string name, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
 				Contract.NotNullOrEmpty(name, nameof(name), "Configuration parameter name cannot be null or empty.");
@@ -183,7 +180,7 @@ namespace FoundationDB.Client
 			/// <summary>Return the corresponding key for a config attribute</summary>
 			/// <param name="name">"foo"</param>
 			/// <returns>"\xFF/conf/foo"</returns>
-			public static Slice ConfigKey([NotNull] string name)
+			public static Slice ConfigKey(string name)
 			{
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
 				return ConfigPrefix + Slice.FromByteString(name);
@@ -192,7 +189,7 @@ namespace FoundationDB.Client
 			/// <summary>Return the corresponding key for a global attribute</summary>
 			/// <param name="name">"foo"</param>
 			/// <returns>"\xFF/globals/foo"</returns>
-			public static Slice GlobalsKey([NotNull] string name)
+			public static Slice GlobalsKey(string name)
 			{
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
 				return GlobalsPrefix + Slice.FromByteString(name);
@@ -202,7 +199,7 @@ namespace FoundationDB.Client
 			/// <param name="id">"ABC123"</param>
 			/// <param name="name">"foo"</param>
 			/// <returns>"\xFF/workers/ABC123/foo"</returns>
-			public static Slice WorkersKey([NotNull] string id, [NotNull] string name)
+			public static Slice WorkersKey(string id, string name)
 			{
 				if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty", nameof(id));
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
@@ -214,8 +211,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Returns either "memory" or "ssd"</returns>
 			/// <remarks>Will return a string starting with "unknown" if the storage engine mode is not recognized</remarks>
-			[ItemNotNull]
-			public static async Task<string> GetStorageEngineModeAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			public static async Task<string> GetStorageEngineModeAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				// The '\xFF/conf/storage_engine' keys has value "0" for ssd-1 engine, "1" for memory engine and "2" for ssd-2 engine
 
@@ -242,8 +238,7 @@ namespace FoundationDB.Client
 			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Transaction object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			[ItemNotNull]
-			public static async Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
+			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
 				Contract.NotNull(trans, nameof(trans));
 				Contract.Requires(trans.Context?.Database != null);
@@ -268,8 +263,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			[ItemNotNull]
-			public static Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
+			public static Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
 				Contract.NotNull(db, nameof(db));
 
@@ -284,8 +278,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			[ItemNotNull]
-			public static Task<List<KeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, KeyRange range, CancellationToken ct)
+			public static Task<List<KeyRange>> GetChunksAsync(IFdbDatabase db, KeyRange range, CancellationToken ct)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 				return GetChunksAsync(db, range.Begin, range.End, ct);
@@ -298,8 +291,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			[ItemNotNull]
-			public static async Task<List<KeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
+			public static async Task<List<KeyRange>> GetChunksAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
@@ -331,8 +323,7 @@ namespace FoundationDB.Client
 				return chunks;
 			}
 
-			[ItemNotNull]
-			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync([NotNull] IFdbReadOnlyTransaction trans, Slice begin, Slice end)
+			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync(IFdbReadOnlyTransaction trans, Slice begin, Slice end)
 			{
 				Contract.Requires(trans != null && end >= begin);
 
@@ -347,7 +338,7 @@ namespace FoundationDB.Client
 				var options = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
 				while (begin < end)
 				{
-					FdbException error = null;
+					FdbException? error = null;
 					Slice lastBegin = begin;
 					try
 					{
@@ -406,7 +397,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, CancellationToken ct)
+			public static Task<long> EstimateCountAsync(IFdbDatabase db, KeyRange range, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, null, ct);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
@@ -419,7 +410,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
+			public static Task<long> EstimateCountAsync(IFdbDatabase db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
@@ -433,7 +424,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
+			public static async Task<long> EstimateCountAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<(long Count, Slice Current)>? onProgress, CancellationToken ct)
 			{
 				const int INIT_WINDOW_SIZE = 1 << 8; // start at 256 //1024
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
@@ -492,7 +483,7 @@ namespace FoundationDB.Client
 
 						var selector = KeySelector.FirstGreaterOrEqual(cursor) + windowSize;
 						Slice next = Slice.Nil;
-						FdbException error = null;
+						FdbException? error = null;
 						try
 						{
 							next = await tr.Snapshot.GetKeyAsync(selector).ConfigureAwait(false);

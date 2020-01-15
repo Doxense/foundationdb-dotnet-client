@@ -54,10 +54,10 @@ namespace FoundationDB.Client.Native
 #endif
 
 		/// <summary>Handle on the native FDB C API library</summary>
-		private static readonly UnmanagedLibrary FdbCLib;
+		private static readonly UnmanagedLibrary? FdbCLib;
 
 		/// <summary>Exception that was thrown when we last tried to load the native FDB C library (or null if nothing wrong happened)</summary>
-		private static readonly ExceptionDispatchInfo LibraryLoadError;
+		private static readonly ExceptionDispatchInfo? LibraryLoadError;
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
@@ -95,7 +95,7 @@ namespace FoundationDB.Client.Native
 			// Cluster
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-			public static extern FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string clusterFilePath);
+			public static extern FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_cluster_destroy(IntPtr cluster);
@@ -109,7 +109,7 @@ namespace FoundationDB.Client.Native
 			// Database
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string clusterFilePath, out DatabaseHandle database);
+			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath, out DatabaseHandle database);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_database_destroy(IntPtr database);
@@ -258,7 +258,7 @@ namespace FoundationDB.Client.Native
 			}
 			catch (Exception e)
 			{
-				if (FdbCLib != null) FdbCLib.Dispose();
+				FdbCLib?.Dispose();
 				FdbCLib = null;
 				if (e is BadImageFormatException && IntPtr.Size == 4)
 				{
@@ -273,7 +273,7 @@ namespace FoundationDB.Client.Native
 			
 		}
 
-		private static string GetPreloadPath()
+		private static string? GetPreloadPath()
 		{
 			// we need to provide sensible defaults for loading the native library
 			// if this method returns null we'll let PInvoke deal
@@ -316,16 +316,16 @@ namespace FoundationDB.Client.Native
 		private static void EnsureLibraryIsLoaded()
 		{
 			// should be inlined
-			if (LibraryLoadError != null) LibraryLoadError.Throw();
+			FdbNative.LibraryLoadError?.Throw();
 		}
 
-		private static string ToManagedString(byte* nativeString)
+		private static string? ToManagedString(byte* nativeString)
 		{
 			if (nativeString == null) return null;
 			return Marshal.PtrToStringAnsi(new IntPtr(nativeString));
 		}
 
-		private static string ToManagedString(IntPtr nativeString)
+		private static string? ToManagedString(IntPtr nativeString)
 		{
 			if (nativeString == IntPtr.Zero) return null;
 			return Marshal.PtrToStringAnsi(nativeString);
@@ -364,7 +364,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>fdb_get_error</summary>
 		public static string GetError(FdbError code)
 		{
-			return ToManagedString(NativeMethods.fdb_get_error(code));
+			return ToManagedString(NativeMethods.fdb_get_error(code))!;
 		}
 
 		/// <summary>fdb_select_api_impl</summary>
@@ -472,7 +472,7 @@ namespace FoundationDB.Client.Native
 
 		#region Clusters...
 
-		public static FutureHandle CreateCluster(string path)
+		public static FutureHandle CreateCluster(string? path)
 		{
 			var future = NativeMethods.fdb_create_cluster(path);
 			Contract.Assert(future != null);
@@ -510,7 +510,7 @@ namespace FoundationDB.Client.Native
 
 		#region Databases...
 
-		public static FdbError CreateDatabase(string path, out DatabaseHandle database)
+		public static FdbError CreateDatabase(string? path, out DatabaseHandle database)
 		{
 			var err = NativeMethods.fdb_create_database(path, out database);
 #if DEBUG_NATIVE_CALLS
@@ -794,7 +794,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more)
 		{
 			result = null;
 
@@ -863,7 +863,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
+		public static FdbError FutureGetKeyValueArrayKeysOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more)
 		{
 			result = null;
 
@@ -928,7 +928,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArrayValuesOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more, out Slice first, out Slice last)
+		public static FdbError FutureGetKeyValueArrayValuesOnly(FutureHandle future, out KeyValuePair<Slice, Slice>[]? result, out bool more, out Slice first, out Slice last)
 		{
 			result = null;
 			first = default;
@@ -1010,7 +1010,7 @@ namespace FoundationDB.Client.Native
 		}
 
 
-		public static FdbError FutureGetStringArray(FutureHandle future, out string[] result)
+		public static FdbError FutureGetStringArray(FutureHandle future, out string?[]? result)
 		{
 			result = null;
 

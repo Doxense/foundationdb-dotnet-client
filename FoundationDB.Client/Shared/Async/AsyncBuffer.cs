@@ -57,7 +57,7 @@ namespace Doxense.Async
 
 		#region Constructors...
 
-		public AsyncBuffer([NotNull] Func<TInput, TOutput> transform, int capacity)
+		public AsyncBuffer(Func<TInput, TOutput> transform, int capacity)
 			: base(capacity)
 		{
 			Contract.NotNull(transform, nameof(transform));

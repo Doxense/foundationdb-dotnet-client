@@ -54,13 +54,12 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
-		[NotNull]
 		DynamicPartition Partition { get; }
 
 		/// <summary>Encoder used to generate and parse the keys of this subspace</summary>
-		[NotNull] IDynamicKeyEncoder KeyEncoder { get; }
+		IDynamicKeyEncoder KeyEncoder { get; }
 
-		Slice this[[NotNull] IVarTuple tuple] { [Pure] get; }
+		Slice this[IVarTuple tuple] { [Pure] get; }
 
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
@@ -95,7 +94,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="encoder">Encoder that will be used by this subspace</param>
 		/// <param name="context">Context that controls the lifetime of this subspace</param>
-		internal DynamicKeySubspace(Slice prefix, [NotNull] IDynamicKeyEncoder encoder, [NotNull] ISubspaceContext context)
+		internal DynamicKeySubspace(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
 			Contract.Requires(encoder != null);
@@ -115,7 +114,7 @@ namespace FoundationDB.Client
 		/// <summary>Convert a tuple into a key of this subspace</summary>
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
 		[Pure]
-		public Slice Pack<TTuple>([NotNull] TTuple tuple)
+		public Slice Pack<TTuple>(TTuple tuple)
 			where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple, nameof(tuple));
@@ -172,7 +171,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Encode a batch of tuples</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, IEnumerable<TTuple> items)
 			where TTuple : IVarTuple
 		{
@@ -185,7 +184,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a batch of tuples extracted from each elements</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -240,8 +239,7 @@ namespace FoundationDB.Client
 		#region ToRange()...
 
 		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		/// <param name="tuple">Tuple used as a prefix for the range</param>
-		public static KeyRange PackRange(this IDynamicKeySubspace self, [NotNull] IVarTuple tuple)
+		public static KeyRange PackRange(this IDynamicKeySubspace self, IVarTuple tuple)
 		{
 			return self.KeyEncoder.ToRange(self.GetPrefix(), tuple);
 		}
@@ -361,7 +359,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
@@ -373,7 +371,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
@@ -385,6 +383,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a key which is composed of a two elements</summary>
+		[Pure]
 		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, T1 item1, T2 item2)
 		{
 			var sw = self.OpenWriter();
@@ -393,6 +392,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a key which is composed of three elements</summary>
+		[Pure]
 		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
 		{
 			var sw = self.OpenWriter();
@@ -401,6 +401,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a key which is composed of four elements</summary>
+		[Pure]
 		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var sw = self.OpenWriter();
@@ -409,6 +410,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a key which is composed of five elements</summary>
+		[Pure]
 		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var sw = self.OpenWriter();
@@ -417,6 +419,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode a key which is composed of six elements</summary>
+		[Pure]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			var sw = self.OpenWriter();
@@ -487,10 +490,9 @@ namespace FoundationDB.Client
 	public sealed class DynamicPartition
 	{
 
-		[NotNull]
 		public IDynamicKeySubspace Subspace { get; }
 
-		internal DynamicPartition([NotNull] DynamicKeySubspace subspace)
+		internal DynamicPartition(DynamicKeySubspace subspace)
 		{
 			Contract.Requires(subspace != null);
 			this.Subspace = subspace;
@@ -498,13 +500,13 @@ namespace FoundationDB.Client
 
 		public IDynamicKeySubspace this[Slice binarySuffix]
 		{
-			[Pure, NotNull]
+			[Pure]
 			get => new DynamicKeySubspace(this.Subspace.Append(binarySuffix), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
 		public IDynamicKeySubspace this[IVarTuple suffix]
 		{
-			[Pure, NotNull]
+			[Pure]
 			get => new DynamicKeySubspace(this.Subspace.Pack(suffix), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
 
@@ -516,7 +518,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
-		[Pure, NotNull]
+		[Pure]
 		public IDynamicKeySubspace ByKey<T>(T value)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T>(value), this.Subspace.KeyEncoder, this.Subspace.Context);
@@ -532,7 +534,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
-		[Pure, NotNull]
+		[Pure]
 		public IDynamicKeySubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2>(value1, value2), this.Subspace.KeyEncoder, this.Subspace.Context);
@@ -549,7 +551,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
-		[Pure, NotNull]
+		[Pure]
 		public IDynamicKeySubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.KeyEncoder, this.Subspace.Context);
@@ -568,7 +570,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
-		[Pure, NotNull]
+		[Pure]
 		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.KeyEncoder, this.Subspace.Context);

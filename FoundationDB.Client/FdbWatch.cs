@@ -42,14 +42,13 @@ namespace FoundationDB.Client
 	public sealed class FdbWatch : IDisposable
 	{
 
-		internal FdbWatch([NotNull] FdbFuture<Slice> future, Slice key)
+		internal FdbWatch(FdbFuture<Slice> future, Slice key)
 		{
 			Contract.Requires(future != null);
 			this.Future = future;
 			this.Key = key;
 		}
 
-		[NotNull]
 		private readonly FdbFuture<Slice> Future;
 
 		/// <summary>Key that is being watched</summary>

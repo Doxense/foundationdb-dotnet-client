@@ -34,6 +34,7 @@ namespace System
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
@@ -81,6 +82,7 @@ namespace System
 		// => Should it be Array/Offset/Count (current), or Count/Offset/Array ?
 
 		/// <summary>Pointer to the buffer (or null for <see cref="Nil"/>)</summary>
+		[System.Diagnostics.CodeAnalysis.DisallowNull]
 		public readonly byte[] Array;
 
 		/// <summary>Offset of the first byte of the slice in the parent buffer</summary>
@@ -219,7 +221,7 @@ namespace System
 		/// <param name="count">Number of bytes in the buffer</param>
 		/// <returns>Slice with a managed copy of the data</returns>
 		[Pure]
-		public static unsafe Slice Copy(byte* source, int count)
+		public static unsafe Slice Copy([AllowNull] byte* source, int count)
 		{
 			if (count == 0)
 			{
@@ -360,7 +362,7 @@ namespace System
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
 		/// <returns>Byte array with a copy of the slice</returns>
-		[Pure, NotNull]
+		[Pure]
 		public byte[] GetBytesOrEmpty()
 		{
 			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
@@ -369,7 +371,7 @@ namespace System
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
-		[Pure, NotNull]
+		[Pure]
 		public byte[] GetBytes(int offset, int count)
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
@@ -389,7 +391,7 @@ namespace System
 		/// You can use this method to convert text into specific encodings, load bitmaps (JPEG, PNG, ...), or any serialization format that requires a Stream or TextReader instance.
 		/// Disposing this stream will have no effect on the slice.
 		/// </remarks>
-		[Pure, NotNull]
+		[Pure]
 		public SliceStream ToSliceStream()
 		{
 			EnsureSliceIsValid();
@@ -584,8 +586,7 @@ namespace System
 		/// <param name="ptr">Pointer where to copy this slice</param>
 		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
 		/// <remarks>Copy will fail if there is not enough space in the output buffer (ie: if it would writer at or after <paramref name="end"/>)</remarks>
-		[NotNull]
-		public unsafe byte* CopyToUnsafe([NotNull] byte* ptr, [NotNull] byte* end)
+		public unsafe byte* CopyToUnsafe(byte* ptr, byte* end)
 		{
 			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
 			if (!this.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue))))
@@ -599,8 +600,8 @@ namespace System
 		/// <param name="ptr">Pointer where to copy this slice</param>
 		/// <param name="end">Pointer to the next byte after the last available position in the output buffer</param>
 		/// <returns>Pointer to the advanced memory position, or null if the destination buffer was too small</returns>
-		[CanBeNull]
-		public unsafe byte* TryCopyToUnsafe([NotNull] byte* ptr, [NotNull] byte* end)
+		[return:MaybeNull]
+		public unsafe byte* TryCopyToUnsafe(byte* ptr, byte* end)
 		{
 			if (ptr == null | end == null) throw new ArgumentNullException(ptr == null ? nameof(ptr) : nameof(end));
 			return this.Span.TryCopyTo(new Span<byte>(ptr, (int) Math.Min(end - ptr, int.MaxValue)))
@@ -948,7 +949,7 @@ namespace System
 		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[Pure, NotNull]
+		[Pure]
 		public Slice[] ConcatRange(Slice[] slices)
 		{
 			Contract.NotNull(slices, nameof(slices));
@@ -975,7 +976,7 @@ namespace System
 		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[Pure, NotNull]
+		[Pure]
 		public Slice[] ConcatRange(ReadOnlySpan<Slice> slices)
 		{
 			EnsureSliceIsValid();
@@ -1002,7 +1003,7 @@ namespace System
 		/// <summary>Append a sequence of slice at the end of the current slice, all sharing the same buffer</summary>
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[Pure, NotNull]
+		[Pure]
 		public Slice[] ConcatRange(IEnumerable<Slice> slices)
 		{
 			Contract.NotNull(slices, nameof(slices));
@@ -1166,7 +1167,7 @@ namespace System
 		/// <param name="slices">List of slices to process</param>
 		/// <returns>Array of slice that all start with <paramref name="prefix"/> and followed by the corresponding entry in <paramref name="slices"/></returns>
 		/// <remarks>This method is optimized to reduce the amount of memory allocated</remarks>
-		[Pure, NotNull]
+		[Pure]
 		public static Slice[] ConcatRange(Slice prefix, IEnumerable<Slice> slices)
 		{
 			Contract.NotNull(slices, nameof(slices));
@@ -2357,7 +2358,7 @@ namespace System
 
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 		/// <param name="slice">Slice that is being naughty</param>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception MalformedSlice(Slice slice)
 		{
 #if DEBUG
@@ -2774,7 +2775,7 @@ namespace System
 
 #endif
 
-		[Pure, NotNull, DebuggerNonUserCode]
+		[Pure, DebuggerNonUserCode]
 		public static SliceStream AsStream(this Slice slice) //REVIEW: => ToStream() ?
 		{
 			if (slice.IsNull) throw ThrowHelper.InvalidOperationException("Slice cannot be null");

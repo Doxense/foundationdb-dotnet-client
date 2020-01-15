@@ -34,7 +34,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Collections.Generic;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Reads an async sequence of items until a condition becomes false</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
@@ -43,7 +42,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly Func<TSource, bool> m_condition;
 		//TODO: also accept a Func<TSource, CT, Task<bool>> ?
 
-		public TakeWhileAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition)
+		public TakeWhileAsyncIterator(IAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
 			: base(source)
 		{
 			Contract.Requires(condition != null);

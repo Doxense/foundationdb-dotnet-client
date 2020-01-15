@@ -43,19 +43,15 @@ namespace FoundationDB.Client
 	public sealed class FdbClusterFile
 	{
 		/// <summary>The raw value of the file</summary>
-		[NotNull]
 		internal string RawValue { get; }
 
 		/// <summary>Cluster Identifier</summary>
-		[NotNull]
 		public string Id { get; }
 
 		/// <summary>Logical description of the database</summary>
-		[NotNull]
 		public string Description { get; }
 
 		/// <summary>List of coordination servers</summary>
-		[NotNull, ItemNotNull]
 		public FdbEndPoint[] Coordinators { get; }
 
 		private FdbClusterFile(string rawValue, string description, string identifier, FdbEndPoint[] coordinators)
@@ -71,7 +67,7 @@ namespace FoundationDB.Client
 		/// <param name="description"></param>
 		/// <param name="identifier"></param>
 		/// <param name="coordinators"></param>
-		public FdbClusterFile([NotNull] string description, [NotNull] string identifier, [NotNull, ItemNotNull] IEnumerable<FdbEndPoint> coordinators)
+		public FdbClusterFile(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
 		{
 			Contract.NotNull(description, nameof(description));
 			Contract.NotNull(identifier, nameof(identifier));
@@ -93,7 +89,6 @@ namespace FoundationDB.Client
 		/// <summary>Parse the content of a .cluster file</summary>
 		/// <param name="rawValue">First line of a .cluster file</param>
 		/// <returns>Parsed cluster file instance</returns>
-		[NotNull]
 		public static FdbClusterFile Parse(string rawValue)
 		{
 			if (string.IsNullOrEmpty(rawValue)) throw new FormatException("Cluster file descriptor cannot be empty.");

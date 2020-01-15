@@ -56,7 +56,6 @@ namespace FoundationDB.Client
 		/// It can also be the <see cref="SubspaceContext.Default"/> context for keys created outside of any context
 		/// The context is used to track the origin of a subspace, and optionally revoke access to it once the context becomes invalid (ex: cached context no longer being valid)
 		/// </remarks>
-		[NotNull]
 		ISubspaceContext Context { get; }
 
 		/// <summary>Returns the prefix of this subspace</summary>

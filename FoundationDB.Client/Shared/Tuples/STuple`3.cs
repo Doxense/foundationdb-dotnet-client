@@ -54,19 +54,16 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the triplet</summary>
-		[MaybeNull]
 		public readonly T1 Item1;
 
 		/// <summary>Second element of the triplet</summary>
-		[MaybeNull]
 		public readonly T2 Item2;
 
 		/// <summary>Third and last element of the triplet</summary>
-		[MaybeNull]
 		public readonly T3 Item3;
 
 		[DebuggerStepThrough]
-		public STuple([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public STuple(T1 item1, T2 item2, T3 item3)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -252,7 +249,7 @@ namespace Doxense.Collections.Tuples
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			return this.GetEnumerator();
+			return GetEnumerator();
 		}
 
 		public override string ToString()

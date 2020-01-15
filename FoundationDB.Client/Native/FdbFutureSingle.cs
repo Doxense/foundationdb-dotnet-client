@@ -33,7 +33,6 @@ namespace FoundationDB.Client.Native
 	using System;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
@@ -45,13 +44,13 @@ namespace FoundationDB.Client.Native
 		private readonly FutureHandle m_handle;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private readonly Func<FutureHandle, T> m_resultSelector;
+		private readonly Func<FutureHandle, T>? m_resultSelector;
 
 		#endregion
 
 		#region Constructors...
 
-		internal FdbFutureSingle([NotNull] FutureHandle handle, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
+		internal FdbFutureSingle(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			Contract.NotNull(handle, nameof(handle));
 			Contract.NotNull(selector, nameof(selector));

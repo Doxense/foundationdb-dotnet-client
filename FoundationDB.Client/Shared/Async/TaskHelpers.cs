@@ -34,7 +34,6 @@ namespace Doxense.Threading.Tasks
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper methods to work on tasks</summary>
 	internal static class TaskHelpers
@@ -44,7 +43,7 @@ namespace Doxense.Threading.Tasks
 		public static class CachedTasks<T>
 		{
 
-			public static readonly Task<T> Default = Task.FromResult<T>(default(T));
+			public static readonly Task<T> Default = Task.FromResult<T>(default!);
 
 			/// <summary>Returns a lambda function that returns the default value of <typeparamref name="T"/></summary>
 			public static Func<T> Nop
@@ -52,7 +51,7 @@ namespace Doxense.Threading.Tasks
 				get
 				{
 					//note: the compiler should but this in a static cache variable
-					return () => default(T);
+					return () => default!;
 				}
 			}
 
@@ -131,27 +130,27 @@ namespace Doxense.Threading.Tasks
 		}
 
 		/// <summary>Continue processing a task, if it succeeded</summary>
-		public static async Task Then<T>(this Task<T> task, [NotNull] Action<T> inlineContinuation)
+		public static async Task Then<T>(this Task<T> task, Action<T> inlineContinuation)
 		{
-			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
+			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateException)
 
 			var value = await task.ConfigureAwait(false);
 			inlineContinuation(value);
 		}
 
 		/// <summary>Continue processing a task, if it succeeded</summary>
-		public static async Task<R> Then<T, R>(this Task<T> task, [NotNull] Func<T, R> inlineContinuation)
+		public static async Task<R> Then<T, R>(this Task<T> task, Func<T, R> inlineContinuation)
 		{
-			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
+			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateException)
 
 			var value = await task.ConfigureAwait(false);
 			return inlineContinuation(value);
 		}
 
 		/// <summary>Continue processing a task, if it succeeded</summary>
-		public static async Task<R> Then<T, R>(this Task<T> task, [NotNull] Func<T, Task<R>> inlineContinuation)
+		public static async Task<R> Then<T, R>(this Task<T> task, Func<T, Task<R>> inlineContinuation)
 		{
-			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
+			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateException)
 
 			var value = await task.ConfigureAwait(false);
 			return await inlineContinuation(value);
@@ -161,9 +160,9 @@ namespace Doxense.Threading.Tasks
 		/// <typeparam name="R">Type of the result of the lambda</typeparam>
 		/// <param name="lambda">Synchronous lambda function that returns a value, or throws exceptions</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that either contains the result of the lambda, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
+		/// <returns>Task that either contains the result of the lambda, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task threw an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="lambda"/> is null</exception>
-		public static Task<R> Inline<R>([NotNull] Func<R> lambda, CancellationToken ct = default(CancellationToken))
+		public static Task<R> Inline<R>(Func<R> lambda, CancellationToken ct = default)
 		{
 			if (lambda == null) throw new ArgumentNullException(nameof(lambda));
 
@@ -184,9 +183,9 @@ namespace Doxense.Threading.Tasks
 		/// <param name="action">Synchronous action that takes a value.</param>
 		/// <param name="arg1">Argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task threw an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1>([NotNull] Action<T1> action, T1 arg1, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1>(Action<T1> action, T1 arg1, CancellationToken ct = default)
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException(nameof(action));
@@ -210,9 +209,9 @@ namespace Doxense.Threading.Tasks
 		/// <param name="arg1">First argument that will be passed to <paramref name="action"/></param>
 		/// <param name="arg2">Second argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task threw an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2>([NotNull] Action<T1, T2> action, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2>(Action<T1, T2> action, T1 arg1, T2 arg2, CancellationToken ct = default)
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException(nameof(action));
@@ -238,9 +237,9 @@ namespace Doxense.Threading.Tasks
 		/// <param name="arg2">Second argument that will be passed to <paramref name="action"/></param>
 		/// <param name="arg3">Third argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task threw an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2, T3>([NotNull] Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2, T3>(Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default)
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException(nameof(action));
@@ -268,9 +267,9 @@ namespace Doxense.Threading.Tasks
 		/// <param name="arg3">Third argument that will be passed to <paramref name="action"/></param>
 		/// <param name="arg4">Fourth argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task threw an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2, T3, T4>([NotNull] Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default)
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException(nameof(action));
@@ -300,9 +299,9 @@ namespace Doxense.Threading.Tasks
 		/// <param name="arg4">Fourth argument that will be passed to <paramref name="action"/></param>
 		/// <param name="arg5">Fifth argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task threw an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2, T3, T4, T5>([NotNull] Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default)
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException(nameof(action));
@@ -322,7 +321,7 @@ namespace Doxense.Threading.Tasks
 		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
 		/// <param name="lambda">Lambda that does not support cancellation</param>
 		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
-		public static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>([NotNull] Func<TSource, TResult> lambda)
+		public static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>(Func<TSource, TResult> lambda)
 		{
 			Contract.Requires(lambda != null);
 			return (value, ct) =>
@@ -335,7 +334,7 @@ namespace Doxense.Threading.Tasks
 		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
 		/// <param name="lambda">Lambda that does not support cancellation</param>
 		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
-		public static Func<TSource, CancellationToken, Task<TResult>> WithCancellation<TSource, TResult>([NotNull] Func<TSource, Task<TResult>> lambda)
+		public static Func<TSource, CancellationToken, Task<TResult>> WithCancellation<TSource, TResult>(Func<TSource, Task<TResult>> lambda)
 		{
 			Contract.Requires(lambda != null);
 			return (value, ct) =>
@@ -398,7 +397,7 @@ namespace Doxense.Threading.Tasks
 		}
 
 		/// <summary>Update the state of a TaskCompletionSource to reflect the type of error that occurred</summary>
-		public static void PropagateException<T>([NotNull] TaskCompletionSource<T> tcs, Exception e)
+		public static void PropagateException<T>(TaskCompletionSource<T> tcs, Exception e)
 		{
 			if (e is OperationCanceledException)
 			{
@@ -416,7 +415,7 @@ namespace Doxense.Threading.Tasks
 
 		/// <summary>Ensure that a task will be observed by someone, in the event that it would fail</summary>
 		/// <remarks>This helps discard any unhandled task exceptions, for fire&amp;forget tasks</remarks>
-		public static void Observe(Task task)
+		public static void Observe(Task? task)
 		{
 			if (task != null)
 			{
@@ -433,7 +432,7 @@ namespace Doxense.Threading.Tasks
 
 		/// <summary>Safely cancel a CancellationTokenSource</summary>
 		/// <param name="source">CancellationTokenSource that needs to be cancelled</param>
-		public static void SafeCancel(this CancellationTokenSource source)
+		public static void SafeCancel(this CancellationTokenSource? source)
 		{
 			if (source != null && !source.IsCancellationRequested)
 			{
@@ -446,7 +445,7 @@ namespace Doxense.Threading.Tasks
 		}
 		/// <summary>Safely cancel and dispose a CancellationTokenSource</summary>
 		/// <param name="source">CancellationTokenSource that needs to be cancelled and disposed</param>
-		public static void SafeCancelAndDispose(this CancellationTokenSource source)
+		public static void SafeCancelAndDispose(this CancellationTokenSource? source)
 		{
 			if (source != null)
 			{

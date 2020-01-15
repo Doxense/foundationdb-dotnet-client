@@ -46,47 +46,36 @@ namespace Doxense.Serialization.Encoders
 		IValueEncoder<VersionStamp>
 	{
 
-		[NotNull]
 		public static readonly BinaryEncoding Instance = new BinaryEncoding();
 
 		/// <summary>Identity encoder</summary>
-		[NotNull]
 		public static IValueEncoder<Slice> SliceEncoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes Unicode string as UTF-8 bytes</summary>
-		[NotNull]
 		public static IValueEncoder<string> StringEncoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 32-bits signed integers as 4 bytes (high-endian)</summary>
-		[NotNull]
 		public static IValueEncoder<int> Int32Encoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 32-bits unsigned integers as 4 bytes (high-endian)</summary>
-		[NotNull]
 		public static IValueEncoder<uint> UInt32Encoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 64-bits signed integers as 4 bytes (high-endian)</summary>
-		[NotNull]
 		public static IValueEncoder<long> Int64Encoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 64-bits unsigned integers as 4 bytes (high-endian)</summary>
-		[NotNull]
 		public static IValueEncoder<ulong> UInt64Encoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 128-bits GUIDs as 16 bytes</summary>
-		[NotNull]
 		public static IValueEncoder<Guid> GuidEncoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 128-bits UUIDs as 16 bytes</summary>
-		[NotNull]
 		public static IValueEncoder<Uuid128> Uuid128Encoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 64-bits UUIDs as 16 bytes</summary>
-		[NotNull]
 		public static IValueEncoder<Uuid64> Uuid64Encoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 80-bit or 85-bits VersionStamp as 16 bytes</summary>
-		[NotNull]
 		public static IValueEncoder<VersionStamp> VersionStampEncoder => BinaryEncoding.Instance;
 
 		public IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>()

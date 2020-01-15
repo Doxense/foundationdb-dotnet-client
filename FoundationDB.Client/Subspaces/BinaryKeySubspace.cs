@@ -60,11 +60,11 @@ namespace FoundationDB.Client
 	public sealed class BinaryKeySubspace : KeySubspace, IBinaryKeySubspace
 	{
 
-		internal BinaryKeySubspace(Slice prefix, [NotNull] ISubspaceContext context)
+		internal BinaryKeySubspace(Slice prefix, ISubspaceContext context)
 			: base(prefix, context)
 		{ }
 
-		internal BinaryKeySubspace(Slice prefix, KeyRange range, [NotNull] ISubspaceContext context)
+		internal BinaryKeySubspace(Slice prefix, KeyRange range, ISubspaceContext context)
 			: base(prefix, range, context)
 		{ }
 

@@ -34,7 +34,6 @@ namespace FoundationDB.Linq.Expressions
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that represent a filter on a source sequence</summary>
 	/// <typeparam name="T">Type of elements in the source sequence</typeparam>
@@ -49,18 +48,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Source sequence that is being filtered</summary>
-		public FdbQuerySequenceExpression<T> Source
-		{
-			[NotNull] get;
-			private set;
-		}
+		public FdbQuerySequenceExpression<T> Source { get; }
 
-		/// <summary>Filter applied on each element of <see cref="Source"/> and that must return true for the element to be outputed</summary>
-		public Expression<Func<T, bool>> Filter
-		{
-			[NotNull] get;
-			private set;
-		}
+		/// <summary>Filter applied on each element of <see cref="Source"/> and that must return true for the element to be outputted</summary>
+		public Expression<Func<T, bool>> Filter { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -79,7 +70,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
 		{
 			var lambda = this.Filter.Compile();

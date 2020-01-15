@@ -29,12 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ReSharper disable UnusedMember.Global
 namespace FoundationDB.Client.Status
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
 	[PublicAPI]
@@ -291,7 +291,7 @@ namespace FoundationDB.Client.Status
 	{
 		internal ClientStatus(Dictionary<string, object> data) : base(data) { }
 
-		private Message[] m_messages;
+		private Message[]? m_messages;
 
 		/// <summary>Path to the '.cluster' file used by the client to connect to the cluster</summary>
 		public string ClusterFilePath => GetString("cluster_file", "path");
@@ -301,8 +301,7 @@ namespace FoundationDB.Client.Status
 
 		/// <summary>Liste of active messages for the client</summary>
 		/// <remarks>The most common client messages are listed in <see cref="ClientMessages"/>.</remarks>
-		[NotNull]
-		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
+		public Message[] Messages => m_messages ??= Message.FromArray(m_data, "messages");
 
 		/// <summary>Timestamp of the local client (unix time)</summary>
 		/// <remarks>Number of seconds since 1970-01-01Z, using the local system clock</remarks>
@@ -345,15 +344,15 @@ namespace FoundationDB.Client.Status
 			: base(data)
 		{ }
 
-		private Message[] m_messages;
-		private ClusterConfiguration m_configuration;
-		private DataMetrics m_dataMetrics;
-		private LatencyMetrics m_latency;
-		private QosMetrics m_qos;
-		private WorkloadMetrics m_workload;
-		private ClusterClientsMetrics m_clients;
-		private Dictionary<string, ProcessStatus> m_processes;
-		private Dictionary<string, MachineStatus> m_machines;
+		private Message[]? m_messages;
+		private ClusterConfiguration? m_configuration;
+		private DataMetrics? m_dataMetrics;
+		private LatencyMetrics? m_latency;
+		private QosMetrics? m_qos;
+		private WorkloadMetrics? m_workload;
+		private ClusterClientsMetrics? m_clients;
+		private Dictionary<string, ProcessStatus>? m_processes;
+		private Dictionary<string, MachineStatus>? m_machines;
 
 		/// <summary>Unix time of the cluster controller</summary>
 		/// <remarks>Number of seconds since the Unix epoch (1970-01-01Z)</remarks>
@@ -370,30 +369,28 @@ namespace FoundationDB.Client.Status
 		public long Generation => GetInt64("generation") ?? 0;
 
 		/// <summary>License string of the cluster</summary>
-		[NotNull]
 		public string License => GetString("license") ?? String.Empty;
 
 		/// <summary>List of currently active messages</summary>
 		/// <remarks>Includes notifications, warnings, errors, ...</remarks>
-		[NotNull]
-		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
+		public Message[] Messages => m_messages ??= Message.FromArray(m_data, "messages");
 
 		/// <summary>Recovery state of the cluster</summary>
 		public Message RecoveryState => Message.From(m_data, "recovery_state");
 
-		public ClusterConfiguration Configuration => m_configuration ?? (m_configuration = new ClusterConfiguration(GetMap("configuration")));
+		public ClusterConfiguration Configuration => m_configuration ??= new ClusterConfiguration(GetMap("configuration"));
 
-		public DataMetrics Data => m_dataMetrics ?? (m_dataMetrics = new DataMetrics(GetMap("data")));
+		public DataMetrics Data => m_dataMetrics ??= new DataMetrics(GetMap("data"));
 
-		public LatencyMetrics Latency => m_latency ?? (m_latency = new LatencyMetrics(GetMap("latency_probe")));
+		public LatencyMetrics Latency => m_latency ??= new LatencyMetrics(GetMap("latency_probe"));
 
 		/// <summary>QoS metrics</summary>
-		public QosMetrics Qos => m_qos ?? (m_qos = new QosMetrics(GetMap("qos")));
+		public QosMetrics Qos => m_qos ??= new QosMetrics(GetMap("qos"));
 
 		/// <summary>Workload metrics</summary>
-		public WorkloadMetrics Workload => m_workload ?? (m_workload = new WorkloadMetrics(GetMap("workload")));
+		public WorkloadMetrics Workload => m_workload ??= new WorkloadMetrics(GetMap("workload"));
 
-		public ClusterClientsMetrics Clients => m_clients ?? (m_clients = new ClusterClientsMetrics(GetMap("clients")));
+		public ClusterClientsMetrics Clients => m_clients ??= new ClusterClientsMetrics(GetMap("clients"));
 
 		/// <summary>List of the processes that are currently active in the cluster</summary>
 		public IReadOnlyDictionary<string, ProcessStatus> Processes
@@ -464,7 +461,7 @@ namespace FoundationDB.Client.Status
 			this.RedundancyFactor = GetString("redundancy", "factor") ?? String.Empty;
 		}
 
-		private string[] m_excludedServers;
+		private string[]? m_excludedServers;
 
 		public int CoordinatorsCount { get; }
 
@@ -556,18 +553,18 @@ namespace FoundationDB.Client.Status
 	{
 		internal WorkloadMetrics(Dictionary<string, object> data) : base(data) { }
 
-		private WorkloadBytesMetrics m_bytes;
-		private WorkloadOperationsMetrics m_operations;
-		private WorkloadTransactionsMetrics m_transactions;
+		private WorkloadBytesMetrics? m_bytes;
+		private WorkloadOperationsMetrics? m_operations;
+		private WorkloadTransactionsMetrics? m_transactions;
 
 		/// <summary>Performance counters for the volume of data processed by the database</summary>
-		public WorkloadBytesMetrics Bytes => m_bytes ?? (m_bytes = new WorkloadBytesMetrics(GetMap("bytes")));
+		public WorkloadBytesMetrics Bytes => m_bytes ??= new WorkloadBytesMetrics(GetMap("bytes"));
 
 		/// <summary>Performance counters for the operations on the keys in the database</summary>
-		public WorkloadOperationsMetrics Operations => m_operations ?? (m_operations = new WorkloadOperationsMetrics(GetMap("operations")));
+		public WorkloadOperationsMetrics Operations => m_operations ??= new WorkloadOperationsMetrics(GetMap("operations"));
 
 		/// <summary>Performance counters for the transactions.</summary>
-		public WorkloadTransactionsMetrics Transactions => m_transactions ?? (m_transactions = new WorkloadTransactionsMetrics(GetMap("transactions")));
+		public WorkloadTransactionsMetrics Transactions => m_transactions ??= new WorkloadTransactionsMetrics(GetMap("transactions"));
 	}
 
 	/// <summary>Throughput of a FoundationDB cluster</summary>
@@ -650,80 +647,65 @@ namespace FoundationDB.Client.Status
 			this.Id = id;
 		}
 
-		private string m_machineId;
-		private string m_address;
-		private Message[] m_messages;
-		private ProcessNetworkMetrics m_network;
-		private ProcessCpuMetrics m_cpu;
-		private ProcessDiskMetrics m_disk;
-		private ProcessMemoryMetrics m_memory;
-		private LocalityConfiguration m_locality;
-		private ProcessRoleMetrics[] m_roles;
+		private string? m_machineId;
+		private string? m_address;
+		private Message[]? m_messages;
+		private ProcessNetworkMetrics? m_network;
+		private ProcessCpuMetrics? m_cpu;
+		private ProcessDiskMetrics? m_disk;
+		private ProcessMemoryMetrics? m_memory;
+		private LocalityConfiguration? m_locality;
+		private ProcessRoleMetrics[]? m_roles;
 
 		/// <summary>Unique identifier for this process.</summary>
 		//TODO: is it stable across reboots? what are the conditions for a process to change its ID ?
-		[NotNull]
 		public string Id { get; }
 
 		/// <summary>Identifier of the machine that is hosting this process</summary>
 		/// <remarks>All processes that have the same MachineId are running on the same (physical) machine.</remarks>
-		[NotNull]
-		public string MachineId => m_machineId ?? (m_machineId = GetString("machine_id") ?? string.Empty);
+		public string MachineId => m_machineId ??= GetString("machine_id") ?? string.Empty;
 
 		/// <summary>Version of this process</summary>
 		/// <example>"3.0.4"</example>
-		[NotNull]
 		public string Version => GetString("version") ?? string.Empty;
 
 		public TimeSpan Uptime => TimeSpan.FromSeconds(GetDouble("uptime_seconds") ?? 0);
 
 		/// <summary>Address and port of this process, with syntax "IP_ADDRESS:port"</summary>
 		/// <example>"10.1.2.34:4500"</example>
-		[NotNull]
-		public string Address => m_address ?? (m_address = GetString("address") ?? string.Empty);
+		public string Address => m_address ??= GetString("address") ?? string.Empty;
 
-		[NotNull]
 		public string ClassSource => GetString("class_source") ?? string.Empty;
 
-		[NotNull]
 		public string ClassType => GetString("class_type") ?? string.Empty;
 
 		/// <summary>Command line that was used to start this process</summary>
-		[NotNull]
 		public string CommandLine => GetString("command_line") ?? string.Empty;
 
 		/// <summary>If true, this process is currently excluded from the cluster</summary>
 		public bool Excluded => GetBoolean("excluded") ?? false;
 
-		[NotNull]
 		public string FaultDomain => GetString("fault_domain") ?? string.Empty;
 
 		/// <summary>List of messages that are currently published by this process</summary>
-		[NotNull]
-		public Message[] Messages => m_messages ?? (m_messages = Message.FromArray(m_data, "messages"));
+		public Message[] Messages => m_messages ??= Message.FromArray(m_data, "messages");
 
 		/// <summary>Network performance counters</summary>
-		[NotNull]
-		public ProcessNetworkMetrics Network => m_network ?? (m_network = new ProcessNetworkMetrics(GetMap("network")));
+		public ProcessNetworkMetrics Network => m_network ??= new ProcessNetworkMetrics(GetMap("network"));
 
 		/// <summary>CPU performance counters</summary>
-		[NotNull]
-		public ProcessCpuMetrics Cpu => m_cpu ?? (m_cpu = new ProcessCpuMetrics(GetMap("cpu")));
+		public ProcessCpuMetrics Cpu => m_cpu ??= new ProcessCpuMetrics(GetMap("cpu"));
 
 		/// <summary>Disk performance counters</summary>
-		[NotNull]
-		public ProcessDiskMetrics Disk => m_disk ?? (m_disk = new ProcessDiskMetrics(GetMap("disk")));
+		public ProcessDiskMetrics Disk => m_disk ??= new ProcessDiskMetrics(GetMap("disk"));
 
 		/// <summary>Memory performance counters</summary>
-		[NotNull]
-		public ProcessMemoryMetrics Memory => m_memory ?? (m_memory = new ProcessMemoryMetrics(GetMap("memory")));
+		public ProcessMemoryMetrics Memory => m_memory ??= new ProcessMemoryMetrics(GetMap("memory"));
 
-		[NotNull]
-		public LocalityConfiguration Locality => m_locality ?? (m_locality = new LocalityConfiguration(GetMap("locality")));
+		public LocalityConfiguration Locality => m_locality ??= new LocalityConfiguration(GetMap("locality"));
 
 		/// <summary>List of the roles assumed by this process</summary>
 		/// <remarks>The key is the unique role ID in the cluster, and the value is the type of the role itself</remarks>
-		[NotNull, ItemNotNull]
 		public ProcessRoleMetrics[] Roles
 		{
 			get
@@ -761,7 +743,6 @@ namespace FoundationDB.Client.Status
 
 		//TODO: values will vary depending on the "Role" !
 
-		[NotNull]
 		public static ProcessRoleMetrics Create(Dictionary<string, object> data)
 		{
 			string role = TinyJsonParser.GetStringField(data, "role");
@@ -903,7 +884,7 @@ namespace FoundationDB.Client.Status
 		public const string ProcessError = "process_error";
 	}
 
-	/// <summary>Memory performane counters for a FoundationDB process</summary>
+	/// <summary>Memory performance counters for a FoundationDB process</summary>
 	public sealed class ProcessMemoryMetrics : MetricsBase
 	{
 		internal ProcessMemoryMetrics(Dictionary<string, object> data)
@@ -925,7 +906,7 @@ namespace FoundationDB.Client.Status
 
 	}
 
-	/// <summary>CPU performane counters for a FoundationDB process</summary>
+	/// <summary>CPU performance counters for a FoundationDB process</summary>
 	public sealed class ProcessCpuMetrics : MetricsBase
 	{
 		internal ProcessCpuMetrics(Dictionary<string, object> data)
@@ -1003,45 +984,42 @@ namespace FoundationDB.Client.Status
 			this.Id = id;
 		}
 
-		private string m_address;
-		private MachineNetworkMetrics m_network;
-		private MachineCpuMetrics m_cpu;
-		private MachineMemoryMetrics m_memory;
-		private LocalityConfiguration m_locality;
+		private string? m_address;
+		private MachineNetworkMetrics? m_network;
+		private MachineCpuMetrics? m_cpu;
+		private MachineMemoryMetrics? m_memory;
+		private LocalityConfiguration? m_locality;
 
 		/// <summary>Unique identifier for this machine.</summary>
 		//TODO: is it stable across reboots? what are the conditions for a process to change its ID ?
-		[NotNull]
 		public string Id { get; }
 
 		/// <summary>Identifier of the data center that is hosting this machine</summary>
 		/// <remarks>All machines that have the same DataCenterId are probably running on the same (physical) network.</remarks>
-		[NotNull]
 		public string DataCenterId => GetString("datacenter_id") ?? string.Empty;
 
 		/// <summary>Address of this machine</summary>
 		/// <example>"10.1.2.34"</example>
-		[NotNull]
-		public string Address => m_address ?? (m_address = GetString("address") ?? string.Empty);
+		public string Address => m_address ??= GetString("address") ?? string.Empty;
 
 		/// <summary>If true, this process is currently excluded from the cluster</summary>
 		public bool Excluded => GetBoolean("excluded") ?? false;
 
 		/// <summary>Network performance counters</summary>
-		public MachineNetworkMetrics Network => m_network ?? (m_network = new MachineNetworkMetrics(GetMap("network")));
+		public MachineNetworkMetrics Network => m_network ??= new MachineNetworkMetrics(GetMap("network"));
 
 		/// <summary>CPU performance counters</summary>
-		public MachineCpuMetrics Cpu => m_cpu ?? (m_cpu = new MachineCpuMetrics(GetMap("cpu")));
+		public MachineCpuMetrics Cpu => m_cpu ??= new MachineCpuMetrics(GetMap("cpu"));
 
 		/// <summary>Memory performance counters</summary>
-		public MachineMemoryMetrics Memory => m_memory ?? (m_memory = new MachineMemoryMetrics(GetMap("memory")));
+		public MachineMemoryMetrics Memory => m_memory ??= new MachineMemoryMetrics(GetMap("memory"));
 
-		public LocalityConfiguration Locality => m_locality ?? (m_locality = new LocalityConfiguration(GetMap("locality")));
+		public LocalityConfiguration Locality => m_locality ??= new LocalityConfiguration(GetMap("locality"));
 
 		public int ContributingWorkers => (int) (GetInt64("contributing_workers") ?? 0);
 	}
 
-	/// <summary>Memory performane counters for machine hosting one or more FoundationDB processes</summary>
+	/// <summary>Memory performance counters for machine hosting one or more FoundationDB processes</summary>
 	public sealed class MachineMemoryMetrics : MetricsBase
 	{
 		internal MachineMemoryMetrics(Dictionary<string, object> data)
@@ -1060,7 +1038,7 @@ namespace FoundationDB.Client.Status
 
 	}
 
-	/// <summary>CPU performane counters for machine hosting one or more FoundationDB processes</summary>
+	/// <summary>CPU performance counters for machine hosting one or more FoundationDB processes</summary>
 	public sealed class MachineCpuMetrics : MetricsBase
 	{
 		internal MachineCpuMetrics(Dictionary<string, object> data)
@@ -1073,7 +1051,7 @@ namespace FoundationDB.Client.Status
 
 	}
 
-	/// <summary>Network performane counters for machine hosting one or more FoundationDB processes</summary>
+	/// <summary>Network performance counters for machine hosting one or more FoundationDB processes</summary>
 	public sealed class MachineNetworkMetrics : MetricsBase
 	{
 		internal MachineNetworkMetrics(Dictionary<string, object> data)

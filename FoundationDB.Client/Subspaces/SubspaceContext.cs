@@ -39,7 +39,6 @@ namespace FoundationDB.Client
 		/// <remarks>Should throw an exception if the context is in an invalid state</remarks>
 		void EnsureIsValid();
 
-		[NotNull]
 		string Name { get; }
 	}
 
@@ -47,7 +46,6 @@ namespace FoundationDB.Client
 	{
 		private SubspaceContext() { }
 
-		[NotNull]
 		public static readonly ISubspaceContext Default = new SubspaceContext();
 
 		public void EnsureIsValid()

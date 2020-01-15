@@ -31,25 +31,21 @@ namespace FoundationDB.Client
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	public interface IFdbDatabaseScopeProvider : IDisposable
 	{
 
 		/// <summary>Returns the parent scope (or null if this is the top-level scope)</summary>
-		[CanBeNull]
-		IFdbDatabaseScopeProvider Parent { get; }
+		IFdbDatabaseScopeProvider? Parent { get; }
 
 		/// <summary>Return an instance of the database, once it is ready</summary>
 		/// <remarks>During the startup of the application, the task returned will wait until the database becomes ready. After that, the task will immediately return the database singleton.</remarks>
-		[ItemNotNull]
 		ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct);
 
 		/// <summary>Create a scope that will use the database provided by this instance, and which also needs to perform some initialization steps before being ready (ex: using the DirectoryLayer to open subspaces, ...)</summary>
 		/// <param name="start">Handler that will be called AFTER the database becomes ready, but BEFORE any consumer of this scope can run.</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull]
-		IFdbDatabaseScopeProvider<TState> CreateScope<TState>([NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default);
+		IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default);
 
 		/// <summary>If <c>true</c>, the database instance is ready. If <c>false</c>, the provider is either not started, or the connection is still pending.</summary>
 		bool IsAvailable { get; }

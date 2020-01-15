@@ -32,6 +32,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
@@ -45,7 +46,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 	[PublicAPI]
 	public readonly struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>, IComparable<Maybe<T>>, IComparable<T>, IFormattable
 	{
-		/// <summary>Returns an empy result (no computation)</summary>
+		/// <summary>Returns an empty result (no computation)</summary>
 		public static readonly Maybe<T> Nothing = default;
 
 		/// <summary>Returns a result that is the default of type <typeparamref name="T"/> (0, false, null, ...)</summary>
@@ -57,11 +58,11 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		#region Private Fields...
 
 		// ==================================================================================
-		//  m_hasValue |   m_value   |  m_error     | description
+		//  m_hasValue |   m_value  |  m_error     | description
 		// ==================================================================================
-		//     True    |   Resultat  |   null       | The computation produced a result (that could be the default of the type, but is not "empty")
-		//     False   |      -      |   null       | The computation did not produce any result
-		//     False   |      -      |   Exception  | The computation has failed
+		//     True    |   Result   |   null       | The computation produced a result (that could be the default of the type, but is not "empty")
+		//     False   |      -     |   null       | The computation did not produce any result
+		//     False   |      -     |   Exception  | The computation has failed
 
 		/// <summary>If true, there is a value. If false, either no value or an exception</summary>
 		private readonly T m_value;
@@ -69,19 +70,19 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		/// <summary>If HasValue is true, holds the value. Else, contains default(T)</summary>
 		private readonly bool m_hasValue;
 
-		/// <summary>If HasValue is false optinally holds an error that was captured</summary>
-		private readonly object m_errorContainer; // either an Exception, or an ExceptionDispatchInfo
+		/// <summary>If HasValue is false optionally holds an error that was captured</summary>
+		private readonly object? m_errorContainer; // either an Exception, or an ExceptionDispatchInfo
 
 		#endregion
 
-		public Maybe(T value)
+		public Maybe([AllowNull] T value)
 		{
 			m_hasValue = true;
 			m_value = value;
 			m_errorContainer = null;
 		}
 
-		internal Maybe(bool hasValue, T value, object errorContainer)
+		internal Maybe(bool hasValue, [AllowNull] T value, object? errorContainer)
 		{
 			Contract.Requires(errorContainer == null || (errorContainer is Exception) || (errorContainer is ExceptionDispatchInfo));
 
@@ -116,27 +117,24 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return m_value;
 		}
 
-		public Exception Error
+		public Exception? Error
 		{
 			[TargetedPatchingOptOut("Performance critical to inline this type of method across NGen image boundaries")]
 			[Pure]
-			get
-			{
-				return m_errorContainer is ExceptionDispatchInfo edi
-					? edi.SourceException
-					: m_errorContainer as Exception;
-			}
+			get => m_errorContainer is ExceptionDispatchInfo edi
+				? edi.SourceException
+				: m_errorContainer as Exception;
 		}
 
 		/// <summary>Return the captured error context, or null if there wasn't any</summary>
-		public ExceptionDispatchInfo CapturedError => m_errorContainer is Exception exception ? ExceptionDispatchInfo.Capture(exception) : m_errorContainer as ExceptionDispatchInfo;
+		public ExceptionDispatchInfo? CapturedError => m_errorContainer is Exception exception ? ExceptionDispatchInfo.Capture(exception) : m_errorContainer as ExceptionDispatchInfo;
 
 		/// <summary>The value failed to compute</summary>
 		/// <returns>!(HasValue || IsEmpty)</returns>
 		public bool Failed
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return m_errorContainer != null; }
+			get => m_errorContainer != null;
 		}
 
 		/// <summary>Rethrows any captured error, if there was one.</summary>
@@ -153,19 +151,11 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			}
 		}
 
-		internal object ErrorContainer
-		{
-			[Pure]
-			get => m_errorContainer;
-		}
+		internal object? ErrorContainer => m_errorContainer;
 
 		/// <summary>No value was returned</summary>
 		/// <remarks>!(HasValue || Failed)</remarks>
-		public bool IsEmpty
-		{
-			[Pure]
-			get => !m_hasValue && m_errorContainer == null;
-		}
+		public bool IsEmpty => !m_hasValue && m_errorContainer == null;
 
 		[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining)]
 		private T ThrowInvalidState()
@@ -175,8 +165,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			throw new InvalidOperationException("This computation already has a value.");
 		}
 
-		[Pure, NotNull]
-		public static Func<Maybe<T>, Maybe<TResult>> Return<TResult>([NotNull] Func<T, TResult> computation)
+		[Pure]
+		public static Func<Maybe<T>, Maybe<TResult>> Return<TResult>(Func<T, TResult> computation)
 		{
 			return Bind(x => new Maybe<TResult>(computation(x)));
 		}
@@ -253,7 +243,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			if (m_errorContainer != null)
 			{ // Error
 				if (other.m_hasValue | other.m_errorContainer == null) return +1; // errors come after everything except errors
-				//note: this is tricky, because we cannot realy sort Exceptions, so this sort may not be stable :(
+				//note: this is tricky, because we cannot really sort Exceptions, so this sort may not be stable :(
 				// => the "only" way would be to compare their hash codes!
 				return ReferenceEquals(m_errorContainer, other.m_errorContainer) ? 0 : m_errorContainer.GetHashCode().CompareTo(other.m_errorContainer.GetHashCode());
 			}
@@ -272,11 +262,11 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			return Comparer<T>.Default.Compare(m_value, other);
 		}
 
-		public string ToString(string format, IFormatProvider formatProvider)
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
 			if (this.Failed) return "<error>";
 			if (!this.HasValue) return "<none>";
-			if (this.Value == null) return "<null>"; //REVIEW: => "<nothin>" ?
+			if (this.Value == null) return "<null>"; //REVIEW: => "<nothing>" ?
 			if (this.Value is IFormattable fmt) return fmt.ToString(format, formatProvider);
 			return this.Value.ToString();
 		}
@@ -501,13 +491,14 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		/// <param name="error0">First exception (can be null)</param>
 		/// <param name="error1">Second exception (can be null)</param>
 		[Pure]
-		public static Maybe<T> Error<T>(T _, Exception error0, Exception error1)
+		public static Maybe<T> Error<T>([AllowNull] T _, Exception? error0, Exception? error1)
 		{
-			// Il faut au moins une des deux !
+			// At least one of them must be non-null
 			Contract.Assert(error0 != null || error1 != null);
 
 			if (error1 == null)
 			{
+				Contract.Assert(error0 != null);
 				return Maybe<T>.Failure(error0);
 			}
 			if (error0 == null)
@@ -548,7 +539,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		[Pure]
-		public static Maybe<TResult> Apply<T, TResult>(T value, [NotNull, InstantHandle] Func<T, TResult> lambda)
+		public static Maybe<TResult> Apply<T, TResult>(T value, [InstantHandle] Func<T, TResult> lambda)
 		{
 			Contract.Requires(lambda != null);
 			try
@@ -563,7 +554,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		[Pure]
-		public static Maybe<TResult> Apply<T, TResult>(T value, [NotNull, InstantHandle] Func<T, Maybe<TResult>> lambda)
+		public static Maybe<TResult> Apply<T, TResult>(T value, [InstantHandle] Func<T, Maybe<TResult>> lambda)
 		{
 			Contract.Requires(lambda != null);
 			try
@@ -578,7 +569,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		[Pure]
-		public static Maybe<TResult> Apply<T, TResult>(Maybe<T> value, [NotNull, InstantHandle] Func<T, TResult> lambda)
+		public static Maybe<TResult> Apply<T, TResult>(Maybe<T> value, [InstantHandle] Func<T, TResult> lambda)
 		{
 			Contract.Requires(lambda != null);
 			if (!value.HasValue)
@@ -602,7 +593,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		[Pure]
-		public static Maybe<TResult> Apply<T, TResult>(Maybe<T> value, [NotNull, InstantHandle] Func<T, Maybe<TResult>> lambda)
+		public static Maybe<TResult> Apply<T, TResult>(Maybe<T> value, [InstantHandle] Func<T, Maybe<TResult>> lambda)
 		{
 			Contract.Requires(lambda != null);
 			if (!value.HasValue)
@@ -626,7 +617,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Convert a completed <see cref="Task{T}"/> into an equivalent <see cref="Maybe{T}"/></summary>
 		[Pure]
-		public static Maybe<T> FromTask<T>([NotNull] Task<T> task)
+		public static Maybe<T> FromTask<T>(Task<T> task)
 		{
 			//REVIEW: should we return Maybe<T>.Empty if task == null ?
 			Contract.Requires(task != null);
@@ -659,7 +650,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Convert a completed <see cref="Task{T}"/> with <typeparamref name="T"/> being a <see cref="Maybe{T}"/>, into an equivalent <see cref="Maybe{T}"/></summary>
 		[Pure]
-		public static Maybe<T> FromTask<T>([NotNull] Task<Maybe<T>> task)
+		public static Maybe<T> FromTask<T>(Task<Maybe<T>> task)
 		{
 			Contract.Requires(task != null);
 			switch (task.Status)
@@ -691,7 +682,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		/// <summary>Streamline a potentially failed Task&lt;Maybe&lt;T&gt;&gt; into a version that capture the error into the <see cref="Maybe{T}"/> itself</summary>
 		[Pure]
-		public static Task<Maybe<T>> Unwrap<T>([NotNull] Task<Maybe<T>> task)
+		public static Task<Maybe<T>> Unwrap<T>(Task<Maybe<T>> task)
 		{
 			Contract.Requires(task != null);
 			switch (task.Status)
@@ -721,8 +712,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 			}
 		}
 
-		[Pure, NotNull]
-		private static Func<Maybe<TInput>, Maybe<TResult>> Combine<TInput, TIntermediate, TResult>([NotNull] Func<Maybe<TInput>, Maybe<TIntermediate>> f, Func<Maybe<TIntermediate>, Maybe<TResult>> g)
+		[Pure]
+		private static Func<Maybe<TInput>, Maybe<TResult>> Combine<TInput, TIntermediate, TResult>(Func<Maybe<TInput>, Maybe<TIntermediate>> f, Func<Maybe<TIntermediate>, Maybe<TResult>> g)
 		{
 			return (mt) => g(f(mt));
 		}
@@ -734,8 +725,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		/// <param name="f">First function (that runs first)</param>
 		/// <param name="g">Second function (that runs on the result of <paramref name="f"/></param>
 		/// <returns>Function h(x) = g(f(x))</returns>
-		[Pure, NotNull]
-		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>([NotNull] Func<TInput, Maybe<TIntermediate>> f, [NotNull] Func<TIntermediate, Maybe<TResult>> g)
+		[Pure]
+		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>(Func<TInput, Maybe<TIntermediate>> f, Func<TIntermediate, Maybe<TResult>> g)
 		{
 			return Combine(Maybe<TInput>.Bind(f), Maybe<TIntermediate>.Bind<TResult>(g));
 		}
@@ -747,8 +738,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		/// <param name="f">First function (that runs first)</param>
 		/// <param name="g">Second function (that runs on the result of <paramref name="f"/></param>
 		/// <returns>Function h(x) = g(f(x))</returns>
-		[Pure, NotNull]
-		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>([NotNull] Func<TInput, Maybe<TIntermediate>> f, [NotNull] Func<Maybe<TIntermediate>, Maybe<TResult>> g)
+		[Pure]
+		public static Func<Maybe<TInput>, Maybe<TResult>> Bind<TInput, TIntermediate, TResult>(Func<TInput, Maybe<TIntermediate>> f, Func<Maybe<TIntermediate>, Maybe<TResult>> g)
 		{
 			return Combine(Maybe<TInput>.Bind(f), g);
 		}

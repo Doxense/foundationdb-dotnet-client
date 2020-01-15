@@ -486,7 +486,7 @@ namespace System
 			return m_packed;
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public byte[] ToByteArray()
 		{
 			// We must use Big Endian when serializing the UUID

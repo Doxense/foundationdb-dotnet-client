@@ -39,7 +39,7 @@ namespace Doxense.Runtime.Converters
 	/// <remarks>This comparer SHOULD NOT be used in a Dictioanry, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>
 	internal sealed class SimilarValueComparer : IEqualityComparer<object>, IEqualityComparer
 	{
-		[NotNull]
+
 		public static readonly IEqualityComparer Default = new SimilarValueComparer();
 
 		private SimilarValueComparer()

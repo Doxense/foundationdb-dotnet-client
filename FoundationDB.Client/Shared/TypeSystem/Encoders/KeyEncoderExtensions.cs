@@ -43,7 +43,7 @@ namespace Doxense.Serialization.Encoders
 
 		#region Dynamic...
 
-		public static Slice Pack<TTuple>([NotNull] this IDynamicKeyEncoder encoder, TTuple tuple)
+		public static Slice Pack<TTuple>(this IDynamicKeyEncoder encoder, TTuple tuple)
 			where TTuple : IVarTuple
 		{
 			var writer = new SliceWriter(checked(tuple.Count * 8));
@@ -51,7 +51,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static Slice Pack<TTuple>([NotNull] this IDynamicKeyEncoder encoder, Slice prefix, TTuple tuple)
+		public static Slice Pack<TTuple>(this IDynamicKeyEncoder encoder, Slice prefix, TTuple tuple)
 			where TTuple : IVarTuple
 		{
 			var writer = new SliceWriter(checked(prefix.Count + tuple.Count * 8));
@@ -64,14 +64,14 @@ namespace Doxense.Serialization.Encoders
 
 		#region <T1>
 
-		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, T1 value)
+		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, T1 value)
 		{
 			var writer = default(SliceWriter);
 			encoder.WriteKeyTo(ref writer, value);
 			return writer.ToSlice();
 		}
 
-		public static Slice EncodeKey<T1>([NotNull] this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
+		public static Slice EncodeKey<T1>(this IKeyEncoder<T1> encoder, Slice prefix, T1 value)
 		{
 			var writer = new SliceWriter(prefix.Count + 16); // ~16 bytes si T1 = Guid
 			writer.WriteBytes(prefix);
@@ -79,7 +79,7 @@ namespace Doxense.Serialization.Encoders
 			return writer.ToSlice();
 		}
 
-		public static T1 DecodeKey<T1>([NotNull] this IKeyEncoder<T1> decoder, Slice encoded)
+		public static T1 DecodeKey<T1>(this IKeyEncoder<T1> decoder, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			decoder.ReadKeyFrom(ref reader, out T1 item);
@@ -302,8 +302,7 @@ namespace Doxense.Serialization.Encoders
 		#region Batched...
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using the specified serializer</summary>
-		[NotNull]
-		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params T[] values)
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, params T[] values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -317,8 +316,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
-		[NotNull]
-		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, Slice prefix, [NotNull] params T[] values)
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params T[] values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -336,8 +334,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] IEnumerable<TElement> elements, Func<TElement, TKey> selector)
+		public static Slice[] EncodeKeys<TKey, TElement>(this IKeyEncoder<TKey> encoder, IEnumerable<TElement> elements, Func<TElement, TKey> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(elements, nameof(elements));
@@ -365,8 +362,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
+		public static Slice[] EncodeKeys<TKey, TElement>(this IKeyEncoder<TKey> encoder, TElement[] elements, Func<TElement, TKey> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(elements, nameof(elements));
@@ -381,8 +377,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeKeys<T>(this IKeyEncoder<T> encoder, IEnumerable<T> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -412,8 +407,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Convert a sequence of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
-		[NotNull]
-		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, Slice prefix, IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, IEnumerable<T> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -449,8 +443,7 @@ namespace Doxense.Serialization.Encoders
 
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params Slice[] slices)
+		public static T[] DecodeKeys<T>(this IKeyEncoder<T> encoder, params Slice[] slices)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(slices, nameof(slices));
@@ -464,8 +457,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Convert the keys of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
+		public static T[] DecodeKeys<T>(this IKeyEncoder<T> encoder, KeyValuePair<Slice, Slice>[] items)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -479,8 +471,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull]
-		public static IEnumerable<T> DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeKeys<T>(this IKeyEncoder<T> encoder, IEnumerable<Slice> slices)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(slices, nameof(slices));

@@ -37,29 +37,25 @@ namespace FoundationDB.Client.Native
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
 	internal sealed class FdbNativeDatabase : IFdbDatabaseHandler
 	{
 		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
-		[NotNull]
 		private readonly DatabaseHandle m_handle;
 
 		/// <summary>Optional Cluster handle (only for API 600 or below)</summary>
-		[CanBeNull]
-		private readonly ClusterHandle m_clusterHandle;
+		private readonly ClusterHandle? m_clusterHandle;
 
 		/// <summary>Path to the cluster file</summary>
-		[CanBeNull]
-		private readonly string m_clusterFile;
+		private readonly string? m_clusterFile;
 
 #if CAPTURE_STACKTRACES
 		private readonly StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeDatabase([NotNull] DatabaseHandle handle, [CanBeNull] string clusterFile, ClusterHandle cluster = null)
+		public FdbNativeDatabase(DatabaseHandle handle, string? clusterFile, ClusterHandle? cluster = null)
 		{
 			Contract.NotNull(handle, nameof(handle));
 
@@ -84,7 +80,7 @@ namespace FoundationDB.Client.Native
 		}
 #endif
 
-		public static ValueTask<IFdbDatabaseHandler> CreateDatabaseAsync(string clusterFile, CancellationToken ct)
+		public static ValueTask<IFdbDatabaseHandler> CreateDatabaseAsync(string? clusterFile, CancellationToken ct)
 		{
 			if (Fdb.GetMaxApiVersion() < 610)
 			{ // Older version used a different way to create a database handle
@@ -101,13 +97,13 @@ namespace FoundationDB.Client.Native
 			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
 		}
 
-		private static async ValueTask<IFdbDatabaseHandler> CreateDatabaseLegacyAsync(string clusterFile, CancellationToken ct)
+		private static async ValueTask<IFdbDatabaseHandler> CreateDatabaseLegacyAsync(string? clusterFile, CancellationToken ct)
 		{
 			// In legacy API versions, you first had to create "cluster" handle and then obtain a database handle that that cluster.
 			// The API is async, but the future always completed inline...
 
-			ClusterHandle cluster = null;
-			DatabaseHandle database = null;
+			ClusterHandle? cluster = null;
+			DatabaseHandle? database = null;
 			try
 			{
 				cluster = await FdbFuture.CreateTaskFromHandle(
@@ -148,7 +144,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public string ClusterFile => m_clusterFile;
+		public string? ClusterFile => m_clusterFile;
 
 		public bool IsInvalid => m_handle.IsInvalid;
 
@@ -169,7 +165,7 @@ namespace FoundationDB.Client.Native
 
 		public IFdbTransactionHandler CreateTransaction(FdbOperationContext context)
 		{
-			TransactionHandle handle = null;
+			TransactionHandle? handle = null;
 			try
 			{
 				var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);

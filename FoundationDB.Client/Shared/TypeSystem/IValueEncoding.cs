@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using JetBrains.Annotations;
 
 	public interface IValueEncoding
 	{
@@ -39,7 +38,6 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="TValue">Type of the element to encode</typeparam>
 		/// <typeparam name="TStorage">Type of the encoded form of the values (Slice, string, ...)</typeparam>
 		/// <returns>Value encoder</returns>
-		[NotNull]
 		IValueEncoder<TValue, TStorage> GetValueEncoder<TValue, TStorage>();
 
 		/// <summary>Returns an encoder which can process values of a fixed type</summary>

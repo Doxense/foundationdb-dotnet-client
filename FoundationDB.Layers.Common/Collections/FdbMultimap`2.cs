@@ -67,7 +67,6 @@ namespace FoundationDB.Layers.Collections
 		#region Public Properties...
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		[NotNull]
 		public TypedKeySubspaceLocation<TKey, TValue> Location { get; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>
@@ -96,7 +95,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="value">Value for the <paramref name="key"/> to increment</param>
 			/// <remarks>If the (index, value) pair does not exist, its value is considered to be 0</remarks>
 			/// <exception cref="System.ArgumentNullException">If <paramref name="trans"/> is null.</exception>
-			public Task AddAsync([NotNull] IFdbTransaction trans, TKey key, TValue value)
+			public Task AddAsync(IFdbTransaction trans, TKey key, TValue value)
 			{
 				//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
@@ -110,7 +109,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="key">Key of the entry</param>
 			/// <param name="value">Value for the <paramref name="key"/> to decrement</param>
 			/// <remarks>If the updated count reaches zero or less, and AllowNegativeValues is not set, the key will be cleared from the map.</remarks>
-			public async Task SubtractAsync([NotNull] IFdbTransaction trans, TKey key, TValue value)
+			public async Task SubtractAsync(IFdbTransaction trans, TKey key, TValue value)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -138,7 +137,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Checks if a (key, value) pair exists</summary>
-			public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key, TValue value)
+			public async Task<bool> ContainsAsync(IFdbReadOnlyTransaction trans, TKey key, TValue value)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -152,7 +151,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="value"></param>
 			/// <returns>Value for this value, or null if the index does not contains that particular value</returns>
 			/// <remarks>The count can be zero or negative if AllowNegativeValues is enable.</remarks>
-			public async Task<long?> GetCountAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key, TValue value)
+			public async Task<long?> GetCountAsync(IFdbReadOnlyTransaction trans, TKey key, TValue value)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -166,8 +165,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			[NotNull]
-			public IAsyncEnumerable<TValue> Get([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+			public IAsyncEnumerable<TValue> Get(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -191,7 +189,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns>List of values for this index, or an empty list if the index does not exist</returns>
-			public Task<List<TValue>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+			public Task<List<TValue>> GetAsync(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				return Get(trans, key).ToListAsync();
 			}
@@ -200,8 +198,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			[NotNull]
-			public IAsyncEnumerable<(TValue Value, long Count)> GetCounts([NotNull] IFdbReadOnlyTransaction trans, TKey key)
+			public IAsyncEnumerable<(TValue Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				var range = KeyRange.StartsWith(this.Subspace.EncodePartial(key));
 
@@ -219,7 +216,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="key"></param>
 			/// <param name="comparer"></param>
 			/// <returns></returns>
-			public Task<Dictionary<TValue, long>> GetCountsAsync([NotNull] IFdbReadOnlyTransaction trans, TKey key, IEqualityComparer<TValue> comparer = null)
+			public Task<Dictionary<TValue, long>> GetCountsAsync(IFdbReadOnlyTransaction trans, TKey key, IEqualityComparer<TValue>? comparer = null)
 			{
 				return GetCounts(trans, key).ToDictionaryAsync(x => x.Value, x => x.Count, comparer);
 			}
@@ -228,7 +225,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans"></param>
 			/// <param name="key"></param>
 			/// <returns></returns>
-			public void Remove([NotNull] IFdbTransaction trans, TKey key)
+			public void Remove(IFdbTransaction trans, TKey key)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -240,7 +237,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="key"></param>
 			/// <param name="value"></param>
 			/// <returns></returns>
-			public void Remove([NotNull] IFdbTransaction trans, TKey key, TValue value)
+			public void Remove(IFdbTransaction trans, TKey key, TValue value)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 

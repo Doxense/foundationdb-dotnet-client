@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 		{
 
 			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
-			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull] FdbDirectorySubspaceLocation top, bool readOnly, CancellationToken ct)
+			internal static async Task SwitchToNamedPartitionAsync(FdbDatabase db, FdbDirectorySubspaceLocation top, bool readOnly, CancellationToken ct)
 			{
 				Contract.Requires(db != null && top != null);
 				ct.ThrowIfCancellationRequested();
@@ -65,8 +65,7 @@ namespace FoundationDB.Client
 			/// <param name="tr">Transaction used for the operation</param>
 			/// <param name="parent">Parent directory</param>
 			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
-			[ItemNotNull]
-			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IFdbDirectory parent)
+			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync(IFdbReadOnlyTransaction tr, IFdbDirectory parent)
 			{
 				Contract.NotNull(tr, nameof(tr));
 				Contract.NotNull(parent, nameof(parent));

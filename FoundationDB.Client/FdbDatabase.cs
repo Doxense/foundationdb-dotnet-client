@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
@@ -89,20 +88,22 @@ namespace FoundationDB.Client
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="root">Root location of this database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		protected FdbDatabase(IFdbDatabaseHandler handler, [NotNull] FdbDirectorySubspaceLocation root, bool readOnly)
+		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			Contract.Requires(handler != null && root != null);
+			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(root, nameof(root));
 
 			m_handler = handler;
 			m_readOnly = readOnly;
-			ChangeRoot(root, readOnly);
+			m_root = root;
+			m_directory = root.Directory;
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="root">Root location of the database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] FdbDirectorySubspaceLocation root, bool readOnly)
+		public static FdbDatabase Create(IFdbDatabaseHandler handler, FdbDirectorySubspaceLocation root, bool readOnly)
 		{
 			Contract.NotNull(handler, nameof(handler));
 			Contract.NotNull(root, nameof(root));
@@ -116,7 +117,7 @@ namespace FoundationDB.Client
 
 		string IFdbDatabase.Name => "DB";
 
-		public string ClusterFile => m_handler.ClusterFile;
+		public string? ClusterFile => m_handler.ClusterFile;
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -473,20 +474,6 @@ namespace FoundationDB.Client
 
 		#region Key Space Management...
 
-		/// <summary>Change the current global namespace.</summary>
-		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(FdbDirectorySubspaceLocation root, bool readOnly)
-		{
-			Contract.NotNull(root, nameof(root));
-
-			lock (this)//TODO: don't use this for locking
-			{
-				m_readOnly = readOnly;
-				m_root = root;
-				m_directory = root.Directory;
-			}
-		}
-
 		public FdbDirectorySubspaceLocation Root => m_root;
 
 		#endregion
@@ -590,7 +577,7 @@ namespace FoundationDB.Client
 
 		#region IFdbDatabaseProvider...
 
-		IFdbDatabaseScopeProvider IFdbDatabaseScopeProvider.Parent { get; }
+		IFdbDatabaseScopeProvider? IFdbDatabaseScopeProvider.Parent => null;
 
 		ValueTask<IFdbDatabase> IFdbDatabaseScopeProvider.GetDatabase(CancellationToken ct)
 		{

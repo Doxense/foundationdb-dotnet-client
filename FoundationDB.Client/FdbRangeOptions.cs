@@ -86,7 +86,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Copy an existing set of options</summary>
 		/// <param name="options"></param>
-		public FdbRangeOptions([NotNull] FdbRangeOptions options)
+		public FdbRangeOptions(FdbRangeOptions options)
 		{
 			Contract.Requires(options != null);
 			this.Limit = options.Limit;
@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 		/// <param name="read">Default value for Read mode if not provided</param>
 		/// <param name="reverse">Default value for Reverse if not provided</param>
 		/// <returns>Options with all the values filled</returns>
-		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int? limit, int? targetBytes, FdbStreamingMode mode, FdbReadMode read, bool reverse)
+		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions? options, int? limit, int? targetBytes, FdbStreamingMode mode, FdbReadMode read, bool reverse)
 		{
 			Contract.Requires((limit ?? 0) >= 0 && (targetBytes ?? 0) >= 0);
 
@@ -152,49 +152,48 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the default range options</summary>
-		[Pure, NotNull]
+		[Pure]
 		public static FdbRangeOptions FromDefault()
 		{
 			return new FdbRangeOptions();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public FdbRangeOptions WithLimit(int limit)
 		{
 			return this.Limit == limit ? this : new FdbRangeOptions(this) { Limit = limit };
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public FdbRangeOptions WithTargetBytes(int targetBytes)
 		{
 			return this.TargetBytes == targetBytes ? this : new FdbRangeOptions(this) { TargetBytes = targetBytes };
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public FdbRangeOptions WithStreamingMode(FdbStreamingMode mode)
 		{
 			return this.Mode == mode ? this : new FdbRangeOptions(this) { Mode = mode };
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public FdbRangeOptions Reversed()
 		{
 			return this.Reverse.GetValueOrDefault() ? this : new FdbRangeOptions(this) { Reverse = true };
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public FdbRangeOptions OnlyKeys()
 		{
 			return this.Read == FdbReadMode.Keys ? this : new FdbRangeOptions(this) { Read = FdbReadMode.Keys };
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public FdbRangeOptions OnlyValues()
 		{
 			return this.Read == FdbReadMode.Values ? this : new FdbRangeOptions(this) { Read = FdbReadMode.Values };
 		}
 
 	}
-
 
 }

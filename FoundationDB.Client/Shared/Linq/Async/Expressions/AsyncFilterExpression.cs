@@ -84,20 +84,17 @@ namespace Doxense.Linq.Async.Expressions
 			return new InvalidOperationException("Cannot invoke asynchronous filter synchronously.");
 		}
 
-		[NotNull]
-		public AsyncFilterExpression<TSource> AndAlso([NotNull] AsyncFilterExpression<TSource> expr)
+		public AsyncFilterExpression<TSource> AndAlso(AsyncFilterExpression<TSource> expr)
 		{
 			return AndAlso(this, expr);
 		}
 
-		[NotNull]
-		public AsyncFilterExpression<TSource> OrElse([NotNull] AsyncFilterExpression<TSource> expr)
+		public AsyncFilterExpression<TSource> OrElse(AsyncFilterExpression<TSource> expr)
 		{
 			return OrElse(this, expr);
 		}
 
-		[NotNull]
-		public static AsyncFilterExpression<TSource> AndAlso([NotNull] AsyncFilterExpression<TSource> left, [NotNull] AsyncFilterExpression<TSource> right)
+		public static AsyncFilterExpression<TSource> AndAlso(AsyncFilterExpression<TSource> left, AsyncFilterExpression<TSource> right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));
@@ -138,8 +135,7 @@ namespace Doxense.Linq.Async.Expressions
 			}
 		}
 
-		[NotNull]
-		public static AsyncFilterExpression<TSource> OrElse([NotNull] AsyncFilterExpression<TSource> left, [NotNull] AsyncFilterExpression<TSource> right)
+		public static AsyncFilterExpression<TSource> OrElse(AsyncFilterExpression<TSource> left, AsyncFilterExpression<TSource> right)
 		{
 			Contract.NotNull(left, nameof(left));
 			Contract.NotNull(right, nameof(right));

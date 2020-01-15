@@ -4,6 +4,7 @@ namespace FoundationDB.Client.Utils
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -16,31 +17,27 @@ namespace FoundationDB.Client.Utils
 		// There is no object models: maps are Dictionary<string, object>, arrays are List<object>, and values are string, doubles and booleans
 		// This is an rough port of parser logic from the nanojson JAVA library: https://github.com/mmastrac/nanojson
 
-		//TODO: clean this file!!!
+		//TODO: use the next JSON parser in .NET Core !
 
-		private readonly char[] m_buffer;
+		private readonly ReadOnlyMemory<char> m_buffer;
 		private int m_cursor;
-		private readonly int m_end;
 
-		private object m_current;
+		private object? m_current;
 		private readonly StringBuilder m_scratch = new StringBuilder();
 
-		internal TinyJsonParser(char[] buffer, int offset, int count)
+		internal TinyJsonParser(ReadOnlyMemory<char> buffer)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0 || offset > buffer.Length) throw new ArgumentOutOfRangeException("offset");
-			if (count < 0 || offset + count > buffer.Length) throw new ArgumentOutOfRangeException("count");
-
+			//TODO: rewrite this to directly parse utf-8 bytes!
 			m_buffer = buffer;
-			m_cursor = offset;
-			m_end = offset + count;
+			m_cursor = 0;
 		}
 
 		private const int EOF = -1;
 
-		private int ReadNextChar()
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private int ReadNextChar(ReadOnlySpan<char> buffer)
 		{
-			return m_cursor < m_end ? m_buffer[m_cursor++] : EOF;
+			return m_cursor < buffer.Length ? buffer[m_cursor++] : EOF;
 		}
 
 		private static bool IsWhiteSpace(int c)
@@ -69,14 +66,16 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Singleton for the True value</summary>
 		private static readonly object s_true = true;
 		/// <summary>Singleton for the empty map</summary>
-		private static readonly Dictionary<string, object> s_missingMap = new Dictionary<string, object>();
+		private static readonly Dictionary<string, object?> s_missingMap = new Dictionary<string, object?>();
 		/// <summary>Singleton for the empty array</summary>
-		private static readonly List<object> s_missingArray = new List<object>();
+		private static readonly List<object?> s_missingArray = new List<object?>();
 
 		private Token ReadToken()
 		{
-			int c = ReadNextChar();
-			while (IsWhiteSpace(c)) { c = ReadNextChar(); }
+			var buffer = m_buffer.Span;
+
+			int c = ReadNextChar(buffer);
+			while (IsWhiteSpace(c)) { c = ReadNextChar(buffer); }
 
 			m_current = null;
 			switch (c)
@@ -84,14 +83,14 @@ namespace FoundationDB.Client.Utils
 				case EOF: return Token.Eof;
 				case '{':
 				{
-					var map = new Dictionary<string, object>(StringComparer.Ordinal);
+					var map = new Dictionary<string, object?>(StringComparer.Ordinal);
 					var token = ReadToken();
 					if (token != Token.MapEnd)
 					{
 						while (true)
 						{
 							if (token != Token.Literal) throw SyntaxError("Expected field name in map, but found {0}", token);
-							string key = (string)m_current;
+							string key = (string) m_current!;
 							Contract.Assert(key != null);
 
 							if ((token = ReadToken()) != Token.Colon) throw SyntaxError("Expected ':' in map, but found {0}", token);
@@ -122,7 +121,7 @@ namespace FoundationDB.Client.Utils
 				}
 				case '[':
 				{
-					var array = new List<object>();
+					var array = new List<object?>();
 					var token = ReadToken();
 					if (token != Token.ArrayEnd)
 					{
@@ -132,7 +131,7 @@ namespace FoundationDB.Client.Utils
 							if ((token = ReadToken()) == Token.ArrayEnd) break;
 							if (token != Token.Comma) throw SyntaxError("Expected a comma, or end of the array, but found {0}", token);
 							token = ReadToken();
-							//note: we will allow trailng ',' at the end of an array!
+							//note: we will allow trailing ',' at the end of an array!
 							if (token == Token.ArrayEnd) break;
 						}
 					}
@@ -154,26 +153,26 @@ namespace FoundationDB.Client.Utils
 				case 't':
 				case 'T':
 				{   // true/True ?
-					ReadNextChar();//'r'
-					ReadNextChar();//'u'
-					ReadNextChar();//'e'
+					ReadNextChar(buffer);//'r'
+					ReadNextChar(buffer);//'u'
+					ReadNextChar(buffer);//'e'
 					return Token.True;
 				}
 				case 'f':
 				case 'F':
 				{   // false/False?
-					ReadNextChar();//'a'
-					ReadNextChar();//'l'
-					ReadNextChar();//'s'
-					ReadNextChar();//'e'
+					ReadNextChar(buffer);//'a'
+					ReadNextChar(buffer);//'l'
+					ReadNextChar(buffer);//'s'
+					ReadNextChar(buffer);//'e'
 					return Token.False;
 				}
 				case 'n':
 				case 'N':
 				{   // null/Null?
-					ReadNextChar();//'u'
-					ReadNextChar();//'l'
-					ReadNextChar();//'l'
+					ReadNextChar(buffer);//'u'
+					ReadNextChar(buffer);//'l'
+					ReadNextChar(buffer);//'l'
 					return Token.Null;
 				}
 
@@ -207,12 +206,11 @@ namespace FoundationDB.Client.Utils
 			}
 		}
 
-		[NotNull]
 		private string ReadStringLiteral()
 		{
-			var buffer = m_buffer;
+			var buffer = m_buffer.Span;
 			int cursor = m_cursor;
-			int end = m_end;
+			int end = m_buffer.Length;
 
 			var sb = m_scratch;
 			sb.Clear();
@@ -279,9 +277,9 @@ namespace FoundationDB.Client.Utils
 
 		private double ReadNumberLiteral()
 		{
-			var buffer = m_buffer;
+			var buffer = m_buffer.Span;
 			int cursor = m_cursor - 1; // roll back the char that has already been read
-			int end = m_end;
+			int end = buffer.Length;
 
 			int start = cursor;
 			while(cursor < end)
@@ -296,56 +294,58 @@ namespace FoundationDB.Client.Utils
 				break;
 			}
 
-			string val = new string(buffer, start, cursor - start);
-			double x;
-			if (!double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
+			var val = buffer.Slice(start, cursor - start);
+#if USE_SPAN_API
+			if (!double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double x))
 			{
-				throw SyntaxError("Malformed number literal '{0}'", val);
+				throw SyntaxError("Malformed number literal '{0}'", val.ToString());
 			}
+#else
+			// we have to allocate! :(
+			string s = val.ToString();
+			if (!double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double x))
+			{
+				throw SyntaxError("Malformed number literal '{0}'", s);
+			}
+#endif
 			m_cursor = cursor;
 			return x;
 		}
 
-		[NotNull]
 		private FormatException SyntaxError(string msg)
 		{
-			return new FormatException(String.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", msg, m_cursor));
+			return new FormatException(string.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", msg, m_cursor));
 		}
 
-		[NotNull, StringFormatMethod("msg")]
+		[StringFormatMethod("msg")]
 		private FormatException SyntaxError(string msg, object arg0)
 		{
-			return new FormatException(String.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", String.Format(CultureInfo.InvariantCulture, msg, arg0), m_cursor));
+			return new FormatException(string.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", string.Format(CultureInfo.InvariantCulture, msg, arg0), m_cursor));
 		}
 
-		[CanBeNull]
-		public static Dictionary<string, object> ParseObject(Slice data)
+		public static Dictionary<string, object?>? ParseObject(Slice data)
 		{
 			if (data.Count == 0) return null;
 			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
-			return ParseObject(chars, 0, chars.Length);
+			return ParseObject(chars);
 		}
 
 		[ContractAnnotation("null => null")]
-		public static Dictionary<string, object> ParseObject(string jsonText)
+		public static Dictionary<string, object?>? ParseObject(string? jsonText)
 		{
 			if (string.IsNullOrEmpty(jsonText)) return null;
-			char[] chars = jsonText.ToCharArray();
-			return ParseObject(chars, 0, chars.Length);
+			return ParseObject(jsonText);
 		}
 
-		[CanBeNull]
-		internal static Dictionary<string, object> ParseObject([NotNull] char[] chars, int offset, int count)
+		internal static Dictionary<string, object?>? ParseObject(ReadOnlyMemory<char> chars)
 		{
-			Contract.Requires(chars != null && offset >= 0 && count >= 0);
-
-			var parser = new TinyJsonParser(chars, offset, count);
+			var parser = new TinyJsonParser(chars);
 			var token = parser.ReadToken();
 			if (token == Token.Eof) return null;
 
 			// ensure we got an object
-			if (token != Token.MapBegin) throw new InvalidOperationException(String.Format("JSON object expected, but got a {0}", token));
-			var map = (Dictionary<string, object>)parser.m_current;
+			if (token != Token.MapBegin) throw new InvalidOperationException($"JSON object expected, but got a {token}");
+			var map = (Dictionary<string, object?>?) parser.m_current;
 
 			// ensure that there is nothing after the object
 			token = parser.ReadToken();
@@ -353,59 +353,51 @@ namespace FoundationDB.Client.Utils
 			return map;
 		}
 
-		[CanBeNull]
-		public static List<object> ParseArray(Slice data)
+		public static List<object?>? ParseArray(Slice data)
 		{
 			if (data.Count == 0) return null;
 			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
-			var parser = new TinyJsonParser(chars, 0, chars.Length);
+			var parser = new TinyJsonParser(chars);
 			var token = parser.ReadToken();
 			if (token == Token.Eof) return null;
-			var array = (List<object>)parser.m_current;
+			var array = (List<object?>?) parser.m_current;
 			if (token != Token.ArrayBegin) throw new FormatException("Invalid JSON document: array expected");
 			token = parser.ReadToken();
 			if (token != Token.Eof) throw new FormatException("Invalid JSON document: extra data after array");
 			return array;
 		}
 
-		[NotNull]
-		internal static Dictionary<string, object> GetMapField(Dictionary<string,object> map, string field)
+		internal static Dictionary<string, object?> GetMapField(Dictionary<string,object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (Dictionary<string, object>)item : s_missingMap;
+			return map != null && map.TryGetValue(field, out object item) ? (Dictionary<string, object?>) item : s_missingMap;
 		}
 
-		[NotNull]
-		internal static List<object> GetArrayField(Dictionary<string, object> map, string field)
+		internal static List<object?> GetArrayField(Dictionary<string, object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (List<object>)item : s_missingArray;
+			return map != null && map.TryGetValue(field, out object item) ? (List<object?>) item : s_missingArray;
 		}
 
-		internal static string GetStringField(Dictionary<string, object> map, string field)
+		internal static string? GetStringField(Dictionary<string, object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (string)item : null;
+			return map != null && map.TryGetValue(field, out object item) ? (string) item : null;
 		}
 
 		internal static double? GetNumberField(Dictionary<string, object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (double)item : default(double?);
+			return map != null && map.TryGetValue(field, out object item) ? (double)item : default(double?);
 		}
 
 		internal static bool? GetBooleanField(Dictionary<string, object> map, string field)
 		{
-			object item;
-			return map != null && map.TryGetValue(field, out item) ? (bool)item : default(bool?);
+			return map != null && map.TryGetValue(field, out object item) ? (bool)item : default(bool?);
 		}
 
-		internal static (string Key, string Value) GetStringPair(Dictionary<string, object> map, string key, string value)
+		internal static (string? Key, string? Value) GetStringPair(Dictionary<string, object> map, string key, string value)
 		{
 			object item;
 			return (
-				map != null && map.TryGetValue(key, out item) ? (string)item : null,
-				map != null && map.TryGetValue(value, out item) ? (string)item : null
+				map != null && map.TryGetValue(key, out item) ? (string) item : null,
+				map != null && map.TryGetValue(value, out item) ? (string) item : null
 			);
 		}
 	}

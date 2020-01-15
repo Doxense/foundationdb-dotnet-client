@@ -68,7 +68,7 @@ namespace FoundationDB.Filters.Logging
 			public TimeSpan? EndOffset { get; internal set; }
 
 			/// <summary>Exception thrown by this operation</summary>
-			public Exception Error { get; internal set; }
+			public Exception? Error { get; internal set; }
 
 			/// <summary>Total size (in bytes) of the arguments</summary>
 			/// <remarks>For selectors, only include the size of the keys</remarks>
@@ -83,7 +83,7 @@ namespace FoundationDB.Filters.Logging
 
 			/// <summary>StackTrace of the method that started this operation</summary>
 			/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordOperationStackTrace"/> option is set</remarks>
-			public StackTrace CallSite { get; internal set; }
+			public StackTrace? CallSite { get; internal set; }
 
 			/// <summary>Total duration of the command, or TimeSpan.Zero if the command is not yet completed</summary>
 			public TimeSpan Duration
@@ -244,7 +244,7 @@ namespace FoundationDB.Filters.Logging
 
 			protected virtual string Dump(TResult value)
 			{
-				return value.ToString();
+				return value?.ToString() ?? "<default>";
 			}
 		}
 
@@ -277,7 +277,7 @@ namespace FoundationDB.Filters.Logging
 			public readonly Slice[] Prefixes;
 			public readonly string[] Paths;
 
-			public DirectoryKeyResolver([NotNull] Dictionary<Slice, string> knownSubspaces)
+			public DirectoryKeyResolver(Dictionary<Slice, string> knownSubspaces)
 			{
 				Contract.Requires(knownSubspaces != null);
 				var prefixes = new Slice[knownSubspaces.Count];
@@ -297,7 +297,6 @@ namespace FoundationDB.Filters.Logging
 
 			/// <summary>Create a key resolver using the content of a DirectoryLayer as the map</summary>
 			/// <returns>Resolver that replace each directory prefix by its name</returns>
-			[ItemNotNull]
 			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 			{
 				var metadata = await directory.Resolve(tr);
@@ -324,7 +323,7 @@ namespace FoundationDB.Filters.Logging
 				return new DirectoryKeyResolver(map);
 			}
 
-			private bool TryLookup(Slice key, out Slice prefix, out string path)
+			private bool TryLookup(Slice key, out Slice prefix, out string? path)
 			{
 				prefix = default(Slice);
 				path = null;
@@ -357,7 +356,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string Resolve(Slice key)
 			{
-				if (!TryLookup(key, out Slice prefix, out string path))
+				if (!TryLookup(key, out Slice prefix, out string? path))
 				{
 					return base.Resolve(key);
 				}
@@ -397,7 +396,7 @@ namespace FoundationDB.Filters.Logging
 			public long? IntValue { get; }
 
 			/// <summary>String value (if not null)</summary>
-			public string StringValue { get; }
+			public string? StringValue { get; }
 
 			public override Operation Op => Operation.SetOption;
 
@@ -674,7 +673,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetValues;
 
-			public GetValuesCommand([NotNull] Slice[] keys)
+			public GetValuesCommand(Slice[] keys)
 			{
 				Contract.Requires(keys != null);
 				this.Keys = keys;
@@ -730,7 +729,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetKeys;
 
-			public GetKeysCommand([NotNull] KeySelector[] selectors)
+			public GetKeysCommand(KeySelector[] selectors)
 			{
 				Contract.Requires(selectors != null);
 				this.Selectors = selectors;
@@ -778,14 +777,14 @@ namespace FoundationDB.Filters.Logging
 			public KeySelector End { get; }
 
 			/// <summary>Options of the range read</summary>
-			public FdbRangeOptions Options { get; }
+			public FdbRangeOptions? Options { get; }
 
 			/// <summary>Iteration number</summary>
 			public int Iteration { get; }
 
 			public override Operation Op => Operation.GetRange;
 
-			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration)
+			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions? options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;

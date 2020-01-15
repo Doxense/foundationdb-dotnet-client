@@ -40,7 +40,6 @@ namespace Doxense.Linq.Async.Iterators
 	using Doxense.Async;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
@@ -70,9 +69,9 @@ namespace Doxense.Linq.Async.Iterators
 		private AsyncTransformQueue<TSource, TResult>? m_processingQueue;
 
 		public ParallelSelectAsyncIterator(
-			[NotNull] IAsyncEnumerable<TSource> source,
-			[NotNull] Func<TSource, CancellationToken, Task<TResult>> taskSelector,
-			[NotNull] ParallelAsyncQueryOptions options
+			IAsyncEnumerable<TSource> source,
+			Func<TSource, CancellationToken, Task<TResult>> taskSelector,
+			ParallelAsyncQueryOptions options
 		)
 			: base(source)
 		{

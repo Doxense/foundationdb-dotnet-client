@@ -32,15 +32,13 @@ namespace FoundationDB
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	internal static class Batched<TValue, TState>
 	{
 
 		public delegate void Handler(ref SliceWriter writer, TValue item, TState state);
 
-		[NotNull]
-		public static Slice[] Convert(SliceWriter writer, [NotNull, ItemNotNull] IEnumerable<TValue> values, Handler handler, TState state)
+		public static Slice[] Convert(SliceWriter writer, IEnumerable<TValue> values, Handler handler, TState state)
 		{
 			Contract.Requires(values != null && handler != null);
 

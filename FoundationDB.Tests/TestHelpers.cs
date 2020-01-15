@@ -33,7 +33,6 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 	using NUnit.Framework;
 
 	internal static class TestHelpers
@@ -68,7 +67,7 @@ namespace FoundationDB.Client.Tests
 			return Fdb.OpenAsync(options, ct);
 		}
 
-		public static Task CleanSubspace([NotNull] IFdbDatabase db, IKeySubspace subspace, CancellationToken ct)
+		public static Task CleanSubspace(IFdbDatabase db, IKeySubspace subspace, CancellationToken ct)
 		{
 			Assert.That(subspace, Is.Not.Null, "null db");
 			Assert.That(subspace.GetPrefix(), Is.Not.EqualTo(Slice.Empty), "Cannot clean the root of the database!");
@@ -76,7 +75,7 @@ namespace FoundationDB.Client.Tests
 			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), ct);
 		}
 
-		public static async Task CleanLocation<TSubspace>([NotNull] IFdbDatabase db, ISubspaceLocation<TSubspace> location, CancellationToken ct)
+		public static async Task CleanLocation<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> location, CancellationToken ct)
 			where TSubspace : IKeySubspace
 		{
 			Assert.That(db, Is.Not.Null, "null db");
@@ -117,7 +116,7 @@ namespace FoundationDB.Client.Tests
 
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IKeySubspace subspace, CancellationToken ct)
+		public static async Task DumpSubspace(IFdbDatabase db, IKeySubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
 
@@ -130,7 +129,7 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpLocation<TSubspace>([NotNull] IFdbDatabase db, [NotNull] ISubspaceLocation<TSubspace> path, CancellationToken ct)
+		public static async Task DumpLocation<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path, CancellationToken ct)
 			where TSubspace : IKeySubspace
 		{
 			Assert.That(db, Is.Not.Null);
@@ -152,19 +151,23 @@ namespace FoundationDB.Client.Tests
 
 				if (path.Prefix.Count == 0)
 				{
-					foreach(var name in await db.DirectoryLayer.TryListAsync(tr, path.Path))
+					var names = await db.DirectoryLayer.TryListAsync(tr, path.Path);
+					if (names != null)
 					{
-						var child = await db.DirectoryLayer.TryOpenAsync(tr, path.Path[name]);
-						if (child != null)
+						foreach (var name in names)
 						{
-							await DumpSubspace(tr, child);
+							var child = await db.DirectoryLayer.TryOpenAsync(tr, path.Path[name]);
+							if (child != null)
+							{
+								await DumpSubspace(tr, child);
+							}
 						}
 					}
 				}
 			}
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IKeySubspace subspace)
+		public static async Task DumpSubspace(IFdbReadOnlyTransaction tr, IKeySubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 			Assert.That(subspace, Is.Not.Null);
@@ -177,7 +180,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var key = subspace.ExtractKey(kvp.Key, boundCheck: true);
 					++count;
-					string keyDump = null;
+					string keyDump;
 					try
 					{
 						// attempts decoding it as a tuple
@@ -198,7 +201,7 @@ namespace FoundationDB.Client.Tests
 				FdbTest.Log("> Found " + count + " values");
 		}
 
-		public static async Task AssertThrowsFdbErrorAsync([NotNull] Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
+		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string? message = null, object?[]? args = null)
 		{
 			try
 			{

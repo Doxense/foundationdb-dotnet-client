@@ -56,13 +56,13 @@ namespace FoundationDB.Filters
 		protected bool m_disposed;
 
 		/// <summary>Wrapper for the inner db's Root property</summary>
-		protected FdbDirectorySubspaceLocation m_root;
+		protected FdbDirectorySubspaceLocation? m_root;
 
 		#endregion
 
 		#region Constructors...
 
-		protected FdbDatabaseFilter([NotNull] IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
+		protected FdbDatabaseFilter(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
 			Contract.NotNull(database, nameof(database));
 
@@ -76,10 +76,8 @@ namespace FoundationDB.Filters
 		#region Public Properties...
 
 		/// <summary>Database instance configured to read and write data from this partition</summary>
-		[NotNull]
 		protected IFdbDatabase Database => m_database;
 
-		[NotNull]
 		internal IFdbDatabase GetInnerDatabase()
 		{
 			return m_database;
@@ -90,7 +88,7 @@ namespace FoundationDB.Filters
 		public string Name => m_database.Name;
 
 		/// <inheritdoc/>
-		public string ClusterFile => m_database.ClusterFile;
+		public string? ClusterFile => m_database.ClusterFile;
 
 		/// <inheritdoc/>
 		public CancellationToken Cancellation => m_database.Cancellation;
@@ -322,7 +320,7 @@ namespace FoundationDB.Filters
 			m_database.SetOption(option);
 		}
 
-		public virtual void SetOption(FdbDatabaseOption option, string value)
+		public virtual void SetOption(FdbDatabaseOption option, string? value)
 		{
 			ThrowIfDisposed();
 			m_database.SetOption(option, value);
@@ -374,8 +372,8 @@ namespace FoundationDB.Filters
 			if (m_disposed) throw ThrowFilterAlreadyDisposed(this);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		private Exception ThrowFilterAlreadyDisposed([NotNull] FdbDatabaseFilter filter)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private Exception ThrowFilterAlreadyDisposed(FdbDatabaseFilter filter)
 		{
 			return new ObjectDisposedException(filter.GetType().Name);
 		}

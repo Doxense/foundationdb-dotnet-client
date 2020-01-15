@@ -412,8 +412,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* HexsToLowerChars([NotNull] char* ptr, ushort a)
+		private static unsafe char* HexsToLowerChars(char* ptr, ushort a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToLowerChar((uint) a >> 12);
@@ -423,8 +422,7 @@ namespace System
 			return ptr + 4;
 		}
 
-		[NotNull]
-		private static unsafe char* HexsToLowerChars([NotNull] char* ptr, uint a)
+		private static unsafe char* HexsToLowerChars(char* ptr, uint a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
@@ -445,8 +443,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'A') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* Hex16ToUpperChars([NotNull] char* ptr, ushort a)
+		private static unsafe char* Hex16ToUpperChars(char* ptr, ushort a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToUpperChar((uint) a >> 12);
@@ -456,8 +453,7 @@ namespace System
 			return ptr + 4;
 		}
 
-		[NotNull]
-		private static unsafe char* Hex32ToUpperChars([NotNull] char* ptr, uint a)
+		private static unsafe char* Hex32ToUpperChars(char* ptr, uint a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);

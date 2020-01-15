@@ -153,7 +153,7 @@ namespace Doxense.Collections.Tuples
 			return new LinkedTuple<T>(this, value);
 		}
 
-		public LinkedTuple<T> Append<T>([AllowNull] T value)
+		public LinkedTuple<T> Append<T>(T value)
 		{
 			return new LinkedTuple<T>(this, value);
 		}

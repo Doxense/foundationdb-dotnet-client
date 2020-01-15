@@ -14,70 +14,6 @@ namespace JetBrains.Annotations
 	//README: these should all be marked as 'internal', so as not to conflict with the same attributes that would exist in the parent application !
 
 	/// <summary>
-	/// Indicates that the value of the marked element could be <c>null</c> sometimes,
-	/// so the check for <c>null</c> is necessary before its usage.
-	/// </summary>
-	/// <example><code>
-	/// [CanBeNull] object Test() => null;
-	///
-	/// void UseTest() {
-	///   var p = Test();
-	///   var s = p.ToString(); // Warning: Possible 'System.NullReferenceException'
-	/// }
-	/// </code></example>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event |
-	  AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.GenericParameter)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class CanBeNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Indicates that the value of the marked element could never be <c>null</c>.
-	/// </summary>
-	/// <example><code>
-	/// [NotNull] object Foo() {
-	///   return null; // Warning: Possible 'null' assignment
-	/// }
-	/// </code></example>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event |
-	  AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.GenericParameter)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class NotNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Can be appplied to symbols of types derived from IEnumerable as well as to symbols of Task
-	/// and Lazy classes to indicate that the value of a collection item, of the Task.Result property
-	/// or of the Lazy.Value property can never be null.
-	/// </summary>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class ItemNotNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Can be appplied to symbols of types derived from IEnumerable as well as to symbols of Task
-	/// and Lazy classes to indicate that the value of a collection item, of the Task.Result property
-	/// or of the Lazy.Value property can be null.
-	/// </summary>
-	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
-	  AttributeTargets.Delegate | AttributeTargets.Field)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class ItemCanBeNullAttribute : Attribute { }
-
-	/// <summary>
-	/// Implicitly apply [NotNull]/[ItemNotNull] annotation to all the of type members and parameters
-	/// in particular scope where this annotation is used (type declaration or whole assembly).
-	/// </summary>
-	[AttributeUsage(
-	  AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly)]
-	internal sealed class ImplicitNotNullAttribute : Attribute { }
-
-	/// <summary>
 	/// Indicates that the marked method builds string by format pattern and (optional) arguments.
 	/// Parameter, which contains format string, should be given in constructor. The format string
 	/// should be in <see cref="string.Format(IFormatProvider,string,object[])"/>-like form.
@@ -105,23 +41,6 @@ namespace JetBrains.Annotations
 		}
 
 		public string FormatParameterName { get; }
-	}
-
-	/// <summary>
-	/// For a parameter that is expected to be one of the limited set of values.
-	/// Specify fields of which type should be used as values for this parameter.
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.Field)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class ValueProviderAttribute : Attribute
-	{
-		public ValueProviderAttribute(string name)
-		{
-			Name = name;
-		}
-
-		[NotNull]
-		public string Name { get; }
 	}
 
 	/// <summary>
@@ -186,10 +105,10 @@ namespace JetBrains.Annotations
 	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class ContractAnnotationAttribute : Attribute
 	{
-		public ContractAnnotationAttribute([NotNull] string contract)
+		public ContractAnnotationAttribute(string contract)
 		  : this(contract, false) { }
 
-		public ContractAnnotationAttribute([NotNull] string contract, bool forceFullStates)
+		public ContractAnnotationAttribute(string contract, bool forceFullStates)
 		{
 			Contract = contract;
 			ForceFullStates = forceFullStates;
@@ -239,12 +158,11 @@ namespace JetBrains.Annotations
 	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class BaseTypeRequiredAttribute : Attribute
 	{
-		public BaseTypeRequiredAttribute([NotNull] Type baseType)
+		public BaseTypeRequiredAttribute(Type baseType)
 		{
 			BaseType = baseType;
 		}
 
-		[NotNull]
 		public Type BaseType { get; set; }
 	}
 
@@ -345,7 +263,7 @@ namespace JetBrains.Annotations
 	internal sealed class PublicAPIAttribute : Attribute
 	{
 		public PublicAPIAttribute() { }
-		public PublicAPIAttribute([NotNull] string comment)
+		public PublicAPIAttribute(string comment)
 		{
 			Comment = comment;
 		}
@@ -385,34 +303,13 @@ namespace JetBrains.Annotations
 	internal sealed class MustUseReturnValueAttribute : Attribute
 	{
 		public MustUseReturnValueAttribute() { }
-		public MustUseReturnValueAttribute([NotNull] string justification)
+		public MustUseReturnValueAttribute(string justification)
 		{
 			Justification = justification;
 		}
 
 		public string Justification { get; }
 	}
-
-	/// <summary>
-	/// Indicates the type member or parameter of some type, that should be used instead of all other ways
-	/// to get the value that type. This annotation is useful when you have some "context" value evaluated
-	/// and stored somewhere, meaning that all other ways to get this value must be consolidated with existing one.
-	/// </summary>
-	/// <example><code>
-	/// class Foo {
-	///   [ProvidesContext] IBarService _barService = ...;
-	/// 
-	///   void ProcessNode(INode node) {
-	///     DoSomething(node, node.GetGlobalServices().Bar);
-	///     //              ^ Warning: use value of '_barService' field
-	///   }
-	/// }
-	/// </code></example>
-	[AttributeUsage(
-	  AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.Method |
-	  AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct | AttributeTargets.GenericParameter)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class ProvidesContextAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates how method, constructor invocation or property access
@@ -500,23 +397,6 @@ namespace JetBrains.Annotations
 	[AttributeUsage(AttributeTargets.Parameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class NoEnumerationAttribute : Attribute { }
-
-	/// <summary>
-	/// Indicates that parameter is regular expression pattern.
-	/// </summary>
-	[AttributeUsage(AttributeTargets.Parameter)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class RegexPatternAttribute : Attribute { }
-
-	/// <summary>
-	/// Prevents the Member Reordering feature from tossing members of the marked class.
-	/// </summary>
-	/// <remarks>
-	/// The attribute must be mentioned in your member reordering patterns.
-	/// </remarks>
-	[AttributeUsage(AttributeTargets.All)]
-	[Conditional("JETBRAINS_ANNOTATIONS")]
-	internal sealed class NoReorder : Attribute { }
 
 	// ====================================================
 	// === CUSTOM CONTRACT ATTRIBUTES

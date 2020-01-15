@@ -159,42 +159,42 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1> Create<T1>([AllowNull] T1 item1)
+		public static STuple<T1> Create<T1>(T1 item1)
 		{
 			return new STuple<T1>(item1);
 		}
 
 		/// <summary>Create a new 2-tuple, holding two items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2> Create<T1, T2>([AllowNull] T1 item1, [AllowNull] T2 item2)
+		public static STuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
 		{
 			return new STuple<T1, T2>(item1, item2);
 		}
 
 		/// <summary>Create a new 3-tuple, holding three items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3> Create<T1, T2, T3>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public static STuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			return new STuple<T1, T2, T3>(item1, item2, item3);
 		}
 
 		/// <summary>Create a new 4-tuple, holding four items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4)
+		public static STuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return new STuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
 		/// <summary>Create a new 5-tuple, holding five items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5)
+		public static STuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return new STuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Create a new 6-tuple, holding six items</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
+		public static STuple<T1, T2, T3, T4, T5, T6> Create<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return new STuple<T1, T2, T3, T4, T5, T6>(item1, item2, item3, item4, item5, item6);
 		}
@@ -540,7 +540,7 @@ namespace Doxense.Collections.Tuples
 			/// Stringify&lt;Slice&gt;((...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify<T>([AllowNull] T item)
+			public static string Stringify<T>(T item)
 			{
 				if (default(T) == null)
 				{

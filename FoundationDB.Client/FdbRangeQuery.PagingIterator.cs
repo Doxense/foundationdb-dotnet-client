@@ -39,7 +39,6 @@ namespace FoundationDB.Client
 	using Doxense.Linq;
 	using Doxense.Linq.Async.Iterators;
 	using Doxense.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	public partial class FdbRangeQuery<T>
 	{
@@ -75,7 +74,7 @@ namespace FoundationDB.Client
 			private int Iteration { get; set; }
 
 			/// <summary>Current page (may contain all records or only a segment at a time)</summary>
-			private KeyValuePair<Slice, Slice>[] Chunk { get; set; }
+			private KeyValuePair<Slice, Slice>[]? Chunk { get; set; }
 
 			/// <summary>If true, we have more records pending</summary>
 			private bool HasMore { get; set; }
@@ -87,11 +86,11 @@ namespace FoundationDB.Client
 			private int RowCount { get; set; }
 
 			/// <summary>Current/Last batch read task</summary>
-			private Task<bool> PendingReadTask { get; set; }
+			private Task<bool>? PendingReadTask { get; set; }
 
 			#endregion
 
-			public PagingIterator([NotNull] FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
+			public PagingIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
 			{
 				Contract.Requires(query != null);
 

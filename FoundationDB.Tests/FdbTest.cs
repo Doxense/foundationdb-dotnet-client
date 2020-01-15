@@ -300,21 +300,21 @@ namespace FoundationDB.Client.Tests
 
 		[DebuggerNonUserCode]
 		[StringFormatMethod("format")]
-		public static void Log([NotNull] string format, object arg0)
+		public static void Log(string format, object arg0)
 		{
 			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
 		[DebuggerNonUserCode]
 		[StringFormatMethod("format")]
-		public static void Log([NotNull] string format, object arg0, object arg1)
+		public static void Log(string format, object arg0, object arg1)
 		{
 			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
 		[DebuggerNonUserCode]
 		[StringFormatMethod("format")]
-		public static void Log([NotNull] string format, params object[] args)
+		public static void Log(string format, params object[] args)
 		{
 			WriteToLog(String.Format(CultureInfo.InvariantCulture, format, args));
 		}

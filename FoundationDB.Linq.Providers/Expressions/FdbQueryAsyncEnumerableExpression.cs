@@ -34,9 +34,7 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that uses an async sequence as the source of elements</summary>
 	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
@@ -49,17 +47,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns <see cref="FdbQueryShape.Sequence"/></summary>
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
+		public override FdbQueryShape Shape => FdbQueryShape.Sequence;
 
 		/// <summary>Source sequence of this expression</summary>
-		public IAsyncEnumerable<T> Source
-		{
-			[NotNull] get;
-			private set;
-		}
+		public IAsyncEnumerable<T> Source { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -80,7 +71,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
