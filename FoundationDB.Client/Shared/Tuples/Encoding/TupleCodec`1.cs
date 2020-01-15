@@ -40,22 +40,21 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static volatile TupleCodec<T>? s_defaultSerializer;
 
-		public static TupleCodec<T> Default => s_defaultSerializer ??= new TupleCodec<T>(default);
+		public static TupleCodec<T> Default => s_defaultSerializer ??= new TupleCodec<T>(default!);
 
-		[MaybeNull]
 		private readonly T m_missingValue;
 
-		public TupleCodec([AllowNull] T missingValue)
+		public TupleCodec(T missingValue)
 		{
 			m_missingValue = missingValue;
 		}
 
-		public override Slice EncodeOrdered([AllowNull] T value)
+		public override Slice EncodeOrdered(T value)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), value);
 		}
 
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, [AllowNull] T value)
+		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
 		{
 			//HACKHACK: we lose the current depth!
 			var writer = new TupleWriter(output);
@@ -78,7 +77,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return res ? value : m_missingValue;
 		}
 
-		public Slice EncodeValue([AllowNull] T value)
+		public Slice EncodeValue(T value)
 		{
 			return EncodeUnordered(value);
 		}

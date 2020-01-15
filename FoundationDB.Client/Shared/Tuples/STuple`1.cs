@@ -52,11 +52,10 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First and only item in the tuple</summary>
-		[AllowNull]
 		public readonly T1 Item1;
 
 		[DebuggerStepThrough]
-		public STuple([AllowNull] T1 item1)
+		public STuple(T1 item1)
 		{
 			this.Item1 = item1;
 		}
@@ -88,7 +87,7 @@ namespace Doxense.Collections.Tuples
 		{
 			get
 			{
-				(int offset, int count) = range.GetOffsetAndLength(1);
+				(_, int count) = range.GetOffsetAndLength(1);
 				return count == 0 ? STuple.Empty : this;
 			}
 		}
@@ -106,7 +105,7 @@ namespace Doxense.Collections.Tuples
 			return TypeConverters.Convert<T1, TItem>(this.Item1);
 		}
 
-		IVarTuple IVarTuple.Append<T2>([AllowNull] T2 value)
+		IVarTuple IVarTuple.Append<T2>(T2 value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -116,7 +115,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2> Append<T2>([AllowNull] T2 value)
+		public STuple<T1, T2> Append<T2>(T2 value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -127,7 +126,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3> Append<T2, T3>([AllowNull] T2 value1, [AllowNull] T3 value2)
+		public STuple<T1, T2, T3> Append<T2, T3>(T2 value1, T3 value2)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, value1, value2);
 		}
@@ -201,7 +200,7 @@ namespace Doxense.Collections.Tuples
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			return this.GetEnumerator();
+			return GetEnumerator();
 		}
 
 		public override string ToString()

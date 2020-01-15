@@ -367,56 +367,56 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Pack a 1-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1>([AllowNull] T1 item1)
+		public static Slice EncodeKey<T1>(T1 item1)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1);
 		}
 
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2>([AllowNull] T1 item1, [AllowNull] T2 item2)
+		public static Slice EncodeKey<T1, T2>(T1 item1, T2 item2)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2);
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2, T3>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public static Slice EncodeKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3);
 		}
 
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2, T3, T4>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4)
+		public static Slice EncodeKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4);
 		}
 
 		/// <summary>Pack a 5-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2, T3, T4, T5>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6, [AllowNull] T7 item7)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6, [AllowNull] T7 item7, [AllowNull] T8 item8)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return TupleEncoder.EncodeKey(default(Slice), item1, item2, item3, item4, item5, item6, item7, item8);
 		}
@@ -579,7 +579,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1>([AllowNull] T1 item1)
+		public static (Slice Begin, Slice End) ToKeyRange<T1>(T1 item1)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default(Slice), item1);
@@ -592,7 +592,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1>(Slice prefix, [AllowNull] T1 item1)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1>(Slice prefix, T1 item1)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1);
@@ -634,7 +634,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>ToKeyRange("a", "b") includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2>([AllowNull] T1 item1, [AllowNull] T2 item2)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2>(T1 item1, T2 item2)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2);
@@ -647,7 +647,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>ToPrefixedKeyRange(..., "a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2);
@@ -685,7 +685,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3);
@@ -697,7 +697,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3);
@@ -736,7 +736,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4);
@@ -748,7 +748,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4);
@@ -787,7 +787,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5);
@@ -799,7 +799,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5);
@@ -837,7 +837,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6);
@@ -849,7 +849,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6);
@@ -861,7 +861,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6, [AllowNull] T7 item7)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7);
@@ -873,7 +873,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6, [AllowNull] T7 item7)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7);
@@ -885,7 +885,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6, [AllowNull] T7 item7, [AllowNull] T8 item8)
+		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(default, item1, item2, item3, item4, item5, item6, item7, item8);
@@ -897,7 +897,7 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		[Pure]
-		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6, [AllowNull] T7 item7, [AllowNull] T8 item8)
+		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = TupleEncoder.EncodeKey(prefix, item1, item2, item3, item4, item5, item6, item7, item8);
@@ -1173,56 +1173,56 @@ namespace Doxense.Collections.Tuples
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1>(Slice prefix, [AllowNull] T1 value)
+		public static Slice EncodePrefixedKey<T1>(Slice prefix, T1 value)
 		{
 			return TupleEncoder.EncodeKey(prefix, value);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2>(Slice prefix, [AllowNull] T1 value1, [AllowNull] T2 value2)
+		public static Slice EncodePrefixedKey<T1, T2>(Slice prefix, T1 value1, T2 value2)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2, T3>(Slice prefix, [AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3)
+		public static Slice EncodePrefixedKey<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2, T3, T4>(Slice prefix, [AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3, [AllowNull] T4 value4)
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 5-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5>(Slice prefix, [AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3, [AllowNull] T4 value4, [AllowNull] T5 value5)
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(Slice prefix, [AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3, [AllowNull] T4 value4, [AllowNull] T5 value5, [AllowNull] T6 value6)
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 7-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 value1, T2 value2, [AllowNull] T3 value3, [AllowNull] T4 value4, [AllowNull] T5 value5, [AllowNull] T6 value6, [AllowNull] T7 value7)
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6, value7);
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, [AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3, [AllowNull] T4 value4, [AllowNull] T5 value5, [AllowNull] T6 value6, [AllowNull] T7 value7, [AllowNull] T8 value8)
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7, T8 value8)
 		{
 			return TupleEncoder.EncodeKey(prefix, value1, value2, value3, value4, value5, value6, value7, value8);
 		}

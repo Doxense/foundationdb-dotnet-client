@@ -57,32 +57,26 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the tuple</summary>
-		[MaybeNull]
 		public readonly T1 Item1;
 
 		/// <summary>Second element of the tuple</summary>
-		[MaybeNull]
 		public readonly T2 Item2;
 
 		/// <summary>Third element of the tuple</summary>
-		[MaybeNull]
 		public readonly T3 Item3;
 
 		/// <summary>Fourth element of the tuple</summary>
-		[MaybeNull]
 		public readonly T4 Item4;
 
 		/// <summary>Fifth of the tuple</summary>
-		[MaybeNull]
 		public readonly T5 Item5;
 
 		/// <summary>Sixth and last element of the tuple</summary>
-		[MaybeNull]
 		public readonly T6 Item6;
 
 		/// <summary>Create a tuple containing for items</summary>
 		[DebuggerStepThrough]
-		public STuple([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
+		public STuple(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -221,7 +215,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T7>([AllowNull] T7 value)
+		public IVarTuple Append<T7>(T7 value)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will loose type information.
 			// but, by returning a LinkedTuple<T6>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
@@ -299,7 +293,7 @@ namespace Doxense.Collections.Tuples
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			return this.GetEnumerator();
+			return GetEnumerator();
 		}
 
 		public override string ToString()
