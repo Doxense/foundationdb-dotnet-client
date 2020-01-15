@@ -44,7 +44,7 @@ namespace Doxense.Memory
 	/// <summary>Merge multiple slices into a single stream</summary>
 	public sealed class SliceListStream : Stream
 	{
-		private Slice[] m_slices;
+		private Slice[]? m_slices;
 		private long m_position;
 		private long m_length;
 		private int m_indexOfCurrentSlice;
@@ -153,30 +153,36 @@ namespace Doxense.Memory
 
 		private bool AdvanceToNextSlice()
 		{
-			if (m_indexOfCurrentSlice >= m_slices.Length) return false;
+			var slices = m_slices;
+			if (slices == null) throw StreamIsClosed();
+
+			if (m_indexOfCurrentSlice >= slices.Length) return false;
 
 			m_offsetInCurrentSlice = 0;
 			++m_indexOfCurrentSlice;
 
 			// skip empty slices
-			while (m_indexOfCurrentSlice < m_slices.Length && m_slices[m_indexOfCurrentSlice].IsNullOrEmpty)
+			while (m_indexOfCurrentSlice < slices.Length && slices[m_indexOfCurrentSlice].IsNullOrEmpty)
 			{
 				++m_indexOfCurrentSlice;
 			}
-			return m_indexOfCurrentSlice < m_slices.Length;
+			return m_indexOfCurrentSlice < slices.Length;
 		}
 
 		public override int ReadByte()
 		{
 			Contract.Ensures(m_position >= 0 && m_position <= m_length);
 
-			if (m_position >= m_length || (m_offsetInCurrentSlice >= m_slices[m_indexOfCurrentSlice].Count && !AdvanceToNextSlice()))
+			var slices = m_slices;
+			if (slices == null) throw StreamIsClosed();
+
+			if (m_position >= m_length || (m_offsetInCurrentSlice >= slices[m_indexOfCurrentSlice].Count && !AdvanceToNextSlice()))
 			{ // EOF
 				return -1;
 			}
 
 			int offset = m_offsetInCurrentSlice;
-			int res = m_slices[m_indexOfCurrentSlice][offset];
+			int res = slices[m_indexOfCurrentSlice][offset];
 			++m_position;
 			m_offsetInCurrentSlice = offset + 1;
 
@@ -187,7 +193,8 @@ namespace Doxense.Memory
 		{
 			ValidateBuffer(buffer, offset, count);
 
-			if (m_slices == null) throw StreamIsClosed();
+			var slices = m_slices;
+			if (slices == null) throw StreamIsClosed();
 
 			Contract.Ensures(m_position >= 0 && m_position <= m_length);
 
@@ -197,12 +204,12 @@ namespace Doxense.Memory
 
 			while (count > 0)
 			{
-				if (m_offsetInCurrentSlice >= m_slices[m_indexOfCurrentSlice].Count && !AdvanceToNextSlice())
+				if (m_offsetInCurrentSlice >= slices[m_indexOfCurrentSlice].Count && !AdvanceToNextSlice())
 				{
 					break;
 				}
 
-				var slice = m_slices[m_indexOfCurrentSlice];
+				var slice = slices[m_indexOfCurrentSlice];
 
 				int remaining = Math.Min(slice.Count - m_offsetInCurrentSlice, count);
 				if (remaining <= 0) return 0;
@@ -294,7 +301,7 @@ namespace Doxense.Memory
 			if (offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Offset and count must fit inside the buffer");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception StreamIsClosed()
 		{
 			return ThrowHelper.ObjectDisposedException("The stream was already closed");

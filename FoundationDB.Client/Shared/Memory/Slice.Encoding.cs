@@ -612,7 +612,6 @@ namespace System
 		}
 
 		/// <summary>Encoding used to produce UTF-8 slices</summary>
-		[NotNull]
 		internal static readonly UTF8Encoding Utf8NoBomEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
 		/// <summary>Dangerously create a slice containing string converted to the local ANSI code page. All non-ANSI characters may be corrupted or converted to '?', and this slice may not decode properly on a different system.</summary>
@@ -853,7 +852,7 @@ namespace System
 		/// </remarks>
 		[Pure, ContractAnnotation("=> buffer:notnull")]
 		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead")]
-		public static Slice FromStringUtf8([NotNull] string value, [Positive] int offset, [Positive] int count, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer, out bool asciiOnly)
+		public static Slice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (count == 0)
 			{
@@ -1183,7 +1182,7 @@ namespace System
 		}
 
 		[Pure]
-		private static bool HasUtf8Bom([NotNull] byte[] array, int offset, int count)
+		private static bool HasUtf8Bom(byte[] array, int offset, int count)
 		{
 			return count >= 3
 			    && (uint) (offset + count) <= (uint) array.Length
@@ -1229,7 +1228,7 @@ namespace System
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (lowercase)</summary>
 		/// <param name="lower">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"0123456789abcdef"</returns>
-		[Pure, NotNull]
+		[Pure]
 		public string ToHexaString(bool lower = false)
 		{
 			return FormatHexaString(this.Array, this.Offset, this.Count, '\0', lower);
@@ -1239,13 +1238,13 @@ namespace System
 		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
 		/// <param name="lower">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
-		[Pure, NotNull]
+		[Pure]
 		public string ToHexaString(char sep, bool lower = false)
 		{
 			return FormatHexaString(this.Array, this.Offset, this.Count, sep, lower);
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		internal static string FormatHexaString(byte[] buffer, int offset, int count, char sep, bool lower)
 		{
 			if (count == 0) return String.Empty;
@@ -1275,8 +1274,7 @@ namespace System
 			return sb.ToString();
 		}
 
-		[NotNull]
-		internal static StringBuilder EscapeString(StringBuilder sb, [NotNull] byte[] buffer, int offset, int count, [NotNull] Encoding encoding)
+		internal static StringBuilder EscapeString(StringBuilder sb, byte[] buffer, int offset, int count, Encoding encoding)
 		{
 			if (sb == null) sb = new StringBuilder(count + 16);
 			foreach (var c in encoding.GetChars(buffer, offset, count))
@@ -1301,7 +1299,7 @@ namespace System
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
-		[Pure, NotNull]
+		[Pure]
 		public string PrettyPrint()
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
@@ -1311,15 +1309,15 @@ namespace System
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <param name="maxLen">Truncate the slice if it exceeds this size</param>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
-		[Pure, NotNull]
+		[Pure]
 		public string PrettyPrint(int maxLen)
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
 			return PrettyPrint(this.Array, this.Offset, this.Count, maxLen);
 		}
 
-		[Pure, NotNull]
-		internal static string PrettyPrint([NotNull] byte[] buffer, int offset, int count, int maxLen)
+		[Pure]
+		internal static string PrettyPrint(byte[] buffer, int offset, int count, int maxLen)
 		{
 			if (count == 0) return "''";
 

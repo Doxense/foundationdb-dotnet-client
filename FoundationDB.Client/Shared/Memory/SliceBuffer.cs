@@ -86,7 +86,6 @@ namespace Doxense.Memory
 
 		/// <summary>Return the list of all the pages used by this buffer</summary>
 		/// <returns>Array of pages used by the buffer</returns>
-		[NotNull]
 		public Slice[] GetPages()
 		{
 			var pages = new Slice[this.PageCount];

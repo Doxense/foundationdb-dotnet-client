@@ -606,7 +606,7 @@ namespace System
 		/// Slices encoded by this method are not guaranteed to be decoded without loss. <b>YOU'VE BEEN WARNED!</b>
 		/// </remarks>
 		[Pure]
-		public static MutableSlice FromStringAnsi([CanBeNull] string text)
+		public static MutableSlice FromStringAnsi(string? text)
 		{
 			return text == null ? default
 			     : text.Length == 0 ? MutableSlice.Empty
@@ -621,11 +621,11 @@ namespace System
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
-		public static MutableSlice FromStringAscii([CanBeNull] string value)
+		public static MutableSlice FromStringAscii(string? value)
 		{
 			if (value == null) return default;
 			if (value.Length == 0) return MutableSlice.Empty;
-			byte[] _ = null;
+			byte[]? _ = null;
 			return ConvertByteStringChecked(value.AsSpan(), ref _);
 		}
 
@@ -640,7 +640,7 @@ namespace System
 		public static MutableSlice FromStringAscii(ReadOnlySpan<char> value)
 		{
 			if (value.Length == 0) return MutableSlice.Empty;
-			byte[] _ = null;
+			byte[]? _ = null;
 			return ConvertByteStringChecked(value, ref _);
 		}
 
@@ -652,7 +652,7 @@ namespace System
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
 		[Pure]
-		public static MutableSlice FromStringAscii(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromStringAscii(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			if (value.Length == 0) return MutableSlice.Empty;
 			return ConvertByteStringChecked(value, ref buffer);
@@ -664,10 +664,10 @@ namespace System
 		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice FromByteString([CanBeNull] string value)
+		public static MutableSlice FromByteString(string? value)
 		{
 			if (value == null) return default;
-			byte[] _ = null;
+			byte[]? _ = null;
 			return FromByteString(value.AsSpan(), ref _);
 		}
 
@@ -679,7 +679,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static MutableSlice FromByteString(ReadOnlySpan<char> value)
 		{
-			byte[] _ = default;
+			byte[]? _ = default;
 			return FromByteString(value, ref _);
 		}
 
@@ -689,13 +689,13 @@ namespace System
 		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as an UTF-8 sequence may introduce corruption.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice FromByteString(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromByteString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			return value.Length != 0 ? ConvertByteStringNoCheck(value, ref buffer) : MutableSlice.Empty;
 		}
 
 		[Pure]
-		internal static MutableSlice ConvertByteStringChecked(ReadOnlySpan<char> value, ref byte[] buffer)
+		internal static MutableSlice ConvertByteStringChecked(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			int n = value.Length;
 			if (n == 1)
@@ -749,12 +749,12 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice FromString([CanBeNull] string value)
+		public static MutableSlice FromString(string? value)
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			if (value == null) return default(MutableSlice);
-			byte[] _ = null;
+			byte[]? _ = null;
 			return FromString(value.AsSpan(), ref _);
 		}
 
@@ -767,7 +767,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static MutableSlice FromString(ReadOnlySpan<char> value)
 		{
-			byte[] _ = null;
+			byte[]? _ = null;
 			return FromString(value, ref _);
 		}
 
@@ -778,7 +778,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static MutableSlice FromString(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			if (value.Length == 0) return Empty;
 			if (UnsafeHelpers.IsAsciiString(value))
@@ -818,7 +818,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure]
-		public static MutableSlice FromStringUtf8([CanBeNull] string value)
+		public static MutableSlice FromStringUtf8(string? value)
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
@@ -838,7 +838,7 @@ namespace System
 		/// </remarks>
 		[Pure, ContractAnnotation("=> buffer:notnull")]
 		[Obsolete("Use FromStringUtf8(ReadOnlySpan<char>, ...) instead")]
-		public static MutableSlice FromStringUtf8([NotNull] string value, [Positive] int offset, [Positive] int count, ref byte[] buffer, out bool asciiOnly)
+		public static MutableSlice FromStringUtf8(string value, [Positive] int offset, [Positive] int count, ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (count == 0)
 			{
@@ -860,7 +860,7 @@ namespace System
 		public static MutableSlice FromStringUtf8(ReadOnlySpan<char> value)
 		{
 			if (value.Length == 0) return Empty;
-			byte[] __ = null;
+			byte[]? __ = null;
 			return FromStringUtf8(value, ref __, out _);
 		}
 
@@ -873,7 +873,7 @@ namespace System
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
-		public static MutableSlice FromStringUtf8(ReadOnlySpan<char> value, ref byte[] buffer, out bool asciiOnly)
+		public static MutableSlice FromStringUtf8(ReadOnlySpan<char> value, ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (value.Length == 0)
 			{
@@ -919,12 +919,12 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice FromStringUtf8WithBom([CanBeNull] string value)
+		public static MutableSlice FromStringUtf8WithBom(string? value)
 		{
 			//REVIEW: what if people call FromString"\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
 			if (value == null) return default;
-			byte[] _ = null;
+			byte[]? _ = null;
 			return FromStringUtf8WithBom(value.AsSpan(), ref _);
 		}
 
@@ -938,7 +938,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static MutableSlice FromStringUtf8WithBom(ReadOnlySpan<char> value)
 		{
-			byte[] _ = null;
+			byte[]? _ = null;
 			return FromStringUtf8WithBom(value, ref _);
 		}
 
@@ -950,7 +950,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		public static MutableSlice FromStringUtf8WithBom(ReadOnlySpan<char> value, ref byte[] buffer)
+		public static MutableSlice FromStringUtf8WithBom(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			if (value.Length == 0)
 			{
@@ -987,7 +987,7 @@ namespace System
 		/// For these case, or when you known that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
 		[Pure]
-		private static MutableSlice ConvertByteStringNoCheck(ReadOnlySpan<char> value, ref byte[] buffer)
+		private static MutableSlice ConvertByteStringNoCheck(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			int len = value.Length;
 			if (len == 0) return Empty;
@@ -1023,7 +1023,7 @@ namespace System
 				return FromByte((byte)value);
 			}
 
-			byte[] _ = null;
+			byte[]? _ = null;
 			return FromChar(value, ref _);
 		}
 
@@ -1031,7 +1031,7 @@ namespace System
 		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
 		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		[Pure]
-		public static MutableSlice FromChar(char value, ref byte[] buffer)
+		public static MutableSlice FromChar(char value, ref byte[]? buffer)
 		{
 			if (value < 128)
 			{ // ASCII
@@ -1068,7 +1068,7 @@ namespace System
 			throw FailInputNotValidHexadecimalDigit();
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static FormatException FailInputNotValidHexadecimalDigit()
 		{
 			return ThrowHelper.FormatException("Input is not a valid hexadecimal digit");
@@ -1076,34 +1076,34 @@ namespace System
 
 		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
 		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
-		/// <returns>Slice containing the decoded byte array, or an exeception if the string is empty or has an odd length</returns>
+		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		[Pure]
-		public static MutableSlice FromHexa([CanBeNull] string hexaString)
+		public static MutableSlice FromHexa(string? hexaString)
 		{
 			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? default : Empty;
-			byte[] buffer = null;
+			byte[]? buffer = null;
 			int written = UnsafeHelpers.FromHexa(hexaString.AsSpan(), ref buffer);
 			return new MutableSlice(buffer, 0, written);
 		}
 
 		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
 		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
-		/// <returns>Slice containing the decoded byte array, or an exeception if the string is empty or has an odd length</returns>
+		/// <returns>Slice containing the decoded byte array, or an exception if the string is empty or has an odd length</returns>
 		[Pure]
 		public static MutableSlice FromHexa(ReadOnlySpan<char> hexaString)
 		{
 			if (hexaString.Length == 0) return Empty;
-			byte[] buffer = null;
+			byte[]? buffer = null;
 			int written = UnsafeHelpers.FromHexa(hexaString, ref buffer);
 			return new MutableSlice(buffer, 0, written);
 		}
 
 		/// <summary>Decode the string that was generated by slice.ToString() or Slice.Dump(), back into the original slice</summary>
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
-		public static MutableSlice Unescape([CanBeNull] string value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
+		public static MutableSlice Unescape(string? value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
 		{
 			if (string.IsNullOrEmpty(value)) return value == null ? default : Empty;
-			byte[] buffer = null;
+			byte[]? buffer = null;
 			int written = UnsafeHelpers.Unescape(value.AsSpan(), ref buffer);
 			return new MutableSlice(buffer, 0, written);
 		}
@@ -1113,7 +1113,7 @@ namespace System
 		public static MutableSlice Unescape(ReadOnlySpan<char> value) //REVIEW: rename this to Decode() if we changed Dump() to Encode()
 		{
 			if (value.Length == 0) return Empty;
-			byte[] buffer = null;
+			byte[]? buffer = null;
 			int written = UnsafeHelpers.Unescape(value, ref buffer);
 			return new MutableSlice(buffer, 0, written);
 		}
@@ -1132,8 +1132,8 @@ namespace System
 		/// If you are decoding identifiers or keywords that are known to be ASCII only, you should use <see cref="ToStringAscii"/> instead (safe).
 		/// If these identifiers can contain 'special' bytes (like \xFF or \xFE), you should use <see cref="ToByteString"/> instead (unsafe).
 		/// </remarks>
-		[Pure, CanBeNull]
-		public string ToStringAnsi()
+		[Pure]
+		public string? ToStringAnsi()
 		{
 			if (this.Count == 0) return this.Array != null ? string.Empty : null;
 			//note: Encoding.GetString() will do the bound checking for us
@@ -1149,8 +1149,8 @@ namespace System
 		/// If you are decoding natural text, or text from unknown origin, you should use <see cref="ToStringUtf8"/> or <see cref="ToUnicode"/> instead.
 		/// If you are attempting to decode a string obtain from a Win32 or unmanaged library call, you should use <see cref="ToStringAnsi"/> instead.
 		/// </remarks>
-		[Pure, CanBeNull]
-		public string ToStringAscii()
+		[Pure]
+		public string? ToStringAscii()
 		{
 			if (this.Count == 0)
 			{
@@ -1165,8 +1165,8 @@ namespace System
 
 		/// <summary>Stringify a slice containing only ASCII chars</summary>
 		/// <returns>ASCII string, or null if the slice is null</returns>
-		[Pure, CanBeNull]
-		public string ToByteString() //REVIEW: rename to ToStringSOMETHING(): ToStringByte()? ToStringRaw()?
+		[Pure]
+		public string? ToByteString() //REVIEW: rename to ToStringSOMETHING(): ToStringByte()? ToStringRaw()?
 		{
 			return this.Count == 0
 				? (this.Array != null ? string.Empty : null)
@@ -1180,8 +1180,8 @@ namespace System
 		/// This is NOT compatible with slices produced by <see cref="FromStringAnsi"/> or encoded with any specific encoding or code page.
 		/// This method will NOT automatically remove the UTF-8 BOM if present (use <see cref="ToStringUtf8"/> if you need this)
 		/// </remarks>
-		[Pure, CanBeNull]
-		public string ToUnicode() //REVIEW: rename this to ToStringUnicode() ?
+		[Pure]
+		public string? ToUnicode() //REVIEW: rename this to ToStringUnicode() ?
 		{
 			var array = this.Array;
 			int count = this.Count;
@@ -1192,7 +1192,7 @@ namespace System
 		}
 
 		[Pure]
-		private static bool HasUtf8Bom([NotNull] byte[] array, int offset, int count)
+		private static bool HasUtf8Bom(byte[] array, int offset, int count)
 		{
 			return count >= 3
 			    && (uint) (offset + count) <= (uint) array.Length
@@ -1208,8 +1208,8 @@ namespace System
 		/// This method will THROW if the slice does not contain valid UTF-8 sequences.
 		/// This method will remove any UTF-8 BOM if present. If you need to keep the BOM as the first character of the string, use <see cref="ToUnicode"/>
 		/// </remarks>
-		[Pure, CanBeNull]
-		public string ToStringUtf8()
+		[Pure]
+		public string? ToStringUtf8()
 		{
 			int count = this.Count;
 			var array = this.Array;
@@ -1227,8 +1227,8 @@ namespace System
 		}
 
 		/// <summary>Converts a slice using Base64 encoding</summary>
-		[Pure, CanBeNull]
-		public string ToBase64()
+		[Pure]
+		public string? ToBase64()
 		{
 			if (this.Count == 0) return this.Array != null ? string.Empty : null;
 			//note: Convert.ToBase64String() will do the bound checking for us
@@ -1238,7 +1238,7 @@ namespace System
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (lowercase)</summary>
 		/// <param name="lower">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"0123456789abcdef"</returns>
-		[Pure, NotNull]
+		[Pure]
 		public string ToHexaString(bool lower = false)
 		{
 			return Slice.FormatHexaString(this.Array, this.Offset, this.Count, '\0', lower);
@@ -1248,7 +1248,7 @@ namespace System
 		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
 		/// <param name="lower">If true, produces lowercase hexadecimal (a-f); otherwise, produces uppercase hexadecimal (A-F)</param>
 		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
-		[Pure, NotNull]
+		[Pure]
 		public string ToHexaString(char sep, bool lower = false)
 		{
 			return Slice.FormatHexaString(this.Array, this.Offset, this.Count, sep, lower);
@@ -1256,7 +1256,7 @@ namespace System
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="MutableSlice.Nil"/></returns>
-		[Pure, NotNull]
+		[Pure]
 		public string PrettyPrint()
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
@@ -1266,7 +1266,7 @@ namespace System
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <param name="maxLen">Truncate the slice if it exceeds this size</param>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="MutableSlice.Nil"/></returns>
-		[Pure, NotNull]
+		[Pure]
 		public string PrettyPrint(int maxLen)
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
@@ -1907,7 +1907,7 @@ namespace System
 				case 19: // {hex8-hex8}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid64.Parse(ToByteString());
+					return Uuid64.Parse(ToByteString()!);
 				}
 			}
 
@@ -2073,7 +2073,7 @@ namespace System
 			if (this.Count == 36)
 			{
 				// ReSharper disable once AssignNullToNotNullAttribute
-				return Uuid128.Parse(ToByteString());
+				return Uuid128.Parse(ToByteString()!);
 			}
 
 			throw new FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size.");
@@ -2104,7 +2104,7 @@ namespace System
 				case 24: // {XXXX-XXXXXXXX-XXXXXXXX}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid80.Parse(ToByteString());
+					return Uuid80.Parse(ToByteString()!);
 				}
 			}
 
@@ -2136,7 +2136,7 @@ namespace System
 				case 28: // {XXXXXXXX-XXXXXXXX-XXXXXXXX}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid96.Parse(ToByteString());
+					return Uuid96.Parse(ToByteString()!);
 				}
 			}
 
