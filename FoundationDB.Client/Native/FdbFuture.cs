@@ -75,8 +75,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
-		[NotNull]
-		public static FdbFutureSingle<T> FromHandle<T>([NotNull] FutureHandle handle, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
+		public static FdbFutureSingle<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			return new FdbFutureSingle<T>(handle, selector, ct);
 		}
@@ -87,8 +86,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of all the FDBFuture handles</returns>
-		[NotNull]
-		public static FdbFutureArray<T> FromHandleArray<T>([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
+		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			return new FdbFutureArray<T>(handles, selector, ct);
 		}
@@ -99,7 +97,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="continuation">Lambda that will be called once the future completes successfully, to extract the result from the future handle.</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return the result of the continuation lambda, or an exception</returns>
-		public static Task<T> CreateTaskFromHandle<T>([NotNull] FutureHandle handle, [NotNull] Func<FutureHandle, T> continuation, CancellationToken ct)
+		public static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
 			return new FdbFutureSingle<T>(handle, continuation, ct).Task;
 		}
@@ -111,8 +109,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
-		[ItemNotNull]
-		public static Task<T[]> CreateTaskFromHandleArray<T>([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> continuation, CancellationToken ct)
+		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
 			// Special case, because FdbFutureArray<T> does not support empty arrays
 			//TODO: technically, there is no reason why FdbFutureArray would not accept an empty array. We should simplify this by handling the case in the ctor (we are already allocating something anyway...)
@@ -377,7 +374,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="future">Future instance</param>
 		/// <returns>Parameter that can be passed to FutureSetCallback and that uniquely identify this future.</returns>
 		/// <remarks>The caller MUST call ClearCallbackHandler to ensure that the future instance is removed from the list</remarks>
-		internal static IntPtr RegisterCallback([NotNull] FdbFuture<T> future)
+		internal static IntPtr RegisterCallback(FdbFuture<T> future)
 		{
 			Contract.Requires(future != null);
 
@@ -401,7 +398,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Remove a future from the callback handler dictionary</summary>
 		/// <param name="future">Future that has just completed, or is being destroyed</param>
-		internal static void UnregisterCallback([NotNull] FdbFuture<T> future)
+		internal static void UnregisterCallback(FdbFuture<T> future)
 		{
 			Contract.Requires(future != null);
 
@@ -422,10 +419,9 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		internal static FdbFuture<T> GetFutureFromCallbackParameter(IntPtr parameter)
+		internal static FdbFuture<T>? GetFutureFromCallbackParameter(IntPtr parameter)
 		{
-			FdbFuture<T> future;
-			if (s_futures.TryGetValue(parameter.ToInt64(), out future))
+			if (s_futures.TryGetValue(parameter.ToInt64(), out var future))
 			{
 				if (future != null && Volatile.Read(ref future.m_key) == parameter)
 				{

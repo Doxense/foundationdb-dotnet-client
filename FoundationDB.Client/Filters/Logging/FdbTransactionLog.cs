@@ -31,7 +31,6 @@ namespace FoundationDB.Filters.Logging
 	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
-	using System.Globalization;
 	using System.Reflection;
 	using System.Runtime.CompilerServices;
 	using System.Text;
@@ -72,7 +71,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>StackTrace of the method that created this transaction</summary>
 		/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordCreationStackTrace"/> option is set</remarks>
-		public StackTrace CallSite { get; private set; }
+		public StackTrace? CallSite { get; private set; }
 
 		internal StackTrace CaptureStackTrace(int numStackFramesToSkip)
 		{
@@ -101,7 +100,6 @@ namespace FoundationDB.Filters.Logging
 		public int Operations => m_operations;
 
 		/// <summary>List of all commands processed by the transaction</summary>
-		[NotNull]
 		public ConcurrentQueue<Command> Commands { get; private set; }
 
 		/// <summary>Timestamp of the start of transaction</summary>
@@ -243,7 +241,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Mark the end of the execution of a command</summary>
-		public void EndOperation(Command cmd, Exception error = null)
+		public void EndOperation(Command cmd, Exception? error = null)
 		{
 			Contract.Requires(cmd != null);
 
@@ -257,7 +255,6 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Generate an ASCII report with all the commands that were executed by the transaction</summary>
-		[NotNull]
 		public string GetCommandsReport(bool detailed = false, KeyResolver? keyResolver = null)
 		{
 			keyResolver ??= KeyResolver.Default;
@@ -301,7 +298,6 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Generate a full ASCII report with the detailed timeline of all the commands that were executed by the transaction</summary>
-		[NotNull]
 		public string GetTimingsReport(bool showCommands = false, KeyResolver? keyResolver = null)
 		{
 			keyResolver ??= KeyResolver.Default;

@@ -794,7 +794,6 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
-		[ItemCanBeNull]
 		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -808,7 +807,6 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
-		[ItemCanBeNull]
 		public static Task<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -855,7 +853,6 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		[ItemCanBeNull]
 		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -870,7 +867,6 @@ namespace Doxense.Linq
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
-		[ItemCanBeNull]
 		public static Task<T> SingleOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -924,7 +920,6 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
-		[ItemCanBeNull]
 		public static async Task<T> LastOrDefaultAsync<T>(this IAsyncEnumerable<T> source, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -943,7 +938,6 @@ namespace Doxense.Linq
 		}
 
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
-		[ItemCanBeNull]
 		public static async Task<T> LastOrDefaultAsync<T>(this IAsyncEnumerable<T> source, [InstantHandle] Func<T, bool> predicate, CancellationToken ct = default)
 		{
 			Contract.NotNull(source, nameof(source));

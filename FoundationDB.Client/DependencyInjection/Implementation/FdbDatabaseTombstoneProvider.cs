@@ -29,16 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	internal sealed class FdbDatabaseTombstoneProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseTombstoneProvider([CanBeNull] IFdbDatabaseScopeProvider parent, [NotNull] Exception error, CancellationToken lifetime)
+		public FdbDatabaseTombstoneProvider(IFdbDatabaseScopeProvider? parent, Exception error, CancellationToken lifetime)
 		{
 			Contract.Requires(error != null);
 			this.Parent = parent;
@@ -46,11 +46,12 @@ namespace FoundationDB.DependencyInjection
 			this.Lifetime = parent != null ? CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation, lifetime) : CancellationTokenSource.CreateLinkedTokenSource(lifetime);
 		}
 
-		public IFdbDatabaseScopeProvider Parent { get; }
+		public IFdbDatabaseScopeProvider? Parent { get; }
 
 		public Exception Error { get; private set; }
 
-		public TState GetState() => default;
+		[return:MaybeNull]
+		public TState GetState() => default!;
 
 		private CancellationTokenSource Lifetime { get; }
 
@@ -70,7 +71,7 @@ namespace FoundationDB.DependencyInjection
 				finally
 				{
 					this.Lifetime.Dispose();
-					this.Error = null;
+					this.Error = new ObjectDisposedException(this.GetType().Name);
 				}
 			}
 		}

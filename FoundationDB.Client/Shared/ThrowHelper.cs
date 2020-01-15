@@ -43,14 +43,14 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region ArgumentNullException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception ArgumentNullException([InvokerParameterName] string paramName)
 		{
 			return new ArgumentNullException(paramName);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentNullException([InvokerParameterName] string paramName, [NotNull] string message)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception ArgumentNullException([InvokerParameterName] string paramName, string message)
 		{
 			return new ArgumentNullException(paramName, message);
 		}
@@ -59,28 +59,28 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region ArgumentException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentException([InvokerParameterName] string paramName, string message = null)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception ArgumentException([InvokerParameterName] string paramName, string? message = null)
 		{
 			// oui, c'est inversé :)
 			return new ArgumentException(message, paramName);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception ArgumentException([InvokerParameterName] string paramName, string message, object arg0)
 		{
 			// oui, c'est inversé :)
 			return new ArgumentException(string.Format(message, arg0), paramName);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception ArgumentException([InvokerParameterName] string paramName, string message, object arg0, object arg1)
 		{
 			// oui, c'est inversé :)
 			return new ArgumentException(string.Format(message, arg0, arg1), paramName);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception ArgumentException([InvokerParameterName] string paramName, string message, params object[] args)
 		{
 			// oui, c'est inversé :)
@@ -91,14 +91,14 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region ArgumentOutOfRangeException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentOutOfRangeException([InvokerParameterName] string paramName, object actualValue, string message = null)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception ArgumentOutOfRangeException([InvokerParameterName] string paramName, object actualValue, string? message = null)
 		{
 			return new ArgumentOutOfRangeException(paramName, actualValue, message);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception ArgumentOutOfRangeException([InvokerParameterName, NotNull] string paramName)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception ArgumentOutOfRangeException([InvokerParameterName] string paramName)
 		{
 			return new ArgumentOutOfRangeException(paramName);
 		}
@@ -107,77 +107,77 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region ObjectDisposedException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed)
 		{
 			return new ObjectDisposedException(disposed.GetType().Name);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException(Type type)
 		{
 			return new ObjectDisposedException(type.Name);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException(Type type, string message)
 		{
 			return new ObjectDisposedException(type.Name, message);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed, string message)
 		{
 			return new ObjectDisposedException(disposed.GetType().Name, message);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message)
 		{
 			return new ObjectDisposedException(typeof(TDisposed).Name, message);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message, object arg0)
 		{
 			return new ObjectDisposedException(typeof(TDisposed).Name, string.Format(CultureInfo.InvariantCulture, message, arg0));
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(string message, params object[] args)
 		{
 			return new ObjectDisposedException(typeof(TDisposed).Name, string.Format(CultureInfo.InvariantCulture, message, args));
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		public static ObjectDisposedException ObjectDisposedException(string message, Exception innnerException)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ObjectDisposedException ObjectDisposedException(string message, Exception innerException)
 		{
-			return new ObjectDisposedException(message, innnerException);
+			return new ObjectDisposedException(message, innerException);
 		}
 
 		#endregion
 
 		#region InvalidOperationException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationException(string message)
 		{
 			return new InvalidOperationException(message);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationException(string message, object arg0)
 		{
 			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, arg0));
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationException(string message, object arg0, object arg1)
 		{
 			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, arg0, arg1));
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationException(string message, params object[] args)
 		{
 			return new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, message, args));
@@ -223,25 +223,25 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region FormatException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message)
 		{
 			return new FormatException(message);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message, object arg0)
 		{
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, arg0));
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message, object arg0, object arg1)
 		{
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, arg0, arg1));
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(string message, params object[] args)
 		{
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, message, args));
@@ -251,19 +251,19 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region OperationCanceledException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static OperationCanceledException OperationCanceledException(string message)
 		{
 			return new OperationCanceledException(message);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static OperationCanceledException OperationCanceledException(string message, object arg0)
 		{
 			return new OperationCanceledException(String.Format(CultureInfo.InvariantCulture, message, arg0));
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static OperationCanceledException OperationCanceledException(string message, params object[] args)
 		{
 			return new OperationCanceledException(String.Format(CultureInfo.InvariantCulture, message, args));
@@ -273,13 +273,13 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region NotSupportedException...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static NotSupportedException NotSupportedException(string message)
 		{
 			return new NotSupportedException(message);
 		}
 
-		[Pure, NotNull, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, StringFormatMethod("message"), MethodImpl(MethodImplOptions.NoInlining)]
 		public static NotSupportedException NotSupportedException(string message, params object[] args)
 		{
 			return new NotSupportedException(String.Format(CultureInfo.InvariantCulture, message, args));
@@ -287,8 +287,8 @@ namespace Doxense.Diagnostics.Contracts
 
 		#endregion
 
-		[CanBeNull, Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception TryMapToKnownException(Type exceptionType, string message, string paramName)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception? TryMapToKnownException(Type exceptionType, string message, string paramName)
 		{
 			// d'abord on regarde si c'est un type "simple"
 			if (exceptionType == typeof(ArgumentNullException))
@@ -318,8 +318,8 @@ namespace Doxense.Diagnostics.Contracts
 			return null;
 		}
 
-		[CanBeNull, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception TryMapToComplexException(Type exceptionType, string message, string paramName)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		public static Exception? TryMapToComplexException(Type exceptionType, string message, string? paramName)
 		{
 			ConstructorInfo constructor;
 
@@ -358,19 +358,19 @@ namespace Doxense.Diagnostics.Contracts
 
 		#region Collection Errors...
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationNoElements()
 		{
 			return new InvalidOperationException("Sequence contains no elements.");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationNoMatchingElements()
 		{
 			return new InvalidOperationException("Sequence contains no matching element.");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static IndexOutOfRangeException IndexOutOfRangeException()
 		{
 			return new IndexOutOfRangeException("Index was out of range. Must be non-negative and less than the size of the collection.");
@@ -382,7 +382,7 @@ namespace Doxense.Diagnostics.Contracts
 			throw IndexOutOfRangeException();
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeIndex(int index)
 		{
 			// ArgumentOutOfRange_NeedNonNegNum
@@ -390,21 +390,21 @@ namespace Doxense.Diagnostics.Contracts
 			return new ArgumentOutOfRangeException("index", index, "Index was out of range. Must be non-negative and less than the size of the collection.");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName)
 		{
 			// ArgumentOutOfRange_NeedNonNegNum
 			return new ArgumentOutOfRangeException(paramName, "Non-negative number required");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentException ArgumentInvalidOffLen()
 		{
 			// Argument_InvalidOffLen
 			return new ArgumentException("Offset and length were out of bounds for the array or count is greater than the number of elements from index to the end of the source collection.");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static NotSupportedException NotSupportedReadOnlyCollection()
 		{
 			// NotSupported_ReadOnlyCollection

@@ -45,7 +45,6 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
-		[NotNull] 
 		ICompositeKeyEncoder<T1, T2> KeyEncoder { get; }
 
 		/// <summary>Encode a pair of values into a key in this subspace</summary>
@@ -98,7 +97,7 @@ namespace FoundationDB.Client
 	{
 		public ICompositeKeyEncoder<T1, T2> KeyEncoder { get; }
 
-		internal TypedKeySubspace(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder, [NotNull] ISubspaceContext context)
+		internal TypedKeySubspace(Slice prefix, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
 			Contract.Requires(encoder != null);
@@ -254,7 +253,7 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Tuple that must be of size 2</param>
 		/// <returns>Encoded key in this subspace</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2, TTuple>(this ITypedKeySubspace<T1, T2> self, [NotNull] TTuple tuple)
+		public static Slice Pack<T1, T2, TTuple>(this ITypedKeySubspace<T1, T2> self, TTuple tuple)
 			where TTuple : IVarTuple
 		{
 			tuple.OfSize(2);
@@ -262,14 +261,14 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode an array of items into an array of keys</summary>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] Pack<T1, T2>(this ITypedKeySubspace<T1, T2> self, params (T1, T2)[] items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
 
 		/// <summary>Encode an array of items into an array of keys</summary>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IEnumerable<Slice> Pack<T1, T2>(this ITypedKeySubspace<T1, T2> self, IEnumerable<(T1, T2)> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);

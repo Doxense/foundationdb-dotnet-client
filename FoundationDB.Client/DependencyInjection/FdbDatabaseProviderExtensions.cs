@@ -39,8 +39,8 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Convert this database instance into a <see cref="IFdbDatabaseScopeProvider">provider</see></summary>
-		[Pure, NotNull]
-		public static IFdbDatabaseScopeProvider AsDatabaseProvider([NotNull] this IFdbDatabase db)
+		[Pure]
+		public static IFdbDatabaseScopeProvider AsDatabaseProvider(this IFdbDatabase db)
 		{
 			return Fdb.CreateRootScope(db);
 		}
@@ -49,10 +49,10 @@ namespace FoundationDB.Client
 		/// <param name="db">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IFdbDatabaseScopeProvider<TState> CreateRootScope<TState>(
-			[NotNull] this IFdbDatabase db,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init,
+			this IFdbDatabase db,
+			Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState state)>> init,
 			CancellationToken lifetime = default
 		)
 		{
@@ -63,10 +63,10 @@ namespace FoundationDB.Client
 		/// <param name="provider">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IFdbDatabaseScopeProvider CreateScope(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			this IFdbDatabaseScopeProvider provider,
+			Func<IFdbDatabase, CancellationToken, Task> init,
 			CancellationToken lifetime = default
 		)
 		{
@@ -77,10 +77,10 @@ namespace FoundationDB.Client
 		/// <param name="db">Parent database</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IFdbDatabaseScopeProvider CreateRootScope(
-			[NotNull] this IFdbDatabase db,
-			[NotNull] Func<IFdbDatabase, CancellationToken, Task> init,
+			this IFdbDatabase db,
+			Func<IFdbDatabase, CancellationToken, Task> init,
 			CancellationToken lifetime = default
 		)
 		{
@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Wait for the scope to become ready.</summary>
-		public static ValueTask EnsureIsReady([NotNull] this IFdbDatabaseScopeProvider provider, CancellationToken ct)
+		public static ValueTask EnsureIsReady(this IFdbDatabaseScopeProvider provider, CancellationToken ct)
 		{
 			if (provider.IsAvailable)
 			{
@@ -111,8 +111,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task<TResult> ReadAsync<TResult>(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler,
+			this IFdbDatabaseScopeProvider provider,
+			[InstantHandle] Func<IFdbReadOnlyTransaction, Task<TResult>> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
@@ -128,8 +128,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task<TResult> ReadAsync<TState, TResult>(
-			[NotNull] this IFdbDatabaseScopeProvider<TState> provider,
-			[NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler,
+			this IFdbDatabaseScopeProvider<TState> provider,
+			[InstantHandle] Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler,
 			CancellationToken ct)
 		{
 			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
@@ -147,8 +147,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task<TResult> ReadWriteAsync<TResult>(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull, InstantHandle] Func<IFdbTransaction, Task<TResult>> handler,
+			this IFdbDatabaseScopeProvider provider,
+			[InstantHandle] Func<IFdbTransaction, Task<TResult>> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
@@ -166,8 +166,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task<TResult> ReadWriteAsync<TState, TResult>(
-			[NotNull] this IFdbDatabaseScopeProvider<TState> provider,
-			[NotNull, InstantHandle] Func<IFdbTransaction, TState, Task<TResult>> handler,
+			this IFdbDatabaseScopeProvider<TState> provider,
+			[InstantHandle] Func<IFdbTransaction, TState, Task<TResult>> handler,
 			CancellationToken ct)
 		{
 			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
@@ -185,8 +185,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task WriteAsync(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull, InstantHandle] Func<IFdbTransaction, Task> handler,
+			this IFdbDatabaseScopeProvider provider,
+			[InstantHandle] Func<IFdbTransaction, Task> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
@@ -204,8 +204,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task WriteAsync<TState>(
-			[NotNull] this IFdbDatabaseScopeProvider<TState> provider,
-			[NotNull, InstantHandle] Func<IFdbTransaction, TState, Task> handler,
+			this IFdbDatabaseScopeProvider<TState> provider,
+			[InstantHandle] Func<IFdbTransaction, TState, Task> handler,
 			CancellationToken ct)
 		{
 			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);
@@ -222,8 +222,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task WriteAsync(
-			[NotNull] this IFdbDatabaseScopeProvider provider,
-			[NotNull, InstantHandle] Action<IFdbTransaction> handler,
+			this IFdbDatabaseScopeProvider provider,
+			[InstantHandle] Action<IFdbTransaction> handler,
 			CancellationToken ct)
 		{
 			var db = await provider.GetDatabase(ct).ConfigureAwait(false);
@@ -240,8 +240,8 @@ namespace FoundationDB.Client
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		public static async Task WriteAsync<TState>(
-			[NotNull] this IFdbDatabaseScopeProvider<TState> provider,
-			[NotNull, InstantHandle] Action<IFdbTransaction, TState> handler,
+			this IFdbDatabaseScopeProvider<TState> provider,
+			[InstantHandle] Action<IFdbTransaction, TState> handler,
 			CancellationToken ct)
 		{
 			(var db, var state) = await provider.GetDatabaseAndState(ct).ConfigureAwait(false);

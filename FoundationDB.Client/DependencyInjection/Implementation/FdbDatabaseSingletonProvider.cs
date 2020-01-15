@@ -29,19 +29,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Default implementation of a scope provider that uses a pre-initialized database instance</summary>
 	/// <typeparam name="TState">Type of the state that will be passed to consumers of this type</typeparam>
 	internal sealed class FdbDatabaseSingletonProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseSingletonProvider([NotNull] IFdbDatabase db, [CanBeNull] TState state, [NotNull] CancellationTokenSource lifetime)
+		public FdbDatabaseSingletonProvider(IFdbDatabase db, [AllowNull] TState state, CancellationTokenSource lifetime)
 		{
 			Contract.Requires(db != null && lifetime != null);
 			this.Lifetime = lifetime;
@@ -51,21 +51,19 @@ namespace FoundationDB.DependencyInjection
 
 		private sealed class Scope
 		{
-			[NotNull]
 			public readonly IFdbDatabase Db;
 
-			[CanBeNull]
+			[AllowNull]
 			public readonly TState State;
 
-			public Scope([NotNull] IFdbDatabase db, [CanBeNull] TState state)
+			public Scope(IFdbDatabase db, [AllowNull] TState state)
 			{
 				this.Db = db;
 				this.State = state;
 			}
 		}
 
-		[CanBeNull]
-		private Scope InternalState;
+		private Scope? InternalState;
 
 		private CancellationTokenSource Lifetime { get; }
 
@@ -79,7 +77,7 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
-		public IFdbDatabaseScopeProvider Parent => null;
+		public IFdbDatabaseScopeProvider? Parent => null;
 
 		public bool IsAvailable => Volatile.Read(ref m_disposed) == 0;
 

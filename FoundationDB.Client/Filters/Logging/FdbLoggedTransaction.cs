@@ -50,8 +50,8 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Capture the stacktrace of the caller method for each operation</summary>
 		RecordOperationStackTrace = 0x200,
 
-		/// <summary>Capture all the stacktraces.</summary>
-		/// <remarks>This is a shortcurt for <see cref="RecordCreationStackTrace"/> | <see cref="RecordOperationStackTrace"/></remarks>
+		/// <summary>Capture all the stack traces.</summary>
+		/// <remarks>This is a shortcut for <see cref="RecordCreationStackTrace"/> | <see cref="RecordOperationStackTrace"/></remarks>
 		WithStackTraces = RecordCreationStackTrace | RecordOperationStackTrace,
 	}
 
@@ -59,16 +59,17 @@ namespace FoundationDB.Filters.Logging
 	[PublicAPI]
 	public sealed class FdbLoggedTransaction : FdbTransactionFilter
 	{
-		private Snapshotted m_snapshotted;
 
 		/// <summary>Log of all operations performed on this transaction</summary>
-		public FdbTransactionLog Log {[NotNull] get; private set; }
+		public FdbTransactionLog Log {get; private set; }
 
 		/// <summary>Handler that will be called when this transaction commits successfully</summary>
 		public Action<FdbLoggedTransaction> Committed { get; private set; }
 
 		/// <summary>If non-null, at least one VersionStamped operation in the last attempt</summary>
-		private Task<VersionStamp> VersionStamp { get; set; }
+		private Task<VersionStamp>? VersionStamp { get; set; }
+
+		private Snapshotted? m_snapshotted;
 
 		/// <summary>Wrap an existing transaction and log all operations performed</summary>
 		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions options)
@@ -147,10 +148,9 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private Slice[] Grab(Slice[] slices)
+		private Slice[] Grab(Slice[]? slices)
 		{
-			if (slices == null) return null;
-			if (slices.Length == 0) return Array.Empty<Slice>();
+			if (slices == null || slices.Length == 0) return Array.Empty<Slice>();
 
 			lock (m_lock)
 			{
@@ -183,10 +183,9 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		private KeySelector[] Grab(KeySelector[] selectors)
+		private KeySelector[] Grab(KeySelector[]? selectors)
 		{
-			if (selectors == null) return null;
-			if (selectors.Length == 0) return Array.Empty<KeySelector>();
+			if (selectors == null || selectors.Length == 0) return Array.Empty<KeySelector>();
 
 			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
@@ -219,11 +218,11 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private void Execute<TCommand>([NotNull] TCommand cmd, [NotNull] Action<IFdbTransaction, TCommand> action)
+		private void Execute<TCommand>(TCommand cmd, Action<IFdbTransaction, TCommand> action)
 			where TCommand : FdbTransactionLog.Command
 		{
 			ThrowIfDisposed();
-			Exception error = null;
+			Exception? error = null;
 			this.Log.BeginOperation(cmd);
 			try
 			{
@@ -240,11 +239,11 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private async Task ExecuteAsync<TCommand>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task> lambda, Action<FdbLoggedTransaction, IFdbTransaction> onSuccess = null)
+		private async Task ExecuteAsync<TCommand>(TCommand cmd, Func<IFdbTransaction, TCommand, Task> lambda, Action<FdbLoggedTransaction, IFdbTransaction>? onSuccess = null)
 			where TCommand : FdbTransactionLog.Command
 		{
 			ThrowIfDisposed();
-			Exception error = null;
+			Exception? error = null;
 			var tr = m_transaction;
 			this.Log.BeginOperation(cmd);
 			try
@@ -263,11 +262,11 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private async Task<TResult> ExecuteAsync<TCommand, TResult>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task<TResult>> lambda)
+		private async Task<TResult> ExecuteAsync<TCommand, TResult>(TCommand cmd, Func<IFdbTransaction, TCommand, Task<TResult>> lambda)
 			where TCommand : FdbTransactionLog.Command<TResult>
 		{
 			ThrowIfDisposed();
-			Exception error = null;
+			Exception? error = null;
 			this.Log.BeginOperation(cmd);
 			try
 			{
@@ -488,23 +487,23 @@ namespace FoundationDB.Filters.Logging
 
 		#region Snapshot...
 
-		public override IFdbReadOnlyTransaction Snapshot => m_snapshotted ?? (m_snapshotted = new Snapshotted(this, m_transaction.Snapshot));
+		public override IFdbReadOnlyTransaction Snapshot => m_snapshotted ??= new Snapshotted(this, m_transaction.Snapshot);
 
 		private sealed class Snapshotted : FdbReadOnlyTransactionFilter
 		{
 			private readonly FdbLoggedTransaction m_parent;
 
-			public Snapshotted([NotNull] FdbLoggedTransaction parent, [NotNull] IFdbReadOnlyTransaction snapshot)
+			public Snapshotted(FdbLoggedTransaction parent, IFdbReadOnlyTransaction snapshot)
 				: base(snapshot)
 			{
 				m_parent = parent;
 			}
 
-			private async Task<TResult> ExecuteAsync<TCommand, TResult>([NotNull] TCommand cmd, [NotNull] Func<IFdbReadOnlyTransaction, TCommand, Task<TResult>> lambda)
+			private async Task<TResult> ExecuteAsync<TCommand, TResult>(TCommand cmd, Func<IFdbReadOnlyTransaction, TCommand, Task<TResult>> lambda)
 				where TCommand : FdbTransactionLog.Command<TResult>
 			{
 				m_parent.ThrowIfDisposed();
-				Exception error = null;
+				Exception? error = null;
 				cmd.Snapshot = true;
 				m_parent.Log.BeginOperation(cmd);
 				try

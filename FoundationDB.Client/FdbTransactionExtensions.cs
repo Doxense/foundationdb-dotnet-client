@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 		#region Fluent Options...
 
 		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)</summary>
-		public static TTransaction WithReadAccessToSystemKeys<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithReadAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(Fdb.ApiVersion >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
-		public static TTransaction WithWriteAccessToSystemKeys<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithWriteAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbTransaction
 		{
 			trans.SetOption(FdbTransactionOption.AccessSystemKeys);
@@ -68,7 +68,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
-		public static TTransaction WithPrioritySystemImmediate<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithPrioritySystemImmediate<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.PrioritySystemImmediate);
@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
-		public static TTransaction WithPriorityBatch<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithPriorityBatch<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.PriorityBatch);
@@ -86,7 +86,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads performed by a transaction will not see any prior mutations that occurred in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).</summary>
-		public static TTransaction WithReadYourWritesDisable<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithReadYourWritesDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbTransaction
 		{
 			trans.SetOption(FdbTransactionOption.ReadYourWritesDisable);
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Snapshot reads performed by a transaction will see the results of writes done in the same transaction.</summary>
-		public static TTransaction WithSnapshotReadYourWritesEnable<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithSnapshotReadYourWritesEnable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.SnapshotReadYourWriteEnable);
@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads performed by a transaction will not see the results of writes done in the same transaction.</summary>
-		public static TTransaction WithSnapshotReadYourWritesDisable<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithSnapshotReadYourWritesDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
@@ -110,7 +110,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).</summary>
-		public static TTransaction WithReadAheadDisable<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithReadAheadDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.ReadAheadDisable);
@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
-		public static TTransaction WithNextWriteNoWriteConflictRange<TTransaction>([NotNull] this TTransaction trans)
+		public static TTransaction WithNextWriteNoWriteConflictRange<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbTransaction
 		{
 			trans.SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
@@ -133,7 +133,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
-		public static TTransaction WithTimeout<TTransaction>([NotNull] this TTransaction trans, TimeSpan timeout)
+		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, TimeSpan timeout)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			return WithTimeout<TTransaction>(trans, timeout == TimeSpan.Zero ? 0 : (int)Math.Ceiling(timeout.TotalMilliseconds));
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="milliseconds">Timeout in millisecond, or 0 for infinite timeout</param>
-		public static TTransaction WithTimeout<TTransaction>([NotNull] this TTransaction trans, int milliseconds)
+		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, int milliseconds)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.Timeout = milliseconds;
@@ -157,7 +157,7 @@ namespace FoundationDB.Client
 		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code.
 		/// Valid parameter values are [-1, int.MaxValue].
 		/// If set to -1, will disable the retry limit.</summary>
-		public static TTransaction WithRetryLimit<TTransaction>([NotNull] this TTransaction trans, int retries)
+		public static TTransaction WithRetryLimit<TTransaction>(this TTransaction trans, int retries)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.RetryLimit = retries;
@@ -168,7 +168,7 @@ namespace FoundationDB.Client
 		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
 		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
 		/// </summary>
-		public static TTransaction WithMaxRetryDelay<TTransaction>([NotNull] this TTransaction trans, int milliseconds)
+		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, int milliseconds)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.MaxRetryDelay = milliseconds;
@@ -179,7 +179,7 @@ namespace FoundationDB.Client
 		/// Defaults to 1000 ms. Valid parameter values are [TimeSpan.Zero, TimeSpan.MaxValue].
 		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
 		/// </summary>
-		public static TTransaction WithMaxRetryDelay<TTransaction>([NotNull] this TTransaction trans, TimeSpan delay)
+		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, TimeSpan delay)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			return WithMaxRetryDelay<TTransaction>(trans, delay == TimeSpan.Zero ? 0 : (int)Math.Ceiling(delay.TotalMilliseconds));
@@ -197,7 +197,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<Slice> GetAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice key)
+		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			return trans.GetAsync(key.Span);
@@ -213,7 +213,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static async Task<TValue> GetAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, Slice key, [NotNull] IValueEncoder<TValue> encoder)
+		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IValueEncoder<TValue> encoder)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(encoder, nameof(encoder));
@@ -242,7 +242,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void Set(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
@@ -256,7 +256,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, Slice value)
+		public static void Set(this IFdbTransaction trans, ReadOnlySpan<byte> key, Slice value)
 		{
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
 			trans.Set(key, value.Span);
@@ -269,7 +269,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set([NotNull] this IFdbTransaction trans, Slice key, ReadOnlySpan<byte> value)
+		public static void Set(this IFdbTransaction trans, Slice key, ReadOnlySpan<byte> value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			trans.Set(key.Span, value);
@@ -281,7 +281,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to set</param>
 		/// <param name="value">Value of the key</param>
 		/// <param name="encoder">Encoder used to convert <paramref name="value"/> into a binary slice.</param>
-		public static void Set<TValue>([NotNull] this IFdbTransaction trans, Slice key, TValue value, [NotNull] IValueEncoder<TValue> encoder)
+		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value, IValueEncoder<TValue> encoder)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(encoder, nameof(encoder));
@@ -296,7 +296,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to set</param>
 		/// <param name="data">Stream that holds the content of the key, whose length should not exceed the allowed maximum value size.</param>
 		/// <remarks>This method works best with streams that do not block, like a <see cref="MemoryStream"/>. For streams that may block, consider using <see cref="SetAsync(IFdbTransaction, Slice, Stream)"/> instead.</remarks>
-		public static void Set([NotNull] this IFdbTransaction trans, Slice key, [NotNull] Stream data)
+		public static void Set(this IFdbTransaction trans, Slice key, Stream data)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(data, nameof(data));
@@ -314,7 +314,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to set</param>
 		/// <param name="data">Stream that holds the content of the key, whose length should not exceed the allowed maximum value size.</param>
 		/// <remarks>If reading from the stream takes more than 5 seconds, the transaction will not be able to commit. For streams that are stored in memory, like a MemoryStream, consider using <see cref="Set(IFdbTransaction, Slice, Stream)"/> instead.</remarks>
-		public static async Task SetAsync([NotNull] this IFdbTransaction trans, Slice key, [NotNull] Stream data)
+		public static async Task SetAsync(this IFdbTransaction trans, Slice key, Stream data)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(data, nameof(data));
@@ -340,7 +340,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
-		public static void SetValues([NotNull] this IFdbTransaction trans, KeyValuePair<Slice, Slice>[] keyValuePairs)
+		public static void SetValues(this IFdbTransaction trans, KeyValuePair<Slice, Slice>[] keyValuePairs)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keyValuePairs, nameof(keyValuePairs));
@@ -360,7 +360,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
-		public static void SetValues([NotNull] this IFdbTransaction trans, ReadOnlySpan<KeyValuePair<Slice, Slice>> keyValuePairs)
+		public static void SetValues(this IFdbTransaction trans, ReadOnlySpan<KeyValuePair<Slice, Slice>> keyValuePairs)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -381,7 +381,7 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same length as <paramref name="keys"/>.</exception>
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
-		public static void SetValues([NotNull] this IFdbTransaction trans, [NotNull] Slice[] keys, [NotNull] Slice[] values)
+		public static void SetValues(this IFdbTransaction trans, Slice[] keys, Slice[] values)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -405,7 +405,7 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same length as <paramref name="keys"/>.</exception>
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
-		public static void SetValues([NotNull] this IFdbTransaction trans, ReadOnlySpan<Slice> keys, ReadOnlySpan<Slice> values)
+		public static void SetValues(this IFdbTransaction trans, ReadOnlySpan<Slice> keys, ReadOnlySpan<Slice> values)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			if (values.Length != keys.Length) throw new ArgumentException("Both key and value arrays must have the same size.", nameof(values));
@@ -425,7 +425,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
-		public static void SetValues([NotNull] this IFdbTransaction trans, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs)
+		public static void SetValues(this IFdbTransaction trans, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keyValuePairs, nameof(keyValuePairs));
@@ -447,7 +447,7 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same number of elements as <paramref name="keys"/>.</exception>
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
-		public static void SetValues([NotNull] this IFdbTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IEnumerable<Slice> values)
+		public static void SetValues(this IFdbTransaction trans, IEnumerable<Slice> keys, IEnumerable<Slice> values)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -475,7 +475,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
 		/// <param name="mutation">Type of mutation that should be performed on the key</param>
-		public static void Atomic([NotNull] this IFdbTransaction trans, Slice key, Slice param, FdbMutationType mutation)
+		public static void Atomic(this IFdbTransaction trans, Slice key, Slice param, FdbMutationType mutation)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			trans.Atomic(key.Span, param.Span, mutation);
@@ -485,7 +485,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value to add to existing value of key.</param>
-		public static void AtomicAdd([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void AtomicAdd(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
@@ -494,7 +494,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value to add to existing value of key.</param>
-		public static void AtomicAdd([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		public static void AtomicAdd(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
@@ -507,7 +507,7 @@ namespace FoundationDB.Client
 		/// If the <paramref name="key"/> does not exist, or has a different value than <paramref name="comparand"/> then no changes will be performed.
 		/// This method requires API version 610 or greater.
 		/// </remarks>
-		public static void AtomicCompareAndClear([NotNull] this IFdbTransaction trans, Slice key, Slice comparand)
+		public static void AtomicCompareAndClear(this IFdbTransaction trans, Slice key, Slice comparand)
 		{
 			trans.Atomic(key, comparand, FdbMutationType.CompareAndClear);
 		}
@@ -520,7 +520,7 @@ namespace FoundationDB.Client
 		/// If the <paramref name="key"/> does not exist, or has a different value than <paramref name="comparand"/> then no changes will be performed.
 		/// This method requires API version 610 or greater.
 		/// </remarks>
-		public static void AtomicCompareAndClear([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> comparand)
+		public static void AtomicCompareAndClear(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> comparand)
 		{
 			trans.Atomic(key, comparand, FdbMutationType.CompareAndClear);
 		}
@@ -582,7 +582,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to increment by one the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicIncrement32([NotNull] this IFdbTransaction trans, Slice key)
+		public static void AtomicIncrement32(this IFdbTransaction trans, Slice key)
 		{
 			trans.Atomic(key, PlusOne32, FdbMutationType.Add);
 		}
@@ -590,7 +590,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to increment by one the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicIncrement32([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key)
+		public static void AtomicIncrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
 		{
 			trans.Atomic(key, PlusOne32.Span, FdbMutationType.Add);
 		}
@@ -598,7 +598,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key)
+		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key)
 		{
 			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
 		}
@@ -606,7 +606,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key)
+		public static void AtomicDecrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
 		{
 			trans.Atomic(key, MinusOne32.Span, FdbMutationType.Add);
 		}
@@ -616,7 +616,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
-		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key, bool clearIfZero)
+		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
 			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
 			if (clearIfZero)
@@ -630,7 +630,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
-		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
+		public static void AtomicDecrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
 		{
 			trans.Atomic(key, MinusOne32.Span, FdbMutationType.Add);
 			if (clearIfZero)
@@ -642,7 +642,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicIncrement64([NotNull] this IFdbTransaction trans, Slice key)
+		public static void AtomicIncrement64(this IFdbTransaction trans, Slice key)
 		{
 			trans.Atomic(key, PlusOne64, FdbMutationType.Add);
 		}
@@ -650,7 +650,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add 1 to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicIncrement64([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key)
+		public static void AtomicIncrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
 		{
 			trans.Atomic(key, PlusOne64.Span, FdbMutationType.Add);
 		}
@@ -658,7 +658,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key)
+		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key)
 		{
 			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
 		}
@@ -666,7 +666,7 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to subtract 1 from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key)
+		public static void AtomicDecrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
 		{
 			trans.Atomic(key, MinusOne64.Span, FdbMutationType.Add);
 		}
@@ -676,7 +676,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
-		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key, bool clearIfZero)
+		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
 			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
 			if (clearIfZero)
@@ -690,7 +690,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="clearIfZero">If <c>true</c>, automatically clear the key if it reaches zero. If <c>false</c>, the key can remain with a value of 0 in the database.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
-		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
+		public static void AtomicDecrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
 		{
 			trans.Atomic(key, MinusOne64.Span, FdbMutationType.Add);
 			if (clearIfZero)
@@ -703,7 +703,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
-		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, int value)
+		public static void AtomicAdd32(this IFdbTransaction trans, Slice key, int value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			trans.AtomicAdd32(key.Span, value);
@@ -713,7 +713,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
-		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
+		public static void AtomicAdd32(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
 		{
 			if (value == 1)
 			{
@@ -735,7 +735,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
-		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, uint value)
+		public static void AtomicAdd32(this IFdbTransaction trans, Slice key, uint value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			trans.AtomicAdd32(key.Span, value);
@@ -745,7 +745,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
-		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value)
+		public static void AtomicAdd32(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value)
 		{
 			if (value == 1)
 			{
@@ -767,7 +767,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
-		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, long value)
+		public static void AtomicAdd64(this IFdbTransaction trans, Slice key, long value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			trans.AtomicAdd64(key.Span, value);
@@ -777,7 +777,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
-		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
+		public static void AtomicAdd64(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
 		{
 			if (value == 1)
 			{
@@ -799,7 +799,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
-		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, ulong value)
+		public static void AtomicAdd64(this IFdbTransaction trans, Slice key, ulong value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			trans.AtomicAdd64(key.Span, value);
@@ -809,7 +809,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
-		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
+		public static void AtomicAdd64(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
 		{
 			if (value == 1)
 			{
@@ -831,7 +831,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
-		public static void AtomicAnd([NotNull] this IFdbTransaction trans, Slice key, Slice mask)
+		public static void AtomicAnd(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 
@@ -843,7 +843,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
-		public static void AtomicOr([NotNull] this IFdbTransaction trans, Slice key, Slice mask)
+		public static void AtomicOr(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			//TODO: rename this to AtomicBitOr(...) ?
 			trans.Atomic(key, mask, FdbMutationType.BitOr);
@@ -853,7 +853,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
-		public static void AtomicOr([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> mask)
+		public static void AtomicOr(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> mask)
 		{
 			//TODO: rename this to AtomicBitOr(...) ?
 			trans.Atomic(key, mask, FdbMutationType.BitOr);
@@ -863,7 +863,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
-		public static void AtomicXor([NotNull] this IFdbTransaction trans, Slice key, Slice mask)
+		public static void AtomicXor(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			//TODO: rename this to AtomicBitXOr(...) ?
 			trans.Atomic(key, mask, FdbMutationType.BitXor);
@@ -873,7 +873,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
-		public static void AtomicXor([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> mask)
+		public static void AtomicXor(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> mask)
 		{
 			//TODO: rename this to AtomicBitXOr(...) ?
 			trans.Atomic(key, mask, FdbMutationType.BitXor);
@@ -883,7 +883,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value to append.</param>
-		public static void AtomicAppendIfFits([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void AtomicAppendIfFits(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			trans.Atomic(key, value, FdbMutationType.AppendIfFits);
 		}
@@ -892,7 +892,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value to append.</param>
-		public static void AtomicAppendIfFits([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		public static void AtomicAppendIfFits(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			trans.Atomic(key, value, FdbMutationType.AppendIfFits);
 		}
@@ -901,7 +901,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Bit mask.</param>
-		public static void AtomicMax([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void AtomicMax(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			trans.Atomic(key, value, FdbMutationType.Max);
 		}
@@ -910,7 +910,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Bit mask.</param>
-		public static void AtomicMax([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		public static void AtomicMax(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			trans.Atomic(key, value, FdbMutationType.Max);
 		}
@@ -919,7 +919,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Bit mask.</param>
-		public static void AtomicMin([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void AtomicMin(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			trans.Atomic(key, value, FdbMutationType.Min);
 		}
@@ -928,7 +928,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Bit mask.</param>
-		public static void AtomicMin([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		public static void AtomicMin(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			trans.Atomic(key, value, FdbMutationType.Min);
 		}
@@ -972,7 +972,7 @@ namespace FoundationDB.Client
 			return p;
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailVersionStampNotSupported()
 		{
 			return new NotSupportedException($"VersionStamps are not supported at API version {Fdb.ApiVersion}. You need to select at least API Version 400 or above.");
@@ -982,7 +982,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
 		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void SetVersionStampedKey(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
@@ -994,7 +994,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
 		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		public static void SetVersionStampedKey(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1032,7 +1032,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose start is defined by <paramref name="stampOffset"/>.</param>
 		/// <param name="stampOffset">Offset in <paramref name="key"/> where the 80-bit VersionStamp is located.</param>
 		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
+		public static void SetVersionStampedKey(this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
@@ -1045,7 +1045,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose start is defined by <paramref name="stampOffset"/>.</param>
 		/// <param name="stampOffset">Offset in <paramref name="key"/> where the 80-bit VersionStamp is located.</param>
 		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, int stampOffset, ReadOnlySpan<byte> value)
+		public static void SetVersionStampedKey(this IFdbTransaction trans, ReadOnlySpan<byte> key, int stampOffset, ReadOnlySpan<byte> value)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.Positive(stampOffset, nameof(stampOffset));
@@ -1080,7 +1080,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value whose first 10 bytes will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
-		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value)
+		public static void SetVersionStampedValue(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
@@ -1092,7 +1092,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value whose first 10 bytes will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
-		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		public static void SetVersionStampedValue(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			if (value.Length < 10) throw new ArgumentException("The value must be at least 10 bytes long.", nameof(value));
@@ -1131,7 +1131,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
 		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
-		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value, int stampOffset)
+		public static void SetVersionStampedValue(this IFdbTransaction trans, Slice key, Slice value, int stampOffset)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			if (value.IsNull) throw Fdb.Errors.ValueCannotBeNull();
@@ -1144,7 +1144,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
 		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
-		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, int stampOffset)
+		public static void SetVersionStampedValue(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, int stampOffset)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.Positive(stampOffset, nameof(stampOffset));
@@ -1179,7 +1179,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Obsolete("Use the overload that takes an FdbRangeOptions argument, or use LINQ to configure the query!")]
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse = false)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse = false)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1187,20 +1187,20 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			return GetRange(trans, KeySelectorPair.Create(range), options);
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Obsolete("Use the overload that takes an FdbRangeOptions argument, or use LINQ to configure the query!")]
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, int limit, bool reverse = false)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, KeyRange range, int limit, bool reverse = false)
 		{
 			return GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1216,13 +1216,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Obsolete("Use the overload that takes an FdbRangeOptions argument, or use LINQ to configure the query!")]
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, int limit, bool reverse = false)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, int limit, bool reverse = false)
 		{
 			return GetRange(trans, beginKeyInclusive, endKeyExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1234,13 +1234,13 @@ namespace FoundationDB.Client
 		#region GetRange<T>...
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
+		public static FdbRangeQuery<TResult> GetRange<TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
 			return GetRange(trans, KeySelectorPair.Create(range), transform, options);
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
+		public static FdbRangeQuery<TResult> GetRange<TResult>(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1256,7 +1256,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
+		public static FdbRangeQuery<TResult> GetRange<TResult>(this IFdbReadOnlyTransaction trans, KeySelectorPair range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1269,16 +1269,16 @@ namespace FoundationDB.Client
 
 		private static readonly Func<KeyValuePair<Slice, Slice>, Slice> KeyValuePairToKey = (kv) => kv.Key;
 
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> OnlyKeys([NotNull] this FdbRangeQuery<KeyValuePair<Slice, Slice>> query)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> OnlyKeys(this FdbRangeQuery<KeyValuePair<Slice, Slice>> query)
 		{
 			if (query.Read == FdbReadMode.Values) throw new InvalidOperationException("Cannot extract keys because the source query only read the values.");
 			return new FdbRangeQuery<Slice>(query.Transaction, query.Begin, query.End, KeyValuePairToKey, query.Snapshot, query.Options.OnlyKeys());
 		}
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeKeys(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1290,8 +1290,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeKeys(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			var selectors = KeySelectorPair.Create(range);
@@ -1304,8 +1304,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeKeys(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1317,8 +1317,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeKeys(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1335,16 +1335,16 @@ namespace FoundationDB.Client
 
 		private static readonly Func<KeyValuePair<Slice, Slice>, Slice> KeyValuePairToValue = (kv) => kv.Value;
 
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> OnlyValues([NotNull] this FdbRangeQuery<KeyValuePair<Slice, Slice>> query)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> OnlyValues(this FdbRangeQuery<KeyValuePair<Slice, Slice>> query)
 		{
 			if (query.Read == FdbReadMode.Keys) throw new InvalidOperationException("Cannot extract values because the source query only read the keys.");
 			return new FdbRangeQuery<Slice>(query.Transaction, query.Begin, query.End, KeyValuePairToValue, query.Snapshot, query.Options.OnlyValues());
 		}
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeValues(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1356,8 +1356,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeValues(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			var selectors = KeySelectorPair.Create(range);
@@ -1370,8 +1370,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeValues(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1383,8 +1383,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
-		[Pure, NotNull, LinqTunnel]
-		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
+		[Pure, LinqTunnel]
+		public static FdbRangeQuery<Slice> GetRangeValues(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			return trans.GetRange(
@@ -1409,7 +1409,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1426,7 +1426,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1445,7 +1445,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1461,8 +1461,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
-		[ItemNotNull]
-		public static Task<string[]> GetAddressesForKeyAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice key)
+		public static Task<string[]> GetAddressesForKeyAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			return trans.GetAddressesForKeyAsync(key.Span);
@@ -1477,7 +1476,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be removed from the database.</param>
-		public static void Clear([NotNull] this IFdbTransaction trans, Slice key)
+		public static void Clear(this IFdbTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(key));
 
@@ -1494,7 +1493,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Pair of keys defining the range to clear.</param>
-		public static void ClearRange([NotNull] this IFdbTransaction trans, KeyRange range)
+		public static void ClearRange(this IFdbTransaction trans, KeyRange range)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -1508,7 +1507,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the range to clear.</param>
 		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
-		public static void ClearRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
+		public static void ClearRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			if (beginKeyInclusive.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(beginKeyInclusive));
 			if (endKeyExclusive.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(endKeyExclusive));
@@ -1527,7 +1526,7 @@ namespace FoundationDB.Client
 		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
 		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
 		/// <param name="type">One of the <see cref="FdbConflictRangeType"/> values indicating what type of conflict range is being set.</param>
-		public static void AddConflictRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		public static void AddConflictRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
 			if (beginKeyInclusive.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(beginKeyInclusive));
 			if (endKeyExclusive.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(endKeyExclusive));
@@ -1541,7 +1540,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Range of the keys specifying the conflict range. The end key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		public static void AddConflictRange([NotNull] this IFdbTransaction trans, KeyRange range, FdbConflictRangeType type)
+		public static void AddConflictRange(this IFdbTransaction trans, KeyRange range, FdbConflictRangeType type)
 		{
 			trans.AddConflictRange(range.Begin, range.End.HasValue ? range.End : FdbKey.MaxValue, type);
 		}
@@ -1549,7 +1548,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange([NotNull] this IFdbTransaction trans, KeyRange range)
+		public static void AddReadConflictRange(this IFdbTransaction trans, KeyRange range)
 		{
 			AddConflictRange(trans, range, FdbConflictRangeType.Read);
 		}
@@ -1557,7 +1556,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
+		public static void AddReadConflictRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Read);
 		}
@@ -1565,7 +1564,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
+		public static void AddReadConflictRange(this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Read);
 		}
@@ -1573,7 +1572,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictKey([NotNull] this IFdbTransaction trans, Slice key)
+		public static void AddReadConflictKey(this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Read);
 		}
@@ -1581,7 +1580,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, KeyRange range)
+		public static void AddWriteConflictRange(this IFdbTransaction trans, KeyRange range)
 		{
 			AddConflictRange(trans, range, FdbConflictRangeType.Write);
 		}
@@ -1589,7 +1588,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
+		public static void AddWriteConflictRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Write);
 		}
@@ -1597,7 +1596,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
+		public static void AddWriteConflictRange(this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Write);
 		}
@@ -1605,7 +1604,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictKey([NotNull] this IFdbTransaction trans, Slice key)
+		public static void AddWriteConflictKey(this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Write);
 		}
@@ -1620,7 +1619,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
 		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property.</remarks>
-		[Pure, NotNull]
+		[Pure]
 		public static FdbWatch Watch(this IFdbTransaction trans, Slice key, CancellationToken ct)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
@@ -1637,8 +1636,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value will be Slice.Nil.</returns>
-		[ItemNotNull]
-		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys)
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -1655,8 +1653,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
 		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
-		[ItemNotNull]
-		public static async Task<TValue[]> GetValuesAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IValueEncoder<TValue> decoder)
+		public static async Task<TValue[]> GetValuesAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IValueEncoder<TValue> decoder)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(decoder, nameof(decoder));
@@ -1670,8 +1667,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="selectors">Sequence of key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		[ItemNotNull]
-		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelector> selectors)
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransaction trans, IEnumerable<KeySelector> selectors)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(selectors, nameof(selectors));
@@ -1688,8 +1684,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of key/value pairs, or an exception. Each pair in the array will contain the key at the same index in <paramref name="keys"/>, and its corresponding value in the database or Slice.Nil if that key does not exist.</returns>
 		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValuesAsync"/>, except that it will return the keys in addition to the values.</remarks>
-		[ItemNotNull]
-		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys)
+		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -1706,8 +1701,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Array of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of key/value pairs, or an exception. Each pair in the array will contain the key at the same index in <paramref name="keys"/>, and its corresponding value in the database or Slice.Nil if that key does not exist.</returns>
 		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValuesAsync"/>, except that it will return the keys in addition to the values.</remarks>
-		[ItemNotNull]
-		public static async Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] Slice[] keys)
+		public static async Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync(this IFdbReadOnlyTransaction trans, Slice[] keys)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -1730,8 +1724,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Array of keys to be looked up in the database</param>
 		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
 		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
-		[ItemNotNull]
-		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IValueEncoder<TValue> decoder)
+		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IValueEncoder<TValue> decoder)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -1748,8 +1741,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
 		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
-		[ItemNotNull]
-		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] Slice[] keys, [NotNull] IValueEncoder<TValue> decoder)
+		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice[] keys, IValueEncoder<TValue> decoder)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(keys, nameof(keys));
@@ -1775,8 +1767,7 @@ namespace FoundationDB.Client
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
-		[ItemNotNull]
-		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));
@@ -1797,8 +1788,7 @@ namespace FoundationDB.Client
 		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successful call to <paramref name="handler"/>.</returns>
-		[ItemNotNull]
-		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<T>>> handler, CancellationToken ct)
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyRetryable db, [InstantHandle] Func<IFdbReadOnlyTransaction, Task<IAsyncEnumerable<T>>> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
 			Contract.NotNull(handler, nameof(handler));

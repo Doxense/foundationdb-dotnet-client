@@ -41,7 +41,7 @@ namespace Doxense.Linq.Async.Iterators
 	public sealed class MergeSortAsyncIterator<TSource, TKey, TResult> : MergeAsyncIterator<TSource, TKey, TResult>
 	{
 
-		public MergeSortAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+		public MergeSortAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 

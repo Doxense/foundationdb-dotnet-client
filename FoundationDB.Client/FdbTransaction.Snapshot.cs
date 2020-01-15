@@ -33,14 +33,13 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public partial class FdbTransaction
 	{
 
 		/// <summary>Snapshot version of this transaction (lazily allocated)</summary>
-		private Snapshotted m_snapshotted;
+		private Snapshotted? m_snapshotted;
 
 		/// <summary>Returns a version of this transaction that perform snapshotted operations</summary>
 		public IFdbReadOnlyTransaction Snapshot
@@ -59,7 +58,7 @@ namespace FoundationDB.Client
 
 			private readonly FdbTransaction m_parent;
 
-			public Snapshotted([NotNull] FdbTransaction parent)
+			public Snapshotted(FdbTransaction parent)
 			{
 				Contract.NotNull(parent, nameof(parent));
 				m_parent = parent;
@@ -152,7 +151,7 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
-			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration)
+			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
 			{
 				EnsureCanRead();
 

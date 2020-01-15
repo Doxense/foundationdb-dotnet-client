@@ -36,7 +36,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of numerical ids</summary>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
@@ -44,11 +43,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	public class FdbCompressedBitmapIndex<TValue>
 	{
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] IKeySubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbCompressedBitmapIndex(string name, IKeySubspace subspace, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 			: this(name, subspace.AsTyped<TValue>(), valueComparer, indexNullValues)
 		{ }
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] ITypedKeySubspace<TValue> subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbCompressedBitmapIndex(string name, ITypedKeySubspace<TValue> subspace, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 		{
 			Contract.NotNull(name, nameof(name));
 			Contract.NotNull(subspace, nameof(subspace));
@@ -59,13 +58,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			this.IndexNullValues = indexNullValues;
 		}
 
-		[NotNull]
 		public string Name { get; }
 
-		[NotNull]
 		public ITypedKeySubspace<TValue> Subspace { get; }
 
-		[NotNull]
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
@@ -77,7 +73,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
 		/// <returns>True if a value was inserted into the index; or false if <paramref name="value"/> is null and <see cref="IndexNullValues"/> is false, or if this <paramref name="id"/> was already indexed at this <paramref name="value"/>.</returns>
-		public async Task<bool> AddAsync([NotNull] IFdbTransaction trans, long id, TValue value)
+		public async Task<bool> AddAsync(IFdbTransaction trans, long id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -104,7 +100,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="previousValue">New value of this entity in the index</param>
 		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
-		public async Task<bool> UpdateAsync([NotNull] IFdbTransaction trans, long id, TValue newValue, TValue previousValue)
+		public async Task<bool> UpdateAsync(IFdbTransaction trans, long id, TValue newValue, TValue previousValue)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -143,7 +139,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
-		public async Task<bool> RemoveAsync([NotNull] IFdbTransaction trans, long id, TValue value)
+		public async Task<bool> RemoveAsync(IFdbTransaction trans, long id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -164,7 +160,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse"></param>
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
-		public async Task<IEnumerable<long>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
+		public async Task<IEnumerable<long>?> LookupAsync(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
 			var key = this.Subspace[value];
 			var data = await trans.GetAsync(key).ConfigureAwait(false);

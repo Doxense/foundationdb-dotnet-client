@@ -31,7 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using JetBrains.Annotations;
+	using System.Diagnostics.CodeAnalysis;
 
 	/// <summary>Class that know how to encode and decode values of a fixed type into a lower format</summary>
 	/// <typeparam name="TValue">Type of the values</typeparam>
@@ -40,11 +40,11 @@ namespace Doxense.Serialization.Encoders
 	{
 
 		/// <summary>Encode a single value into a compact binary representation</summary>
-		TStorage EncodeValue(TValue value);
+		TStorage EncodeValue([AllowNull] TValue value);
 
 		/// <summary>Decode a single value from a compact binary representation</summary>
 		/// <param name="encoded">Packed value</param>
-		[CanBeNull]
+		[return:MaybeNull]
 		TValue DecodeValue(TStorage encoded);
 
 	}

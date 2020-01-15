@@ -56,7 +56,7 @@ namespace Doxense.Async
 		}
 
 		/// <summary>Mutex that has already completed</summary>
-		public static AsyncCancelableMutex AlreadyDone { [NotNull] get; } = CreateAlreadyDone();
+		public static AsyncCancelableMutex AlreadyDone { get; } = CreateAlreadyDone();
 
 		private const int STATE_NONE = 0;
 		private const int STATE_SET = 1;

@@ -34,7 +34,6 @@ namespace FoundationDB.Layers.Blobs
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Location) + "}")]
@@ -52,7 +51,7 @@ namespace FoundationDB.Layers.Blobs
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
 		/// <param name="location">Subspace to be used for storing the blob data and metadata</param>
-		public FdbBlob([NotNull] ISubspaceLocation location)
+		public FdbBlob(ISubspaceLocation location)
 		{
 			if (location == null) throw new ArgumentNullException(nameof(location));
 
@@ -60,7 +59,6 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		[NotNull]
 		public DynamicKeySubspaceLocation Location { get; }
 
 		private readonly struct Chunk
@@ -123,7 +121,7 @@ namespace FoundationDB.Layers.Blobs
 
 			#region Internal Helpers...
 
-			private async Task<Chunk> GetChunkAtAsync([NotNull] IFdbTransaction trans, long offset)
+			private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset)
 			{
 				Contract.Requires(trans != null && offset >= 0);
 
@@ -150,7 +148,7 @@ namespace FoundationDB.Layers.Blobs
 				return new Chunk(chunkKey, chunkData, chunkOffset);
 			}
 
-			private async Task MakeSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
+			private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset)
 			{
 				Contract.Requires(trans != null && offset >= 0);
 
@@ -168,14 +166,14 @@ namespace FoundationDB.Layers.Blobs
 				trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
 			}
 
-			private async Task MakeSparseAsync([NotNull] IFdbTransaction trans, long start, long end)
+			private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end)
 			{
 				await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
 				await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
 				trans.ClearRange(DataKey(start), DataKey(end));
 			}
 
-			private async Task<bool> TryRemoteSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
+			private async Task<bool> TryRemoteSplitPointAsync(IFdbTransaction trans, long offset)
 			{
 				Contract.Requires(trans != null && offset >= 0);
 
@@ -193,7 +191,7 @@ namespace FoundationDB.Layers.Blobs
 				return true;
 			}
 
-			private void WriteToSparse([NotNull] IFdbTransaction trans, long offset, ReadOnlySpan<byte> data)
+			private void WriteToSparse(IFdbTransaction trans, long offset, ReadOnlySpan<byte> data)
 			{
 				Contract.Requires(trans != null && offset >= 0);
 
@@ -209,7 +207,7 @@ namespace FoundationDB.Layers.Blobs
 				}
 			}
 
-			private void SetSize([NotNull] IFdbTransaction trans, long size)
+			private void SetSize(IFdbTransaction trans, long size)
 			{
 				Contract.Requires(trans != null && size >= 0);
 
@@ -222,7 +220,7 @@ namespace FoundationDB.Layers.Blobs
 			/// <summary>
 			/// Delete all key-value pairs associated with the blob.
 			/// </summary>
-			public void Delete([NotNull] IFdbTransaction trans)
+			public void Delete(IFdbTransaction trans)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -233,7 +231,7 @@ namespace FoundationDB.Layers.Blobs
 			/// Get the size (in bytes) of the blob.
 			/// </summary>
 			/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
-			public Task<long?> GetSizeAsync([NotNull] IFdbReadOnlyTransaction trans)
+			public Task<long?> GetSizeAsync(IFdbReadOnlyTransaction trans)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 				return GetSizeInternalAsync(trans);
@@ -255,7 +253,7 @@ namespace FoundationDB.Layers.Blobs
 			/// <summary>
 			/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
 			/// </summary>
-			public async Task<Slice> ReadAsync([NotNull] IFdbReadOnlyTransaction trans, long offset, int n)
+			public async Task<Slice> ReadAsync(IFdbReadOnlyTransaction trans, long offset, int n)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 				if (offset < 0) throw new ArgumentNullException(nameof(offset), "Offset cannot be less than zero");
@@ -306,7 +304,7 @@ namespace FoundationDB.Layers.Blobs
 			}
 
 			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
-			public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
+			public async Task WriteAsync(IFdbTransaction trans, long offset, ReadOnlyMemory<byte> data)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 				if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
@@ -330,7 +328,7 @@ namespace FoundationDB.Layers.Blobs
 			}
 
 			/// <summary>Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.</summary>
-			public Task WriteAsync([NotNull] IFdbTransaction trans, long offset, Slice data)
+			public Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
 			{
 				return WriteAsync(trans, offset, data.Memory);
 			}
@@ -338,7 +336,7 @@ namespace FoundationDB.Layers.Blobs
 			/// <summary>
 			/// Append the contents of <paramref name="data"/> onto the end of the blob.
 			/// </summary>
-			public async Task AppendAsync([NotNull] IFdbTransaction trans, ReadOnlyMemory<byte> data)
+			public async Task AppendAsync(IFdbTransaction trans, ReadOnlyMemory<byte> data)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -353,7 +351,7 @@ namespace FoundationDB.Layers.Blobs
 			/// <summary>
 			/// Append the contents of <paramref name="data"/> onto the end of the blob.
 			/// </summary>
-			public Task AppendAsync([NotNull] IFdbTransaction trans, Slice data)
+			public Task AppendAsync(IFdbTransaction trans, Slice data)
 			{
 				return AppendAsync(trans, data.Memory);
 			}
@@ -361,7 +359,7 @@ namespace FoundationDB.Layers.Blobs
 			/// <summary>
 			/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
 			/// </summary>
-			public async Task TruncateAsync([NotNull] IFdbTransaction trans, long newLength)
+			public async Task TruncateAsync(IFdbTransaction trans, long newLength)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 				if (newLength < 0) throw new ArgumentOutOfRangeException(nameof(newLength), "Length cannot be less than zero");

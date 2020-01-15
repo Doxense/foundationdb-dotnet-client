@@ -42,7 +42,6 @@ namespace FoundationDB.Client
 	public sealed class FdbRangeChunk : IReadOnlyList<KeyValuePair<Slice, Slice>>
 	{
 		/// <summary>Contains the items that where </summary>
-		[NotNull]
 		public KeyValuePair<Slice, Slice>[] Items { get; }
 
 		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
@@ -65,7 +64,7 @@ namespace FoundationDB.Client
 		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
 		public Slice First { get; }
 
-		public FdbRangeChunk([NotNull] KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
+		public FdbRangeChunk(KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
 		{
 			Contract.NotNull(items, nameof(items));
 			this.Items = items;
@@ -363,8 +362,7 @@ namespace FoundationDB.Client
 		/// <param name="keyHandler">Lambda that can decode the keys of this chunk</param>
 		/// <param name="valueHandler">Lambda that can decode the values of this chunk</param>
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
-		[NotNull]
-		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] Func<Slice, TKey> keyHandler, [NotNull] Func<Slice, TValue> valueHandler)
+		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(Func<Slice, TKey> keyHandler, Func<Slice, TValue> valueHandler)
 		{
 			Contract.NotNull(keyHandler, nameof(keyHandler));
 			Contract.NotNull(valueHandler, nameof(valueHandler));
@@ -392,8 +390,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
 		/// <exception cref="System.ArgumentException">If at least on key in the result is outside <paramref name="subspace"/>.</exception>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="subspace"/>, <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
-		[NotNull]
-		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(KeySubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(keyEncoder, nameof(keyEncoder));
@@ -420,8 +417,7 @@ namespace FoundationDB.Client
 		/// <param name="valueEncoder">Instance used to decode the values of this chunk</param>
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
-		[NotNull]
-		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
 			Contract.NotNull(keyEncoder, nameof(keyEncoder));
 			Contract.NotNull(valueEncoder, nameof(valueEncoder));
@@ -444,8 +440,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="handler">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
-		[NotNull]
-		public T[] DecodeKeys<T>([NotNull] Func<Slice, T> handler)
+		public T[] DecodeKeys<T>(Func<Slice, T> handler)
 		{
 			Contract.NotNull(handler, nameof(handler));
 
@@ -463,8 +458,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace"></param>
 		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
-		[NotNull]
-		public T[] DecodeKeys<T>([NotNull] KeySubspace subspace, [NotNull] IKeyEncoder<T> keyEncoder)
+		public T[] DecodeKeys<T>(KeySubspace subspace, IKeyEncoder<T> keyEncoder)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 			Contract.NotNull(keyEncoder, nameof(keyEncoder));
@@ -482,8 +476,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
-		[NotNull]
-		public T[] DecodeKeys<T>([NotNull] IKeyEncoder<T> keyEncoder)
+		public T[] DecodeKeys<T>(IKeyEncoder<T> keyEncoder)
 		{
 			Contract.NotNull(keyEncoder, nameof(keyEncoder));
 
@@ -500,8 +493,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the values</typeparam>
 		/// <param name="handler">Lambda that can decode the values of this chunk</param>
 		/// <returns>Array of decoded values, or an empty array if the chunk doesn't have any results</returns>
-		[NotNull]
-		public T[] DecodeValues<T>([NotNull] Func<Slice, T> handler)
+		public T[] DecodeValues<T>(Func<Slice, T> handler)
 		{
 			Contract.NotNull(handler, nameof(handler));
 
@@ -518,8 +510,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the values</typeparam>
 		/// <param name="valueEncoder">Instance used to decode the values of this chunk</param>
 		/// <returns>Array of decoded values, or an empty array if the chunk doesn't have any results</returns>
-		[NotNull]
-		public T[] DecodeValues<T>([NotNull] IValueEncoder<T> valueEncoder)
+		public T[] DecodeValues<T>(IValueEncoder<T> valueEncoder)
 		{
 			Contract.NotNull(valueEncoder, nameof(valueEncoder));
 

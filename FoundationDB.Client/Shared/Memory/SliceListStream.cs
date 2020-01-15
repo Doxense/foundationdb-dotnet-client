@@ -49,21 +49,21 @@ namespace Doxense.Memory
 		private long m_length;
 		private int m_indexOfCurrentSlice;
 		private int m_offsetInCurrentSlice;
-		private Task<int> m_lastTask;
+		private Task<int>? m_lastTask;
 
-		internal SliceListStream([NotNull] Slice[] slices)
+		internal SliceListStream(Slice[] slices)
 		{
 			Contract.NotNull(slices, nameof(slices));
 			Init(slices);
 		}
 
-		public SliceListStream([NotNull] IEnumerable<Slice> slices)
+		public SliceListStream(IEnumerable<Slice> slices)
 		{
 			Contract.NotNull(slices, nameof(slices));
 			Init(slices.ToArray());
 		}
 
-		private void Init([NotNull] Slice[] slices)
+		private void Init(Slice[] slices)
 		{
 			m_slices = slices;
 			long total = 0;

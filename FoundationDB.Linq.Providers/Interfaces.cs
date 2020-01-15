@@ -28,25 +28,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Expressions;
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Linq.Expressions;
 
-	/// <summary>Base inteface of all queryable objects</summary>
+	/// <summary>Base interface of all queryable objects</summary>
 	public interface IFdbAsyncQueryable
 	{
 		/// <summary>Type of the results of the query</summary>
-		Type Type { [NotNull] get; }
+		Type Type { get; }
 
 		/// <summary>Expression describing the intent of the query</summary>
-		FdbQueryExpression Expression { [NotNull] get; }
+		FdbQueryExpression Expression { get; }
 
 		/// <summary>Provider that created this query</summary>
-		IFdbAsyncQueryProvider Provider { [NotNull] get; }
+		IFdbAsyncQueryProvider Provider { get; }
 	}
 
 	/// <summary>Queryable that returns a single result of type T</summary>
@@ -60,26 +59,23 @@ namespace FoundationDB.Linq
 	public interface IFdbAsyncSequenceQueryable<out T> : IFdbAsyncQueryable
 	{
 		/// <summary>Type of elements of the sequence</summary>
-		Type ElementType { [NotNull] get; }
+		Type ElementType { get; }
 	}
 
 	/// <summary>Query provider</summary>
 	public interface IFdbAsyncQueryProvider 
 	{
 		/// <summary>Wraps a query expression into a new queryable</summary>
-		[NotNull]
-		IFdbAsyncQueryable CreateQuery([NotNull] FdbQueryExpression expression);
+		IFdbAsyncQueryable CreateQuery(FdbQueryExpression expression);
 
 		/// <summary>Wraps a typed query expression into a new queryable</summary>
-		[NotNull]
-		IFdbAsyncQueryable<R> CreateQuery<R>([NotNull] FdbQueryExpression<R> expression);
+		IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression);
 
 		/// <summary>Wraps a type sequence query expression into a new queryable</summary>
-		[NotNull]
-		IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>([NotNull] FdbQuerySequenceExpression<R> expression);
+		IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression);
 
 		/// <summary>Execute a query expression into a typed result</summary>
-		Task<R> ExecuteAsync<R>([NotNull] FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
+		Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
 	}
 
 	/// <summary>Queryable transaction</summary>
@@ -88,7 +84,6 @@ namespace FoundationDB.Linq
 		// Note: this interface is only used to hook extension methods specific to transaction queries
 
 		/// <summary>Transaction used by this query</summary>
-		[NotNull]
 		IFdbReadOnlyTransaction Transaction { get; }
 
 	}
@@ -99,7 +94,7 @@ namespace FoundationDB.Linq
 		// Note: this interface is only used to hook extension methods specific to index queries
 
 		/// <summary>Index used by this query</summary>
-		FdbIndex<TId, TValue> Index { [NotNull] get; }
+		FdbIndex<TId, TValue> Index { get; }
 
 	}
 

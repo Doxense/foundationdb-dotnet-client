@@ -29,14 +29,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.DependencyInjection;
 
 	public interface IFdbDatabaseProviderBuilder
 	{
 
-		[NotNull]
 		IServiceCollection Services { get; }
 
 	}
+
 }

@@ -68,14 +68,14 @@ namespace Doxense.Memory
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public SliceReader([NotNull] byte[] buffer)
+		public SliceReader(byte[] buffer)
 		{
 			this.Buffer = new Slice(buffer, 0, buffer.Length);
 			this.Position = 0;
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public SliceReader([NotNull] byte[] buffer, int offset, int count)
+		public SliceReader(byte[] buffer, int offset, int count)
 		{
 			this.Buffer = new Slice(buffer, offset, count);
 			this.Position = 0;
@@ -187,7 +187,7 @@ namespace Doxense.Memory
 
 		/// <summary>Read until <paramref name="handler"/> returns true, or we reach the end of the buffer</summary>
 		[Pure]
-		public Slice ReadWhile([NotNull] Func<byte, int, bool> handler)
+		public Slice ReadWhile(Func<byte, int, bool> handler)
 		{
 			unsafe
 			{

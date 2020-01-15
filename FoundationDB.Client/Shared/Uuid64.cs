@@ -475,8 +475,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* HexsToLowerChars([NotNull] char* ptr, int a)
+		private static unsafe char* HexsToLowerChars(char* ptr, int a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
@@ -497,8 +496,7 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'A') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* HexsToUpperChars([NotNull] char* ptr, int a)
+		private static unsafe char* HexsToUpperChars(char* ptr, int a)
 		{
 			Contract.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);

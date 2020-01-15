@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Counters
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
 	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
@@ -40,12 +39,12 @@ namespace FoundationDB.Layers.Counters
 	{
 
 		/// <summary>Create a new counter map.</summary>
-		public FdbCounterMap([NotNull] IKeySubspace subspace)
+		public FdbCounterMap(IKeySubspace subspace)
 			: this(subspace.AsTyped<TKey>())
 		{ }
 
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
-		public FdbCounterMap([NotNull] ITypedKeySubspace<TKey> subspace)
+		public FdbCounterMap(ITypedKeySubspace<TKey> subspace)
 		{
 			Contract.NotNull(subspace, nameof(subspace));
 
@@ -54,10 +53,8 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
-		[NotNull]
 		public IKeySubspace Subspace { get; }
 
-		[NotNull]
 		internal ITypedKeySubspace<TKey> Location { get; }
 
 		/// <summary>Add a value to a counter in one atomic operation</summary>
@@ -65,7 +62,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <param name="value">Value that will be added</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Add([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
+		public void Add(IFdbTransaction transaction, TKey counterKey, long value)
 		{
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
@@ -79,7 +76,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <param name="value">Value that will be subtracted. If the value is zero</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Subtract([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
+		public void Subtract(IFdbTransaction transaction, TKey counterKey, long value)
 		{
 			Add(transaction, counterKey, -value);
 		}
@@ -88,7 +85,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Increment([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
+		public void Increment(IFdbTransaction transaction, TKey counterKey)
 		{
 			Add(transaction, counterKey, 1);
 		}
@@ -97,7 +94,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Decrement([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
+		public void Decrement(IFdbTransaction transaction, TKey counterKey)
 		{
 			Add(transaction, counterKey, -1);
 		}
@@ -106,7 +103,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <returns></returns>
-		public async Task<long?> ReadAsync([NotNull] IFdbReadOnlyTransaction transaction, [NotNull] TKey counterKey)
+		public async Task<long?> ReadAsync(IFdbReadOnlyTransaction transaction, TKey counterKey)
 		{
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
@@ -122,7 +119,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="value">Value that will be added to the counter</param>
 		/// <returns>New value of the counter. Returns <paramref name="value"/> if the counter did not exist previously.</returns>
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
-		public async Task<long> AddThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
+		public async Task<long> AddThenReadAsync(IFdbTransaction transaction, TKey counterKey, long value)
 		{
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
@@ -136,17 +133,17 @@ namespace FoundationDB.Layers.Counters
 			return value;
 		}
 
-		public Task<long> SubtractThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
+		public Task<long> SubtractThenReadAsync(IFdbTransaction transaction, TKey counterKey, long value)
 		{
 			return AddThenReadAsync(transaction, counterKey, -value);
 		}
 
-		public Task<long> IncrementThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
+		public Task<long> IncrementThenReadAsync(IFdbTransaction transaction, TKey counterKey)
 		{
 			return AddThenReadAsync(transaction, counterKey, 1);
 		}
 
-		public Task<long> DecrementThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
+		public Task<long> DecrementThenReadAsync(IFdbTransaction transaction, TKey counterKey)
 		{
 			return AddThenReadAsync(transaction, counterKey, -1);
 		}
@@ -157,7 +154,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="value">Value that will be added to the counter</param>
 		/// <returns>Previous value of the counter. Returns 0 if the counter did not exist previously.</returns>
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
-		public async Task<long> ReadThenAddAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
+		public async Task<long> ReadThenAddAsync(IFdbTransaction transaction, TKey counterKey, long value)
 		{
 			if (transaction == null) throw new ArgumentNullException(nameof(transaction));
 			if (counterKey == null) throw new ArgumentNullException(nameof(counterKey));
@@ -171,17 +168,17 @@ namespace FoundationDB.Layers.Counters
 			return previous;
 		}
 
-		public Task<long> ReadThenSubtractAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
+		public Task<long> ReadThenSubtractAsync(IFdbTransaction transaction, TKey counterKey, long value)
 		{
 			return ReadThenAddAsync(transaction, counterKey, -value);
 		}
 
-		public Task<long> ReadThenIncrementAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
+		public Task<long> ReadThenIncrementAsync(IFdbTransaction transaction, TKey counterKey)
 		{
 			return ReadThenAddAsync(transaction, counterKey, 1);
 		}
 
-		public Task<long> ReadThenDecrementAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
+		public Task<long> ReadThenDecrementAsync(IFdbTransaction transaction, TKey counterKey)
 		{
 			return ReadThenAddAsync(transaction, counterKey, -1);
 		}

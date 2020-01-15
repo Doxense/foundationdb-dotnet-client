@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="location">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector([NotNull] ISubspaceLocation location, T defaultValue = default, IValueEncoder<T> encoder = null)
+		public FdbVector(ISubspaceLocation location, T defaultValue = default, IValueEncoder<T>? encoder = null)
 			: this(location.AsDynamic(), defaultValue, encoder)
 		{ }
 
@@ -74,7 +74,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="location">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector([NotNull] DynamicKeySubspaceLocation location, T defaultValue, IValueEncoder<T> encoder = null)
+		public FdbVector(DynamicKeySubspaceLocation location, T defaultValue, IValueEncoder<T>? encoder = null)
 		{
 			Contract.NotNull(location, nameof(location));
 
@@ -85,13 +85,11 @@ namespace FoundationDB.Layers.Collections
 
 
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
-		[NotNull]
 		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Default value for sparse entries</summary>
 		public T DefaultValue { get; }
 
-		[NotNull]
 		public IValueEncoder<T> Encoder { get; }
 
 		public sealed class State
@@ -106,12 +104,12 @@ namespace FoundationDB.Layers.Collections
 			internal State(IDynamicKeySubspace subspace, T defaultValue, IValueEncoder<T> encoder)
 			{
 				this.Subspace = subspace;
-				this.DefaultValue = default;
+				this.DefaultValue = defaultValue;
 				this.Encoder = encoder;
 			}
 
 			/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
-			public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction tr)
+			public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -119,7 +117,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Push a single item onto the end of the Vector.</summary>
-			public async Task PushAsync([NotNull] IFdbTransaction tr, T value)
+			public async Task PushAsync(IFdbTransaction tr, T value)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -129,7 +127,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the value of the last item in the Vector.</summary>
-			public Task<T> BackAsync([NotNull] IFdbReadOnlyTransaction tr)
+			public Task<T> BackAsync(IFdbReadOnlyTransaction tr)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -140,13 +138,13 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the value of the first item in the Vector.</summary>
-			public Task<T> FrontAsync([NotNull] IFdbReadOnlyTransaction tr)
+			public Task<T> FrontAsync(IFdbReadOnlyTransaction tr)
 			{
 				return GetAsync(tr, 0);
 			}
 
 			/// <summary>Get and pops the last item off the Vector.</summary>
-			public async Task<(T Value, bool HasValue)> PopAsync([NotNull] IFdbTransaction tr)
+			public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -181,7 +179,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Swap the items at positions i1 and i2.</summary>
-			public async Task SwapAsync([NotNull] IFdbTransaction tr, long index1, long index2)
+			public async Task SwapAsync(IFdbTransaction tr, long index1, long index2)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -218,7 +216,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the item at the specified index.</summary>
-			public async Task<T> GetAsync([NotNull] IFdbReadOnlyTransaction tr, long index)
+			public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 				if (index < 0) throw new IndexOutOfRangeException($"Index {index} must be positive");
@@ -247,7 +245,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
-			public IAsyncEnumerable<T> GetRangeAsync([NotNull] IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
+			public IAsyncEnumerable<T> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -257,7 +255,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Set the value at a particular index in the Vector.</summary>
-			public void Set([NotNull] IFdbTransaction tr, long index, T value)
+			public void Set(IFdbTransaction tr, long index, T value)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -265,7 +263,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Test whether the Vector is empty.</summary>
-			public async Task<bool> EmptyAsync([NotNull] IFdbReadOnlyTransaction tr)
+			public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -273,7 +271,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Grow or shrink the size of the Vector.</summary>
-			public async Task ResizeAsync([NotNull] IFdbTransaction tr, long length)
+			public async Task ResizeAsync(IFdbTransaction tr, long length)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 
@@ -296,7 +294,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Remove all items from the Vector.</summary>
-			public void Clear([NotNull] IFdbTransaction tr)
+			public void Clear(IFdbTransaction tr)
 			{
 				if (tr == null) throw new ArgumentNullException(nameof(tr));
 

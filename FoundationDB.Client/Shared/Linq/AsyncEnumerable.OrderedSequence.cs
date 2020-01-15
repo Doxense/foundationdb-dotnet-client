@@ -72,7 +72,6 @@ namespace Doxense.Linq
 				m_parent = parent;
 			}
 
-			[NotNull]
 			internal virtual SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource>? next)
 			{
 				var sorter = new SequenceByElementSorter<TSource>(m_comparer ?? Comparer<TSource>.Default, m_descending, next);

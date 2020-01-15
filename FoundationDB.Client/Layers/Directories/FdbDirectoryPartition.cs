@@ -31,7 +31,6 @@ namespace FoundationDB.Client
 	using System;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
-	using JetBrains.Annotations;
 
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
@@ -39,7 +38,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public static Slice LayerId => Slice.FromString("partition");
 
-		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, [NotNull] IDynamicKeyEncoder keyEncoder, [CanBeNull] ISubspaceContext context)
+		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, IDynamicKeyEncoder keyEncoder, ISubspaceContext? context)
 			: base(descriptor, keyEncoder, context)
 		{
 			Contract.NotNull(parent, nameof(parent));

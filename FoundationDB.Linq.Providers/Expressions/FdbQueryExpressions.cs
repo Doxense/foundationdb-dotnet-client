@@ -34,7 +34,6 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
-	using Doxense.Linq;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 
@@ -43,8 +42,7 @@ namespace FoundationDB.Linq.Expressions
 	{
 
 		/// <summary>Return a single result from the query</summary>
-		[NotNull]
-		public static FdbQuerySingleExpression<T, R> Single<T, R>([NotNull] FdbQuerySequenceExpression<T> source, string name, [NotNull] Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
+		public static FdbQuerySingleExpression<T, R> Single<T, R>(FdbQuerySequenceExpression<T> source, string name, Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 			if (lambda == null) throw new ArgumentNullException(nameof(lambda));
@@ -55,8 +53,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Return a sequence of results from the query</summary>
-		[NotNull]
-		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>([NotNull] IAsyncEnumerable<T> source)
+		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>(IAsyncEnumerable<T> source)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -64,21 +61,18 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
-		[NotNull]
 		public static FdbQueryRangeExpression Range(KeySelectorPair range, FdbRangeOptions? options = null)
 		{
 			return new FdbQueryRangeExpression(range, options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
-		[NotNull]
 		public static FdbQueryRangeExpression Range(KeySelector start, KeySelector stop, FdbRangeOptions? options = null)
 		{
 			return Range(new KeySelectorPair(start, stop), options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
-		[NotNull]
 		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix, FdbRangeOptions? options = null)
 		{
 			// starts_with('A') means ['A', B')
@@ -86,7 +80,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
-		[NotNull]
 		[Obsolete]
 		public static FdbQueryRangeExpression RangeStartsWith(IVarTuple tuple, FdbRangeOptions? options = null)
 		{
@@ -94,7 +87,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Return the intersection between one of more sequences of results</summary>
-		[NotNull]
 		public static FdbQueryIntersectExpression<T> Intersect<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
 			if (expressions == null) throw new ArgumentNullException(nameof(expressions));
@@ -107,7 +99,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Return the union between one of more sequences of results</summary>
-		[NotNull]
 		public static FdbQueryUnionExpression<T> Union<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
 			if (expressions == null) throw new ArgumentNullException(nameof(expressions));
@@ -120,32 +111,29 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Transform each elements of a sequence into a new sequence</summary>
-		[NotNull]
-		public static FdbQueryTransformExpression<T, R> Transform<T, R>([NotNull] FdbQuerySequenceExpression<T> source, [NotNull] Expression<Func<T, R>> transform)
+		public static FdbQueryTransformExpression<T, R> Transform<T, R>(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 			if (transform == null) throw new ArgumentNullException(nameof(transform));
 
-			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with transform input type {1}", source.ElementType.Name, typeof(T).Name), nameof(source));
+			if (source.ElementType != typeof(T)) throw new ArgumentException($"Source sequence has type {source.ElementType.Name} that is not compatible with transform input type {typeof(T).Name}", nameof(source));
 
 			return new FdbQueryTransformExpression<T, R>(source, transform);
 		}
 
 		/// <summary>Filter out the elements of e sequence that do not match a predicate</summary>
-		[NotNull]
-		public static FdbQueryFilterExpression<T> Filter<T>([NotNull] FdbQuerySequenceExpression<T> source, [NotNull] Expression<Func<T, bool>> filter)
+		public static FdbQueryFilterExpression<T> Filter<T>(FdbQuerySequenceExpression<T> source, Expression<Func<T, bool>> filter)
 		{
 			if (source == null) throw new ArgumentNullException(nameof(source));
 			if (filter == null) throw new ArgumentNullException(nameof(filter));
 
-			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with filter input type {1}", source.ElementType.Name, typeof(T).Name), nameof(source));
+			if (source.ElementType != typeof(T)) throw new ArgumentException($"Source sequence has type {source.ElementType.Name} that is not compatible with filter input type {typeof(T).Name}", nameof(source));
 
 			return new FdbQueryFilterExpression<T>(source, filter);
 		}
 
-		/// <summary>Returns a human-readble explanation of a query that returns a single element</summary>
-		[NotNull]
-		public static string ExplainSingle<T>([NotNull] FdbQueryExpression<T> expression, CancellationToken ct)
+		/// <summary>Returns a human-readable explanation of a query that returns a single element</summary>
+		public static string ExplainSingle<T>(FdbQueryExpression<T> expression, CancellationToken ct)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 			if (expression.Shape != FdbQueryShape.Single) throw new InvalidOperationException("Invalid shape (single expected)");
@@ -155,9 +143,8 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 
-		/// <summary>Returns a human-readble explanation of a query that returns a sequence of elements</summary>
-		[NotNull]
-		public static string ExplainSequence<T>([NotNull] FdbQuerySequenceExpression<T> expression)
+		/// <summary>Returns a human-readable explanation of a query that returns a sequence of elements</summary>
+		public static string ExplainSequence<T>(FdbQuerySequenceExpression<T> expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 			if (expression.Shape != FdbQueryShape.Sequence) throw new InvalidOperationException("Invalid shape (sequence expected)");

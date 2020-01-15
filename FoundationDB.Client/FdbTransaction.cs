@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -130,11 +131,9 @@ namespace FoundationDB.Client
 		public FdbOperationContext Context => m_context;
 
 		/// <summary>Database instance that manages this transaction</summary>
-		[NotNull]
 		public FdbDatabase Database => m_database;
 
 		/// <summary>Returns the handler for this transaction</summary>
-		[NotNull]
 		internal IFdbTransactionHandler Handler => m_handler;
 
 		/// <summary>If true, the transaction is still pending (not committed or rolled back).</summary>
@@ -242,7 +241,7 @@ namespace FoundationDB.Client
 
 		#region Versions...
 
-		private Task<long> CachedReadVersion;
+		private Task<long>? CachedReadVersion;
 
 		/// <inheritdoc />
 		public Task<long> GetReadVersionAsync()
@@ -291,7 +290,7 @@ namespace FoundationDB.Client
 		}
 
 		// all access to this should be made under lock!
-		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> MetadataVersionKeysCache;
+		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)>? MetadataVersionKeysCache;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCache()
@@ -357,7 +356,6 @@ namespace FoundationDB.Client
 			}
 			return t.Task;
 		}
-
 
 		private async Task<VersionStamp?> ReadAndParseMetadataVersionSlow(Slice key)
 		{
@@ -442,7 +440,7 @@ namespace FoundationDB.Client
 			unsafe
 			{
 				// use a 128-bit guid as the source of entropy for our new token
-				Guid rnd = Guid.NewGuid();
+				var rnd = Guid.NewGuid();
 				ulong* p = (ulong*) &rnd;
 				x = p[0] ^ p[1];
 			}
@@ -555,8 +553,8 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		[Pure, NotNull, LinqTunnel]
-		internal FdbRangeQuery<TResult> GetRangeCore<TResult>(KeySelector begin, KeySelector end, FdbRangeOptions options, bool snapshot, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> selector)
+		[Pure, LinqTunnel]
+		internal FdbRangeQuery<TResult> GetRangeCore<TResult>(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot, Func<KeyValuePair<Slice, Slice>, TResult> selector)
 		{
 			Contract.Requires(selector != null);
 
@@ -1116,7 +1114,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[ContractAnnotation("=> halt")]
+		[DoesNotReturn]
 		internal static void ThrowOnInvalidState(FdbTransaction trans)
 		{
 			switch (trans.State)
@@ -1130,7 +1128,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static Exception ThrowReadOnlyTransaction(FdbTransaction trans)
 		{
 			return new InvalidOperationException("Cannot write to a read-only transaction");

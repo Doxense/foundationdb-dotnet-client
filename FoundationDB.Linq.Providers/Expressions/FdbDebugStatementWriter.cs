@@ -31,10 +31,9 @@ namespace FoundationDB.Linq.Expressions
 	using JetBrains.Annotations;
 	using System;
 	using System.Globalization;
-	using System.Linq.Expressions;
 	using System.Text;
 
-	/// <summary>Very simple writer to dump query expressions into a statement usefull for logging/debugging</summary>
+	/// <summary>Very simple writer to dump query expressions into a statement useful for logging/debugging</summary>
 	public sealed class FdbDebugStatementWriter
 	{
 		/// <summary>Create a new statement writer with an empty buffer</summary>
@@ -45,7 +44,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Underlying buffer used by this writer</summary>
-		public StringBuilder Buffer { [NotNull] get; private set; }
+		public StringBuilder Buffer { get; }
 
 		/// <summary>Current indentation level</summary>
 		public int IndentLevel { get; private set; }
@@ -54,7 +53,6 @@ namespace FoundationDB.Linq.Expressions
 		public bool StartOfLine {get; private set;}
 
 		/// <summary>Enter a new indentation scope</summary>
-		[NotNull]
 		public FdbDebugStatementWriter Enter()
 		{
 			this.IndentLevel++;
@@ -63,7 +61,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Leave the current indentation scope</summary>
-		[NotNull]
 		public FdbDebugStatementWriter Leave()
 		{
 			this.IndentLevel--;
@@ -72,8 +69,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Writes a line of text</summary>
-		[NotNull]
-		public FdbDebugStatementWriter WriteLine([NotNull] string text)
+		public FdbDebugStatementWriter WriteLine(string text)
 		{
 			if (this.StartOfLine) Indent();
 			this.Buffer.AppendLine(text);
@@ -82,15 +78,13 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Starts a new line</summary>
-		[NotNull]
 		public FdbDebugStatementWriter WriteLine()
 		{
 			return WriteLine(String.Empty);
 		}
 
 		/// <summary>Appends text to the current line</summary>
-		[NotNull]
-		public FdbDebugStatementWriter Write([NotNull] string text)
+		public FdbDebugStatementWriter Write(string text)
 		{
 			if (this.StartOfLine) Indent();
 			this.Buffer.Append(text);
@@ -100,18 +94,16 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Writes a formatted line of text</summary>
 		[StringFormatMethod("format")]
-		[NotNull]
-		public FdbDebugStatementWriter WriteLine([NotNull] string format, params object[] args)
+		public FdbDebugStatementWriter WriteLine(string format, params object?[] args)
 		{
-			return WriteLine(String.Format(CultureInfo.InvariantCulture, format, args));
+			return WriteLine(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		/// <summary>Appends formatted text to the current line</summary>
 		[StringFormatMethod("format")]
-		[NotNull]
-		public FdbDebugStatementWriter Write([NotNull] string format, params object[] args)
+		public FdbDebugStatementWriter Write(string format, params object?[] args)
 		{
-			return Write(String.Format(CultureInfo.InvariantCulture, format, args));
+			return Write(string.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		private void Indent()

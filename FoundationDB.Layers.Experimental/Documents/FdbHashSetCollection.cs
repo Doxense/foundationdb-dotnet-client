@@ -34,7 +34,6 @@ namespace FoundationDB.Layers.Blobs
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
 
@@ -83,7 +82,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or <see cref="Slice.Nil"/> if it the hashset does not exist, or doesn't have a field with this name</returns>
-		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple id, string field)
+		public Task<Slice> GetValueAsync(IFdbReadOnlyTransaction trans, IVarTuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -96,7 +95,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple id)
+		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IVarTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));
@@ -121,7 +120,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or <see cref="Slice.Empty"/> if that particular field does not exist.</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IVarTuple id, [NotNull] params string[] fields)
+		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IVarTuple id, params string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 			if (id == null) throw new ArgumentNullException(nameof(id));

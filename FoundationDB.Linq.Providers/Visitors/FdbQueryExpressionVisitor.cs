@@ -38,8 +38,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Visit an extension node</summary>
 		protected override Expression VisitExtension(Expression node)
 		{
-			var expr = node as FdbQueryExpression;
-			if (expr != null)
+			if (node is FdbQueryExpression expr)
 			{
 				return Visit(expr);
 			}
@@ -47,13 +46,9 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Visit this expression</summary>
-		public virtual Expression Visit(FdbQueryExpression node)
+		public virtual Expression? Visit(FdbQueryExpression? node)
 		{
-			if (node != null)
-			{
-				return node.Accept(this);
-			}
-			return null;
+			return node?.Accept(this);
 		}
 
 		/// <summary>Visit an Async Sequence query expression</summary>

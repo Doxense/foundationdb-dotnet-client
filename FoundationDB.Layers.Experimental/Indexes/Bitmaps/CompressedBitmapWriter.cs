@@ -287,7 +287,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Flush the final words and return the compressed bitmap</summary>
-		[NotNull]
 		public CompressedBitmap GetBitmap()
 		{
 			return new CompressedBitmap(GetBuffer(), m_bounds);

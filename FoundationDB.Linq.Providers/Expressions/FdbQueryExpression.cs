@@ -59,7 +59,7 @@ namespace FoundationDB.Linq.Expressions
 		public abstract FdbQueryShape Shape { get; }
 
 		/// <summary>Apply a custom visitor on this expression</summary>
-		public abstract Expression Accept([NotNull] FdbQueryExpressionVisitor visitor);
+		public abstract Expression Accept(FdbQueryExpressionVisitor visitor);
 
 		public string GetDebugView()
 		{
@@ -69,7 +69,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public abstract void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder);
+		public abstract void WriteTo(FdbQueryExpressionStringBuilder builder);
 
 #if DEBUG
 		public override string ToString()
@@ -90,7 +90,6 @@ namespace FoundationDB.Linq.Expressions
 		{ }
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		[NotNull]
 		public abstract Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> CompileSingle();
 
 	}

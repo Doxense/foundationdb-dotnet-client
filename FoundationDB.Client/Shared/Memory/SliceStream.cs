@@ -253,7 +253,7 @@ namespace Doxense.Memory
 			if ((uint) offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Buffer is too small.");
 		}
 
-		[DoesNotReturn, ContractAnnotation("=> halt")]
+		[DoesNotReturn]
 		private static void StreamIsClosed()
 		{
 			throw ThrowHelper.ObjectDisposedException("The stream was already closed");

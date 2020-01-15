@@ -34,7 +34,6 @@ namespace FoundationDB.Linq.Expressions
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that represent a projection from one type into another</summary>
 	/// <typeparam name="T">Type of elements in the inner sequence</typeparam>
@@ -50,18 +49,10 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Source sequence that is being transformed</summary>
-		public FdbQuerySequenceExpression<T> Source
-		{
-			[NotNull] get;
-			private set;
-		}
+		public FdbQuerySequenceExpression<T> Source { get; }
 
 		/// <summary>Transformation applied to each element of <see cref="Source"/></summary>
-		public Expression<Func<T, R>> Transform
-		{
-			[NotNull] get;
-			private set;
-		}
+		public Expression<Func<T, R>> Transform { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -80,7 +71,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<R>>> CompileSequence()
 		{
 			var lambda = this.Transform.Compile();

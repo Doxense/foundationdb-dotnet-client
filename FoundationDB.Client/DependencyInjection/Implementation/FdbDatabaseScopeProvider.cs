@@ -29,21 +29,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.DependencyInjection
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Default implementation of a child database scope provider</summary>
 	/// <typeparam name="TState">Type of the State created by the init handler of this scope</typeparam>
 	internal sealed class FdbDatabaseScopeProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
-		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, CancellationToken lifetime = default)
+		public FdbDatabaseScopeProvider(IFdbDatabaseScopeProvider parent, Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, CancellationToken lifetime = default)
 		{
-			Contract.Requires(parent != null && handler != null);
+			Contract.NotNull(parent, nameof(parent));
+			Contract.NotNull(handler, nameof(handler));
+
 			this.Parent = parent;
 			this.Handler = handler;
 			this.LifeTime = lifetime == default || lifetime == parent.Cancellation
@@ -52,28 +54,27 @@ namespace FoundationDB.DependencyInjection
 			this.DbTask = new Lazy<Task>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
 		}
 
-		[NotNull]
 		public IFdbDatabaseScopeProvider Parent { get; }
 
-		[NotNull]
 		public Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> Handler { get; }
 
 		private readonly Lazy<Task> DbTask;
 
 		private readonly ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
 
-		private IFdbDatabase Db { get; set; }
+		private IFdbDatabase? Db { get; set; }
 
+		[AllowNull]
 		private TState State { get; set; }
 
-		private Exception Error { get; set; }
+		private Exception? Error { get; set; }
 
 		private CancellationTokenSource LifeTime { get; }
 
 		public CancellationToken Cancellation => this.LifeTime.Token;
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private void UpdateInternalState(IFdbDatabase db, TState state, Exception error)
+		private void UpdateInternalState(IFdbDatabase? db, [AllowNull] TState state, Exception? error)
 		{
 			this.Lock.EnterWriteLock();
 			try
@@ -89,7 +90,7 @@ namespace FoundationDB.DependencyInjection
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private (IFdbDatabase Database, TState State, Exception error) ReadInternalState()
+		private (IFdbDatabase? Database, TState State, Exception? error) ReadInternalState()
 		{
 			this.Lock.EnterReadLock();
 			try
@@ -132,7 +133,7 @@ namespace FoundationDB.DependencyInjection
 
 		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
 
-		private async ValueTask<(IFdbDatabase Database, TState state, Exception error)> EnsureInitialized(CancellationToken ct)
+		private async ValueTask<(IFdbDatabase? Database, TState state, Exception? error)> EnsureInitialized(CancellationToken ct)
 		{
 			if (this.LifeTime.IsCancellationRequested) throw ThrowHelper.ObjectDisposedException(this);
 			var t = this.DbTask.Value;
@@ -162,7 +163,8 @@ namespace FoundationDB.DependencyInjection
 		private async ValueTask<(IFdbDatabase, TState)> GetDatabaseAndStateSlow(CancellationToken ct)
 		{
 			(var db, var state, _) = await EnsureInitialized(ct);
-			return (db, state);
+			Contract.Assert(db != null);
+			return (db!, state);
 		}
 
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
@@ -176,6 +178,7 @@ namespace FoundationDB.DependencyInjection
 		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
 		{
 			(var db, _, _) = await EnsureInitialized(ct);
+			Contract.Assert(db != null);
 			return db;
 		}
 

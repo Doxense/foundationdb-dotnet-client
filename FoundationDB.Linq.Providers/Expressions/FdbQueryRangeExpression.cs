@@ -33,13 +33,12 @@ namespace FoundationDB.Linq.Expressions
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
 	{
 
-		internal FdbQueryRangeExpression(KeySelectorPair range, FdbRangeOptions options)
+		internal FdbQueryRangeExpression(KeySelectorPair range, FdbRangeOptions? options)
 		{
 			this.Range = range;
 			this.Options = options;
@@ -49,7 +48,7 @@ namespace FoundationDB.Linq.Expressions
 		public KeySelectorPair Range { get; }
 
 		/// <summary>Returns the options for this range query</summary>
-		public FdbRangeOptions Options { get; }
+		public FdbRangeOptions? Options { get; }
 
 		/// <summary>Visit this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -67,7 +66,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
@@ -88,7 +86,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Returns a short description of this range query</summary>
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Begin.ToString(), this.Range.End.ToString());
+			return string.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Begin.ToString(), this.Range.End.ToString());
 		}
 
 

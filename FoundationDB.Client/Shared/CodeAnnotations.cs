@@ -48,7 +48,7 @@ namespace JetBrains.Annotations
 	internal sealed class NotNullAttribute : Attribute { }
 
 	/// <summary>
-	/// Can be appplied to symbols of types derived from IEnumerable as well as to symbols of Task
+	/// Can be applied to symbols of types derived from IEnumerable as well as to symbols of Task
 	/// and Lazy classes to indicate that the value of a collection item, of the Task.Result property
 	/// or of the Lazy.Value property can never be null.
 	/// </summary>
@@ -59,7 +59,7 @@ namespace JetBrains.Annotations
 	internal sealed class ItemNotNullAttribute : Attribute { }
 
 	/// <summary>
-	/// Can be appplied to symbols of types derived from IEnumerable as well as to symbols of Task
+	/// Can be applied to symbols of types derived from IEnumerable as well as to symbols of Task
 	/// and Lazy classes to indicate that the value of a collection item, of the Task.Result property
 	/// or of the Lazy.Value property can be null.
 	/// </summary>
@@ -120,7 +120,6 @@ namespace JetBrains.Annotations
 			Name = name;
 		}
 
-		[NotNull]
 		public string Name { get; }
 	}
 
@@ -186,10 +185,10 @@ namespace JetBrains.Annotations
 	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class ContractAnnotationAttribute : Attribute
 	{
-		public ContractAnnotationAttribute([NotNull] string contract)
+		public ContractAnnotationAttribute(string contract)
 		  : this(contract, false) { }
 
-		public ContractAnnotationAttribute([NotNull] string contract, bool forceFullStates)
+		public ContractAnnotationAttribute(string contract, bool forceFullStates)
 		{
 			Contract = contract;
 			ForceFullStates = forceFullStates;
@@ -239,12 +238,11 @@ namespace JetBrains.Annotations
 	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class BaseTypeRequiredAttribute : Attribute
 	{
-		public BaseTypeRequiredAttribute([NotNull] Type baseType)
+		public BaseTypeRequiredAttribute(Type baseType)
 		{
 			BaseType = baseType;
 		}
 
-		[NotNull]
 		public Type BaseType { get; set; }
 	}
 
@@ -345,7 +343,7 @@ namespace JetBrains.Annotations
 	internal sealed class PublicAPIAttribute : Attribute
 	{
 		public PublicAPIAttribute() { }
-		public PublicAPIAttribute([NotNull] string comment)
+		public PublicAPIAttribute(string comment)
 		{
 			Comment = comment;
 		}
@@ -385,7 +383,7 @@ namespace JetBrains.Annotations
 	internal sealed class MustUseReturnValueAttribute : Attribute
 	{
 		public MustUseReturnValueAttribute() { }
-		public MustUseReturnValueAttribute([NotNull] string justification)
+		public MustUseReturnValueAttribute(string justification)
 		{
 			Justification = justification;
 		}

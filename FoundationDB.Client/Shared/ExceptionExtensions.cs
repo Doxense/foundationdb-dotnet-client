@@ -40,7 +40,7 @@ namespace Doxense
 		/// <param name="self">Exception à tester</param>
 		/// <returns>True s'il s'agit d'une ThreadAbortException, OutOfMemoryException ou StackOverflowException, ou une AggregateException qui contient une de ces erreurs</returns>
 		[Pure]
-		public static bool IsFatalError([CanBeNull] this Exception self)
+		public static bool IsFatalError(this Exception? self)
 		{
 			return self is System.Threading.ThreadAbortException || self is OutOfMemoryException || self is StackOverflowException || (self is AggregateException && IsFatalError(self.InnerException));
 		}

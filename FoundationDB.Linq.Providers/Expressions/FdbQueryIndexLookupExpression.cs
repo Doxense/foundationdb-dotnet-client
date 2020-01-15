@@ -33,13 +33,11 @@ namespace FoundationDB.Linq.Expressions
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Linq;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using JetBrains.Annotations;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
-	/// <typeparam name="K">Type of the Id of the enties being indexed</typeparam>
+	/// <typeparam name="K">Type of the Id of the entities being indexed</typeparam>
 	/// <typeparam name="V">Type of the value that will be looked up</typeparam>
 	public abstract class FdbQueryLookupExpression<K, V> : FdbQuerySequenceExpression<K>
 	{
@@ -54,25 +52,13 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Source of the lookup (index, range read, ...)</summary>
-		public Expression Source
-		{
-			[NotNull] get;
-			private set;
-		}
+		public Expression Source { get; }
 
 		/// <summary>Operation applied to <see cref="Value"/> on the source</summary>
-		public ExpressionType Operator
-		{
-			get;
-			private set;
-		}
+		public ExpressionType Operator { get; }
 
 		/// <summary>Value looked up in the source</summary>
-		public Expression Value
-		{
-			[NotNull] get;
-			private set;
-		}
+		public Expression Value { get; }
 
 		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
@@ -99,7 +85,7 @@ namespace FoundationDB.Linq.Expressions
 
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
-	/// <typeparam name="K">Type of the Id of the enties being indexed</typeparam>
+	/// <typeparam name="K">Type of the Id of the entities being indexed</typeparam>
 	/// <typeparam name="V">Type of the value that will be looked up</typeparam>
 	public class FdbQueryIndexLookupExpression<K, V> : FdbQueryLookupExpression<K, V>
 	{
@@ -112,14 +98,9 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Index queried by this expression</summary>
-		public FdbIndex<K, V> Index
-		{
-			[NotNull] get;
-			private set;
-		}
+		public FdbIndex<K, V> Index { get; }
 
 		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IAsyncEnumerable<K>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
@@ -177,14 +158,14 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Returns a textual representation of expression</summary>
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index[{0}].Lookup({1}, {2})", this.Index.Location, this.Operator, this.Value);
+			return string.Format(CultureInfo.InvariantCulture, "Index[{0}].Lookup({1}, {2})", this.Index.Location, this.Operator, this.Value);
 		}
 
 		/// <summary>Create a lookup expression on an index</summary>
 		public static FdbQueryIndexLookupExpression<K, V> Lookup(FdbIndex<K, V> index, ExpressionType op, Expression value)
 		{
-			if (index == null) throw new ArgumentNullException("index");
-			if (value == null) throw new ArgumentNullException("value");
+			if (index == null) throw new ArgumentNullException(nameof(index));
+			if (value == null) throw new ArgumentNullException(nameof(value));
 
 			switch (op)
 			{
@@ -195,11 +176,11 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.LessThanOrEqual:
 					break;
 				default:
-					throw new ArgumentException("Index lookups only support the following operators: '==', '!=', '>', '>=', '<' and '<='", "op");
+					throw new ArgumentException("Index lookups only support the following operators: '==', '!=', '>', '>=', '<' and '<='", nameof(op));
 			}
 
 			//TODO: IsAssignableFrom?
-			if (value.Type != typeof(V)) throw new ArgumentException("Value must have a type compatible with the index", "value");
+			if (value.Type != typeof(V)) throw new ArgumentException("Value must have a type compatible with the index", nameof(value));
 
 			return new FdbQueryIndexLookupExpression<K, V>(index, op, value);
 		}
@@ -210,13 +191,13 @@ namespace FoundationDB.Linq.Expressions
 		/// <returns></returns>
 		public static FdbQueryIndexLookupExpression<K, V> Lookup(FdbIndex<K, V> index, Expression<Func<V, bool>> expression)
 		{
-			if (index == null) throw new ArgumentNullException("index");
+			if (index == null) throw new ArgumentNullException(nameof(index));
 
 			var binary = expression.Body as BinaryExpression;
-			if (binary == null) throw new ArgumentException("Only binary expressions are allowed", "expression");
+			if (binary == null) throw new ArgumentException("Only binary expressions are allowed", nameof(expression));
 
 			var constant = binary.Right as ConstantExpression;
-			if (constant == null) throw new ArgumentException(String.Format("Left side of expression '{0}' must be a constant of type {1}", binary.Right.ToString(), typeof(V).Name));
+			if (constant == null) throw new ArgumentException($"Left side of expression '{binary.Right.ToString()}' must be a constant of type {typeof(V).Name}");
 
 			return Lookup(index, binary.NodeType, constant);
 		}

@@ -44,8 +44,7 @@ namespace FoundationDB.Filters.Logging
 		/// <param name="handler">Handler that will be called every-time a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
 		/// <param name="options">Optional logging options</param>
 		/// <returns>Database filter, that will monitor all transactions initiated from it. Disposing this wrapper will NOT dispose the inner <paramref name="database"/> database.</returns>
-		[NotNull]
-		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
+		public static FdbLoggedDatabase Logged(this IFdbDatabase database, Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
 			Contract.NotNull(database, nameof(database));
 			Contract.NotNull(handler, nameof(handler));
@@ -61,28 +60,25 @@ namespace FoundationDB.Filters.Logging
 		/// <param name="handler">Handler that will be called every-time a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
 		/// <param name="options">Optional logging options</param>
 		/// <returns>Provider that will that will monitor all transactions initiated from it.</returns>
-		[NotNull]
-		public static IFdbDatabaseScopeProvider Logged([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
+		public static IFdbDatabaseScopeProvider Logged(this IFdbDatabaseScopeProvider provider, Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
 			Contract.NotNull(provider, nameof(provider));
 			Contract.NotNull(handler, nameof(handler));
 
-			return provider.CreateScope<object>((db, ct) => !ct.IsCancellationRequested ? Task.FromResult<(IFdbDatabase, object)>((Logged(db, handler), null)) : Task.FromCanceled<(IFdbDatabase, object)>(ct));
+			return provider.CreateScope<object?>((db, ct) => !ct.IsCancellationRequested ? Task.FromResult<(IFdbDatabase, object?)>((Logged(db, handler), null)) : Task.FromCanceled<(IFdbDatabase, object?)>(ct));
 		}
 
 		/// <summary>Strip the logging behaviour of this database. Use this for boilerplate or test code that would pollute the logs otherwise.</summary>
 		/// <param name="database">Database instance (that may or may not be logged)</param>
 		/// <returns>Either <paramref name="database"/> itself if it is not logged, or the inner database if it was.</returns>
-		[NotNull]
-		public static IFdbDatabase WithoutLogging([NotNull] this IFdbDatabase database)
+		public static IFdbDatabase WithoutLogging(this IFdbDatabase database)
 		{
 			Contract.NotNull(database, nameof(database));
 
 			return database is FdbLoggedDatabase logged ? logged.GetInnerDatabase() : database;
 		}
 
-		[CanBeNull]
-		internal static FdbLoggedTransaction GetLogger([NotNull] IFdbReadOnlyTransaction trans)
+		internal static FdbLoggedTransaction? GetLogger(IFdbReadOnlyTransaction trans)
 		{
 			//TODO: the logged transaction could also be wrapped in other filters.
 			// => we need a recursive "FindFilter<TFilter>" method that would unwrap the filter onion looking for a specific one...
@@ -93,7 +89,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Test if logging is enabled on this transaction</summary>
 		/// <remarks>If <c>false</c>, then there is no point in calling <see cref="Annotate(FoundationDB.Client.IFdbReadOnlyTransaction,string)"/> because logging is disabled.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsLogged([NotNull] this IFdbReadOnlyTransaction trans)
+		public static bool IsLogged(this IFdbReadOnlyTransaction trans)
 		{
 			return trans is FdbLoggedTransaction;
 		}
@@ -104,7 +100,7 @@ namespace FoundationDB.Filters.Logging
 		/// Calling this method on regular transaction is a no-op.
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting <paramref name="message"/> when logging not enabled.
 		/// </remarks>
-		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string message)
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string message)
 		{
 			var logged = GetLogger(trans);
 			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(message), countAsOperation: false);
@@ -117,7 +113,7 @@ namespace FoundationDB.Filters.Logging
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0)
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object? arg0)
 		{
 			var logged = GetLogger(trans);
 			logged?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, arg0)), countAsOperation: false);
@@ -130,7 +126,7 @@ namespace FoundationDB.Filters.Logging
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1)
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object? arg0, object? arg1)
 		{
 			GetLogger(trans)?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1)), countAsOperation: false);
 		}
@@ -142,7 +138,7 @@ namespace FoundationDB.Filters.Logging
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1, object arg2)
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object? arg0, object? arg1, object? arg2)
 		{
 			GetLogger(trans)?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, arg0, arg1, arg2)), countAsOperation: false);
 		}
@@ -154,7 +150,7 @@ namespace FoundationDB.Filters.Logging
 		/// You can call <see cref="IsLogged"/> first, if you don't want to pay the cost of formatting the message when logging not enabled.
 		/// </remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, params object[] args)
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params object?[] args)
 		{
 			GetLogger(trans)?.Log.AddOperation(new FdbTransactionLog.LogCommand(string.Format(CultureInfo.InvariantCulture, format, args)), countAsOperation: false);
 		}

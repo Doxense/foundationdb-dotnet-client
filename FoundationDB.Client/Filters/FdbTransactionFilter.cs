@@ -53,7 +53,7 @@ namespace FoundationDB.Filters
 		/// <param name="trans">Underlying transaction that will be exposed as read-only</param>
 		/// <param name="forceReadOnly">If true, force the transaction to be read-only. If false, use the read-only mode of the underlying transaction</param>
 		/// <param name="ownsTransaction">If true, the underlying transaction will also be disposed when this instance is disposed</param>
-		protected FdbTransactionFilter([NotNull] IFdbTransaction trans, bool forceReadOnly, bool ownsTransaction)
+		protected FdbTransactionFilter(IFdbTransaction trans, bool forceReadOnly, bool ownsTransaction)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -70,7 +70,7 @@ namespace FoundationDB.Filters
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception FilterAlreadyDisposed([NotNull] FdbTransactionFilter filter)
+		private static Exception FilterAlreadyDisposed(FdbTransactionFilter filter)
 		{
 			return new ObjectDisposedException(filter.GetType().Name);
 		}

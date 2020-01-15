@@ -35,7 +35,6 @@ namespace Doxense.Linq.Async.Iterators
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Linq.Async.Expressions;
-	using JetBrains.Annotations;
 
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
@@ -45,7 +44,7 @@ namespace Doxense.Linq.Async.Iterators
 		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
 		private IEnumerator<TResult>? m_batch;
 
-		public SelectManyAsyncIterator([NotNull] IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
+		public SelectManyAsyncIterator(IAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 			: base(source)
 		{
 			// Must have at least one, but not both

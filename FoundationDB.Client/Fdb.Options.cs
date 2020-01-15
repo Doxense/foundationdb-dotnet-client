@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Custom path from where to load the native C API library. If null, let the CLR find the dll. If String.Empty let Win32's LoadLibrary find the correct dll, else use the specified path to load the library</summary>
 			//REVIEW: change this into a get-only, and force people to call SetNativeLibPath(..)?
-			public static string NativeLibPath = String.Empty;
+			public static string? NativeLibPath = string.Empty;
 
 			/// <summary>Disable pre-loading of the native C API library. The CLR will handle the binding of the library.</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void EnableNativeLibraryPreloading()
 			{
-				Fdb.Options.NativeLibPath = String.Empty;
+				Fdb.Options.NativeLibPath = string.Empty;
 			}
 
 			/// <summary>Pre-load the native C API library from a specific path (relative of absolute) where the fdb_c.dll library is located</summary>
@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 			/// This *must* be called before the start of the network thread, otherwise it won't have any effects.
 			/// You can specify the path to a library with a custom file name by making sure that <paramref name="path"/> ends with ".dll". If not, then "fdb_c.dll" will be appended to the path.
 			/// </remarks>
-			public static void SetNativeLibPath([NotNull] string path)
+			public static void SetNativeLibPath(string path)
 			{
 				Contract.NotNull(path, nameof(path));
 
@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 			#region Trace Path...
 
 			/// <summary>Default path to the network thread tracing file</summary>
-			public static string TracePath;
+			public static string? TracePath;
 
 			/// <summary>Sets the custom path where the logs will be stored</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
@@ -99,19 +99,19 @@ namespace FoundationDB.Client
 
 			/// <summary>File path or linker-resolved name of the custom TLS plugin to load.</summary>
 			[Obsolete("This option is deprecated since v6.0")]
-			public static string TLSPlugin { get; private set; }
+			public static string? TLSPlugin { get; private set; }
 
 			/// <summary>Content of the TLS root and client certificates used for TLS connections (none by default)</summary>
 			public static Slice TLSCertificateBytes { get; private set; }
 
 			/// <summary>Path to the TLS root and client certificates used for TLS connections (none by default)</summary>
-			public static string TLSCertificatePath { get; private set; }
+			public static string? TLSCertificatePath { get; private set; }
 
 			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
 			public static Slice TLSPrivateKeyBytes { get; private set; }
 
 			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
-			public static string TLSPrivateKeyPath { get; private set; }
+			public static string? TLSPrivateKeyPath { get; private set; }
 
 			/// <summary>Pattern used to verify certificates of TLS peers (none by default)</summary>
 			public static Slice TLSVerificationPattern { get; private set; }
@@ -167,7 +167,7 @@ namespace FoundationDB.Client
 			/// <param name="privateKeyBytes">Content of the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
 			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
-			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default, string plugin = null)
+			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default, string? plugin = null)
 			{
 				Fdb.Options.TLSPlugin = plugin;
 				Fdb.Options.TLSCertificateBytes = certificateBytes;
@@ -182,7 +182,7 @@ namespace FoundationDB.Client
 			/// <param name="privateKeyPath">Path to the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
 			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
-			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default, string plugin = null)
+			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default, string? plugin = null)
 			{
 				Fdb.Options.TLSPlugin = plugin;
 				Fdb.Options.TLSCertificatePath = certificatePath;

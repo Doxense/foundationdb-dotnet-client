@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Allocators
 {
-	using FoundationDB.Client;
-	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
 	[DebuggerDisplay("Location={" + nameof(Location) + "}")]
@@ -54,7 +53,6 @@ namespace FoundationDB.Layers.Allocators
 		}
 
 		/// <summary>Location of the allocator</summary>
-		[NotNull]
 		public TypedKeySubspaceLocation<int, long> Location { get; }
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
@@ -67,10 +65,8 @@ namespace FoundationDB.Layers.Allocators
 		public sealed class State
 		{
 			/// <summary>Location of the allocator</summary>
-			[NotNull]
 			public ITypedKeySubspace<int, long> Subspace { get; }
 
-			[NotNull]
 			private Random Rng { get; }
 
 			public State(ITypedKeySubspace<int, long> subspace, Random rng)
@@ -84,14 +80,14 @@ namespace FoundationDB.Layers.Allocators
 			///    method on the same subspace
 			/// 2) is nearly as short as possible given the above
 			/// </summary>
-			public Task<long> AllocateAsync([NotNull] IFdbTransaction trans)
+			public Task<long> AllocateAsync(IFdbTransaction trans)
 			{
 				return FdbHighContentionAllocator.AllocateAsync(trans, this.Subspace, this.Rng);
 			}
 
 		}
 
-		public static async Task<long> AllocateAsync([NotNull] IFdbTransaction trans, ITypedKeySubspace<int, long> subspace, Random rng)
+		public static async Task<long> AllocateAsync(IFdbTransaction trans, ITypedKeySubspace<int, long> subspace, Random rng)
 		{
 			Contract.NotNull(trans, nameof(trans));
 

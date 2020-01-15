@@ -41,8 +41,7 @@ namespace Doxense.Serialization.Encoders
 		#region Encoding...
 
 		/// <summary>Encode a array of <typeparamref name="TValue"/> into an array of <typeparamref name="TStorage"/></summary>
-		[NotNull]
-		public static TStorage[] EncodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] params TValue[] values)
+		public static TStorage[] EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params TValue[] values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -57,8 +56,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Encode the values of a sequence of Key/Value pairs into a list of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
-		[NotNull, LinqTunnel]
-		public static List<TStorage> EncodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TValue> values)
+		[LinqTunnel]
+		public static List<TStorage> EncodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TValue> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -77,8 +76,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Encode a sequence of <paramref name="items"/> into a list of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
-		[NotNull]
-		public static List<TStorage> EncodeValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TElement> items, [NotNull, InstantHandle] Func<TElement, TValue> selector)
+		public static List<TStorage> EncodeValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TElement> items, [InstantHandle] Func<TElement, TValue> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -98,8 +96,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform a sequence of <typeparamref name="TValue"/> into a sequence of <typeparamref name="TStorage"/></summary>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TStorage> SelectValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TValue> values)
+		[LinqTunnel]
+		public static IEnumerable<TStorage> SelectValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TValue> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -108,8 +106,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform the values a sequence of Key/Value pairs into a sequence of <typeparamref name="TStorage"/>, discarding the keys in the process</summary>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TAny>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<KeyValuePair<TAny, TValue>> items)
+		[LinqTunnel]
+		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TAny>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<KeyValuePair<TAny, TValue>> items)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -118,8 +116,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform a sequence of <paramref name="items"/> into a sequence of <typeparamref name="TStorage"/> by extracting one field using the specified <paramref name="selector"/></summary>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TValue> selector)
+		[LinqTunnel]
+		public static IEnumerable<TStorage> SelectValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TElement> items, Func<TElement, TValue> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -132,9 +130,8 @@ namespace Doxense.Serialization.Encoders
 
 		#region Decoding...
 
-		/// <summary>Decode an array of <typeparamref name="TStorage"/> into an arror of <typeparamref name="TValue"/></summary>
-		[NotNull]
-		public static TValue[] DecodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] params TStorage[] values)
+		/// <summary>Decode an array of <typeparamref name="TStorage"/> into an array of <typeparamref name="TValue"/></summary>
+		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, params TStorage[] values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -148,8 +145,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Decode the values from a sequence of Key/Value pairs into a list of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
-		[NotNull]
-		public static TValue[] DecodeValues<TValue, TStorage, TAny>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<KeyValuePair<TAny, TStorage>> items)
+		public static TValue[] DecodeValues<TValue, TStorage, TAny>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<KeyValuePair<TAny, TStorage>> items)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -189,8 +185,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Decode a sequence of <typeparamref name="TStorage"/> into a list of <typeparamref name="TValue"/></summary>
-		[NotNull]
-		public static TValue[] DecodeValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TStorage> values)
+		public static TValue[] DecodeValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TStorage> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -230,8 +225,7 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Decode a sequence of <paramref name="items"/> into a list of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
-		[NotNull]
-		public static TValue[] DecodeValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull, InstantHandle] IEnumerable<TElement> items, [NotNull, InstantHandle] Func<TElement, TStorage> selector)
+		public static TValue[] DecodeValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, [InstantHandle] IEnumerable<TElement> items, [InstantHandle] Func<TElement, TStorage> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -271,8 +265,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="TValue"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TValue> SelectValues<TValue, TStorage>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TStorage> values)
+		[LinqTunnel]
+		public static IEnumerable<TValue> SelectValues<TValue, TStorage>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TStorage> values)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(values, nameof(values));
@@ -281,8 +275,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform the values from a sequence of Key/Value pairs, into another sequence of <typeparamref name="TValue"/>, discarding the keys in the process.</summary>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TAny>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<KeyValuePair<TAny, TStorage>> items)
+		[LinqTunnel]
+		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TAny>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<KeyValuePair<TAny, TStorage>> items)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
@@ -291,8 +285,8 @@ namespace Doxense.Serialization.Encoders
 		}
 
 		/// <summary>Transform a sequence of <paramref name="items"/> into another sequence of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
-		[NotNull, LinqTunnel]
-		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TElement>([NotNull] this IValueEncoder<TValue, TStorage> encoder, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TStorage> selector)
+		[LinqTunnel]
+		public static IEnumerable<TValue> SelectValues<TValue, TStorage, TElement>(this IValueEncoder<TValue, TStorage> encoder, IEnumerable<TElement> items, Func<TElement, TStorage> selector)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));

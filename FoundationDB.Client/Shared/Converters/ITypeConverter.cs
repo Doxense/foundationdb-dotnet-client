@@ -37,15 +37,13 @@ namespace Doxense.Runtime.Converters
 	public interface ITypeConverter
 	{
 		/// <summary>Type of the instance to be converted</summary>
-		[NotNull]
 		Type Source { get; }
 
 		/// <summary>Type of the result of the conversion</summary>
-		[NotNull]
 		Type Destination { get; }
 
 		[Pure]
-		object ConvertBoxed(object value);
+		object? ConvertBoxed(object? value);
 	}
 
 	/// <summary>Class that can convert values of type <typeparamref name="TSource"/> into values of type <typeparamref name="TDestination"/></summary>

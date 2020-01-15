@@ -32,13 +32,11 @@ namespace Doxense.Serialization.Encoders
 {
 	using System;
 	using Doxense.Memory;
-	using JetBrains.Annotations;
 
 	/// <summary>Base interface for all key encoders</summary>
 	public interface IKeyEncoder
 	{
 		/// <summary>Parent encoding</summary>
-		[NotNull]
 		IKeyEncoding Encoding { get; }
 	}
 

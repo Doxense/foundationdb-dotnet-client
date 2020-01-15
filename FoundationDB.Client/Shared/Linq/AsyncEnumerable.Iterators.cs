@@ -126,19 +126,17 @@ namespace Doxense.Linq
 
 		#region Helpers...
 
-		[NotNull]
 		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(
-			[NotNull] IAsyncEnumerable<TSource> source,
-			[NotNull] AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
+			IAsyncEnumerable<TSource> source,
+			AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 		{
 			return new SelectManyAsyncIterator<TSource, TResult>(source, selector);
 		}
 
-		[NotNull]
 		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(
-			[NotNull] IAsyncEnumerable<TSource> source,
-			[NotNull] AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
-			[NotNull] Func<TSource, TCollection, TResult> resultSelector)
+			IAsyncEnumerable<TSource> source,
+			AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
+			Func<TSource, TCollection, TResult> resultSelector)
 		{
 			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(
 				source,
@@ -147,44 +145,39 @@ namespace Doxense.Linq
 			);
 		}
 
-		[NotNull]
 		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(
-			[NotNull] IAsyncEnumerable<TSource> source,
-			[NotNull] AsyncTransformExpression<TSource, TResult> selector,
+			IAsyncEnumerable<TSource> source,
+			AsyncTransformExpression<TSource, TResult> selector,
 			int? limit = null, int?
 			offset = null)
 		{
 			return new WhereSelectAsyncIterator<TSource, TResult>(source, filter: null, transform: selector, limit: limit, offset: offset);
 		}
 
-		[NotNull]
 		internal static WhereAsyncIterator<TResult> Filter<TResult>(
-			[NotNull] IAsyncEnumerable<TResult> source,
-			[NotNull] AsyncFilterExpression<TResult> filter)
+			IAsyncEnumerable<TResult> source,
+			AsyncFilterExpression<TResult> filter)
 		{
 			return new WhereAsyncIterator<TResult>(source, filter);
 		}
 
-		[NotNull]
 		internal static WhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(
-			[NotNull] IAsyncEnumerable<TResult> source,
+			IAsyncEnumerable<TResult> source,
 			int offset)
 		{
 			return new WhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.CachedTasks<TResult>.Identity), limit: null, offset: offset);
 		}
 
-		[NotNull]
 		internal static WhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(
-			[NotNull] IAsyncEnumerable<TResult> source,
+			IAsyncEnumerable<TResult> source,
 			int limit)
 		{
 			return new WhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.CachedTasks<TResult>.Identity), limit: limit, offset: null);
 		}
 
-		[NotNull]
 		internal static TakeWhileAsyncIterator<TResult> Limit<TResult>(
-			[NotNull] IAsyncEnumerable<TResult> source,
-			[NotNull] Func<TResult, bool> condition)
+			IAsyncEnumerable<TResult> source,
+			Func<TResult, bool> condition)
 		{
 			return new TakeWhileAsyncIterator<TResult>(source, condition);
 		}
@@ -201,9 +194,9 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
-			[NotNull, InstantHandle] Action<TSource> action,
+			[InstantHandle] Action<TSource> action,
 			CancellationToken ct)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -233,9 +226,9 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed successfully</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
-			[NotNull] Func<TSource, bool> action,
+			Func<TSource, bool> action,
 			CancellationToken ct)
 		{
 			Contract.NotNull(source, nameof(source));
@@ -268,9 +261,9 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
-			[NotNull] Func<TSource, CancellationToken, Task> action,
+			Func<TSource, CancellationToken, Task> action,
 			CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
@@ -297,9 +290,9 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
 		internal static async Task<long> Run<TSource>(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			AsyncIterationHint mode,
-			[NotNull] Func<TSource, Task> action,
+			Func<TSource, Task> action,
 			CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
@@ -327,7 +320,7 @@ namespace Doxense.Linq
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Value of the first element of the <param ref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		public static async Task<TSource> Head<TSource>(
-			[NotNull] IAsyncEnumerable<TSource> source,
+			IAsyncEnumerable<TSource> source,
 			bool single,
 			bool orDefault,
 			CancellationToken ct)
@@ -416,7 +409,6 @@ namespace Doxense.Linq
 			this.Index = 0;
 		}
 
-		[NotNull]
 		private T[] MergeChunks()
 		{
 			var tmp = new T[this.Count];
@@ -436,7 +428,6 @@ namespace Doxense.Linq
 		/// <summary>Return a buffer containing all of the items</summary>
 		/// <returns>Buffer that contains all the items, and may be larger than required</returns>
 		/// <remarks>This is equivalent to calling ToArray(), except that if the buffer is empty, or if it consists of a single page, then no new allocations will be performed.</remarks>
-		[NotNull]
 		public T[] GetBuffer()
 		{
 			//note: this is called by internal operator like OrderBy
@@ -459,7 +450,6 @@ namespace Doxense.Linq
 
 		/// <summary>Return the content of the buffer</summary>
 		/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
-		[NotNull]
 		public T[] ToArray()
 		{
 			if (this.Count == 0)
@@ -478,7 +468,6 @@ namespace Doxense.Linq
 
 		/// <summary>Return the content of the buffer</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
-		[NotNull]
 		public List<T> ToList()
 		{
 			int count = this.Count;
@@ -517,7 +506,6 @@ namespace Doxense.Linq
 
 		/// <summary>Return the content of the buffer</summary>
 		/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
-		[NotNull]
 		public HashSet<T> ToHashSet(IEqualityComparer<T>? comparer = null)
 		{
 			int count = this.Count;

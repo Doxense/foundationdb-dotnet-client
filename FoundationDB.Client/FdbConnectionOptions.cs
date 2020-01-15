@@ -44,8 +44,7 @@ namespace FoundationDB.Client
 		public const string DefaultDbName = "DB";
 
 		/// <summary>Full path to a specific 'fdb.cluster' file</summary>
-		[CanBeNull]
-		public string ClusterFile { get; set; }
+		public string? ClusterFile { get; set; }
 
 		/// <summary>Default database name</summary>
 		/// <remarks>Only "DB" is supported for now</remarks>
@@ -70,12 +69,10 @@ namespace FoundationDB.Client
 		public FdbDirectoryPath Root { get; set; }
 
 		/// <summary>If set, specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
-		[CanBeNull]
-		public string DataCenterId { get; set; }
+		public string? DataCenterId { get; set; }
 
 		/// <summary>If set, specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
-		[CanBeNull]
-		public string MachineId { get; set; }
+		public string? MachineId { get; set; }
 
 
 		public override string ToString()
@@ -93,7 +90,7 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		private static void AddKeyValue(StringBuilder sb, string key, string value)
+		private static void AddKeyValue(StringBuilder sb, string key, string? value)
 		{
 			if (value == null) return;
 			if (value.IndexOf(' ') >= 0 || value.IndexOf(';') >= 0)

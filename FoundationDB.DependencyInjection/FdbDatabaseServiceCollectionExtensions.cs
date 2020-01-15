@@ -38,8 +38,7 @@ namespace FoundationDB.DependencyInjection
 	public static class FdbDatabaseServiceCollectionExtensions
 	{
 
-		[NotNull]
-		public static IFdbDatabaseProviderBuilder AddFoundationDb([NotNull] this IServiceCollection services, int apiVersion)
+		public static IFdbDatabaseProviderBuilder AddFoundationDb(this IServiceCollection services, int apiVersion)
 		{
 			Contract.NotNull(services, nameof(services));
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
@@ -49,8 +48,7 @@ namespace FoundationDB.DependencyInjection
 			return new FdbDefaultDatabaseProviderBuilder(services);
 		}
 
-		[NotNull]
-		public static IServiceCollection AddFoundationDb([NotNull] this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
+		public static IServiceCollection AddFoundationDb(this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
 		{
 			Contract.NotNull(services, nameof(services));
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));

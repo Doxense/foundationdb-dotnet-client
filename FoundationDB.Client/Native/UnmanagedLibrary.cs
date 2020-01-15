@@ -33,7 +33,6 @@ namespace FoundationDB.Client.Native
 	using System.Runtime.InteropServices;
 	using System.Security;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 	using Microsoft.Win32.SafeHandles;
 
 	/// <summary>Native Library Loader</summary>
@@ -125,8 +124,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="path">Path to the native dll.</param>
 		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or that the file is not a  loadable image.</remarks>
 		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
-		[NotNull]
-		public static UnmanagedLibrary Load([NotNull] string path)
+		public static UnmanagedLibrary Load(string path)
 		{
 			Contract.NotNull(path, nameof(path));
 
@@ -143,7 +141,7 @@ namespace FoundationDB.Client.Native
 			return new UnmanagedLibrary(handle, path);
 		}
 
-		/// <summary>Constructor to load a dll and be responible for freeing it.</summary>
+		/// <summary>Constructor to load a dll and be responsible for freeing it.</summary>
 		/// <param name="handle">Handle to the loaded library</param>
 		/// <param name="path">Full path of library to load</param>
 		private UnmanagedLibrary(SafeLibraryHandle handle, string path)
@@ -153,15 +151,13 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Path of the native library, as passed to LoadLibrary</summary>
-		[NotNull]
 		public string Path { get; }
 
 		/// <summary>Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.</summary>
-		[NotNull]
 		public SafeLibraryHandle Handle { get; }
 
 		/// <summary>Call FreeLibrary on the unmanaged dll. All function pointers handed out from this class become invalid after this.</summary>
-		/// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implemention in the dll)./// </remarks>
+		/// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implementation in the dll)./// </remarks>
 		public void Dispose()
 		{
 			if (!this.Handle.IsClosed)

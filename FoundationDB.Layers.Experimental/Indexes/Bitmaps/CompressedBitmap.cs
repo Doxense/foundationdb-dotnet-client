@@ -28,8 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -82,10 +80,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
-		/// <summary>Gets a copy of the compressd bitmap's data</summary>
+		/// <summary>Gets a copy of the compressed bitmap's data</summary>
 		public MutableSlice ToSlice() { return m_data.Memoize(); }
 
-		[NotNull]
 		public CompressedBitmapBuilder ToBuilder()
 		{
 			return new CompressedBitmapBuilder(this);
@@ -225,7 +222,6 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			ratio = (32.0 * words) /  m_bounds.Highest;
 		}
 
-		[NotNull]
 		public string Dump()
 		{
 			return WordAlignHybridEncoder.DumpCompressed(m_data).ToString();

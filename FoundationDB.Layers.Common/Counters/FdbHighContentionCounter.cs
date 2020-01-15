@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Counters
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
 	using Doxense.Serialization.Encoders;
+	using FoundationDB.Client;
 
 	/// <summary>Represents an integer value which can be incremented without conflict.
 	/// Uses a sharded representation (which scales with contention) along with background coalescing...
@@ -55,25 +54,23 @@ namespace FoundationDB.Layers.Counters
 
 		/// <summary>Create a new High Contention counter.</summary>
 		/// <param name="location">Subspace to be used for storing the counter</param>
-		public FdbHighContentionCounter([NotNull] ISubspaceLocation location)
+		public FdbHighContentionCounter(ISubspaceLocation location)
 			: this(location.AsDynamic(), TuPack.Encoding.GetValueEncoder<long>())
 		{ }
 
 		/// <summary>Create a new High Contention counter, using a specific value encoder.</summary>
 		/// <param name="location">Location for storing the counters</param>
 		/// <param name="encoder">Encoder for the counter values</param>
-		public FdbHighContentionCounter([NotNull] DynamicKeySubspaceLocation location, [NotNull] IValueEncoder<long> encoder)
+		public FdbHighContentionCounter(DynamicKeySubspaceLocation location, IValueEncoder<long> encoder)
 		{
 			this.Location = location ?? throw new ArgumentNullException(nameof(location));
 			this.Encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		[NotNull] 
 		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Encoder for the integer values of the counter</summary>
-		[NotNull]
 		public IValueEncoder<long> Encoder {get; }
 
 		/// <summary>Generate a new random slice</summary>
@@ -153,7 +150,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Get the value of the counter.
 		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
 		/// </summary>
-		public async Task<long> GetTransactional([NotNull] IFdbReadOnlyTransaction trans)
+		public async Task<long> GetTransactional(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -168,13 +165,13 @@ namespace FoundationDB.Layers.Counters
 			return total;
 		}
 
-		public Task<long> GetSnapshot([NotNull] IFdbReadOnlyTransaction trans)
+		public Task<long> GetSnapshot(IFdbReadOnlyTransaction trans)
 		{
 			return GetTransactional(trans.Snapshot);
 		}
 
 		/// <summary>Add the value x to the counter.</summary>
-		public async ValueTask Add([NotNull] IFdbTransaction trans, long x)
+		public async ValueTask Add(IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -194,7 +191,7 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Set the counter to value x.</summary>
-		public async ValueTask SetTotal([NotNull] IFdbTransaction trans, long x)
+		public async ValueTask SetTotal(IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 

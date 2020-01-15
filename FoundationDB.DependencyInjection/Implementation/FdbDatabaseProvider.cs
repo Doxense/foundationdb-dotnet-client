@@ -39,31 +39,28 @@ namespace FoundationDB.DependencyInjection
 	public sealed class FdbDatabaseProvider : IFdbDatabaseProvider
 	{
 
-		private IFdbDatabase Db { get; set; }
+		private IFdbDatabase? Db { get; set; }
 
 		public bool IsAvailable { get; private set; }
 
-		[NotNull]
 		public FdbDatabaseProviderOptions Options { get; }
 
-		private TaskCompletionSource<IFdbDatabase> InitTask;
+		private TaskCompletionSource<IFdbDatabase>? InitTask;
 
-		[NotNull]
 		private Task<IFdbDatabase> DbTask;
 
-		[NotNull]
 		private CancellationTokenSource LifeTime { get; } = new CancellationTokenSource();
 
-		private Exception Error { get; set;}
+		private Exception? Error { get; set;}
 
-		[Pure, NotNull]
-		public static IFdbDatabaseProvider Create([NotNull] FdbDatabaseProviderOptions options)
+		[Pure]
+		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
 			Contract.NotNull(options, nameof(options));
 			return new FdbDatabaseProvider(Microsoft.Extensions.Options.Options.Create(options));
 		}
 
-		public FdbDatabaseProvider([NotNull] IOptions<FdbDatabaseProviderOptions> optionsAccessor)
+		public FdbDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
 		{
 			Contract.NotNull(optionsAccessor, nameof(optionsAccessor));
 			this.Options = optionsAccessor.Value;
@@ -113,7 +110,7 @@ namespace FoundationDB.DependencyInjection
 			SetDatabase(null, null);
 		}
 
-		public void SetDatabase(IFdbDatabase db, Exception e)
+		public void SetDatabase(IFdbDatabase? db, Exception? e)
 		{
 			this.Db = db;
 			this.Error = e;
@@ -156,7 +153,7 @@ namespace FoundationDB.DependencyInjection
 			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
 		}
 
-		IFdbDatabaseScopeProvider IFdbDatabaseScopeProvider.Parent => null;
+		IFdbDatabaseScopeProvider? IFdbDatabaseScopeProvider.Parent => null;
 
 		public CancellationToken Cancellation => this.LifeTime.Token;
 

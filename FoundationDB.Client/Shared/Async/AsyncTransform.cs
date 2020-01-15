@@ -42,10 +42,10 @@ namespace Doxense.Async
 	{
 		private readonly IAsyncTarget<Task<TOutput>> m_target;
 		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
-		private readonly TaskScheduler m_scheduler;
+		private readonly TaskScheduler? m_scheduler;
 		private bool m_done;
 
-		public AsyncTransform([NotNull] Func<TInput, CancellationToken, Task<TOutput>> transform, [NotNull] IAsyncTarget<Task<TOutput>> target, TaskScheduler scheduler = null)
+		public AsyncTransform(Func<TInput, CancellationToken, Task<TOutput>> transform, IAsyncTarget<Task<TOutput>> target, TaskScheduler? scheduler = null)
 		{
 			Contract.NotNull(transform, nameof(transform));
 			Contract.NotNull(target, nameof(target));
@@ -59,7 +59,7 @@ namespace Doxense.Async
 		public IAsyncTarget<Task<TOutput>> Target => m_target;
 
 		/// <summary>Optional scheduler used to run the tasks</summary>
-		public TaskScheduler Scheduler => m_scheduler;
+		public TaskScheduler? Scheduler => m_scheduler;
 
 		#region IAsyncTarget<T>...
 

@@ -37,9 +37,8 @@ namespace Doxense.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
-	/// <summary>Implements an async queue that asynchronously transform items, outputing them in arrival order, while throttling the producer</summary>
+	/// <summary>Implements an async queue that asynchronously transform items, outputting them in arrival order, while throttling the producer</summary>
 	/// <typeparam name="TInput">Type of the input elements (from the inner async iterator)</typeparam>
 	/// <typeparam name="TOutput">Type of the output elements (produced by an async lambda)</typeparam>
 	public class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
@@ -48,12 +47,12 @@ namespace Doxense.Async
 		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new Queue<Task<Maybe<TOutput>>>();
 		private readonly object m_lock = new object();
 		private readonly int m_capacity;
-		private AsyncCancelableMutex m_blockedProducer;
-		private AsyncCancelableMutex m_blockedConsumer;
+		private AsyncCancelableMutex? m_blockedProducer;
+		private AsyncCancelableMutex? m_blockedConsumer;
 		private bool m_done;
 		private readonly TaskScheduler m_scheduler;
 
-		public AsyncTransformQueue([NotNull] Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
+		public AsyncTransformQueue(Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler? scheduler)
 		{
 			Contract.NotNull(transform, nameof(transform));
 			if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than zero");
@@ -215,7 +214,7 @@ namespace Doxense.Async
 
 		#region IAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken ct)
+		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken ct)
 		{
 			Contract.NotNull(batch, nameof(batch));
 
@@ -242,8 +241,8 @@ namespace Doxense.Async
 			// if the first item in the queue is not yet completed, we need to wait for it (semi-fast path)
 			// if the queue is empty, we first need to wait for an item to arrive, then wait for it
 
-			Task<Maybe<TOutput>> task = null;
-			Task waiter = null;
+			Task<Maybe<TOutput>>? task = null;
+			Task? waiter = null;
 
 			lock(m_lock)
 			{
@@ -270,13 +269,13 @@ namespace Doxense.Async
 				}
 			}
 
-
 			if (task != null)
 			{ // the next task is already started, we need to wait for it
 				return ReceiveWhenDoneAsync(task, ct);
 			}
 			else
-			{ // nothing schedule yet, slow code path will wait for something new to happen...
+			{ // nothing scheduled yet, slow code path will wait for something new to happen...
+				Contract.Assert(waiter != null);
 				return ReceiveSlowAsync(waiter, ct);
 			}
 		}
@@ -312,7 +311,7 @@ namespace Doxense.Async
 			{
 				await waiter.ConfigureAwait(false);
 
-				Task<Maybe<TOutput>> task = null;
+				Task<Maybe<TOutput>>? task = null;
 				lock (m_lock)
 				{
 					if (m_queue.Count > 0)
@@ -372,7 +371,7 @@ namespace Doxense.Async
 			return ReceiveBatchSlowAsync(batch, count, ct);
 		}
 
-		private async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync([NotNull] List<Maybe<TOutput>> batch, int count, CancellationToken ct)
+		private async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync(List<Maybe<TOutput>> batch, int count, CancellationToken ct)
 		{
 			// got nothing, wait for at least one
 			while (batch.Count == 0)
@@ -405,7 +404,7 @@ namespace Doxense.Async
 
 		#endregion
 
-		private bool DrainItems_NeedsLocking([NotNull] List<Maybe<TOutput>> buffer, int count)
+		private bool DrainItems_NeedsLocking(List<Maybe<TOutput>> buffer, int count)
 		{
 			// tries to return all completed tasks at the start of the queue
 

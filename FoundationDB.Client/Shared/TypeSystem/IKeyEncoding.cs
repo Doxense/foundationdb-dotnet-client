@@ -31,27 +31,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using JetBrains.Annotations;
 
 	/// <summary>Type system that handles encoding and decoding of different types of keys</summary>
 	/// <remarks>
 	/// An implementation of this interface knows to create different types of Key Encoders that will all use the same "binary format" to encode and decode keys of various shapes.
 	/// A good analogy for values would be a 'JSON' encoding, or 'XML' encoding.
 	/// </remarks>
-	public interface IKeyEncoding //REVIEW: rename to "IKeyEncodingScheme"? "IKeyTypeSystem"?
+	public interface IKeyEncoding
 	{
 
 		/// <summary>Returns an encoder which can process keys of any size and types</summary>
 		/// <returns>Encoder that encodes dynamic keys</returns>
 		/// <exception cref="NotSupportedException">If this encoding does not support dynamic keys</exception>
-		[NotNull]
 		IDynamicKeyEncoder GetDynamicKeyEncoder();
 
 		/// <summary>Returns an encoder which can process keys composed of a single element of a fixed type</summary>
 		/// <typeparam name="T1">Type of the element to encode</typeparam>
 		/// <returns>Key encoder</returns>
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys</exception>
-		[NotNull]
 		IKeyEncoder<T1> GetKeyEncoder<T1>();
 
 		/// <summary>Returns an encoder which can process keys composed of a two elements of fixed types</summary>
@@ -59,7 +56,6 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T2">Type of the second element to encode</typeparam>
 		/// <returns>Composite key encoder</returns>
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys of size 2</exception>
-		[NotNull]
 		ICompositeKeyEncoder<T1, T2> GetKeyEncoder<T1, T2>();
 
 		/// <summary>Returns an encoder which can process keys composed of a three elements of fixed types</summary>
@@ -68,7 +64,6 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T3">Type of the third element to encode</typeparam>
 		/// <returns>Composite key encoder</returns>
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys of size 3</exception>
-		[NotNull]
 		ICompositeKeyEncoder<T1, T2, T3> GetKeyEncoder<T1, T2, T3>();
 
 		/// <summary>Returns an encoder which can process keys composed of a four elements of fixed types</summary>
@@ -78,7 +73,6 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T4">Type of the fourth element to encode</typeparam>
 		/// <returns>Composite key encoder</returns>
 		/// <exception cref="NotSupportedException">If this encoding does not support static keys of size 4</exception>
-		[NotNull]
 		ICompositeKeyEncoder<T1, T2, T3, T4> GetKeyEncoder<T1, T2, T3, T4>();
 
 	}

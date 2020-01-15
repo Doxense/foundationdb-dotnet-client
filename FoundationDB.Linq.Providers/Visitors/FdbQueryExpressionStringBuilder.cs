@@ -51,10 +51,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Writer used by this builder</summary>
-		public FdbDebugStatementWriter Writer
-		{
-			[NotNull] get { return m_writer; }
-		}
+		public FdbDebugStatementWriter Writer => m_writer;
 
 		/// <summary>Returns the text expression that has been written so far</summary>
 		public override string ToString()
@@ -65,7 +62,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Visit a node and appends it to the string builder</summary>
 		/// <param name="node"></param>
 		/// <returns></returns>
-		public override Expression Visit(FdbQueryExpression node)
+		public override Expression Visit(FdbQueryExpression? node)
 		{
 			if (node != null)
 			{

@@ -90,8 +90,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[NotNull]
-		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
+		public static Slice[] Merge(Slice prefix, Slice[] keys)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
 			Contract.NotNull(keys, nameof(keys));
@@ -120,8 +119,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[NotNull]
-		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
+		public static Slice[] Merge(Slice prefix, IEnumerable<Slice> keys)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
 			Contract.NotNull(keys, nameof(keys));
@@ -154,8 +152,7 @@ namespace FoundationDB.Client
 		/// <param name="endOffsets">Array containing, for each segment, the offset of the following segment</param>
 		/// <returns>Array of segments</returns>
 		/// <example>SplitIntoSegments("HelloWorld", 0, [5, 10]) => [{"Hello"}, {"World"}]</example>
-		[NotNull]
-		internal static Slice[] SplitIntoSegments([NotNull] byte[] buffer, int start, [NotNull] List<int> endOffsets)
+		internal static Slice[] SplitIntoSegments(byte[]? buffer, int start, List<int> endOffsets)
 		{
 			var result = new Slice[endOffsets.Count];
 			int i = 0;
@@ -263,7 +260,6 @@ namespace FoundationDB.Client
 		/// <param name="key">Random binary key</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
-		[NotNull]
 		public static string Dump(Slice key)
 		{
 			return PrettyPrint(key, PrettyPrintMode.Single);
@@ -275,7 +271,6 @@ namespace FoundationDB.Client
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		[DebuggerNonUserCode]
-		[NotNull]
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
 		{
 			if (key.Count > 1)
@@ -286,8 +281,8 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						IVarTuple tuple = null;
-						string suffix = null;
+						IVarTuple? tuple = null;
+						string? suffix = null;
 						bool skip = false;
 
 						try
@@ -367,7 +362,6 @@ namespace FoundationDB.Client
 		/// <param name="key">Random binary key</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
-		[NotNull]
 		public static string Dump(ReadOnlySpan<byte> key)
 		{
 			return PrettyPrint(key, PrettyPrintMode.Single);
@@ -379,7 +373,6 @@ namespace FoundationDB.Client
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		[DebuggerNonUserCode]
-		[NotNull]
 		public static string PrettyPrint(ReadOnlySpan<byte> key, PrettyPrintMode mode)
 		{
 			if (key.Length > 1)
@@ -390,8 +383,8 @@ namespace FoundationDB.Client
 				{ // it could be a tuple...
 					try
 					{
-						IVarTuple tuple = null;
-						string suffix = null;
+						IVarTuple? tuple = null;
+						string? suffix = null;
 						bool skip = false;
 
 						try
@@ -481,10 +474,10 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <param name="ignoreError"></param>
-		/// <param name="error"></param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(in Slice key, bool endExclusive, bool ignoreError, out Exception error)
+		/// <param name="ignoreError">If true, don't return an exception in <paramref name="error"/>, even if the key is invalid.</param>
+		/// <param name="error">Receive an exception object if the key is not valid and <paramref name="ignoreError"/> is false</param>
+		/// <returns>Return <c>false</c> if the key is outside of the allowed key space of this database</returns>
+		internal static bool ValidateKey(in Slice key, bool endExclusive, bool ignoreError, out Exception? error)
 		{
 			// null keys are not allowed
 			if (key.IsNull)
@@ -501,7 +494,7 @@ namespace FoundationDB.Client
 		/// <param name="ignoreError"></param>
 		/// <param name="error"></param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception error)
+		internal static bool ValidateKey(ReadOnlySpan<byte> key, bool endExclusive, bool ignoreError, out Exception? error)
 		{
 			error = null;
 
@@ -519,20 +512,6 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			//// first, it MUST start with the root prefix of this database (if any)
-			//var root = tr.Context.Root;
-			//if (root != null && !root.Contains(key))
-			//{
-			//	// special case: if endExclusive is true (we are validating the end key of a ClearRange),
-			//	// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let it slide
-			//	if (!endExclusive
-			//	 || !key.SequenceEqual(FdbKey.Increment(root.GetPrefix()))) //TODO: cache this?
-			//	{
-			//		if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(tr.Context.Database, key);
-			//		return false;
-			//	}
-			//}
-
 			return true;
 		}
 
@@ -549,7 +528,7 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		public static void EnsureKeyIsValid(Slice key, bool endExclusive = false)
 		{
-			if (!ValidateKey(key, endExclusive, false, out Exception ex)) throw ex;
+			if (!ValidateKey(key, endExclusive, false, out var ex)) throw ex!;
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -558,7 +537,7 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		public static void EnsureKeyIsValid(ReadOnlySpan<byte> key, bool endExclusive = false)
 		{
-			if (!ValidateKey(key, endExclusive, false, out Exception ex)) throw ex;
+			if (!ValidateKey(key, endExclusive, false, out var ex)) throw ex!;
 		}
 
 		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -569,7 +548,7 @@ namespace FoundationDB.Client
 		{
 			foreach (var key in keys)
 			{
-				if (!ValidateKey(key, endExclusive, false, out Exception ex)) throw ex;
+				if (!ValidateKey(key, endExclusive, false, out var ex)) throw ex!;
 			}
 		}
 
@@ -579,7 +558,6 @@ namespace FoundationDB.Client
 		[Pure]
 		public static bool IsKeyValid(Slice key)
 		{
-			Exception _;
 			return ValidateKey(key, false, true, out _);
 		}
 
@@ -589,7 +567,6 @@ namespace FoundationDB.Client
 		[Pure]
 		public static bool IsKeyValid(ReadOnlySpan<byte> key)
 		{
-			Exception _;
 			return ValidateKey(key, false, true, out _);
 		}
 
@@ -613,7 +590,7 @@ namespace FoundationDB.Client
 			if (ex != null) throw ex;
 		}
 
-		internal static Exception ValidateValue(ReadOnlySpan<byte> value)
+		internal static Exception? ValidateValue(ReadOnlySpan<byte> value)
 		{
 			if (value.Length > Fdb.MaxValueSize)
 			{
