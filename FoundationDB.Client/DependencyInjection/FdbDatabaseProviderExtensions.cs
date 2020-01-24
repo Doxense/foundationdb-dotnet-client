@@ -32,23 +32,38 @@ namespace FoundationDB.Client
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public static class FdbDatabaseProviderExtensions
 	{
 
-		/// <summary>Convert this database instance into a <see cref="IFdbDatabaseScopeProvider">provider</see></summary>
+		/// <summary>Convert this database instance into a <see cref="IFdbDatabaseProvider">provider</see></summary>
+		/// <param name="db">Database singleton to wrap into a provider</param>
+		/// <param name="lifetime">External cancellation token that can remotely disable this provider (without impacting the original database instance)</param>
+		/// <returns>Provider instance that will always return the <paramref name="db"/> instance.</returns>
+		/// <remarks>
+		/// Disposing the original database, or cancelling the provided cancellation token will also trigger the cancellation of all the downstream scopes created from this provider.
+		/// </remarks>
 		[Pure]
-		public static IFdbDatabaseScopeProvider AsDatabaseProvider(this IFdbDatabase db)
+		public static IFdbDatabaseScopeProvider AsDatabaseProvider(this IFdbDatabase db, CancellationToken lifetime = default)
 		{
-			return Fdb.CreateRootScope(db);
+			// Default database implementation is already a provider!
+			if (db is IFdbDatabaseProvider provider && (lifetime == CancellationToken.None || lifetime == db.Cancellation))
+			{
+				return provider;
+			}
+			// Wrap the database in a separate provider.
+			return new FdbDatabaseSingletonProvider<object>(db, null, CancellationTokenSource.CreateLinkedTokenSource(db.Cancellation, lifetime));
 		}
 
 		/// <summary>Create a scope that will execute some initialization logic before the first transaction is allowed to run</summary>
 		/// <param name="db">Parent provider</param>
 		/// <param name="init">Handler that must run successfully once before allowing transactions on this scope</param>
-		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>
+		/// <param name="lifetime">External cancellation token that can remotely disable this provider (without impacting the original database instance)</param>
+		/// <returns>Provider instance that will always return the <paramref name="db"/> instance.</returns>
+		/// <remarks>Disposing the original database, or cancelling the provided cancellation token will also trigger the cancellation of all the downstream scopes created from this provider.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IFdbDatabaseScopeProvider<TState> CreateRootScope<TState>(
 			this IFdbDatabase db,

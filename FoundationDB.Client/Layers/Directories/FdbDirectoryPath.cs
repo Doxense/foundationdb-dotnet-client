@@ -92,6 +92,9 @@ namespace FoundationDB.Client
 		/// <summary>Append one or more new segments to the curent path</summary>
 		public FdbDirectoryPath this[ReadOnlySpan<string> segments] => Add(segments);
 
+		/// <summary>Append a relative path to the curent path</summary>
+		public FdbDirectoryPath this[FdbDirectoryPath path] => Add(path);
+
 		private static ReadOnlyMemory<string> AppendSegment(ReadOnlySpan<string> head, string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));

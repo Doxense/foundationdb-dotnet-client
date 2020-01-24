@@ -76,6 +76,15 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		public FdbDirectoryPath Root
+		{
+			get
+			{
+				if (m_disposed) throw ThrowHelper.ObjectDisposedException(this);
+				throw new InvalidOperationException("Database provider has failed.", this.Error);
+			}
+		}
+
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct)
 		{
 			return new ValueTask<IFdbDatabase>(

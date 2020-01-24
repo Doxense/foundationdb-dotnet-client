@@ -52,8 +52,10 @@ namespace FoundationDB.DependencyInjection
 				? CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation)
 				: CancellationTokenSource.CreateLinkedTokenSource(parent.Cancellation, lifetime);
 			this.DbTask = new Lazy<Task>(this.InitAsync, LazyThreadSafetyMode.ExecutionAndPublication);
+			this.State = default;
 		}
 
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider Parent { get; }
 
 		public Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> Handler { get; }
@@ -71,7 +73,11 @@ namespace FoundationDB.DependencyInjection
 
 		private CancellationTokenSource LifeTime { get; }
 
+		/// <inheritdoc />
 		public CancellationToken Cancellation => this.LifeTime.Token;
+
+		/// <inheritdoc />
+		public FdbDirectoryPath Root => this.Parent.Root;
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void UpdateInternalState(IFdbDatabase? db, [AllowNull] TState state, Exception? error)
@@ -124,6 +130,7 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TNewState)>> start, CancellationToken lifetime = default)
 		{
 			Contract.NotNull(start, nameof(start));
@@ -131,6 +138,7 @@ namespace FoundationDB.DependencyInjection
 			return new FdbDatabaseScopeProvider<TNewState>(this, start, lifetime);
 		}
 
+		/// <inheritdoc />
 		public bool IsAvailable => this.DbTask.IsValueCreated && this.DbTask.Value.Status == TaskStatus.RanToCompletion;
 
 		private async ValueTask<(IFdbDatabase? Database, TState state, Exception? error)> EnsureInitialized(CancellationToken ct)
@@ -152,6 +160,7 @@ namespace FoundationDB.DependencyInjection
 			return ReadInternalState();
 		}
 
+		/// <inheritdoc />
 		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default)
 		{
 			//BUGBUG: what if the parent scope has been shut down?
@@ -167,6 +176,7 @@ namespace FoundationDB.DependencyInjection
 			return (db!, state);
 		}
 
+		/// <inheritdoc />
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
 			//BUGBUG: what if the parent scope has been shut down?
@@ -182,6 +192,7 @@ namespace FoundationDB.DependencyInjection
 			return db;
 		}
 
+		/// <inheritdoc />
 		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
 		{
 			tr.Cancellation.ThrowIfCancellationRequested();

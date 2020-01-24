@@ -38,7 +38,7 @@ namespace FoundationDB.DependencyInjection
 
 	/// <summary>Default implementation of a scope provider that uses a pre-initialized database instance</summary>
 	/// <typeparam name="TState">Type of the state that will be passed to consumers of this type</typeparam>
-	internal sealed class FdbDatabaseSingletonProvider<TState> : IFdbDatabaseScopeProvider<TState>
+	public sealed class FdbDatabaseSingletonProvider<TState> : IFdbDatabaseScopeProvider<TState>
 	{
 
 		public FdbDatabaseSingletonProvider(IFdbDatabase db, [AllowNull] TState state, CancellationTokenSource lifetime)
@@ -77,11 +77,17 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider? Parent => null;
 
+		/// <inheritdoc />
 		public bool IsAvailable => Volatile.Read(ref m_disposed) == 0;
 
+		/// <inheritdoc />
 		public CancellationToken Cancellation => this.Lifetime.Token;
+
+		/// <inheritdoc />
+		public FdbDirectoryPath Root => EnsureReady().Db.Root.Path;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private Scope EnsureReady()
@@ -91,12 +97,14 @@ namespace FoundationDB.DependencyInjection
 			return scope;
 		}
 
+		/// <inheritdoc />
 		public ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct = default)
 		{
 			var scope = EnsureReady();
 			return new ValueTask<IFdbDatabase>(scope.Db);
 		}
 
+		/// <inheritdoc />
 		public ValueTask<TState> GetState(IFdbReadOnlyTransaction tr)
 		{
 			tr.Cancellation.ThrowIfCancellationRequested();
@@ -104,12 +112,14 @@ namespace FoundationDB.DependencyInjection
 			return new ValueTask<TState>(scope.State);
 		}
 
+		/// <inheritdoc />
 		public ValueTask<(IFdbDatabase Database, TState State)> GetDatabaseAndState(CancellationToken ct = default)
 		{
 			var scope = EnsureReady();
 			return new ValueTask<(IFdbDatabase, TState)>((scope.Db, scope.State));
 		}
 
+		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TNewState State)>> start, CancellationToken lifetime = default)
 		{
 			_ = EnsureReady();

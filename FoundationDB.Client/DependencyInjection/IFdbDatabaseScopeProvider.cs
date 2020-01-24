@@ -42,6 +42,9 @@ namespace FoundationDB.Client
 		/// <remarks>During the startup of the application, the task returned will wait until the database becomes ready. After that, the task will immediately return the database singleton.</remarks>
 		ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct);
 
+		/// <summary>Path to the root of the database</summary>
+		FdbDirectoryPath Root { get; }
+
 		/// <summary>Create a scope that will use the database provided by this instance, and which also needs to perform some initialization steps before being ready (ex: using the DirectoryLayer to open subspaces, ...)</summary>
 		/// <param name="start">Handler that will be called AFTER the database becomes ready, but BEFORE any consumer of this scope can run.</param>
 		/// <param name="lifetime">Optional cancellation token that can be used to externally abort the new scope</param>

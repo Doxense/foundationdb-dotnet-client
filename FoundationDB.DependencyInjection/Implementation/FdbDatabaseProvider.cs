@@ -53,6 +53,8 @@ namespace FoundationDB.DependencyInjection
 
 		private Exception? Error { get; set;}
 
+		public FdbDirectoryPath Root => this.Options.ConnectionOptions.Root;
+
 		[Pure]
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
