@@ -158,6 +158,7 @@ namespace FoundationDB.Client
 
 			private bool ProcessNextItem()
 			{
+				Contract.Requires(m_chunk != null && m_itemsRemainingInChunk > 0);
 				++m_currentOffsetInChunk;
 				--m_itemsRemainingInChunk;
 				return Publish(m_resultTransform(m_chunk[m_currentOffsetInChunk]));

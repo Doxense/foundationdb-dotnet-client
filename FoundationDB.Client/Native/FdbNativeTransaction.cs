@@ -392,13 +392,13 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(h != null);
 
-			var err = FdbNative.FutureGetStringArray(h, out string[] result);
+			var err = FdbNative.FutureGetStringArray(h, out var result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
 			Fdb.DieOnError(err);
 			Contract.Ensures(result != null); // can only be null in case of an error
-			return result;
+			return result!;
 		}
 
 		/// <inheritdoc />

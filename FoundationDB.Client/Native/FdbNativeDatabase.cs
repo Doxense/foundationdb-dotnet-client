@@ -89,9 +89,9 @@ namespace FoundationDB.Client.Native
 
 			// Starting from 6.1, creating a database handler can be done directly
 			var err = FdbNative.CreateDatabase(clusterFile, out var handle);
-			if (err != FdbError.Success)
+			if (Fdb.Failed(err))
 			{
-				throw Fdb.MapToException(err);
+				throw Fdb.MapToException(err)!;
 			}
 
 			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
@@ -111,9 +111,9 @@ namespace FoundationDB.Client.Native
 					h =>
 					{
 						var err = FdbNative.FutureGetCluster(h, out var handle);
-						if (err != FdbError.Success)
+						if (Fdb.Failed(err))
 						{
-							throw Fdb.MapToException(err);
+							throw Fdb.MapToException(err)!;
 						}
 
 						return handle;
@@ -125,9 +125,9 @@ namespace FoundationDB.Client.Native
 					h =>
 					{
 						var err = FdbNative.FutureGetDatabase(h, out var handle);
-						if (err != FdbError.Success)
+						if (Fdb.Failed(err))
 						{
-							throw Fdb.MapToException(err);
+							throw Fdb.MapToException(err)!;
 						}
 
 						return handle;
@@ -171,7 +171,7 @@ namespace FoundationDB.Client.Native
 				var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
 				if (Fdb.Failed(err))
 				{
-					throw Fdb.MapToException(err);
+					throw Fdb.MapToException(err)!;
 				}
 				return new FdbNativeTransaction(this, handle);
 			}

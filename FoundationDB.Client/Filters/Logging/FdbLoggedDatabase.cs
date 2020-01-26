@@ -37,7 +37,7 @@ namespace FoundationDB.Filters.Logging
 	public sealed class FdbLoggedDatabase : FdbDatabaseFilter
 	{
 
-		/// <summary>Handler called everytime a transaction is successfully committed</summary>
+		/// <summary>Handler called every time a transaction is successfully committed</summary>
 		public Action<FdbLoggedTransaction> OnCommitted { get; private set; }
 
 		public FdbLoggingOptions LoggingOptions { get; private set; }
@@ -56,7 +56,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Create a new logged transaction</summary>
-		public override async ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext context = null)
+		public override async ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct = default, FdbOperationContext? context = null)
 		{
 			return new FdbLoggedTransaction(
 				await base.BeginTransactionAsync(mode, ct, context),

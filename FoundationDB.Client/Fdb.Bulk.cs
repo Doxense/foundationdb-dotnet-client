@@ -454,6 +454,7 @@ namespace FoundationDB.Client
 						}
 						else
 						{
+							Contract.Assert(bodyBlocking != null);
 							bodyBlocking(item, trans);
 						}
 
@@ -481,7 +482,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Retry commiting a segment of a chunk, splitting it in sub-segments as needed</summary>
-			private static async Task RetryChunk<TSource>(IFdbTransaction trans, List<TSource> chunk, int offset, int count, Func<TSource, IFdbTransaction, Task> bodyAsync, Action<TSource, IFdbTransaction> bodyBlocking)
+			private static async Task RetryChunk<TSource>(IFdbTransaction trans, List<TSource> chunk, int offset, int count, Func<TSource, IFdbTransaction, Task>? bodyAsync, Action<TSource, IFdbTransaction>? bodyBlocking)
 			{
 				Contract.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
 
@@ -512,6 +513,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{
+					Contract.Assert(bodyBlocking != null);
 					for (int i = 0; i < count; i++)
 					{
 						bodyBlocking(chunk[offset + i], trans);
@@ -786,6 +788,7 @@ namespace FoundationDB.Client
 							}
 							else
 							{
+								Contract.Assert(bodyBlocking != null);
 								bodyBlocking(batch, trans);
 							}
 							offset += batch.Length;
@@ -814,6 +817,7 @@ namespace FoundationDB.Client
 						}
 						else
 						{
+							Contract.Assert(bodyBlocking != null);
 							bodyBlocking(batch, trans);
 						}
 
@@ -825,7 +829,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Retry commiting a segment of a chunk, splitting it in sub-segments as needed</summary>
-			private static async Task RetryChunk<TSource>(IFdbTransaction trans, List<TSource> chunk, int offset, int count, Func<TSource[], IFdbTransaction, Task> bodyAsync, Action<TSource[], IFdbTransaction> bodyBlocking)
+			private static async Task RetryChunk<TSource>(IFdbTransaction trans, List<TSource> chunk, int offset, int count, Func<TSource[], IFdbTransaction, Task>? bodyAsync, Action<TSource[], IFdbTransaction>? bodyBlocking)
 			{
 				Contract.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
 
@@ -857,6 +861,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{
+					Contract.Assert(bodyBlocking != null);
 					bodyBlocking(items, trans);
 				}
 
@@ -921,7 +926,7 @@ namespace FoundationDB.Client
 			public sealed class BatchOperationContext
 			{
 				/// <summary>Transaction corresponding to the current generation</summary>
-				public IFdbReadOnlyTransaction Transaction { get; internal set; }
+				public IFdbReadOnlyTransaction Transaction { get; }
 
 				/// <summary>Offset of the current batch from the start of the source sequence</summary>
 				public long Position { get; internal set; }
@@ -933,10 +938,10 @@ namespace FoundationDB.Client
 				public int Step { get; internal set; }
 
 				/// <summary>Global timer, from the start of the bulk operation</summary>
-				internal Stopwatch TotalTimer { get; set; }
+				internal Stopwatch TotalTimer { get; }
 
 				/// <summary>Timer started at the start of each transaction</summary>
-				internal Stopwatch GenerationTimer { get; set; }
+				internal Stopwatch GenerationTimer { get; }
 
 				/// <summary>Cooldown timer used for scaling up and down the step size</summary>
 				public int Cooldown { get; internal set; }
@@ -961,6 +966,15 @@ namespace FoundationDB.Client
 
 				/// <summary>Gets or sets the abort flag</summary>
 				public bool Abort { get; set; }
+
+				internal BatchOperationContext(IFdbReadOnlyTransaction trans, int batchSize, Stopwatch totalTimer, Stopwatch generationTimer)
+				{
+					Contract.Requires(trans != null && batchSize > 0 && totalTimer != null && generationTimer != null);
+					this.Transaction = trans;
+					this.Step = batchSize;
+					this.TotalTimer = totalTimer;
+					this.GenerationTimer = generationTimer;
+				}
 
 			}
 
@@ -1075,6 +1089,11 @@ namespace FoundationDB.Client
 
 			#region Aggregate...
 
+			private static class AggregateLambda<TAggregate>
+			{
+				public static readonly Func<TAggregate, TAggregate> Identity = (x) => x;
+			}
+
 			/// <summary>Execute a potentially long aggregation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
 			/// <typeparam name="TSource">Type of elements in the source sequence</typeparam>
 			/// <typeparam name="TAggregate">Type of the local immutable aggregate that is flowed across all batch operations</typeparam>
@@ -1096,8 +1115,7 @@ namespace FoundationDB.Client
 				Contract.NotNull(localInit, nameof(localInit));
 				Contract.NotNull(body, nameof(body));
 
-				Func<TAggregate, TAggregate> identity = (x) => x;
-				return RunBatchedReadOperationAsync<TSource, TAggregate, TAggregate>(db, source, localInit, body, identity, DefaultInitialBatchSize, ct);
+				return RunBatchedReadOperationAsync<TSource, TAggregate, TAggregate>(db, source, localInit, body, AggregateLambda<TAggregate>.Identity, DefaultInitialBatchSize, ct);
 			}
 
 			/// <summary>Execute a potentially long aggregation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
@@ -1179,13 +1197,7 @@ namespace FoundationDB.Client
 
 					using (var trans = await db.BeginReadOnlyTransactionAsync(ct))
 					{
-						var ctx = new BatchOperationContext
-						{
-							Transaction = trans,
-							Step = batchSize,
-							TotalTimer = totalTimer,
-							GenerationTimer = Stopwatch.StartNew(),
-						};
+						var ctx = new BatchOperationContext(trans, batchSize, totalTimer, Stopwatch.StartNew());
 
 						try
 						{
@@ -1231,8 +1243,9 @@ namespace FoundationDB.Client
 										{
 											await bodyAsyncWithContext(items, ctx);
 										}
-										else if (bodyWithContext != null)
+										else
 										{
+											Contract.Assert(bodyWithContext != null);
 											bodyWithContext(items, ctx);
 										}
 										sw.Stop();
@@ -1242,7 +1255,7 @@ namespace FoundationDB.Client
 											offsetInCurrentBatch += items.Length;
 											if (offsetInCurrentBatch >= batch.Count)
 											{
-												// scale up the batch size if everything was superquick !
+												// scale up the batch size if everything was super quick !
 												if (ctx.Cooldown > 0) ctx.Cooldown--;
 												if (ctx.Cooldown <= 0 && sw.Elapsed.TotalSeconds < (5.0 - ctx.ElapsedGeneration.TotalSeconds) / 2)//REVIEW: magical number!
 												{
@@ -1508,7 +1521,7 @@ namespace FoundationDB.Client
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
 			public static async Task<long> ExportAsync<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path, [InstantHandle] Func<KeyValuePair<Slice, Slice>[], TSubspace, long, CancellationToken, Task> handler, CancellationToken ct)
-				where TSubspace : IKeySubspace
+				where TSubspace : class, IKeySubspace
 			{
 				Contract.NotNull(db, nameof(db));
 				Contract.NotNull(handler, nameof(handler));
@@ -1547,6 +1560,8 @@ namespace FoundationDB.Client
 					var folder = await path.Resolve(tr);
 					if (previous.IsNull)
 					{
+						if (folder == null) throw new InvalidOperationException($"Failed to export the content of subspace {path} because it was not found.");
+
 						previous = folder.GetPrefix();
 						location = folder;
 						var range = folder.ToRange();

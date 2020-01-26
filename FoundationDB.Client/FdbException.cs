@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 		{		
 		}
 
-		public FdbException(FdbError errorCode, string message, Exception innerException)
+		public FdbException(FdbError errorCode, string message, Exception? innerException)
 			: base(message, innerException)
 		{
 			this.Code = errorCode;

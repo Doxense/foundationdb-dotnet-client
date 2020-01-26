@@ -95,7 +95,7 @@ namespace FoundationDB.Client.Native
 					if (Fdb.Failed(err))
 					{ // uhoh
 						Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
-						throw Fdb.MapToException(err);
+						throw Fdb.MapToException(err)!;
 					}
 				}
 
@@ -211,7 +211,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
-			var future = (FdbFutureArray<T>)GetFutureFromCallbackParameter(parameter);
+			var future = (FdbFutureArray<T>?) GetFutureFromCallbackParameter(parameter);
 
 			if (future != null && Interlocked.Decrement(ref future.m_pending) == 0)
 			{ // the last future handle has fired, we can proceed to read all the results
@@ -267,7 +267,7 @@ namespace FoundationDB.Client.Native
 						{ // it failed...
 							if (err != FdbError.OperationCancelled)
 							{ // get the exception from the error code
-								var ex = Fdb.MapToException(err);
+								var ex = Fdb.MapToException(err)!;
 								(errors ??= new List<Exception>()).Add(ex);
 							}
 							else

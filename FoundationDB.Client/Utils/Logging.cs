@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 
 		private static bool s_appDomainShutdown;
 
-		private static TraceSource s_traceSource;
+		private static TraceSource? s_traceSource;
 
 		#endregion
 
@@ -68,7 +68,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the TraceSource used for logging</summary>
-		public static TraceSource Source
+		public static TraceSource? Source
 		{
 			get
 			{
@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Set/Update the trave level</summary>
+		/// <summary>Set/Update the trace level</summary>
 		/// <param name="level"></param>
 		public static void SetLevel(SourceLevels level)
 		{
@@ -97,31 +97,31 @@ namespace FoundationDB.Client
 		public static bool IsVerbose
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return ShouldTrace(TraceEventType.Verbose); }
+			get => ShouldTrace(TraceEventType.Verbose);
 		}
 
 		public static bool IsInformation
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return ShouldTrace(TraceEventType.Information); }
+			get => ShouldTrace(TraceEventType.Information);
 		}
 
 		public static bool IsWarning
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return ShouldTrace(TraceEventType.Warning); }
+			get => ShouldTrace(TraceEventType.Warning);
 		}
 
 		public static bool IsError
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return ShouldTrace(TraceEventType.Error); }
+			get => ShouldTrace(TraceEventType.Error);
 		}
 
 		public static bool IsCritical
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get { return ShouldTrace(TraceEventType.Critical); }
+			get => ShouldTrace(TraceEventType.Critical);
 		}
 
 		private static bool ShouldTrace(TraceEventType level)

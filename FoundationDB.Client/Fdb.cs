@@ -209,18 +209,21 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns true if the error code represents a success</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool Success(FdbError code)
 		{
 			return code == FdbError.Success;
 		}
 
 		/// <summary>Returns true if the error code represents a failure</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool Failed(FdbError code)
 		{
 			return code != FdbError.Success;
 		}
 
 		/// <summary>Throws an exception if the code represents a failure</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static void DieOnError(FdbError code)
 		{
 			if (Failed(code)) throw MapToException(code)!;
@@ -235,6 +238,7 @@ namespace FoundationDB.Client
 		/// <summary>Maps an error code into an Exception (to be thrown)</summary>
 		/// <param name="code">Error code returned by a native fdb operation</param>
 		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception? MapToException(FdbError code)
 		{
 			if (code == FdbError.Success) return null;
@@ -538,13 +542,13 @@ namespace FoundationDB.Client
 			Contract.Requires(options != null);
 			ct.ThrowIfCancellationRequested();
 
-			string clusterFile = options.ClusterFile;
+			string? clusterFile = options.ClusterFile;
 			bool readOnly = options.ReadOnly;
 			var directory = new FdbDirectoryLayer(SubspaceLocation.Empty);
 			var root = new FdbDirectorySubspaceLocation(directory, options.Root, FdbDirectoryPartition.LayerId);
 			bool hasPartition = root.Path.Count != 0;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile}' and root '{root}' ...");
+			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile ?? "<default>"}' and root '{root}' ...");
 
 			FdbDatabase? db = null;
 			bool success = false;

@@ -201,7 +201,7 @@ namespace FoundationDB.Filters.Logging
 				return ToString(null);
 			}
 
-			public virtual string ToString(KeyResolver resolver)
+			public virtual string ToString(KeyResolver? resolver)
 			{
 				resolver ??= KeyResolver.Default;
 				var arg = GetArguments(resolver);
@@ -315,7 +315,7 @@ namespace FoundationDB.Filters.Logging
 					if (t.Count != 3 || t.Get<int>(1) != 0) continue;
 
 					//var parent = t.Get<Slice>(0); //TODO: use this to construct the full materialized path of this directory? (would need more than one pass)
-					string name = t.Get<string>(2);
+					string name = t.Get<string>(2) ?? string.Empty;
 
 					map[entry.Value] = name;
 				}
@@ -325,7 +325,7 @@ namespace FoundationDB.Filters.Logging
 
 			private bool TryLookup(Slice key, out Slice prefix, out string? path)
 			{
-				prefix = default(Slice);
+				prefix = default;
 				path = null;
 
 				if (key.IsNullOrEmpty) return false;
@@ -381,7 +381,7 @@ namespace FoundationDB.Filters.Logging
 				this.Message = message;
 			}
 
-			public override string ToString(KeyResolver resolver)
+			public override string ToString(KeyResolver? resolver)
 			{
 				return "// " + this.Message;
 			}
@@ -565,9 +565,9 @@ namespace FoundationDB.Filters.Logging
 				return string.Concat(resolver.Resolve(GetUserKey()), " ", this.Mutation.ToString(), " ", GetUserValue().ToString("V"));
 			}
 
-			public override string ToString(KeyResolver resolver)
+			public override string ToString(KeyResolver? resolver)
 			{
-				resolver = resolver ?? KeyResolver.Default;
+				resolver ??= KeyResolver.Default;
 				var sb = new StringBuilder();
 				if (this.Snapshot) sb.Append("Snapshot.");
 				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(GetUserKey())).Append(", <").Append(GetUserValue().ToHexaString(' ')).Append('>');

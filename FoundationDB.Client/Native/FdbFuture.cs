@@ -37,6 +37,7 @@ namespace FoundationDB.Client.Native
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -235,10 +236,10 @@ namespace FoundationDB.Client.Native
 		/// <param name="result">Result of the future</param>
 		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		protected void SetResult(T result, bool fromCallback)
+		protected void SetResult([AllowNull] T result, bool fromCallback)
 		{
 #if SUPPORTS_ASYNC_CONTINUATIONS
-			TrySetResult(result);
+			TrySetResult(result!);
 #else
 			if (!fromCallback)
 			{

@@ -120,7 +120,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_FUTURES
 					Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
 #endif
-					throw Fdb.MapToException(err);
+					throw Fdb.MapToException(err)!;
 				}
 			}
 			catch
@@ -148,14 +148,14 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
 		/// <param name="futureHandle">Handle on the future that became ready</param>
-		/// <param name="parameter">Paramter to the callback (unused)</param>
+		/// <param name="parameter">Parameter to the callback (unused)</param>
 		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
-			var future = (FdbFutureSingle<T>)GetFutureFromCallbackParameter(parameter);
+			var future = (FdbFutureSingle<T>?) GetFutureFromCallbackParameter(parameter);
 			if (future != null)
 			{
 				UnregisterCallback(future);
@@ -195,7 +195,7 @@ namespace FoundationDB.Client.Native
 #endif
 						if (err != FdbError.OperationCancelled)
 						{ // get the exception from the error code
-							var ex = Fdb.MapToException(err);
+							var ex = Fdb.MapToException(err)!;
 							SetFaulted(ex, fromCallback);
 							return;
 						}

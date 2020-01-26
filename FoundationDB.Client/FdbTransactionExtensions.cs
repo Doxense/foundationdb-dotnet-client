@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(encoder, nameof(encoder));
 
-			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false));
+			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Add a read conflict range on the <c>\xff/metadataVersion</c> key</summary>
@@ -1753,7 +1753,7 @@ namespace FoundationDB.Client
 			var array = new KeyValuePair<Slice, TValue>[results.Length];
 			for (int i = 0; i < array.Length; i++)
 			{
-				array[i] = new KeyValuePair<Slice, TValue>(keys[i], decoder.DecodeValue(results[i]));
+				array[i] = new KeyValuePair<Slice, TValue>(keys[i], decoder.DecodeValue(results[i])!);
 			}
 			return array;
 		}

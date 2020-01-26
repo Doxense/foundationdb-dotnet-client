@@ -402,8 +402,8 @@ namespace FoundationDB.Client
 			for (int i = 0; i < results.Length; i++)
 			{
 				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true)),
-					valueEncoder.DecodeValue(results[i].Value)
+					keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true))!,
+					valueEncoder.DecodeValue(results[i].Value)!
 				);
 			}
 
@@ -428,8 +428,8 @@ namespace FoundationDB.Client
 			for (int i = 0; i < results.Length; i++)
 			{
 				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(results[i].Key),
-					valueEncoder.DecodeValue(results[i].Value)
+					keyEncoder.DecodeKey(results[i].Key)!,
+					valueEncoder.DecodeValue(results[i].Value)!
 				);
 			}
 
@@ -467,7 +467,7 @@ namespace FoundationDB.Client
 			var keys = new T[results.Length];
 			for(int i = 0; i< keys.Length;i++)
 			{
-				keys[i] = keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true));
+				keys[i] = keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true))!;
 			}
 			return keys;
 		}
@@ -484,7 +484,7 @@ namespace FoundationDB.Client
 			var values = new T[results.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
-				values[i] = keyEncoder.DecodeKey(results[i].Key);
+				values[i] = keyEncoder.DecodeKey(results[i].Key)!;
 			}
 			return values;
 		}
@@ -518,7 +518,7 @@ namespace FoundationDB.Client
 			var values = new T[results.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
-				values[i] = valueEncoder.DecodeValue(results[i].Value);
+				values[i] = valueEncoder.DecodeValue(results[i].Value)!;
 			}
 			return values;
 		}

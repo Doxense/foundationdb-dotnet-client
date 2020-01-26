@@ -340,7 +340,7 @@ namespace FoundationDB.Client
 		/// <param name="state">Receive the value if it was found; otherwise, <c>default(<typeparamref name="TState"/>)</c></param>
 		/// <returns>Returns <c>true</c> if the value was found; otherwise, <c>false</c>.</returns>
 		[ContractAnnotation("=>false, state:null; =>true, state:notnull")]
-		public bool TryGetLocalData<TState, TToken>(TToken key, [MaybeNullWhen(false)] out TState state)
+		public bool TryGetLocalData<TState, TToken>(TToken key, [NotNullWhen(true)] out TState? state)
 			where TState : class
 		{
 			Contract.NotNullAllowStructs(key, nameof(key));
@@ -485,55 +485,55 @@ namespace FoundationDB.Client
 								case Func<IFdbReadOnlyTransaction, TState, Task<TResult>> f:
 								{
 									intermediate = default!;
-									result = await f(trans, state).ConfigureAwait(false);
+									result = await f(trans, state!).ConfigureAwait(false);
 									hasResult = true;
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, ValueTask<TResult>> f:
 								{
 									intermediate = default!;
-									result = await f(trans, state).ConfigureAwait(false);
+									result = await f(trans, state!).ConfigureAwait(false);
 									hasResult = true;
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, TResult> f:
 								{
 									intermediate = default!;
-									result = f(trans, state);
+									result = f(trans, state!);
 									hasResult = true;
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> f:
 								{
-									intermediate = await f(trans, state).ConfigureAwait(false);
+									intermediate = await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, ValueTask<TIntermediate>> f:
 								{
-									intermediate = await f(trans, state).ConfigureAwait(false);
+									intermediate = await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, TIntermediate> f:
 								{
-									intermediate = f(trans, state);
+									intermediate = f(trans, state!);
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, Task> f:
 								{
 									intermediate = default!;
-									await f(trans, state).ConfigureAwait(false);
+									await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbReadOnlyTransaction, TState, ValueTask> f:
 								{
 									intermediate = default!;
-									await f(trans, state).ConfigureAwait(false);
+									await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Action<IFdbReadOnlyTransaction, TState> a:
 								{
 									intermediate = default!;
-									a(trans, state);
+									a(trans, state!);
 									break;
 								}
 
@@ -665,56 +665,56 @@ namespace FoundationDB.Client
 
 								case Func<IFdbTransaction, TState, Task<TIntermediate>> f:
 								{
-									intermediate = await f(trans, state).ConfigureAwait(false);
+									intermediate = await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbTransaction, TState, ValueTask<TIntermediate>> f:
 								{
-									intermediate = await f(trans, state).ConfigureAwait(false);
+									intermediate = await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbTransaction, TState, Task<TResult>> f:
 								{
 									intermediate = default!;
-									result = await f(trans, state).ConfigureAwait(false);
+									result = await f(trans, state!).ConfigureAwait(false);
 									hasResult = true;
 									break;
 								}
 								case Func<IFdbTransaction, TState, ValueTask<TResult>> f:
 								{
 									intermediate = default!;
-									result = await f(trans, state).ConfigureAwait(false);
+									result = await f(trans, state!).ConfigureAwait(false);
 									hasResult = true;
 									break;
 								}
 								case Func<IFdbTransaction, TState, Task> f:
 								{
 									intermediate = default!;
-									await f(trans, state).ConfigureAwait(false);
+									await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbTransaction, TState, ValueTask> f:
 								{
 									intermediate = default!;
-									await f(trans, state).ConfigureAwait(false);
+									await f(trans, state!).ConfigureAwait(false);
 									break;
 								}
 								case Func<IFdbTransaction, TState, TIntermediate> f:
 								{
-									intermediate = f(trans, state);
+									intermediate = f(trans, state!);
 									break;
 								}
 								case Func<IFdbTransaction, TState, TResult> f:
 								{
 									intermediate = default!;
-									result = f(trans, state);
+									result = f(trans, state!);
 									hasResult = true;
 									break;
 								}
 								case Action<IFdbTransaction, TState> a:
 								{
 									intermediate = default!;
-									a(trans, state);
+									a(trans, state!);
 									break;
 								}
 
@@ -751,11 +751,11 @@ namespace FoundationDB.Client
 							// execute any final logic, if there is any
 							if (success != null)
 							{
-								// if TIntermediate == TResult, the order of delegate resolution may be impredictible
+								// if TIntermediate == TResult, the order of delegate resolution may be unstable
 								// => we will copy the result in both fields!
 								if (hasResult && typeof(TIntermediate) == typeof(TResult))
 								{
-									intermediate = (TIntermediate) (object) result;
+									intermediate = (TIntermediate) (object?) result;
 								}
 
 								switch (success)
@@ -764,13 +764,13 @@ namespace FoundationDB.Client
 
 									case Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> f:
 									{
-										result = await f(trans, intermediate);
+										result = await f(trans, intermediate!);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbReadOnlyTransaction, TIntermediate, ValueTask<TResult>> f:
 									{
-										result = await f(trans, intermediate);
+										result = await f(trans, intermediate!);
 										hasResult = true;
 										break;
 									}
@@ -788,7 +788,7 @@ namespace FoundationDB.Client
 									}
 									case Func<IFdbReadOnlyTransaction, TIntermediate, TResult> f:
 									{
-										result = f(trans, intermediate);
+										result = f(trans, intermediate!);
 										hasResult = true;
 										break;
 									}
@@ -842,13 +842,13 @@ namespace FoundationDB.Client
 
 									case Func<IFdbTransaction, TIntermediate, Task<TResult>> f:
 									{
-										result = await f(trans, intermediate);
+										result = await f(trans, intermediate!);
 										hasResult = true;
 										break;
 									}
 									case Func<IFdbTransaction, TIntermediate, ValueTask<TResult>> f:
 									{
-										result = await f(trans, intermediate);
+										result = await f(trans, intermediate!);
 										hasResult = true;
 										break;
 									}
@@ -866,7 +866,7 @@ namespace FoundationDB.Client
 									}
 									case Func<IFdbTransaction, TIntermediate, TResult> f:
 									{
-										result = f(trans, intermediate);
+										result = f(trans, intermediate!);
 										hasResult = true;
 										break;
 									}
@@ -927,7 +927,7 @@ namespace FoundationDB.Client
 							{
 								if (typeof(TResult) == typeof(TIntermediate))
 								{
-									result = (TResult) (object) intermediate;
+									result = (TResult) (object?) intermediate;
 								}
 								else
 								{
@@ -998,7 +998,7 @@ namespace FoundationDB.Client
 					throw new OperationCanceledException(context.Cancellation);
 				}
 
-				return result;
+				return result!;
 
 			}
 			finally
