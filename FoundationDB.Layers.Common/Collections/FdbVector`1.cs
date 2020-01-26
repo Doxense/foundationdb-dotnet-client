@@ -37,10 +37,8 @@ namespace FoundationDB.Layers.Collections
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
-	[PublicAPI]
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]
 	public class FdbVector<T> : IFdbLayer<FdbVector<T>.State>
 	{
