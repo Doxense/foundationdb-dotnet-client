@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// read non existing value
 				await db.WriteAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 
 					Assert.That(async () => await foos.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// write value
 				await db.WriteAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					foos.Set(tr, "hello", secret);
 				}, this.Cancellation);
 
@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// read value back
 				await db.ReadAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 
 					var value = await foos.GetAsync(tr, "hello");
 					Assert.That(value, Is.EqualTo(secret));
@@ -103,7 +103,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// delete the value
 				await db.WriteAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					foos.Remove(tr, "hello");
 				}, this.Cancellation);
 
@@ -114,7 +114,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// verifiy that it is gone
 				await db.ReadAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 
 					Assert.That(async () => await foos.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
@@ -144,7 +144,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// write a bunch of keys
 				await db.WriteAsync(async (tr) =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					foos.Set(tr, "foo", "foo_value");
 					foos.Set(tr, "bar", "bar_value");
 				}, this.Cancellation);
@@ -157,7 +157,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				await db.ReadAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 
 					var value = await foos.GetAsync(tr, "foo");
 					Assert.That(value, Is.EqualTo("foo_value"));
@@ -208,7 +208,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// import all the rules
 				await db.WriteAsync(async (tr) =>
 				{
-					var hosts = await mapHosts.ResolveState(tr);
+					var hosts = await mapHosts.Resolve(tr);
 					foreach(var rule in rules)
 					{
 						hosts.Set(tr, rule.Key, rule.Value);
@@ -223,7 +223,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				await db.ReadAsync(async tr =>
 				{
-					var hosts = await mapHosts.ResolveState(tr);
+					var hosts = await mapHosts.Resolve(tr);
 
 					var value = await hosts.GetAsync(tr, new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667));
 					Assert.That(value, Is.EqualTo("block"));

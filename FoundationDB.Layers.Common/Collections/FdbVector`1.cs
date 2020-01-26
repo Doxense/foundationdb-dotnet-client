@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Collections
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	[PublicAPI]
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]
-	public class FdbVector<T>
+	public class FdbVector<T> : IFdbLayer<FdbVector<T>.State>
 	{
 		// from https://apple.github.io/foundationdb/vector.html
 
@@ -328,7 +328,7 @@ namespace FoundationDB.Layers.Collections
 
 		}
 
-		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Vector Layer was not found.");

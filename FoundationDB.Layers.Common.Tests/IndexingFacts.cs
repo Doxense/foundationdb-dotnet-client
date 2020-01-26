@@ -151,9 +151,9 @@ namespace FoundationDB.Layers.Tables.Tests
 				// index everything
 				await db.WriteAsync(async (tr) =>
 				{
-					var indexBrandState = await indexBrand.ResolveState(tr);
-					var indexSuperHeroState = await indexSuperHero.ResolveState(tr);
-					var indexAlignmentState = await indexAlignment.ResolveState(tr);
+					var indexBrandState = await indexBrand.Resolve(tr);
+					var indexSuperHeroState = await indexSuperHero.Resolve(tr);
+					var indexAlignmentState = await indexAlignment.Resolve(tr);
 
 					foreach (var character in characters)
 					{

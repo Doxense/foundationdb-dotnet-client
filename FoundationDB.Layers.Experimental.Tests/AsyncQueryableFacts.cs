@@ -98,7 +98,7 @@ namespace FoundationDB.Linq.Tests
 
 				await db.WriteAsync(async (tr) =>
 				{
-					var foos = await indexFoos.ResolveState(tr);
+					var foos = await indexFoos.Resolve(tr);
 					foos.Add(tr, 1, "red");
 					foos.Add(tr, 2, "green");
 					foos.Add(tr, 3, "blue");
@@ -135,7 +135,7 @@ namespace FoundationDB.Linq.Tests
 
 				await db.WriteAsync(async (tr) =>
 				{
-					var foos = await index.ResolveState(tr);
+					var foos = await index.Resolve(tr);
 					foos.Add(tr, "alpha", 10);
 					foos.Add(tr, "bravo", 16);
 					foos.Add(tr, "charly", 12);

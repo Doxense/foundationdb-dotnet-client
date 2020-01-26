@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Collections
 	/// <summary>
 	/// Provides a high-contention Queue class
 	/// </summary>
-	public class FdbRankedSet
+	public class FdbRankedSet : IFdbLayer<FdbRankedSet.State>
 	{
 		// from https://github.com/FoundationDB/python-layers/blob/master/lib/rankedset.py
 

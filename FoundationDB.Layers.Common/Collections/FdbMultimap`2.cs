@@ -40,7 +40,7 @@ namespace FoundationDB.Layers.Collections
 	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
 	/// <typeparam name="TValue">Type of the values of the map</typeparam>
 	[DebuggerDisplay("Location={Location}, AllowNegativeValues={AllowNegativeValues}")]
-	public class FdbMultiMap<TKey, TValue>
+	public class FdbMultiMap<TKey, TValue> : IFdbLayer<FdbMultiMap<TKey, TValue>.State>
 	{
 		// Inspired by https://apple.github.io/foundationdb/multimaps.html
 		// It is the logical equivalent of a Map<KeyValuePair<TKey, TValue>, long> where the value would be incremented each time a specific pair of (key, value) is added (and subtracted when removed)
@@ -248,7 +248,7 @@ namespace FoundationDB.Layers.Collections
 
 		}
 
-		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by MultiMap Layer was not found.");

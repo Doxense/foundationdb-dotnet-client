@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Collections
 
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]
-	public class FdbQueue<T>
+	public class FdbQueue<T> : IFdbLayer<FdbQueue<T>.State>
 	{
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="location">Subspace where the queue will be stored</param>

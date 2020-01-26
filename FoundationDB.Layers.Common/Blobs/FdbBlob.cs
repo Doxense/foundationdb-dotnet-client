@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Blobs
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={" + nameof(FdbBlob.Location) + "}")]
-	public class FdbBlob
+	public class FdbBlob : IFdbLayer<FdbBlob.State>
 	{
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
 		private const long CHUNK_SMALL = 200; // all adjacent chunks will sum to more than this size
@@ -77,19 +77,19 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		public async ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Blob Layer was not found.");
-			return new Metadata(subspace);
+			return new State(subspace);
 		}
 
-		public sealed class Metadata
+		public sealed class State
 		{
 
 			public IDynamicKeySubspace Subspace { get; }
 
-			public Metadata(IDynamicKeySubspace subspace)
+			public State(IDynamicKeySubspace subspace)
 			{
 				Contract.Requires(subspace != null);
 				this.Subspace = subspace;

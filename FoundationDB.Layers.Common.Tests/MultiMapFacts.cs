@@ -53,7 +53,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// read non existing value
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					bool res = await foos.ContainsAsync(tr, "hello", "world");
 					Assert.That(res, Is.False, "ContainsAsync('hello','world')");
 
@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// add some values
 				await db.WriteAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					await foos.AddAsync(tr, "hello", "world");
 					await foos.AddAsync(tr, "foo", "bar");
 					await foos.AddAsync(tr, "foo", "baz");
@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// read values back
 				await db.ReadAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					long? count = await foos.GetCountAsync(tr, "hello", "world");
 					Assert.That(count, Is.EqualTo(1), "hello:world");
 					count = await foos.GetCountAsync(tr, "foo", "bar");
@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				await db.ReadAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					var loc = foos.Subspace.AsDynamic();
 					var value = await tr.GetAsync(loc.Encode("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// delete the value
 				await db.WriteAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 					foos.Remove(tr, "hello", "world");
 				}, this.Cancellation);
 
@@ -110,7 +110,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// verify that it is gone
 				await db.ReadAsync(async tr =>
 				{
-					var foos = await mapFoos.ResolveState(tr);
+					var foos = await mapFoos.Resolve(tr);
 
 					long? count = await foos.GetCountAsync(tr, "hello", "world");
 					Assert.That(count, Is.Null);

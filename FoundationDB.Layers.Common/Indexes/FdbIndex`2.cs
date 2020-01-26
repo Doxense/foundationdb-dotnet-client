@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Indexing
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
 	[DebuggerDisplay("Location={Location}, IndexNullValues={IndexNullValues})")]
-	public class FdbIndex<TId, TValue>
+	public class FdbIndex<TId, TValue> : IFdbLayer<FdbIndex<TId, TValue>.State>
 	{
 
 		public FdbIndex(ISubspaceLocation path, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
@@ -159,7 +159,7 @@ namespace FoundationDB.Layers.Indexing
 
 		}
 
-		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction trans)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
@@ -177,7 +177,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValues"/> is false)</returns>
 		public async Task<bool> AddAsync(IFdbTransaction trans, TId id, TValue value)
 		{
-			var state = await ResolveState(trans);
+			var state = await Resolve(trans);
 			return state.Add(trans, id, value);
 		}
 
@@ -190,7 +190,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
 		public async Task<bool> UpdateAsync(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
 		{
-			var state = await ResolveState(trans);
+			var state = await Resolve(trans);
 			return state.Update(trans, id, newValue, previousValue);
 		}
 
@@ -200,7 +200,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Previous value of the entity in the index</param>
 		public async Task RemoveAsync(IFdbTransaction trans, TId id, TValue value)
 		{
-			var state = await ResolveState(trans);
+			var state = await Resolve(trans);
 			state.Remove(trans, id, value);
 		}
 
@@ -222,7 +222,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
 		public async Task<FdbRangeQuery<TId>> CreateLookupQuery(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var state = await ResolveState(trans);
+			var state = await Resolve(trans);
 			return state.Lookup(trans, value, reverse);
 		}
 
@@ -234,7 +234,7 @@ namespace FoundationDB.Layers.Indexing
 
 		public async Task<FdbRangeQuery<TId>> CreateLookupGreaterThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var state = await ResolveState(trans);
+			var state = await Resolve(trans);
 			return state.LookupGreaterThan(trans, value, orEqual, reverse);
 		}
 
@@ -246,7 +246,7 @@ namespace FoundationDB.Layers.Indexing
 
 		public async Task<FdbRangeQuery<TId>> CreateLookupLessThanQuery(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var state = await ResolveState(trans);
+			var state = await Resolve(trans);
 			return state.LookupLessThan(trans, value, orEqual, reverse);
 		}
 

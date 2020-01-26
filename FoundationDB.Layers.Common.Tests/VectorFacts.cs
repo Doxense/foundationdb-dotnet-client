@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					var xs = await vector.ResolveState(tr);
+					var xs = await vector.Resolve(tr);
 
 					Log("Clearing any previous values in the vector");
 					xs.Clear(tr);

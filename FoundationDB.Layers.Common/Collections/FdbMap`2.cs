@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Collections
 	using FoundationDB.Client;
 
 	[DebuggerDisplay("Location={Location}")]
-	public class FdbMap<TKey, TValue>
+	public class FdbMap<TKey, TValue> : IFdbLayer<FdbMap<TKey, TValue>.State>
 	{
 
 		public FdbMap(ISubspaceLocation location, IValueEncoder<TValue> valueEncoder)
@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Collections
 
 		}
 
-		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Map Layer was not found.");

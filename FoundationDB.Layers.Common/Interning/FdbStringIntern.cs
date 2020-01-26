@@ -41,7 +41,7 @@ namespace FoundationDB.Layers.Interning
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
 	[DebuggerDisplay("Location={Location}")]
 	[Obsolete("FIXME! This version of the layer has a MAJOR bug!")]
-	public class FdbStringIntern : IDisposable
+	public class FdbStringIntern : IFdbLayer<FdbStringIntern.State>, IDisposable
 	{
 		//BUGBUGBUG: the current implementation has a bug with the cache, when a transaction fails to commit!
 		//TODO: rewrite this to use typed subspaces !
@@ -99,21 +99,21 @@ namespace FoundationDB.Layers.Interning
 
 		public DynamicKeySubspaceLocation Location { get; }
 
-		public async ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by String Interning Layer was not found.");
-			return new Metadata(this, subspace);
+			return new State(this, subspace);
 		}
 
-		public sealed class Metadata
+		public sealed class State
 		{
 
 			private FdbStringIntern Layer { get; }
 
 			public IDynamicKeySubspace Subspace { get; }
 
-			internal Metadata(FdbStringIntern layer, IDynamicKeySubspace subspace)
+			internal State(FdbStringIntern layer, IDynamicKeySubspace subspace)
 			{
 				this.Layer = layer;
 				this.Subspace = subspace;
