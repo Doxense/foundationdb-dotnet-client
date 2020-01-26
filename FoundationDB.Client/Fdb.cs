@@ -644,6 +644,8 @@ namespace FoundationDB.Client
 			s_apiVersion = apiVersion;
 			s_bindingVersion = bindingVersion;
 
+			#region Set all network options...
+
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will trace client activity in '{Fdb.Options.TracePath}'");
@@ -653,38 +655,60 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
 			}
 
-			if (Fdb.Options.TLSCertificateBytes.Count != 0)
+			if (Fdb.Options.TlsCertificateBytes.Count != 0)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from memory ({Fdb.Options.TLSCertificateBytes.Count} bytes)");
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from memory ({Fdb.Options.TlsCertificateBytes.Count} bytes)");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertBytes, Fdb.Options.TLSCertificateBytes));
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertBytes, Fdb.Options.TlsCertificateBytes));
 			}
-			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSCertificatePath))
+			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsCertificatePath))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from '{Fdb.Options.TLSCertificatePath}'");
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS root certificate and private key from '{Fdb.Options.TlsCertificatePath}'");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertPath, Fdb.Options.TLSCertificatePath));
-			}
-
-			if (Fdb.Options.TLSPrivateKeyBytes.Count != 0)
-			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from memory ({Fdb.Options.TLSPrivateKeyBytes.Count} bytes)");
-
-				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyBytes, Fdb.Options.TLSPrivateKeyBytes));
-			}
-			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSPrivateKeyPath))
-			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from '{Fdb.Options.TLSPrivateKeyPath}'");
-
-				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyPath, Fdb.Options.TLSPrivateKeyPath));
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertPath, Fdb.Options.TlsCertificatePath));
 			}
 
-			if (Fdb.Options.TLSVerificationPattern.Count != 0)
+			if (Fdb.Options.TlsPrivateKeyBytes.Count != 0)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will verify TLS peers with pattern '{Fdb.Options.TLSVerificationPattern}'");
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from memory ({Fdb.Options.TlsPrivateKeyBytes.Count} bytes)");
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TLSVerifyPeers, Fdb.Options.TLSVerificationPattern));
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyBytes, Fdb.Options.TlsPrivateKeyBytes));
 			}
+			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsPrivateKeyPath))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS private key from '{Fdb.Options.TlsPrivateKeyPath}'");
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyPath, Fdb.Options.TlsPrivateKeyPath));
+			}
+
+			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsPassword))
+			{
+				// let's not write the password in the log files :)
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsPassword, Fdb.Options.TlsPassword));
+			}
+
+			if (Fdb.Options.TlsVerificationPattern.Count != 0)
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will verify TLS peers with pattern '{Fdb.Options.TlsVerificationPattern}'");
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsVerifyPeers, Fdb.Options.TlsVerificationPattern));
+			}
+
+			if (Fdb.Options.TlsCaBytes.Count != 0)
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS certificate authority bundle from memory ({Fdb.Options.TlsCaBytes.Count} bytes)");
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCaBytes, Fdb.Options.TlsCaBytes));
+			}
+			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsCaPath))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", $"Will load TLS certificate authority bundle from '{Fdb.Options.TlsCaPath}'");
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCaPath, Fdb.Options.TlsCaPath));
+			}
+
+			#endregion
 
 			try { }
 			finally

@@ -131,6 +131,7 @@ namespace FoundationDB.Client
 		TlsCaPath = 53,
 
 		/// <summary>Set the passphrase for encrypted private key. Password should be set before setting the key for the password to be used.</summary>
+		/// <remarks>Parameter: (String) key passphrase</remarks>
 		TlsPassword = 54,
 
 		/// <summary>Disables the multi-version client API and instead uses the local client directly. Must be set before setting up the network.</summary>

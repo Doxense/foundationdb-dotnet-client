@@ -98,83 +98,98 @@ namespace FoundationDB.Client
 			#region TLS...
 
 			/// <summary>Content of the TLS root and client certificates used for TLS connections (none by default)</summary>
-			public static Slice TLSCertificateBytes { get; private set; }
+			public static Slice TlsCertificateBytes { get; private set; }
 
 			/// <summary>Path to the TLS root and client certificates used for TLS connections (none by default)</summary>
-			public static string? TLSCertificatePath { get; private set; }
+			public static string? TlsCertificatePath { get; private set; }
 
 			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
-			public static Slice TLSPrivateKeyBytes { get; private set; }
+			public static Slice TlsPrivateKeyBytes { get; private set; }
 
 			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
-			public static string? TLSPrivateKeyPath { get; private set; }
+			public static string? TlsPrivateKeyPath { get; private set; }
+
+			/// <summary>Passphrase for encrypted TLS private key.</summary>
+			public static string? TlsPassword { get; private set; }
 
 			/// <summary>Pattern used to verify certificates of TLS peers (none by default)</summary>
-			public static Slice TLSVerificationPattern { get; private set; }
+			public static Slice TlsVerificationPattern { get; private set; }
+
+			/// <summary>Content of the certificate authority bundle</summary>
+			public static Slice TlsCaBytes { get; private set; }
+
+			/// <summary>Path to the certificate authority bundle</summary>
+			public static string? TlsCaPath { get; private set; }
 
 			/// <summary>Sets the path to the root certificate and public key for TLS connections</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTLSCertificate(Slice bytes)
+			public static void SetTlsCertificate(Slice bytes)
 			{
-				Fdb.Options.TLSCertificateBytes = bytes;
-				Fdb.Options.TLSCertificatePath = null;
+				Fdb.Options.TlsCertificateBytes = bytes;
+				Fdb.Options.TlsCertificatePath = null;
 			}
 
 			/// <summary>Sets the path to the root certificate and public key for TLS connections</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTLSCertificate(string path)
+			public static void SetTlsCertificate(string path)
 			{
-				Fdb.Options.TLSCertificatePath = path;
-				Fdb.Options.TLSCertificateBytes = Slice.Nil;
+				Fdb.Options.TlsCertificatePath = path;
+				Fdb.Options.TlsCertificateBytes = Slice.Nil;
 			}
 
 			/// <summary>Sets the path to the private key for TLS connections</summary>
 			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTLSPrivateKey(Slice bytes)
+			public static void SetTlsPrivateKey(Slice bytes, string? password = null)
 			{
-				Fdb.Options.TLSPrivateKeyBytes = bytes;
-				Fdb.Options.TLSPrivateKeyPath = null;
+				Fdb.Options.TlsPrivateKeyBytes = bytes;
+				Fdb.Options.TlsPrivateKeyPath = null;
+				if (password != null) Fdb.Options.TlsPassword = password;
 			}
 
 			/// <summary>Sets the path to the private key for TLS connections</summary>
 			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTLSPrivateKey(string path)
+			public static void SetTlsPrivateKey(string path, string? password = null)
 			{
-				Fdb.Options.TLSPrivateKeyPath = path;
-				Fdb.Options.TLSPrivateKeyBytes = Slice.Nil;
+				Fdb.Options.TlsPrivateKeyPath = path;
+				Fdb.Options.TlsPrivateKeyBytes = Slice.Nil;
+				if (password != null) Fdb.Options.TlsPassword = password;
 			}
 
 			/// <summary>Sets the pattern with which to verify certificates of TLS peers</summary>
 			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
 			public static void SetTlsVerificationPattern(Slice pattern)
 			{
-				Fdb.Options.TLSVerificationPattern = pattern;
+				Fdb.Options.TlsVerificationPattern = pattern;
 			}
 
 			/// <summary>Use TLS to secure the connections to the cluster</summary>
 			/// <param name="certificateBytes">Content of the root certificate and public key</param>
 			/// <param name="privateKeyBytes">Content of the private key</param>
-			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
-			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default)
+			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers (optional)</param>
+			/// <param name="password">Passphrase for the encrypted private key (optional)</param>
+			public static void UseTls(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default, string? password = null)
 			{
-				Fdb.Options.TLSCertificateBytes = certificateBytes;
-				Fdb.Options.TLSCertificatePath = null;
-				Fdb.Options.TLSPrivateKeyBytes = privateKeyBytes;
-				Fdb.Options.TLSPrivateKeyPath = null;
-				Fdb.Options.TLSVerificationPattern = verificationPattern;
+				Fdb.Options.TlsCertificateBytes = certificateBytes;
+				Fdb.Options.TlsCertificatePath = null;
+				Fdb.Options.TlsPrivateKeyBytes = privateKeyBytes;
+				Fdb.Options.TlsPrivateKeyPath = null;
+				Fdb.Options.TlsVerificationPattern = verificationPattern;
+				Fdb.Options.TlsPassword = password;
 			}
 
 			/// <summary>Use TLS to secure the connections to the cluster</summary>
 			/// <param name="certificatePath">Path to the root certificate and public key</param>
 			/// <param name="privateKeyPath">Path to the private key</param>
-			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
-			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default)
+			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers (optional)</param>
+			/// <param name="password">Passphrase for the encrypted private key (optional)</param>
+			public static void UseTls(string certificatePath, string privateKeyPath, Slice verificationPattern = default, string? password = null)
 			{
-				Fdb.Options.TLSCertificatePath = certificatePath;
-				Fdb.Options.TLSCertificateBytes = Slice.Nil;
-				Fdb.Options.TLSPrivateKeyPath = privateKeyPath;
-				Fdb.Options.TLSPrivateKeyBytes = Slice.Nil;
-				Fdb.Options.TLSVerificationPattern = verificationPattern;
+				Fdb.Options.TlsCertificatePath = certificatePath;
+				Fdb.Options.TlsCertificateBytes = Slice.Nil;
+				Fdb.Options.TlsPrivateKeyPath = privateKeyPath;
+				Fdb.Options.TlsPrivateKeyBytes = Slice.Nil;
+				Fdb.Options.TlsVerificationPattern = verificationPattern;
+				Fdb.Options.TlsPassword = password;
 			}
 
 			#endregion
