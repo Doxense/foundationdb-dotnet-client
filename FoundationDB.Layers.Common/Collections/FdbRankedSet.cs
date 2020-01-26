@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Initializes a new ranked set at a given location</summary>
 		/// <param name="location">Subspace where the set will be stored</param>
-		public FdbRankedSet(DynamicKeySubspaceLocation location)
+		public FdbRankedSet(DynamicKeySubspaceLocation? location)
 		{
 			this.Location = location ?? throw new ArgumentNullException(nameof(location));
 		}
@@ -317,6 +317,7 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Ranked Set Layer was not found.");
 			return new State(subspace);
 		}
 	}

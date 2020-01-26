@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Collections
 
 				return tr
 					.GetRange(this.Subspace.ToRange())
-					.Select((kvp) => this.Encoder.DecodeValue(kvp.Value))
+					.Select((kvp) => this.Encoder.DecodeValue(kvp.Value)!)
 					.LastOrDefaultAsync();
 			}
 
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					if (output.Key == start)
 					{ // The requested index had an associated key
-						return this.Encoder.DecodeValue(output.Value);
+						return this.Encoder.DecodeValue(output.Value)!;
 					}
 
 					// The requested index is sparsely represented
@@ -331,6 +331,7 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Vector Layer was not found.");
 			return new State(subspace, this.DefaultValue, this.Encoder);
 		}
 

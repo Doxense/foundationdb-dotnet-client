@@ -88,6 +88,7 @@ namespace FoundationDB.Layers.Counters
 			{
 				long total = 0;
 				var subspace = await this.Location.Resolve(tr);
+				if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
 				// read N writes from a random place in ID space
 				var loc = subspace.Encode(RandomId());
@@ -155,6 +156,7 @@ namespace FoundationDB.Layers.Counters
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
 			long total = 0;
 			await trans
@@ -176,6 +178,7 @@ namespace FoundationDB.Layers.Counters
 			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
 			trans.Set(subspace.Encode(RandomId()), this.Encoder.EncodeValue(x));
 

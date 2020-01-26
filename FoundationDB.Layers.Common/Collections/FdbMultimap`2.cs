@@ -251,6 +251,7 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by MultiMap Layer was not found.");
 			return new State(subspace, this.AllowNegativeValues);
 		}
 	}

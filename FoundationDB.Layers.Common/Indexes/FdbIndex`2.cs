@@ -166,6 +166,7 @@ namespace FoundationDB.Layers.Indexing
 			//TODO: cache the instance on the transaction!
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Index Layer was not found.");
 			return new State(this, subspace);
 		}
 

@@ -92,7 +92,7 @@ namespace FoundationDB.Layers.Collections
 				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
 
 				if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
-				return this.ValueEncoder.DecodeValue(data);
+				return this.ValueEncoder.DecodeValue(data)!;
 			}
 
 			/// <summary>Returns the value of an entry in the map if it exists.</summary>
@@ -165,7 +165,7 @@ namespace FoundationDB.Layers.Collections
 				var decoder = this.ValueEncoder;
 				for (int i = 0; i < kv.Length; i++)
 				{
-					result[i] = decoder.DecodeValue(kv[i]);
+					result[i] = decoder.DecodeValue(kv[i])!;
 				}
 
 				return result;
@@ -268,6 +268,7 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> ResolveState(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Map Layer was not found.");
 			//TODO: store in transaction context?
 			return new State(subspace, this.ValueEncoder);
 		}
@@ -395,13 +396,13 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				(batch, loc, _, __) =>
 				{
-					state = handler(state, DecodeItems(loc, this.ValueEncoder, batch));
+					state = handler(state!, DecodeItems(loc, this.ValueEncoder, batch));
 					return Task.CompletedTask;
 				},
 				ct
 			);
 
-			return state;
+			return state!;
 		}
 
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
@@ -428,7 +429,7 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				(batch, loc, _, __) =>
 				{
-					state = handler(state, DecodeItems(loc, this.ValueEncoder, batch));
+					state = handler(state!, DecodeItems(loc, this.ValueEncoder, batch));
 					return Task.CompletedTask;
 				},
 				ct
@@ -439,17 +440,17 @@ namespace FoundationDB.Layers.Collections
 			var result = default(TResult);
 			if (finish != null)
 			{
-				result = finish(state);
+				result = finish(state!);
 			}
 
-			return result;
+			return result!;
 		}
 
 		private static KeyValuePair<TKey, TValue> DecodeItem(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> valueEncoder, KeyValuePair<Slice, Slice> item)
 		{
 			return new KeyValuePair<TKey, TValue>(
-				subspace.Decode(item.Key),
-				valueEncoder.DecodeValue(item.Value)
+				subspace.Decode(item.Key)!,
+				valueEncoder.DecodeValue(item.Value)!
 			);
 		}
 
@@ -461,15 +462,14 @@ namespace FoundationDB.Layers.Collections
 			for (int i = 0; i < batch.Length; i++)
 			{
 				items[i] = new KeyValuePair<TKey, TValue>(
-					subspace.Decode(batch[i].Key),
-					valueEncoder.DecodeValue(batch[i].Value)
+					subspace.Decode(batch[i].Key)!,
+					valueEncoder.DecodeValue(batch[i].Value)!
 				);
 			}
 			return items;
 		}
 
 		#endregion
-
 
 	}
 

@@ -80,6 +80,7 @@ namespace FoundationDB.Layers.Blobs
 		public async ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Blob Layer was not found.");
 			return new Metadata(subspace);
 		}
 

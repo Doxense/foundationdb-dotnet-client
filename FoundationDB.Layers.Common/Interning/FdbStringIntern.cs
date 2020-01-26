@@ -102,6 +102,7 @@ namespace FoundationDB.Layers.Interning
 		public async ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by String Interning Layer was not found.");
 			return new Metadata(this, subspace);
 		}
 
@@ -252,9 +253,9 @@ namespace FoundationDB.Layers.Interning
 			private async Task<string> LookupSlowAsync(IFdbReadOnlyTransaction trans, Slice uid)
 			{
 				var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
-				if (valueBytes.IsNull) throw new KeyNotFoundException("String intern identifier not found");
 
-				string value = valueBytes.ToUnicode();
+				string? value = valueBytes.ToUnicode();
+				if (value == null) throw new KeyNotFoundException("String intern identifier not found");
 
 				//BUGBUG: if the uid has just been Interned in the current transaction, and if the transaction fails to commit (conflict, ...) we will insert a bad value in the cache!
 				this.Layer.AddToCache(value, uid);
