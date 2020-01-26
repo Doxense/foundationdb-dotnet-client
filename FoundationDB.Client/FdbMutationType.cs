@@ -38,6 +38,8 @@ namespace FoundationDB.Client
 		/// <summary>Invalid</summary>
 		Invalid = 0,
 
+		//note: there is no entry for 1
+
 		/// <summary>Performs an addition of little-endian integers.
 		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
 		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
@@ -72,20 +74,6 @@ namespace FoundationDB.Client
 		/// Therefore, it is only safe to use this mutation type if one can guarantee that one will keep the total value size under the maximum size.
 		/// </summary>
 		AppendIfFits = 9,
-
-		// Obsolete names (will be removed in the future)
-
-		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
-		[Obsolete("Use FdbMutationType.BitAnd instead")]
-		And = 6,
-
-		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
-		[Obsolete("Use FdbMutationType.BitOr instead")]
-		Or = 7,
-
-		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
-		[Obsolete("Use FdbMutationType.BitXor instead")]
-		Xor = 8,
 
 		/// <summary>Performs a little-endian comparison of byte strings.
 		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
@@ -130,11 +118,7 @@ namespace FoundationDB.Client
 		/// <summary>Performs lexicographic comparison of byte strings. If the existing value in the database is not present, then the parameter is stored. Otherwise the larger of the two values is then stored in the database.</summary>
 		ByteMax = 17,
 
-		//TODO: xml comments
-		MinV2 = 18,
-
-		//TODO: xml comments
-		AndV2 = 19,
+		// note: 18 and 19 are not defined any more, used to be called Min "v2" and Max "v2" ?
 
 		/// <summary>Performs an atomic compare and clear operation. If the existing value in the database is equal to the given value, then given key is cleared.</summary>
 		CompareAndClear = 20,

@@ -36,29 +36,66 @@ namespace FoundationDB.Client
 		/// <summary>No option defined</summary>
 		None = 0,
 
-		/// <summary>
-		/// Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.
-		/// Parameter: (Int) Max location cache entries
-		/// </summary>
+		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
+		/// <remarks>Parameter: (Int) Max location cache entries</remarks>
 		LocationCacheSize = 10,
 
-		/// <summary>
-		/// Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.
-		/// Parameter: (Int) Max outstanding watches
-		/// </summary>
+		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection.
+		/// Increasing this number could result in increased resource usage.
+		/// Reducing this number will not cancel any outstanding watches.
+		/// Defaults to 10000 and cannot be larger than 1000000.</summary>
+		/// <remarks>Parameter: (Int) Max outstanding watches</remarks>
 		MaxWatches = 20,
 
-		/// <summary>
-		/// Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.
-		/// Parameter: (String) Hexadecimal ID
-		/// </summary>
+		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
+		/// <remarks>Parameter: (String) Hexadecimal ID</remarks>
 		MachineId = 21,
 
-		/// <summary>
-		/// Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.
-		/// Parameter: (String) Hexadecimal ID
+		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
+		/// <remarks>Parameter: (String) Hexadecimal ID</remarks>
+		DataCenterId = 22,
+
+		/// <summary>Snapshot read operations will see the results of writes done in the same transaction.
+		/// This is the default behavior.</summary>
+		SnapshotReadYourWritesEnable = 26,
+
+		/// <summary>Snapshot read operations will not see the results of writes done in the same transaction.
+		/// This was the default behavior prior to API version 300.</summary>
+		SnapshotReadYourWritesDisable = 27,
+
+		/// <summary>Sets the maximum escaped length of key and value fields to be logged to the trace file via the LOG_TRANSACTION option.
+		/// This sets the <see cref="FdbTransactionOption.TransactionLoggingMaxFieldLength"/> option of each transaction created by this database.
+		/// See the transaction option description for more information.</summary>
+		TransactionLoggingMaxFieldLength = 405,
+
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause each transaction automatically to be cancelled.
+		/// This sets the <see cref="FdbTransactionOption.Timeout"/> option of each transaction created by this database.
+		/// See the transaction option description for more information. Using this option requires that the API version is 610 or higher.</summary>
+		TransactionTimeout = 500,
+
+		/// <summary>Set a maximum number of retries after which additional calls to ``onError`` will throw the most recently seen error code.
+		/// This sets the <see cref="FdbTransactionOption.RetryLimit"/> option of each transaction created by this database.
+		/// See the transaction option description for more information. Using this option requires that the API version is 610 or higher.</summary>
+		TransactionRetryLimit = 501,
+
+		/// <summary>Set the maximum amount of backoff delay incurred in the call to ``onError`` if the error is retryable.
+		/// This sets the <see cref="FdbTransactionOption.MaxRetryDelay"/> option of each transaction created by this database.
+		/// See the transaction option description for more information.</summary>
+		TransactionMaxRetryDelay = 502,
+
+		/// <summary>Set the maximum transaction size in bytes.
+		/// This sets the <see cref="FdbTransactionOption.SizeLimit"/> option on each transaction created by this database.
+		/// See the transaction option description for more information.</summary>
+		TransactionSizeLimit = 503,
+
+		/// <summary>The read version will be committed, and usually will be the latest committed, but might not be the latest committed in the event of a simultaneous fault and misbehaving clock.
+		/// This sets the <see cref="FdbTransactionOption.CausalReadRisky"/> option of each transaction created by this database.
 		/// </summary>
-		DataCenterId = 22
+		TransactionCausalReadRisky = 504,
+
+		/// <summary>Addresses returned by <see cref="IFdbReadOnlyTransaction.GetAddressesForKeyAsync"/> include the port when enabled.
+		/// This will be enabled by default in api version 700, and this option will be deprecated.</summary>
+		TransactionIncludePortInAddress = 505,
 	}
 
 }

@@ -124,6 +124,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
+		/// <remarks>Depending on the API level or whether database option <see cref="FdbTransactionOption.IncludePortInAddress"/> is set, the returned string may or may not include the port numbers</remarks>
 		Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
