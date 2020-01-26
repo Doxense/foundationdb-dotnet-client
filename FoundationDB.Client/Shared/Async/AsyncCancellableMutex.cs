@@ -34,14 +34,13 @@ namespace Doxense.Async
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using JetBrains.Annotations;
 
 	/// <summary>Implements a async mutex that supports cancellation</summary>
 	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"cancelled\"})")]
-	public class AsyncCancelableMutex : TaskCompletionSource<object>
+	public class AsyncCancelableMutex : TaskCompletionSource<object?>
 	{
 		// The consumer just needs to await the Task and will be woken up if someone calls Set(..) / Abort() on the mutex OR if the CancellationToken provided in the ctor is signaled.
-		// Optionally, Set() and Abort() can specify if the consumer will be woken up from the ThreadPool (asnyc = true) or probably inline (async = false)
+		// Optionally, Set() and Abort() can specify if the consumer will be woken up from the ThreadPool (async = true) or probably inline (async = false)
 
 		// note: this is not really a mutex because there is no "Reset()" method (not possible to reset a TCS)...
 
@@ -72,8 +71,7 @@ namespace Doxense.Async
 			// the state contains the weak reference on the waiter, that we need to unwrap...
 
 			var weakRef = (WeakReference<AsyncCancelableMutex>)state;
-			AsyncCancelableMutex waiter;
-			if (weakRef.TryGetTarget(out waiter))
+			if (weakRef.TryGetTarget(out AsyncCancelableMutex waiter))
 			{ // still alive...
 				waiter.Abort(async: true);
 			}
@@ -88,7 +86,7 @@ namespace Doxense.Async
 			GC.SuppressFinalize(this);
 		}
 
-		public bool IsCompleted { get { return m_state != 0; } }
+		public bool IsCompleted => m_state != 0;
 
 		public bool Set(bool async = false)
 		{
@@ -100,7 +98,7 @@ namespace Doxense.Async
 
 			if (async)
 			{
-				SetDefered(this);
+				SetDeferred(this);
 			}
 			else
 			{
@@ -119,21 +117,21 @@ namespace Doxense.Async
 
 			if (async)
 			{
-				CancelDefered(this);
+				CancelDeferred(this);
 			}
 			else
 			{
-				this.TrySetCanceled();
+				TrySetCanceled();
 			}
 			return true;
 		}
 
-		private static void SetDefered(AsyncCancelableMutex mutex)
+		private static void SetDeferred(AsyncCancelableMutex mutex)
 		{
 			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), mutex);
 		}
 
-		private static void CancelDefered(AsyncCancelableMutex mutex)
+		private static void CancelDeferred(AsyncCancelableMutex mutex)
 		{
 			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), mutex);
 		}

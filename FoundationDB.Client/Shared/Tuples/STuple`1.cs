@@ -52,10 +52,11 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First and only item in the tuple</summary>
+		[AllowNull] 
 		public readonly T1 Item1;
 
 		[DebuggerStepThrough]
-		public STuple(T1 item1)
+		public STuple([AllowNull] T1 item1)
 		{
 			this.Item1 = item1;
 		}

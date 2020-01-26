@@ -92,6 +92,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 #endif
 
+		[return: MaybeNull]
 		public T Get<T>(int index)
 		{
 			return m_items.Get<T>(index);

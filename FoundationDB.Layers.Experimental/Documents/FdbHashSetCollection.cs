@@ -72,7 +72,7 @@ namespace FoundationDB.Layers.Blobs
 
 		protected virtual string ParseFieldKey(IVarTuple key)
 		{
-			return key.Last<string>();
+			return key.Last<string>()!;
 		}
 
 		#region Get
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Blobs
 				.GetRange(KeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
-					string field = this.Subspace.DecodeLast<string>(kvp.Key);
+					string field = this.Subspace.DecodeLast<string>(kvp.Key)!;
 					results[field] = kvp.Value;
 				})
 				.ConfigureAwait(false);

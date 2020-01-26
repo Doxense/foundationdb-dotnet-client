@@ -110,7 +110,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed)
 		{
-			return new ObjectDisposedException(disposed.GetType().Name);
+			return new ObjectDisposedException(disposed?.GetType().Name ?? typeof(TDisposed).Name);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -128,7 +128,7 @@ namespace Doxense.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException<TDisposed>(TDisposed disposed, string message)
 		{
-			return new ObjectDisposedException(disposed.GetType().Name, message);
+			return new ObjectDisposedException(disposed?.GetType().Name ?? typeof(TDisposed).Name, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]

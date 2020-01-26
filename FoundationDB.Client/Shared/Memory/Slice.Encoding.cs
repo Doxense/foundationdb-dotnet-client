@@ -2033,7 +2033,7 @@ namespace System
 				case 19: // {hex8-hex8}
 				{
 					// ReSharper disable once AssignNullToNotNullAttribute
-					return Uuid64.Parse(ToByteString());
+					return Uuid64.Parse(ToByteString()!);
 				}
 			}
 

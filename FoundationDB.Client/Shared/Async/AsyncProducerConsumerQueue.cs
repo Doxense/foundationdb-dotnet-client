@@ -73,7 +73,7 @@ namespace Doxense.Async
 
 		public abstract void OnError(ExceptionDispatchInfo error);
 
-		/// <summary>Delcare the producer as beeing blocked on a full queue</summary>
+		/// <summary>Declare the producer as being blocked on a full queue</summary>
 		/// <param name="ct"></param>
 		/// <returns></returns>
 		protected Task MarkProducerAsBlocked_NeedsLocking(CancellationToken ct)
@@ -99,7 +99,7 @@ namespace Doxense.Async
 			}
 		}
 
-		/// <summary>Declare the consumer as beeing blocked on an empty queue</summary>
+		/// <summary>Declare the consumer as being blocked on an empty queue</summary>
 		/// <param name="ct"></param>
 		/// <returns></returns>
 		protected Task MarkConsumerAsBlocked_NeedsLocking(CancellationToken ct)
@@ -145,7 +145,7 @@ namespace Doxense.Async
 		#region Debug Logging...
 
 		[Conditional("FULL_DEBUG")]
-		protected void LogProducer(string msg, [CallerMemberName] string caller = null)
+		protected void LogProducer(string msg, [CallerMemberName] string? caller = null)
 		{
 #if FULL_DEBUG
 			Console.WriteLine("@@@ [producer#{0}] {1} [{2}]", Thread.CurrentThread.ManagedThreadId, msg, caller);
@@ -153,7 +153,7 @@ namespace Doxense.Async
 		}
 
 		[Conditional("FULL_DEBUG")]
-		protected void LogConsumer(string msg, [CallerMemberName] string caller = null)
+		protected void LogConsumer(string msg, [CallerMemberName] string? caller = null)
 		{
 #if FULL_DEBUG
 			Console.WriteLine("@@@ [consumer#{0}] {1} [{2}]", Thread.CurrentThread.ManagedThreadId, msg, caller);

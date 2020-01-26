@@ -389,7 +389,7 @@ namespace Doxense.Memory
 		public string ReadVarString()
 		{
 			var str = ReadVarBytes();
-			return str.ToStringUtf8();
+			return str.ToStringUtf8()!;
 		}
 
 		/// <summary>Reads a string prefixed by a variable-sized length, using the specified encoding</summary>

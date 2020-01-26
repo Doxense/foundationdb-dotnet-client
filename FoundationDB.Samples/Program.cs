@@ -25,7 +25,6 @@ namespace FoundationDB.Samples
 		private static IFdbDatabase Db;
 
 		private static bool LogEnabled;
-		private static string CurrentDirectoryPath = "/";
 
 		static StreamWriter GetLogFile(string name)
 		{

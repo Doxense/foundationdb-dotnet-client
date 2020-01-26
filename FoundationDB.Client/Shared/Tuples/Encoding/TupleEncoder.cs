@@ -158,7 +158,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
@@ -186,7 +186,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, TElement[] elements, Func<TElement, TTuple> transform)
@@ -215,7 +215,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
@@ -247,7 +247,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		// With prefix...
@@ -636,7 +636,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		public static Slice[] EncodeKeys<T>(params T[] keys)
@@ -668,7 +668,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
@@ -709,7 +709,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer, 0, next);
+			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -994,8 +994,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			public void ReadKeyFrom(ref SliceReader reader, [MaybeNull] out T key)
 			{
 				key = !reader.HasMore
-					? default //BUGBUG
-					: TuPack.DecodeKey<T>(reader.ReadToEnd());
+					? default! //BUGBUG
+					: TuPack.DecodeKey<T>(reader.ReadToEnd())!;
 			}
 
 			public Slice EncodeValue(T key)
@@ -1037,8 +1037,8 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
 				Contract.Assert(t != null);
-				key.Item1 = t.Get<T1>(0);
-				key.Item2 = count == 2 ? t.Get<T2>(1) : default;
+				key.Item1 = t.Get<T1>(0)!;
+				key.Item2 = count == 2 ? t.Get<T2>(1)! : default!;
 			}
 		}
 
@@ -1068,9 +1068,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
 				Contract.Assert(t != null);
-				key.Item1 = t.Get<T1>(0);
-				key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-				key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
+				key.Item1 = t.Get<T1>(0)!;
+				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
+				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
 			}
 		}
 
@@ -1101,10 +1101,10 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
 				Contract.Assert(t != null);
-				key.Item1 = t.Get<T1>(0);
-				key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-				key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-				key.Item4 = count >= 4 ? t.Get<T4>(3) : default;
+				key.Item1 = t.Get<T1>(0)!;
+				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
+				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
+				key.Item4 = count >= 4 ? t.Get<T4>(3)! : default!;
 			}
 		}
 
@@ -1136,11 +1136,11 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
 				Contract.Assert(t != null);
-				key.Item1 = t.Get<T1>(0);
-				key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-				key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-				key.Item4 = count >= 4 ? t.Get<T4>(3) : default;
-				key.Item5 = count >= 5 ? t.Get<T5>(4) : default;
+				key.Item1 = t.Get<T1>(0)!;
+				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
+				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
+				key.Item4 = count >= 4 ? t.Get<T4>(3)! : default!;
+				key.Item5 = count >= 5 ? t.Get<T5>(4)! : default!;
 			}
 		}
 
@@ -1173,12 +1173,12 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
 				Contract.Assert(t != null);
-				key.Item1 = t.Get<T1>(0);
-				key.Item2 = count >= 2 ? t.Get<T2>(1) : default;
-				key.Item3 = count >= 3 ? t.Get<T3>(2) : default;
-				key.Item4 = count >= 4 ? t.Get<T4>(3) : default;
-				key.Item5 = count >= 5 ? t.Get<T5>(4) : default;
-				key.Item6 = count >= 6 ? t.Get<T6>(5) : default;
+				key.Item1 = t.Get<T1>(0)!;
+				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
+				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
+				key.Item4 = count >= 4 ? t.Get<T4>(3)! : default!;
+				key.Item5 = count >= 5 ? t.Get<T5>(4)! : default!;
+				key.Item6 = count >= 6 ? t.Get<T6>(5)! : default!;
 			}
 		}
 

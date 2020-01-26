@@ -106,7 +106,7 @@ namespace Doxense.Collections.Tuples
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
 		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
 		[Pure]
-		IVarTuple Append<TItem>(TItem value);
+		IVarTuple Append<TItem>([AllowNull] TItem value);
 
 		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>

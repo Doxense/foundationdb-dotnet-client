@@ -117,7 +117,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 					Log("Doing " + W + " x " + B + " inserts in " + W + " threads...");
 
-					var signal = new TaskCompletionSource<object?>();
+					var signal = new TaskCompletionSource<object>();
 					var workers = Enumerable.Range(0, W)
 						.Select(async (id) =>
 						{

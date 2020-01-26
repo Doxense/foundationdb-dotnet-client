@@ -175,7 +175,7 @@ namespace Doxense.Collections.Tuples
 				if (ny == 0 || nx == 0) return nx - ny;
 
 				int p = this.Offset;
-				return this.Comparer.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				return this.Comparer.Compare(x.Get<T1>(p)!, y.Get<T1>(p)!);
 			}
 
 			/// <summary>Compare two tuples</summary>
@@ -255,11 +255,11 @@ namespace Doxense.Collections.Tuples
 
 				int p = this.Offset;
 
-				int cmp = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				int cmp = this.Comparer1.Compare(x.Get<T1>(p)!, y.Get<T1>(p)!);
 				if (cmp != 0) return cmp;
 
 				if (ny == 1 || nx == 1) return nx - ny;
-				cmp = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
+				cmp = this.Comparer2.Compare(x.Get<T2>(p + 1)!, y.Get<T2>(p + 1)!);
 
 				return cmp;
 			}
@@ -351,15 +351,15 @@ namespace Doxense.Collections.Tuples
 
 				int p = this.Offset;
 
-				int c = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				int c = this.Comparer1.Compare(x.Get<T1>(p)!, y.Get<T1>(p)!);
 				if (c != 0) return c;
 
 				if (ny == 1 || nx == 1) return nx - ny;
-				c = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
+				c = this.Comparer2.Compare(x.Get<T2>(p + 1)!, y.Get<T2>(p + 1)!);
 				if (c != 0) return c;
 
 				if (ny == 2 || nx == 2) return nx - ny;
-				c = this.Comparer3.Compare(x.Get<T3>(p + 2), y.Get<T3>(p + 2));
+				c = this.Comparer3.Compare(x.Get<T3>(p + 2)!, y.Get<T3>(p + 2)!);
 
 				return c;
 			}

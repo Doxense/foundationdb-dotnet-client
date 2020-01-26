@@ -66,10 +66,10 @@ namespace FoundationDB.Layers.Documents
 		protected virtual TDocument DecodeParts(List<Slice> parts)
 		{
 			var packed = Slice.Join(Slice.Empty, parts);
-			return this.ValueEncoder.DecodeValue(packed);
+			return this.ValueEncoder.DecodeValue(packed)!;
 		}
 
-		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
+		/// <summary>Subspace used as a prefix for all hashset in this collection</summary>
 		public TypedKeySubspaceLocation<TId, int> Location { get; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
@@ -94,6 +94,7 @@ namespace FoundationDB.Layers.Documents
 			var packed = this.ValueEncoder.EncodeValue(document);
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			// Key Prefix = ...(id,)
 			var key = subspace.EncodePartial(id);
@@ -135,6 +136,7 @@ namespace FoundationDB.Layers.Documents
 			if (id == null) throw new ArgumentNullException(nameof(id)); // only for ref types
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var parts = await LoadPartsAsync(subspace, trans, id).ConfigureAwait(false);
 
@@ -151,6 +153,7 @@ namespace FoundationDB.Layers.Documents
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var results = await Task.WhenAll(ids.Select(id => LoadPartsAsync(subspace, trans, id)));
 
@@ -166,6 +169,7 @@ namespace FoundationDB.Layers.Documents
 			if (id == null) throw new ArgumentNullException(nameof(id));
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			var key = subspace.EncodePartial(id);
 			trans.ClearRange(KeyRange.StartsWith(key));
@@ -181,6 +185,7 @@ namespace FoundationDB.Layers.Documents
 			if (ids == null) throw new ArgumentNullException(nameof(ids));
 
 			var subspace = await this.Location.Resolve(trans);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by Document Collection Layer was not found.");
 
 			foreach (var id in ids)
 			{

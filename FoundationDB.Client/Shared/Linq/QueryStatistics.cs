@@ -31,17 +31,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Linq
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 
 	public class QueryStatistics<TData>
 	{
 		public QueryStatistics()
-		{ }
+		{
+			this.Value = default;
+		}
 
 		public QueryStatistics(TData value)
 		{
 			this.Value = value;
 		}
 
+		[AllowNull]
 		public TData Value { get; protected set; }
 
 		public void Update(TData newValue)

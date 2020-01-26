@@ -103,6 +103,7 @@ namespace Doxense.Linq
 				{
 					m_ct = ct;
 					m_lambda = lambda;
+					m_current = default!;
 				}
 
 				public async ValueTask<bool> MoveNextAsync()

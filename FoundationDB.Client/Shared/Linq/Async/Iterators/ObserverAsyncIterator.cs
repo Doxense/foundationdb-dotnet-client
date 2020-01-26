@@ -59,7 +59,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			while (!m_ct.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNextAsync().ConfigureAwait(false))
+				if (!await m_iterator!.MoveNextAsync().ConfigureAwait(false))
 				{ // completed
 					return await Completed();
 				}

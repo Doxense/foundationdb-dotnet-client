@@ -863,7 +863,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		private static Func<Slice, T> MakeConvertBoxedDeserializer<T>()
 		{
-			return (value) => TypeConverters.ConvertBoxed<T>(DeserializeBoxed(value));
+			return (value) => TypeConverters.ConvertBoxed<T>(DeserializeBoxed(value))!;
 		}
 
 		/// <summary>Check if a tuple segment is the equivalent of 'Nil'</summary>

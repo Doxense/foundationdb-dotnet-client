@@ -139,7 +139,7 @@ namespace Doxense.Serialization.Encoders
 			var res = new TValue[values.Length];
 			for (int i = 0; i < res.Length; i++)
 			{
-				res[i] = encoder.DecodeValue(values[i]);
+				res[i] = encoder.DecodeValue(values[i])!;
 			}
 			return res;
 		}
@@ -157,7 +157,7 @@ namespace Doxense.Serialization.Encoders
 					var res = new TValue[array.Length];
 					for(int i = 0; i < res.Length; i++)
 					{
-						res[i] = encoder.DecodeValue(array[i].Value);
+						res[i] = encoder.DecodeValue(array[i].Value)!;
 					}
 					return res;
 				}
@@ -167,7 +167,7 @@ namespace Doxense.Serialization.Encoders
 					int i = 0;
 					foreach (var item in items)
 					{
-						res[i++] = encoder.DecodeValue(item.Value);
+						res[i++] = encoder.DecodeValue(item.Value)!;
 					}
 					if (i != res.Length) throw new InvalidOperationException();
 					return res;
@@ -177,7 +177,7 @@ namespace Doxense.Serialization.Encoders
 					var res = new List<TValue>();
 					foreach (var item in items)
 					{
-						res.Add(encoder.DecodeValue(item.Value));
+						res.Add(encoder.DecodeValue(item.Value)!);
 					}
 					return res.ToArray();
 				}
@@ -197,7 +197,7 @@ namespace Doxense.Serialization.Encoders
 					var res = new TValue[arr.Length];
 					for (int i = 0; i < res.Length; i++)
 					{
-						res[i] = encoder.DecodeValue(arr[i]);
+						res[i] = encoder.DecodeValue(arr[i])!;
 					}
 					return res;
 				}
@@ -207,7 +207,7 @@ namespace Doxense.Serialization.Encoders
 					int i = 0;
 					foreach (var value in values)
 					{
-						res[i++] = encoder.DecodeValue(value);
+						res[i++] = encoder.DecodeValue(value)!;
 					}
 					if (i != res.Length) throw new InvalidOperationException();
 					return res;
@@ -217,7 +217,7 @@ namespace Doxense.Serialization.Encoders
 					var res = new List<TValue>();
 					foreach (var value in values)
 					{
-						res.Add(encoder.DecodeValue(value));
+						res.Add(encoder.DecodeValue(value)!);
 					}
 					return res.ToArray();
 				}
@@ -237,7 +237,7 @@ namespace Doxense.Serialization.Encoders
 					var res = new TValue[arr.Length];
 					for (int i = 0; i < res.Length; i++)
 					{
-						res[i] = encoder.DecodeValue(selector(arr[i]));
+						res[i] = encoder.DecodeValue(selector(arr[i]))!;
 					}
 					return res;
 				}
@@ -247,7 +247,7 @@ namespace Doxense.Serialization.Encoders
 					int i = 0;
 					foreach (var item in items)
 					{
-						res[i++] = encoder.DecodeValue(selector(item));
+						res[i++] = encoder.DecodeValue(selector(item))!;
 					}
 					if (i != res.Length) throw new InvalidOperationException();
 					return res;
@@ -257,7 +257,7 @@ namespace Doxense.Serialization.Encoders
 					var res = new List<TValue>();
 					foreach (var item in items)
 					{
-						res.Add(encoder.DecodeValue(selector(item)));
+						res.Add(encoder.DecodeValue(selector(item))!);
 					}
 					return res.ToArray();
 				}
@@ -281,7 +281,7 @@ namespace Doxense.Serialization.Encoders
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
 
-			return items.Select(item => encoder.DecodeValue(item.Value));
+			return items.Select(item => encoder.DecodeValue(item.Value)!);
 		}
 
 		/// <summary>Transform a sequence of <paramref name="items"/> into another sequence of <typeparamref name="TValue"/> by extracting one field using the specified <paramref name="selector"/></summary>
@@ -291,7 +291,7 @@ namespace Doxense.Serialization.Encoders
 			Contract.NotNull(encoder, nameof(encoder));
 			Contract.NotNull(items, nameof(items));
 
-			return items.Select(x => encoder.DecodeValue(selector(x)));
+			return items.Select(x => encoder.DecodeValue(selector(x))!);
 		}
 
 		#endregion

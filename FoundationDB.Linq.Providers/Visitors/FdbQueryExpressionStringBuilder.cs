@@ -45,7 +45,7 @@ namespace FoundationDB.Linq.Expressions
 		{ }
 
 		/// <summary>Creates a new expression string builder with a specific writer</summary>
-		public FdbQueryExpressionStringBuilder(FdbDebugStatementWriter writer)
+		public FdbQueryExpressionStringBuilder(FdbDebugStatementWriter? writer)
 		{
 			m_writer = writer ?? new FdbDebugStatementWriter();
 		}
@@ -62,12 +62,9 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Visit a node and appends it to the string builder</summary>
 		/// <param name="node"></param>
 		/// <returns></returns>
-		public override Expression Visit(FdbQueryExpression? node)
+		public override Expression? Visit(FdbQueryExpression? node)
 		{
-			if (node != null)
-			{
-				node.WriteTo(this);
-			}
+			node?.WriteTo(this);
 			return node;
 		}
 

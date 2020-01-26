@@ -116,6 +116,7 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
+		[return: MaybeNull]
 		public TItem Get<TItem>(int index)
 		{
 			if (index == this.Depth || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
@@ -127,12 +128,12 @@ namespace Doxense.Collections.Tuples
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			[return: MaybeNull]
-			get => this.Tail;
+			get => this.Tail!;
 		}
 
 		public IVarTuple Append<TItem>(TItem value)
 		{
-			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail, value));
+			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail!, value));
 		}
 
 		public IVarTuple Concat(IVarTuple tuple)

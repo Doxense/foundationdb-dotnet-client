@@ -322,7 +322,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
 		/// <returns>Corresponding number (ex: 12.34d), or default value if empty or invalid</returns>
 		[Pure]
-		public static double ToDouble(string value, double defaultValue, IFormatProvider culture = null)
+		public static double ToDouble(string value, double defaultValue, IFormatProvider? culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
@@ -337,7 +337,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
 		/// <returns>Corresponding number (ex: 12.34d), or <c>null</c> if empty or invalid</returns>
 		[Pure]
-		public static double? ToDouble(string value, IFormatProvider culture = null)
+		public static double? ToDouble(string value, IFormatProvider? culture = null)
 		{
 			if (value == null) return default;
 			double result = ToDouble(value, double.NaN, culture);
@@ -350,7 +350,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
 		/// <returns>Corresponding number (ex: 12.34f), or default value if empty or invalid</returns>
 		[Pure]
-		public static float ToSingle(string value, float defaultValue, IFormatProvider culture = null)
+		public static float ToSingle(string value, float defaultValue, IFormatProvider? culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
@@ -365,7 +365,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
 		/// <returns>Corresponding number (ex: 12.34f), or <c>null</c> if empty or invalid</returns>
 		[Pure]
-		public static float? ToSingle(string value, IFormatProvider culture = null)
+		public static float? ToSingle(string value, IFormatProvider? culture = null)
 		{
 			if (value == null) return default;
 			float result = ToSingle(value, float.NaN, culture);
@@ -378,7 +378,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
 		/// <returns>Corresponding number (ex: 12.34m), or default value if empty or invalid</returns>
 		[Pure]
-		public static decimal ToDecimal(string value, decimal defaultValue, IFormatProvider culture = null)
+		public static decimal ToDecimal(string value, decimal defaultValue, IFormatProvider? culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return defaultValue;
 			char c = value[0];
@@ -393,7 +393,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the number (invariant by default)</param>
 		/// <returns>Corresponding number (ex: 12.34m), or <c>null</c> if empty or invalid</returns>
 		[Pure]
-		public static decimal? ToDecimal(string value, IFormatProvider culture = null)
+		public static decimal? ToDecimal(string value, IFormatProvider? culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return default(decimal?);
 			char c = value[0];
@@ -409,7 +409,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the date (invariant by default)</param>
 		/// <returns>See <see cref="ParseDateTime"/></returns>
 		[Pure]
-		public static DateTime ToDateTime(string value, DateTime defaultValue, CultureInfo culture = null)
+		public static DateTime ToDateTime(string value, DateTime defaultValue, CultureInfo? culture = null)
 		{
 			return ParseDateTime(value, defaultValue, culture);
 		}
@@ -419,7 +419,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Optional culture used to decode the date (invariant by default)</param>
 		/// <returns>See <see cref="ParseDateTime"/></returns>
 		[Pure]
-		public static DateTime? ToDateTime(string value, CultureInfo culture = null)
+		public static DateTime? ToDateTime(string value, CultureInfo? culture = null)
 		{
 			if (string.IsNullOrEmpty(value)) return default(DateTime?);
 			DateTime result = ParseDateTime(value, DateTime.MaxValue, culture);
@@ -521,7 +521,7 @@ namespace Doxense.Serialization
 		/// <returns>Corresponding DateTime, or an exception if invalid</returns>
 		/// <exception cref="System.ArgumentException">If the date is invalid</exception>
 		[Pure]
-		public static DateTime ParseDateTime(string date, CultureInfo culture)
+		public static DateTime ParseDateTime(string date, CultureInfo? culture)
 		{
 			if (!TryParseDateTime(date, culture, out DateTime result, true)) throw FailInvalidDateFormat();
 			return result;
@@ -551,7 +551,7 @@ namespace Doxense.Serialization
 		/// <param name="culture">Culture used to parse the date</param>
 		/// <returns>Corresponding DateTime, or default value if empty or invalid</returns>
 		[Pure]
-		public static DateTime ParseDateTime(string date, DateTime defaultValue, CultureInfo culture)
+		public static DateTime ParseDateTime(string date, DateTime defaultValue, CultureInfo? culture)
 		{
 			return TryParseDateTime(date, culture, out DateTime result, false) ? result : defaultValue;
 		}
@@ -572,7 +572,7 @@ namespace Doxense.Serialization
 		/// <param name="date">Text string to convert</param>
 		/// <param name="culture">Optional culture (invariant if null)</param>
 		/// <param name="result">Stores the converted date (or DateTime.MinValue if conversion failed)</param>
-		/// <param name="throwsFail">If <c>false</c>, no exception is thrown and <c>false</c> is returned instead.. If <c>true<c>, re-throw all exceptions</param>
+		/// <param name="throwsFail">If <c>false</c>, no exception is thrown and <c>false</c> is returned instead.. If <c>true</c>, re-throw all exceptions</param>
 		/// <returns><c>true</c> if the date was correctly converted; otherwise, <c>false</c>.</returns>
 		[Pure]
 		public static bool TryParseDateTime(string date, CultureInfo? culture, out DateTime result, bool throwsFail)

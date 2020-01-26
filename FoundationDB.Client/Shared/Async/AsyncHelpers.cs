@@ -49,8 +49,8 @@ namespace Doxense.Async
 		/// <summary>Create a new async target from a set of callbacks</summary>
 		public static IAsyncTarget<T> CreateTarget<T>(
 			Func<T, CancellationToken, Task> onNextAsync,
-			Action onCompleted = null,
-			Action<ExceptionDispatchInfo> onError = null
+			Action? onCompleted = null,
+			Action<ExceptionDispatchInfo>? onError = null
 		)
 		{
 			return new AnonymousAsyncTarget<T>(onNextAsync, onCompleted, onError);
@@ -59,14 +59,14 @@ namespace Doxense.Async
 		/// <summary>Create a new async target from a set of callbacks</summary>
 		public static IAsyncTarget<T> CreateTarget<T>(
 				Action<T, CancellationToken> onNext,
-				Action onCompleted = null,
-				Action<ExceptionDispatchInfo> onError = null
+				Action? onCompleted = null,
+				Action<ExceptionDispatchInfo>? onError = null
 		)
 		{
 			return new AnonymousTarget<T>(onNext, onCompleted, onError);
 		}
 
-		/// <summary>Publish a new result on this async target, by correclty handling success, termination and failure</summary>
+		/// <summary>Publish a new result on this async target, by correctly handling success, termination and failure</summary>
 		public static Task Publish<T>(this IAsyncTarget<T> target, Maybe<T> result, CancellationToken ct)
 		{
 			Contract.Requires(target != null);
@@ -80,7 +80,7 @@ namespace Doxense.Async
 
 			if (result.Failed)
 			{ // we have failed
-				target.OnError(result.CapturedError);
+				target.OnError(result.CapturedError!);
 				return Task.CompletedTask;
 			}
 
@@ -95,16 +95,17 @@ namespace Doxense.Async
 
 			private readonly Func<T, CancellationToken, Task> m_onNextAsync;
 
-			private readonly Action m_onCompleted;
+			private readonly Action? m_onCompleted;
 
-			private readonly Action<ExceptionDispatchInfo> m_onError;
+			private readonly Action<ExceptionDispatchInfo>? m_onError;
 
 			public AnonymousAsyncTarget(
 				Func<T, CancellationToken, Task> onNextAsync,
-				Action onCompleted,
-				Action<ExceptionDispatchInfo> onError
+				Action? onCompleted,
+				Action<ExceptionDispatchInfo>? onError
 			)
 			{
+				Contract.NotNull(onNextAsync, nameof(onNextAsync));
 				m_onNextAsync = onNextAsync;
 				m_onCompleted = onCompleted;
 				m_onError = onError;
@@ -117,12 +118,12 @@ namespace Doxense.Async
 
 			public void OnCompleted()
 			{
-				m_onCompleted();
+				m_onCompleted?.Invoke();
 			}
 
 			public void OnError(ExceptionDispatchInfo error)
 			{
-				m_onError(error);
+				m_onError?.Invoke(error);
 			}
 		}
 
@@ -132,14 +133,14 @@ namespace Doxense.Async
 
 			private readonly Action<T, CancellationToken> m_onNext;
 
-			private readonly Action m_onCompleted;
+			private readonly Action? m_onCompleted;
 
-			private readonly Action<ExceptionDispatchInfo> m_onError;
+			private readonly Action<ExceptionDispatchInfo>? m_onError;
 
 			public AnonymousTarget(
 				Action<T, CancellationToken> onNext,
-				Action onCompleted,
-				Action<ExceptionDispatchInfo> onError
+				Action? onCompleted,
+				Action<ExceptionDispatchInfo>? onError
 			)
 			{
 				Contract.NotNull(onNext, nameof(onNext));
@@ -199,7 +200,7 @@ namespace Doxense.Async
 					if (ct.IsCancellationRequested)
 					{
 						// REVIEW: should we notify the target?
-						// REVIEW: if the item is IDisposble, who will clean up?
+						// REVIEW: if the item is IDisposable, who will clean up?
 						break;
 					}
 
@@ -208,7 +209,7 @@ namespace Doxense.Async
 
 					if (current.Failed)
 					{ // bounce the error back to the caller
-					  //REVIEW: SHOULD WE? We poush the error to the target, and the SAME error to the caller... who should be responsible for handling it?
+					  //REVIEW: SHOULD WE? We push the error to the target, and the SAME error to the caller... who should be responsible for handling it?
 					  // => target should know about the error (to cancel something)
 					  // => caller should maybe also know that the pump failed unexpectedly....
 						notifiedError = true;
@@ -223,7 +224,7 @@ namespace Doxense.Async
 					}
 				}
 
-				// notify cancellation if it happend while we were pumping
+				// notify cancellation if it happened while we were pumping
 				if (ct.IsCancellationRequested)
 				{
 					//LogPump("We were cancelled!");
@@ -296,12 +297,12 @@ namespace Doxense.Async
 
 		#region Transforms...
 
-		public static AsyncTransform<TInput, TOutput> CreateAsyncTransform<TInput, TOutput>(Func<TInput, CancellationToken, Task<TOutput>> transform, IAsyncTarget<Task<TOutput>> target, TaskScheduler scheduler = null)
+		public static AsyncTransform<TInput, TOutput> CreateAsyncTransform<TInput, TOutput>(Func<TInput, CancellationToken, Task<TOutput>> transform, IAsyncTarget<Task<TOutput>> target, TaskScheduler? scheduler = null)
 		{
 			return new AsyncTransform<TInput, TOutput>(transform, target, scheduler);
 		}
 
-		public static async Task<List<TOutput>> TransformToListAsync<TInput, TOutput>(IAsyncSource<TInput> source, Func<TInput, CancellationToken, Task<TOutput>> transform, CancellationToken ct, int? maxConcurrency = null, TaskScheduler scheduler = null)
+		public static async Task<List<TOutput>> TransformToListAsync<TInput, TOutput>(IAsyncSource<TInput> source, Func<TInput, CancellationToken, Task<TOutput>> transform, CancellationToken ct, int? maxConcurrency = null, TaskScheduler? scheduler = null)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -312,7 +313,7 @@ namespace Doxense.Async
 					// start the output pump
 					var output = PumpToListAsync(queue, ct);
 
-					// start the intput pump
+					// start the input pump
 					var input = PumpToAsync(source, pipe, ct);
 
 					await Task.WhenAll(input, output).ConfigureAwait(false);

@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
@@ -91,16 +92,19 @@ namespace FoundationDB.Client
 
 		public abstract IVarTuple UnpackKey(Slice packed);
 
+		[return: MaybeNull]
 		public virtual T DecodeKey<T>(Slice packed)
 		{
 			return UnpackKey(packed).OfSize(1).Get<T>(0);
 		}
 
+		[return: MaybeNull]
 		public virtual T DecodeKeyFirst<T>(Slice packed)
 		{
 			return UnpackKey(packed).OfSizeAtLeast(1).Get<T>(0);
 		}
 
+		[return: MaybeNull]
 		public virtual T DecodeKeyLast<T>(Slice packed)
 		{
 			return UnpackKey(packed).OfSizeAtLeast(1).Get<T>(-1);

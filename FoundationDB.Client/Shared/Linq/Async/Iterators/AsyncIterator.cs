@@ -52,7 +52,7 @@ namespace Doxense.Linq.Async.Iterators
 		private const int STATE_COMPLETED = 3;
 		private const int STATE_DISPOSED = -1;
 
-		protected TResult m_current;
+		protected TResult m_current = default!; //HACKHACK: this is to shut up c# 8.0 nullability checking. Remove this if it ever gets smarter!
 		protected int m_state;
 		protected AsyncIterationHint m_mode;
 		protected CancellationToken m_ct;

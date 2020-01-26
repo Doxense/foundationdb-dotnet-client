@@ -694,7 +694,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* ptrKey = key)
 			{
 				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey, key.Length, snapshot);
-				Debug.Assert(future != null);
+				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.Handle.ToString("x"));
 #endif

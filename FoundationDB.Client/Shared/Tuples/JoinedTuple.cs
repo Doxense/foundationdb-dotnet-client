@@ -142,6 +142,7 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
+		[return: MaybeNull]
 		public T Get<T>(int index)
 		{
 			index = TupleHelpers.MapIndex(index, m_count);

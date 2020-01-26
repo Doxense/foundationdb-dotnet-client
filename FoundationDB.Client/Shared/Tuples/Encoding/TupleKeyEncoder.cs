@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples;
 	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
@@ -143,16 +144,19 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuPack.Unpack(packed);
 		}
 
+		[return: MaybeNull]
 		public T DecodeKey<T>(Slice packed)
 		{
 			return TuPack.DecodeKey<T>(packed);
 		}
 
+		[return: MaybeNull]
 		public T DecodeKeyFirst<T>(Slice packed)
 		{
 			return TuPack.DecodeFirst<T>(packed);
 		}
 
+		[return: MaybeNull]
 		public T DecodeKeyLast<T>(Slice packed)
 		{
 			return TuPack.DecodeLast<T>(packed);

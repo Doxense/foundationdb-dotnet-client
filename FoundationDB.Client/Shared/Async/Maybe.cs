@@ -65,6 +65,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		//     False   |      -     |   Exception  | The computation has failed
 
 		/// <summary>If true, there is a value. If false, either no value or an exception</summary>
+		[AllowNull]
 		private readonly T m_value;
 
 		/// <summary>If HasValue is true, holds the value. Else, contains default(T)</summary>
@@ -242,14 +243,14 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 			if (m_errorContainer != null)
 			{ // Error
-				if (other.m_hasValue | other.m_errorContainer == null) return +1; // errors come after everything except errors
+				if (other.m_hasValue || other.m_errorContainer == null) return +1; // errors come after everything except errors
 				//note: this is tricky, because we cannot really sort Exceptions, so this sort may not be stable :(
 				// => the "only" way would be to compare their hash codes!
 				return ReferenceEquals(m_errorContainer, other.m_errorContainer) ? 0 : m_errorContainer.GetHashCode().CompareTo(other.m_errorContainer.GetHashCode());
 			}
 
 			// Nothing comes before everything except nothing
-			return other.m_hasValue | other.m_errorContainer != null ? -1 : 0;
+			return other.m_hasValue || other.m_errorContainer != null ? -1 : 0;
 		}
 
 		public int CompareTo(T other)
@@ -630,8 +631,8 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 				case TaskStatus.Faulted:
 				{
 					//TODO: pass the failed task itself as the error container? (we would keep the original callstack that way...)
-					var aggEx = task.Exception?.Flatten();
-					if (aggEx?.InnerExceptions.Count == 1)
+					var aggEx = task.Exception!.Flatten();
+					if (aggEx.InnerExceptions.Count == 1)
 					{
 						return Error<T>(aggEx.InnerException);
 					}

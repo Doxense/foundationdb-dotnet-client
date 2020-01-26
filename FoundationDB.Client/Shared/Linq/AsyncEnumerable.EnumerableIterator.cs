@@ -32,6 +32,7 @@ namespace Doxense.Linq
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
@@ -58,6 +59,7 @@ namespace Doxense.Linq
 				m_iterator = iterator;
 				m_transform = transform;
 				m_ct = ct;
+				m_current = default!;
 			}
 
 			public async ValueTask<bool> MoveNextAsync()
@@ -70,9 +72,9 @@ namespace Doxense.Linq
 
 				m_ct.ThrowIfCancellationRequested();
 
-				if (m_iterator.MoveNext())
+				if (m_iterator!.MoveNext())
 				{
-					m_current = await m_transform(m_iterator.Current).ConfigureAwait(false);
+					m_current = await m_transform!(m_iterator.Current).ConfigureAwait(false);
 					return true;
 				}
 

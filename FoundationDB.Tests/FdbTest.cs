@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Tests
 		[TearDown]
 		protected void AfterEachTest()
 		{
-			m_timer.Stop();
+			m_timer?.Stop();
 			if (m_cts != null)
 			{
 				try { m_cts.Cancel(); } catch { }
@@ -109,7 +109,7 @@ namespace FoundationDB.Client.Tests
 		protected TimeSpan TestElapsed
 		{
 			[DebuggerStepThrough]
-			get { return m_timer.Elapsed; }
+			get { return m_timer?.Elapsed ?? TimeSpan.Zero; }
 		}
 
 		/// <summary>Cancellation token usable by any test</summary>
@@ -183,7 +183,14 @@ namespace FoundationDB.Client.Tests
 		protected async Task DumpSubspace(IFdbReadOnlyTransaction tr, ISubspaceLocation location)
 		{
 			var subspace = await location.Resolve(tr);
-			await TestHelpers.DumpSubspace(tr, subspace);
+			if (subspace != null)
+			{
+				await TestHelpers.DumpSubspace(tr, subspace);
+			}
+			else
+			{
+				Log($"# Location {location} not found!");
+			}
 		}
 
 		[DebuggerStepThrough]
@@ -213,7 +220,7 @@ namespace FoundationDB.Client.Tests
 
 			string host = Assembly.GetEntryAssembly()?.GetName().Name;
 			return host == "TestDriven.NetCore.AdHoc" // TestDriven.NET
-			       || host == "testhost";                // ReSharper Test Runner
+			     | host == "testhost";                // ReSharper Test Runner
 		}
 
 		[DebuggerNonUserCode]
@@ -267,7 +274,7 @@ namespace FoundationDB.Client.Tests
 		[DebuggerStepThrough]
 		public static void Log(string text)
 		{
-			WriteToLog(text);
+			WriteToLog(text ?? string.Empty);
 		}
 
 		public static void Log<T>(T value)

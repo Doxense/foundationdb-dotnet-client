@@ -35,7 +35,7 @@ namespace Doxense.Serialization.Encoders
 
 	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,
 		IValueEncoder<Slice>,
-		IValueEncoder<string>,
+		IValueEncoder<string?>,
 		IValueEncoder<int>,
 		IValueEncoder<uint>,
 		IValueEncoder<long>,
@@ -52,7 +52,7 @@ namespace Doxense.Serialization.Encoders
 		public static IValueEncoder<Slice> SliceEncoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes Unicode string as UTF-8 bytes</summary>
-		public static IValueEncoder<string> StringEncoder => BinaryEncoding.Instance;
+		public static IValueEncoder<string?> StringEncoder => BinaryEncoding.Instance;
 
 		/// <summary>Encodes 32-bits signed integers as 4 bytes (high-endian)</summary>
 		public static IValueEncoder<int> Int32Encoder => BinaryEncoding.Instance;
@@ -102,8 +102,8 @@ namespace Doxense.Serialization.Encoders
 		public Slice EncodeValue(Slice value) => value;
 		Slice IValueEncoder<Slice, Slice>.DecodeValue(Slice encoded) => encoded;
 
-		public Slice EncodeValue(string value) => Slice.FromString(value);
-		string IValueEncoder<string, Slice>.DecodeValue(Slice encoded) => encoded.ToUnicode();
+		public Slice EncodeValue(string? value) => Slice.FromString(value);
+		string? IValueEncoder<string?, Slice>.DecodeValue(Slice encoded) => encoded.ToUnicode();
 
 		public Slice EncodeValue(int value) => Slice.FromInt32(value);
 		int IValueEncoder<int, Slice>.DecodeValue(Slice encoded) => encoded.ToInt32();

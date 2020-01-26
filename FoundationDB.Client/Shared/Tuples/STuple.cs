@@ -220,7 +220,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple CreateBoxed(object? item)
 		{
-			return new STuple<object>(item);
+			return new STuple<object?>(item);
 		}
 
 		/// <summary>Create a new N-tuple that wraps an sequence of untyped items</summary>
@@ -547,19 +547,19 @@ namespace Doxense.Collections.Tuples
 					if (item == null) return TokenNull;
 				}
 				// <JIT_HACK>!
-				if (typeof(T) == typeof(int)) return Stringify((int) (object) item);
-				if (typeof(T) == typeof(uint)) return Stringify((uint) (object) item);
-				if (typeof(T) == typeof(long)) return Stringify((long) (object) item);
-				if (typeof(T) == typeof(ulong)) return Stringify((ulong) (object) item);
-				if (typeof(T) == typeof(bool)) return Stringify((bool) (object) item);
-				if (typeof(T) == typeof(char)) return Stringify((char) (object) item);
-				if (typeof(T) == typeof(Slice)) return Stringify((Slice) (object) item);
-				if (typeof(T) == typeof(MutableSlice)) return Stringify((MutableSlice)(object)item);
-				if (typeof(T) == typeof(double)) return Stringify((double) (object) item);
-				if (typeof(T) == typeof(float)) return Stringify((float) (object) item);
-				if (typeof(T) == typeof(Guid)) return Stringify((Guid) (object) item);
-				if (typeof(T) == typeof(Uuid128)) return Stringify((Uuid128) (object) item);
-				if (typeof(T) == typeof(Uuid64)) return Stringify((Uuid64) (object) item);
+				if (typeof(T) == typeof(int)) return Stringify((int) (object) item!);
+				if (typeof(T) == typeof(uint)) return Stringify((uint) (object) item!);
+				if (typeof(T) == typeof(long)) return Stringify((long) (object) item!);
+				if (typeof(T) == typeof(ulong)) return Stringify((ulong) (object) item!);
+				if (typeof(T) == typeof(bool)) return Stringify((bool) (object) item!);
+				if (typeof(T) == typeof(char)) return Stringify((char) (object) item!);
+				if (typeof(T) == typeof(Slice)) return Stringify((Slice) (object) item!);
+				if (typeof(T) == typeof(MutableSlice)) return Stringify((MutableSlice) (object) item!);
+				if (typeof(T) == typeof(double)) return Stringify((double) (object) item!);
+				if (typeof(T) == typeof(float)) return Stringify((float) (object) item!);
+				if (typeof(T) == typeof(Guid)) return Stringify((Guid) (object) item!);
+				if (typeof(T) == typeof(Uuid128)) return Stringify((Uuid128) (object) item!);
+				if (typeof(T) == typeof(Uuid64)) return Stringify((Uuid64) (object) item!);
 				// </JIT_HACK>
 				if (item is string s) return Stringify(s);
 
@@ -801,7 +801,7 @@ namespace Doxense.Collections.Tuples
 				var parser = new Parser(expression.Trim());
 				tuple = parser.ParseExpression();
 				string? s = parser.GetTail();
-				tail = string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+				tail = string.IsNullOrWhiteSpace(s) ? null : s!.Trim();
 			}
 
 			private struct Parser

@@ -143,6 +143,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			m_collectionSelector = collectionSelector;
 			m_resultSelector = resultSelector;
+			m_sourceCurrent = default!;
 		}
 
 		protected override AsyncIterator<TResult> Clone()

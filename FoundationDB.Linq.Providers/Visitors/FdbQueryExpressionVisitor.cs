@@ -36,7 +36,7 @@ namespace FoundationDB.Linq.Expressions
 	{
 
 		/// <summary>Visit an extension node</summary>
-		protected override Expression VisitExtension(Expression node)
+		protected override Expression? VisitExtension(Expression node)
 		{
 			if (node is FdbQueryExpression expr)
 			{

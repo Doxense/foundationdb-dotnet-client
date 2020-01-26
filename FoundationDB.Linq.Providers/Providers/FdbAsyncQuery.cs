@@ -67,7 +67,7 @@ namespace FoundationDB.Linq.Providers
 		public IFdbDatabase? Database { get; }
 
 		/// <summary>Transaction used by the query (or null)</summary>
-		public IFdbReadOnlyTransaction? Transaction { get; }
+		public IFdbReadOnlyTransaction Transaction { get; }
 
 		/// <summary>Type of the elements returned by the query</summary>
 		public virtual Type Type => this.Expression?.Type ?? (this.Transaction != null ? typeof(IFdbReadOnlyTransaction) : typeof(IFdbDatabase));
@@ -111,11 +111,11 @@ namespace FoundationDB.Linq.Providers
 			ct.ThrowIfCancellationRequested();
 
 			var result = await ExecuteInternal(expression, typeof(R), ct).ConfigureAwait(false);
-			return (R)result;
+			return (R) result!;
 		}
 
 		/// <summary>Execute the query and return the result in the expected type</summary>
-		protected virtual Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		protected virtual Task<object?> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			switch(expression.Shape)
 			{
@@ -149,7 +149,7 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Execute the query and return a single element in the expected type</summary>
-		protected virtual async Task<object> ExecuteSingleInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		protected virtual async Task<object?> ExecuteSingleInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			var generator = CompileSingle(expression);
 
@@ -160,7 +160,7 @@ namespace FoundationDB.Linq.Providers
 				if (trans == null)
 				{
 					owned = true;
-					trans = await this.Database.BeginTransactionAsync(ct);
+					trans = await this.Database!.BeginTransactionAsync(ct);
 				}
 
 				T result = await generator(trans, ct).ConfigureAwait(false);
@@ -215,7 +215,7 @@ namespace FoundationDB.Linq.Providers
 			try
 			{
 #warning Fix async begin transaction!
-				trans = sequence.Database.BeginTransactionAsync(ct).GetAwaiter().GetResult(); //HACKHACK: BUGBUG: async!
+				trans = sequence.Database!.BeginTransactionAsync(ct).GetAwaiter().GetResult(); //HACKHACK: BUGBUG: async!
 				var source = generator(trans);
 				Contract.Assert(source != null);
 				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct);
@@ -272,7 +272,7 @@ namespace FoundationDB.Linq.Providers
 		}
 
 		/// <summary>Execute the query and return a list of elements in the expected type</summary>
-		protected virtual async Task<object> ExecuteSequenceInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		protected virtual async Task<object?> ExecuteSequenceInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			var generator = CompileSequence(expression);
 

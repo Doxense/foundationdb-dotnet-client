@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Runtime.Converters
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using JetBrains.Annotations;
 
 	/// <summary>Base class of all value converters</summary>
@@ -55,7 +56,8 @@ namespace Doxense.Runtime.Converters
 		/// <param name="value">Value to convert</param>
 		/// <returns>Converted value</returns>
 		[Pure]
-		TDestination Convert(TSource value);
+		[return: MaybeNull]
+		TDestination Convert([AllowNull] TSource value);
 	}
 
 }

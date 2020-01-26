@@ -152,6 +152,7 @@ namespace Doxense.Linq
 				Contract.Requires(enumerator != null && sorter != null);
 				m_inner = enumerator;
 				m_sorter = sorter;
+				m_current = default!;
 				m_ct = ct;
 			}
 

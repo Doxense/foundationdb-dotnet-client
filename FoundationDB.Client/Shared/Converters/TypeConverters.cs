@@ -122,7 +122,7 @@ namespace Doxense.Runtime.Converters
 
 			public TOutput Convert(TInput value)
 			{
-				return (TOutput) (object) value;
+				return (TOutput) (object) value!;
 			}
 
 			public Type Source => typeof(TInput);
@@ -153,8 +153,8 @@ namespace Doxense.Runtime.Converters
 			//TODO: there is too much generic type combinations! need to refactor this ...
 
 			RegisterUnsafe<bool, Slice>((value) => Slice.FromByte(value ? (byte) 1 : default(byte)));
-			RegisterUnsafe<bool, byte[]>((value) => Slice.FromByte(value ? (byte) 1 : default(byte)).GetBytes());
-			RegisterUnsafe<bool, string>((value) => value ? "true" : "false");
+			RegisterUnsafe<bool, byte[]?>((value) => Slice.FromByte(value ? (byte) 1 : default(byte)).GetBytes());
+			RegisterUnsafe<bool, string?>((value) => value ? "true" : "false");
 			RegisterUnsafe<bool, sbyte>((value) => value ? (sbyte)1 : default(sbyte));
 			RegisterUnsafe<bool, byte>((value) => value ? (byte)1 : default(byte));
 			RegisterUnsafe<bool, short>((value) => value ? (short)1 : default(short));
@@ -168,8 +168,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<bool, decimal>((value) => value ? 1m : default(decimal));
 
 			RegisterUnsafe<int, Slice>(Slice.FromInt32);
-			RegisterUnsafe<int, byte[]>((value) => Slice.FromInt32(value).GetBytes());
-			RegisterUnsafe<int, string>(StringConverters.ToString);
+			RegisterUnsafe<int, byte[]?>((value) => Slice.FromInt32(value).GetBytes());
+			RegisterUnsafe<int, string?>(StringConverters.ToString);
 			RegisterUnsafe<int, bool>((value) => value != 0);
 			RegisterUnsafe<int, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<int, byte>((value) => checked((byte)value));
@@ -183,8 +183,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<int, decimal>((value) => value);
 
 			RegisterUnsafe<uint, Slice>(Slice.FromUInt32);
-			RegisterUnsafe<uint, byte[]>((value) => Slice.FromUInt32(value).GetBytes());
-			RegisterUnsafe<uint, string>(StringConverters.ToString);
+			RegisterUnsafe<uint, byte[]?>((value) => Slice.FromUInt32(value).GetBytes());
+			RegisterUnsafe<uint, string?>(StringConverters.ToString);
 			RegisterUnsafe<uint, bool>((value) => value != 0);
 			RegisterUnsafe<uint, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<uint, byte>((value) => checked((byte)value));
@@ -198,8 +198,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<uint, decimal>((value) => value);
 
 			RegisterUnsafe<long, Slice>(Slice.FromInt64);
-			RegisterUnsafe<long, byte[]>((value) => Slice.FromInt64(value).GetBytes());
-			RegisterUnsafe<long, string>(StringConverters.ToString);
+			RegisterUnsafe<long, byte[]?>((value) => Slice.FromInt64(value).GetBytes());
+			RegisterUnsafe<long, string?>(StringConverters.ToString);
 			RegisterUnsafe<long, bool>((value) => value != 0);
 			RegisterUnsafe<long, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<long, byte>((value) => checked((byte)value));
@@ -216,8 +216,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<long, decimal>((value) => value);
 
 			RegisterUnsafe<ulong, Slice>(Slice.FromUInt64);
-			RegisterUnsafe<ulong, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
-			RegisterUnsafe<ulong, string>(StringConverters.ToString);
+			RegisterUnsafe<ulong, byte[]?>((value) => Slice.FromUInt64(value).GetBytes());
+			RegisterUnsafe<ulong, string?>(StringConverters.ToString);
 			RegisterUnsafe<ulong, bool>((value) => value != 0);
 			RegisterUnsafe<ulong, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<ulong, byte>((value) => checked((byte)value));
@@ -233,8 +233,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<ulong, decimal>((value) => value);
 
 			RegisterUnsafe<short, Slice>(Slice.FromInt16);
-			RegisterUnsafe<short, byte[]>((value) => Slice.FromInt16(value).GetBytes());
-			RegisterUnsafe<short, string>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<short, byte[]?>((value) => Slice.FromInt16(value).GetBytes());
+			RegisterUnsafe<short, string?>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<short, bool>((value) => value != 0);
 			RegisterUnsafe<short, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<short, byte>((value) => checked((byte)value));
@@ -248,8 +248,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<short, decimal>((value) => value);
 
 			RegisterUnsafe<ushort, Slice>(Slice.FromUInt16);
-			RegisterUnsafe<ushort, byte[]>((value) => Slice.FromUInt16(value).GetBytes());
-			RegisterUnsafe<ushort, string>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<ushort, byte[]?>((value) => Slice.FromUInt16(value).GetBytes());
+			RegisterUnsafe<ushort, string?>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<ushort, bool>((value) => value != 0);
 			RegisterUnsafe<ushort, byte>((value) => checked((byte)value));
 			RegisterUnsafe<ushort, sbyte>((value) => checked((sbyte)value));
@@ -263,8 +263,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<ushort, decimal>((value) => value);
 
 			RegisterUnsafe<byte, Slice>(Slice.FromByte);
-			RegisterUnsafe<byte, byte[]>((value) => Slice.FromByte(value).GetBytes());
-			RegisterUnsafe<byte, string>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<byte, byte[]?>((value) => Slice.FromByte(value).GetBytes());
+			RegisterUnsafe<byte, string?>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<byte, bool>((value) => value != 0);
 			RegisterUnsafe<byte, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<byte, short>((value) => value);
@@ -278,8 +278,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<byte, decimal>((value) => value);
 
 			RegisterUnsafe<sbyte, Slice>((value) => Slice.FromInt64(value));
-			RegisterUnsafe<sbyte, byte[]>((value) => Slice.FromInt64(value).GetBytes());
-			RegisterUnsafe<sbyte, string>((value) => value.ToString(CultureInfo.InvariantCulture));	//TODO: string table!
+			RegisterUnsafe<sbyte, byte[]?>((value) => Slice.FromInt64(value).GetBytes());
+			RegisterUnsafe<sbyte, string?>((value) => value.ToString(CultureInfo.InvariantCulture));	//TODO: string table!
 			RegisterUnsafe<sbyte, bool>((value) => value != 0);
 			RegisterUnsafe<sbyte, byte>((value) => checked((byte)value));
 			RegisterUnsafe<sbyte, short>((value) => value);
@@ -293,8 +293,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<sbyte, decimal>((value) => value);
 
 			RegisterUnsafe<float, Slice>(Slice.FromSingle);
-			RegisterUnsafe<float, byte[]>((value) => Slice.FromSingle(value).GetBytes());
-			RegisterUnsafe<float, string>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<float, byte[]?>((value) => Slice.FromSingle(value).GetBytes());
+			RegisterUnsafe<float, string?>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<float, bool>((value) => !(value == 0f || float.IsNaN(value)));
 			RegisterUnsafe<float, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<float, byte>((value) => checked((byte)value));
@@ -308,8 +308,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<float, decimal>((value) => (decimal) value); // possible loss of precision
 
 			RegisterUnsafe<double, Slice>((value) => Slice.FromDouble(value));
-			RegisterUnsafe<double, byte[]>((value) => Slice.FromDouble(value).GetBytes());
-			RegisterUnsafe<double, string>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<double, byte[]?>((value) => Slice.FromDouble(value).GetBytes());
+			RegisterUnsafe<double, string?>((value) => StringConverters.ToString(value));
 			RegisterUnsafe<double, bool>((value) => !(value == 0d || double.IsNaN(value)));
 			RegisterUnsafe<double, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<double, byte>((value) => checked((byte)value));
@@ -323,8 +323,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<double, decimal>((value) => (decimal) value); // possible loss of precision
 
 			RegisterUnsafe<decimal, Slice>((value) => Slice.FromDecimal(value));
-			RegisterUnsafe<decimal, byte[]>((value) => Slice.FromDecimal(value).GetBytes());
-			RegisterUnsafe<decimal, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<decimal, byte[]?>((value) => Slice.FromDecimal(value).GetBytes());
+			RegisterUnsafe<decimal, string?>((value) => value.ToString(CultureInfo.InvariantCulture));
 			RegisterUnsafe<decimal, bool>((value) => value != 0m);
 			RegisterUnsafe<decimal, sbyte>((value) => (sbyte) value);
 			RegisterUnsafe<decimal, byte>((value) => (byte) value);
@@ -337,92 +337,92 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<decimal, double>((value) => (double) value); // possible loss of precision
 			RegisterUnsafe<decimal, float>((value) => (float) value); // possible loss of precision
 
-			RegisterUnsafe<string, Slice>((value) => Slice.FromString(value));
-			RegisterUnsafe<string, byte[]>((value) => Slice.FromString(value).GetBytes()); //REVIEW: string=>byte[] use UTF-8, but byte[]=>string uses Base64 ?
-			RegisterUnsafe<string, bool>((value) => !string.IsNullOrEmpty(value));
-			RegisterUnsafe<string, sbyte>((value) => string.IsNullOrEmpty(value) ? default(sbyte) : sbyte.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, byte>((value) => string.IsNullOrEmpty(value) ? default(byte) : byte.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, short>((value) => string.IsNullOrEmpty(value) ? default(short) : short.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, ushort>((value) => string.IsNullOrEmpty(value) ? default(ushort) : ushort.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, int>((value) => string.IsNullOrEmpty(value) ? default(int) : int.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, uint>((value) => string.IsNullOrEmpty(value) ? default(uint) : uint.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, long>((value) => string.IsNullOrEmpty(value) ? default(long) : long.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, ulong>((value) => string.IsNullOrEmpty(value) ? default(ulong) : ulong.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, float>((value) => string.IsNullOrEmpty(value) ? default(float) : float.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, double>((value) => string.IsNullOrEmpty(value) ? default(double) : double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, decimal>((value) => string.IsNullOrEmpty(value) ? default(decimal) : decimal.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
-			RegisterUnsafe<string, Uuid128>((value) => string.IsNullOrEmpty(value) ? default(Uuid128) : Uuid128.Parse(value));
-			RegisterUnsafe<string, Uuid64>((value) => string.IsNullOrEmpty(value) ? default(Uuid64) : Uuid64.Parse(value));
-			RegisterUnsafe<string, System.Net.IPAddress>((value) => string.IsNullOrEmpty(value) ? default(System.Net.IPAddress) : System.Net.IPAddress.Parse(value));
+			RegisterUnsafe<string?, Slice>((value) => Slice.FromString(value));
+			RegisterUnsafe<string?, byte[]?>((value) => Slice.FromString(value).GetBytes()); //REVIEW: string=>byte[] use UTF-8, but byte[]=>string uses Base64 ?
+			RegisterUnsafe<string?, bool>((value) => !string.IsNullOrEmpty(value));
+			RegisterUnsafe<string?, sbyte>((value) => string.IsNullOrEmpty(value) ? default(sbyte) : sbyte.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, byte>((value) => string.IsNullOrEmpty(value) ? default(byte) : byte.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, short>((value) => string.IsNullOrEmpty(value) ? default(short) : short.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, ushort>((value) => string.IsNullOrEmpty(value) ? default(ushort) : ushort.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, int>((value) => string.IsNullOrEmpty(value) ? default(int) : int.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, uint>((value) => string.IsNullOrEmpty(value) ? default(uint) : uint.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, long>((value) => string.IsNullOrEmpty(value) ? default(long) : long.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, ulong>((value) => string.IsNullOrEmpty(value) ? default(ulong) : ulong.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, float>((value) => string.IsNullOrEmpty(value) ? default(float) : float.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, double>((value) => string.IsNullOrEmpty(value) ? default(double) : double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, decimal>((value) => string.IsNullOrEmpty(value) ? default(decimal) : decimal.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string?, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
+			RegisterUnsafe<string?, Uuid128>((value) => string.IsNullOrEmpty(value) ? default(Uuid128) : Uuid128.Parse(value!));
+			RegisterUnsafe<string?, Uuid64>((value) => string.IsNullOrEmpty(value) ? default(Uuid64) : Uuid64.Parse(value!));
+			RegisterUnsafe<string?, System.Net.IPAddress?>((value) => string.IsNullOrEmpty(value) ? default(System.Net.IPAddress) : System.Net.IPAddress.Parse(value));
 
-			RegisterUnsafe<byte[], Slice>((value) => value.AsSlice());
-			RegisterUnsafe<byte[], string>((value) => value == null ? default(string) : value.Length == 0 ? string.Empty : System.Convert.ToBase64String(value)); //REVIEW: string=>byte[] use UTF-8, but byte[]=>string uses Base64 ?
-			RegisterUnsafe<byte[], bool>((value) => value != null && value.Length > 0);
-			RegisterUnsafe<byte[], sbyte>((value) => value?.AsSlice().ToSByte() ?? default(sbyte));
-			RegisterUnsafe<byte[], byte>((value) => value?.AsSlice().ToByte() ?? default(byte));
-			RegisterUnsafe<byte[], short>((value) => value?.AsSlice().ToInt16() ?? default(short));
-			RegisterUnsafe<byte[], ushort>((value) => value?.AsSlice().ToUInt16() ?? default(ushort));
-			RegisterUnsafe<byte[], int>((value) => value?.AsSlice().ToInt32() ?? 0);
-			RegisterUnsafe<byte[], uint>((value) => value?.AsSlice().ToUInt32() ?? 0U);
-			RegisterUnsafe<byte[], long>((value) => value?.AsSlice().ToInt64() ?? 0L);
-			RegisterUnsafe<byte[], ulong>((value) => value?.AsSlice().ToUInt64() ?? 0UL);
-			RegisterUnsafe<byte[], float>((value) => value?.AsSlice().ToSingle() ?? 0f);
-			RegisterUnsafe<byte[], double>((value) => value?.AsSlice().ToDouble() ?? 0d);
-			RegisterUnsafe<byte[], decimal>((value) => value?.AsSlice().ToDecimal() ?? 0m);
-			RegisterUnsafe<byte[], Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid128(value).ToGuid());
-			RegisterUnsafe<byte[], Uuid128>((value) => value == null || value.Length == 0 ? default(Uuid128) : new Uuid128(value));
-			RegisterUnsafe<byte[], Uuid64>((value) => value != null ? Uuid64.Read(value) : default(Uuid64));
-			RegisterUnsafe<byte[], TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(value.AsSlice().ToInt64()));
-			RegisterUnsafe<byte[], System.Net.IPAddress>((value) => value == null || value.Length == 0 ? default(System.Net.IPAddress) : new System.Net.IPAddress(value));
+			RegisterUnsafe<byte[]?, Slice>((value) => value.AsSlice());
+			RegisterUnsafe<byte[]?, string?>((value) => value == null ? default(string) : value.Length == 0 ? string.Empty : System.Convert.ToBase64String(value)); //REVIEW: string=>byte[] use UTF-8, but byte[]=>string uses Base64 ?
+			RegisterUnsafe<byte[]?, bool>((value) => value != null && value.Length > 0);
+			RegisterUnsafe<byte[]?, sbyte>((value) => value?.AsSlice().ToSByte() ?? default(sbyte));
+			RegisterUnsafe<byte[]?, byte>((value) => value?.AsSlice().ToByte() ?? default(byte));
+			RegisterUnsafe<byte[]?, short>((value) => value?.AsSlice().ToInt16() ?? default(short));
+			RegisterUnsafe<byte[]?, ushort>((value) => value?.AsSlice().ToUInt16() ?? default(ushort));
+			RegisterUnsafe<byte[]?, int>((value) => value?.AsSlice().ToInt32() ?? 0);
+			RegisterUnsafe<byte[]?, uint>((value) => value?.AsSlice().ToUInt32() ?? 0U);
+			RegisterUnsafe<byte[]?, long>((value) => value?.AsSlice().ToInt64() ?? 0L);
+			RegisterUnsafe<byte[]?, ulong>((value) => value?.AsSlice().ToUInt64() ?? 0UL);
+			RegisterUnsafe<byte[]?, float>((value) => value?.AsSlice().ToSingle() ?? 0f);
+			RegisterUnsafe<byte[]?, double>((value) => value?.AsSlice().ToDouble() ?? 0d);
+			RegisterUnsafe<byte[]?, decimal>((value) => value?.AsSlice().ToDecimal() ?? 0m);
+			RegisterUnsafe<byte[]?, Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid128(value).ToGuid());
+			RegisterUnsafe<byte[]?, Uuid128>((value) => value == null || value.Length == 0 ? default(Uuid128) : new Uuid128(value));
+			RegisterUnsafe<byte[]?, Uuid64>((value) => value != null ? Uuid64.Read(value) : default(Uuid64));
+			RegisterUnsafe<byte[]?, TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(value.AsSlice().ToInt64()));
+			RegisterUnsafe<byte[]?, System.Net.IPAddress?>((value) => value == null || value.Length == 0 ? default(System.Net.IPAddress) : new System.Net.IPAddress(value));
 
 			RegisterUnsafe<Guid, Slice>((value) => Slice.FromGuid(value));
-			RegisterUnsafe<Guid, byte[]>((value) => Slice.FromGuid(value).GetBytes());
-			RegisterUnsafe<Guid, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Guid, byte[]?>((value) => Slice.FromGuid(value).GetBytes());
+			RegisterUnsafe<Guid, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Guid, Uuid128>((value) => new Uuid128(value));
 			RegisterUnsafe<Guid, bool>((value) => value != Guid.Empty);
-			RegisterUnsafe<Guid, System.Net.IPAddress>((value) => new System.Net.IPAddress(new Uuid128(value).ToByteArray())); //REVIEW: custom converter for Guid=>IPv6?
+			RegisterUnsafe<Guid, System.Net.IPAddress?>((value) => new System.Net.IPAddress(new Uuid128(value).ToByteArray())); //REVIEW: custom converter for Guid=>IPv6?
 
 			RegisterUnsafe<Uuid128, Slice>((value) => value.ToSlice());
-			RegisterUnsafe<Uuid128, byte[]>((value) => value.ToByteArray());
-			RegisterUnsafe<Uuid128, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid128, byte[]?>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid128, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid128, Guid>((value) => value.ToGuid());
 			RegisterUnsafe<Uuid128, bool>((value) => value != Uuid128.Empty);
 			RegisterUnsafe<Uuid128, System.Net.IPAddress>((value) => new System.Net.IPAddress(value.ToByteArray())); //REVIEW: custom converter for Guid=>IPv6?
 
 			RegisterUnsafe<Uuid96, Slice>((value) => value.ToSlice());
-			RegisterUnsafe<Uuid96, byte[]>((value) => value.ToByteArray());
-			RegisterUnsafe<Uuid96, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid96, byte[]?>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid96, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid96, bool>((value) => value != Uuid96.Empty);
 
 			RegisterUnsafe<Uuid80, Slice>((value) => value.ToSlice());
-			RegisterUnsafe<Uuid80, byte[]>((value) => value.ToByteArray());
-			RegisterUnsafe<Uuid80, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid80, byte[]?>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid80, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid80, bool>((value) => value != Uuid80.Empty);
 
 			RegisterUnsafe<Uuid64, Slice>((value) => value.ToSlice());
-			RegisterUnsafe<Uuid64, byte[]>((value) => value.ToByteArray());
-			RegisterUnsafe<Uuid64, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid64, byte[]?>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid64, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid64, long>((value) => value.ToInt64());
 			RegisterUnsafe<Uuid64, ulong>((value) => value.ToUInt64());
 			RegisterUnsafe<Uuid64, bool>((value) => value.ToInt64() != 0L);
 
 			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
-			RegisterUnsafe<TimeSpan, byte[]>((value) => Slice.FromInt64(value.Ticks).GetBytes());
+			RegisterUnsafe<TimeSpan, byte[]?>((value) => Slice.FromInt64(value.Ticks).GetBytes());
 			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
 			RegisterUnsafe<TimeSpan, ulong>((value) => checked((ulong)value.Ticks));
 			RegisterUnsafe<TimeSpan, double>((value) => value.TotalSeconds);
 			RegisterUnsafe<TimeSpan, bool>((value) => value == TimeSpan.Zero);
 
-			RegisterUnsafe<System.Net.IPAddress, Slice>((value) => (value?.GetAddressBytes()).AsSlice());
-			RegisterUnsafe<System.Net.IPAddress, byte[]>((value) => value?.GetAddressBytes());
-			RegisterUnsafe<System.Net.IPAddress, string>((value) => value?.ToString());
+			RegisterUnsafe<System.Net.IPAddress?, Slice>((value) => (value?.GetAddressBytes()).AsSlice());
+			RegisterUnsafe<System.Net.IPAddress?, byte[]?>((value) => value?.GetAddressBytes());
+			RegisterUnsafe<System.Net.IPAddress?, string?>((value) => value?.ToString());
 #pragma warning disable 618
-			RegisterUnsafe<System.Net.IPAddress, int>((value) => (int) (value?.Address ?? 0));
+			RegisterUnsafe<System.Net.IPAddress?, int>((value) => (int) (value?.Address ?? 0));
 #pragma warning restore 618
 
-			RegisterUnsafe<Slice, byte[]>((value) => value.GetBytes());
-			RegisterUnsafe<Slice, string>((value) => value.ToUnicode());
+			RegisterUnsafe<Slice, byte[]?>((value) => value.GetBytes());
+			RegisterUnsafe<Slice, string?>((value) => value.ToUnicode());
 			RegisterUnsafe<Slice, bool>((value) => value.ToBool());
 			RegisterUnsafe<Slice, sbyte>((value) => value.ToSByte());
 			RegisterUnsafe<Slice, byte>((value) => value.ToByte());
@@ -441,7 +441,7 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<Slice, Uuid80>((value) => value.ToUuid80());
 			RegisterUnsafe<Slice, Uuid64>((value) => value.ToUuid64());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
-			RegisterUnsafe<Slice, System.Net.IPAddress>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.GetBytesOrEmpty()) : null);
+			RegisterUnsafe<Slice, System.Net.IPAddress?>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.GetBytesOrEmpty()) : null);
 		}
 
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
@@ -546,7 +546,8 @@ namespace Doxense.Runtime.Converters
 		/// <returns>Converted value</returns>
 		[Pure, ContractAnnotation("null=>null")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TOutput Convert<TInput, TOutput>(TInput value)
+		[return: MaybeNull]
+		public static TOutput Convert<TInput, TOutput>([AllowNull] TInput value)
 		{
 #if !DEBUG
 			//note: we expect that, in a lot of calls, TInput == TOutput so expect the JIT to optimize this away completely (only in Release builds)

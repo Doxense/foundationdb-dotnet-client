@@ -52,7 +52,7 @@ namespace Doxense.Async
 
 		/// <summary>Queue that holds items produced but not yet consumed</summary>
 		/// <remarks>The queue can sometime go over the limit because the Complete/Error message are added without locking</remarks>
-		protected LinkedList<Task<T>> m_queue = new LinkedList<Task<T>>();
+		protected LinkedList<Task<T>?> m_queue = new LinkedList<Task<T>?>();
 
 		/// <summary>Only used in mode CompletionOrder</summary>
 		private AsyncCancelableMutex m_completionLock = AsyncCancelableMutex.AlreadyDone;
@@ -149,7 +149,7 @@ namespace Doxense.Async
 				{
 					LogProducer("Completion received");
 					m_done = true;
-					m_queue.AddLast(new LinkedListNode<Task<T>>(null));
+					m_queue.AddLast(new LinkedListNode<Task<T>?>(null));
 					WakeUpBlockedConsumer_NeedsLocking();
 					if (m_mode == AsyncOrderingMode.CompletionOrder) NotifyConsumerOfTaskCompletion_NeedsLocking();
 				}
@@ -163,7 +163,7 @@ namespace Doxense.Async
 				if (!m_done)
 				{
 					LogProducer("Error received: " + error.SourceException.Message);
-					m_queue.AddLast(new LinkedListNode<Task<T>>(Task.FromException<T>(error.SourceException)));
+					m_queue.AddLast(new LinkedListNode<Task<T>?>(Task.FromException<T>(error.SourceException)));
 					WakeUpBlockedConsumer_NeedsLocking();
 					if (m_mode == AsyncOrderingMode.CompletionOrder) NotifyConsumerOfTaskCompletion_NeedsLocking();
 				}
@@ -172,7 +172,7 @@ namespace Doxense.Async
 
 		private void Enqueue_NeedsLocking(Task<T> task)
 		{
-			m_queue.AddLast(new LinkedListNode<Task<T>>(task));
+			m_queue.AddLast(new LinkedListNode<Task<T>?>(task));
 			WakeUpBlockedConsumer_NeedsLocking();
 		}
 
@@ -231,7 +231,7 @@ namespace Doxense.Async
 						{ // it's ready
 
 							queue.RemoveFirst();
-							LogConsumer("First task #" + current.Value.Id + " was already " + current.Value.Status);
+							if (current.Value != null) LogConsumer("First task #" + current.Value.Id + " was already " + current.Value.Status);
 							return CompleteTask(current.Value);
 						}
 
@@ -280,7 +280,7 @@ namespace Doxense.Async
 			return WaitForCompletionOrNextItemAsync(wait, ct);
 		}
 
-		private Task<Maybe<T>> CompleteTask(Task<T> task)
+		private Task<Maybe<T>> CompleteTask(Task<T>? task)
 		{
 			var item = task == null ? Maybe.Nothing<T>() : Maybe.FromTask(task);
 			WakeUpBlockedProducer_NeedsLocking();

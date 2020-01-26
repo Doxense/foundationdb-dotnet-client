@@ -156,7 +156,7 @@ namespace Doxense.Async
 
 			LogConsumer("Looking for next value...");
 
-			Task wait = null;
+			Task? wait = null;
 			Maybe<TInput> item;
 			lock (m_lock)
 			{

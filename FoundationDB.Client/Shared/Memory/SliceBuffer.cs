@@ -71,7 +71,7 @@ namespace Doxense.Memory
 		/// <param name="pageSize">Initial page size</param>
 		public SliceBuffer(int pageSize)
 		{
-			if (pageSize < 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size cannt be less than zero");
+			if (pageSize < 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size cannot be less than zero");
 			m_pageSize = pageSize == 0 ? DefaultPageSize : BitHelpers.AlignPowerOfTwo(pageSize, 16);
 		}
 
@@ -90,7 +90,7 @@ namespace Doxense.Memory
 		{
 			var pages = new Slice[this.PageCount];
 			m_chunks?.CopyTo(pages);
-			pages[pages.Length - 1] = new Slice(m_current, 0, m_pos);
+			pages[pages.Length - 1] = m_current.AsSlice(0, m_pos);
 			return pages;
 		}
 
@@ -236,7 +236,7 @@ namespace Doxense.Memory
 		/// <remarks>Any data added to the buffer WHILE the buffer is pinned MAY NOT be pinned itself! For safety, caller should make sure to write everything to the buffer before pinning it</remarks>
 		public Slice.Pinned Pin()
 		{
-			return new Slice.Pinned(this, m_current, m_chunks);
+			return new Slice.Pinned(this, m_current!, m_chunks);
 		}
 
 	}

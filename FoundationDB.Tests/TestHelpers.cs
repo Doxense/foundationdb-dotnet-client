@@ -182,7 +182,7 @@ namespace FoundationDB.Client.Tests
 					try
 					{
 						// attempts decoding it as a tuple
-						keyDump = TuPack.Unpack(key).ToString();
+						keyDump = TuPack.Unpack(key).ToString()!;
 					}
 					catch (Exception)
 					{
@@ -199,7 +199,7 @@ namespace FoundationDB.Client.Tests
 				FdbTest.Log("> Found " + count + " values");
 		}
 
-		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string? message = null, object?[]? args = null)
+		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
 		{
 			try
 			{

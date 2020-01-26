@@ -33,7 +33,6 @@ namespace Doxense.Linq
 	using System;
 	using System.Collections.Generic;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	public static partial class AsyncEnumerable
 	{
@@ -111,7 +110,7 @@ namespace Doxense.Linq
 			private readonly bool m_descending;
 
 			private readonly SequenceSorter<TSource>? m_next;
-			private TSource[] m_items;
+			private TSource[]? m_items;
 
 			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
@@ -130,6 +129,7 @@ namespace Doxense.Linq
 			internal override int CompareKeys(int index1, int index2)
 			{
 				var items = m_items;
+				if (items == null) throw new InvalidOperationException("ComputeKeys must be called first");
 				int c = m_comparer.Compare(items[index1], items[index2]);
 				if (c == 0)
 				{
@@ -151,7 +151,7 @@ namespace Doxense.Linq
 			private readonly bool m_descending;
 
 			private readonly SequenceSorter<TSource>? m_next;
-			private TKey[] m_keys;
+			private TKey[]? m_keys;
 
 			public SequenceByKeySorter(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
@@ -177,9 +177,9 @@ namespace Doxense.Linq
 
 			internal override int CompareKeys(int index1, int index2)
 			{
-				Contract.Requires(m_keys != null);
-				Contract.Requires(m_comparer != null);
 				var keys = m_keys;
+				if (keys == null) throw new InvalidOperationException("ComputeKeys must be called first");
+
 				int c = m_comparer.Compare(keys[index1], keys[index2]);
 				if (c == 0)
 				{

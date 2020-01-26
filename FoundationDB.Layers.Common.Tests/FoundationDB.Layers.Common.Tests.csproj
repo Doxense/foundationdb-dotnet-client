@@ -5,7 +5,6 @@
     <RootNamespace>FoundationDB.Tests</RootNamespace>
     <AssemblyName>FoundationDB.Layers.Common.Tests</AssemblyName>
     <LangVersion>8.0</LangVersion>
-    <Nullable>enable</Nullable>
     <ProjectGuid>{3EFE133B-F38A-44A2-B4B8-98EFF4425383}</ProjectGuid>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>

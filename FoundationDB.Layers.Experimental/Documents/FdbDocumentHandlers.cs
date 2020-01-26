@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Documents
 			where TDictionary : IDictionary<string, object>, new()
 		{
 
-			public DictionaryHandler(string idName = null, IEqualityComparer<string> comparer = null)
+			public DictionaryHandler(string? idName = null, IEqualityComparer<string>? comparer = null)
 			{
 				m_keyComparer = comparer ?? EqualityComparer<string>.Default;
 				this.IdName = idName ?? "id";
@@ -115,7 +115,7 @@ namespace FoundationDB.Layers.Documents
 				foreach(var part in parts)
 				{
 					list.Add(new KeyValuePair<string, IVarTuple>(
-						part.Key.Last<string>(),
+						part.Key.Last<string>()!,
 						TuPack.Unpack(part.Value)
 					));
 				}
@@ -151,10 +151,10 @@ namespace FoundationDB.Layers.Documents
 			public TDictionary Unpack(List<KeyValuePair<string, IVarTuple>> packed, TId id)
 			{
 				var dic = new TDictionary();
-				dic.Add(this.IdName, id);
+				dic.Add(this.IdName, id!);
 				foreach(var kvp in packed)
 				{
-					dic.Add(kvp.Key, kvp.Value[0]);
+					dic.Add(kvp.Key, kvp.Value[0]!);
 				}
 				return dic;
 			}

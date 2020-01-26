@@ -62,6 +62,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			output = writer.Output;
 		}
 
+		[return: MaybeNull]
 		public override T DecodeOrdered(Slice input)
 		{
 			return TuPack.DecodeKey<T>(input);

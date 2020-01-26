@@ -84,7 +84,7 @@ namespace Doxense.Collections.Tuples
 			{
 				for (int i = 0; i < items.Length; i++)
 				{
-					items[i] = tuple.Get<T>(i);
+					items[i] = tuple.Get<T>(i)!;
 				}
 			}
 			return items;
@@ -93,6 +93,7 @@ namespace Doxense.Collections.Tuples
 #if USE_RANGE_API
 
 		[Pure]
+		[return:MaybeNull]
 		public static T Get<T>(this IVarTuple tuple, Index index)
 		{
 			return tuple.Get<T>(index.GetOffset(tuple.Count));
@@ -104,6 +105,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T">Expected type of the first item</typeparam>
 		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
 		[Pure]
+		[return:MaybeNull]
 		public static T First<T>(this IVarTuple tuple)
 		{
 			return tuple.Get<T>(0);
@@ -114,10 +116,14 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
 		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
 		[Pure]
-		[ContractAnnotation("null => true")]
+		[return:MaybeNull]
 		public static T Last<T>(this IVarTuple tuple)
 		{
+#if USE_RANGE_API
+			return tuple.Get<T>(^1);
+#else
 			return tuple.Get<T>(-1);
+#endif
 		}
 
 		/// <summary>Appends two values at the end of a tuple</summary>
@@ -297,7 +303,7 @@ namespace Doxense.Collections.Tuples
 		public static ValueTuple<T1> As<T1>(this IVarTuple tuple)
 		{
 			tuple.OfSize(1);
-			return new ValueTuple<T1>(tuple.Get<T1>(0));
+			return new ValueTuple<T1>(tuple.Get<T1>(0)!);
 		}
 
 		/// <summary>Returns a typed version of a tuple of size 2</summary>
@@ -397,7 +403,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1>(this IVarTuple tuple, Action<T1> lambda)
 		{
 			OfSize(tuple, 1);
-			lambda(tuple.Get<T1>(0));
+			lambda(tuple.Get<T1>(0)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -407,7 +413,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2>(this IVarTuple tuple, Action<T1, T2> lambda)
 		{
 			OfSize(tuple, 2);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -417,7 +423,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2, T3>(this IVarTuple tuple, Action<T1, T2, T3> lambda)
 		{
 			OfSize(tuple, 3);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -427,7 +433,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2, T3, T4>(this IVarTuple tuple, Action<T1, T2, T3, T4> lambda)
 		{
 			OfSize(tuple, 4);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -437,7 +443,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2, T3, T4, T5>(this IVarTuple tuple, Action<T1, T2, T3, T4, T5> lambda)
 		{
 			OfSize(tuple, 5);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -447,7 +453,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2, T3, T4, T5, T6>(this IVarTuple tuple, Action<T1, T2, T3, T4, T5, T6> lambda)
 		{
 			OfSize(tuple, 6);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!, tuple.Get<T6>(5)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -457,7 +463,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2, T3, T4, T5, T6, T7>(this IVarTuple tuple, Action<T1, T2, T3, T4, T5, T6, T7> lambda)
 		{
 			OfSize(tuple, 7);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!, tuple.Get<T6>(5)!, tuple.Get<T7>(6)!);
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
@@ -467,7 +473,7 @@ namespace Doxense.Collections.Tuples
 		public static void With<T1, T2, T3, T4, T5, T6, T7, T8>(this IVarTuple tuple, Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
 		{
 			OfSize(tuple, 8);
-			lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));
+			lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!, tuple.Get<T6>(5)!, tuple.Get<T7>(6)!, tuple.Get<T8>(7)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -477,7 +483,7 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static TResult With<T1, TResult>(this IVarTuple tuple, Func<T1, TResult> lambda)
 		{
-			return lambda(tuple.OfSize(1).Get<T1>(0));
+			return lambda(tuple.OfSize(1).Get<T1>(0)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -488,7 +494,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, TResult>(this IVarTuple tuple, Func<T1, T2, TResult> lambda)
 		{
 			OfSize(tuple, 2);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -499,7 +505,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, T3, TResult>(this IVarTuple tuple, Func<T1, T2, T3, TResult> lambda)
 		{
 			OfSize(tuple, 3);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -510,7 +516,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, T3, T4, TResult>(this IVarTuple tuple, Func<T1, T2, T3, T4, TResult> lambda)
 		{
 			OfSize(tuple, 4);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -521,7 +527,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, T3, T4, T5, TResult>(this IVarTuple tuple, Func<T1, T2, T3, T4, T5, TResult> lambda)
 		{
 			OfSize(tuple, 5);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -532,7 +538,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, T3, T4, T5, T6, TResult>(this IVarTuple tuple, Func<T1, T2, T3, T4, T5, T6, TResult> lambda)
 		{
 			OfSize(tuple, 6);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!, tuple.Get<T6>(5)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -543,7 +549,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, T3, T4, T5, T6, T7, TResult>(this IVarTuple tuple, Func<T1, T2, T3, T4, T5, T6, T7, TResult> lambda)
 		{
 			OfSize(tuple, 7);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!, tuple.Get<T6>(5)!, tuple.Get<T7>(6)!);
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
@@ -554,7 +560,7 @@ namespace Doxense.Collections.Tuples
 		public static TResult With<T1, T2, T3, T4, T5, T6, T7, T8, TResult>(this IVarTuple tuple, Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> lambda)
 		{
 			OfSize(tuple, 8);
-			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));
+			return lambda(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!, tuple.Get<T5>(4)!, tuple.Get<T6>(5)!, tuple.Get<T7>(6)!, tuple.Get<T8>(7)!);
 		}
 
 		#endregion
@@ -562,86 +568,86 @@ namespace Doxense.Collections.Tuples
 		#region Deconstruction
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1>(this IVarTuple value, out T1 item1)
+		public static void Deconstruct<T1>(this IVarTuple value, [MaybeNull] out T1 item1)
 		{
-			item1 = value.OfSize(1).Get<T1>(0);
+			item1 = value.OfSize(1).Get<T1>(0)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2>(this IVarTuple value, out T1 item1, out T2 item2)
+		public static void Deconstruct<T1, T2>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2)
 		{
 			value.OfSize(2);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3)
+		public static void Deconstruct<T1, T2, T3>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3)
 		{
 			value.OfSize(3);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
-			item3 = value.Get<T3>(2);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
+			item3 = value.Get<T3>(2)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
+		public static void Deconstruct<T1, T2, T3, T4>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4)
 		{
 			value.OfSize(4);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
-			item3 = value.Get<T3>(2);
-			item4 = value.Get<T4>(3);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
+			item3 = value.Get<T3>(2)!;
+			item4 = value.Get<T4>(3)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5)
+		public static void Deconstruct<T1, T2, T3, T4, T5>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5)
 		{
 			value.OfSize(5);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
-			item3 = value.Get<T3>(2);
-			item4 = value.Get<T4>(3);
-			item5 = value.Get<T5>(4);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
+			item3 = value.Get<T3>(2)!;
+			item4 = value.Get<T4>(3)!;
+			item5 = value.Get<T5>(4)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6)
 		{
 			value.OfSize(6);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
-			item3 = value.Get<T3>(2);
-			item4 = value.Get<T4>(3);
-			item5 = value.Get<T5>(4);
-			item6 = value.Get<T6>(5);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
+			item3 = value.Get<T3>(2)!;
+			item4 = value.Get<T4>(3)!;
+			item5 = value.Get<T5>(4)!;
+			item6 = value.Get<T6>(5)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6, [MaybeNull] out T7 item7)
 		{
 			value.OfSize(7);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
-			item3 = value.Get<T3>(2);
-			item4 = value.Get<T4>(3);
-			item5 = value.Get<T5>(4);
-			item6 = value.Get<T6>(5);
-			item7 = value.Get<T7>(6);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
+			item3 = value.Get<T3>(2)!;
+			item4 = value.Get<T4>(3)!;
+			item5 = value.Get<T5>(4)!;
+			item6 = value.Get<T6>(5)!;
+			item7 = value.Get<T7>(6)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7, T8>(this IVarTuple value, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5, out T6 item6, out T7 item7, out T8 item8)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7, T8>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6, [MaybeNull] out T7 item7, [MaybeNull] out T8 item8)
 		{
 			value.OfSize(8);
-			item1 = value.Get<T1>(0);
-			item2 = value.Get<T2>(1);
-			item3 = value.Get<T3>(2);
-			item4 = value.Get<T4>(3);
-			item5 = value.Get<T5>(4);
-			item6 = value.Get<T6>(5);
-			item7 = value.Get<T7>(6);
-			item8 = value.Get<T8>(7);
+			item1 = value.Get<T1>(0)!;
+			item2 = value.Get<T2>(1)!;
+			item3 = value.Get<T3>(2)!;
+			item4 = value.Get<T4>(3)!;
+			item5 = value.Get<T5>(4)!;
+			item6 = value.Get<T6>(5)!;
+			item7 = value.Get<T7>(6)!;
+			item8 = value.Get<T8>(7)!;
 		}
 
 		#endregion

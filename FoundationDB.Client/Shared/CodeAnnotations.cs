@@ -268,7 +268,7 @@ namespace JetBrains.Annotations
 			Comment = comment;
 		}
 
-		public string Comment { get; }
+		public string? Comment { get; }
 	}
 
 	/// <summary>
@@ -308,7 +308,7 @@ namespace JetBrains.Annotations
 			Justification = justification;
 		}
 
-		public string Justification { get; }
+		public string? Justification { get; }
 	}
 
 	/// <summary>

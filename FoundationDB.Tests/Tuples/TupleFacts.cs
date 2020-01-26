@@ -529,7 +529,7 @@ namespace Doxense.Collections.Tuples.Tests
 			Assert.That(tn.Get<double>(7), Is.EqualTo(Math.PI));
 			Assert.That(tn.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six", true, Math.PI }));
 			Assert.That(tn.ToString(), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", true, " + Math.PI.ToString("R", CultureInfo.InvariantCulture) + ")"));
-			Assert.That(tn, Is.InstanceOf<ListTuple<object?>>());
+			Assert.That(tn, Is.InstanceOf<ListTuple<object>>());
 
 #if USE_RANGE_API
 			Assert.That(tn[^1], Is.EqualTo(Math.PI));
@@ -1425,7 +1425,7 @@ namespace Doxense.Collections.Tuples.Tests
 
 		#region Splicing...
 
-		private static void VerifyTuple(string message, IVarTuple t, object?[] expected)
+		private static void VerifyTuple(string message, IVarTuple t, object[] expected)
 		{
 			// count
 			if (t.Count != expected.Length)
@@ -1487,7 +1487,7 @@ namespace Doxense.Collections.Tuples.Tests
 			//                            0        1      2     3     4     5
 			//                           -6       -5     -4    -3    -2    -1
 
-			var tuple = new ListTuple<object?>(items);
+			var tuple = new ListTuple<object>(items);
 			Assert.That(tuple.Count, Is.EqualTo(6));
 
 			// get all

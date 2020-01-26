@@ -92,12 +92,12 @@ namespace Doxense.Runtime.Converters
 
 		/// <summary>Cache of all the comparison lambda for a pair of types</summary>
 		/// <remarks>Contains lambda that can compare two objects (of different types) for "similarity"</remarks>
-		private static readonly ConcurrentDictionary<TypePair, Func<object, object, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object, object, bool>>(TypePairComparer.Default);
+		private static readonly ConcurrentDictionary<TypePair, Func<object?, object?, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object?, object?, bool>>(TypePairComparer.Default);
 
 		/// <summary>Tries to convert an object into an equivalent string representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
 		/// <returns>String equivalent of the object</returns>
-		public static string TryAdaptToString(object value)
+		public static string? TryAdaptToString(object? value)
 		{
 			switch (value)
 			{
@@ -148,7 +148,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="type">Type of the object to adapt</param>
 		/// <param name="result">Int64 equivalent of the object</param>
 		/// <returns>True if <paramref name="value"/> is compatible with a decimal. False if the type is not compatible</returns>
-		public static bool TryAdaptToInteger(object value, Type type, out long result)
+		public static bool TryAdaptToInteger(object? value, Type type, out long result)
 		{
 			if (value != null)
 			{
@@ -168,7 +168,7 @@ namespace Doxense.Runtime.Converters
 			return false;
 		}
 
-		private static Func<object, object, bool> CreateTypeComparator(Type t1, Type t2)
+		private static Func<object?, object?, bool> CreateTypeComparator(Type t1, Type t2)
 		{
 			Contract.Requires(t1 != null && t2 != null);
 
@@ -180,18 +180,18 @@ namespace Doxense.Runtime.Converters
 			{
 				switch (Type.GetTypeCode(t1))
 				{
-					case TypeCode.Char: return (x, y) => (char)x == (char)y;
-					case TypeCode.Byte: return (x, y) => (byte)x == (byte)y;
-					case TypeCode.SByte: return (x, y) => (sbyte)x == (sbyte)y;
-					case TypeCode.Int16: return (x, y) => (short)x == (short)y;
-					case TypeCode.UInt16: return (x, y) => (ushort)x == (ushort)y;
-					case TypeCode.Int32: return (x, y) => (int)x == (int)y;
-					case TypeCode.UInt32: return (x, y) => (uint)x == (uint)y;
-					case TypeCode.Int64: return (x, y) => (long)x == (long)y;
-					case TypeCode.UInt64: return (x, y) => (ulong)x == (ulong)y;
-					case TypeCode.Single: return (x, y) => (float)x == (float)y;
-					case TypeCode.Double: return (x, y) => (double)x == (double)y;
-					case TypeCode.String: return (x, y) => (string)x == (string)y;
+					case TypeCode.Char: return (x, y) => x == null ? y == null : y != null && (char) x == (char) y;
+					case TypeCode.Byte: return (x, y) => x == null ? y == null : y != null && (byte) x == (byte) y;
+					case TypeCode.SByte: return (x, y) => x == null ? y == null : y != null && (sbyte) x == (sbyte) y;
+					case TypeCode.Int16: return (x, y) => x == null ? y == null : y != null && (short) x == (short) y;
+					case TypeCode.UInt16: return (x, y) => x == null ? y == null : y != null && (ushort) x == (ushort) y;
+					case TypeCode.Int32: return (x, y) => x == null ? y == null : y != null && (int) x == (int) y;
+					case TypeCode.UInt32: return (x, y) => x == null ? y == null : y != null && (uint) x == (uint) y;
+					case TypeCode.Int64: return (x, y) => x == null ? y == null : y != null && (long) x == (long) y;
+					case TypeCode.UInt64: return (x, y) => x == null ? y == null : y != null && (ulong) x == (ulong) y;
+					case TypeCode.Single: return (x, y) => x == null ? y == null : y != null && (float) x == (float) y;
+					case TypeCode.Double: return (x, y) => x == null ? y == null : y != null && (double) x == (double) y;
+					case TypeCode.String: return (x, y) => x == null ? y == null : y != null && (string) x == (string) y;
 				}
 
 				return (x, y) =>
@@ -235,7 +235,7 @@ namespace Doxense.Runtime.Converters
 			return (x, y) => false;
 		}
 
-		public static Func<object, object, bool> GetTypeComparator(Type t1, Type t2)
+		public static Func<object?, object?, bool> GetTypeComparator(Type t1, Type t2)
 		{
 			var pair = new TypePair(t1, t2);
 			if (!EqualityComparers.TryGetValue(pair, out var comparator))

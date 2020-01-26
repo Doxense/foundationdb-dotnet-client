@@ -54,16 +54,19 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the triplet</summary>
+		[AllowNull]
 		public readonly T1 Item1;
 
 		/// <summary>Second element of the triplet</summary>
+		[AllowNull]
 		public readonly T2 Item2;
 
 		/// <summary>Third and last element of the triplet</summary>
+		[AllowNull]
 		public readonly T3 Item3;
 
 		[DebuggerStepThrough]
-		public STuple(T1 item1, T2 item2, T3 item3)
+		public STuple([AllowNull]T1 item1, [AllowNull]T2 item2, [AllowNull]T3 item3)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -134,6 +137,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
+		[return: MaybeNull]
 		public TItem Get<TItem>(int index)
 		{
 			switch(index)

@@ -340,14 +340,11 @@ namespace Doxense.Serialization.Encoders
 			Contract.NotNull(elements, nameof(elements));
 			Contract.NotNull(selector, nameof(selector));
 
-			TElement[] arr;
-			ICollection<TElement> coll;
-
-			if ((arr = elements as TElement[]) != null)
+			if (elements is TElement[] arr)
 			{ // fast path for arrays
 				return EncodeKeys<TKey, TElement>(encoder, arr, selector);
 			}
-			if ((coll = elements as ICollection<TElement>) != null)
+			if (elements is ICollection<TElement> coll)
 			{ // we can pre-allocate the result array
 				var slices = new Slice[coll.Count];
 				int p = 0;

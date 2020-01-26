@@ -49,7 +49,7 @@ namespace FoundationDB.Linq.Providers
 		public FdbIndex<TId, TValue> Index { get; private set; }
 
 		/// <summary>Execute the query and return the result in the expected type</summary>
-		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		protected override Task<object?> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			throw new InvalidOperationException("You cannot execute this operation on the whole index. Try calling Lookup() on this query to lookup specific values from the index.");
 		}

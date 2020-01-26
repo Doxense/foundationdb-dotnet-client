@@ -315,7 +315,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Outputs a debug version of a compressed segment</summary>
-		public static StringBuilder DumpCompressed(Slice compressed, StringBuilder output = null)
+		public static StringBuilder DumpCompressed(Slice compressed, StringBuilder? output = null)
 		{
 			if (output == null) output = new StringBuilder();
 

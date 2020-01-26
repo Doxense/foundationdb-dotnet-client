@@ -274,7 +274,7 @@ namespace FoundationDB.Client
 			var segments = new List<string>();
 			var sb = new StringBuilder();
 			bool escaped = false;
-			foreach (var c in path)
+			foreach (var c in path!)
 			{
 				if (escaped)
 				{

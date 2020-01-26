@@ -1472,8 +1472,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path.GetParent(), Is.EqualTo(FdbDirectoryPath.Empty), "[Foo].Name");
 
 				Assert.That(path, Is.EqualTo(path), "[Foo].Equals([Foo])");
+#pragma warning disable CS1718 // Comparison made to same variable
+				// ReSharper disable EqualExpressionComparison
 				Assert.That(path == path, Is.True, "[Foo] == [Foo]");
 				Assert.That(path != path, Is.False, "[Foo] != [Foo]");
+				// ReSharper restore EqualExpressionComparison
+#pragma warning restore CS1718 // Comparison made to same variable
 
 				Assert.That(path, Is.EqualTo(FdbDirectoryPath.Combine("Foo")), "[Foo].Equals([Foo]')");
 				Assert.That(path, Is.EqualTo(FdbDirectoryPath.Combine("Foo", "Bar").GetParent()), "[Foo].Equals([Foo/Bar].GetParent())");

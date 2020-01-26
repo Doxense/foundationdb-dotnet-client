@@ -32,6 +32,7 @@ namespace Doxense.Collections.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
@@ -110,11 +111,13 @@ namespace Doxense.Collections.Tuples
 			return obj;
 		}
 
+		[return: MaybeNull]
 		public T Get<T>(int index)
 		{
 			return TypeConverters.ConvertBoxed<T>(this[index]);
 		}
 
+		[return: MaybeNull]
 		public T Last<T>()
 		{
 			int n = m_items.Length;
@@ -124,7 +127,7 @@ namespace Doxense.Collections.Tuples
 
 		IVarTuple IVarTuple.Append<T>(T value)
 		{
-			return this.Append<T>(value);
+			return Append<T>(value);
 		}
 
 		public LinkedTuple<T> Append<T>(T value)
@@ -137,7 +140,7 @@ namespace Doxense.Collections.Tuples
 			return STuple.Concat(this, tuple);
 		}
 
-		public void CopyTo(object[] array, int offset)
+		public void CopyTo(object?[] array, int offset)
 		{
 			Array.Copy(m_items, 0, array, offset, m_items.Length);
 		}
@@ -159,17 +162,16 @@ namespace Doxense.Collections.Tuples
 
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as IVarTuple);
+			return obj is IVarTuple vt && Equals(vt);
 		}
 
-		public bool Equals(IVarTuple other)
+		public bool Equals(IVarTuple? other)
 		{
-			if (object.ReferenceEquals(other, null)) return false;
+			if (other == null) return false;
 
-			var memoized = other as MemoizedTuple;
-			if (!object.ReferenceEquals(memoized, null))
+			if (other is MemoizedTuple mt)
 			{
-				return m_packed.Equals(memoized.m_packed);
+				return m_packed.Equals(mt.m_packed);
 			}
 
 			return TupleHelpers.Equals(this, other, SimilarValueComparer.Default);

@@ -113,7 +113,7 @@ namespace Doxense.Linq.Async.Expressions
 				else
 				{ // next one is async
 					var g = right.m_asyncFilter;
-					return new AsyncFilterExpression<TSource>((x, ct) => f(x) ? g(x, ct) : TaskHelpers.False);
+					return new AsyncFilterExpression<TSource>((x, ct) => f(x) ? g!(x, ct) : TaskHelpers.False);
 				}
 			}
 			else
@@ -123,14 +123,12 @@ namespace Doxense.Linq.Async.Expressions
 				if (right.m_asyncFilter != null)
 				{ // so is the next one
 					var g = right.m_asyncFilter;
-					Contract.Assert(g != null);
-					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && (await g(x, ct).ConfigureAwait(false)));
+					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && (await g!(x, ct).ConfigureAwait(false)));
 				}
 				else
 				{
 					var g = right.m_filter;
-					Contract.Assert(g != null);
-					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && g(x));
+					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && g!(x));
 				}
 			}
 		}

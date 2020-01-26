@@ -79,12 +79,10 @@ namespace FoundationDB.Layers.Messaging
 		/// <summary>Number of messages scheduled by this pool</summary>
 		private long m_schedulingMessages;
 		private long m_schedulingAttempts;
-		private long m_schedulingTotalTime;
 
 		/// <summary>Number of task received by a worker of this pool</summary>
 		private long m_workerTasksReceived;
 		private long m_workerTasksCompleted;
-		private long m_workerIdleTime;
 		private long m_workerBusyTime;
 
 		/// <summary>Number of local workers active on this pool</summary>
@@ -93,16 +91,17 @@ namespace FoundationDB.Layers.Messaging
 		/// <summary>Number of local workers currently waiting for work</summary>
 		private int m_idleWorkers;
 
-		public long MessageScheduled { get { return Volatile.Read(ref m_schedulingMessages); } }
+		public long MessageScheduled => Volatile.Read(ref m_schedulingMessages);
 
-		public long MessageReceived { get { return Volatile.Read(ref m_workerTasksReceived); } }
+		public long MessageReceived => Volatile.Read(ref m_workerTasksReceived);
 
-		public int ActiveWorkers { get { return m_workers; } }
+		public int ActiveWorkers => m_workers;
 
-		public int IdleWorkers { get { return m_idleWorkers; } }
+		public int IdleWorkers => m_idleWorkers;
 
-		public TimeSpan WorkerBusyTime { get { return TimeSpan.FromTicks(m_workerBusyTime); } }
-		public TimeSpan WorkerAverageBusyDuration { get { return m_workerTasksReceived == 0 ? TimeSpan.Zero : TimeSpan.FromTicks(m_workerBusyTime / m_workerTasksReceived); } }
+		public TimeSpan WorkerBusyTime => TimeSpan.FromTicks(m_workerBusyTime);
+
+		public TimeSpan WorkerAverageBusyDuration => m_workerTasksReceived == 0 ? TimeSpan.Zero : TimeSpan.FromTicks(m_workerBusyTime / m_workerTasksReceived);
 
 		#endregion
 
@@ -253,8 +252,8 @@ namespace FoundationDB.Layers.Messaging
 
 			var workerId = Slice.Nil;
 			var previousTaskId = Slice.Nil;
-			FdbWatch watch = null;
-			FdbWorkerMessage msg = null;
+			FdbWatch? watch = null;
+			FdbWorkerMessage? msg = null;
 
 			Interlocked.Increment(ref m_workers);
 			try
@@ -359,12 +358,12 @@ namespace FoundationDB.Layers.Messaging
 						ct: ct
 					).ConfigureAwait(false);
 
-					if (msg.Id.IsNullOrEmpty)
+					if (msg!.Id.IsNullOrEmpty)
 					{ // wait for someone to wake us up...
 						Interlocked.Increment(ref m_idleWorkers);
 						try
 						{
-							await watch.Task;
+							await watch!.Task;
 							//Console.WriteLine("Worker #" + num + " woken up!");
 						}
 						finally
