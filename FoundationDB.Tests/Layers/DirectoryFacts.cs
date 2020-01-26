@@ -1386,7 +1386,7 @@ namespace FoundationDB.Client.Tests
 				var fooCached = await logged.ReadAsync(async tr =>
 				{
 					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
-					Assert.That(folder.Context, Is.InstanceOf<FdbDirectoryLayer.Metadata>());
+					Assert.That(folder.Context, Is.InstanceOf<FdbDirectoryLayer.State>());
 					return folder;
 				}, this.Cancellation);
 

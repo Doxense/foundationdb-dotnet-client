@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 	/// </summary>
 	[DebuggerDisplay("Content={Content}")]
 	[PublicAPI]
-	public class FdbDirectoryLayer : IFdbDirectory
+	public class FdbDirectoryLayer : IFdbDirectory, IFdbLayer<FdbDirectoryLayer.State>
 	{
 		private const int SUBDIRS = 0;
 
@@ -472,17 +472,17 @@ namespace FoundationDB.Client
 
 		}
 
-		public ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
+		public ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			//note: we use the directory layer itself has the "token" key for the local data cache
-			if (tr.Context.TryGetLocalData(this, out Metadata? metadata))
+			if (tr.Context.TryGetLocalData(this, out State? metadata))
 			{
-				return new ValueTask<Metadata>(metadata);
+				return new ValueTask<State>(metadata);
 			}
 			return ResolveMetadata(tr);
 		}
 
-		private async ValueTask<Metadata> ResolveMetadata(IFdbReadOnlyTransaction tr)
+		private async ValueTask<State> ResolveMetadata(IFdbReadOnlyTransaction tr)
 		{
 			var rv = await tr.GetReadVersionAsync();
 			var content = await this.Content.Resolve(tr);
@@ -490,13 +490,13 @@ namespace FoundationDB.Client
 
 			var partition = new PartitionDescriptor(this.Path, content, null);
 
-			var metadata = new Metadata(this, partition, this.AllocatorRng, rv);
+			var metadata = new State(this, partition, this.AllocatorRng, rv);
 			//TODO: locking?
 
 			return tr.Context.GetOrCreateLocalData(this, metadata);
 		}
 
-		public sealed class Metadata : ISubspaceContext
+		public sealed class State : ISubspaceContext
 		{
 
 			// We start at the state "neutral", and can either transition to "mutable" or "cached" state, but once there, the transaction is "locked" in only these types of operations
@@ -506,19 +506,20 @@ namespace FoundationDB.Client
 			// - "Cached" operations can only be performed in the cached or neutral state (and end up in the cached state)
 
 			/// <summary>This transaction hasn't yet used a method that could mutate the tree</summary>
-			internal const int STATE_NEUTRAL = 0;
+			internal const int STATUS_NEUTRAL = 0;
 
 			/// <summary>This transaction has called an API that mutated the tree</summary>
-			internal const int STATE_MUTATED = 1;
+			internal const int STATUS_MUTATED = 1;
 
 			/// <summary>This transaction has called an API that used a cached tree </summary>
-			internal const int STATE_CACHED = 2;
+			internal const int STATUS_CACHED = 2;
 
-			internal const int STATE_DEAD = 3;
+			/// <summary>This transaction has been disposed</summary>
+			internal const int STATUS_DEAD = 3;
 
 			/// <summary>Current "state" of the transaction in regard to the Directory Layer</summary>
 			/// <remarks>Once a transaction has called an API that mutates or use the cache, other kinds of operations are disallowed!</remarks>
-			internal int State;
+			internal int Status;
 
 			public FdbDirectoryLayer Layer { get; }
 
@@ -528,7 +529,7 @@ namespace FoundationDB.Client
 
 			public long ReadVersion { get; }
 
-			internal Metadata(FdbDirectoryLayer layer, PartitionDescriptor partition, Random rng, long readVersion)
+			internal State(FdbDirectoryLayer layer, PartitionDescriptor partition, Random rng, long readVersion)
 			{
 				this.Layer = layer;
 				this.Partition = partition;
@@ -1129,16 +1130,16 @@ namespace FoundationDB.Client
 			{
 				while (true)
 				{
-					var state = Volatile.Read(ref this.State);
+					var state = Volatile.Read(ref this.Status);
 					switch (state)
 					{
-						case STATE_CACHED:
+						case STATUS_CACHED:
 						{
 							return true;
 						}
-						case STATE_NEUTRAL:
+						case STATUS_NEUTRAL:
 						{ // first mutation?
-							if (Interlocked.CompareExchange(ref this.State, STATE_MUTATED, STATE_NEUTRAL) != STATE_NEUTRAL)
+							if (Interlocked.CompareExchange(ref this.Status, STATUS_MUTATED, STATUS_NEUTRAL) != STATUS_NEUTRAL)
 							{ // another thread is racing with us! try again
 								continue;
 							}
@@ -1146,7 +1147,7 @@ namespace FoundationDB.Client
 							// yes, update the global metadata version!
 							return true;
 						}
-						case STATE_MUTATED:
+						case STATUS_MUTATED:
 						{ // already mutated
 							return false;
 						}
@@ -1161,17 +1162,17 @@ namespace FoundationDB.Client
 			{
 				while (true)
 				{
-					var state = Volatile.Read(ref this.State);
+					var state = Volatile.Read(ref this.Status);
 					switch (state)
 					{
-						case STATE_MUTATED:
+						case STATUS_MUTATED:
 						{
 							//throw new InvalidOperationException("Cannot perform a cache operation on the Directory Layer inside a transaction that has already mutated the tree.");
 							return false;
 						}
-						case STATE_NEUTRAL:
+						case STATUS_NEUTRAL:
 						{ // first cache?
-							if (Interlocked.CompareExchange(ref this.State, STATE_CACHED, STATE_NEUTRAL) != STATE_NEUTRAL)
+							if (Interlocked.CompareExchange(ref this.Status, STATUS_CACHED, STATUS_NEUTRAL) != STATUS_NEUTRAL)
 							{ // another thread is racing with us! try again
 								continue;
 							}
@@ -1182,7 +1183,7 @@ namespace FoundationDB.Client
 							}
 							return true;
 						}
-						case STATE_CACHED:
+						case STATUS_CACHED:
 						{ // already cached
 							return true;
 						}
@@ -1192,7 +1193,7 @@ namespace FoundationDB.Client
 
 			public void Dispose()
 			{
-				if (Interlocked.Exchange(ref this.State, STATE_DEAD) != STATE_DEAD)
+				if (Interlocked.Exchange(ref this.Status, STATUS_DEAD) != STATUS_DEAD)
 				{
 					this.Context = null;
 				}
@@ -1269,7 +1270,7 @@ namespace FoundationDB.Client
 			{
 				if (state != FdbTransactionState.Commit)
 				{ // reset the context in the initial state
-					Interlocked.Exchange(ref this.State, STATE_NEUTRAL);
+					Interlocked.Exchange(ref this.Status, STATUS_NEUTRAL);
 					this.Context = null;
 				}
 				else
@@ -1285,7 +1286,7 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			void ISubspaceContext.EnsureIsValid()
 			{
-				if (Volatile.Read(ref this.State) == STATE_DEAD) throw CannotUseCacheContext();
+				if (Volatile.Read(ref this.Status) == STATUS_DEAD) throw CannotUseCacheContext();
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -1379,7 +1380,7 @@ namespace FoundationDB.Client
 			/// <param name="path">Absolute path to the subspace</param>
 			/// <param name="subspace">If the method returns <c>true</c>, receives the cached subspace instance.</param>
 			/// <returns>True if the subspace was found in the cache.</returns>
-			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, Metadata metadata, FdbDirectoryPath path, out FdbDirectorySubspace? subspace)
+			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, State state, FdbDirectoryPath path, out FdbDirectorySubspace? subspace)
 			{
 				Contract.Requires(tr != null);
 				subspace = null;
@@ -1403,7 +1404,7 @@ namespace FoundationDB.Client
 				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {subspace?.ToString() ?? "<not_found>"}");
 
 				// the subspace was created with another context, we must migrate it to the current transaction's context
-				subspace = candidate?.ChangeContext(metadata);
+				subspace = candidate?.ChangeContext(state);
 				return true;
 			}
 
