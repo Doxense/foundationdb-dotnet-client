@@ -82,32 +82,30 @@ namespace FoundationDB.Client
 		/// Parameter: (String) file path or linker-resolved name
 		/// </summary>
 		[Obsolete("This option is deprecated since v6.0")]
-		TLSPlugin = 41,
+		TlsPlugin = 41,
 
-		/// <summary>Set the certificate chain
-		/// Parameter: (Bytes) certificates
-		/// </summary>
-		TLSCertBytes = 42,
+		/// <summary>Set the certificate chain</summary>
+		/// <remarks>Parameter: (Bytes) certificates</remarks>
+		TlsCertBytes = 42,
 
-		/// <summary>Set the file from which to load the certificate chain
-		/// Parameter: (String) File path
-		/// </summary>
-		TLSCertPath = 43,
+		/// <summary>Set the file from which to load the certificate chain</summary>
+		/// <remarks>Parameter: (String) File path</remarks>
+		TlsCertPath = 43,
 
-		/// <summary>Set the private key corresponding to your own certificate
-		/// Parameter: (Bytes) Key
-		/// </summary>
-		TLSKeyBytes = 45,
+		//note: there is no entry for 44
 
-		/// <summary>Set the file from which to load the private key corresponding to your own certificate
-		/// Parameter: (String) File path
-		/// </summary>
-		TLSKeyPath = 46,
+		/// <summary>Set the private key corresponding to your own certificate</summary>
+		/// <remarks>Parameter: (Bytes) Key</remarks>
+		TlsKeyBytes = 45,
 
-		/// <summary>Set the peer certificate field verification criteria
-		/// Parameter: (Bytes) Verification pattern
-		/// </summary>
-		TLSVerifyPeers = 47,
+		/// <summary>Set the file from which to load the private key corresponding to your own certificate</summary>
+		/// <remarks>Parameter: (String) File path</remarks>
+		TlsKeyPath = 46,
+
+		/// <summary>Set the peer certificate field verification criteria</summary>
+		/// <remarks>Parameter: (Bytes) Verification pattern</remarks>
+		TlsVerifyPeers = 47,
+
 	}
 
 }
