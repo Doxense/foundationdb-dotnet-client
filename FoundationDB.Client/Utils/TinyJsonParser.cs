@@ -367,37 +367,39 @@ namespace FoundationDB.Client.Utils
 			return array;
 		}
 
-		internal static Dictionary<string, object?> GetMapField(Dictionary<string,object> map, string field)
+		internal static Dictionary<string, object?> GetMapField(Dictionary<string,object?>? map, string field)
 		{
-			return map != null && map.TryGetValue(field, out object item) ? (Dictionary<string, object?>) item : s_missingMap;
+			var result = map != null && map.TryGetValue(field, out object? item) ? (Dictionary<string, object?>?) item : null;
+			return result ?? s_missingMap;
 		}
 
-		internal static List<object?> GetArrayField(Dictionary<string, object> map, string field)
+		internal static List<object?> GetArrayField(Dictionary<string, object?>? map, string field)
 		{
-			return map != null && map.TryGetValue(field, out object item) ? (List<object?>) item : s_missingArray;
+			var result = map != null && map.TryGetValue(field, out object? item) ? (List<object?>?) item : null;
+			return result ?? s_missingArray;
 		}
 
-		internal static string? GetStringField(Dictionary<string, object> map, string field)
+		internal static string? GetStringField(Dictionary<string, object?>? map, string field)
 		{
-			return map != null && map.TryGetValue(field, out object item) ? (string) item : null;
+			return map != null && map.TryGetValue(field, out object? item) ? (string?) item : null;
 		}
 
-		internal static double? GetNumberField(Dictionary<string, object> map, string field)
+		internal static double? GetNumberField(Dictionary<string, object?>? map, string field)
 		{
-			return map != null && map.TryGetValue(field, out object item) ? (double)item : default(double?);
+			return map != null && map.TryGetValue(field, out object? item) ? (double?) item : default;
 		}
 
-		internal static bool? GetBooleanField(Dictionary<string, object> map, string field)
+		internal static bool? GetBooleanField(Dictionary<string, object?>? map, string field)
 		{
-			return map != null && map.TryGetValue(field, out object item) ? (bool)item : default(bool?);
+			return map != null && map.TryGetValue(field, out object? item) ? (bool?) item : default;
 		}
 
-		internal static (string? Key, string? Value) GetStringPair(Dictionary<string, object> map, string key, string value)
+		internal static (string? Key, string? Value) GetStringPair(Dictionary<string, object?>? map, string key, string value)
 		{
-			object item;
+			object? item;
 			return (
-				map != null && map.TryGetValue(key, out item) ? (string) item : null,
-				map != null && map.TryGetValue(value, out item) ? (string) item : null
+				map != null && map.TryGetValue(key, out item) ? (string?) item : null,
+				map != null && map.TryGetValue(value, out item) ? (string?) item : null
 			);
 		}
 	}

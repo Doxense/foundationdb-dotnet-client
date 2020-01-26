@@ -40,7 +40,7 @@ namespace FoundationDB.Client.Status
 	[PublicAPI]
 	public sealed class FdbSystemStatus : MetricsBase
 	{
-		internal FdbSystemStatus(Dictionary<string, object> doc, long readVersion, string raw)
+		internal FdbSystemStatus(Dictionary<string, object?>? doc, long readVersion, string raw)
 			: base(doc)
 		{
 			this.Client = new ClientStatus(TinyJsonParser.GetMapField(doc, "client"));
@@ -81,21 +81,21 @@ namespace FoundationDB.Client.Status
 			this.Description = description;
 		}
 
-		internal static Message From(Dictionary<string, object> data, string field)
+		internal static Message From(Dictionary<string, object?>? data, string field)
 		{
 			(var key, var value) = TinyJsonParser.GetStringPair(TinyJsonParser.GetMapField(data, field), "name", "description");
 			return new Message(key ?? string.Empty, value ?? string.Empty);
 		}
 
-		internal static Message[] FromArray(Dictionary<string, object> data, string field)
+		internal static Message[] FromArray(Dictionary<string, object?>? data, string field)
 		{
 			var array = TinyJsonParser.GetArrayField(data, field);
 			var res = new Message[array.Count];
 			for (int i = 0; i < res.Length; i++)
 			{
-				var obj = (Dictionary<string, object>)array[i];
+				var obj = (Dictionary<string, object?>?) array[i];
 				(var key, var value) = TinyJsonParser.GetStringPair(obj, "name", "description");
-				res[i] = new Message(key, value);
+				res[i] = new Message(key!, value!);
 			}
 			return res;
 		}
@@ -127,7 +127,7 @@ namespace FoundationDB.Client.Status
 	public class RateCounter : MetricsBase
 	{
 
-		internal RateCounter(Dictionary<string, object> data)
+		internal RateCounter(Dictionary<string, object?>? data)
 			: base(data)
 		{
 			this.Hz = GetDouble("hz") ?? 0;
@@ -145,8 +145,7 @@ namespace FoundationDB.Client.Status
 	[DebuggerDisplay("Counter={Counter}, Hz={Hz}")]
 	public class LoadCounter : RateCounter
 	{
-		internal LoadCounter(Dictionary<string, object> data)
-			: base(data)
+		internal LoadCounter(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Counter = GetInt64("counter") ?? 0;
 		}
@@ -166,8 +165,7 @@ namespace FoundationDB.Client.Status
 	public sealed class RoughnessCounter : LoadCounter
 	{
 
-		internal RoughnessCounter(Dictionary<string, object> data)
-			: base(data)
+		internal RoughnessCounter(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Roughness = GetDouble("roughness") ?? 0;
 		}
@@ -185,8 +183,7 @@ namespace FoundationDB.Client.Status
 	public sealed class DiskCounter : LoadCounter
 	{
 
-		internal DiskCounter(Dictionary<string, object> data)
-			: base(data)
+		internal DiskCounter(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Sectors = GetInt64("sectors") ?? 0;
 		}
@@ -201,8 +198,7 @@ namespace FoundationDB.Client.Status
 	[DebuggerDisplay("Seconds={Seconds}, Versions={Versions}")]
 	public sealed class LagCounter : MetricsBase
 	{
-		internal LagCounter(Dictionary<string, object> data)
-			: base(data)
+		internal LagCounter(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Seconds = GetDouble("seconds") ?? 0;
 			this.Versions = GetInt64("versions") ?? 0;
@@ -221,29 +217,29 @@ namespace FoundationDB.Client.Status
 	/// <summary>Base class for all metrics containers</summary>
 	public abstract class MetricsBase
 	{
-		protected readonly Dictionary<string, object> m_data;
+		protected readonly Dictionary<string, object?>? m_data;
 
-		protected MetricsBase(Dictionary<string, object> data)
+		protected MetricsBase(Dictionary<string, object?>? data)
 		{
 			m_data = data;
 		}
 
-		protected Dictionary<string, object> GetMap(string field)
+		protected Dictionary<string, object?>? GetMap(string field)
 		{
 			return TinyJsonParser.GetMapField(m_data, field);
 		}
 
-		protected List<object> GetArray(string field)
+		protected List<object?>? GetArray(string field)
 		{
 			return TinyJsonParser.GetArrayField(m_data, field);
 		}
 
-		protected string GetString(string field)
+		protected string? GetString(string field)
 		{
 			return TinyJsonParser.GetStringField(m_data, field);
 		}
 
-		protected string GetString(string field1, string field2)
+		protected string? GetString(string field1, string field2)
 		{
 			return TinyJsonParser.GetStringField(TinyJsonParser.GetMapField(m_data, field1), field2);
 		}
@@ -289,12 +285,12 @@ namespace FoundationDB.Client.Status
 	/// <summary>Description of the current status of the local FoundationDB client</summary>
 	public sealed class ClientStatus : MetricsBase
 	{
-		internal ClientStatus(Dictionary<string, object> data) : base(data) { }
+		internal ClientStatus(Dictionary<string, object?>? data) : base(data) { }
 
 		private Message[]? m_messages;
 
 		/// <summary>Path to the '.cluster' file used by the client to connect to the cluster</summary>
-		public string ClusterFilePath => GetString("cluster_file", "path");
+		public string? ClusterFilePath => GetString("cluster_file", "path");
 
 		/// <summary>Indicates if the content of the '.cluster' file is up to date with the current topology of the cluster</summary>
 		public bool ClusterFileUpToDate => GetBoolean("cluster_file", "up_to_date") ?? false;
@@ -340,7 +336,7 @@ namespace FoundationDB.Client.Status
 	public sealed class ClusterStatus : MetricsBase
 	{
 
-		internal ClusterStatus(Dictionary<string, object> data)
+		internal ClusterStatus(Dictionary<string, object?>? data)
 			: base(data)
 		{ }
 
@@ -358,7 +354,7 @@ namespace FoundationDB.Client.Status
 		/// <remarks>Number of seconds since the Unix epoch (1970-01-01Z)</remarks>
 		public long ClusterControllerTimestamp => GetInt64("cluster_controller_timestamp") ?? 0;
 
-		public string ConnectionString => GetString("connection_string");
+		public string ConnectionString => GetString("connection_string") ?? string.Empty;
 
 		public bool DatabaseAvailable => GetBoolean("database_available") ?? false;
 
@@ -400,13 +396,17 @@ namespace FoundationDB.Client.Status
 				if (m_processes == null)
 				{
 					var obj = GetMap("processes");
-					var procs = new Dictionary<string, ProcessStatus>(obj.Count, StringComparer.OrdinalIgnoreCase);
-					//REVIEW: are ids case sensitive?
-					foreach (var kvp in obj)
+					var procs = new Dictionary<string, ProcessStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
+					if (obj != null)
 					{
-						var item = (Dictionary<string, object>)kvp.Value;
-						procs[kvp.Key] = new ProcessStatus(item, kvp.Key);
+						//REVIEW: are ids case sensitive?
+						foreach (var kvp in obj)
+						{
+							var item = (Dictionary<string, object?>?) kvp.Value;
+							procs[kvp.Key] = new ProcessStatus(item, kvp.Key);
+						}
 					}
+
 					m_processes = procs;
 				}
 				return m_processes;
@@ -421,12 +421,15 @@ namespace FoundationDB.Client.Status
 				if (m_machines == null)
 				{
 					var obj = GetMap("machines");
-					var machines = new Dictionary<string, MachineStatus>(obj.Count, StringComparer.OrdinalIgnoreCase);
-					//REVIEW: are ids case sensitive?
-					foreach(var kvp in obj)
+					var machines = new Dictionary<string, MachineStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
+					if (obj != null)
 					{
-						var item = (Dictionary<string, object>)kvp.Value;
-						machines[kvp.Key] = new MachineStatus(item, kvp.Key);
+						//REVIEW: are ids case sensitive?
+						foreach (var kvp in obj)
+						{
+							var item = (Dictionary<string, object?>?) kvp.Value;
+							machines[kvp.Key] = new MachineStatus(item, kvp.Key);
+						}
 					}
 					m_machines = machines;
 				}
@@ -453,12 +456,11 @@ namespace FoundationDB.Client.Status
 
 	public sealed class ClusterConfiguration : MetricsBase
 	{
-		internal ClusterConfiguration(Dictionary<string, object> data)
-			: base(data)
+		internal ClusterConfiguration(Dictionary<string, object?>? data) : base(data)
 		{
 			this.CoordinatorsCount = (int)(GetInt64("coordinators_count") ?? 0);
-			this.StorageEngine = GetString("storage_engine") ?? String.Empty;
-			this.RedundancyFactor = GetString("redundancy", "factor") ?? String.Empty;
+			this.StorageEngine = GetString("storage_engine") ?? string.Empty;
+			this.RedundancyFactor = GetString("redundancy", "factor") ?? string.Empty;
 		}
 
 		private string[]? m_excludedServers;
@@ -476,11 +478,14 @@ namespace FoundationDB.Client.Status
 				if (m_excludedServers == null)
 				{
 					var arr = GetArray("excluded_servers");
-					var res = new string[arr.Count];
-					for (int i = 0; i < res.Length; i++)
+					var res = arr?.Count > 0 ? new string[arr.Count] : Array.Empty<string>();
+					if (arr != null)
 					{
-						var obj = (Dictionary<string, object>)arr[i];
-						res[i] = TinyJsonParser.GetStringField(obj, "address");
+						for (int i = 0; i < res.Length; i++)
+						{
+							var obj = (Dictionary<string, object?>?) arr[i];
+							res[i] = TinyJsonParser.GetStringField(obj, "address") ?? string.Empty;
+						}
 					}
 					m_excludedServers = res;
 				}
@@ -491,8 +496,7 @@ namespace FoundationDB.Client.Status
 
 	public sealed class LatencyMetrics : MetricsBase
 	{
-		internal LatencyMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal LatencyMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			//REVIEW: TimeSpans?
 			this.CommitSeconds = GetDouble("commit_seconds") ?? 0;
@@ -510,7 +514,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Details about the volume of data stored in the cluster</summary>
 	public sealed class DataMetrics : MetricsBase
 	{
-		internal DataMetrics(Dictionary<string, object> data) : base(data) { }
+		internal DataMetrics(Dictionary<string, object?>? data) : base(data) { }
 
 		public long AveragePartitionSizeBytes => GetInt64("average_partition_size_bytes") ?? 0;
 
@@ -530,13 +534,13 @@ namespace FoundationDB.Client.Status
 
 		public bool StateHealthy => GetBoolean("state", "healthy") ?? false;
 
-		public string StateName => GetString("state", "name");
+		public string StateName => GetString("state", "name")!;
 	}
 
 	/// <summary>Details about the quality of service offered by the cluster</summary>
 	public sealed class QosMetrics : MetricsBase
 	{
-		internal QosMetrics(Dictionary<string, object> data) : base(data) { }
+		internal QosMetrics(Dictionary<string, object?>? data) : base(data) { }
 
 		/// <summary>Current limiting factor for the performance of the cluster</summary>
 		public Message PerformanceLimitedBy => Message.From(m_data, "performance_limited_by");
@@ -551,7 +555,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Details about the current wokrload of the cluster</summary>
 	public sealed class WorkloadMetrics : MetricsBase
 	{
-		internal WorkloadMetrics(Dictionary<string, object> data) : base(data) { }
+		internal WorkloadMetrics(Dictionary<string, object?>? data) : base(data) { }
 
 		private WorkloadBytesMetrics? m_bytes;
 		private WorkloadOperationsMetrics? m_operations;
@@ -570,8 +574,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Throughput of a FoundationDB cluster</summary>
 	public sealed class WorkloadBytesMetrics : MetricsBase
 	{
-		internal WorkloadBytesMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal WorkloadBytesMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Written = new RoughnessCounter(GetMap("written"));
 		}
@@ -585,8 +588,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Operations workload of a FoundationDB cluster</summary>
 	public sealed class WorkloadOperationsMetrics : MetricsBase
 	{
-		internal WorkloadOperationsMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal WorkloadOperationsMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Reads = new RoughnessCounter(GetMap("reads"));
 			this.Writes = new RoughnessCounter(GetMap("writes"));
@@ -605,8 +607,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Transaction workload of a FoundationDB cluster</summary>
 	public sealed class WorkloadTransactionsMetrics : MetricsBase
 	{
-		internal WorkloadTransactionsMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal WorkloadTransactionsMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Committed = new RoughnessCounter(GetMap("committed"));
 			this.Conflicted = new RoughnessCounter(GetMap("conflicted"));
@@ -622,8 +623,7 @@ namespace FoundationDB.Client.Status
 
 	public sealed class ClusterClientsMetrics : MetricsBase
 	{
-		internal ClusterClientsMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal ClusterClientsMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Count = (int) (GetInt64("count") ?? 0);
 		}
@@ -641,8 +641,7 @@ namespace FoundationDB.Client.Status
 	public sealed class ProcessStatus : MetricsBase
 	{
 
-		internal ProcessStatus(Dictionary<string, object> data, string id)
-			: base(data)
+		internal ProcessStatus(Dictionary<string, object?>? data, string id) : base(data)
 		{
 			this.Id = id;
 		}
@@ -715,10 +714,13 @@ namespace FoundationDB.Client.Status
 					//REVIEW: should we have (K=id, V=role) or (K=role, V=id) ?
 
 					var arr = GetArray("roles");
-					var res = new ProcessRoleMetrics[arr.Count];
-					for (int i = 0; i < res.Length; i++)
+					var res = arr?.Count > 0 ? new ProcessRoleMetrics[arr.Count] : Array.Empty<ProcessRoleMetrics>();
+					if (arr != null)
 					{
-						res[i] = ProcessRoleMetrics.Create((Dictionary<string, object>) arr[i]);
+						for (int i = 0; i < res.Length; i++)
+						{
+							res[i] = ProcessRoleMetrics.Create((Dictionary<string, object?>?) arr[i]);
+						}
 					}
 					m_roles = res;
 				}
@@ -730,8 +732,7 @@ namespace FoundationDB.Client.Status
 
 	public class ProcessRoleMetrics : MetricsBase
 	{
-		internal ProcessRoleMetrics(Dictionary<string, object> data, string role)
-			: base(data)
+		internal ProcessRoleMetrics(Dictionary<string, object?>? data, string role) : base(data)
 		{
 			this.Role = role;
 			this.Id = GetString("id") ?? string.Empty;
@@ -743,11 +744,13 @@ namespace FoundationDB.Client.Status
 
 		//TODO: values will vary depending on the "Role" !
 
-		public static ProcessRoleMetrics Create(Dictionary<string, object> data)
+		public static ProcessRoleMetrics Create(Dictionary<string, object?>? data)
 		{
-			string role = TinyJsonParser.GetStringField(data, "role");
+			string? role = TinyJsonParser.GetStringField(data, "role");
 			switch (role)
 			{
+				case null:
+					return null!; //invalid!
 				case "master":
 					return new MasterRoleMetrics(data);
 				case "proxy":
@@ -768,36 +771,31 @@ namespace FoundationDB.Client.Status
 
 	public sealed class ProxyRoleMetrics : ProcessRoleMetrics
 	{
-		public ProxyRoleMetrics(Dictionary<string, object> data)
-			: base(data, "proxy")
+		public ProxyRoleMetrics(Dictionary<string, object?>? data) : base(data, "proxy")
 		{ }
 	}
 
 	public sealed class MasterRoleMetrics : ProcessRoleMetrics
 	{
-		public MasterRoleMetrics(Dictionary<string, object> data)
-			: base(data, "master")
+		public MasterRoleMetrics(Dictionary<string, object?>? data) : base(data, "master")
 		{ }
 	}
 
 	public sealed class ResolverRoleMetrics : ProcessRoleMetrics
 	{
-		public ResolverRoleMetrics(Dictionary<string, object> data)
-			: base(data, "resolver")
+		public ResolverRoleMetrics(Dictionary<string, object?>? data) : base(data, "resolver")
 		{ }
 	}
 
 	public sealed class ClusterControllerRoleMetrics : ProcessRoleMetrics
 	{
-		public ClusterControllerRoleMetrics(Dictionary<string, object> data)
-			: base(data, "cluster_controller")
+		public ClusterControllerRoleMetrics(Dictionary<string, object?>? data) : base(data, "cluster_controller")
 		{ }
 	}
 
 	public abstract class DiskBasedRoleMetrics : ProcessRoleMetrics
 	{
-		protected DiskBasedRoleMetrics(Dictionary<string, object> data, string role)
-			: base(data, role)
+		protected DiskBasedRoleMetrics(Dictionary<string, object?>? data, string role) : base(data, role)
 		{
 			this.DurableBytes = new RoughnessCounter(GetMap("durable_bytes"));
 			this.InputBytes = new RoughnessCounter(GetMap("input_bytes"));
@@ -821,8 +819,7 @@ namespace FoundationDB.Client.Status
 
 	public sealed class StorageRoleMetrics : DiskBasedRoleMetrics
 	{
-		internal StorageRoleMetrics(Dictionary<string, object> data)
-			: base(data, "storage")
+		internal StorageRoleMetrics(Dictionary<string, object?>? data) : base(data, "storage")
 		{
 			this.BytesQueried = new RoughnessCounter(GetMap("bytes_queried"));
 			this.FinishedQueries = new RoughnessCounter(GetMap("finished_queries"));
@@ -860,8 +857,7 @@ namespace FoundationDB.Client.Status
 
 	public sealed class LogRoleMetrics : DiskBasedRoleMetrics
 	{
-		internal LogRoleMetrics(Dictionary<string, object> data)
-			: base(data, "log")
+		internal LogRoleMetrics(Dictionary<string, object?>? data) : base(data, "log")
 		{ }
 
 		public long QueueDiskAvailableBytes => GetInt64("queue_disk_available_bytes") ?? 0;
@@ -887,8 +883,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Memory performance counters for a FoundationDB process</summary>
 	public sealed class ProcessMemoryMetrics : MetricsBase
 	{
-		internal ProcessMemoryMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal ProcessMemoryMetrics(Dictionary<string, object?>? data) : base(data)
 		{ }
 
 		public long AvailableBytes => GetInt64("available_bytes") ?? 0;
@@ -909,8 +904,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>CPU performance counters for a FoundationDB process</summary>
 	public sealed class ProcessCpuMetrics : MetricsBase
 	{
-		internal ProcessCpuMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal ProcessCpuMetrics(Dictionary<string, object?>? data) : base(data)
 		{ }
 
 		public double UsageCores => GetDouble("usage_cores") ?? 0;
@@ -921,8 +915,7 @@ namespace FoundationDB.Client.Status
 	public sealed class ProcessDiskMetrics : MetricsBase
 	{
 
-		internal ProcessDiskMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal ProcessDiskMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.Busy = GetDouble("busy") ?? 0;
 			this.FreeBytes = GetInt64("free_bytes") ?? 0;
@@ -946,8 +939,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Network performance counters for a FoundationDB process or machine</summary>
 	public sealed class ProcessNetworkMetrics : MetricsBase
 	{
-		internal ProcessNetworkMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal ProcessNetworkMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.CurrentConnections = (int) (GetInt64("current_connections") ?? 0);
 			this.MegabitsReceived = new RateCounter(GetMap("megabits_received"));
@@ -978,8 +970,7 @@ namespace FoundationDB.Client.Status
 	public sealed class MachineStatus : MetricsBase
 	{
 
-		internal MachineStatus(Dictionary<string, object> data, string id)
-			: base(data)
+		internal MachineStatus(Dictionary<string, object?>? data, string id) : base(data)
 		{
 			this.Id = id;
 		}
@@ -1022,8 +1013,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Memory performance counters for machine hosting one or more FoundationDB processes</summary>
 	public sealed class MachineMemoryMetrics : MetricsBase
 	{
-		internal MachineMemoryMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal MachineMemoryMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.CommittedBytes = GetInt64("committed_bytes") ?? 0;
 			this.FreeBytes = GetInt64("free_bytes") ?? 0;
@@ -1041,8 +1031,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>CPU performance counters for machine hosting one or more FoundationDB processes</summary>
 	public sealed class MachineCpuMetrics : MetricsBase
 	{
-		internal MachineCpuMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal MachineCpuMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.LogicalCoreUtilization = GetDouble("logical_core_utilization") ?? 0;
 		}
@@ -1054,8 +1043,7 @@ namespace FoundationDB.Client.Status
 	/// <summary>Network performance counters for machine hosting one or more FoundationDB processes</summary>
 	public sealed class MachineNetworkMetrics : MetricsBase
 	{
-		internal MachineNetworkMetrics(Dictionary<string, object> data)
-			: base(data)
+		internal MachineNetworkMetrics(Dictionary<string, object?>? data) : base(data)
 		{
 			this.MegabitsReceived = new RateCounter(GetMap("megabits_received"));
 			this.MegabitsSent = new RateCounter(GetMap("megabits_sent"));
@@ -1072,12 +1060,11 @@ namespace FoundationDB.Client.Status
 
 	public sealed class LocalityConfiguration : MetricsBase
 	{
-		internal LocalityConfiguration(Dictionary<string, object> data)
-			: base(data)
+		internal LocalityConfiguration(Dictionary<string, object?>? data) : base(data)
 		{
-			this.MachineId = GetString("machineid");
-			this.ProcessId = GetString("processid");
-			this.ZoneId = GetString("zoneid");
+			this.MachineId = GetString("machineid") ?? string.Empty;
+			this.ProcessId = GetString("processid") ?? string.Empty;
+			this.ZoneId = GetString("zoneid") ?? string.Empty;
 		}
 
 		public string MachineId { get; }
