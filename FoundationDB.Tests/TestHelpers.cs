@@ -75,8 +75,7 @@ namespace FoundationDB.Client.Tests
 			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), ct);
 		}
 
-		public static async Task CleanLocation<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> location, CancellationToken ct)
-			where TSubspace : IKeySubspace
+		public static async Task CleanLocation(IFdbDatabase db, ISubspaceLocation location, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null, "null db");
 			if (location.Path.Count == 0 && location.Prefix.Count == 0)
@@ -129,8 +128,7 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpLocation<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path, CancellationToken ct)
-			where TSubspace : IKeySubspace
+		public static async Task DumpLocation(IFdbDatabase db, ISubspaceLocation path, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
 

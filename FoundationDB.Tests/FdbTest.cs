@@ -150,8 +150,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected Task CleanLocation<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> location)
-			where TSubspace : IKeySubspace
+		protected Task CleanLocation(IFdbDatabase db, ISubspaceLocation location)
 		{
 			return TestHelpers.CleanLocation(db, location, this.Cancellation);
 		}
@@ -169,8 +168,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected Task DumpSubspace<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path)
-			where TSubspace : IKeySubspace
+		protected Task DumpSubspace(IFdbDatabase db, ISubspaceLocation path)
 		{
 			return TestHelpers.DumpLocation(db, path, this.Cancellation);
 		}
@@ -182,8 +180,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
-		protected async Task DumpSubspace<TSubspace>(IFdbReadOnlyTransaction tr, ISubspaceLocation<TSubspace> location)
-			where TSubspace : IKeySubspace
+		protected async Task DumpSubspace(IFdbReadOnlyTransaction tr, ISubspaceLocation location)
 		{
 			var subspace = await location.Resolve(tr);
 			await TestHelpers.DumpSubspace(tr, subspace);
