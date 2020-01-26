@@ -42,15 +42,21 @@ namespace FoundationDB.Client
 	{
 
 		public FdbDirectoryLayer Directory { get; }
+		//REVIEW: requiring the directory layer makes it difficult to work with database providers
+		// => do we really need this? We can get it from the transaction that is used to resolve the location at runtime!
 
+		/// <inheritdoc cref="ISubspaceLocation.Path" />
 		public FdbDirectoryPath Path { get; }
 
+		/// <inheritdoc />
 		public Slice Layer { get; }
 
+		/// <inheritdoc />
 		Slice ISubspaceLocation.Prefix => Slice.Nil;
 
 		IKeyEncoding ISubspaceLocation.Encoding => TuPack.Encoding;
 
+		/// <summary>Returns <c>true</c> if this location points to a directory partition.</summary>
 		public bool IsPartition { get; }
 
 		public FdbDirectorySubspaceLocation(FdbDirectoryLayer directory, FdbDirectoryPath path, Slice layer = default)
@@ -65,12 +71,14 @@ namespace FoundationDB.Client
 			this.IsPartition = layer.Equals(FdbDirectoryPartition.LayerId);
 		}
 
-		async ValueTask<IKeySubspace> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
+		/// <inheritdoc />
+		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
 			return await Resolve(tr, directory);
 		}
 
-		public ValueTask<FdbDirectorySubspace> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory = null)
+		/// <inheritdoc />
+		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
 			Contract.NotNull(tr, nameof(tr));
 
@@ -106,12 +114,16 @@ namespace FoundationDB.Client
 			return this.Path;
 		}
 
+		/// <inheritdoc />
 		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this.Directory, this.Path[segment]);
 
+		/// <inheritdoc />
 		public FdbDirectorySubspaceLocation this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(segment), layer);
 
+		/// <inheritdoc />
 		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(relativePath));
 
+		/// <inheritdoc />
 		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath, Slice layer] => new FdbDirectorySubspaceLocation(this.Directory, this.Path.Add(relativePath), layer);
 
 		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments] => new FdbDirectorySubspaceLocation(this.Directory, this.Path[segments]);
@@ -130,77 +142,92 @@ namespace FoundationDB.Client
 
 		FdbDirectoryLayer IFdbDirectory.DirectoryLayer => this.Directory;
 
+		/// <inheritdoc />
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
 		{
 			return this.Directory.CreateOrOpenAsync(trans, this.Path.Add(subPath), layer);
 		}
 
+		/// <inheritdoc />
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default, Slice layer = default)
 		{
 			return this.Directory.OpenAsync(trans, this.Path.Add(path), layer);
 		}
 
-		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default, Slice layer = default)
+		/// <inheritdoc />
+		public Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default, Slice layer = default)
 		{
 			return this.Directory.TryOpenAsync(trans, this.Path.Add(path), layer);
 		}
 
-		public ValueTask<FdbDirectorySubspace> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default, Slice layer = default)
+		/// <inheritdoc />
+		public ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default, Slice layer = default)
 		{
 			return this.Directory.TryOpenCachedAsync(trans, this.Path.Add(path), layer);
 		}
 
-		public ValueTask<FdbDirectorySubspace[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbDirectoryPath> paths)
+		/// <inheritdoc />
+		public ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbDirectoryPath> paths)
 		{
 			return this.Directory.TryOpenCachedAsync(trans, paths.Select(p => this.Path.Add(p)));
 		}
 
-		public ValueTask<FdbDirectorySubspace[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<(FdbDirectoryPath Path, Slice Layer)> paths)
+		/// <inheritdoc />
+		public ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<(FdbDirectoryPath Path, Slice Layer)> paths)
 		{
 			return this.Directory.TryOpenCachedAsync(trans, paths.Select(x => (this.Path.Add(x.Path), x.Layer)));
 		}
 
+		/// <inheritdoc />
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
 		{
 			return this.Directory.CreateAsync(trans, this.Path.Add(subPath));
 		}
 
-		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
+		/// <inheritdoc />
+		public Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
 		{
 			return this.Directory.TryCreateAsync(trans, this.Path.Add(subPath));
 		}
 
+		/// <inheritdoc />
 		public Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
 		{
 			return this.Directory.MoveAsync(trans, this.Path, newAbsolutePath);
 		}
 
-		public Task<FdbDirectorySubspace> TryMoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
+		/// <inheritdoc />
+		public Task<FdbDirectorySubspace?> TryMoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
 		{
 			return this.Directory.TryMoveAsync(trans, this.Path, newAbsolutePath);
 		}
 
+		/// <inheritdoc />
 		public Task RemoveAsync(IFdbTransaction trans, FdbDirectoryPath path = default)
 		{
 			return this.Directory.RemoveAsync(trans, this.Path.Add(path));
 		}
 
+		/// <inheritdoc />
 		public Task<bool> TryRemoveAsync(IFdbTransaction trans, FdbDirectoryPath path = default)
 		{
 			return this.Directory.TryRemoveAsync(trans, this.Path.Add(path));
 		}
 
+		/// <inheritdoc />
 		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
 		{
 			return this.Directory.ExistsAsync(trans, this.Path.Add(path));
 		}
 
+		/// <inheritdoc />
 		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
 		{
 			return this.Directory.ListAsync(trans, this.Path.Add(path));
 		}
 
-		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
+		/// <inheritdoc />
+		public Task<List<string>?> TryListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
 		{
 			return this.Directory.TryListAsync(trans, this.Path.Add(path));
 		}
@@ -213,7 +240,7 @@ namespace FoundationDB.Client
 
 		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath) => throw new NotSupportedException();
 
-		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath) => throw new NotSupportedException();
+		Task<FdbDirectorySubspace?> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath) => throw new NotSupportedException();
 
 		#endregion
 

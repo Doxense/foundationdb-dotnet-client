@@ -475,7 +475,7 @@ namespace FoundationDB.Client
 		public ValueTask<Metadata> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			//note: we use the directory layer itself has the "token" key for the local data cache
-			if (tr.Context.TryGetLocalData(this, out Metadata metadata))
+			if (tr.Context.TryGetLocalData(this, out Metadata? metadata))
 			{
 				return new ValueTask<Metadata>(metadata);
 			}
@@ -486,6 +486,7 @@ namespace FoundationDB.Client
 		{
 			var rv = await tr.GetReadVersionAsync();
 			var content = await this.Content.Resolve(tr);
+			if (content == null) throw new InvalidOperationException("Directory Layer content subspace was not found");
 
 			var partition = new PartitionDescriptor(this.Path, content, null);
 
@@ -1045,7 +1046,7 @@ namespace FoundationDB.Client
 				return tr
 					.GetRange(sd.ToRange())
 					.Select(kvp => new KeyValuePair<string, Slice>(
-						sd.Decode<string>(kvp.Key),
+						sd.Decode<string>(kvp.Key) ?? string.Empty,
 						kvp.Value
 					));
 			}

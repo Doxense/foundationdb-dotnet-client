@@ -58,6 +58,7 @@ namespace FoundationDB.Layers.Allocators
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by this high contention allocator was not found.");
 			return new State(subspace, m_rnd);
 		}
 
