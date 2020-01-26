@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Collections
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Collections.Tuples;
+	using Doxense.Diagnostics.Contracts;
 	using Doxense.Serialization.Encoders;
 	using FoundationDB.Client;
 #if DEBUG
@@ -66,74 +67,89 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Serializer for the elements of the queue</summary>
 		public IValueEncoder<T> Encoder { get; }
 
-		/// <summary>Remove all items from the queue.</summary>
-		public async Task ClearAsync(IFdbTransaction tr)
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			if (tr == null) throw new ArgumentNullException(nameof(tr));
-
 			var subspace = await this.Location.Resolve(tr);
-			tr.ClearRange(subspace.ToRange());
+			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by Queue Layer was not found.");
+			return new State(subspace, this.Encoder);
 		}
 
-		/// <summary>Push a single item onto the queue.</summary>
-		public async Task PushAsync(IFdbTransaction tr, T value)
+		public sealed class State
 		{
-			if (tr == null) throw new ArgumentNullException(nameof(tr));
 
-#if DEBUG
-			tr.Annotate("Push({0})", value);
-#endif
-			var subspace = await this.Location.Resolve(tr);
+			public ITypedKeySubspace<VersionStamp> Subspace { get; }
 
-			//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!
-			tr.SetVersionStampedKey(subspace[tr.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
-		}
+			public IValueEncoder<T> Encoder { get; }
 
-		private static readonly FdbRangeOptions SingleOptions = new FdbRangeOptions() { Limit = 1, Mode = FdbStreamingMode.Exact };
-
-		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
-		{
-			if (tr == null) throw new ArgumentNullException(nameof(tr));
-#if DEBUG
-			tr.Annotate("Pop()");
-#endif
-			var subspace = await this.Location.Resolve(tr);
-
-			var first = await tr.GetRangeAsync(subspace.ToRange(), SingleOptions);
-			if (first.IsEmpty)
+			public State(ITypedKeySubspace<VersionStamp> subspace, IValueEncoder<T> encoder)
 			{
-#if DEBUG
-				tr.Annotate("Got nothing");
-#endif
-				return default;
+				this.Subspace = subspace;
+				this.Encoder = encoder;
 			}
 
-			tr.Clear(first[0].Key);
+			/// <summary>Remove all items from the queue.</summary>
+			public void Clear(IFdbTransaction tr)
+			{
+				Contract.NotNull(tr, nameof(tr));
+				tr.ClearRange(this.Subspace.ToRange());
+			}
+
+			/// <summary>Push a single item onto the queue.</summary>
+			public void Push(IFdbTransaction tr, T value)
+			{
+				Contract.NotNull(tr, nameof(tr));
+
 #if DEBUG
-			if (tr.IsLogged()) tr.Annotate($"Got key {subspace.Decode(first[0].Key)} = {first[0].Value:V}");
+				tr.Annotate("Push({0})", value);
 #endif
-			return (this.Encoder.DecodeValue(first[0].Value), true);
-		}
 
-		/// <summary>Test whether the queue is empty.</summary>
-		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
-		{
-			var subspace = await this.Location.Resolve(tr);
+				//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!
+				tr.SetVersionStampedKey(this.Subspace[tr.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
+			}
 
-			var first = await tr.GetRangeAsync(subspace.ToRange(), FdbQueue<T>.SingleOptions);
-			return first.IsEmpty;
-		}
+			private static readonly FdbRangeOptions SingleOptions = new FdbRangeOptions() { Limit = 1, Mode = FdbStreamingMode.Exact };
 
-		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<(T Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
-		{
-			var subspace = await this.Location.Resolve(tr);
+			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
+			public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
+			{
+				Contract.NotNull(tr, nameof(tr));
+#if DEBUG
+				tr.Annotate("Pop()");
+#endif
 
-			var first = await tr.GetRangeAsync(subspace.ToRange(), FdbQueue<T>.SingleOptions);
-			if (first.IsEmpty) return default;
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
+				if (first.IsEmpty)
+				{
+#if DEBUG
+					tr.Annotate("Got nothing");
+#endif
+					return default;
+				}
 
-			return (this.Encoder.DecodeValue(first[0].Value), true);
+				tr.Clear(first[0].Key);
+#if DEBUG
+				if (tr.IsLogged()) tr.Annotate($"Got key {this.Subspace.Decode(first[0].Key)} = {first[0].Value:V}");
+#endif
+				return (this.Encoder.DecodeValue(first[0].Value), true);
+			}
+
+			/// <summary>Test whether the queue is empty.</summary>
+			public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
+			{
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
+				return first.IsEmpty;
+			}
+
+			/// <summary>Get the value of the next item in the queue without popping it.</summary>
+			public async Task<(T Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
+			{
+				Contract.NotNull(tr, nameof(tr));
+
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
+				if (first.IsEmpty) return default;
+
+				return (this.Encoder.DecodeValue(first[0].Value), true);
+			}
 		}
 
 		#region Bulk Operations
@@ -154,7 +170,7 @@ namespace FoundationDB.Layers.Collections
 					{
 						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-						handler(this.Encoder.DecodeValue(kv.Value), offset);
+						handler(this.Encoder.DecodeValue(kv.Value)!, offset);
 						++offset;
 					}
 					return Task.CompletedTask;
@@ -179,7 +195,7 @@ namespace FoundationDB.Layers.Collections
 					{
 						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-						await handler(this.Encoder.DecodeValue(kv.Value), offset);
+						await handler(this.Encoder.DecodeValue(kv.Value)!, offset);
 						++offset;
 					}
 				},
