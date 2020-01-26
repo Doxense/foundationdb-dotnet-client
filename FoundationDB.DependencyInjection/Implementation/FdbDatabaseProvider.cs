@@ -33,7 +33,6 @@ namespace FoundationDB.DependencyInjection
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using Microsoft.Extensions.Options;
 
 	public sealed class FdbDatabaseProvider : IFdbDatabaseProvider
@@ -55,7 +54,6 @@ namespace FoundationDB.DependencyInjection
 
 		public FdbDirectoryPath Root => this.Options.ConnectionOptions.Root;
 
-		[Pure]
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
 			Contract.NotNull(options, nameof(options));
