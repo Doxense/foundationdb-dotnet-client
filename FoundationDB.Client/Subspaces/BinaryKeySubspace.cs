@@ -36,21 +36,21 @@ namespace FoundationDB.Client
 	public interface IBinaryKeySubspace : IKeySubspace
 	{
 
-		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>
 		Slice this[Slice relativeKey] { get; }
 
-		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>
 		Slice this[ReadOnlySpan<byte> relativeKey] { get; }
 
-		/// <summary>Return the last part of the key, minus the subspace's prefix</summary>
+		/// <summary>Return the last part of the key, minus the subspace prefix</summary>
 		Slice Decode(Slice absoluteKey);
 		//note: this is the same as calling ExtractKey(...) but is here for symmetry reasons with other kinds of subspaces
 
-		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace's prefix</summary>
+		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace prefix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Child subspace</returns>
 		IBinaryKeySubspace Partition(ReadOnlySpan<byte> relativeKey);
@@ -101,7 +101,7 @@ namespace FoundationDB.Client
 	public static class BinaryKeySubspaceExtensions
 	{
 
-		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace's prefix</summary>
+		/// <summary>Return a new subspace constructed by appending a binary suffix to the current subspace prefix</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Child subspace</returns>

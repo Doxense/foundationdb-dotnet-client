@@ -214,7 +214,7 @@ namespace FoundationDB.Client
 			return KeyRange.StartsWith(Append(suffix));
 		}
 
-		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
+		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this subspace prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
 		/// <param name="absoluteKey">The key to be tested</param>
 		/// <remarks>The key <see cref="Slice.Nil"/> is not contained by any Subspace, so <c>subspace.Contains(Slice.Nil)</c> will always return false</remarks>
 		public virtual bool Contains(ReadOnlySpan<byte> absoluteKey)
@@ -223,8 +223,8 @@ namespace FoundationDB.Client
 			return absoluteKey.StartsWith(this.Key.Span);
 		}
 
-		/// <summary>Manually append a binary suffix to the subspace's prefix</summary>
-		/// <remarks>Appending a binary literal that does not comply with the subspace's key encoding may produce a result that cannot be decoded!</remarks>
+		/// <summary>Manually append a binary suffix to the subspace prefix</summary>
+		/// <remarks>Appending a binary literal that does not comply with the subspace key encoding may produce a result that cannot be decoded!</remarks>
 		public Slice Append(ReadOnlySpan<byte> relativeKey)
 		{
 			//note: we don't want to leak our key!
@@ -314,7 +314,7 @@ namespace FoundationDB.Client
 			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
 			var prefix = this.Key;
 
-			// don't touch to nil and keys inside the globalspace
+			// don't touch nil and keys that are inside the subspace
 			if (key.IsNull || key.StartsWith(prefix)) return key;
 
 			// let the system keys pass
@@ -340,7 +340,7 @@ namespace FoundationDB.Client
 			//note: Since this is needed to make GetRange/GetKey work properly, this should work for all subspace, include directory partitions
 			var prefix = this.Key.Span;
 
-			// don't touch to nil and keys inside the globalspace
+			// don't touch nil and keys that are inside the subspace
 			if (key.StartsWith(prefix)) return key;
 
 			// let the system keys pass

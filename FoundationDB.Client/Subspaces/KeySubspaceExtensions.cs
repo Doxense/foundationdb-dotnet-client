@@ -146,6 +146,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
+		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
 		public static IDynamicKeySubspace UsingEncoder(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
@@ -158,6 +159,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
+		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
 		public static ITypedKeySubspace<T> UsingEncoder<T>(this IKeySubspace subspace, IKeyEncoder<T> encoder, ISubspaceContext? context = null)
@@ -170,6 +172,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
+		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
 		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext? context = null)
@@ -182,6 +185,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace to extend</param>
 		/// <param name="encoder">Custom key encoder</param>
+		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
 		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext? context = null)
@@ -193,6 +197,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="context">Optional context used by the new subspace</param>
 		/// <param name="encoder">Encoder used to serialize the keys of this namespace.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
@@ -207,7 +212,7 @@ namespace FoundationDB.Client
 
 		#region Copy...
 
-		/// <summary>Create a new copy of a subspace's prefix</summary>
+		/// <summary>Create a new copy of a subspace prefix</summary>
 		[Pure]
 		internal static Slice StealPrefix(IKeySubspace subspace)
 		{
@@ -301,7 +306,7 @@ namespace FoundationDB.Client
 			return subspace.ToRange(suffix.Span);
 		}
 
-		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>

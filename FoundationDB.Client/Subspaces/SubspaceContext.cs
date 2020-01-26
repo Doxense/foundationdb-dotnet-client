@@ -29,9 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
-	using JetBrains.Annotations;
 
-	/// <summary>Represents a context in which keyspaces are valid</summary>
+	/// <summary>Represents the lifetime of a key subspace</summary>
 	public interface ISubspaceContext
 	{
 
@@ -39,13 +38,16 @@ namespace FoundationDB.Client
 		/// <remarks>Should throw an exception if the context is in an invalid state</remarks>
 		void EnsureIsValid();
 
+		/// <summary>User-friendly name of this context</summary>
 		string Name { get; }
 	}
 
+	/// <summary>Context for key subspaces that are always valid</summary>
 	public class SubspaceContext : ISubspaceContext
 	{
 		private SubspaceContext() { }
 
+		/// <summary>Key subspace context that never expires</summary>
 		public static readonly ISubspaceContext Default = new SubspaceContext();
 
 		public void EnsureIsValid()

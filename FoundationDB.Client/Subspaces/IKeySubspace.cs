@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public interface IKeySubspace
 	{
-		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation
+		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitioning and concatenation
 
 		/// <summary>The context from which this subspace came from</summary>
 		/// <remarks>
@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 		[Pure]
 		KeyRange ToRange();
 
-		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>
 		Slice Append(ReadOnlySpan<byte> relativeKey);
