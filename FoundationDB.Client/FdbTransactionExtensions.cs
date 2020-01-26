@@ -110,6 +110,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).</summary>
+		[Obsolete("This option is obsolete, and may be removed in future versions.")]
 		public static TTransaction WithReadAheadDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
