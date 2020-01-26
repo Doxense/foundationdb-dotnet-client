@@ -97,10 +97,6 @@ namespace FoundationDB.Client
 
 			#region TLS...
 
-			/// <summary>File path or linker-resolved name of the custom TLS plugin to load.</summary>
-			[Obsolete("This option is deprecated since v6.0")]
-			public static string? TLSPlugin { get; private set; }
-
 			/// <summary>Content of the TLS root and client certificates used for TLS connections (none by default)</summary>
 			public static Slice TLSCertificateBytes { get; private set; }
 
@@ -115,13 +111,6 @@ namespace FoundationDB.Client
 
 			/// <summary>Pattern used to verify certificates of TLS peers (none by default)</summary>
 			public static Slice TLSVerificationPattern { get; private set; }
-
-			/// <summary>Set the file path or linker-resolved name of the custom TLS plugin to load. </summary>
-			[Obsolete("This option is deprecated since v6.0")]
-			public static void SetTLSPlugin(string name)
-			{
-				Fdb.Options.TLSPlugin = name;
-			}
 
 			/// <summary>Sets the path to the root certificate and public key for TLS connections</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
@@ -176,44 +165,11 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Use TLS to secure the connections to the cluster</summary>
-			/// <param name="certificateBytes">Content of the root certificate and public key</param>
-			/// <param name="privateKeyBytes">Content of the private key</param>
-			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
-			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
-			[Obsolete("This option is deprecated since v6.0")]
-			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern, string? plugin)
-			{
-				Fdb.Options.TLSPlugin = plugin;
-				Fdb.Options.TLSCertificateBytes = certificateBytes;
-				Fdb.Options.TLSCertificatePath = null;
-				Fdb.Options.TLSPrivateKeyBytes = privateKeyBytes;
-				Fdb.Options.TLSPrivateKeyPath = null;
-				Fdb.Options.TLSVerificationPattern = verificationPattern;
-			}
-
-			/// <summary>Use TLS to secure the connections to the cluster</summary>
 			/// <param name="certificatePath">Path to the root certificate and public key</param>
 			/// <param name="privateKeyPath">Path to the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
-			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
 			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default)
 			{
-				Fdb.Options.TLSCertificatePath = certificatePath;
-				Fdb.Options.TLSCertificateBytes = Slice.Nil;
-				Fdb.Options.TLSPrivateKeyPath = privateKeyPath;
-				Fdb.Options.TLSPrivateKeyBytes = Slice.Nil;
-				Fdb.Options.TLSVerificationPattern = verificationPattern;
-			}
-
-			/// <summary>Use TLS to secure the connections to the cluster</summary>
-			/// <param name="certificatePath">Path to the root certificate and public key</param>
-			/// <param name="privateKeyPath">Path to the private key</param>
-			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
-			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
-			[Obsolete("This option is deprecated since v6.0")]
-			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern, string? plugin)
-			{
-				Fdb.Options.TLSPlugin = plugin;
 				Fdb.Options.TLSCertificatePath = certificatePath;
 				Fdb.Options.TLSCertificateBytes = Slice.Nil;
 				Fdb.Options.TLSPrivateKeyPath = privateKeyPath;
