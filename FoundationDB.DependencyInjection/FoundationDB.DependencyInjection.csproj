@@ -6,7 +6,7 @@
     <AssemblyName>FoundationDB.DependencyInjection</AssemblyName>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
-    <SignAssembly Condition="'$(OS)' == 'Windows_NT'">true</SignAssembly>
+    <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
     <PackageTags>foundationdb fdb nosql</PackageTags>
     <Description>.NET Binding for FoundationDB</Description>

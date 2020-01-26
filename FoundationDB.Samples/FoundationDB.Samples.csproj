@@ -7,7 +7,8 @@
     <RestorePackages>true</RestorePackages>
     <RootNamespace>FoundationDB.Samples</RootNamespace>
     <AssemblyName>FoundationDB.Samples</AssemblyName>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>8.0</LangVersion>
+    <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 

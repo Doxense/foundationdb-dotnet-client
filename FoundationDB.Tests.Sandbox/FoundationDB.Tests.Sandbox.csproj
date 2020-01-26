@@ -8,6 +8,7 @@
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<RootNamespace>FoundationDB.Tests.Sandbox</RootNamespace>
 		<AssemblyName>FdbSandbox</AssemblyName>
+		<SignAssembly>true</SignAssembly>
 		<AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
 

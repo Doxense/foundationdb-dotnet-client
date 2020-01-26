@@ -8,8 +8,9 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <RootNamespace>FdbTop</RootNamespace>
     <AssemblyName>FdbTop</AssemblyName>
+    <LangVersion>8.0</LangVersion>
+    <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
-    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
 
   <Import Project="..\Common\VersionInfo.props" />
