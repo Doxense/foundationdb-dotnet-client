@@ -133,11 +133,11 @@ namespace FoundationDB.Client
 		/// The transaction can be used again after it is reset.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
+		/// <param name="timeout">Timeout (rounded up to milliseconds), or TimeSpan.Zero for infinite timeout</param>
 		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, TimeSpan timeout)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
-			return WithTimeout<TTransaction>(trans, timeout == TimeSpan.Zero ? 0 : (int)Math.Ceiling(timeout.TotalMilliseconds));
+			return WithTimeout(trans, timeout == TimeSpan.Zero ? 0 : (int) Math.Ceiling(timeout.TotalMilliseconds));
 		}
 
 		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
@@ -155,12 +155,13 @@ namespace FoundationDB.Client
 			return trans;
 		}
 
-		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code.
-		/// Valid parameter values are [-1, int.MaxValue].
-		/// If set to -1, will disable the retry limit.</summary>
+		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code.</summary>
+		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
+		/// <param name="retries">Number of times to retry. If set to -1, will disable the retry limit.</param>
 		public static TTransaction WithRetryLimit<TTransaction>(this TTransaction trans, int retries)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
+			Contract.GreaterOrEqual(retries, -1, nameof(retries));
 			trans.RetryLimit = retries;
 			return trans;
 		}
@@ -169,9 +170,12 @@ namespace FoundationDB.Client
 		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
 		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
 		/// </summary>
+		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
+		/// <param name="milliseconds">Maximum retry delay (in milliseconds)</param>
 		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, int milliseconds)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
+			Contract.Positive(milliseconds, nameof(milliseconds));
 			trans.MaxRetryDelay = milliseconds;
 			return trans;
 		}
@@ -180,10 +184,71 @@ namespace FoundationDB.Client
 		/// Defaults to 1000 ms. Valid parameter values are [TimeSpan.Zero, TimeSpan.MaxValue].
 		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
 		/// </summary>
+		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
+		/// <param name="delay">Maximum retry delay (rounded up to milliseconds)</param>
 		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, TimeSpan delay)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
-			return WithMaxRetryDelay<TTransaction>(trans, delay == TimeSpan.Zero ? 0 : (int)Math.Ceiling(delay.TotalMilliseconds));
+			return WithMaxRetryDelay(trans, delay == TimeSpan.Zero ? 0 : (int) Math.Ceiling(delay.TotalMilliseconds));
+		}
+
+		/// <summary>Set the transaction size limit in bytes.</summary>
+		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
+		/// <param name="limit">Value in bytes. This value must be at least 32 and cannot be set to higher than 10,000,000, the default transaction size limit.</param>
+		/// <remarks>The size is calculated by combining the sizes of all keys and values written or mutated, all key ranges cleared, and all read and write conflict ranges. (In other words, it includes the total size of all data included in the request to the cluster to commit the transaction.)
+		/// Large transactions can cause performance problems on FoundationDB clusters, so setting this limit to a smaller value than the default can help prevent the client from accidentally degrading the cluster's performance.</remarks>
+		public static TTransaction WithSizeLimit<TTransaction>(this TTransaction trans, int limit)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.SizeLimit, limit);
+			return trans;
+		}
+
+		/// <summary>Sets a client provided identifier for the transaction that will be used in scenarios like tracing or profiling.</summary>
+		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
+		/// <param name="id">String identifier to be used when tracing or profiling this transaction. The identifier must not exceed 100 characters.</param>
+		/// <remarks>Client trace logging or transaction profiling must be separately enabled.</remarks>
+		public static TTransaction WithDebugIdentifier<TTransaction>(this TTransaction trans, string id)
+			where TTransaction: IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.DebugTransactionIdentifier, id);
+			return trans;
+		}
+
+		/// <summary>Enables tracing for this transaction and logs results to the client trace logs.</summary>
+		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
+		/// <param name="maxFieldLength">If non-null, sets the maximum escaped length of key and value fields to be logged to the trace file via the LOG_TRANSACTION option, after which the field will be truncated. A negative value disables truncation.</param>
+		/// <remarks>The DEBUG_TRANSACTION_IDENTIFIER option must be set before using this option, and client trace logging must be enabled and to get log output.</remarks>
+		public static TTransaction WithTransactionLog<TTransaction>(this TTransaction trans, int? maxFieldLength = null)
+			where TTransaction: IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.LogTransaction);
+			if (maxFieldLength != null) trans.SetOption(FdbTransactionOption.TransactionLoggingMaxFieldLength, maxFieldLength.Value);
+			return trans;
+		}
+
+		/// <summary>No other transactions will be applied before this transaction within the same commit version.</summary>
+		public static TTransaction WithFirstInBatch<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.FirstInBatch);
+			return trans;
+		}
+
+		/// <summary>The transaction can read and write to locked databases, and is responsible for checking that it took the lock.</summary>
+		public static TTransaction WithLockAware<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.LockAware);
+			return trans;
+		}
+
+		/// <summary>The transaction can read from locked databases.</summary>
+		public static TTransaction WithReadLockAware<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.ReadLockAware);
+			return trans;
 		}
 
 		#endregion
