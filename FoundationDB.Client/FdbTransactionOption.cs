@@ -123,9 +123,10 @@ namespace FoundationDB.Client
 		/// <remarks>Parameter: (String) Optional transaction name</remarks>
 		DebugRetryLogging = 401,
 
-		/// <summary>Deprecated</summary>
+		/// <summary>Enables tracing for this transaction and logs results to the client traces logs.</summary>
 		/// <remarks>Parameter: (String) Optional transaction name</remarks>
-		[Obsolete("This option is not available anymore")]
+		/// <remarks>This option has been split into multiple sub-options: <see cref="DebugTransactionIdentifier"/> and <see cref="LogTransaction"/></remarks>
+		[Obsolete("This option is deprecated.")]
 		TransactionLoggingEnable = 402,
 
 		/// <summary>Sets a client provided identifier for the transaction that will be used in scenarios like tracing or profiling.
@@ -133,10 +134,10 @@ namespace FoundationDB.Client
 		/// <remarks>Parameter: (String) String identifier to be used when tracing or profiling this transaction. The identifier must not exceed 100 characters.</remarks>
 		DebugTransactionIdentifier = 403,
 
-		/// <summary>Enables tracing for this transaction and logs results to the client trace logs. The DEBUG_TRANSACTION_IDENTIFIER option must be set before using this option, and client trace logging must be enabled and to get log output.</summary>
+		/// <summary>Enables tracing for this transaction and logs results to the client trace logs. The <see cref="DebugTransactionIdentifier"/> option must be set before using this option, and client trace logging must be enabled and to get log output.</summary>
 		LogTransaction = 404,
 
-		/// <summary>Sets the maximum escaped length of key and value fields to be logged to the trace file via the LOG_TRANSACTION option, after which the field will be truncated. A negative value disables truncation.</summary>
+		/// <summary>Sets the maximum escaped length of key and value fields to be logged to the trace file via the <see cref="LogTransaction"/> option, after which the field will be truncated. A negative value disables truncation.</summary>
 		/// <remarks>Parameter: (Int32) Maximum length of escaped key and value fields.</remarks>
 		TransactionLoggingMaxFieldLength = 405,
 

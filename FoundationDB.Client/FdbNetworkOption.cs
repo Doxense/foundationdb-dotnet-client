@@ -177,7 +177,7 @@ namespace FoundationDB.Client
 		/// <summary>This option is set automatically on all clients loaded externally using the multi-version API.</summary>
 		ExternalClient = 1001,
 
-		/// <summary>This option tells a child on a multiversion client what transport ID to use.</summary>
+		/// <summary>This option tells a child on a multi-version client what transport ID to use.</summary>
 		ExternalClientTransportId = 1002,
 
 	}

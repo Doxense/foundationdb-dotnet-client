@@ -204,26 +204,17 @@ namespace FoundationDB.Client
 			return trans;
 		}
 
-		/// <summary>Sets a client provided identifier for the transaction that will be used in scenarios like tracing or profiling.</summary>
+		/// <summary>Enables tracing for this transaction and logs results to the client trace logs.</summary>
 		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
 		/// <param name="id">String identifier to be used when tracing or profiling this transaction. The identifier must not exceed 100 characters.</param>
-		/// <remarks>Client trace logging or transaction profiling must be separately enabled.</remarks>
-		public static TTransaction WithDebugIdentifier<TTransaction>(this TTransaction trans, string id)
+		/// <param name="maxFieldLength">If non-null, sets the maximum escaped length of key and value fields to be logged to the trace file via the LOG_TRANSACTION option, after which the field will be truncated. A negative value disables truncation.</param>
+		/// <remarks>Client trace logging must be enabled via <see cref="Fdb.Options.TracePath"/> before the network thread is started, in order to get log output.</remarks>
+		public static TTransaction WithTransactionLog<TTransaction>(this TTransaction trans, string id, int? maxFieldLength = null)
 			where TTransaction: IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.DebugTransactionIdentifier, id);
-			return trans;
-		}
-
-		/// <summary>Enables tracing for this transaction and logs results to the client trace logs.</summary>
-		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
-		/// <param name="maxFieldLength">If non-null, sets the maximum escaped length of key and value fields to be logged to the trace file via the LOG_TRANSACTION option, after which the field will be truncated. A negative value disables truncation.</param>
-		/// <remarks>The DEBUG_TRANSACTION_IDENTIFIER option must be set before using this option, and client trace logging must be enabled and to get log output.</remarks>
-		public static TTransaction WithTransactionLog<TTransaction>(this TTransaction trans, int? maxFieldLength = null)
-			where TTransaction: IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.LogTransaction);
 			if (maxFieldLength != null) trans.SetOption(FdbTransactionOption.TransactionLoggingMaxFieldLength, maxFieldLength.Value);
+			trans.SetOption(FdbTransactionOption.LogTransaction);
 			return trans;
 		}
 
