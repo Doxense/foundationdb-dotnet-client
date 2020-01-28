@@ -451,7 +451,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
 
-			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
+			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
 		}
 

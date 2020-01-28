@@ -209,7 +209,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
-			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: true);
+			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
 		}
 
@@ -220,7 +220,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
 
-			var data = FdbNative.ToNativeString(value, nullTerminated: true);
+			var data = FdbNative.ToNativeString(value, nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
 		}
 
