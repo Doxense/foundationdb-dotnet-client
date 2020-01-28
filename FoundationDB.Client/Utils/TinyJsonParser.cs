@@ -334,7 +334,7 @@ namespace FoundationDB.Client.Utils
 		public static Dictionary<string, object?>? ParseObject(string? jsonText)
 		{
 			if (string.IsNullOrEmpty(jsonText)) return null;
-			return ParseObject(jsonText);
+			return ParseObject(jsonText.AsMemory());
 		}
 
 		internal static Dictionary<string, object?>? ParseObject(ReadOnlyMemory<char> chars)
