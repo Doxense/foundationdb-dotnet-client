@@ -284,7 +284,11 @@ namespace FdbTop
 
 						if (saveNext)
 						{
-							System.IO.File.WriteAllText(@".\\status.json", status.RawText);
+							using (var fs = System.IO.File.Create(@".\\status.json"))
+							{
+								await fs.WriteAsync(status.RawData.Array, status.RawData.Offset, status.RawData.Count, cancel);
+								await fs.FlushAsync(cancel);
+							}
 							saveNext = false;
 						}
 

@@ -40,13 +40,13 @@ namespace FoundationDB.Client.Status
 	[PublicAPI]
 	public sealed class FdbSystemStatus : MetricsBase
 	{
-		internal FdbSystemStatus(Dictionary<string, object?>? doc, long readVersion, string raw)
+		internal FdbSystemStatus(Dictionary<string, object?>? doc, long readVersion, Slice raw)
 			: base(doc)
 		{
 			this.Client = new ClientStatus(TinyJsonParser.GetMapField(doc, "client"));
 			this.Cluster = new ClusterStatus(TinyJsonParser.GetMapField(doc, "cluster"));
 			this.ReadVersion = readVersion;
-			this.RawText = raw;
+			this.RawData = raw;
 		}
 
 		/// <summary>Details about the local Client</summary>
@@ -58,9 +58,9 @@ namespace FoundationDB.Client.Status
 		/// <summary>Read Version of the snapshot</summary>
 		public long ReadVersion { get; }
 
-		/// <summary>Raw JSON text of this snapshot.</summary>
+		/// <summary>Raw JSON data of this snapshot.</summary>
 		/// <remarks>This is the same value that is returned by running 'status json' in fdbcli</remarks>
-		public string RawText { get; }
+		public Slice RawData { get; }
 	}
 
 	#region Common...

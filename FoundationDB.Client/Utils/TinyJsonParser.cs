@@ -2,6 +2,7 @@
 namespace FoundationDB.Client.Utils
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
@@ -326,8 +327,28 @@ namespace FoundationDB.Client.Utils
 		public static Dictionary<string, object?>? ParseObject(Slice data)
 		{
 			if (data.Count == 0) return null;
-			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
-			return ParseObject(chars);
+
+			// The typical 'status json' payload is too large to be allocated on the stack,
+			// so we will use a pooled char[] buffer
+#if USE_SPAN_API
+			int charCount = Encoding.UTF8.GetCharCount(data.Span);
+#else
+			int charCount = Encoding.UTF8.GetCharCount(data.Array, data.Offset, data.Count);
+#endif
+			var chars = ArrayPool<char>.Shared.Rent(charCount);
+#if USE_SPAN_API
+			int n = Encoding.UTF8.GetChars(data.Span, chars.AsSpan());
+#else
+			int n = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count, chars, 0);
+#endif
+			if (n != charCount) throw new InvalidOperationException();
+
+			var obj = ParseObject(chars.AsMemory(0, charCount));
+
+			// we are done with the buffer
+			ArrayPool<char>.Shared.Return(chars);
+
+			return obj;
 		}
 
 		[ContractAnnotation("null => null")]
@@ -337,8 +358,10 @@ namespace FoundationDB.Client.Utils
 			return ParseObject(jsonText.AsMemory());
 		}
 
-		internal static Dictionary<string, object?>? ParseObject(ReadOnlyMemory<char> chars)
+		public static Dictionary<string, object?>? ParseObject(ReadOnlyMemory<char> chars)
 		{
+			if (chars.Length == 0) return null;
+
 			var parser = new TinyJsonParser(chars);
 			var token = parser.ReadToken();
 			if (token == Token.Eof) return null;
@@ -357,9 +380,24 @@ namespace FoundationDB.Client.Utils
 		{
 			if (data.Count == 0) return null;
 			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
+			return ParseArray(chars);
+		}
+
+		[ContractAnnotation("null => null")]
+		public static List<object?>? ParseArray(string? jsonText)
+		{
+			if (string.IsNullOrEmpty(jsonText)) return null;
+			return ParseArray(jsonText.AsMemory());
+		}
+
+		public static List<object?>? ParseArray(ReadOnlyMemory<char> chars)
+		{
+			if (chars.Length == 0) return null;
+
 			var parser = new TinyJsonParser(chars);
 			var token = parser.ReadToken();
 			if (token == Token.Eof) return null;
+
 			var array = (List<object?>?) parser.m_current;
 			if (token != Token.ArrayBegin) throw new FormatException("Invalid JSON document: array expected");
 			token = parser.ReadToken();

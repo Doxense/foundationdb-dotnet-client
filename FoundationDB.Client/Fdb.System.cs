@@ -104,9 +104,7 @@ namespace FoundationDB.Client
 
 				if (data.IsNullOrEmpty) return null;
 
-				string jsonText = data.ToUnicode()!;
-
-				var doc = TinyJsonParser.ParseObject(jsonText);
+				var doc = TinyJsonParser.ParseObject(data);
 				if (doc == null) return null;
 
 				long rv = 0;
@@ -115,7 +113,7 @@ namespace FoundationDB.Client
 					rv = await trans.GetReadVersionAsync();
 				}
 
-				return new FdbSystemStatus(doc, rv, jsonText);
+				return new FdbSystemStatus(doc, rv, data);
 			}
 
 			public static Task<FdbSystemStatus?> GetStatusAsync(IFdbDatabase db, CancellationToken ct)
