@@ -46,6 +46,9 @@ namespace FoundationDB.Client
 		/// <summary>Formatted path of this <code>Directory</code></summary>
 		string FullName { get; }
 
+		/// <summary>Gets the location that points to this <code>Directory</code></summary>
+		FdbDirectorySubspaceLocation Location { get; }
+
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
 		FdbDirectoryPath Path { get; }
 
@@ -54,18 +57,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Get the <code>DirectoryLayer</code> that was used to create this <code>Directory</code>.</summary>
 		FdbDirectoryLayer DirectoryLayer { get; }
-
-		/// <summary>Get the location of the sub-directory with the given path</summary>
-		FdbDirectorySubspaceLocation this[string segment] { get; }
-
-		/// <summary>Get the location of the sub-directory with the given path</summary>
-		FdbDirectorySubspaceLocation this[string segment, Slice layer] { get; }
-
-		/// <summary>Get the location of the sub-directory with the given path</summary>
-		FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] { get; }
-
-		/// <summary>Get the location of the sub-directory with the given path</summary>
-		FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath, Slice layer] { get; }
 
 		/// <summary>Opens a sub-directory with the given path.
 		/// If the sub-directory does not exist, it is created (creating intermediate subdirectories if necessary).

@@ -55,6 +55,9 @@ namespace FoundationDB.Client
 		/// <summary>Absolute path of this directory, from the root directory</summary>
 		public FdbDirectoryPath Path => this.Descriptor.Path;
 
+		/// <summary>Gets the location that points to this <code>Directory</code></summary>
+		public FdbDirectorySubspaceLocation Location => new FdbDirectorySubspaceLocation(this.Descriptor.Path, this.Layer);
+
 		/// <summary>Read Version of the transaction that produced this cached instance</summary>
 		internal long ReadVersion { get; set; }
 
@@ -72,18 +75,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Layer id of this directory</summary>
 		public Slice Layer => this.Descriptor.Layer;
-
-		/// <inheritdoc/>
-		FdbDirectorySubspaceLocation IFdbDirectory.this[string segment] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path[segment]);
-
-		/// <inheritdoc/>
-		FdbDirectorySubspaceLocation IFdbDirectory.this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path[segment], layer);
-
-		/// <inheritdoc/>
-		FdbDirectorySubspaceLocation IFdbDirectory.this[FdbDirectoryPath relativePath] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path.Add(relativePath));
-
-		/// <inheritdoc/>
-		FdbDirectorySubspaceLocation IFdbDirectory.this[FdbDirectoryPath relativePath, Slice layer] => new FdbDirectorySubspaceLocation(this.DirectoryLayer, this.Path.Add(relativePath), layer);
 
 		internal virtual FdbDirectorySubspace ChangeContext(ISubspaceContext context)
 		{

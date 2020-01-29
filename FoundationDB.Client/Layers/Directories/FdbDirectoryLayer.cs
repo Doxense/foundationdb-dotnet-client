@@ -97,6 +97,8 @@ namespace FoundationDB.Client
 		/// <remarks>Normally constructed <code>DirectoryLayer</code>s have an empty path, but <code>DirectoryLayer</code>s returned by <see cref="IFdbDirectory.DirectoryLayer"/> for <see cref="IFdbDirectory"/>s inside of a <see cref="FdbDirectoryPartition"/> could have non-empty paths.</remarks>
 		public FdbDirectoryPath Path { get; }
 
+		FdbDirectorySubspaceLocation IFdbDirectory.Location => new FdbDirectorySubspaceLocation(this.Path);
+
 		/// <summary>Returns the layer id for this <code>FdbDirectoryLayer</code>, which is always Slice.Empty.</summary>
 		Slice IFdbDirectory.Layer => Slice.Empty;
 
@@ -123,25 +125,6 @@ namespace FoundationDB.Client
 		{
 			throw ThrowHelper.NotSupportedException("You cannot change the layer of a Directory Layer.");
 		}
-
-		/// <summary>Return the location of the sub-directory with the given name</summary>
-		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segment));
-
-		/// <summary>Return the location of the sub-directory with the given name</summary>
-		public FdbDirectorySubspaceLocation this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segment), layer);
-
-		/// <summary>Return the location of the sub-directory with the given relative path</summary>
-		public FdbDirectorySubspaceLocation this[FdbDirectoryPath path] => new FdbDirectorySubspaceLocation(this, path);
-
-		/// <summary>Return the location of the sub-directory with the given relative path</summary>
-		public FdbDirectorySubspaceLocation this[FdbDirectoryPath path, Slice layer] => new FdbDirectorySubspaceLocation(this, path, layer);
-
-
-		/// <summary>Return the location of the sub-directory with the given relative path</summary>
-		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segments));
-
-		/// <summary>Return the location of the sub-directory with the given relative path</summary>
-		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments, Slice layer] => new FdbDirectorySubspaceLocation(this, FdbDirectoryPath.Combine(segments), layer);
 
 		#region Constructors...
 

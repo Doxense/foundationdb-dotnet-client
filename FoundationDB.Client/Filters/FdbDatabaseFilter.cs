@@ -107,7 +107,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc/>
-		public virtual FdbDirectoryLayer DirectoryLayer => this.Root.Directory;
+		public virtual FdbDirectoryLayer DirectoryLayer => m_database.DirectoryLayer;
 
 		/// <inheritdoc/>
 		public virtual bool IsReadOnly => m_readOnly;

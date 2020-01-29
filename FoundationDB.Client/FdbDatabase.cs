@@ -88,27 +88,28 @@ namespace FoundationDB.Client
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="root">Root location of this database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectorySubspaceLocation root, bool readOnly)
+		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(root, nameof(root));
+			Contract.Requires(handler != null && directory != null && root != null);
 
 			m_handler = handler;
 			m_readOnly = readOnly;
 			m_root = root;
-			m_directory = root.Directory;
+			m_directory = directory;
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
+		/// <param name="directory">Directory Layer instance used by this database instance</param>
 		/// <param name="root">Root location of the database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
-		public static FdbDatabase Create(IFdbDatabaseHandler handler, FdbDirectorySubspaceLocation root, bool readOnly)
+		public static FdbDatabase Create(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
 		{
 			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(directory, nameof(directory));
 			Contract.NotNull(root, nameof(root));
 
-			return new FdbDatabase(handler, root, readOnly);
+			return new FdbDatabase(handler, directory, root, readOnly);
 		}
 
 		#endregion
