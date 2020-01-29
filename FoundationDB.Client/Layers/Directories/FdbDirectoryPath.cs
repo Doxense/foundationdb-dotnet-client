@@ -376,14 +376,25 @@ namespace FoundationDB.Client
 			return this.Segments.Span.SequenceEqual(other.Segments.Span);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(FdbDirectoryPath left, FdbDirectoryPath right)
 		{
 			return left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(FdbDirectoryPath left, FdbDirectoryPath right)
 		{
 			return !left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbDirectoryPath operator +(FdbDirectoryPath head, FdbDirectoryPath tail)
+			=> head.Add(tail);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbDirectoryPath operator +(FdbDirectoryPath path, string segment)
+			=> path.Add(segment);
+
 	}
 }
