@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Allocators
 
 	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
 	[DebuggerDisplay("Location={" + nameof(Location) + "}")]
-	public sealed class FdbHighContentionAllocator
+	public sealed class FdbHighContentionAllocator : IFdbLayer<FdbHighContentionAllocator.State>
 	{
 		private const int COUNTERS = 0;
 		private const int RECENT = 1;

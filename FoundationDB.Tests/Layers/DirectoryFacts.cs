@@ -66,16 +66,10 @@ namespace FoundationDB.Client.Tests
 
 				var hpa = new FdbHighContentionAllocator(location);
 
-				long id;
 				var ids = new HashSet<long>();
 
 				// allocate a single new id
-				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
-				{
-					var state = await hpa.Resolve(tr);
-					id = await state.AllocateAsync(tr);
-					await tr.CommitAsync();
-				}
+				long id = await hpa.ReadWriteAsync(logged, (tr, state) => state.AllocateAsync(tr), this.Cancellation);
 				ids.Add(id);
 
 				await DumpSubspace(db, location);
@@ -83,13 +77,7 @@ namespace FoundationDB.Client.Tests
 				// allocate a batch of new ids
 				for (int i = 0; i < 100; i++)
 				{
-					using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
-					{
-						var state = await hpa.Resolve(tr);
-						id = await state.AllocateAsync(tr);
-						await tr.CommitAsync();
-					}
-
+					id = await hpa.ReadWriteAsync(logged, (tr, state) => state.AllocateAsync(tr), this.Cancellation);
 					if (ids.Contains(id))
 					{
 						await DumpSubspace(db, location);
@@ -614,8 +602,6 @@ namespace FoundationDB.Client.Tests
 					Assert.That(partition.FullName, Is.EqualTo("Foo$"));
 					Assert.That(partition.Path, Is.EqualTo(new[] { "Foo$" }), "Partition's path should be absolute");
 					Assert.That(partition.DirectoryLayer, Is.SameAs(directory), "Partitions share the same DL");
-					//Assert.That((await partition.DirectoryLayer.Content.Resolve(tr)).GetPrefix(), Is.EqualTo(partitionKey), "Partition's content should be under the partition's prefix");
-					//Assert.That((await partition.DirectoryLayer.Nodes.Resolve(tr)).GetPrefix(), Is.EqualTo(partitionKey + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
 
 					Log("Creating sub-directory Bar under partition Foo$ ...");
 					var bar = await partition.CreateAsync(tr, "Bar");
@@ -955,8 +941,8 @@ namespace FoundationDB.Client.Tests
 
 				var logged = db;
 
-				var directory = FdbDirectoryLayer.Create(location);
-				Dump(directory);
+				var directoryLayer = FdbDirectoryLayer.Create(location);
+				Dump(directoryLayer);
 
 				// the constraint will always be the same for all the checks
 				void ShouldFail<T>(ActualValueDelegate<T> del)
@@ -971,7 +957,7 @@ namespace FoundationDB.Client.Tests
 
 				await logged.WriteAsync(async tr =>
 				{
-					var partition = await directory.CreateAsync(tr, "Foo", Slice.FromStringAscii("partition"));
+					var partition = await directoryLayer.CreateAsync(tr, "Foo", Slice.FromStringAscii("partition"));
 					Log($"Partition: {partition.Descriptor.Prefix:K}");
 					//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
 					var subdir = await partition.CreateOrOpenAsync(tr, "Bar");
@@ -1007,7 +993,7 @@ namespace FoundationDB.Client.Tests
 					// Keys
 
 					ShouldFail(() => partition.Append(Slice.FromString("hello")));
-					var subspace = await location.Resolve(tr);
+					var subspace = await location.Resolve(tr, directoryLayer);
 					ShouldFail(() => partition.Append(subspace.GetPrefix()));
 					ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
@@ -1116,11 +1102,11 @@ namespace FoundationDB.Client.Tests
 				// but using strings so that they do not collide with the integers used by the normal allocator
 				// ie: regular prefix would be ("DL", 123) and our custom prefixes will be ("DL", "abc")
 
-				var directory = FdbDirectoryLayer.Create(location);
-				Dump(directory);
+				var directoryLayer = FdbDirectoryLayer.Create(location);
+				Dump(directoryLayer);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
-				await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, "Zero"), this.Cancellation);
+				await logged.ReadWriteAsync(tr => directoryLayer.CreateAsync(tr, "Zero"), this.Cancellation);
 
 				var logdb = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 
@@ -1138,13 +1124,13 @@ namespace FoundationDB.Client.Tests
 							tr2.GetReadVersionAsync()
 						);
 
-						var subspace1 = await location.Resolve(tr1);
-						var subspace2 = await location.Resolve(tr2);
+						var subspace1 = await location.Resolve(tr1, directoryLayer);
+						var subspace2 = await location.Resolve(tr2, directoryLayer);
 
-						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, subspace1.Encode("abc"));
+						var first = await directoryLayer.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, subspace1.Encode("abc"));
 						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
 
-						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, subspace2.Encode("def"));
+						var second = await directoryLayer.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, subspace2.Encode("def"));
 						tr2.Set(second.GetPrefix(), Value("This belongs to the second directory"));
 
 						Log("Committing T1...");
@@ -1414,13 +1400,13 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				var directory = FdbDirectoryLayer.Create(location);
+				var directoryLayer = FdbDirectoryLayer.Create(location);
 
-				var dir = directory["Hello"]["World"];
+				var dir = new FdbDirectorySubspaceLocation(FdbDirectoryPath.Combine("Hello", "World"));
 
 				// create the corresponding location
 				Log("Creating " + dir);
-				var prefix = await logged.ReadWriteAsync(async tr => (await directory.CreateAsync(tr, dir.Path)).GetPrefix(), this.Cancellation);
+				var prefix = await logged.ReadWriteAsync(async tr => (await directoryLayer.CreateAsync(tr, dir.Path)).GetPrefix(), this.Cancellation);
 				Log("> Created under " + prefix);
 
 				await DumpSubspace(db, location);
@@ -1429,7 +1415,7 @@ namespace FoundationDB.Client.Tests
 				await logged.ReadAsync(async tr =>
 				{
 					Log("Resolving " + dir);
-					var subspace = await dir.Resolve(tr);
+					var subspace = await dir.Resolve(tr, directoryLayer);
 					Assert.That(subspace, Is.Not.Null);
 					Assert.That(subspace.Path, Is.EqualTo(dir.Path), ".Path");
 					Log("> Found under " + subspace.GetPrefix());
@@ -1439,7 +1425,7 @@ namespace FoundationDB.Client.Tests
 				// resolving again should return a cached version
 				await logged.ReadAsync(async tr =>
 				{
-					var subspace = await dir.Resolve(tr);
+					var subspace = await dir.Resolve(tr, directoryLayer);
 					Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
 				}, this.Cancellation);
 

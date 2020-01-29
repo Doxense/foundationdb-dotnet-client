@@ -52,7 +52,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.ClusterFile, Is.Null, ".ClusterFile");
 				Assert.That(db.Root, Is.Not.Null, ".Root");
-				Assert.That(db.DirectoryLayer, Is.Not.Null.And.SameAs(db.Root.Directory), ".DirectoryLayer");
+				Assert.That(db.Root.Path, Is.EqualTo(FdbDirectoryPath.Empty));
 				Assert.That(db.IsReadOnly, Is.False, ".IsReadOnly");
 			}
 		}

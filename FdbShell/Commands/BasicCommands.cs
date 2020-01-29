@@ -34,7 +34,7 @@ namespace FdbShell
 			}
 			else
 			{
-				return location.Directory;
+				return location;
 			}
 		}
 
@@ -113,13 +113,13 @@ namespace FdbShell
 
 			(var prefix, var created) = await db.ReadWriteAsync(async tr =>
 			{
-				var folder = await location.Directory.TryOpenAsync(tr, location.Path);
+				var folder = await location.TryOpenAsync(tr);
 				if (folder != null)
 				{
 					return (folder.GetPrefix(), false);
 				}
 
-				folder = await location.Directory.TryCreateAsync(tr, location.Path, Slice.FromString(layer));
+				folder = await location.TryCreateAsync(tr, layer: Slice.FromString(layer));
 				return (folder.GetPrefix(), true);
 			}, ct);
 
@@ -193,24 +193,23 @@ namespace FdbShell
 		/// <summary>Move/Rename a directory</summary>
 		public static async Task MoveDirectory(FdbDirectorySubspaceLocation source, FdbDirectorySubspaceLocation destination, IVarTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			Contract.Requires(source.Directory == destination.Directory);
 			await db.WriteAsync(async tr =>
 			{
-				var folder = await source.Directory.TryOpenAsync(tr, source.Path);
+				var folder = await source.TryOpenAsync(tr);
 				if (folder == null)
 				{
 					Program.Error(log, $"# Source directory /{string.Join("/", source)} does not exist!");
 					return;
 				}
 
-				folder = await destination.Directory.TryOpenAsync(tr, destination.Path);
+				folder = await destination.TryOpenAsync(tr);
 				if (folder != null)
 				{
 					Program.Error(log, $"# Destination directory /{string.Join("/", destination)} already exists!");
 					return;
 				}
 
-				await source.Directory.MoveAsync(tr, source.Path, destination.Path);
+				await source.MoveToAsync(tr, destination.Path);
 			}, ct);
 			Program.Success(log, $"Moved /{string.Join("/", source)} to {string.Join("/", destination)}");
 		}
@@ -669,7 +668,7 @@ namespace FdbShell
 			FdbDirectorySubspace root = null;
 			if (location.Path.Count != 0)
 			{
-				root = await db.ReadAsync(tr => location.Directory.TryOpenAsync(tr, location.Path), ct);
+				root = await db.ReadAsync(tr => location.TryOpenAsync(tr), ct);
 				if (root == null)
 				{
 					log.WriteLine("Folder not found.");
