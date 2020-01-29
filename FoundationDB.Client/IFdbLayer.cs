@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Represents a FoundationDB Layer that uses a metadata cache to speed up operations</summary>
@@ -53,4 +54,146 @@ namespace FoundationDB.Client
 		/// </remarks>
 		ValueTask<TState> Resolve(IFdbReadOnlyTransaction tr);
 	}
+
+
+	/// <summary>Set of helper methods for working with <see cref="IFdbLayer{TState}"/> instances</summary>
+	public static class FdbLayerExtensions
+	{
+
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="layer">Layer that will be resolved using the transaction, and will be passed as the second argument to <paramref name="handler"/>.</param>
+		/// <param name="db">Database instance that will be used to start the transaction</param>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
+		/// <remarks>
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		public static Task<TResult> ReadAsync<TLayer, TResult>(
+			this IFdbLayer<TLayer> layer,
+			IFdbReadOnlyRetryable db,
+			Func<IFdbReadOnlyTransaction, TLayer, Task<TResult>> handler,
+			CancellationToken ct)
+		{
+			return db.ReadAsync(
+				(layer, handler),
+				async (tr, s) =>
+				{
+					var state = await (s.layer).Resolve(tr);
+					return await s.handler(tr, state);
+				},
+				ct);
+		}
+
+		/// <summary>Run an idempotent transaction block inside a read-only transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="layer">Layer that will be resolved using the transaction, and will be passed as the second argument to <paramref name="handler"/>.</param>
+		/// <param name="db">Database instance that will be used to start the transaction</param>
+		/// <param name="handler">Idempotent handler that will only read from the database, and may be retried if a recoverable error occurs.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Task that succeeds if no error occurred during execution of <paramref name="handler"/>.</returns>
+		/// <remarks>
+		/// Since the method does not result any result, it should only be used to verify the content of the database.
+		/// Any attempt to write or commit using the transaction will throw.
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		public static Task ReadAsync<TLayer>(
+			this IFdbLayer<TLayer> layer,
+			IFdbReadOnlyRetryable db,
+			Func<IFdbReadOnlyTransaction, TLayer, Task> handler,
+			CancellationToken ct)
+		{
+			return db.ReadAsync(
+				(layer, handler),
+				async (tr, s) =>
+				{
+					var state = await (s.layer).Resolve(tr);
+					await s.handler(tr, state);
+				},
+				ct);
+		}
+
+		/// <summary>Run an idempotent transaction block inside a writable transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="layer">Layer that will be resolved using the transaction, and will be passed as the second argument to <paramref name="handler"/>.</param>
+		/// <param name="db">Database instance that will be used to start the transaction</param>
+		/// <param name="handler">Idempotent handler that will attempt to mutate the database, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		public static Task<TResult> ReadWriteAsync<TLayer, TResult>(
+			this IFdbLayer<TLayer> layer,
+			IFdbRetryable db,
+			Func<IFdbTransaction, TLayer, Task<TResult>> handler,
+			CancellationToken ct)
+		{
+			return db.ReadWriteAsync(
+				(layer, handler),
+				async (tr, s) =>
+				{
+					var state = await (s.layer).Resolve(tr);
+					return await s.handler(tr, state);
+				},
+				ct);
+		}
+
+		/// <summary>Run an idempotent transaction block inside a writable transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="layer">Layer that will be resolved using the transaction, and will be passed as the second argument to <paramref name="handler"/>.</param>
+		/// <param name="db">Database instance that will be used to start the transaction</param>
+		/// <param name="handler">Idempotent handler that will attempt to mutate the database, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		public static Task WriteAsync<TLayer>(
+			this IFdbLayer<TLayer> layer,
+			IFdbRetryable db,
+			Action<IFdbTransaction, TLayer> handler,
+			CancellationToken ct)
+		{
+			return db.WriteAsync(
+				(layer, handler),
+				async (tr, s) =>
+				{
+					var state = await (s.layer).Resolve(tr);
+					s.handler(tr, state);
+				},
+				ct);
+		}
+
+		/// <summary>Run an idempotent transaction block inside a writable transaction, which can be executed more than once if any retryable error occurs.</summary>
+		/// <param name="layer">Layer that will be resolved using the transaction, and will be passed as the second argument to <paramref name="handler"/>.</param>
+		/// <param name="db">Database instance that will be used to start the transaction</param>
+		/// <param name="handler">Idempotent handler that will attempt to mutate the database, and may be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="ct">Token used to cancel the operation</param>
+		/// <remarks>
+		/// You do not need to commit the transaction inside the handler, it will be done automatically!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// You must wait for the Task to complete successfully before updating the global state of the application.
+		/// </remarks>
+		public static Task WriteAsync<TLayer>(
+			this IFdbLayer<TLayer> layer,
+			IFdbRetryable db,
+			Func<IFdbTransaction, TLayer, Task> handler,
+			CancellationToken ct)
+		{
+			return db.WriteAsync(
+				(layer, handler),
+				async (tr, s) =>
+				{
+					var state = await (s.layer).Resolve(tr);
+					await s.handler(tr, state);
+				},
+				ct);
+		}
+
+	}
+
 }

@@ -68,7 +68,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// Since the method does not result any result, it should only be used to verify the content of the database.
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct);
@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// Since the method does not result any result, it should only be used to verify the content of the database.
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task ReadAsync<TState>(TState state, Func<IFdbReadOnlyTransaction, TState, Task> handler, CancellationToken ct);
@@ -92,7 +92,7 @@ namespace FoundationDB.Client
 		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct);
@@ -104,7 +104,7 @@ namespace FoundationDB.Client
 		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task<TResult> ReadAsync<TState, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TResult>> handler, CancellationToken ct);
@@ -116,7 +116,7 @@ namespace FoundationDB.Client
 		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct);
@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct);
@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
@@ -153,7 +153,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// Any attempt to write or commit using the transaction will throw.
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda!
 		/// You must wait for the Task to complete successfully before updating the global state of the application.
 		/// </remarks>
 		Task<TResult> ReadAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
