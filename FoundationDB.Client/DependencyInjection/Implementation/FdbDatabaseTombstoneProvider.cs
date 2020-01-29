@@ -76,7 +76,7 @@ namespace FoundationDB.DependencyInjection
 			}
 		}
 
-		public FdbDirectoryPath Root
+		public FdbDirectorySubspaceLocation Root
 		{
 			get
 			{

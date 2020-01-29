@@ -52,7 +52,7 @@ namespace FoundationDB.DependencyInjection
 
 		private Exception? Error { get; set;}
 
-		public FdbDirectoryPath Root => this.Options.ConnectionOptions.Root;
+		public FdbDirectorySubspaceLocation Root { get; }
 
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
@@ -64,6 +64,7 @@ namespace FoundationDB.DependencyInjection
 		{
 			Contract.NotNull(optionsAccessor, nameof(optionsAccessor));
 			this.Options = optionsAccessor.Value;
+			this.Root = new FdbDirectorySubspaceLocation(this.Options.ConnectionOptions.Root);
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
 

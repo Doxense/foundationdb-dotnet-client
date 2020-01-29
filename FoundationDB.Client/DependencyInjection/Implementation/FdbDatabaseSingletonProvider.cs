@@ -87,7 +87,7 @@ namespace FoundationDB.DependencyInjection
 		public CancellationToken Cancellation => this.Lifetime.Token;
 
 		/// <inheritdoc />
-		public FdbDirectoryPath Root => EnsureReady().Db.Root.Path;
+		public FdbDirectorySubspaceLocation Root => EnsureReady().Db.Root;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private Scope EnsureReady()

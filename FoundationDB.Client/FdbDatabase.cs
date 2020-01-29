@@ -475,11 +475,8 @@ namespace FoundationDB.Client
 
 		#region Key Space Management...
 
-		/// <inheritdoc />
+		/// <summary>Returns the root path used by this database instance</summary>
 		public FdbDirectorySubspaceLocation Root => m_root;
-
-		/// <inheritdoc />
-		FdbDirectoryPath IFdbDatabaseScopeProvider.Root => m_root.Path;
 
 		#endregion
 

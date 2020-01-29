@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 		ValueTask<IFdbDatabase> GetDatabase(CancellationToken ct);
 
 		/// <summary>Path to the root of the database</summary>
-		FdbDirectoryPath Root { get; }
+		FdbDirectorySubspaceLocation Root { get; }
 
 		/// <summary>Create a scope that will use the database provided by this instance, and which also needs to perform some initialization steps before being ready (ex: using the DirectoryLayer to open subspaces, ...)</summary>
 		/// <param name="start">Handler that will be called AFTER the database becomes ready, but BEFORE any consumer of this scope can run.</param>

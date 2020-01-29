@@ -77,7 +77,7 @@ namespace FoundationDB.DependencyInjection
 		public CancellationToken Cancellation => this.LifeTime.Token;
 
 		/// <inheritdoc />
-		public FdbDirectoryPath Root => this.Parent.Root;
+		public FdbDirectorySubspaceLocation Root => this.Parent.Root;
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private void UpdateInternalState(IFdbDatabase? db, [AllowNull] TState state, Exception? error)
