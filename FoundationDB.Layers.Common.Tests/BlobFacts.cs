@@ -48,23 +48,8 @@ namespace FoundationDB.Layers.Blobs.Tests
 
 				var blob = new FdbBlob(location.ByKey("Empty"));
 
-				long? size;
-
-				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
-				{
-					var metadata = await blob.Resolve(tr);
-
-					size = await metadata.GetSizeAsync(tr);
-					Assert.That(size, Is.Null, "Non existing blob should have no size");
-				}
-
-				size = await db.ReadAsync(async (tr) =>
-				{
-					var metadata = await blob.Resolve(tr);
-					return await metadata.GetSizeAsync(tr);
-				}, this.Cancellation);
+				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
 				Assert.That(size, Is.Null, "Non existing blob should have no size");
-
 			}
 		}
 
@@ -78,31 +63,27 @@ namespace FoundationDB.Layers.Blobs.Tests
 
 				var blob = new FdbBlob(location);
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				Log("Insert blob in 3 chunks...");
+				await blob.WriteAsync(db, async (tr, state) =>
 				{
-					var metadata = await blob.Resolve(tr);
+					await state.AppendAsync(tr, Value("Attack"));
+					await state.AppendAsync(tr, Value(" of the "));
+					await state.AppendAsync(tr, Value("Blobs!"));
 
-					await metadata.AppendAsync(tr, Value("Attack"));
-					await metadata.AppendAsync(tr, Value(" of the "));
-					await metadata.AppendAsync(tr, Value("Blobs!"));
-
-					await tr.CommitAsync();
-				}
-
+				}, this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
-				{
-					var metadata = await blob.Resolve(tr);
+				Log("Checking blob size...");
+				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
+				Log($"> {size:N0}");
+				Assert.That(size, Is.EqualTo(20));
 
-					long? size = await metadata.GetSizeAsync(tr);
-					Assert.That(size, Is.EqualTo(20));
-
-					var data = await metadata.ReadAsync(tr, 0, (int)(size ?? 0));
-					Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
-				}
+				Log("Checking blob content...");
+				var data = await blob.ReadAsync(db, (tr, state) => state.ReadAsync(tr, 0, (int) (size ?? 0)), this.Cancellation);
+				Log($"> {data.Count:N0} bytes");
+				Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
 
 			}
 		}
@@ -117,33 +98,31 @@ namespace FoundationDB.Layers.Blobs.Tests
 
 				var blob = new FdbBlob(location.ByKey("BigBlob"));
 
-				var data = new byte[100 * 1000];
-				for (int i = 0; i < data.Length; i++) data[i] = (byte)i;
+				var data = Slice.Zero(100_000);
+				for (int i = 0; i < data.Count; i++) data.Array[data.Offset + i] = (byte)i;
 
+				Log("Construct blob by appending chunks...");
 				for (int i = 0; i < 50; i++)
 				{
-					using (var tr = await db.BeginTransactionAsync(this.Cancellation))
-					{
-						var metadata = await blob.Resolve(tr);
-						await metadata.AppendAsync(tr, data.AsSlice());
-						await tr.CommitAsync();
-					}
+					await blob.WriteAsync(db, (tr, state) => state.AppendAsync(tr, data), this.Cancellation);
 				}
 
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				Log("Reading blob size:");
+				long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);;
+				Log($"> {size:N0}");
+				Assert.That(size, Is.EqualTo(50 * data.Count));
+
+				Log("Reading blob content:");
+				var s = await blob.ReadAsync(db, (tr, state) => state.ReadAsync(tr, 1234567, 1_000_000), this.Cancellation);
+				Log($"> {s.Count:N0} bytes");
+				Assert.That(s.Count, Is.EqualTo(1_000_000));
+
+				// should contains the correct data
+				for (int i = 0; i < s.Count; i++)
 				{
-					var metadata = await blob.Resolve(tr);
-
-					long? size = await metadata.GetSizeAsync(tr);
-					Assert.That(size, Is.EqualTo(50 * data.Length));
-
-					var s = await metadata.ReadAsync(tr, 1234567, 1 * 1000 * 1000);
-					Assert.That(s.Count, Is.EqualTo(1 * 1000 * 1000));
-
-					// should contains the correct data
-					for (int i = 0; i < s.Count; i++)
+					if (s[i] != (byte) ((1234567 + i) % data.Count))
 					{
-						if (s.Array[i + s.Offset] != (byte)((1234567 + i) % data.Length)) Assert.Fail("Corrupted blob chunk at " + i + ": " + s[i, i + 128].ToString());
+						Assert.Fail($"Corrupted blob chunk at {i}: {s[i, i + 128]}");
 					}
 				}
 

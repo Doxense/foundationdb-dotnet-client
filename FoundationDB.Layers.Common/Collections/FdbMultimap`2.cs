@@ -95,13 +95,12 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="value">Value for the <paramref name="key"/> to increment</param>
 			/// <remarks>If the (index, value) pair does not exist, its value is considered to be 0</remarks>
 			/// <exception cref="System.ArgumentNullException">If <paramref name="trans"/> is null.</exception>
-			public Task AddAsync(IFdbTransaction trans, TKey key, TValue value)
+			public void Add(IFdbTransaction trans, TKey key, TValue value)
 			{
 				//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 				trans.AtomicIncrement64(this.Subspace[key, value]);
-				return Task.CompletedTask;
 			}
 
 			/// <summary>Decrements the count of an (index, value) pair in the multimap, and optionally removes it if the count reaches zero.</summary>
@@ -109,31 +108,12 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="key">Key of the entry</param>
 			/// <param name="value">Value for the <paramref name="key"/> to decrement</param>
 			/// <remarks>If the updated count reaches zero or less, and AllowNegativeValues is not set, the key will be cleared from the map.</remarks>
-			public async Task SubtractAsync(IFdbTransaction trans, TKey key, TValue value)
+			public void Subtract(IFdbTransaction trans, TKey key, TValue value)
 			{
 				if (trans == null) throw new ArgumentNullException(nameof(trans));
 
-				var k = this.Subspace[key, value];
-				if (this.AllowNegativeValues)
-				{
-					trans.AtomicDecrement64(k);
-					// note: it's faster, but we will end up with counts less than or equal to 0
-					// If 'k' does not already exist, its count will be set to -1
-				}
-				else
-				{
-					var v = await trans.GetAsync(k).ConfigureAwait(false);
-					if (this.AllowNegativeValues || v.ToInt64() > 1) //note: Slice.Nil.ToInt64() will return 0
-					{
-						trans.AtomicDecrement64(k);
-						//note: since we already read 'k', the AtomicAdd will be optimized into the equivalent of Set(k, v - 1) by the client, unless RYW has been disabled on the transaction
-						//TODO: if AtomicMax ever gets implemented, we could use it to truncate the values to 0
-					}
-					else
-					{
-						trans.Clear(k);
-					}
-				}
+				// decrement, and optionally clear the key if it reaches zero
+				trans.AtomicDecrement64(this.Subspace[key, value], clearIfZero: !this.AllowNegativeValues);
 			}
 
 			/// <summary>Checks if a (key, value) pair exists</summary>

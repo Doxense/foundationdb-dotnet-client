@@ -53,9 +53,8 @@ namespace FoundationDB.Layers.Interning.Tests
 				var stringTable = new FdbStringIntern(stringSpace);
 
 				// insert a bunch of strings
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				await stringTable.WriteAsync(db, async (tr, table) =>
 				{
-					var table = await stringTable.Resolve(tr);
 					Assert.That(table, Is.Not.Null);
 					var va = await table.InternAsync(tr, "testing 123456789");
 					var vb = await table.InternAsync(tr, "dog");
@@ -69,9 +68,7 @@ namespace FoundationDB.Layers.Interning.Tests
 					tr.Set(subspace["c"], vc);
 					tr.Set(subspace["d"], vd);
 					tr.Set(subspace["e"], ve);
-
-					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, stringSpace);
@@ -79,7 +76,7 @@ namespace FoundationDB.Layers.Interning.Tests
 #endif
 
 				// check the contents of the data
-				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				await stringTable.ReadAsync(db, async (tr, table) =>
 				{
 					var subspace = await dataSpace.Resolve(tr);
 					var uid_a = await tr.GetAsync(subspace["a"]);
@@ -99,7 +96,6 @@ namespace FoundationDB.Layers.Interning.Tests
 					Assert.That(uid_e, Is.EqualTo(uid_d));
 
 					// perform a lookup
-					var table = await stringTable.Resolve(tr);
 					var str_a = await table.LookupAsync(tr, uid_a);
 					var str_b = await table.LookupAsync(tr, uid_b);
 					var str_c = await table.LookupAsync(tr, uid_c);
@@ -111,7 +107,7 @@ namespace FoundationDB.Layers.Interning.Tests
 					Assert.That(str_c, Is.EqualTo(str_a));
 					Assert.That(str_d, Is.EqualTo("cat"));
 					Assert.That(str_e, Is.EqualTo(str_d));
-				}
+				}, this.Cancellation);
 
 				stringTable.Dispose();
 			}

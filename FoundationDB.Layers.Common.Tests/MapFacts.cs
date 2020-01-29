@@ -55,10 +55,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				string secret = "world:" + Guid.NewGuid().ToString();
 
 				// read non existing value
-				await db.WriteAsync(async tr =>
+				await mapFoos.WriteAsync(db, async (tr, foos) =>
 				{
-					var foos = await mapFoos.Resolve(tr);
-
 					Assert.That(async () => await foos.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
 					var value = await foos.TryGetAsync(tr, "hello");
@@ -67,21 +65,14 @@ namespace FoundationDB.Layers.Collections.Tests
 				}, this.Cancellation);
 
 				// write value
-				await db.WriteAsync(async tr =>
-				{
-					var foos = await mapFoos.Resolve(tr);
-					foos.Set(tr, "hello", secret);
-				}, this.Cancellation);
-
-#if DEBUG
+				await mapFoos.WriteAsync(db, (tr, foos) => foos.Set(tr, "hello", secret), this.Cancellation);
+#if FULL_DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// read value back
-				await db.ReadAsync(async tr =>
+				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var foos = await mapFoos.Resolve(tr);
-
 					var value = await foos.GetAsync(tr, "hello");
 					Assert.That(value, Is.EqualTo(secret));
 
@@ -91,31 +82,22 @@ namespace FoundationDB.Layers.Collections.Tests
 				}, this.Cancellation);
 
 				// directly read the value, behind the table's back
-				await db.ReadAsync(async tr =>
+				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var folder = await location.Resolve(tr);
-
-					var value = await tr.GetAsync(folder.Encode("Foos", "hello"));
+					var value = await tr.GetAsync(foos.Subspace.AsDynamic().Encode("Foos", "hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}, this.Cancellation);
 
 				// delete the value
-				await db.WriteAsync(async tr =>
-				{
-					var foos = await mapFoos.Resolve(tr);
-					foos.Remove(tr, "hello");
-				}, this.Cancellation);
-
-#if DEBUG
+				await mapFoos.WriteAsync(db, (tr, foos) => foos.Remove(tr, "hello"), this.Cancellation);
+#if FULL_DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// verifiy that it is gone
-				await db.ReadAsync(async tr =>
+				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var foos = await mapFoos.Resolve(tr);
-
 					Assert.That(async () => await foos.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
 					var value = await foos.TryGetAsync(tr, "hello");
@@ -142,23 +124,19 @@ namespace FoundationDB.Layers.Collections.Tests
 				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
 
 				// write a bunch of keys
-				await db.WriteAsync(async (tr) =>
+				await mapFoos.WriteAsync(db, (tr, foos) =>
 				{
-					var foos = await mapFoos.Resolve(tr);
 					foos.Set(tr, "foo", "foo_value");
 					foos.Set(tr, "bar", "bar_value");
 				}, this.Cancellation);
-
-#if DEBUG
+#if FULL_DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// read them back
 
-				await db.ReadAsync(async tr =>
+				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var foos = await mapFoos.Resolve(tr);
-
 					var value = await foos.GetAsync(tr, "foo");
 					Assert.That(value, Is.EqualTo("foo_value"));
 
@@ -206,25 +184,21 @@ namespace FoundationDB.Layers.Collections.Tests
 				var mapHosts = new FdbMap<IPEndPoint, string>(location.ByKey("Hosts").AsTyped<IPEndPoint>(keyEncoder), BinaryEncoding.StringEncoder);
 
 				// import all the rules
-				await db.WriteAsync(async (tr) =>
+				await mapHosts.WriteAsync(db, (tr, hosts) =>
 				{
-					var hosts = await mapHosts.Resolve(tr);
 					foreach(var rule in rules)
 					{
 						hosts.Set(tr, rule.Key, rule.Value);
 					}
 				}, this.Cancellation);
-
-#if DEBUG
+#if FULL_DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// test the rules
 
-				await db.ReadAsync(async tr =>
+				await mapHosts.ReadAsync(db, async (tr, hosts) =>
 				{
-					var hosts = await mapHosts.Resolve(tr);
-
 					var value = await hosts.GetAsync(tr, new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667));
 					Assert.That(value, Is.EqualTo("block"));
 

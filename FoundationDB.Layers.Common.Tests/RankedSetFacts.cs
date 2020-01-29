@@ -50,20 +50,16 @@ namespace FoundationDB.Layers.Collections.Tests
 				await CleanLocation(db, location);
 
 				var rankedSet = new FdbRankedSet(location);
+				await db.WriteAsync(tr => rankedSet.OpenAsync(tr), this.Cancellation);
 
-				await db.WriteAsync(async (tr) =>
-				{
-					await rankedSet.OpenAsync(tr);
-					var state = await rankedSet.Resolve(tr);
-					await PrintRankedSet(state, tr);
-				}, this.Cancellation);
-
+				Log(await rankedSet.ReadAsync(db, (tr, state) => PrintRankedSet(state, tr), this.Cancellation));
 				Log();
+
 				var rnd = new Random();
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < 100; i++)
 				{
-					Log("\rInserting " + i);
+					//Log("Inserting " + i);
 					await db.WriteAsync(async tr =>
 					{
 						var state = await rankedSet.Resolve(tr);
@@ -71,13 +67,12 @@ namespace FoundationDB.Layers.Collections.Tests
 					}, this.Cancellation);
 				}
 				sw.Stop();
-				Log($"\rDone in {sw.Elapsed.TotalSeconds:N3} sec");
+				Log($"Done in {sw.Elapsed.TotalSeconds:N3} sec");
+#if FULL_DEBUG
+				await DumpSubspace(db, location);
+#endif
 
-				Log(await db.ReadAsync(async tr =>
-				{
-					var state = await rankedSet.Resolve(tr);
-					return await PrintRankedSet(state, tr);
-				}, this.Cancellation));
+				Log(await rankedSet.ReadAsync(db, (tr, state) => PrintRankedSet(state, tr), this.Cancellation));
 			}
 		}
 
