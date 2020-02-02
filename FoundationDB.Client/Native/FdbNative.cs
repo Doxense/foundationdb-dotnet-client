@@ -750,32 +750,28 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out Slice value)
+		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out ReadOnlySpan<byte> value)
 		{
-			byte* ptr;
-			int valueLength;
-			var err = NativeMethods.fdb_future_get_value(future, out valuePresent, out ptr, out valueLength);
+			Contract.Requires(future != null);
+
+			var err = NativeMethods.fdb_future_get_value(future, out valuePresent, out byte* ptr, out int valueLength);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
 #endif
-			if (ptr != null && valueLength >= 0)
+			if (valueLength > 0 && ptr != null)
 			{
-				var bytes = new byte[valueLength];
-				Marshal.Copy(new IntPtr(ptr), bytes, 0, valueLength);
-				value = Slice.CreateUnsafe(bytes, 0, valueLength);
+				value = new ReadOnlySpan<byte>(ptr, valueLength);
 			}
 			else
 			{
-				value = Slice.Nil;
+				value = default;
 			}
 			return err;
 		}
 
-		public static FdbError FutureGetKey(FutureHandle future, out Slice key)
+		public static FdbError FutureGetKey(FutureHandle future, out ReadOnlySpan<byte> key)
 		{
-			byte* ptr;
-			int keyLength;
-			var err = NativeMethods.fdb_future_get_key(future, out ptr, out keyLength);
+			var err = NativeMethods.fdb_future_get_key(future, out byte* ptr, out int keyLength);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
 #endif
@@ -783,14 +779,15 @@ namespace FoundationDB.Client.Native
 			// note: fdb_future_get_key is allowed to return NULL for the empty key (not to be confused with a key that has an empty value)
 			Contract.Assert(keyLength >= 0 && keyLength <= Fdb.MaxKeySize);
 
-			if (keyLength <= 0 || ptr == null)
-			{ // from the spec: "If a key selector would otherwise describe a key off the beginning of the database, it instead resolves to the empty key ''."
-				key = Slice.Empty;
+			if (keyLength > 0 && ptr != null)
+			{
+				key = new ReadOnlySpan<byte>(ptr, keyLength);
 			}
 			else
-			{
-				key = Slice.Copy(ptr, keyLength);
+			{ // from the spec: "If a key selector would otherwise describe a key off the beginning of the database, it instead resolves to the empty key ''."
+				key = default;
 			}
+
 			return err;
 		}
 
@@ -824,12 +821,12 @@ namespace FoundationDB.Client.Native
 					{
 						uint kl = kvp[i].KeyLength;
 						uint vl = kvp[i].ValueLength;
-						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
+						if (kl > int.MaxValue) throw ThrowHelper.InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
 						total += kl;
-						if (vl > int.MaxValue) throw new InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
+						if (vl > int.MaxValue) throw ThrowHelper.InvalidOperationException("A Value has a length that is larger than a signed 32-bit int!");
 						total += vl;
 					}
-					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of key/value data in a single batch!");
+					if (total > int.MaxValue) throw ThrowHelper.NotSupportedException("Cannot read more than 2GB of key/value data in a single batch!");
 
 					// allocate all memory in one chunk, and make the key/values point to it
 					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,

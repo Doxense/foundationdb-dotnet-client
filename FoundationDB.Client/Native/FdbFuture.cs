@@ -29,21 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Futures
 //#define DEBUG_FUTURES
 
-#define SUPPORTS_ASYNC_CONTINUATIONS
-
 namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper class to create FDBFutures</summary>
 	internal static class FdbFuture
@@ -54,14 +49,11 @@ namespace FoundationDB.Client.Native
 			/// <summary>The future has completed (either success or failure)</summary>
 			public const int COMPLETED = 1;
 
-			/// <summary>A completion/failure/cancellation has been posted on the thread pool</summary>
-			public const int HAS_POSTED_ASYNC_COMPLETION = 2;
-
-			/// <summary>The future has been cancelled from an external source (manually, or via then CancellationTokeb)</summary>
-			public const int CANCELLED = 4;
+			/// <summary>The future has been cancelled from an external source (manually, or via then CancellationToken)</summary>
+			public const int CANCELLED = 2;
 
 			/// <summary>The resources allocated by this future have been released</summary>
-			public const int MEMORY_RELEASED = 8;
+			public const int MEMORY_RELEASED = 4;
 
 			/// <summary>The future has been constructed, and is listening for the callbacks</summary>
 			public const int READY = 64;
@@ -82,7 +74,7 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Create a new <see cref="FdbFutureArray{T}"/> from an array of FDBFuture* pointers</summary>
-		/// <typeparam name="T">Type of the items of the arrayreturn by the task</typeparam>
+		/// <typeparam name="T">Type of the items of the array returned by the task</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
 		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
@@ -112,10 +104,6 @@ namespace FoundationDB.Client.Native
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
 		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
-			// Special case, because FdbFutureArray<T> does not support empty arrays
-			//TODO: technically, there is no reason why FdbFutureArray would not accept an empty array. We should simplify this by handling the case in the ctor (we are already allocating something anyway...)
-			if (handles.Length == 0) return Task.FromResult<T[]>(new T[0]);
-
 			return new FdbFutureArray<T>(handles, continuation, ct).Task;
 		}
 
@@ -135,28 +123,22 @@ namespace FoundationDB.Client.Native
 		/// <summary>Future key in the callback dictionary</summary>
 		protected IntPtr m_key;
 
-		/// <summary>Optionnal registration on the parent Cancellation Token</summary>
+		/// <summary>Optional registration on the parent Cancellation Token</summary>
 		/// <remarks>Is only valid if FLAG_HAS_CTR is set</remarks>
 		protected CancellationTokenRegistration m_ctr;
 
 		#endregion
 
-#if SUPPORTS_ASYNC_CONTINUATIONS
 		protected FdbFuture() : base(TaskCreationOptions.RunContinuationsAsynchronously)
 		{ }
-#endif
 
 		#region State Management...
 
-		internal bool HasFlag(int flag)
-		{
-			return (Volatile.Read(ref m_flags) & flag) == flag;
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal bool HasFlag(int flag) => (Volatile.Read(ref m_flags) & flag) == flag;
 
-		internal bool HasAnyFlags(int flags)
-		{
-			return (Volatile.Read(ref m_flags) & flags) != 0;
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal bool HasAnyFlags(int flags) => (Volatile.Read(ref m_flags) & flags) != 0;
 
 		protected void SetFlag(int flag)
 		{
@@ -204,17 +186,10 @@ namespace FoundationDB.Client.Native
 
 				// ensure that the task always complete !
 				// note: always defer the completion on the threadpool, because we don't want to dead lock here (we can be called by Dispose)
-#if SUPPORTS_ASYNC_CONTINUATIONS
 				if (!this.Task.IsCompleted)
 				{
 					TrySetCanceled();
 				}
-#else
-				if (!this.Task.IsCompleted && TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
-				{
-					PostCancellationOnThreadPool(this);
-				}
-#endif
 				// The only surviving value after this would be a Task and an optional WorkItem on the ThreadPool that will signal it...
 			}
 			finally
@@ -231,135 +206,6 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Release all memory allocated by this future</summary>
 		protected abstract void ReleaseMemory();
-
-		/// <summary>Set the result of this future</summary>
-		/// <param name="result">Result of the future</param>
-		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		protected void SetResult([AllowNull] T result, bool fromCallback)
-		{
-#if SUPPORTS_ASYNC_CONTINUATIONS
-			TrySetResult(result!);
-#else
-			if (!fromCallback)
-			{
-				TrySetResult(result);
-			}
-			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
-			{
-				PostCompletionOnThreadPool(this, result);
-			}
-#endif
-		}
-
-		/// <summary>Fault the future's Task</summary>
-		/// <param name="e">Error that will be the result of the task</param>
-		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		protected void SetFaulted(Exception e, bool fromCallback)
-		{
-#if SUPPORTS_ASYNC_CONTINUATIONS
-			TrySetException(e);
-#else
-			if (!fromCallback)
-			{
-				TrySetException(e);
-			}
-			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
-			{
-				PostFailureOnThreadPool(this, e);
-			}
-#endif
-		}
-
-		/// <summary>Fault the future's Task</summary>
-		/// <param name="errors">Error that will be the result of the task</param>
-		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		protected void SetFaulted(IEnumerable<Exception> errors, bool fromCallback)
-		{
-#if SUPPORTS_ASYNC_CONTINUATIONS
-			TrySetException(errors);
-#else
-			if (!fromCallback)
-			{
-				TrySetException(errors);
-			}
-			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
-			{
-				PostFailureOnThreadPool(this, errors);
-			}
-#endif
-		}
-
-		/// <summary>Cancel the future's Task</summary>
-		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		protected void SetCanceled(bool fromCallback)
-		{
-#if SUPPORTS_ASYNC_CONTINUATIONS
-			TrySetCanceled();
-#else
-			if (!fromCallback)
-			{
-				TrySetCanceled();
-			}
-			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
-			{
-				PostCancellationOnThreadPool(this);
-			}
-#endif
-		}
-
-#if !SUPPORTS_ASYNC_CONTINUATIONS
-		/// <summary>Defer setting the result of a TaskCompletionSource on the ThreadPool</summary>
-		private static void PostCompletionOnThreadPool(TaskCompletionSource<T> future, T result)
-		{
-			ThreadPool.UnsafeQueueUserWorkItem(
-				(_state) =>
-				{
-					var prms = (Tuple<TaskCompletionSource<T>, T>)_state;
-					prms.Item1.TrySetResult(prms.Item2);
-				},
-				Tuple.Create(future, result)
-			);
-		}
-
-		/// <summary>Defer failing a TaskCompletionSource on the ThreadPool</summary>
-		private static void PostFailureOnThreadPool(TaskCompletionSource<T> future, Exception error)
-		{
-			ThreadPool.UnsafeQueueUserWorkItem(
-				(_state) =>
-				{
-					var prms = (Tuple<TaskCompletionSource<T>, Exception>)_state;
-					prms.Item1.TrySetException(prms.Item2);
-				},
-				Tuple.Create(future, error)
-			);
-		}
-
-		/// <summary>Defer failing a TaskCompletionSource on the ThreadPool</summary>
-		private static void PostFailureOnThreadPool(TaskCompletionSource<T> future, IEnumerable<Exception> errors)
-		{
-			ThreadPool.UnsafeQueueUserWorkItem(
-				(_state) =>
-				{
-					var prms = (Tuple<TaskCompletionSource<T>, IEnumerable<Exception>>)_state;
-					prms.Item1.TrySetException(prms.Item2);
-				},
-				Tuple.Create(future, errors)
-			);
-		}
-
-		/// <summary>Defer cancelling a TaskCompletionSource on the ThreadPool</summary>
-		private static void PostCancellationOnThreadPool(TaskCompletionSource<T> future)
-		{
-			ThreadPool.UnsafeQueueUserWorkItem(
-				(_state) => ((TaskCompletionSource<T>)_state).TrySetCanceled(),
-				future
-			);
-		}
-#endif
 
 		#endregion
 
@@ -491,17 +337,12 @@ namespace FoundationDB.Client.Native
 
 			if (TrySetFlag(FdbFuture.Flags.CANCELLED))
 			{
-				bool fromCallback = Fdb.IsNetworkThread;
 				try
 				{
 					if (!this.Task.IsCompleted)
 					{
 						CancelHandles();
-#if SUPPORTS_ASYNC_CONTINUATIONS
 						TrySetCanceled();
-#else
-						SetCanceled(fromCallback);
-#endif
 					}
 				}
 				finally
@@ -544,7 +385,6 @@ namespace FoundationDB.Client.Native
 					if (Volatile.Read(ref m_key) != IntPtr.Zero) UnregisterCallback(this);
 				}
 			}
-			GC.SuppressFinalize(this);
 		}
 
 	}

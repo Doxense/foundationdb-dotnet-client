@@ -163,8 +163,7 @@ namespace System
 		public static Slice Copy(byte[] source)
 		{
 			Contract.NotNull(source, nameof(source));
-			if (source.Length == 0) return Empty;
-			return Copy(source, 0, source.Length);
+			return Copy(new ReadOnlySpan<byte>(source));
 		}
 
 		/// <summary>Creates a new slice with a copy of the array segment</summary>
@@ -178,9 +177,12 @@ namespace System
 		[Pure]
 		public static Slice Copy(ReadOnlySpan<byte> source)
 		{
-			if (source.Length == 0) return Empty;
-			var tmp = source.ToArray();
-			return new Slice(tmp, 0, source.Length);
+			return source.Length switch
+			{
+				0 => Slice.Empty,
+				1 => FromByte(source[0]),
+				_ => new Slice(source.ToArray())
+			};
 		}
 
 		/// <summary>Creates a new slice with a copy of the span, using a scratch buffer</summary>

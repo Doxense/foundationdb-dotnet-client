@@ -30,15 +30,9 @@ namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
 	using System;
-#if __MonoCS__
-	using System.Runtime.InteropServices;
-#endif
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBFuture*</summary>
-#if __MonoCS__
-	[StructLayout(LayoutKind.Sequential)]
-#endif
 	internal sealed class FutureHandle : FdbSafeHandle
 	{
 
@@ -56,7 +50,7 @@ namespace FoundationDB.Client.Native
 
 		public override string ToString()
 		{
-			return "FutureHandle[0x" + this.Handle.ToString("x") + "]";
+			return $"FutureHandle[0x{this.Handle.ToString("x")}]";
 		}
 
 	}

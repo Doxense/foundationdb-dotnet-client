@@ -143,27 +143,17 @@ namespace FoundationDB.Client.Native
 			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
 
-		private static bool TryGetValueResult(FutureHandle h, out Slice result)
-		{
-			Contract.Requires(h != null);
-
-			var err = FdbNative.FutureGetValue(h, out bool present, out result);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
-#endif
-			Fdb.DieOnError(err);
-			return present;
-		}
-
 		private static Slice GetValueResultBytes(FutureHandle h)
 		{
 			Contract.Requires(h != null);
 
-			if (!TryGetValueResult(h, out Slice result))
-			{
-				return Slice.Nil;
-			}
-			return result;
+			var err = FdbNative.FutureGetValue(h, out bool present, out ReadOnlySpan<byte> result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+#endif
+			Fdb.DieOnError(err);
+
+			return present ? Slice.Copy(result) : Slice.Nil;
 		}
 
 		public Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct)
@@ -184,6 +174,7 @@ namespace FoundationDB.Client.Native
 			var futures = new FutureHandle[keys.Length];
 			try
 			{
+				//REVIEW: as of now (700), there is no way to read multiple keys in a single API call
 				for (int i = 0; i < keys.Length; i++)
 				{
 					futures[i] = FdbNative.TransactionGet(m_handle, keys[i].Span, snapshot);
@@ -191,7 +182,8 @@ namespace FoundationDB.Client.Native
 			}
 			catch
 			{
-				for (int i = 0; i < keys.Length; i++)
+				// cancel all requests leading up to the failure
+				for (int i = 0; i < futures.Length; i++)
 				{
 					if (futures[i] == null) break;
 					futures[i].Dispose();
@@ -294,12 +286,12 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(h != null);
 
-			var err = FdbNative.FutureGetKey(h, out Slice result);
+			var err = FdbNative.FutureGetKey(h, out ReadOnlySpan<byte> result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
 #endif
 			Fdb.DieOnError(err);
-			return result;
+			return Slice.Copy(result);
 		}
 
 		public Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken ct)
@@ -315,6 +307,8 @@ namespace FoundationDB.Client.Native
 		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(selectors != null);
+
+			if (selectors.Length == 0) return Task.FromResult(Array.Empty<Slice>());
 
 			var futures = new FutureHandle[selectors.Length];
 			try

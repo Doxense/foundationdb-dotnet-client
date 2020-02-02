@@ -52,8 +52,7 @@ namespace FoundationDB.Client.Native
 
 		internal FdbFutureSingle(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			Contract.NotNull(handle, nameof(handle));
-			Contract.NotNull(selector, nameof(selector));
+			Contract.Requires(handle != null && selector != null);
 
 			m_handle = handle;
 			m_resultSelector = selector;
@@ -73,7 +72,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
 #endif
-					HandleCompletion(fromCallback: false);
+					HandleCompletion();
 #if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " completed inline");
 #endif
@@ -96,7 +95,7 @@ namespace FoundationDB.Client.Native
 						handle.Dispose();
 						// also, don't keep a reference on the callback because it won't be needed
 						m_resultSelector = null;
-						this.TrySetCanceled();
+						TrySetCanceled();
 						return;
 					}
 
@@ -134,7 +133,7 @@ namespace FoundationDB.Client.Native
 				m_handle.Dispose();
 
 				// this is technically not needed, but just to be safe...
-				this.TrySetCanceled();
+				TrySetCanceled();
 
 				throw;
 			}
@@ -148,7 +147,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
 		/// <param name="futureHandle">Handle on the future that became ready</param>
-		/// <param name="parameter">Parameter to the callback (unused)</param>
+		/// <param name="parameter">Parameter to the callback</param>
 		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
@@ -159,19 +158,14 @@ namespace FoundationDB.Client.Native
 			if (future != null)
 			{
 				UnregisterCallback(future);
-				future.HandleCompletion(fromCallback: true);
+				future.HandleCompletion();
 			}
 		}
 
 		/// <summary>Update the Task with the state of a ready Future</summary>
-		/// <param name="fromCallback">If true, we are called from the network thread</param>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
-		private void HandleCompletion(bool fromCallback)
+		private void HandleCompletion()
 		{
-			// note: if fromCallback is true, we are running on the network thread
-			// this means that we have to signal the TCS from the threadpool, if not continuations on the task may run inline.
-			// this is very frequent when we are called with await, or ContinueWith(..., TaskContinuationOptions.ExecuteSynchronously)
-
 			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED))
 			{
 				return;
@@ -196,7 +190,7 @@ namespace FoundationDB.Client.Native
 						if (err != FdbError.OperationCancelled)
 						{ // get the exception from the error code
 							var ex = Fdb.MapToException(err)!;
-							SetFaulted(ex, fromCallback);
+							TrySetException(ex);
 							return;
 						}
 						//else: will be handle below
@@ -212,7 +206,7 @@ namespace FoundationDB.Client.Native
 						{
 							//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
 							var result = selector(handle);
-							SetResult(result, fromCallback);
+							TrySetResult(result);
 							return;
 						}
 						//else: it will be handled below
@@ -220,16 +214,16 @@ namespace FoundationDB.Client.Native
 				}
 
 				// most probably the future was cancelled or we are shutting down...
-				SetCanceled(fromCallback);
+				TrySetCanceled();
 			}
 			catch (Exception e)
 			{ // something went wrong
 				if (e is ThreadAbortException)
 				{
-					SetCanceled(fromCallback);
+					TrySetCanceled();
 					throw;
 				}
-				SetFaulted(e, fromCallback);
+				TrySetException(e);
 			}
 			finally
 			{
@@ -243,8 +237,7 @@ namespace FoundationDB.Client.Native
 
 		protected override void CloseHandles()
 		{
-			var handle = m_handle;
-			if (handle != null) handle.Dispose();
+			m_handle?.Dispose();
 		}
 
 		protected override void CancelHandles()

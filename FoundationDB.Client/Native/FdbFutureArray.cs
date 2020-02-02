@@ -57,8 +57,7 @@ namespace FoundationDB.Client.Native
 
 		internal FdbFutureArray(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			Contract.NotNullOrEmpty(handles, nameof(handles));
-			Contract.NotNull(selector, nameof(selector));
+			Contract.Requires(handles != null && selector != null);
 
 			m_handles = handles;
 			m_resultSelector = selector;
@@ -105,7 +104,7 @@ namespace FoundationDB.Client.Native
 				if (Volatile.Read(ref m_pending) == 0)
 				{ // all callbacks have already fired (or all handles were already completed)
 					UnregisterCallback(this);
-					HandleCompletion(fromCallback: false);
+					HandleCompletion();
 					m_resultSelector = null;
 					abortAllHandles = true;
 					SetFlag(FdbFuture.Flags.COMPLETED);
@@ -221,7 +220,7 @@ namespace FoundationDB.Client.Native
 					UnregisterCallback(future);
 					try
 					{
-						future.HandleCompletion(fromCallback: true);
+						future.HandleCompletion();
 					}
 					catch(Exception)
 					{
@@ -233,9 +232,8 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Update the Task with the state of a ready Future</summary>
-		/// <param name="fromCallback">If true, the method is called from the network thread and must defer the continuations from the Thread Pool</param>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
-		private void HandleCompletion(bool fromCallback)
+		private void HandleCompletion()
 		{
 			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED))
 			{
@@ -290,15 +288,15 @@ namespace FoundationDB.Client.Native
 
 				if (cancellation)
 				{ // the transaction has been cancelled
-					SetCanceled(fromCallback);
+					TrySetCanceled();
 				}
 				else if (errors != null)
 				{ // there was at least one error
-					SetFaulted(errors, fromCallback);
+					TrySetException(errors);
 				}
 				else
-				{  // success
-					SetResult(results, fromCallback);
+				{ // success
+					TrySetResult(results);
 				}
 
 			}
@@ -306,10 +304,10 @@ namespace FoundationDB.Client.Native
 			{ // something went wrong
 				if (e is ThreadAbortException)
 				{
-					SetCanceled(fromCallback);
+					TrySetCanceled();
 					throw;
 				}
-				SetFaulted(e, fromCallback);
+				TrySetException(e);
 			}
 			finally
 			{
