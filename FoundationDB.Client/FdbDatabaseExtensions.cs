@@ -147,6 +147,7 @@ namespace FoundationDB.Client
 		/// If you need to read several keys at once, use a version of <see cref="GetValuesAsync(FoundationDB.Client.IFdbReadOnlyRetryable,System.Collections.Generic.IEnumerable{System.Slice},System.Threading.CancellationToken)"/>.
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<Slice> GetAsync(this IFdbReadOnlyRetryable db, Slice key, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -158,6 +159,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, Slice[] keys, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -169,6 +171,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, IEnumerable<Slice> keys, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -180,6 +183,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<Slice> GetKeyAsync(this IFdbReadOnlyRetryable db, KeySelector keySelector, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -191,6 +195,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, KeySelector[] keySelectors, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -203,6 +208,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, IEnumerable<KeySelector> keySelectors, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -215,6 +221,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync{TResult}(System.Func{FoundationDB.Client.IFdbReadOnlyTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyRetryable db, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -226,6 +233,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task SetAsync(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -237,6 +245,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task SetValuesAsync(this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> items, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -254,6 +263,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task SetValuesAsync(this IFdbRetryable db, IEnumerable<(Slice Key, Slice Value)> items, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -271,6 +281,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task ClearAsync(this IFdbRetryable db, Slice key, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -282,6 +293,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task ClearRangeAsync(this IFdbRetryable db, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -293,6 +305,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task ClearRangeAsync(this IFdbRetryable db, KeyRange range, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -304,6 +317,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicAdd(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -315,6 +329,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicCompareAndClear(this IFdbRetryable db, Slice key, Slice comparand, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -326,6 +341,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicBitAnd(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -337,6 +353,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicBitOr(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -348,6 +365,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicBitXor(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -359,6 +377,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicMax(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
@@ -370,6 +389,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync(System.Action{FoundationDB.Client.IFdbTransaction},System.Threading.CancellationToken)"/> or <see cref="IFdbRetryable.ReadWriteAsync{TResult}(System.Func{FoundationDB.Client.IFdbTransaction,System.Threading.Tasks.Task{TResult}},System.Threading.CancellationToken)"/> overrides.
 		/// </remarks>
+		[Obsolete("Call this method on a transaction inside a retry-loop")]
 		public static Task AtomicMin(this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
 			Contract.NotNull(db, nameof(db));
