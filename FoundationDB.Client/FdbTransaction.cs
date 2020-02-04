@@ -533,20 +533,27 @@ namespace FoundationDB.Client
 		#region GetRangeAsync...
 
 		/// <inheritdoc />
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			int limit = 0,
+			bool reverse = false,
+			int targetBytes = 0,
+			FdbStreamingMode mode = FdbStreamingMode.Iterator,
+			FdbReadMode read = FdbReadMode.Both,
+			int iteration = 0)
 		{
 			EnsureCanRead();
 
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
-			options.EnsureLegalValues();
+			FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
 
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, ct: m_cancellation);
+			return m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot: false, ct: m_cancellation);
 		}
 
 		#endregion

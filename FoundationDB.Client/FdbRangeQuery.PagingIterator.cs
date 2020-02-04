@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 
 				var bounds = this.Query.OriginalRange;
 
-				// if the original range has been changed, we need to ensure that the current begin/end to not overflow:
+				// if the original range has been changed, we need to ensure that the current begin/end do not overflow:
 				if (this.Begin != bounds.Begin || this.End != bounds.End)
 				{
 					//TODO: find a better way to do this!
@@ -172,47 +172,33 @@ namespace FoundationDB.Client
 				Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync(iter=" + this.Iteration + ") started");
 #endif
 
-				var options = new FdbRangeOptions
-				{
-					Limit = this.RemainingCount,
-					TargetBytes = this.RemainingSize,
-					Mode = this.Query.Mode,
-					Read = this.Query.Read,
-					Reverse = this.Query.Reversed
-				};
-
+				var mode = this.Query.Mode;
 				// select the appropriate streaming mode if purpose is not default
 				switch(m_mode)
 				{
 					case AsyncIterationHint.Iterator:
 					{
 						// the caller is responsible for calling MoveNext(..) and deciding if it wants to continue or not..
-						options.Mode = FdbStreamingMode.Iterator;
+						mode = FdbStreamingMode.Iterator;
 						break;
 					}
 					case AsyncIterationHint.All:
 					{
 						// we are in a ToList or ForEach, we want to read everything in as few chunks as possible
-						options.Mode = FdbStreamingMode.WantAll;
+						mode = FdbStreamingMode.WantAll;
 						break;
 					}
 					case AsyncIterationHint.Head:
 					{
 						// the caller only expect one (or zero) values
-						options.Mode = FdbStreamingMode.Iterator;
+						mode = FdbStreamingMode.Iterator;
 						break;
 					}
 				}
 
-				var tr = this.Transaction;
-				if (this.Query.Snapshot)
-				{ // make sure we have the snapshot version !
-					tr = tr.Snapshot;
-				}
-
 				//BUGBUG: mix the custom cancellation token with the transaction, if it is different !
-				var task = tr
-					.GetRangeAsync(this.Begin, this.End, options, this.Iteration)
+				var task = (this.Query.Snapshot ? this.Transaction.Snapshot : this.Transaction)
+					.GetRangeAsync(this.Begin, this.End, this.RemainingCount ?? 0, this.Query.Reversed, this.RemainingSize ?? 0, mode, this.Query.Read, this.Iteration)
 					.Then((result) =>
 					{
 						this.Chunk = result.Items;

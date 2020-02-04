@@ -153,19 +153,39 @@ namespace FoundationDB.Client
 
 			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
 			{
+				int limit = options?.Limit ?? 0;
+				bool reverse = options?.Reverse ?? false;
+				int targetBytes = options?.TargetBytes ?? 0;
+				var mode = options?.Mode ?? FdbStreamingMode.Iterator;
+				var read = options?.Read ?? FdbReadMode.Both;
+
+				return GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration);
+			}
+
+			/// <inheritdoc />
+			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive,
+				KeySelector endExclusive,
+				int limit = 0,
+				bool reverse = false,
+				int targetBytes = 0,
+				FdbStreamingMode mode = FdbStreamingMode.Exact,
+				FdbReadMode read = FdbReadMode.Both,
+				int iteration = 0)
+			{
 				EnsureCanRead();
 
 				FdbKey.EnsureKeyIsValid(beginInclusive.Key);
-				FdbKey.EnsureKeyIsValid(endExclusive.Key);
+				FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
-				options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, FdbReadMode.Both, false);
-				options.EnsureLegalValues();
+				FdbRangeOptions.EnsureLegalValues(limit, targetBytes, mode, read, iteration);
 
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
 				if (iteration == 0) iteration = 1;
 
-				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, ct: m_parent.m_cancellation);
+				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot: true, ct: m_parent.m_cancellation);
 			}
+
+
 
 			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 			{

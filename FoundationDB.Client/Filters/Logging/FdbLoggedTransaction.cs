@@ -465,11 +465,20 @@ namespace FoundationDB.Filters.Logging
 			);
 		}
 
-		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+		public override Task<FdbRangeChunk> GetRangeAsync(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			int limit = 0,
+			bool reverse = false,
+			int targetBytes = 0,
+			FdbStreamingMode mode = FdbStreamingMode.Exact,
+			FdbReadMode read = FdbReadMode.Both,
+			int iteration = 0
+		)
 		{
 			return ExecuteAsync(
-				new FdbTransactionLog.GetRangeCommand(Grab(in beginInclusive), Grab(in endExclusive), options, iteration),
-				(tr, cmd) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration)
+				new FdbTransactionLog.GetRangeCommand(Grab(in beginInclusive), Grab(in endExclusive), new FdbRangeOptions(limit, reverse, targetBytes, mode, read), iteration),
+				(tr, cmd) => tr.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options, cmd.Iteration)
 			);
 		}
 
@@ -574,10 +583,19 @@ namespace FoundationDB.Filters.Logging
 				);
 			}
 
-			public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+			public override Task<FdbRangeChunk> GetRangeAsync(
+				KeySelector beginInclusive,
+				KeySelector endExclusive,
+				int limit = 0,
+				bool reverse = false,
+				int targetBytes = 0,
+				FdbStreamingMode mode = FdbStreamingMode.Iterator,
+				FdbReadMode read = FdbReadMode.Both,
+				int iteration = 0
+			)
 			{
 				return ExecuteAsync(
-					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(in beginInclusive), m_parent.Grab(in endExclusive), options, iteration),
+					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(in beginInclusive), m_parent.Grab(in endExclusive), new FdbRangeOptions(limit, reverse, targetBytes, mode, read), iteration),
 					(tr, cmd) => tr.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options, cmd.Iteration)
 				);
 			}

@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
@@ -43,7 +44,7 @@ namespace FoundationDB.Client
 		/// <summary>Maximum number of items to return</summary>
 		public int? Limit { get; set; }
 
-		/// <summary>If true, results are returned in reverse order (from last to rist)</summary>
+		/// <summary>If true, results are returned in reverse order (from last to first)</summary>
 		public bool? Reverse { get; set; }
 
 		/// <summary>Maximum number of bytes to read</summary>
@@ -145,10 +146,22 @@ namespace FoundationDB.Client
 		/// <summary>Throws if values are not legal</summary>
 		public void EnsureLegalValues()
 		{
-			if (this.Limit < 0) throw new FdbException(FdbError.InvalidOptionValue, "Range Limit cannot be negative.");
-			if (this.TargetBytes < 0) throw new FdbException(FdbError.InvalidOptionValue, "Range TargetBytes cannot be negative.");
-			if (this.Mode < FdbStreamingMode.WantAll || this.Mode > FdbStreamingMode.Serial) throw new FdbException(FdbError.InvalidOptionValue, "Range StreamingMode must be valid.");
-			if (this.Read < FdbReadMode.Both || this.Read > FdbReadMode.Values) throw new FdbException(FdbError.InvalidOptionValue, "Range ReadMode must be valid.");
+			EnsureLegalValues(this.Limit ?? 0, this.TargetBytes ?? 0, this.Mode ?? FdbStreamingMode.Iterator, this.Read ?? FdbReadMode.Both, 0);
+		}
+
+		internal static void EnsureLegalValues(int limit, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+		{
+			if (limit < 0) throw InvalidOptionValue("Range Limit cannot be negative.");
+			if (targetBytes < 0) throw InvalidOptionValue("Range TargetBytes cannot be negative.");
+			if (mode < FdbStreamingMode.WantAll || mode > FdbStreamingMode.Serial) throw InvalidOptionValue("Range StreamingMode must be valid.");
+			if (read < FdbReadMode.Both || read > FdbReadMode.Values) throw InvalidOptionValue("Range ReadMode must be valid.");
+			if (iteration < 0) throw InvalidOptionValue("Iteration counter cannot be negative.");
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static FdbException InvalidOptionValue(string message)
+		{
+			return new FdbException(FdbError.InvalidOptionValue, message);
 		}
 
 		/// <summary>Return the default range options</summary>

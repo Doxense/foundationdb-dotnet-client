@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
+	using Doxense.Memory;
 	using Doxense.Serialization.Encoders;
 
 	[DebuggerDisplay("Count={Chunk!=null?Chunk.Length:0}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
@@ -278,6 +279,70 @@ namespace FoundationDB.Client
 		#region Values...
 
 		public ValuesCollection Values => new ValuesCollection(this.Items);
+
+		/// <summary>Append all the values into a buffer, in sequential order</summary>
+		/// <returns>Slice with all values copied in sequential order, or <see cref="Slice.Nil"/> if the chunk is empty</returns>
+		/// <remarks>
+		/// This is useful when using a range queries to read all the chunks of a single entity.
+		/// Since this method will allocate and copy all the results, if the expected size is expected to be large, prefer iterating over the <see cref="Values"/> instead!
+		/// </remarks>
+		public Slice ConcatValues()
+		{
+			var items = this.Items;
+			switch (items.Length)
+			{
+				case 0: return Slice.Nil;
+				case 1: return items[0].Value;
+				case 2: return items[0].Value + items[1].Value;
+				default:
+				{
+					var sw = new SliceWriter();
+					AppendValues(ref sw, items);
+					return sw.ToSlice();
+				}
+			}
+		}
+
+		/// <summary>Append all the values into a buffer, in sequential order</summary>
+		/// <param name="writer">Buffer where to write all the values</param>
+		/// <returns>Total number of bytes written to the buffer</returns>
+		public int AppendValues(ref SliceWriter writer)
+		{
+			return AppendValues(ref writer, this.Items);
+		}
+
+		private static int AppendValues(ref SliceWriter writer, KeyValuePair<Slice, Slice>[] items)
+		{
+			switch (items.Length)
+			{
+				case 0:
+				{
+					return 0;
+				}
+				case 1:
+				{
+					var value = items[0].Value;
+					writer.WriteBytes(value);
+					return value.Count;
+				}
+				default:
+				{
+					long total = 0;
+					for (int i = 0; i < items.Length; i++)
+					{
+						total += items[i].Value.Count;
+					}
+					if (total >= int.MaxValue) throw new OutOfMemoryException("Total size of merged values exceeds maximum allowed value.");
+
+					writer.EnsureBytes(checked((int) total));
+					for (int i = 0; i < items.Length; i++)
+					{
+						writer.WriteBytes(items[i].Value);
+					}
+					return (int) total;
+				}
+			}
+		}
 
 		public readonly struct ValuesCollection : IReadOnlyList<Slice>
 		{

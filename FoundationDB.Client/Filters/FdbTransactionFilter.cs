@@ -148,10 +148,18 @@ namespace FoundationDB.Filters
 		}
 
 		/// <inheritdoc />
-		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			int limit = 0,
+			bool reverse = false,
+			int targetBytes = 0,
+			FdbStreamingMode mode = FdbStreamingMode.Exact,
+			FdbReadMode read = FdbReadMode.Both,
+			int iteration = 0)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
+			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration);
 		}
 
 		/// <inheritdoc />
@@ -444,10 +452,17 @@ namespace FoundationDB.Filters
 			return m_transaction.GetKeysAsync(selectors);
 		}
 
-		/// <inheritdoc />
-		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			int limit = 0,
+			bool reverse = false,
+			int targetBytes = 0,
+			FdbStreamingMode mode = FdbStreamingMode.Iterator,
+			FdbReadMode read = FdbReadMode.Both,
+			int iteration = 0)
 		{
-			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
+			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration);
 		}
 
 		/// <inheritdoc />

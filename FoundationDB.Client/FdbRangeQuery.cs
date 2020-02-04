@@ -419,18 +419,10 @@ namespace FoundationDB.Client
 				return await AsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
 
-			var options = new FdbRangeOptions
-			{
-				Limit = Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue),
-				TargetBytes = 0,
-				Mode = FdbStreamingMode.Exact,
-				Reverse = this.Reversed
-			};
-
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
 
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Begin, this.End, options, 0).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(this.Begin, this.End, limit: Math.Min(single ? 2 : 1, this.Options.Limit ?? int.MaxValue), reverse: this.Reversed, mode: FdbStreamingMode.Exact, iteration: 0).ConfigureAwait(false);
 
 			if (results.IsEmpty)
 			{ // no result
@@ -464,16 +456,8 @@ namespace FoundationDB.Client
 
 			//BUGBUG: do we need special handling if OriginalRange != Range ? (weird combinations of Take/Skip and Reverse)
 
-			var options = new FdbRangeOptions
-			{
-				Limit = 1,
-				TargetBytes = 0,
-				Mode = FdbStreamingMode.Exact,
-				Reverse = this.Reversed
-			};
-
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Begin, this.End, options, 0).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(this.Begin, this.End, limit: 1, reverse: this.Reversed, mode: FdbStreamingMode.Exact, iteration: 0).ConfigureAwait(false);
 
 			return any ? !results.IsEmpty : results.IsEmpty;
 		}
