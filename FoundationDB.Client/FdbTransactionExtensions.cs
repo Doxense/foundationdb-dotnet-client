@@ -1244,9 +1244,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
-			return GetRange(trans, KeySelectorPair.Create(range), options);
+			var sp = KeySelectorPair.Create(range);
+			return trans.GetRange(sp.Begin, sp.End, options);
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
