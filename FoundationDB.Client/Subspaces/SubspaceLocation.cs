@@ -487,9 +487,9 @@ namespace FoundationDB.Client
 			return new BinaryKeySubspaceLocation(self.Path, self.Prefix);
 		}
 
-		/// <summary>Return a dynamic version of the current path</summary>
-		/// <param name="self">Existing subspace path</param>
-		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
+		/// <summary>Return a dynamic version of the current location</summary>
+		/// <param name="self">Existing subspace location</param>
+		/// <param name="encoding">If specified, change the encoding use by the current location. If <c>null</c>, inherit the current encoding</param>
 		/// <returns>A <see cref="DynamicKeySubspaceLocation"/> that points to a <see cref="IDynamicKeySubspace">dynamic key subspace</see></returns>
 		[Pure]
 		public static DynamicKeySubspaceLocation AsDynamic(this ISubspaceLocation self, IKeyEncoding? encoding = null)
@@ -502,6 +502,25 @@ namespace FoundationDB.Client
 			}
 
 			return new DynamicKeySubspaceLocation(self.Path, self.Prefix, (encoding ?? self.Encoding).GetDynamicKeyEncoder());
+		}
+
+		/// <summary>Return a directory version of the current location</summary>
+		/// <param name="self">Existing subspace location</param>
+		/// <param name="layer">Optional layer id of the directory</param>
+		/// <returns>A <see cref="FdbDirectorySubspaceLocation"/> that points to the same location as <paramref name="self"/>.</returns>
+		/// <exception cref="ArgumentException">If the location has a non-zero <see cref="ISubspaceLocation.Prefix"/></exception>
+		[Pure]
+		public static FdbDirectorySubspaceLocation AsDirectory(this ISubspaceLocation self, Slice layer = default)
+		{
+			Contract.NotNull(self, nameof(self));
+
+			if (self is FdbDirectorySubspaceLocation dsl && dsl.Layer == layer)
+			{
+				return dsl;
+			}
+
+			if (self.Prefix.Count != 0) throw new ArgumentException($"Cannot convert location '{self}' into a directory location, because it has a non-empty prefix.");
+			return new FdbDirectorySubspaceLocation(self.Path, layer);
 		}
 
 		/// <summary>Return a dynamic version of the current path</summary>
