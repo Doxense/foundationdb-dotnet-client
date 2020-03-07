@@ -477,7 +477,7 @@ namespace FdbShell
 				}
 
 				KeyRange range;
-				if (extras.Get<string>(0) == "*")
+				if (extras[0] is string s && s == "*")
 				{ // clear all!
 					range = folder.ToRange();
 				}
