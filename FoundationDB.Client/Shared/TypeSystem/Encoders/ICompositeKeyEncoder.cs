@@ -41,6 +41,9 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+
+		/// <summary>Read some or all parts of a composite key</summary>
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
 	}
 
 	public interface ICompositeKeyEncoder<T1, T2, T3> : IKeyEncoder<(T1, T2, T3)>
@@ -50,6 +53,9 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+
+		/// <summary>Read some or all parts of a composite key</summary>
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
 	}
 
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : IKeyEncoder<(T1, T2, T3, T4)>
@@ -59,6 +65,10 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+
+		/// <summary>Read some or all parts of a composite key</summary>
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+
 	}
 
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5> : IKeyEncoder<(T1, T2, T3, T4, T5)>
@@ -68,6 +78,9 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+
+		/// <summary>Read some or all parts of a composite key</summary>
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
 	}
 
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : IKeyEncoder<(T1, T2, T3, T4, T5, T6)>
@@ -77,27 +90,44 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+
+		/// <summary>Read some or all parts of a composite key</summary>
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 	}
 
 	/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
 	public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
 	{
 
+		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
+		/// <inheritdoc />
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2) items);
 
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
 
+		/// <inheritdoc />
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+
+		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2) items)
 		{
 			WriteKeyPartsTo(ref writer, 2, ref items);
 		}
 
+		/// <inheritdoc />
 		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
 		{
 			ReadKeyPartsFrom(ref reader, 2, out items);
+		}
+
+		/// <inheritdoc />
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
+		{
+			return TryReadKeyPartsFrom(ref reader, 2, out items);
 		}
 
 	}
@@ -106,20 +136,34 @@ namespace Doxense.Serialization.Encoders
 	public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
 	{
 
+		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
+		/// <inheritdoc />
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3) items);
 
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
 
+		/// <inheritdoc />
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+
+		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3) items)
 		{
 			WriteKeyPartsTo(ref writer, 3, ref items);
 		}
 
+		/// <inheritdoc />
 		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
 		{
 			ReadKeyPartsFrom(ref reader, 3, out items);
+		}
+
+		/// <inheritdoc />
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
+		{
+			return TryReadKeyPartsFrom(ref reader, 3, out items);
 		}
 
 	}
@@ -128,20 +172,33 @@ namespace Doxense.Serialization.Encoders
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
 	{
 
+		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
+		/// <inheritdoc />
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4) items);
 
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
 
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+
+		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4) items)
 		{
 			WriteKeyPartsTo(ref writer, 4, ref items);
 		}
 
+		/// <inheritdoc />
 		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
 		{
 			ReadKeyPartsFrom(ref reader, 4, out items);
+		}
+
+		/// <inheritdoc />
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
+		{
+			return TryReadKeyPartsFrom(ref reader, 4, out items);
 		}
 
 	}
@@ -150,20 +207,34 @@ namespace Doxense.Serialization.Encoders
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5> : ICompositeKeyEncoder<T1, T2, T3, T4, T5>
 	{
 
+		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
+		/// <inheritdoc />
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5) items);
 
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
 
+		/// <inheritdoc />
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+
+		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5) items)
 		{
 			WriteKeyPartsTo(ref writer, 5, ref items);
 		}
 
+		/// <inheritdoc />
 		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
 		{
 			ReadKeyPartsFrom(ref reader, 5, out items);
+		}
+
+		/// <inheritdoc />
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
+		{
+			return TryReadKeyPartsFrom(ref reader, 5, out items);
 		}
 
 	}
@@ -172,20 +243,34 @@ namespace Doxense.Serialization.Encoders
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
 	{
 
+		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
+		/// <inheritdoc />
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5, T6) items);
 
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 
+		/// <inheritdoc />
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+
+		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5, T6) items)
 		{
 			WriteKeyPartsTo(ref writer, 6, ref items);
 		}
 
+		/// <inheritdoc />
 		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
 		{
 			ReadKeyPartsFrom(ref reader, 6, out items);
+		}
+
+		/// <inheritdoc />
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
+		{
+			return TryReadKeyPartsFrom(ref reader, 6, out items);
 		}
 
 	}

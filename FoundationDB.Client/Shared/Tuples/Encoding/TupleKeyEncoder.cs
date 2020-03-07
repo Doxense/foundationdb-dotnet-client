@@ -139,9 +139,16 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer = tw.Output;
 		}
 
+		/// <inheritdoc />
 		public IVarTuple UnpackKey(Slice packed)
 		{
 			return TuPack.Unpack(packed);
+		}
+
+		/// <inheritdoc />
+		public bool TryUnpackKey(Slice packed, out IVarTuple? tuple)
+		{
+			return TuPack.TryUnpack(packed, out tuple);
 		}
 
 		[return: MaybeNull]

@@ -1032,6 +1032,28 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure]
+		public static bool TryUnpack(Slice packedKey, [NotNullWhen(true)] out IVarTuple? tuple)
+		{
+			if (packedKey.IsNull)
+			{
+				tuple = null;
+				return false;
+			}
+
+			if (packedKey.Count == 0)
+			{
+				tuple = STuple.Empty;
+				return true;
+			}
+
+			return TuplePackers.TryUnpack(packedKey, embedded: false, out tuple);
+		}
+
+		/// <summary>Unpack a tuple from a serialized key blob</summary>
+		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
+		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
+		[Pure]
 		public static IVarTuple Unpack(ReadOnlySpan<byte> packedKey)
 		{
 			if (packedKey.Length == 0) return STuple.Empty;
@@ -1097,6 +1119,24 @@ namespace Doxense.Collections.Tuples
 			return tuple.Item1;
 		}
 
+		/// <summary>Unpack the value of a singleton tuple</summary>
+		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
+		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryDecodeKey<T1>(Slice packedKey, [MaybeNull] out T1 item)
+		{
+			if (TupleEncoder.TryDecodeKey(packedKey, out ValueTuple<T1> tuple))
+			{
+				item = tuple.Item1;
+				return true;
+			}
+
+			item = default!;
+			return false;
+		}
+
+
 		/// <summary>Unpack a key containing two elements</summary>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
 		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
@@ -1160,7 +1200,9 @@ namespace Doxense.Collections.Tuples
 				return false;
 			}
 
-			var slice = TupleParser.ParseNext(ref input);
+			(var slice, var error) = TupleParser.ParseNext(ref input);
+			if (error != null) throw error;
+
 			value = TuplePacker<T>.Deserialize(slice);
 			return true;
 		}

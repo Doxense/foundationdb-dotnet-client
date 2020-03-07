@@ -67,6 +67,31 @@ namespace Doxense.Collections.Tuples.Encoding
 			Contract.Requires(packed.Count >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[-1] == 0);
 			return new TupleReader(packed.Substring(1, packed.Count - 2), 1);
 		}
+
+		public (Slice Token, Exception? Error) ReadBytes(int count)
+		{
+			if (this.Input.TryReadBytes(count, out var bytes))
+			{
+				return (bytes, null);
+			}
+			else
+			{
+				return (default, SliceReader.NotEnoughBytes(count));
+			}
+		}
+
+		public (Slice Token, Exception? Error) ReadByteString()
+		{
+			if (this.Input.TryReadByteString(out var bytes))
+			{
+				return (bytes, null);
+			}
+			else
+			{
+				return (default, new FormatException("Truncated byte string (expected terminal NUL not found)"));
+			}
+		}
+
 	}
 
 }

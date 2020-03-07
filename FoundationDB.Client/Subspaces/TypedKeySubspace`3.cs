@@ -149,15 +149,14 @@ namespace FoundationDB.Client
 		{
 			if (packedKey.IsNull) return "<null>";
 			var key = ExtractKey(packedKey, boundCheck: true);
-			try
+
+			if (this.KeyEncoder.TryDecodeKey(key, out var items))
 			{
-				//REVIEW: we need a TryUnpack!
-				return this.KeyEncoder.DecodeKey(key).ToSTuple().ToString();
+				return items.ToSTuple().ToString();
 			}
-			catch (Exception)
-			{ // decoding failed, or some other non-trivial
-				return key.PrettyPrint();
-			}
+
+			// decoding failed, or some other non-trivial error
+			return key.PrettyPrint();
 		}
 
 		#endregion

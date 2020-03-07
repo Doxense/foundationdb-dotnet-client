@@ -1120,14 +1120,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Decode the next token from a packed tuple</summary>
 		/// <param name="reader">Parser from which to read the next token</param>
 		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
-		public static Slice ParseNext(ref TupleReader reader)
+		public static (Slice Token, Exception? Error) ParseNext(ref TupleReader reader)
 		{
 			int type = reader.Input.PeekByte();
 			switch (type)
 			{
 				case -1:
 				{ // End of Stream
-					return Slice.Nil;
+					return (Slice.Nil, null);
 				}
 
 				case TupleTypes.Nil:
@@ -1137,29 +1137,29 @@ namespace Doxense.Collections.Tuples.Encoding
 						if (reader.Input.PeekByteAt(1) == 0xFF)
 						{ // this is a Nil entry
 							reader.Input.Skip(2);
-							return Slice.Empty;
+							return (Slice.Empty, null);
 						}
 						else
 						{ // this is the end of the embedded tuple
 							reader.Input.Skip(1);
-							return Slice.Nil;
+							return (Slice.Nil, null);
 						}
 					}
 					else
 					{ // can be <00> outside an embedded tuple
 						reader.Input.Skip(1);
-						return Slice.Empty;
+						return (Slice.Empty, null);
 					}
 				}
 
 				case TupleTypes.Bytes:
 				{ // <01>(bytes)<00>
-					return reader.Input.ReadByteString();
+					return reader.ReadByteString();
 				}
 
 				case TupleTypes.Utf8:
 				{ // <02>(utf8 bytes)<00>
-					return reader.Input.ReadByteString();
+					return reader.ReadByteString();
 				}
 
 				case TupleTypes.LegacyTupleStart:
@@ -1167,7 +1167,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 					//note: this format is NOT SUPPORTED ANYMORE, because it was not compatible with the current spec (<03>...<00> instead of <03>...<04> and is replaced by <05>....<00>)
 					//we prefer throwing here instead of still attempting to decode the tuple, because it could silently break layers (if we read an old-style key and update it with the new-style format)
-					throw TupleParser.FailLegacyTupleNotSupported();
+					return (default, TupleParser.FailLegacyTupleNotSupported());
 				}
 				case TupleTypes.EmbeddedTuple:
 				{ // <05>(packed tuple)<00>
@@ -1178,57 +1178,57 @@ namespace Doxense.Collections.Tuples.Encoding
 
 				case TupleTypes.Single:
 				{ // <20>(4 bytes)
-					return reader.Input.ReadBytes(5);
+					return reader.ReadBytes(5);
 				}
 
 				case TupleTypes.Double:
 				{ // <21>(8 bytes)
-					return reader.Input.ReadBytes(9);
+					return reader.ReadBytes(9);
 				}
 
 				case TupleTypes.Triple:
 				{ // <22>(10 bytes)
-					return reader.Input.ReadBytes(11);
+					return reader.ReadBytes(11);
 				}
 
 				case TupleTypes.Decimal:
 				{ // <23>(16 bytes)
-					return reader.Input.ReadBytes(17);
+					return reader.ReadBytes(17);
 				}
 
 				case TupleTypes.False:
 				{ // <26>
-					return reader.Input.ReadBytes(1);
+					return reader.ReadBytes(1);
 				}
 				case TupleTypes.True:
 				{ // <27>
-					return reader.Input.ReadBytes(1);
+					return reader.ReadBytes(1);
 				}
 
 				case TupleTypes.Uuid128:
 				{ // <30>(16 bytes)
-					return reader.Input.ReadBytes(17);
+					return reader.ReadBytes(17);
 				}
 
 				case TupleTypes.Uuid64:
 				{ // <31>(8 bytes)
-					return reader.Input.ReadBytes(9);
+					return reader.ReadBytes(9);
 				}
 
 				case TupleTypes.VersionStamp80:
 				{ // <32>(10 bytes)
-					return reader.Input.ReadBytes(11);
+					return reader.ReadBytes(11);
 				}
 
 				case TupleTypes.VersionStamp96:
 				{ // <33>(12 bytes)
-					return reader.Input.ReadBytes(13);
+					return reader.ReadBytes(13);
 				}
 
 				case TupleTypes.Directory:
 				case TupleTypes.Escape:
 				{ // <FE> or <FF>
-					return reader.Input.ReadBytes(1);
+					return reader.ReadBytes(1);
 				}
 			}
 
@@ -1237,14 +1237,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				int bytes = type - TupleTypes.IntZero;
 				if (bytes < 0) bytes = -bytes;
 
-				return reader.Input.ReadBytes(1 + bytes);
+				return reader.ReadBytes(1 + bytes);
 			}
 
-			throw new FormatException($"Invalid tuple type byte {type} at index {reader.Input.Position}/{reader.Input.Buffer.Count}");
+			return (default, new FormatException($"Invalid tuple type byte {type} at index {reader.Input.Position}/{reader.Input.Buffer.Count}"));
 		}
 
 		/// <summary>Read an embedded tuple, without parsing it</summary>
-		internal static Slice ReadEmbeddedTupleBytes(ref TupleReader reader)
+		internal static (Slice Token, Exception? Error) ReadEmbeddedTupleBytes(ref TupleReader reader)
 		{
 			// The current embedded tuple starts here, and stops on a <00>, but itself can contain more embedded tuples, and could have a <00> bytes as part of regular items (like bytes, strings, that end with <00> or could contain a <00><FF> ...)
 			// This means that we have to parse the tuple recursively, discard the tokens, and note where the cursor ended. The parsing of the tuple itself will be processed later.
@@ -1255,7 +1255,9 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			while(reader.Input.HasMore)
 			{
-				var token = ParseNext(ref reader);
+				(var token, var error) = ParseNext(ref reader);
+				if (error != null) return (default, error);
+
 				// the token will be Nil for either the end of the stream, or the end of the tuple
 				// => since we already tested Input.HasMore, we know we are in the later case
 				if (token.IsNull)
@@ -1263,12 +1265,12 @@ namespace Doxense.Collections.Tuples.Encoding
 					--reader.Depth;
 					//note: ParseNext() has already eaten the <00>
 					int end = reader.Input.Position;
-					return reader.Input.Buffer.Substring(start, end - start);
+					return (reader.Input.Buffer.Substring(start, end - start), null);
 				}
 				// else: ignore this token, it will be processed later if the tuple is unpacked and accessed
 			}
 
-			throw new FormatException($"Truncated embedded tuple started at index {start}/{reader.Input.Buffer.Count}");
+			return (default, new FormatException($"Truncated embedded tuple started at index {start}/{reader.Input.Buffer.Count}"));
 		}
 
 		/// <summary>Skip a number of tokens</summary>
@@ -1281,8 +1283,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			while (count-- > 0)
 			{
 				if (!reader.Input.HasMore) return false;
-				var token = ParseNext(ref reader);
-				if (token.IsNull) return false;
+				(var token, var error) = ParseNext(ref reader);
+				if (error != null || token.IsNull) return false;
 			}
 			return true;
 		}
@@ -1294,7 +1296,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, TupleSegmentType, T> visitor)
 		{
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
-			var token = ParseNext(ref reader);
+			(var token, var error) = ParseNext(ref reader);
+			if (error != null) throw error;
 			return visitor(token, TupleTypes.DecodeSegmentType(token));
 		}
 

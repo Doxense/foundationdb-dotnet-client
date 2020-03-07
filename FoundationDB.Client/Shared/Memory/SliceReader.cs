@@ -98,12 +98,12 @@ namespace Doxense.Memory
 		[DebuggerNonUserCode]
 		public void EnsureBytes(int count)
 		{
-			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw ThrowNotEnoughBytes(count);
+			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw NotEnoughBytes(count);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		[DebuggerNonUserCode]
-		private static Exception ThrowNotEnoughBytes(int count)
+		public static Exception NotEnoughBytes(int count)
 		{
 			return ThrowHelper.FormatException($"The buffer does not have enough data to satisfy a read of {count} byte(s)");
 		}
@@ -172,6 +172,27 @@ namespace Doxense.Memory
 			int p = this.Position;
 			this.Position = p + count;
 			return this.Buffer.Substring(p, count);
+		}
+
+		/// <summary>Read the next <paramref name="count"/> bytes from the buffer, if there is enough data remaining</summary>
+		public bool TryReadBytes(int count, out Slice bytes)
+		{
+			if (count == 0)
+			{
+				bytes = Slice.Empty;
+				return true;
+			}
+
+			if (this.Remaining < count)
+			{
+				bytes = default;
+				return false;
+			}
+
+			int p = this.Position;
+			this.Position = p + count;
+			bytes = this.Buffer.Substring(p, count);
+			return true;
 		}
 
 		/// <summary>Read the next <paramref name="count"/> bytes from the buffer</summary>
@@ -318,6 +339,38 @@ namespace Doxense.Memory
 			}
 
 			throw ThrowHelper.FormatException("Truncated byte string (expected terminal NUL not found)");
+		}
+
+		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
+		[Pure]
+		public bool TryReadByteString(out Slice bytes)
+		{
+			var buffer = this.Buffer.Array;
+			int start = this.Buffer.Offset + this.Position;
+			int p = start;
+			int end = this.Buffer.Offset + this.Buffer.Count;
+
+			while (p < end)
+			{
+				byte b = buffer[p++];
+				if (b == 0)
+				{
+					//TODO: decode \0\xFF ?
+					if (p < end && buffer[p] == 0xFF)
+					{
+						// skip the next byte and continue
+						p++;
+						continue;
+					}
+
+					this.Position = p - this.Buffer.Offset;
+					bytes = new Slice(buffer, start, p - start);
+					return true;
+				}
+			}
+
+			bytes = default;
+			return false;
 		}
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>

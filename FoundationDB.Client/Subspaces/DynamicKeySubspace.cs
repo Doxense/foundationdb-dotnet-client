@@ -138,14 +138,9 @@ namespace FoundationDB.Client
 		{
 			if (packedKey.IsNull) return "<null>";
 			var key = ExtractKey(packedKey, boundCheck: true);
-			try
+			if (this.KeyEncoder.TryUnpackKey(key, out var tuple))
 			{
-				//TODO: we need a TryUnpackKey ?
-				return this.KeyEncoder.UnpackKey(key).ToString();
-			}
-			catch (FormatException)
-			{
-				// this is not a tuple???
+				return tuple.ToString();
 			}
 			return key.PrettyPrint();
 		}

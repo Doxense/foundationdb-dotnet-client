@@ -1942,6 +1942,17 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Unpack a tuple from a buffer</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
+		/// <param name="embedded"></param>
+		/// <returns>Decoded tuple</returns>
+		internal static bool TryUnpack(Slice buffer, bool embedded, [NotNullWhen(true)] out IVarTuple? tuple)
+		{
+			var reader = new TupleReader(buffer);
+			if (embedded) reader.Depth = 1;
+			return TryUnpack(ref reader, out tuple);
+		}
+
+		/// <summary>Unpack a tuple from a buffer</summary>
 		/// <param name="reader">Reader positioned on the start of the packed representation of a tuple with zero or more elements</param>
 		/// <returns>Decoded tuple</returns>
 		internal static SlicedTuple Unpack(ref TupleReader reader)
@@ -1949,10 +1960,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
 			var items = new Slice[4];
 
-			Slice item;
 			int p = 0;
-			while ((item = TupleParser.ParseNext(ref reader)).HasValue)
+			while (true)
 			{
+				(var item, var error) = TupleParser.ParseNext(ref reader);
+				if (error != null) throw error;
+				if (!item.HasValue) break;
+
 				if (p >= items.Length)
 				{
 					// note: do not grow exponentially, because tuples will never but very large...
@@ -1965,6 +1979,39 @@ namespace Doxense.Collections.Tuples.Encoding
 			return new SlicedTuple(p == 0 ? Array.Empty<Slice>() : items.AsMemory(0, p));
 		}
 
+		internal static bool TryUnpack(ref TupleReader reader, [NotNullWhen(true)] out IVarTuple? tuple)
+		{
+			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
+			var items = new Slice[4];
+
+			int p = 0;
+			while (true)
+			{
+				(var item, var error) = TupleParser.ParseNext(ref reader);
+				if (error != null)
+				{
+					tuple = null;
+					return false;
+				}
+				if (!item.HasValue) break;
+
+				if (p >= items.Length)
+				{
+					// note: do not grow exponentially, because tuples will never but very large...
+					Array.Resize(ref items, p + 4);
+				}
+				items[p++] = item;
+			}
+
+			if (reader.Input.HasMore)
+			{
+				tuple = null;
+				return false;
+			}
+
+			tuple = new SlicedTuple(p == 0 ? Array.Empty<Slice>() : items.AsMemory(0, p));
+			return true;
+		}
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
 		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
@@ -1973,10 +2020,29 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var slicer = new TupleReader(buffer);
 
-			var current = TupleParser.ParseNext(ref slicer);
+			(var current, var error) = TupleParser.ParseNext(ref slicer);
+			if (error != null) throw error;
 			if (slicer.Input.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
 
 			return current;
+		}
+
+		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
+		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
+		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
+		public static bool TryUnpackSingle(Slice buffer, out Slice token)
+		{
+			var slicer = new TupleReader(buffer);
+
+			(var current, var error) = TupleParser.ParseNext(ref slicer);
+			if (error == null || current.IsNull || slicer.Input.HasMore)
+			{
+				token = default;
+				return false;
+			}
+
+			token = current;
+			return true;
 		}
 
 		/// <summary>Only returns the first item of a packed tuple</summary>
@@ -1986,7 +2052,21 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var slicer = new TupleReader(buffer);
 
-			return TupleParser.ParseNext(ref slicer);
+			(var token, var error) = TupleParser.ParseNext(ref slicer);
+			if (error != null) throw error;
+			return token;
+		}
+
+		/// <summary>Only returns the first item of a packed tuple</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
+		/// <returns>Raw slice corresponding to the first element of the tuple</returns>
+		public static bool TryUnpackFirst(Slice buffer, out Slice token)
+		{
+			var slicer = new TupleReader(buffer);
+
+			Exception? error;
+			(token, error) = TupleParser.ParseNext(ref slicer);
+			return error == null && !token.IsNull;
 		}
 
 		/// <summary>Only returns the last item of a packed tuple</summary>
@@ -1998,14 +2078,47 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			Slice item = default;
 
-			Slice current;
-			while ((current = TupleParser.ParseNext(ref slicer)).HasValue)
+			while (true)
 			{
+				(var current, var error) = TupleParser.ParseNext(ref slicer);
+				if (error != null) throw error;
+				if (!current.HasValue) break;
 				item = current;
 			}
 
 			if (slicer.Input.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
 			return item;
+		}
+
+		/// <summary>Only returns the last item of a packed tuple</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
+		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
+		public static bool TryUnpackLast(Slice buffer, out Slice token)
+		{
+			var slicer = new TupleReader(buffer);
+
+			Slice item = default;
+
+			while (true)
+			{
+				(var current, var error) = TupleParser.ParseNext(ref slicer);
+				if (error != null)
+				{
+					token = default;
+					return false;
+				}
+				if (!current.HasValue) break;
+				item = current;
+			}
+
+			if (item.IsNull || slicer.Input.HasMore)
+			{
+				token = default;
+				return false;
+			}
+
+			token = item;
+			return true;
 		}
 
 		#endregion

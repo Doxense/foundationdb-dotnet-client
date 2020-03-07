@@ -90,7 +90,11 @@ namespace FoundationDB.Client
 			PackKey(ref writer, STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8));
 		}
 
+		/// <inheritdoc />
 		public abstract IVarTuple UnpackKey(Slice packed);
+
+		/// <inheritdoc />
+		public abstract bool TryUnpackKey(Slice packed, out IVarTuple? tuple);
 
 		[return: MaybeNull]
 		public virtual T DecodeKey<T>(Slice packed)

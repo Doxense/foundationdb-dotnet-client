@@ -87,6 +87,13 @@ namespace Doxense.Serialization.Encoders
 			return item;
 		}
 
+		public static bool TryDecodeKey<T1>(this IKeyEncoder<T1> decoder, Slice encoded, out T1 item)
+		{
+			var reader = new SliceReader(encoded);
+			//TODO: should we fail if extra bytes?
+			return decoder.TryReadKeyFrom(ref reader, out item);
+		}
+
 		#endregion
 
 		#region <T1, T2>
@@ -145,6 +152,13 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		public static bool TryDecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded, out (T1, T2) items)
+		{
+			var reader = new SliceReader(encoded);
+			//TODO: throw if extra bytes?
+			return decoder.TryReadKeyFrom(ref reader, out items);
+		}
+
 		public static (T1, T2) DecodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -191,6 +205,13 @@ namespace Doxense.Serialization.Encoders
 			decoder.ReadKeyFrom(ref reader, out var items);
 			//TODO: throw if extra bytes?
 			return items;
+		}
+
+		public static bool TryDecodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> decoder, Slice encoded, out (T1, T2, T3) items)
+		{
+			var reader = new SliceReader(encoded);
+			//TODO: throw if extra bytes?
+			return decoder.TryReadKeyFrom(ref reader, out items);
 		}
 
 		public static (T1, T2, T3) DecodeKeyParts<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, int count, Slice encoded)
@@ -241,6 +262,13 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		public static bool TryDecodeKey<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> decoder, Slice encoded, out (T1, T2, T3, T4) items)
+		{
+			var reader = new SliceReader(encoded);
+			//TODO: throw if extra bytes?
+			return decoder.TryReadKeyFrom(ref reader, out items);
+		}
+
 		public static (T1, T2, T3, T4) DecodeKeyParts<T1, T2, T3, T4>(this ICompositeKeyEncoder<T1, T2, T3, T4> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
@@ -289,13 +317,19 @@ namespace Doxense.Serialization.Encoders
 			return items;
 		}
 
+		public static bool TryDecodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> decoder, Slice encoded, out (T1, T2, T3, T4, T5) items)
+		{
+			var reader = new SliceReader(encoded);
+			//TODO: throw if extra bytes?
+			return decoder.TryReadKeyFrom(ref reader, out items);
+		}
+
 		public static (T1, T2, T3, T4, T5) DecodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, Slice encoded)
 		{
 			var reader = new SliceReader(encoded);
 			encoder.ReadKeyPartsFrom(ref reader, count, out var items);
 			return items;
 		}
-
 
 		#endregion
 

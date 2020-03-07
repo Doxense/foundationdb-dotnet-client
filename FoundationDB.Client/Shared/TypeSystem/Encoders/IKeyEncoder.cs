@@ -47,6 +47,8 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Decode a single value</summary>
 		void ReadKeyFrom(ref SliceReader reader, out T1 value);
+
+		bool TryReadKeyFrom(ref SliceReader reader, out T1 value);
 	}
 
 	public class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
@@ -100,6 +102,27 @@ namespace Doxense.Serialization.Encoders
 				return;
 			}
 			throw new InvalidOperationException();
+		}
+
+		public bool TryReadKeyFrom(ref SliceReader reader, out TKey value)
+		{
+			if (this.Unpack is Func<Slice, TKey> f)
+			{
+				try
+				{
+					value = f(reader.ReadToEnd());
+					return true;
+				}
+				catch (FormatException)
+				{
+					value = default!;
+					return false;
+				}
+			}
+
+			value = default!;
+			return false;
+
 		}
 
 		#endregion
