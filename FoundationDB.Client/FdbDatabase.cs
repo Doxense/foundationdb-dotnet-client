@@ -251,6 +251,9 @@ namespace FoundationDB.Client
 
 		#region IFdbReadOnlyRetryable...
 
+		/// <summary>Empty type that is used to prevent ambiguity when switching on delegate types</summary>
+		private struct Nothing { }
+
 		private Task<TResult> ExecuteReadOnlyAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
 		{
 			Contract.NotNull(handler, nameof(handler));
@@ -264,19 +267,19 @@ namespace FoundationDB.Client
 		/// <inheritdoc/>
 		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
 		{
-			return ExecuteReadOnlyAsync<object?, object?, object?>(null, handler, null, ct);
+			return ExecuteReadOnlyAsync<Nothing, Nothing, Nothing>(default(Nothing), handler, null, ct);
 		}
 
 		/// <inheritdoc/>
 		public Task ReadAsync<TState>(TState state, Func<IFdbReadOnlyTransaction, TState, Task> handler, CancellationToken ct)
 		{
-			return ExecuteReadOnlyAsync<TState, object?, object?>(state, handler, null, ct);
+			return ExecuteReadOnlyAsync<TState, Nothing, Nothing>(state, handler, null, ct);
 		}
 
 		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
-			return ExecuteReadOnlyAsync<object?, TResult, TResult>(null, handler, null, ct);
+			return ExecuteReadOnlyAsync<Nothing, TResult, TResult>(default(Nothing), handler, null, ct);
 		}
 
 		/// <inheritdoc/>
@@ -288,19 +291,19 @@ namespace FoundationDB.Client
 		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TResult>(Func<IFdbReadOnlyTransaction, Task<TResult>> handler, Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
 		{
-			return ExecuteReadOnlyAsync<object?, TResult, TResult>(null, handler, success, ct);
+			return ExecuteReadOnlyAsync<Nothing, TResult, TResult>(default(Nothing), handler, success, ct);
 		}
 
 		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
-			return ExecuteReadOnlyAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+			return ExecuteReadOnlyAsync<Nothing, TIntermediate, TResult>(default(Nothing), handler, success, ct);
 		}
 
 		/// <inheritdoc/>
 		public Task<TResult> ReadAsync<TIntermediate, TResult>(Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			return ExecuteReadOnlyAsync<object?, TIntermediate, TResult>(null, handler, success, ct);
+			return ExecuteReadOnlyAsync<Nothing, TIntermediate, TResult>(default(Nothing), handler, success, ct);
 		}
 
 		/// <inheritdoc/>
