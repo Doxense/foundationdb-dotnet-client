@@ -540,7 +540,7 @@ namespace Doxense.Collections.Tuples
 			/// Stringify&lt;Slice&gt;((...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify<T>(T item)
+			public static string Stringify<T>([AllowNull] T item)
 			{
 				if (default(T) == null)
 				{
@@ -801,7 +801,7 @@ namespace Doxense.Collections.Tuples
 				var parser = new Parser(expression.Trim());
 				tuple = parser.ParseExpression();
 				string? s = parser.GetTail();
-				tail = string.IsNullOrWhiteSpace(s) ? null : s!.Trim();
+				tail = string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 			}
 
 			private struct Parser

@@ -31,45 +31,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 
 	public abstract class TypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>
 	{
 
-		public abstract void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
+		public abstract void EncodeOrderedSelfTerm(ref SliceWriter output, [AllowNull] T value);
 
+		[return: MaybeNull]
 		public abstract T DecodeOrderedSelfTerm(ref SliceReader input);
 
-		public virtual Slice EncodeOrdered(T value)
+		public virtual Slice EncodeOrdered([AllowNull] T value)
 		{
 			var writer = default(SliceWriter);
 			EncodeOrderedSelfTerm(ref writer, value);
 			return writer.ToSlice();
 		}
 
+		[return: MaybeNull]
 		public virtual T DecodeOrdered(Slice input)
 		{
 			var slicer = new SliceReader(input);
 			return DecodeOrderedSelfTerm(ref slicer);
 		}
 
-		public virtual void EncodeUnorderedSelfTerm(ref SliceWriter output, T value)
+		public virtual void EncodeUnorderedSelfTerm(ref SliceWriter output, [AllowNull] T value)
 		{
 			EncodeOrderedSelfTerm(ref output, value);
 		}
 
+		[return: MaybeNull]
 		public virtual T DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
 			return DecodeOrderedSelfTerm(ref input);
 		}
 
-		public virtual Slice EncodeUnordered(T value)
+		public virtual Slice EncodeUnordered([AllowNull] T value)
 		{
 			var writer = default(SliceWriter);
 			EncodeUnorderedSelfTerm(ref writer, value);
 			return writer.ToSlice();
 		}
 
+		[return: MaybeNull]
 		public virtual T DecodeUnordered(Slice input)
 		{
 			var reader = new SliceReader(input);

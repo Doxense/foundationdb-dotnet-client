@@ -2632,7 +2632,7 @@ namespace System
 
 		/// <summary>Return a slice that wraps the whole array</summary>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice(this byte[]? bytes)
+		public static Slice AsSlice([AllowNull] this byte[] bytes)
 		{
 			return bytes != null && bytes.Length > 0 ? new Slice(bytes, 0, bytes.Length) : EmptyOrNil(bytes);
 		}
@@ -2642,7 +2642,7 @@ namespace System
 		/// <param name="offset">Offset to the first byte of the slice</param>
 		/// <returns></returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset)
+		public static Slice AsSlice([AllowNull] this byte[] bytes, [Positive] int offset)
 		{
 			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
 			if (bytes == null) return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
@@ -2659,7 +2659,7 @@ namespace System
 		/// If <paramref name="count"/> is 0 then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
+		public static Slice AsSlice([AllowNull] this byte[] bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
 			if (bytes == null || count == 0) return EmptyOrNil(bytes, count);
@@ -2680,7 +2680,7 @@ namespace System
 		/// If <paramref name="count"/> is 0, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
 		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice(this byte[]? bytes, uint offset, uint count)
+		public static Slice AsSlice([AllowNull] this byte[] bytes, uint offset, uint count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
 			if (bytes == null || count == 0) return EmptyOrNil(bytes, (int) count);
@@ -2700,7 +2700,7 @@ namespace System
 		/// Slice that maps the corresponding sub-section of the array.
 		/// If <paramref name="range"/> is empty, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		public static Slice AsSlice(this byte[]? bytes, Range range)
+		public static Slice AsSlice([AllowNull] this byte[] bytes, Range range)
 		{
 			if (bytes == null)
 			{

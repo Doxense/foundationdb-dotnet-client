@@ -174,10 +174,13 @@ namespace Doxense.Serialization.Encoders
 		/// <typeparam name="T">Expected type of the element</typeparam>
 		/// <param name="packed">Binary slice produced by a previous call to <see cref="EncodeKey{T1}"/> or <see cref="EncodeKey{T1}"/></param>
 		/// <returns>Tuple containing a single element, or an exception if the data is invalid, or the tuples has less or more than 1 element</returns>
+		[return: MaybeNull]
 		T DecodeKey<T>(Slice packed);
 
+		[return: MaybeNull]
 		T DecodeKeyFirst<T>(Slice packed);
 
+		[return: MaybeNull]
 		T DecodeKeyLast<T>(Slice packed);
 
 		/// <summary>Decode a binary slice containing exactly two elements</summary>

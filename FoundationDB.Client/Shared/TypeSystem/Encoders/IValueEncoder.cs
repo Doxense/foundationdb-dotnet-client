@@ -44,7 +44,7 @@ namespace Doxense.Serialization.Encoders
 
 		/// <summary>Decode a single value from a compact binary representation</summary>
 		/// <param name="encoded">Packed value</param>
-		[return:MaybeNull]
+		[return: MaybeNull]
 		TValue DecodeValue(TStorage encoded);
 
 	}

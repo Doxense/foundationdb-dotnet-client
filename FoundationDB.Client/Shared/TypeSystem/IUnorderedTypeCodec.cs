@@ -31,17 +31,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 
 	/// <summary>Represents a codec that can produce keys or values without any ordering guarantees</summary>
 	public interface IUnorderedTypeCodec<T>
 	{
-		void EncodeUnorderedSelfTerm(ref SliceWriter output, T value);
+		void EncodeUnorderedSelfTerm(ref SliceWriter output, [AllowNull] T value);
 
+		[return: MaybeNull]
 		T DecodeUnorderedSelfTerm(ref SliceReader input);
 
-		Slice EncodeUnordered(T value);
+		Slice EncodeUnordered([AllowNull] T value);
 
+		[return: MaybeNull]
 		T DecodeUnordered(Slice input);
 	}
 

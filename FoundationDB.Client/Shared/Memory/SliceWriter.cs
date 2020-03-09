@@ -1540,7 +1540,7 @@ namespace Doxense.Memory
 			}
 			else
 			{
-				WriteVarAsciiInternal(value!);
+				WriteVarAsciiInternal(value);
 			}
 		}
 
@@ -1633,7 +1633,7 @@ namespace Doxense.Memory
 
 			// In order to estimate the required capacity, we try to guess for very small strings, but compute the actual value for larger strings,
 			// so that we don't waste to much memory (up to 6x the string length in the worst case scenario)
-			var buffer = EnsureBytes(value!.Length > 128 ? encoding.GetByteCount(value) : encoding.GetMaxByteCount(value.Length));
+			var buffer = EnsureBytes(value.Length > 128 ? encoding.GetByteCount(value) : encoding.GetMaxByteCount(value.Length));
 
 			int p = this.Position;
 			int n = encoding.GetBytes(value, 0, value.Length, buffer, p);
@@ -1650,7 +1650,7 @@ namespace Doxense.Memory
 
 			// In order to estimate the required capacity, we try to guess for very small strings, but compute the actual value for larger strings,
 			// so that we don't waste to much memory (up to 6x the string length in the worst case scenario)
-			var buffer = EnsureBytes(value!.Length > 128
+			var buffer = EnsureBytes(value.Length > 128
 				? Encoding.UTF8.GetByteCount(value)
 				: Encoding.UTF8.GetMaxByteCount(value.Length));
 
@@ -1710,7 +1710,7 @@ namespace Doxense.Memory
 		{
 			if (string.IsNullOrEmpty(value)) return 0;
 
-			var buffer = EnsureBytes(value!.Length);
+			var buffer = EnsureBytes(value.Length);
 			int p = this.Position;
 			foreach (var c in value)
 			{

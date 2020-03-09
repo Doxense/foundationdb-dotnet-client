@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
 
@@ -38,12 +39,14 @@ namespace Doxense.Serialization.Encoders
 	[PublicAPI]
 	public interface IOrderedTypeCodec<T>
 	{
-		void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
+		void EncodeOrderedSelfTerm(ref SliceWriter output, [AllowNull] T value);
 
+		[return: MaybeNull]
 		T DecodeOrderedSelfTerm(ref SliceReader input);
 
-		Slice EncodeOrdered(T value);
+		Slice EncodeOrdered([AllowNull] T value);
 
+		[return: MaybeNull]
 		T DecodeOrdered(Slice input);
 	}
 
