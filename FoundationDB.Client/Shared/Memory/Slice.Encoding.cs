@@ -1231,7 +1231,7 @@ namespace System
 		[Pure]
 		public string ToHexaString(bool lower = false)
 		{
-			return FormatHexaString(this.Array, this.Offset, this.Count, '\0', lower);
+			return this.Span.ToHexaString('\0', lower);
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
@@ -1241,37 +1241,7 @@ namespace System
 		[Pure]
 		public string ToHexaString(char sep, bool lower = false)
 		{
-			return FormatHexaString(this.Array, this.Offset, this.Count, sep, lower);
-		}
-
-		[Pure]
-		internal static string FormatHexaString(byte[] buffer, int offset, int count, char sep, bool lower)
-		{
-			if (count == 0) return String.Empty;
-			UnsafeHelpers.EnsureBufferIsValidNotNull(buffer, offset, count);
-
-			var sb = new StringBuilder(count * (sep == '\0' ? 2 : 3));
-			int letters = lower ? 87 : 55;
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[offset])
-				{
-					byte* inp = ptr;
-					byte* stop = ptr + count;
-					while (inp < stop)
-					{
-						if ((sep != '\0') & (sb.Length > 0)) sb.Append(sep);
-						byte b = *inp++;
-						int h = b >> 4;
-						int l = b & 0xF;
-						h += h < 10 ? 48 : letters;
-						l += l < 10 ? 48 : letters;
-						sb.Append((char) h).Append((char) l);
-					}
-				}
-			}
-
-			return sb.ToString();
+			return this.Span.ToHexaString(sep, lower);
 		}
 
 		internal static StringBuilder EscapeString(StringBuilder sb, byte[] buffer, int offset, int count, Encoding encoding)

@@ -1241,7 +1241,7 @@ namespace System
 		[Pure]
 		public string ToHexaString(bool lower = false)
 		{
-			return Slice.FormatHexaString(this.Array, this.Offset, this.Count, '\0', lower);
+			return this.Span.ToHexaString('\0', lower);
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
@@ -1251,7 +1251,7 @@ namespace System
 		[Pure]
 		public string ToHexaString(char sep, bool lower = false)
 		{
-			return Slice.FormatHexaString(this.Array, this.Offset, this.Count, sep, lower);
+			return this.Span.ToHexaString(sep, lower);
 		}
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>

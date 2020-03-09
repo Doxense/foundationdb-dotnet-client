@@ -2952,6 +2952,17 @@ namespace Doxense.Memory
 
 		/// <summary>Check if a memory region only contains bytes between 0 and 127 (7-bit ASCII)</summary>
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
+		public static bool IsAsciiBytes(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length == 0) return true;
+			fixed(byte* pBytes = buffer)
+			{
+				return IsAsciiBytes(pBytes, checked((uint) buffer.Length));
+			}
+		}
+		
+		/// <summary>Check if a memory region only contains bytes between 0 and 127 (7-bit ASCII)</summary>
+		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
 		[Pure]
 		public static bool IsAsciiBytes(byte* buffer, uint count)
 		{
@@ -3051,12 +3062,34 @@ namespace Doxense.Memory
 		/// You should *NOT* use this if the buffer contains ANSI or UTF-8 encoded strings!
 		/// If the buffer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
 		/// </remarks>
+		/// <example>
+		/// ConvertToByteString(new byte[] { 'A', 'B', 'C' }, 0, 3) => "ABC"
+		/// ConvertToByteString(new byte[] { 255, 'A', 'B', 'C' }, 0, 4) => "\xffABC"
+		/// ConvertToByteString(UTF8("é"), ...) => "Ã©" (len=2, 'C3 A9')
+		/// </example>
+		public static string ConvertToByteString(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length == 0) return string.Empty;
+
+			fixed(byte* ptr = buffer)
+			{
+				return ConvertToByteString(ptr, checked((uint) buffer.Length));
+			}
+		}
+
+		/// <summary>Convert a byte stream into a .NET string by expanding each byte to 16 bits characters</summary>
+		/// <returns>Equivalent .NET string</returns>
+		/// <remarks>
+		/// This is safe to use with 7-bit ASCII strings.
+		/// You should *NOT* use this if the buffer contains ANSI or UTF-8 encoded strings!
+		/// If the buffer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
+		/// </remarks>
 		[Pure]
 		public static string ConvertToByteString(byte* pBytes, uint count)
 		{
 			Contract.Requires(pBytes != null);
 
-			if (count == 0) return String.Empty;
+			if (count == 0) return string.Empty;
 
 			// fast allocate a new empty string that will be mutated in-place.
 			//note: this calls String::CtorCharCount() which in turn calls FastAllocateString(..), but will not fill the buffer with 0s if 'char' == '\0'

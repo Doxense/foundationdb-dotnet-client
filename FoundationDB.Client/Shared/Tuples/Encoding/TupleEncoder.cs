@@ -158,7 +158,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
@@ -186,7 +186,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, TElement[] elements, Func<TElement, TTuple> transform)
@@ -215,7 +215,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
@@ -247,7 +247,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		// With prefix...
@@ -636,7 +636,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		public static Slice[] EncodeKeys<T>(params T[] keys)
@@ -668,7 +668,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
@@ -709,7 +709,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				next.Add(writer.Output.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.Buffer ?? Array.Empty<byte>(), 0, next);
+			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>

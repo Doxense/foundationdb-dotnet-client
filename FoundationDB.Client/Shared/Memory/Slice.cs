@@ -972,7 +972,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
+			return SplitIntoSegments(writer.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
@@ -999,7 +999,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
+			return SplitIntoSegments(writer.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Append a sequence of slice at the end of the current slice, all sharing the same buffer</summary>
@@ -1025,7 +1025,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
+			return SplitIntoSegments(writer.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
@@ -1037,6 +1037,7 @@ namespace System
 		public static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
 		{
 			Contract.Requires(buffer != null && endOffsets != null);
+			if (endOffsets.Count == 0) return System.Array.Empty<Slice>();
 			var result = new Slice[endOffsets.Count];
 			int i = 0;
 			int p = start;
@@ -1550,7 +1551,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
+			return SplitIntoSegments(writer.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -1615,7 +1616,7 @@ namespace System
 				next.Add(writer.Position);
 			}
 
-			return SplitIntoSegments(writer.Buffer ?? System.Array.Empty<byte>(), 0, next);
+			return SplitIntoSegments(writer.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Creates a new slice that contains the same byte repeated</summary>
