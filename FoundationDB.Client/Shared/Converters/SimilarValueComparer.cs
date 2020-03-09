@@ -33,10 +33,9 @@ namespace Doxense.Runtime.Converters
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using JetBrains.Annotations;
 
 	/// <summary>Object comparer that returns true if both values are "similar"</summary>
-	/// <remarks>This comparer SHOULD NOT be used in a Dictioanry, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>
+	/// <remarks>This comparer SHOULD NOT be used in a Dictionary, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>
 	internal sealed class SimilarValueComparer : IEqualityComparer<object>, IEqualityComparer
 	{
 

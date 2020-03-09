@@ -36,7 +36,6 @@ namespace Doxense.Runtime.Converters
 	using System.Globalization;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Helper classe used to compare object of "compatible" types</summary>
 	internal static class ComparisonHelper
@@ -122,7 +121,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="type">Type of the object to adapt</param>
 		/// <param name="result">Double equivalent of the object</param>
 		/// <returns>True if <paramref name="value"/> is compatible with a decimal. False if the type is not compatible</returns>
-		public static bool TryAdaptToDecimal(object value, Type type, out double result)
+		public static bool TryAdaptToDecimal(object? value, Type type, out double result)
 		{
 			if (value != null)
 			{
@@ -210,19 +209,13 @@ namespace Doxense.Runtime.Converters
 			{
 				if (IsDecimalType(t1) || IsDecimalType(t2))
 				{
-					return (x, y) =>
-					{
-						// ReSharper disable once CompareOfFloatsByEqualityOperator
-						return x == null ? y == null : y != null && TryAdaptToDecimal(x, t1, out double d1) && TryAdaptToDecimal(y, t2, out double d2) && d1 == d2;
-					};
+					// ReSharper disable once CompareOfFloatsByEqualityOperator
+					return (x, y) => x == null ? y == null : y != null && TryAdaptToDecimal(x, t1, out double d1) && TryAdaptToDecimal(y, t2, out double d2) && d1 == d2;
 				}
 				else
 				{
 					//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when casted down to Int64
-					return (x, y) =>
-					{
-						return x == null ? y == null : y != null && TryAdaptToInteger(x, t1, out long l1) && TryAdaptToInteger(y, t2, out long l2) && l1 == l2;
-					};
+					return (x, y) => x == null ? y == null : y != null && TryAdaptToInteger(x, t1, out long l1) && TryAdaptToInteger(y, t2, out long l2) && l1 == l2;
 				}
 			}
 
@@ -256,7 +249,7 @@ namespace Doxense.Runtime.Converters
 		/// AreSimilar(false, 0) => true
 		/// AreSimilar(true, 1) => true
 		/// </example>
-		public static bool AreSimilar(object x, object y)
+		public static bool AreSimilar(object? x, object? y)
 		{
 			if (object.ReferenceEquals(x, y)) return true;
 			if (x == null || y == null) return false;

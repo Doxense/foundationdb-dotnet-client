@@ -77,6 +77,12 @@ namespace Doxense.Runtime.Converters
 				return FromObject(value);
 			}
 
+			[return: MaybeNull]
+			public static T Cast(object? value)
+			{
+				if (value == null) return default!;
+				return (T) value;
+			}
 		}
 
 		#endregion
@@ -120,7 +126,8 @@ namespace Doxense.Runtime.Converters
 				if (!typeof(TOutput).IsAssignableFrom(typeof(TInput))) throw new InvalidOperationException($"Type {typeof(TInput).Name} is not a subclass of {typeof(TOutput).Name}");
 			}
 
-			public TOutput Convert(TInput value)
+			[return: MaybeNull]
+			public TOutput Convert([AllowNull] TInput value)
 			{
 				return (TOutput) (object) value!;
 			}
@@ -294,7 +301,7 @@ namespace Doxense.Runtime.Converters
 
 			RegisterUnsafe<float, Slice>(Slice.FromSingle);
 			RegisterUnsafe<float, byte[]?>((value) => Slice.FromSingle(value).GetBytes());
-			RegisterUnsafe<float, string?>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<float, string?>(StringConverters.ToString);
 			RegisterUnsafe<float, bool>((value) => !(value == 0f || float.IsNaN(value)));
 			RegisterUnsafe<float, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<float, byte>((value) => checked((byte)value));
@@ -309,7 +316,7 @@ namespace Doxense.Runtime.Converters
 
 			RegisterUnsafe<double, Slice>((value) => Slice.FromDouble(value));
 			RegisterUnsafe<double, byte[]?>((value) => Slice.FromDouble(value).GetBytes());
-			RegisterUnsafe<double, string?>((value) => StringConverters.ToString(value));
+			RegisterUnsafe<double, string?>(StringConverters.ToString);
 			RegisterUnsafe<double, bool>((value) => !(value == 0d || double.IsNaN(value)));
 			RegisterUnsafe<double, sbyte>((value) => checked((sbyte)value));
 			RegisterUnsafe<double, byte>((value) => checked((byte)value));
@@ -352,8 +359,10 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<string?, double>((value) => string.IsNullOrEmpty(value) ? default(double) : double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string?, decimal>((value) => string.IsNullOrEmpty(value) ? default(decimal) : decimal.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string?, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
-			RegisterUnsafe<string?, Uuid128>((value) => string.IsNullOrEmpty(value) ? default(Uuid128) : Uuid128.Parse(value!));
-			RegisterUnsafe<string?, Uuid64>((value) => string.IsNullOrEmpty(value) ? default(Uuid64) : Uuid64.Parse(value!));
+			RegisterUnsafe<string?, Uuid128>((value) => string.IsNullOrEmpty(value) ? default(Uuid128) : Uuid128.Parse(value));
+			RegisterUnsafe<string?, Uuid96>((value) => string.IsNullOrEmpty(value) ? default(Uuid96) : Uuid96.Parse(value));
+			RegisterUnsafe<string?, Uuid80>((value) => string.IsNullOrEmpty(value) ? default(Uuid80) : Uuid80.Parse(value));
+			RegisterUnsafe<string?, Uuid64>((value) => string.IsNullOrEmpty(value) ? default(Uuid64) : Uuid64.Parse(value));
 			RegisterUnsafe<string?, System.Net.IPAddress?>((value) => string.IsNullOrEmpty(value) ? default(System.Net.IPAddress) : System.Net.IPAddress.Parse(value));
 
 			RegisterUnsafe<byte[]?, Slice>((value) => value.AsSlice());
@@ -372,6 +381,8 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<byte[]?, decimal>((value) => value?.AsSlice().ToDecimal() ?? 0m);
 			RegisterUnsafe<byte[]?, Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid128(value).ToGuid());
 			RegisterUnsafe<byte[]?, Uuid128>((value) => value == null || value.Length == 0 ? default(Uuid128) : new Uuid128(value));
+			RegisterUnsafe<byte[]?, Uuid96>((value) => value != null ? Uuid96.Read(value) : default(Uuid96));
+			RegisterUnsafe<byte[]?, Uuid80>((value) => value != null ? Uuid80.Read(value) : default(Uuid80));
 			RegisterUnsafe<byte[]?, Uuid64>((value) => value != null ? Uuid64.Read(value) : default(Uuid64));
 			RegisterUnsafe<byte[]?, TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(value.AsSlice().ToInt64()));
 			RegisterUnsafe<byte[]?, System.Net.IPAddress?>((value) => value == null || value.Length == 0 ? default(System.Net.IPAddress) : new System.Net.IPAddress(value));
@@ -380,39 +391,33 @@ namespace Doxense.Runtime.Converters
 			RegisterUnsafe<Guid, byte[]?>((value) => Slice.FromGuid(value).GetBytes());
 			RegisterUnsafe<Guid, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Guid, Uuid128>((value) => new Uuid128(value));
-			RegisterUnsafe<Guid, bool>((value) => value != Guid.Empty);
 			RegisterUnsafe<Guid, System.Net.IPAddress?>((value) => new System.Net.IPAddress(new Uuid128(value).ToByteArray())); //REVIEW: custom converter for Guid=>IPv6?
 
 			RegisterUnsafe<Uuid128, Slice>((value) => value.ToSlice());
 			RegisterUnsafe<Uuid128, byte[]?>((value) => value.ToByteArray());
 			RegisterUnsafe<Uuid128, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid128, Guid>((value) => value.ToGuid());
-			RegisterUnsafe<Uuid128, bool>((value) => value != Uuid128.Empty);
 			RegisterUnsafe<Uuid128, System.Net.IPAddress>((value) => new System.Net.IPAddress(value.ToByteArray())); //REVIEW: custom converter for Guid=>IPv6?
 
 			RegisterUnsafe<Uuid96, Slice>((value) => value.ToSlice());
 			RegisterUnsafe<Uuid96, byte[]?>((value) => value.ToByteArray());
 			RegisterUnsafe<Uuid96, string?>((value) => value.ToString("D", null));
-			RegisterUnsafe<Uuid96, bool>((value) => value != Uuid96.Empty);
 
 			RegisterUnsafe<Uuid80, Slice>((value) => value.ToSlice());
 			RegisterUnsafe<Uuid80, byte[]?>((value) => value.ToByteArray());
 			RegisterUnsafe<Uuid80, string?>((value) => value.ToString("D", null));
-			RegisterUnsafe<Uuid80, bool>((value) => value != Uuid80.Empty);
 
 			RegisterUnsafe<Uuid64, Slice>((value) => value.ToSlice());
 			RegisterUnsafe<Uuid64, byte[]?>((value) => value.ToByteArray());
 			RegisterUnsafe<Uuid64, string?>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid64, long>((value) => value.ToInt64());
 			RegisterUnsafe<Uuid64, ulong>((value) => value.ToUInt64());
-			RegisterUnsafe<Uuid64, bool>((value) => value.ToInt64() != 0L);
 
 			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
 			RegisterUnsafe<TimeSpan, byte[]?>((value) => Slice.FromInt64(value.Ticks).GetBytes());
 			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
 			RegisterUnsafe<TimeSpan, ulong>((value) => checked((ulong)value.Ticks));
 			RegisterUnsafe<TimeSpan, double>((value) => value.TotalSeconds);
-			RegisterUnsafe<TimeSpan, bool>((value) => value == TimeSpan.Zero);
 
 			RegisterUnsafe<System.Net.IPAddress?, Slice>((value) => (value?.GetAddressBytes()).AsSlice());
 			RegisterUnsafe<System.Net.IPAddress?, byte[]?>((value) => value?.GetAddressBytes());
@@ -469,6 +474,17 @@ namespace Doxense.Runtime.Converters
 			var body = Expression.Convert(prm, type);
 			var lambda = Expression.Lambda(body, true, prm);
 			return lambda.Compile();
+		}
+
+		/// <summary>Helper method that wraps a lambda function into a converter</summary>
+		/// <typeparam name="TInput">Source type</typeparam>
+		/// <typeparam name="TOutput">Destination type</typeparam>
+		/// <param name="converter">Lambda that converts a value of type <typeparamref name="TInput"/> into a value of type <typeparamref name="TOutput"/></param>
+		/// <returns>Converters that wraps the lambda</returns>
+		public static ITypeConverter<TInput, TOutput> Create<TInput, TOutput>(Func<TInput, TOutput> converter)
+		{
+			Contract.NotNull(converter, nameof(converter));
+			return new Anonymous<TInput, TOutput>(converter);
 		}
 
 		/// <summary>Add a new known converter (without locking)</summary>
@@ -562,7 +578,7 @@ namespace Doxense.Runtime.Converters
 		/// <returns>Converted value, or an exception if there are no known conversions. The value null is converted into default(<typeparamref name="T"/>) by convention</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
 		[Pure]
-		[return:MaybeNull]
+		[return: MaybeNull]
 		public static T ConvertBoxed<T>(object? value)
 		{
 			if (value == null) return default!;
@@ -579,7 +595,7 @@ namespace Doxense.Runtime.Converters
 				var nullableType = Nullable.GetUnderlyingType(targetType);
 				if (nullableType == null) throw FailCannotConvert(type, targetType);
 
-				// we already nullchecked value above, so we just have to convert it to the underlying type...
+				// we already null-checked value above, so we just have to convert it to the underlying type...
 
 				// shortcut for converting a T into a Nullable<T> ...
 				if (type == nullableType) return (T) value;
@@ -587,11 +603,11 @@ namespace Doxense.Runtime.Converters
 				// maybe we have a converter for the underlying type ?
 				if (Converters.TryGetValue(new ComparisonHelper.TypePair(type, nullableType), out converter))
 				{
-					return (T) converter.ConvertBoxed(value);
+					return (T) converter.ConvertBoxed(value)!;
 				}
 			}
 
-			return (T) converter.ConvertBoxed(value);
+			return (T) converter.ConvertBoxed(value)!;
 		}
 
 	}
