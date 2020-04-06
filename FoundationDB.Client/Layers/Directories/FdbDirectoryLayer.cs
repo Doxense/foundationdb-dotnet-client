@@ -853,6 +853,12 @@ namespace FoundationDB.Client
 
 				if (AnnotateTransactions) trans.Annotate("Register the prefix {0} to its new location in the folder sub-tree", oldNode.Prefix);
 
+				// make sure that the transaction is safe for mutation, and update the global metadata version if required
+				if (EnsureCanMutate())
+				{
+					trans.TouchMetadataVersionKey();
+				}
+
 				trans.Set(parentPartition.Nodes.Encode(parentPrefix, SUBDIRS, newPath.Name), oldNode.Prefix);
 				UpdatePartitionMetadataVersion(trans, parentPartition);
 
@@ -877,10 +883,17 @@ namespace FoundationDB.Client
 					return false;
 				}
 
+				// make sure that the transaction is safe for mutation, and update the global metadata version if required
+				if (EnsureCanMutate())
+				{
+					trans.TouchMetadataVersionKey();
+				}
+
 				// Delete the node subtree and all the data
 				await RemoveRecursive(trans, n.Partition, n.Prefix).ConfigureAwait(false);
 				// Remove the node from the tree
 				await RemoveFromParent(trans, path).ConfigureAwait(false);
+
 				return true;
 			}
 
