@@ -529,14 +529,19 @@ namespace FoundationDB.Client
 			private void UpdatePartitionMetadataVersion(IFdbTransaction trans, PartitionDescriptor partition, bool init = false)
 			{
 				// update the metadata version of this partition
-				if (init)
+				if (init && partition.Parent == null)
 				{
+					// IMPORTANT: The metadata key is NOT a read-version or version-stamp, it is a simple counter atomically incremented!
+					// instead of starting the counter at 0, we use the current read-version of the database, in hope that it would be
+					// greater than any previously used value if the entire DL was cleared and re-created, but from then on it is a simple
+					// opaque monotonically incremeting number.
 					trans.Set(partition.MetadataKey, Slice.FromInt64BE(this.ReadVersion));
 				}
 				else
 				{
-					//trans.TouchMetadataVersionKey(this.MetadataKey);
 					trans.AtomicIncrement64(partition.MetadataKey);
+					//note: creating multiple embedded partitions may increment the version of the root multiple times,
+					// but this is not really an issue: we just need it to be different than any previously observed value.
 				}
 
 				// make sure that the transaction is safe for mutation, and update the global metadata version if required
@@ -1227,7 +1232,6 @@ namespace FoundationDB.Client
 				//TODO: if this is the first call on this transaction, we must check the read layer version!
 
 				// we need to check if the context is valid
-				//var pmv = await trans.GetMetadataVersionKeyAsync(this.MetadataKey).ConfigureAwait(false);
 				long? pmv = (await trans.GetAsync(this.Partition.MetadataKey)).ToInt64BE();
 
 				if (context != null)
@@ -1387,7 +1391,7 @@ namespace FoundationDB.Client
 				try
 				{
 					if (!this.CachedSubspaces.TryGetValue(path, out candidate))
-					{
+					{ // not in the cahce => we don't know
 						if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace MISS for {path}");
 						return false;
 					}
@@ -1397,7 +1401,10 @@ namespace FoundationDB.Client
 					this.Lock.ExitReadLock();
 				}
 
-				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {subspace?.ToString() ?? "<not_found>"}");
+				// if candidate == null, we know it DOES NOT exist (we checked previously, and noted its absence by inserting null in the cache)
+				// if candidate != null, we know it DOES exist.
+
+				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {candidate?.ToString() ?? "<not_found>"}");
 
 				// the subspace was created with another context, we must migrate it to the current transaction's context
 				subspace = candidate?.ChangeContext(state);
@@ -1453,7 +1460,7 @@ namespace FoundationDB.Client
 				this.Nodes = content.Partition[FdbKey.Directory];
 				var rootNode = this.Nodes.Partition.ByKey(this.Nodes.GetPrefix());
 				this.VersionKey = rootNode.Encode(VersionAttribute);
-				this.MetadataKey = rootNode.Encode(MetadataAttribute);
+				this.MetadataKey = parent == null ? rootNode.Encode(MetadataAttribute) : parent.MetadataKey;
 			}
 
 			/// <summary>Return a child partition of the current partition</summary>
