@@ -816,9 +816,10 @@ namespace FoundationDB.Filters.Logging
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options != null)
 				{
-					if ((this.Options.Limit ?? 0) > 0) s += ", limit(" + this.Options.Limit + ")";
+					if ((this.Options.Limit ?? 0) > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
 					if (this.Options.Reverse == true) s += ", reverse";
-					if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode;
+					if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode.Value.ToString();
+					if (this.Options.Read.HasValue) s += ", " + this.Options.Read.Value.ToString();
 				}
 				return s;
 			}
