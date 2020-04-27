@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -47,6 +46,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Segments of this path</summary>
 		public readonly ReadOnlyMemory<string> Segments;
+
+		//REVIEW: TODO: support the notion of relative vs absolute path?
+		// - "/Foo/Bar" could be considered as an absolute path (starts with a '/')
+		// - "Foo/Bar" could be bonsidered as a relative path (does not start with a '/')
+		// Valid combinations:
+		// - "/Foo/Bar" + "Baz" => "/Foo/Bar/Baz" (absolute)
+		// - "Foo/Bar" + "Baz" => "Foo/Bar/Baz" (still relative)
+		// - "/Foo/Bar" + "/Baz" => ERROR (dangerous, we don't want to introduce relative path vulnerabilities!)
+		// - "Foo/Bar" + "/Baz" => ERROR (dangerous, we don't want to introduce relative path vulnerabilities!)
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal FdbDirectoryPath(ReadOnlyMemory<string> path)
@@ -62,9 +70,28 @@ namespace FoundationDB.Client
 
 		public int Count => this.Segments.Length;
 
+		/// <summary>Return the segment at the specified index (0-based)</summary>
 		public string this[int index] => this.Segments.Span[index];
 
-		/// <summary>Returns the name of the last segment of this path</summary>
+
+#if USE_RANGE_API
+
+		/// <summary>Return the segment at the specified index</summary>
+		public string this[Index index]
+		{
+			get
+			{
+				var path = this.Segments.Span;
+				return path[index.GetOffset(path.Length)];
+			}
+		}
+
+		/// <summary>Return a sub-section of the current path</summary>
+		public FdbDirectoryPath this[Range range] => new FdbDirectoryPath(this.Segments[range]);
+
+#endif
+
+		/// <summary>Return the name of the last segment of this path</summary>
 		/// <example><see cref="Combine(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
 		public string Name
 		{
@@ -76,15 +103,28 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Returns the parent path of the current path</summary>
-		/// <example><see cref="Combine(string[])"/>Combine("Foo", "Bar", "Baz").GetParent() => { "Foo", "Bar" }</example>
+		/// <summary>Return the parent path of the current path, if it is not empty.</summary>
+		/// <example>"/Foo/Bar/Baz".TryGetParent() => (true, "/Foo/Bar")</example>
+		public bool TryGetParent(out FdbDirectoryPath parent)
+		{
+			var path = this.Segments;
+			if (path.Length == 0)
+			{
+				parent = default;
+				return false;
+			}
+			parent = new FdbDirectoryPath(path.Slice(0, path.Length - 1));
+			return true;
+		}
+
+		/// <summary>Return the parent path of the current path</summary>
+		/// <example>"/Foo/Bar/Baz".GetParent() => "/Foo/Bar"</example>
+		/// <exception cref="InvalidOperationException">If this path is empty.</exception>
 		[Pure]
 		public FdbDirectoryPath GetParent()
-		{
-			var segments = this.Segments;
-			if (segments.Length == 0) throw new InvalidOperationException("The root path does not have a parent path.");
-			return new FdbDirectoryPath(segments.Slice(0, segments.Length - 1));
-		}
+			=> TryGetParent(out var parent)
+				? parent
+				: throw new InvalidOperationException("The root path does not have a parent path.");
 
 		/// <summary>Append a new segment to the curent path</summary>
 		public FdbDirectoryPath this[string segment] => Add(segment);
@@ -166,7 +206,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public FdbDirectoryPath Substring(int offset) => new FdbDirectoryPath(this.Segments.Slice(offset));
 
-		/// <summary>Return a suffix of the current path</summary>
+		/// <summary>Return a sub-section of the current path</summary>
 		/// <param name="offset">Number of segments to skip</param>
 		/// <param name="count">Number of segments to keep</param>
 		[Pure]
@@ -203,6 +243,33 @@ namespace FoundationDB.Client
 		{
 			return this.Segments.Span.EndsWith(suffix.Segments.Span);
 		}
+
+		/// <summary>Return the relative part of this path inside its <paramref name="parent"/></summary>
+		/// <param name="parent">Parent of this path</param>
+		/// <param name="relativePath">If this path is equal to, or a child or <paramref name="parent"/>, receives the relative path; otherwise, <see cref="Empty"/>.</param>
+		/// <returns>Returns <c>true</c> if path is equal to, or a child of <paramref name="parent"/>; otherwise, false.</returns>
+		/// <remarks>If this path is equal to <paramref name="parent"/>, still returns true but <paramref name="relativePath"/> will be empty.</remarks>
+		/// <example>"/Foo/Bar/Baz".TryGetRelativePath("/Foo") => (true, "Bar/Baz")</example>
+		public bool TryGetRelativePath(FdbDirectoryPath parent, out FdbDirectoryPath relativePath)
+		{
+			if (!StartsWith(parent))
+			{
+				relativePath = default;
+				return false;
+			}
+			relativePath = new FdbDirectoryPath(this.Segments.Slice(parent.Segments.Length));
+			return true;
+		}
+
+		/// <summary>Return the relative part of this path inside its <paramref name="parent"/></summary>
+		/// <param name="parent">Parent of this path</param>
+		/// <returns>Returns the relative portion of the current path under its <paramref name="parent"/>. It this path is equal to <paramref name="parent"/>, returns <see cref="Empty"/>.</returns>
+		/// <exception cref="ArgumentException">If this path is not equal to, or a child of <paramref name="parent"/>.</exception>
+		/// <example>"/Foo/Bar/Baz".GetRelativePath("/Foo") => "Bar/Baz"</example>
+		public FdbDirectoryPath GetRelativePath(FdbDirectoryPath parent)
+			=> TryGetRelativePath(parent, out var relative)
+				? relative
+				: throw new ArgumentException("The current path is not equal to, or a child of, the specified parent path.", nameof(parent));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerator<string> GetEnumerator()

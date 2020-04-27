@@ -103,20 +103,22 @@ namespace FoundationDB.Client
 			return this.Path;
 		}
 
-		/// <inheritdoc />
+		/// <summary>Append a segment to the current path</summary>
 		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this.Path + segment);
 
-		/// <inheritdoc />
+		/// <summary>Append a segment and layer id to the current path</summary>
 		public FdbDirectorySubspaceLocation this[string segment, Slice layer] => new FdbDirectorySubspaceLocation(this.Path + segment, layer);
 
-		/// <inheritdoc />
+		/// <summary>Append a relative path to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath] => new FdbDirectorySubspaceLocation(this.Path + relativePath);
 
-		/// <inheritdoc />
+		/// <summary>Append a relative path and layer id, to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbDirectoryPath relativePath, Slice layer] => new FdbDirectorySubspaceLocation(this.Path + relativePath, layer);
 
+		/// <summary>Append one or more segments to the current path</summary>
 		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments] => new FdbDirectorySubspaceLocation(this.Path.Add(segments));
 
+		/// <summary>Append one or more segments, and a layer id, to the current path</summary>
 		public FdbDirectorySubspaceLocation this[ReadOnlySpan<string> segments, Slice layer] => new FdbDirectorySubspaceLocation(this.Path.Add(segments), layer);
 
 		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new DynamicKeySubspaceLocation(GetSafePath(), TuPack.EncodeKey<T1>(item1), TuPack.Encoding.GetDynamicKeyEncoder());
