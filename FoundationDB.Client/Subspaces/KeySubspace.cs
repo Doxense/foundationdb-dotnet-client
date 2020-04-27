@@ -371,14 +371,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a user-friendly representation of a key from this subspace</summary>
 		/// <param name="key">Key that is contained in this subspace</param>
+		/// <param name="absolute"></param>
 		/// <returns>Printable version of this key, minus the subspace prefix</returns>
-		public virtual string DumpKey(Slice key)
+		public virtual string DumpKey(Slice key, bool absolute = false)
 		{
 			// note: we can't use ExtractAndCheck(...) because it may throw in derived classes
 			var prefix = this.Key;
 			if (!key.StartsWith(prefix)) FailKeyOutOfBound(key);
 
-			return FdbKey.Dump(key.Substring(prefix.Count));
+			return FdbKey.Dump(absolute ? key : key.Substring(prefix.Count));
 		}
 
 		/// <summary>Printable representation of this subspace</summary>

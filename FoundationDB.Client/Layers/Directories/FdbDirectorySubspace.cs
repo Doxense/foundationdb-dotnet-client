@@ -496,9 +496,9 @@ namespace FoundationDB.Client
 			return await metadata.ListInternalAsync(trans, ToAbsolutePath(path), throwIfMissing: false);
 		}
 
-		public override string DumpKey(Slice key)
+		public override string DumpKey(Slice key, bool absolute = false)
 		{
-			return $"[/{this.FullName}]:{base.DumpKey(key)}";
+			return absolute ? $"[/{this.FullName}]:{base.DumpKey(key, false)}" : base.DumpKey(key, false);
 		}
 
 		/// <summary>Returns a user-friendly description of this directory</summary>
