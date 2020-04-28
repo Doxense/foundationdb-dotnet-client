@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 		FdbDirectorySubspaceLocation Location { get; }
 
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
-		FdbDirectoryPath Path { get; }
+		FdbPath Path { get; }
 
 		/// <summary>Gets the layer id slice that was stored when this <code>Directory</code> was created.</summary>
 		Slice Layer { get; }
@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 		/// If the sub-directory does not exist, it is created (creating intermediate subdirectories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing sub-directory or set as the layer of a new sub-directory.
 		/// </summary>
-		Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbDirectoryPath subPath, Slice layer = default);
+		Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbPath subPath, Slice layer = default);
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
 		/// An exception is thrown if the sub-directory does not exist, or if a layer is specified and a different layer was specified when the sub-directory was created.
@@ -70,7 +70,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the sub-directory to open</param>
 		/// <param name="layer">Expected layer id for the sub-directory (optional)</param>
-		Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default);
+		Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer = default);
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
 		/// An exception is thrown if the sub-directory if a layer is specified and a different layer was specified when the sub-directory was created.
@@ -79,32 +79,32 @@ namespace FoundationDB.Client
 		/// <param name="path">Relative path of the sub-directory to open</param>
 		/// <param name="layer">Expected layer id for the sub-directory (optional)</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
-		Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default);
+		Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer = default);
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>, using the partition's cache context.</summary>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		/// <remarks>The instance returned MUST NOT be stored or kept outside the context of the transaction!
-		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, FdbDirectoryPath, Slice)"/> on every new transaction to obtained either the previously cached instance, or a new instance.
+		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, FdbPath, Slice)"/> on every new transaction to obtained either the previously cached instance, or a new instance.
 		/// Attempting to used a cached instance outside the transaction that produced it may throw exceptions!
 		/// </remarks>
-		ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default);
+		ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer = default);
 
 		/// <summary>Opens multiple sub-directories with the given <paramref name="paths"/>, using the partition's cache context.</summary>
 		/// <returns>Returns the list directories, in the same order. If a directory does not exist, the corresponding slot will contain <c>null</c></returns>
 		/// <remarks>The instances returned MUST NOT be stored or kept outside the context of the transaction!
-		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, IEnumerable{FdbDirectoryPath})"/> on every new transaction to obtained either the previously cached instances, or a new instances.
+		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, IEnumerable{FdbPath})"/> on every new transaction to obtained either the previously cached instances, or a new instances.
 		/// Attempting to used a cached instances outside the transaction that produced them may throw exceptions!
 		/// </remarks>
-		ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbDirectoryPath> paths);
+		ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbPath> paths);
 		//REVIEW: only keep the version that accept layers, and use an extension method instead?
 
 		/// <summary>Opens multiple sub-directories with the given <paramref name="paths"/>, using the partition's cache context.</summary>
 		/// <returns>Returns the list directories, in the same order. If a directory does not exist, the corresponding slot will contain <c>null</c></returns>
 		/// <remarks>The instances returned MUST NOT be stored or kept outside the context of the transaction!
-		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, IEnumerable{ValueTuple{FdbDirectoryPath, Slice}})"/> on every new transaction to obtained either the previously cached instances, or a new instances.
+		/// You must call <see cref="TryOpenCachedAsync(IFdbReadOnlyTransaction, IEnumerable{ValueTuple{FdbPath, Slice}})"/> on every new transaction to obtained either the previously cached instances, or a new instances.
 		/// Attempting to used a cached instances outside the transaction that produced them may throw exceptions!
 		/// </remarks>
-		ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<(FdbDirectoryPath Path, Slice Layer)> paths);
+		ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<(FdbPath Path, Slice Layer)> paths);
 
 		/// <summary>Creates a sub-directory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given sub-directory already exists.
@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the sub-directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the sub-directory and will be checked by future calls to open.</param>
-		Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath, Slice layer = default);
+		Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbPath subPath, Slice layer = default);
 
 		/// <summary>Creates a sub-directory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given sub-directory already exists.
@@ -120,14 +120,14 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the sub-directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the sub-directory and will be checked by future calls to open.</param>
-		Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath, Slice layer = default);
+		Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbPath subPath, Slice layer = default);
 
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="subPath"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbDirectoryPath subPath, Slice layer, Slice prefix);
+		Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbPath subPath, Slice layer, Slice prefix);
 
 		/// <summary>Moves the specified sub-directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -137,7 +137,7 @@ namespace FoundationDB.Client
 		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
 		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful.</returns>
-		Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath);
+		Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath);
 
 		/// <summary>Attempts to move the specified sub-directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// <param name="oldPath">Relative path under this directory of the sub-directory to be moved</param>
 		/// <param name="newPath">Relative path under this directory where the sub-directory will be moved to</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
-		Task<FdbDirectorySubspace?> TryMoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath);
+		Task<FdbDirectorySubspace?> TryMoveAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath);
 		//TODO: merge MoveAsync and TryMoveAsync into a single method!
 
 		/// <summary>Moves the current directory to <paramref name="newAbsolutePath"/>.
@@ -157,7 +157,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
 		/// <returns>Returns the directory at its new location if successful.</returns>
-		Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath);
+		Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, FdbPath newAbsolutePath);
 
 		/// <summary>Attempts to move the current directory to <paramref name="newAbsolutePath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
@@ -166,7 +166,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
-		Task<FdbDirectorySubspace?> TryMoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath);
+		Task<FdbDirectorySubspace?> TryMoveToAsync(IFdbTransaction trans, FdbPath newAbsolutePath);
 		//TODO: merge MoveToAsync and TryMoveToAsync into a single method!
 
 		/// <summary>Removes a directory, its contents, and all subdirectories.
@@ -174,33 +174,32 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to remove. Will remove the current directory if <paramref name="subPath"/> is empty</param>
-		Task RemoveAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default);
+		Task RemoveAsync(IFdbTransaction trans, FdbPath subPath = default);
 
 		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to remove. Will remove the current directory if <paramref name="subPath"/> is empty</param>
-		Task<bool> TryRemoveAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default);
+		Task<bool> TryRemoveAsync(IFdbTransaction trans, FdbPath subPath = default);
 		//TODO: merge RemoveAsync and TryRemoveAsync into a single method!
 
 		/// <summary>Checks if this directory exists</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to test</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath subPath = default);
+		Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, FdbPath subPath = default);
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to list</param>
-		Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath subPath = default);
+		Task<List<FdbPath>> ListAsync(IFdbReadOnlyTransaction trans, FdbPath subPath = default);
 		//TODO: return a List<FdbDirectoryPath> instead?
 
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Path of the directory to list</param>
-		Task<List<string>?> TryListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath subPath = default);
-		//TODO: return a List<FdbDirectoryPath> instead?
+		Task<List<FdbPath>?> TryListAsync(IFdbReadOnlyTransaction trans, FdbPath subPath = default);
 		//TODO: merge ListAsync and TryListAsync into a single method!
 
 		//TODO: Add BrowseAsync(...) which is the same as ListAsync(...) but returns the FdbDirectorySubspace instances directly?

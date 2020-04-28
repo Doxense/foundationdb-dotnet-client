@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Default root location used by the database (empty prefix by default)</summary>
 		/// <remarks>If specified, all started transactions will be automatically rooted to this location.</remarks>
-		public FdbDirectoryPath Root { get; set; }
+		public FdbPath? Root { get; set; }
 
 		/// <summary>If set, specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
 		public string? DataCenterId { get; set; }
@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		{
 			var sb = new StringBuilder();
 			AddKeyValue(sb, "cluster_file", this.ClusterFile ?? "default");
-			if (!this.Root.IsEmpty) AddKeyValue(sb, "root", "/" + this.Root.ToString());
+			if (this.Root != null) AddKeyValue(sb, "root", this.Root.ToString());
 			//REVIEW: cannot serialize subspace into a string ! :(
 			if (this.ReadOnly) AddKeyword(sb, "readonly");
 			if (this.DefaultTimeout > TimeSpan.Zero) AddKeyValue(sb, "timeout", this.DefaultTimeout.TotalSeconds);

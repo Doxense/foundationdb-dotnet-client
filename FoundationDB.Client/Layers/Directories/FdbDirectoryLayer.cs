@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Gets the path for the root node of this <code>FdbDirectoryLayer</code></summary>
 		/// <remarks>Normally constructed <code>DirectoryLayer</code>s have an empty path, but <code>DirectoryLayer</code>s returned by <see cref="IFdbDirectory.DirectoryLayer"/> for <see cref="IFdbDirectory"/>s inside of a <see cref="FdbDirectoryPartition"/> could have non-empty paths.</remarks>
-		public FdbDirectoryPath Path { get; }
+		public FdbPath Path => FdbPath.Root;
 
 		FdbDirectorySubspaceLocation IFdbDirectory.Location => new FdbDirectorySubspaceLocation(this.Path);
 
@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 		FdbDirectoryLayer IFdbDirectory.DirectoryLayer => this;
 
 		/// <summary>Convert a relative path in this Directory Layer, into an absolute path from the root of partition of the database</summary>
-		internal FdbDirectoryPath PartitionSubPath(FdbDirectoryPath path = default)
+		internal FdbPath PartitionSubPath(FdbPath path = default)
 		{
 			// If the DL is the root, the path is already absolute
 			// If the DL is used by a partition, then the path of the partition will be prepended to the path
@@ -157,12 +157,14 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to create or open</param>
 		/// <param name="layer">If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.</param>
-		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer = default)
+		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, FdbPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(null, trans, VerifyPath(path), layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true))!;
+			return (await metadata.CreateOrOpenInternalAsync(null, trans, location, layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true))!;
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
@@ -171,12 +173,14 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		public async Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default)
+		public async Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(trans, null, VerifyPath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true))!;
+			return (await metadata.CreateOrOpenInternalAsync(trans, null, location, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true))!;
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="path"/> (creating parent directories if necessary).
@@ -185,27 +189,31 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
-		public async Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer = default)
+		public async Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(null, trans, VerifyPath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true))!;
+			return (await metadata.CreateOrOpenInternalAsync(null, trans, location, layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true))!;
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		public async Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default)
+		public async Task<FdbDirectorySubspace?> TryOpenAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(trans, null, VerifyPath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false))!;
+			return (await metadata.CreateOrOpenInternalAsync(trans, null, location, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false))!;
 		}
 
-		public async ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer = default)
+		public async ValueTask<FdbDirectorySubspace?> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -213,7 +221,7 @@ namespace FoundationDB.Client
 			return await metadata.OpenCachedInternalAsync(trans, path, layer, throwOnError: false);
 		}
 
-		public async ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbDirectoryPath> paths)
+		public async ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<FdbPath> paths)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -221,24 +229,26 @@ namespace FoundationDB.Client
 			return await metadata.OpenCachedInternalAsync(trans, paths.Select(p => (p, Slice.Nil)).ToArray(), throwOnError: false);
 		}
 
-		public async ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<(FdbDirectoryPath Path, Slice Layer)> paths)
+		public async ValueTask<FdbDirectorySubspace?[]> TryOpenCachedAsync(IFdbReadOnlyTransaction trans, IEnumerable<(FdbPath Path, Slice Layer)> paths)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
 			var metadata = await Resolve(trans);
-			return await metadata.OpenCachedInternalAsync(trans, paths as (FdbDirectoryPath, Slice)[] ?? paths.ToArray(), throwOnError: false);
+			return await metadata.OpenCachedInternalAsync(trans, paths as (FdbPath, Slice)[] ?? paths.ToArray(), throwOnError: false);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="path"/> (creating parent directories if necessary).</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
-		public async Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer = default)
+		public async Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbPath path, Slice layer = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return await metadata.CreateOrOpenInternalAsync(null, trans, VerifyPath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: false);
+			return await metadata.CreateOrOpenInternalAsync(null, trans, location, layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
 		/// <summary>Registers an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
@@ -246,12 +256,14 @@ namespace FoundationDB.Client
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public async Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer, Slice prefix)
+		public async Task<FdbDirectorySubspace> RegisterAsync(IFdbTransaction trans, FdbPath path, Slice layer, Slice prefix)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return (await metadata.CreateOrOpenInternalAsync(null, trans, VerifyPath(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true))!;
+			return (await metadata.CreateOrOpenInternalAsync(null, trans, location, layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true))!;
 		}
 
 		/// <summary>Attempts to register an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
@@ -259,12 +271,14 @@ namespace FoundationDB.Client
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public async Task<FdbDirectorySubspace?> TryRegisterAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice layer, Slice prefix)
+		public async Task<FdbDirectorySubspace?> TryRegisterAsync(IFdbTransaction trans, FdbPath path, Slice layer, Slice prefix)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return await metadata.CreateOrOpenInternalAsync(null, trans, VerifyPath(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
+			return await metadata.CreateOrOpenInternalAsync(null, trans, location, layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
 		#endregion
@@ -278,14 +292,18 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="oldPath">Path of the directory to move</param>
 		/// <param name="newPath">New path of the directory</param>
-		public async Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath)
+		public async Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (oldPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be moved.");
-			if (newPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be replaced.");
+
+			EnsureAbsolutePath(in oldPath);
+			EnsureAbsolutePath(in newPath);
 
 			var oldLocation = VerifyPath(oldPath, nameof(oldPath));
 			var newLocation = VerifyPath(newPath, nameof(newPath));
+
+			if (oldLocation.IsRoot) throw new InvalidOperationException("The root directory cannot be moved.");
+			if (newLocation.IsRoot) throw new InvalidOperationException("The root directory cannot be replaced.");
 
 			var metadata = await Resolve(trans);
 			return (await metadata.MoveInternalAsync(trans, oldLocation, newLocation, throwOnError: true))!;
@@ -298,14 +316,15 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="oldPath">Path of the directory to move</param>
 		/// <param name="newPath">New path of the directory</param>
-		public async Task<FdbDirectorySubspace?> TryMoveAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath)
+		public async Task<FdbDirectorySubspace?> TryMoveAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (oldPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be moved.");
-			if (newPath.IsEmpty) throw new InvalidOperationException("The root directory cannot be replaced.");
 
-			var oldLocation = VerifyPath(oldPath, "oldPath");
-			var newLocation = VerifyPath(newPath, "newPath");
+			var oldLocation = VerifyPath(oldPath, nameof(oldPath));
+			var newLocation = VerifyPath(newPath, nameof(newPath));
+
+			if (oldLocation.IsRoot) throw new InvalidOperationException("The root directory cannot be moved.");
+			if (newLocation.IsRoot) throw new InvalidOperationException("The root directory cannot be replaced.");
 
 			var metadata = await Resolve(trans);
 			return await metadata.MoveInternalAsync(trans, oldLocation, newLocation, throwOnError: false);
@@ -315,12 +334,12 @@ namespace FoundationDB.Client
 
 		#region MoveTo / TryMoveTo
 
-		Task<FdbDirectorySubspace> IFdbDirectory.MoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
+		Task<FdbDirectorySubspace> IFdbDirectory.MoveToAsync(IFdbTransaction trans, FdbPath newAbsolutePath)
 		{
 			throw new InvalidOperationException("The root directory cannot be moved.");
 		}
 
-		Task<FdbDirectorySubspace?> IFdbDirectory.TryMoveToAsync(IFdbTransaction trans, FdbDirectoryPath newAbsolutePath)
+		Task<FdbDirectorySubspace?> IFdbDirectory.TryMoveToAsync(IFdbTransaction trans, FdbPath newAbsolutePath)
 		{
 			throw new InvalidOperationException("The root directory cannot be moved.");
 		}
@@ -334,13 +353,15 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public async Task RemoveAsync(IFdbTransaction trans, FdbDirectoryPath path)
+		public async Task RemoveAsync(IFdbTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) throw new InvalidOperationException("Cannot remove a directory layer");
+
+			var location = VerifyPath(path);
+			if (location.IsRoot) throw new InvalidOperationException("Cannot remove a directory layer");
 
 			var metadata = await Resolve(trans);
-			await metadata.RemoveInternalAsync(trans, VerifyPath(path), throwIfMissing: true);
+			await metadata.RemoveInternalAsync(trans, location, throwIfMissing: true);
 		}
 
 		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
@@ -348,13 +369,15 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public async Task<bool> TryRemoveAsync(IFdbTransaction trans, FdbDirectoryPath path)
+		public async Task<bool> TryRemoveAsync(IFdbTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans, nameof(trans));
-			if (path.IsEmpty) return false; // cannot remove directory layer itself
+
+			var location = VerifyPath(path);
+			if (location.IsRoot) return false; // cannot remove directory layer itself
 
 			var metadata = await Resolve(trans);
-			return await metadata.RemoveInternalAsync(trans, VerifyPath(path), throwIfMissing: false);
+			return await metadata.RemoveInternalAsync(trans, location, throwIfMissing: false);
 		}
 
 		#endregion
@@ -365,7 +388,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path)
+		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			// no reason to disallow checking for the root directory (could be used to check if a directory layer is initialized?)
@@ -384,23 +407,27 @@ namespace FoundationDB.Client
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		public async Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
+		public async Task<List<FdbPath>> ListAsync(IFdbReadOnlyTransaction trans, FdbPath path = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans);
-			return (await metadata.ListInternalAsync(trans, VerifyPath(path), throwIfMissing: true))!;
+			return (await metadata.ListInternalAsync(trans, location, throwIfMissing: true))!;
 		}
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>, if it exists.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		public async Task<List<string>?> TryListAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path = default)
+		public async Task<List<FdbPath>?> TryListAsync(IFdbReadOnlyTransaction trans, FdbPath path = default)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
+			var location = VerifyPath(path);
+
 			var metadata = await Resolve(trans).ConfigureAwait(false);
-			return await metadata.ListInternalAsync(trans, VerifyPath(path), throwIfMissing: false).ConfigureAwait(false);
+			return await metadata.ListInternalAsync(trans, location, throwIfMissing: false).ConfigureAwait(false);
 		}
 
 		#endregion
@@ -409,7 +436,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to change</param>
 		/// <param name="newLayer">New layer id of the directory</param>
-		public async Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice newLayer)
+		public async Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, FdbPath path, Slice newLayer)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			var location = VerifyPath(path);
@@ -435,7 +462,7 @@ namespace FoundationDB.Client
 		internal readonly struct Node
 		{
 
-			public Node(FdbDirectoryPath path, Slice prefix, Slice layer, PartitionDescriptor partition, PartitionDescriptor parentPartition)
+			public Node(FdbPath path, Slice prefix, Slice layer, PartitionDescriptor partition, PartitionDescriptor parentPartition)
 			{
 				Contract.Requires(partition != null && parentPartition != null);
 				this.Prefix = prefix;
@@ -446,7 +473,7 @@ namespace FoundationDB.Client
 			}
 
 			public readonly Slice Prefix;
-			public readonly FdbDirectoryPath Path;
+			public readonly FdbPath Path;
 			public readonly Slice Layer;
 			public readonly PartitionDescriptor Partition;
 			public readonly PartitionDescriptor ParentPartition;
@@ -553,7 +580,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Finds a node subspace, given its path, by walking the tree from the root.</summary>
 			/// <returns>Node if it was found, or null</returns>
-			private static async Task<Node> FindAsync(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, FdbDirectoryPath path)
+			private static async Task<Node> FindAsync(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, FdbPath path)
 			{
 				Contract.Requires(tr != null);
 
@@ -595,9 +622,11 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Open a subspace using the local cache</summary>
-			internal async ValueTask<FdbDirectorySubspace?> OpenCachedInternalAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, Slice layer, bool throwOnError)
+			internal async ValueTask<FdbDirectorySubspace?> OpenCachedInternalAsync(IFdbReadOnlyTransaction trans, FdbPath path, Slice layer, bool throwOnError)
 			{
 				Contract.Requires(trans != null);
+
+				EnsureAbsolutePath(in path);
 
 				var ctx = await GetContext(trans);
 				Contract.Assert(ctx != null);
@@ -613,7 +642,7 @@ namespace FoundationDB.Client
 				return await OpenCachedInternalSlow(ctx, trans, path, layer, throwOnError);
 			}
 
-			private async Task<FdbDirectorySubspace?> OpenCachedInternalSlow(CacheContext context, IFdbReadOnlyTransaction readTrans, FdbDirectoryPath path, Slice layer, bool throwOnError)
+			private async Task<FdbDirectorySubspace?> OpenCachedInternalSlow(CacheContext context, IFdbReadOnlyTransaction readTrans, FdbPath path, Slice layer, bool throwOnError)
 			{
 				var existingNode = await FindAsync(readTrans, this.Partition, path).ConfigureAwait(false);
 
@@ -638,7 +667,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Open a subspace using the local cache</summary>
-			internal async ValueTask<FdbDirectorySubspace?[]> OpenCachedInternalAsync(IFdbReadOnlyTransaction trans, ReadOnlyMemory<(FdbDirectoryPath Path, Slice Layer)> paths, bool throwOnError)
+			internal async ValueTask<FdbDirectorySubspace?[]> OpenCachedInternalAsync(IFdbReadOnlyTransaction trans, ReadOnlyMemory<(FdbPath Path, Slice Layer)> paths, bool throwOnError)
 			{
 				Contract.Requires(trans != null);
 
@@ -652,6 +681,7 @@ namespace FoundationDB.Client
 					for (int i = 0; i < paths.Length; i++)
 					{
 						(var path, var layer) = paths.Span[i];
+						EnsureAbsolutePath(in path);
 						if (ctx.TryGetSubspace(trans, this, path, out var subspace))
 						{
 							//TODO: check layer!
@@ -686,12 +716,14 @@ namespace FoundationDB.Client
 				}
 			}
 
-			internal async Task<FdbDirectorySubspace?> CreateOrOpenInternalAsync(IFdbReadOnlyTransaction? readTrans, IFdbTransaction? trans, FdbDirectoryPath path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
+			internal async Task<FdbDirectorySubspace?> CreateOrOpenInternalAsync(IFdbReadOnlyTransaction? readTrans, IFdbTransaction? trans, FdbPath path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
 			{
 				Contract.Requires(readTrans != null || trans != null, "Need at least one transaction");
 				Contract.Requires(readTrans == null || trans == null || object.ReferenceEquals(readTrans, trans), "The write transaction should be the same as the read transaction.");
 
-				if (path.Count == 0)
+				EnsureAbsolutePath(in path);
+
+				if (path.IsRoot)
 				{ // Root directory contains node metadata and so may not be opened.
 					throw new InvalidOperationException("The root directory may not be opened.");
 				}
@@ -699,7 +731,7 @@ namespace FoundationDB.Client
 				// to open an existing directory, we only need the read transaction
 				// if none was specified, we can use the writable transaction
 				readTrans ??= trans;
-				if (readTrans == null) throw new ArgumentNullException("readTrans", "You must either specify either a read or write transaction!");
+				if (readTrans == null) throw new ArgumentNullException(nameof(readTrans), "You must either specify either a read or write transaction!");
 
 				await CheckReadVersionAsync(readTrans);
 
@@ -797,15 +829,18 @@ namespace FoundationDB.Client
 				return ContentsOfNode(path, prefix, layer, existingNode.Partition, existingNode.ParentPartition ?? existingNode.Partition, null);
 			}
 
-			internal async Task<FdbDirectorySubspace?> MoveInternalAsync(IFdbTransaction trans, FdbDirectoryPath oldPath, FdbDirectoryPath newPath, bool throwOnError)
+			internal async Task<FdbDirectorySubspace?> MoveInternalAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath, bool throwOnError)
 			{
 				Contract.NotNull(trans, nameof(trans));
 
-				if (oldPath.Count == 0)
+				EnsureAbsolutePath(in oldPath);
+				EnsureAbsolutePath(in newPath);
+
+				if (oldPath.IsRoot)
 				{
 					throw new InvalidOperationException("The root directory may not be moved.");
 				}
-				if (newPath.Count == 0)
+				if (newPath.IsRoot)
 				{
 					throw new InvalidOperationException("The root directory cannot be overwritten.");
 				}
@@ -832,7 +867,7 @@ namespace FoundationDB.Client
 
 				Slice parentPrefix;
 				PartitionDescriptor parentPartition;
-				if (!newPath.IsEmpty)
+				if (!newPath.IsRoot)
 				{
 					var parentNode = await FindAsync(trans, this.Partition, newPath.GetParent()).ConfigureAwait(false);
 					if (!parentNode.Exists)
@@ -872,12 +907,14 @@ namespace FoundationDB.Client
 				return ContentsOfNode(newPath, oldNode.Prefix, oldNode.Layer, newNode.Partition, newNode.ParentPartition, null);
 			}
 
-			internal async Task<bool> RemoveInternalAsync(IFdbTransaction trans, FdbDirectoryPath path, bool throwIfMissing)
+			internal async Task<bool> RemoveInternalAsync(IFdbTransaction trans, FdbPath path, bool throwIfMissing)
 			{
 				Contract.NotNull(trans, nameof(trans));
 
+				EnsureAbsolutePath(in path);
+
 				// We don't allow removing the root directory, because it would probably end up wiping out all the database.
-				if (path.Count == 0) throw new InvalidOperationException("The root directory may not be removed.");
+				if (path.IsRoot) throw new InvalidOperationException("The root directory may not be removed.");
 
 				await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
@@ -902,9 +939,11 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			internal async Task<List<string>?> ListInternalAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path, bool throwIfMissing)
+			internal async Task<List<FdbPath>?> ListInternalAsync(IFdbReadOnlyTransaction trans, FdbPath path, bool throwIfMissing)
 			{
 				Contract.NotNull(trans, nameof(trans));
+
+				EnsureAbsolutePath(in path);
 
 				await CheckReadVersionAsync(trans);
 
@@ -917,14 +956,16 @@ namespace FoundationDB.Client
 				}
 
 				return await SubdirNamesAndNodes(trans, node.Partition, node.Prefix)
-					.Select(kvp => kvp.Key)
+					.Select(kvp => path[kvp.Key])
 					.ToListAsync()
 					.ConfigureAwait(false);
 			}
 
-			internal async Task<bool> ExistsInternalAsync(IFdbReadOnlyTransaction trans, FdbDirectoryPath path)
+			internal async Task<bool> ExistsInternalAsync(IFdbReadOnlyTransaction trans, FdbPath path)
 			{
 				Contract.NotNull(trans, nameof(trans));
+
+				EnsureAbsolutePath(in path);
 
 				await CheckReadVersionAsync(trans).ConfigureAwait(false);
 
@@ -935,9 +976,11 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, FdbDirectoryPath path, Slice newLayer)
+			internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, FdbPath path, Slice newLayer)
 			{
 				Contract.NotNull(trans, nameof(trans));
+
+				EnsureAbsolutePath(in path);
 
 				await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
@@ -1023,7 +1066,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
-			private FdbDirectorySubspace ContentsOfNode(FdbDirectoryPath path, Slice prefix, Slice layer, PartitionDescriptor partition, PartitionDescriptor parentPartition, ISubspaceContext? context)
+			private FdbDirectorySubspace ContentsOfNode(FdbPath path, Slice prefix, Slice layer, PartitionDescriptor partition, PartitionDescriptor parentPartition, ISubspaceContext? context)
 			{
 				Contract.Requires(partition != null && parentPartition != null);
 
@@ -1055,7 +1098,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Remove an existing node from its parents</summary>
 			/// <returns>True if the parent node was found, otherwise false</returns>
-			private async Task<bool> RemoveFromParent(IFdbTransaction tr, FdbDirectoryPath path)
+			private async Task<bool> RemoveFromParent(IFdbTransaction tr, FdbPath path)
 			{
 				Contract.Requires(tr != null);
 
@@ -1120,9 +1163,6 @@ namespace FoundationDB.Client
 				// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
 				return partition.Nodes.Encode(prefix, SUBDIRS, segment);
 			}
-
-			// subspace context
-
 
 			/// <summary>Ensure that this transaction can perform mutation operations</summary>
 			/// <returns>True the first time a DL mutation is performed with this transaction, of false if it already did</returns>
@@ -1294,10 +1334,20 @@ namespace FoundationDB.Client
 
 		}
 
-		internal static FdbDirectoryPath VerifyPath(FdbDirectoryPath path, string? argName = null)
+		internal static void EnsureAbsolutePath(in FdbPath path)
 		{
+			if (!path.IsAbsolute)
+			{
+				throw new ArgumentException("The Directory Layer cannot process relative paths.", nameof(path));
+			}
+		}
+
+		internal FdbPath VerifyPath(in FdbPath path, string? argName = null)
+		{
+			var location = path.IsAbsolute ? path : this.Path[path];
+
 			// The path should not contain any null strings
-			var segments = path.Segments.Span;
+			var segments = location.Segments.Span;
 			for (int i = 0; i < segments.Length; i++)
 			{
 				if (segments[i] == null)
@@ -1305,11 +1355,11 @@ namespace FoundationDB.Client
 					throw new ArgumentException("The path of a directory cannot contain null elements.", argName ?? "path");
 				}
 			}
-			return path;
+			return location;
 		}
 
 		/// <summary>Maps an absolute path to a relative path within this directory layer</summary>
-		internal FdbDirectoryPath ToRelativePath(FdbDirectoryPath path)
+		internal FdbPath ToRelativePath(FdbPath path)
 		{
 			if (!path.StartsWith(this.Path)) throw new InvalidOperationException("The path cannot be outside of this partition.");
 			return path.Substring(this.Path.Count);
@@ -1354,7 +1404,7 @@ namespace FoundationDB.Client
 			public Slice LayerVersion { get; set; }
 			// content of [PARTITION, "version"] key
 
-			public Dictionary<FdbDirectoryPath, FdbDirectorySubspace?> CachedSubspaces { get; } = new Dictionary<FdbDirectoryPath, FdbDirectorySubspace?>();
+			public Dictionary<FdbPath, FdbDirectorySubspace?> CachedSubspaces { get; } = new Dictionary<FdbPath, FdbDirectorySubspace?>();
 
 			private ReaderWriterLockSlim Lock { get; } = new ReaderWriterLockSlim();
 
@@ -1380,7 +1430,7 @@ namespace FoundationDB.Client
 			/// <param name="path">Absolute path to the subspace</param>
 			/// <param name="subspace">If the method returns <c>true</c>, receives the cached subspace instance.</param>
 			/// <returns>True if the subspace was found in the cache.</returns>
-			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, State state, FdbDirectoryPath path, out FdbDirectorySubspace? subspace)
+			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, State state, FdbPath path, out FdbDirectorySubspace? subspace)
 			{
 				Contract.Requires(tr != null);
 				subspace = null;
@@ -1411,7 +1461,7 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			public FdbDirectorySubspace? AddSubspace(FdbDirectoryPath path, FdbDirectorySubspace? subspace)
+			public FdbDirectorySubspace? AddSubspace(FdbPath path, FdbDirectorySubspace? subspace)
 			{
 				Contract.Requires(subspace == null || subspace.Descriptor.Path == path);
 				//TODO: check !
@@ -1440,7 +1490,7 @@ namespace FoundationDB.Client
 		internal sealed class PartitionDescriptor
 		{
 
-			public FdbDirectoryPath Path { get; }
+			public FdbPath Path { get; }
 
 			public PartitionDescriptor? Parent { get; }
 
@@ -1452,19 +1502,20 @@ namespace FoundationDB.Client
 
 			public Slice MetadataKey { get; }
 
-			public PartitionDescriptor(FdbDirectoryPath path, IDynamicKeySubspace content, PartitionDescriptor? parent)
+			public PartitionDescriptor(FdbPath path, IDynamicKeySubspace content, PartitionDescriptor? parent)
 			{
+				Contract.Requires(path.IsAbsolute && content != null);
 				this.Path = path;
 				this.Parent = parent;
 				this.Content = content;
 				this.Nodes = content.Partition[FdbKey.Directory];
 				var rootNode = this.Nodes.Partition.ByKey(this.Nodes.GetPrefix());
 				this.VersionKey = rootNode.Encode(VersionAttribute);
-				this.MetadataKey = parent == null ? rootNode.Encode(MetadataAttribute) : parent.MetadataKey;
+				this.MetadataKey = parent?.MetadataKey ?? rootNode.Encode(FdbDirectoryLayer.MetadataAttribute);
 			}
 
 			/// <summary>Return a child partition of the current partition</summary>
-			public PartitionDescriptor CreateChild(FdbDirectoryPath path, Slice prefix)
+			public PartitionDescriptor CreateChild(FdbPath path, Slice prefix)
 			{
 				Contract.Requires(path.IsChildOf(this.Path), "Partition path is outside parent");
 				return new PartitionDescriptor(path, KeySubspace.CreateDynamic(prefix), this);
@@ -1477,7 +1528,7 @@ namespace FoundationDB.Client
 		[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Layer={Layer}, Partition={Partition.Path}|{Partition.Content.GetPrefix()}")]
 		internal sealed class DirectoryDescriptor
 		{
-			public DirectoryDescriptor(FdbDirectoryLayer directoryLayer, FdbDirectoryPath path, Slice prefix, Slice layer, PartitionDescriptor partition)
+			public DirectoryDescriptor(FdbDirectoryLayer directoryLayer, FdbPath path, Slice prefix, Slice layer, PartitionDescriptor partition)
 			{
 				Contract.Requires(directoryLayer != null && partition != null && path.StartsWith(partition.Path));
 
@@ -1493,7 +1544,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Absolute path of this directory, from the root directory</summary>
-			public FdbDirectoryPath Path { get; }
+			public FdbPath Path { get; }
 
 			public Slice Prefix { get; }
 

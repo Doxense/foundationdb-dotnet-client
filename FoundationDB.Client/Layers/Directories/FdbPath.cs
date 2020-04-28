@@ -40,12 +40,18 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct FdbDirectoryPath : IReadOnlyList<string>, IEquatable<FdbDirectoryPath>
+	public readonly struct FdbPath : IReadOnlyList<string>, IEquatable<FdbPath>
 	{
-		public static readonly FdbDirectoryPath Empty = new FdbDirectoryPath(default);
+		/// <summary>The "empty" path</summary>
+		public static readonly FdbPath Empty = new FdbPath(default, absolute: false);
+
+		/// <summary>The "root" path ("/").</summary>
+		public static readonly FdbPath Root = new FdbPath(default, absolute: true);
 
 		/// <summary>Segments of this path</summary>
 		public readonly ReadOnlyMemory<string> Segments;
+
+		public readonly bool IsAbsolute;
 
 		//REVIEW: TODO: support the notion of relative vs absolute path?
 		// - "/Foo/Bar" could be considered as an absolute path (starts with a '/')
@@ -57,22 +63,32 @@ namespace FoundationDB.Client
 		// - "Foo/Bar" + "/Baz" => ERROR (dangerous, we don't want to introduce relative path vulnerabilities!)
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbDirectoryPath(ReadOnlyMemory<string> path)
+		internal FdbPath(ReadOnlyMemory<string> path, bool absolute)
 		{
 			this.Segments = path;
+			this.IsAbsolute = absolute;
 		}
 
+		/// <summary>Test if this is the empty directory</summary>
+		/// <remarks>The <see cref="Root"/> path ("/") is NOT considered empty!</remarks>
 		public bool IsEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Segments.Length == 0;
+			get => !this.IsAbsolute & (this.Segments.Length == 0);
+		}
+
+		/// <summary>Test if this is the root directory ("/")</summary>
+		/// <remarks>The <see cref="Empty"/> path is NOT considered to be the root!</remarks>
+		public bool IsRoot
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.IsAbsolute & this.Segments.Length == 0;
 		}
 
 		public int Count => this.Segments.Length;
 
 		/// <summary>Return the segment at the specified index (0-based)</summary>
 		public string this[int index] => this.Segments.Span[index];
-
 
 #if USE_RANGE_API
 
@@ -87,12 +103,12 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a sub-section of the current path</summary>
-		public FdbDirectoryPath this[Range range] => new FdbDirectoryPath(this.Segments[range]);
+		public FdbPath this[Range range] => new FdbPath(this.Segments[range], this.IsAbsolute && range.GetOffsetAndLength(this.Count).Offset == 0);
 
 #endif
 
 		/// <summary>Return the name of the last segment of this path</summary>
-		/// <example><see cref="Combine(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
+		/// <example><see cref="MakeRelative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
 		public string Name
 		{
 			[Pure]
@@ -105,7 +121,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the parent path of the current path, if it is not empty.</summary>
 		/// <example>"/Foo/Bar/Baz".TryGetParent() => (true, "/Foo/Bar")</example>
-		public bool TryGetParent(out FdbDirectoryPath parent)
+		public bool TryGetParent(out FdbPath parent)
 		{
 			var path = this.Segments;
 			if (path.Length == 0)
@@ -113,7 +129,7 @@ namespace FoundationDB.Client
 				parent = default;
 				return false;
 			}
-			parent = new FdbDirectoryPath(path.Slice(0, path.Length - 1));
+			parent = new FdbPath(path.Slice(0, path.Length - 1), this.IsAbsolute);
 			return true;
 		}
 
@@ -121,19 +137,19 @@ namespace FoundationDB.Client
 		/// <example>"/Foo/Bar/Baz".GetParent() => "/Foo/Bar"</example>
 		/// <exception cref="InvalidOperationException">If this path is empty.</exception>
 		[Pure]
-		public FdbDirectoryPath GetParent()
+		public FdbPath GetParent()
 			=> TryGetParent(out var parent)
 				? parent
 				: throw new InvalidOperationException("The root path does not have a parent path.");
 
 		/// <summary>Append a new segment to the curent path</summary>
-		public FdbDirectoryPath this[string segment] => Add(segment);
+		public FdbPath this[string segment] => Add(segment);
 
 		/// <summary>Append one or more new segments to the curent path</summary>
-		public FdbDirectoryPath this[ReadOnlySpan<string> segments] => Add(segments);
+		public FdbPath this[ReadOnlySpan<string> segments] => Add(segments);
 
 		/// <summary>Append a relative path to the curent path</summary>
-		public FdbDirectoryPath this[FdbDirectoryPath path] => Add(path);
+		public FdbPath this[FdbPath path] => Add(path);
 
 		private static ReadOnlyMemory<string> AppendSegment(ReadOnlySpan<string> head, string segment)
 		{
@@ -175,72 +191,100 @@ namespace FoundationDB.Client
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(string segment) => new FdbDirectoryPath(AppendSegment(this.Segments.Span, segment));
+		public FdbPath Add(string segment)
+			=> new FdbPath(AppendSegment(this.Segments.Span, segment), this.IsAbsolute);
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(string segment1, string segment2) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segment1, segment2));
+		public FdbPath Add(string segment1, string segment2)
+			=> new FdbPath(AppendSegments(this.Segments.Span, segment1, segment2), this.IsAbsolute);
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(ReadOnlySpan<char> segment) => new FdbDirectoryPath(AppendSegment(this.Segments.Span, segment.ToString()));
+		public FdbPath Add(ReadOnlySpan<char> segment)
+			=> new FdbPath(AppendSegment(this.Segments.Span, segment.ToString()), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(ReadOnlySpan<string> segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments));
+		public FdbPath Add(ReadOnlySpan<string> segments)
+			=> new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(params string[] segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments.AsSpan()));
+		public FdbPath Add(params string[] segments)
+			=> new FdbPath(AppendSegments(this.Segments.Span, segments.AsSpan()), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(IEnumerable<string> segments) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, segments));
+		public FdbPath Add(IEnumerable<string> segments)
+			=> new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
 
 		/// <summary>Add a path to the current path</summary>
 		[Pure]
-		public FdbDirectoryPath Add(FdbDirectoryPath path) => new FdbDirectoryPath(AppendSegments(this.Segments.Span, path.Segments.Span));
+		public FdbPath Add(FdbPath path)
+		{
+			if (this.IsAbsolute)
+			{
+				// Can only add relative to an absolute
+				if (path.IsAbsolute) throw new InvalidOperationException("Cannot add two absolute directory path together.");
+				if (path.IsEmpty) return this;
+			}
+			else
+			{
+				// we still empty Empty + "/Foo/Bar"
+				if (!this.IsEmpty && path.IsAbsolute) throw new InvalidOperationException("Cannot add an absolute directory path to a relative path.");
+				if (this.IsEmpty) return path;
+			}
+			return new FdbPath(AppendSegments(this.Segments.Span, path.Segments.Span), this.IsAbsolute);
+		}
 
 		/// <summary>Return a suffix of the current path</summary>
 		/// <param name="offset">Number of segments to skip</param>
 		[Pure]
-		public FdbDirectoryPath Substring(int offset) => new FdbDirectoryPath(this.Segments.Slice(offset));
+		public FdbPath Substring(int offset)
+			=> new FdbPath(this.Segments.Slice(offset), absolute: this.IsAbsolute && offset == 0);
 
 		/// <summary>Return a sub-section of the current path</summary>
 		/// <param name="offset">Number of segments to skip</param>
 		/// <param name="count">Number of segments to keep</param>
 		[Pure]
-		public FdbDirectoryPath Substring(int offset, int count) => new FdbDirectoryPath(this.Segments.Slice(offset, count));
+		public FdbPath Substring(int offset, int count)
+			=> new FdbPath(this.Segments.Slice(offset, count), absolute: this.IsAbsolute && offset == 0);
 
 		/// <summary>Test if the current path is a child of another path</summary>
 		/// <remarks>This differs from <see cref="StartsWith"/> in that a path is not a child of itself</remarks>
 		[Pure]
-		public bool IsChildOf(FdbDirectoryPath prefix)
+		public bool IsChildOf(FdbPath prefix)
 		{
+			if (this.IsAbsolute != prefix.IsAbsolute) return false;
 			return prefix.Count < this.Count && this.Segments.Span.StartsWith(prefix.Segments.Span);
 		}
 
 		/// <summary>Test if the current path is the same, or a child of another path</summary>
 		/// <remarks>This differs from <see cref="IsChildOf"/> in that a path always starts with itself</remarks>
 		[Pure]
-		public bool StartsWith(FdbDirectoryPath prefix)
+		public bool StartsWith(FdbPath prefix)
 		{
+			if (this.IsAbsolute != prefix.IsAbsolute) return false;
 			return this.Segments.Span.StartsWith(prefix.Segments.Span);
 		}
 
 		/// <summary>Test if the current path is a parent of another path</summary>
 		/// <remarks>This differs from <see cref="EndsWith"/> in that a path is not a parent of itself</remarks>
 		[Pure]
-		public bool IsParentOf(FdbDirectoryPath suffix)
+		public bool IsParentOf(FdbPath suffix)
 		{
+			if (this.IsAbsolute != suffix.IsAbsolute) return false;
 			return suffix.Count > this.Count && this.Segments.Span.EndsWith(suffix.Segments.Span);
 		}
 
 		/// <summary>Test if the current path is the same or a parent of another path</summary>
 		/// <remarks>This differs from <see cref="IsParentOf"/> in that a path always ends with itself</remarks>
 		[Pure]
-		public bool EndsWith(FdbDirectoryPath suffix)
+		public bool EndsWith(FdbPath suffix)
 		{
+			if (suffix.IsEmpty) return true; // everything ends with Empty
+			if (suffix.IsAbsolute) return suffix.Equals(this);
 			return this.Segments.Span.EndsWith(suffix.Segments.Span);
 		}
 
@@ -250,14 +294,15 @@ namespace FoundationDB.Client
 		/// <returns>Returns <c>true</c> if path is equal to, or a child of <paramref name="parent"/>; otherwise, false.</returns>
 		/// <remarks>If this path is equal to <paramref name="parent"/>, still returns true but <paramref name="relativePath"/> will be empty.</remarks>
 		/// <example>"/Foo/Bar/Baz".TryGetRelativePath("/Foo") => (true, "Bar/Baz")</example>
-		public bool TryGetRelativePath(FdbDirectoryPath parent, out FdbDirectoryPath relativePath)
+		public bool TryGetRelativePath(FdbPath parent, out FdbPath relativePath)
 		{
 			if (!StartsWith(parent))
 			{
 				relativePath = default;
 				return false;
 			}
-			relativePath = new FdbDirectoryPath(this.Segments.Slice(parent.Segments.Length));
+			relativePath = new FdbPath(this.Segments.Slice(parent.Segments.Length), absolute: false);
+			Contract.Ensures(!relativePath.IsAbsolute);
 			return true;
 		}
 
@@ -266,7 +311,7 @@ namespace FoundationDB.Client
 		/// <returns>Returns the relative portion of the current path under its <paramref name="parent"/>. It this path is equal to <paramref name="parent"/>, returns <see cref="Empty"/>.</returns>
 		/// <exception cref="ArgumentException">If this path is not equal to, or a child of <paramref name="parent"/>.</exception>
 		/// <example>"/Foo/Bar/Baz".GetRelativePath("/Foo") => "Bar/Baz"</example>
-		public FdbDirectoryPath GetRelativePath(FdbDirectoryPath parent)
+		public FdbPath GetRelativePath(FdbPath parent)
 			=> TryGetRelativePath(parent, out var relative)
 				? relative
 				: throw new ArgumentException("The current path is not equal to, or a child of, the specified parent path.", nameof(parent));
@@ -284,7 +329,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return FormatPath(this.Segments.Span);
+			return FormatPath(this.Segments.Span, this.IsAbsolute);
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
@@ -292,54 +337,121 @@ namespace FoundationDB.Client
 			return GetEnumerator();
 		}
 
-		private static void EnsureCompatibleType<T>()
+		/// <summary>Add a segment to a parent path</summary>
+		[Pure]
+		public static FdbPath Combine(FdbPath path, string segment)
 		{
-			// test against easy mistakes
-			if (typeof(T) == typeof(FdbDirectoryPath)) throw new InvalidOperationException($"You must call {nameof(Combine)}() to append paths!");
+			return path.Add(segment);
 		}
 
+		/// <summary>Add a pair of segments to a root path</summary>
 		[Pure]
-		public static FdbDirectoryPath Combine(string segment)
+		public static FdbPath Combine(FdbPath path, string segment1, string segment2)
+		{
+			return path.Add(segment1, segment2);
+		}
+
+		/// <summary>Add one or more segments to a parent path</summary>
+		[Pure]
+		public static FdbPath Combine(FdbPath path, params string[] segments)
+		{
+			return path.Add(segments);
+		}
+
+		/// <summary>Add one or more segments to a parent path</summary>
+		[Pure]
+		public static FdbPath Combine(FdbPath path, ReadOnlySpan<string> segments)
+		{
+			return path.Add(segments);
+		}
+
+		/// <summary>Return a relative path composed of a single segment</summary>
+		[Pure]
+		public static FdbPath MakeRelative(string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
-			return new FdbDirectoryPath(new [] { segment });
+			return new FdbPath(new [] { segment }, absolute: false);
 		}
 
+		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbDirectoryPath Combine(params string[] segments)
+		public static FdbPath MakeRelative(params string[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
-			return new FdbDirectoryPath(segments);
+			if (segments.Length == 0) return FdbPath.Empty;
+			return new FdbPath(segments, absolute: false);
 		}
 
+		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbDirectoryPath Combine(ReadOnlySpan<string> segments)
+		public static FdbPath MakeRelative(ReadOnlySpan<string> segments)
 		{
 			// we have to copy the buffer!
-			return new FdbDirectoryPath(segments.ToArray());
+			return new FdbPath(segments.ToArray(), absolute: false);
 		}
 
-
+		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbDirectoryPath Combine(ReadOnlyMemory<string> segments)
+		public static FdbPath MakeRelative(ReadOnlyMemory<string> segments)
 		{
-			return new FdbDirectoryPath(segments);
+			return new FdbPath(segments, absolute: false);
 		}
 
 		[Pure]
-		public static FdbDirectoryPath Combine(IEnumerable<string> segments)
+		public static FdbPath MakeRelative(IEnumerable<string> segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
-			return new FdbDirectoryPath(segments.ToArray());
+			return new FdbPath(segments.ToArray(), absolute: false);
+		}
+
+		/// <summary>Return a relative path composed of a single segment</summary>
+		[Pure]
+		public static FdbPath MakeAbsolute(string segment)
+		{
+			Contract.NotNull(segment, nameof(segment));
+			return new FdbPath(new [] { segment }, absolute: true);
+		}
+
+		/// <summary>Return a relative path composed of the specified segments</summary>
+		[Pure]
+		public static FdbPath MakeAbsolute(params string[] segments)
+		{
+			Contract.NotNull(segments, nameof(segments));
+			if (segments.Length == 0) return FdbPath.Empty;
+			return new FdbPath(segments, absolute: true);
+		}
+
+		/// <summary>Return a relative path composed of the specified segments</summary>
+		[Pure]
+		public static FdbPath MakeAbsolute(ReadOnlySpan<string> segments)
+		{
+			// we have to copy the buffer!
+			return new FdbPath(segments.ToArray(), absolute: true);
+		}
+
+		/// <summary>Return a relative path composed of the specified segments</summary>
+		[Pure]
+		public static FdbPath MakeAbsolute(ReadOnlyMemory<string> segments)
+		{
+			return new FdbPath(segments, absolute: true);
 		}
 
 		[Pure]
-		public static FdbDirectoryPath Parse(string? path)
+		public static FdbPath MakeAbsolute(IEnumerable<string> segments)
+		{
+			Contract.NotNull(segments, nameof(segments));
+			return new FdbPath(segments.ToArray(), absolute: true);
+		}
+
+		[Pure]
+		public static FdbPath Parse(string? path)
 		{
 			if (string.IsNullOrEmpty(path)) return Empty;
+			if (path == "/") return FdbPath.Root;
 
 			var segments = new List<string>();
 			var sb = new StringBuilder();
+			bool absolute = false;
 			bool escaped = false;
 			foreach (var c in path!)
 			{
@@ -360,7 +472,8 @@ namespace FoundationDB.Client
 					case '/':
 					{
 						if (sb.Length == 0 && segments.Count == 0)
-						{ // ignore the first '/'
+						{ // first '/' means that it is an absolute path
+							absolute = true;
 							continue;
 						}
 
@@ -381,31 +494,33 @@ namespace FoundationDB.Client
 				segments.Add(sb.ToString());
 			}
 
-			return new FdbDirectoryPath(segments.ToArray());
+			return new FdbPath(segments.ToArray(), absolute);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator FdbDirectoryPath(string segment)
-		{
-			return Combine(segment);
-		}
+		//[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		//public static implicit operator FdbDirectoryPath(string segment)
+		//{
+		//	return Combine(segment);
+		//}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static implicit operator FdbDirectoryPath(string[] segments)
-		{
-			return Combine(segments);
-		}
+		//[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		//public static implicit operator FdbDirectoryPath(string[] segments)
+		//{
+		//	return Combine(segments);
+		//}
 
 		[Pure]
-		internal static string FormatPath(ReadOnlySpan<string> paths)
+		internal static string FormatPath(ReadOnlySpan<string> paths, bool absolute)
 		{
+			if (paths.Length == 0) return absolute ? "/" : string.Empty;
+
 			var sb = new StringBuilder();
 			foreach(var seg in paths)
 			{
-				if (sb.Length != 0) sb.Append('/');
-				if (seg.Contains('\\') || seg.Contains('/'))
+				if (absolute || sb.Length != 0) sb.Append('/');
+				if (seg.Contains('\\') || seg.Contains('/') || seg.Contains('['))
 				{
-					sb.Append(seg.Replace("\\", "\\\\").Replace("/", "\\/"));
+					sb.Append(seg.Replace("\\", "\\\\").Replace("/", "\\/")).Replace("[", "\\[");
 				}
 				else
 				{
@@ -425,42 +540,42 @@ namespace FoundationDB.Client
 			var segments = this.Segments.Span;
 			switch (segments.Length)
 			{
-				case 0: return 0;
-				case 1: return HashCodes.Combine(1, segments[0]?.GetHashCode() ?? -1);
-				case 2: return HashCodes.Combine(2, segments[0]?.GetHashCode() ?? -1, segments[1]?.GetHashCode() ?? -1);
-				default: return HashCodes.Combine(3, segments[0]?.GetHashCode() ?? -1, segments[segments.Length >> 1]?.GetHashCode() ?? -1, segments[segments.Length - 1]?.GetHashCode() ?? -1);
+				case 0: return this.IsAbsolute ? -1 : 0;
+				case 1: return HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0]?.GetHashCode() ?? -1);
+				case 2: return HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0]?.GetHashCode() ?? -1, segments[1]?.GetHashCode() ?? -1);
+				default: return HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0]?.GetHashCode() ?? -1, segments[segments.Length >> 1]?.GetHashCode() ?? -1, segments[segments.Length - 1]?.GetHashCode() ?? -1);
 			}
 		}
 
 		public override bool Equals(object obj)
 		{
-			return obj is FdbDirectoryPath other && this.Segments.Span.SequenceEqual(other.Segments.Span);
+			return obj is FdbPath other && this.Segments.Span.SequenceEqual(other.Segments.Span);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbDirectoryPath other)
+		public bool Equals(FdbPath other)
 		{
-			return this.Segments.Span.SequenceEqual(other.Segments.Span);
+			return this.IsAbsolute == other.IsAbsolute && this.Segments.Span.SequenceEqual(other.Segments.Span);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool operator ==(FdbDirectoryPath left, FdbDirectoryPath right)
+		public static bool operator ==(FdbPath left, FdbPath right)
 		{
-			return left.Segments.Span.SequenceEqual(right.Segments.Span);
+			return left.IsAbsolute == right.IsAbsolute && left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool operator !=(FdbDirectoryPath left, FdbDirectoryPath right)
+		public static bool operator !=(FdbPath left, FdbPath right)
 		{
-			return !left.Segments.Span.SequenceEqual(right.Segments.Span);
+			return left.IsAbsolute != right.IsAbsolute || !left.Segments.Span.SequenceEqual(right.Segments.Span);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbDirectoryPath operator +(FdbDirectoryPath head, FdbDirectoryPath tail)
+		public static FdbPath operator +(FdbPath head, FdbPath tail)
 			=> head.Add(tail);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbDirectoryPath operator +(FdbDirectoryPath path, string segment)
+		public static FdbPath operator +(FdbPath path, string segment)
 			=> path.Add(segment);
 
 	}

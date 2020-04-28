@@ -52,7 +52,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.ClusterFile, Is.Null, ".ClusterFile");
 				Assert.That(db.Root, Is.Not.Null, ".Root");
-				Assert.That(db.Root.Path, Is.EqualTo(FdbDirectoryPath.Empty));
+				Assert.That(db.Root.Path, Is.EqualTo(FdbPath.Root));
 				Assert.That(db.IsReadOnly, Is.False, ".IsReadOnly");
 			}
 		}
@@ -127,7 +127,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db, Is.Not.Null, "Should return a valid database");
 				Assert.That(db.ClusterFile, Is.Null, "Cluster path should be null (default)");
 				Assert.That(db.Root, Is.Not.Null, ".Root");
-				Assert.That(db.Root.Path, Is.EqualTo(FdbDirectoryPath.Empty), ".Root");
+				Assert.That(db.Root.Path, Is.EqualTo(FdbPath.Root), ".Root");
 				Assert.That(db.DirectoryLayer, Is.Not.Null, ".DirectoryLayer");
 			}
 		}
@@ -260,12 +260,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db, Is.Not.Null);
 
 				Assert.That(db.Root, Is.Not.Null);
-				Assert.That(db.Root.Path, Is.Not.EqualTo(FdbDirectoryPath.Empty));
+				Assert.That(db.Root.Path, Is.Not.EqualTo(FdbPath.Root));
 
 				var dl = db.DirectoryLayer;
 				Assert.That(dl, Is.Not.Null);
 				Assert.That(dl.Content, Is.Not.Null);
-				Assert.That(dl.Content, Is.EqualTo(SubspaceLocation.Empty), "Root DL should be located at the top");
+				Assert.That(dl.Content, Is.EqualTo(SubspaceLocation.Root), "Root DL should be located at the top");
 
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
@@ -320,7 +320,7 @@ namespace FoundationDB.Client.Tests
 			options = new FdbConnectionOptions
 			{
 				ClusterFile = "X:\\some\\path\\to\\fdb.cluster",
-				Root = FdbDirectoryPath.Combine("Hello", "World"),
+				Root = FdbPath.Parse("/Hello/World"),
 			};
 			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=X:\some\path\to\fdb.cluster; root=/Hello/World"));
 

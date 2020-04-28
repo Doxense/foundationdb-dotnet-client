@@ -83,15 +83,16 @@ namespace FoundationDB.Client.Tests
 						await DumpSubspace(db, location);
 						Assert.Fail("Duplicate key allocated: {0} (#{1})", id, i);
 					}
+
 					ids.Add(id);
 				}
 
 				await DumpSubspace(db, location);
 
 #if ENABLE_LOGGING
-				foreach(var log in list)
+				foreach (var log in list)
 				{
-					Log(log.GetTimingsReport(true)); 
+					Log(log.GetTimingsReport(true));
 				}
 #endif
 			}
@@ -113,17 +114,17 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
-				Assert.That(directory.Content, Is.Not.Null);
-				Assert.That(directory.Content, Is.EqualTo(location));
+				Assert.That(dl.Content, Is.Not.Null);
+				Assert.That(dl.Content, Is.EqualTo(location));
 
 				// first call should create a new subspace (with a random prefix)
 				FdbDirectorySubspace foo;
 
 				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 				{
-					foo = await directory.CreateOrOpenAsync(tr, new[] { "Foo" });
+					foo = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo"));
 					await tr.CommitAsync();
 				}
 
@@ -133,24 +134,24 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				Assert.That(foo, Is.Not.Null);
-				Assert.That(foo.FullName, Is.EqualTo("Foo"), "foo.FullName");
-				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }), "foo.Path");
+				Assert.That(foo.FullName, Is.EqualTo("/Foo"), "foo.FullName");
+				Assert.That(foo.Path, Is.EqualTo(FdbPath.Parse("/Foo")), "foo.Path");
 				Assert.That(foo.Layer, Is.EqualTo(Slice.Empty), "foo.Layer");
-				Assert.That(foo.DirectoryLayer, Is.SameAs(directory), "foo.DirectoryLayer");
+				Assert.That(foo.DirectoryLayer, Is.SameAs(dl), "foo.DirectoryLayer");
 				Assert.That(foo.Context, Is.Not.Null, ".Context");
 
 				// second call should return the same subspace
 
-				var foo2 = await logged.ReadAsync(tr => directory.OpenAsync(tr, new[] { "Foo" }), this.Cancellation);
+				var foo2 = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
 #if DEBUG
 				Log("After opening 'Foo':");
 				await DumpSubspace(db, location);
 #endif
 				Assert.That(foo2, Is.Not.Null);
-				Assert.That(foo2.FullName, Is.EqualTo("Foo"), "foo2.FullName");
-				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }), "foo2.Path");
+				Assert.That(foo2.FullName, Is.EqualTo("/Foo"), "foo2.FullName");
+				Assert.That(foo2.Path, Is.EqualTo(FdbPath.Parse("/Foo")), "foo2.Path");
 				Assert.That(foo2.Layer, Is.EqualTo(Slice.Empty), "foo2.Layer");
-				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory), "foo2.DirectoryLayer");
+				Assert.That(foo2.DirectoryLayer, Is.SameAs(dl), "foo2.DirectoryLayer");
 				Assert.That(foo2.Context, Is.Not.Null, "foo2.Context");
 
 				Assert.That(foo2.GetPrefix(), Is.EqualTo(foo.GetPrefix()), "Second call to CreateOrOpen should return the same subspace");
@@ -174,37 +175,37 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
-				Assert.That(directory.Content, Is.Not.Null);
-				Assert.That(directory.Content, Is.EqualTo(location));
+				Assert.That(dl.Content, Is.Not.Null);
+				Assert.That(dl.Content, Is.EqualTo(location));
 
 				// first call should create a new subspace (with a random prefix)
-				var foo = await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, new[] { "Foo" }, Slice.FromString("AcmeLayer")), this.Cancellation);
+				var foo = await logged.ReadWriteAsync(tr => dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo"), Slice.FromString("AcmeLayer")), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				Assert.That(foo, Is.Not.Null);
-				Assert.That(foo.FullName, Is.EqualTo("Foo"));
-				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo.FullName, Is.EqualTo("/Foo"));
+				Assert.That(foo.Path, Is.EqualTo(FdbPath.Parse("/Foo")));
 				Assert.That(foo.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
-				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
+				Assert.That(foo.DirectoryLayer, Is.SameAs(dl));
 
 				// second call should return the same subspace
-				var foo2 = await logged.ReadAsync(tr => directory.OpenAsync(tr, new[] { "Foo" }, Slice.FromString("AcmeLayer")), this.Cancellation);
+				var foo2 = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo"), Slice.FromString("AcmeLayer")), this.Cancellation);
 				Assert.That(foo2, Is.Not.Null);
-				Assert.That(foo2.FullName, Is.EqualTo("Foo"));
-				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo2.FullName, Is.EqualTo("/Foo"));
+				Assert.That(foo2.Path, Is.EqualTo(FdbPath.Parse("/Foo")));
 				Assert.That(foo2.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
-				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
+				Assert.That(foo2.DirectoryLayer, Is.SameAs(dl));
 				Assert.That(foo2.GetPrefix(), Is.EqualTo(foo.GetPrefix()), "Second call to CreateOrOpen should return the same subspace");
 
 				// opening it with wrong layer id should fail
-				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, new[] { "Foo" }, Slice.FromString("OtherLayer")), this.Cancellation), Throws.InstanceOf<InvalidOperationException>(), "Opening with invalid layer id should fail");
+				Assert.That(async () => await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo"), Slice.FromString("OtherLayer")), this.Cancellation), Throws.InstanceOf<InvalidOperationException>(), "Opening with invalid layer id should fail");
 
 				// opening without specifying a layer should disable the layer check
-				var foo3 = await logged.ReadAsync(tr => directory.OpenAsync(tr, "Foo", layer: Slice.Nil), this.Cancellation);
+				var foo3 = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo"), layer: Slice.Nil), this.Cancellation);
 				Assert.That(foo3, Is.Not.Null);
 				Assert.That(foo3.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 
@@ -253,7 +254,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 				{
 
-					folder = await directory.CreateOrOpenAsync(tr, new [] { "Foo", "Bar", "Baz" });
+					folder = await directory.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz"));
 					await tr.CommitAsync();
 				}
 #if DEBUG
@@ -261,12 +262,12 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				Assert.That(folder, Is.Not.Null);
-				Assert.That(folder.FullName, Is.EqualTo("Foo/Bar/Baz"));
-				Assert.That(folder.Path, Is.EqualTo(new[] { "Foo", "Bar", "Baz" }));
+				Assert.That(folder.FullName, Is.EqualTo("/Foo/Bar/Baz"));
+				Assert.That(folder.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar", "Baz")));
 
 				// all the parent folders should also now exist
-				var foo = await logged.ReadAsync(tr => directory.OpenAsync(tr, new[] { "Foo" }), this.Cancellation);
-				var bar = await logged.ReadAsync(tr => directory.OpenAsync(tr, new[] { "Foo", "Bar" }), this.Cancellation);
+				var foo = await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
+				var bar = await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(bar, Is.Not.Null);
 
@@ -298,34 +299,36 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// linear subtree "/Foo/Bar/Baz"
-				await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, new[] { "Foo", "Bar", "Baz" }), this.Cancellation);
+				await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
 				// flat subtree "/numbers/0" to "/numbers/9"
-				await logged.WriteAsync(async tr =>
-				{
-					for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(tr, new[] { "numbers", i.ToString() });
-				}, this.Cancellation);
+				await logged.WriteAsync(
+					async tr =>
+					{
+						for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(tr, FdbPath.MakeAbsolute("numbers", i.ToString()));
+					},
+					this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				var subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, new[] { "Foo" }), this.Cancellation);
+				var subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
-				Assert.That(subdirs[0], Is.EqualTo("Bar"));
+				Assert.That(subdirs[0], Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar")));
 
-				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, new[] { "Foo", "Bar" }), this.Cancellation);
+				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
-				Assert.That(subdirs[0], Is.EqualTo("Baz"));
+				Assert.That(subdirs[0], Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar", "Baz")));
 
-				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, new[] { "Foo", "Bar", "Baz" }), this.Cancellation);
+				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.Zero);
 
-				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, new[] { "numbers" }), this.Cancellation);
+				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/numbers")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
-				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => x.ToString()).ToList()));
+				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => FdbPath.MakeAbsolute("numbers", x.ToString())).ToList()));
 
 #if ENABLE_LOGGING
 				foreach (var log in list)
@@ -345,7 +348,7 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("DL");
 				await CleanLocation(db, location);
 
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
 				// insert letters in random order
 				await db.WriteAsync(async tr =>
@@ -357,7 +360,7 @@ namespace FoundationDB.Client.Tests
 						var i = rnd.Next(letters.Count);
 						var s = letters[i];
 						letters.RemoveAt(i);
-						await directory.CreateOrOpenAsync(tr, new[] { "letters", s });
+						await dl.CreateOrOpenAsync(tr, FdbPath.MakeAbsolute("letters", s));
 					}
 				}, this.Cancellation);
 
@@ -368,12 +371,12 @@ namespace FoundationDB.Client.Tests
 				// they should sorted when listed
 				await db.ReadAsync(async tr =>
 				{
-					var subdirs = await directory.ListAsync(tr, "letters");
+					var subdirs = await dl.ListAsync(tr, FdbPath.MakeAbsolute("letters"));
 					Assert.That(subdirs, Is.Not.Null);
 					Assert.That(subdirs.Count, Is.EqualTo(10));
 					for (int i = 0; i < subdirs.Count; i++)
 					{
-						Assert.That(subdirs[i], Is.EqualTo(new string((char) (65 + i), 1)));
+						Assert.That(subdirs[i], Is.EqualTo(FdbPath.MakeAbsolute("letters", new string((char) (65 + i), 1))));
 					}
 
 					return default(object);
@@ -401,46 +404,46 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
 				// create a folder at ('Foo',)
 				Slice originalPrefix = await logged.ReadWriteAsync(async tr =>
 				{
-					var original = await directory.CreateOrOpenAsync(tr, "Foo");
+					var original = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo"));
 #if DEBUG
 					await DumpSubspace(db, location);
 #endif
 					Assert.That(original, Is.Not.Null);
-					Assert.That(original.FullName, Is.EqualTo("Foo"));
-					Assert.That(original.Path, Is.EqualTo(new[] { "Foo" }));
+					Assert.That(original.FullName, Is.EqualTo("/Foo"));
+					Assert.That(original.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo")));
 
 					// rename/move it as ('Bar',)
-					var renamed = await original.MoveToAsync(tr, new[] { "Bar" });
+					var renamed = await original.MoveToAsync(tr, FdbPath.Parse("/Bar"));
 #if DEBUG
 					await DumpSubspace(db, location);
 #endif
 					Assert.That(renamed, Is.Not.Null);
-					Assert.That(renamed.FullName, Is.EqualTo("Bar"));
-					Assert.That(renamed.Path, Is.EqualTo(FdbDirectoryPath.Combine("Bar")));
+					Assert.That(renamed.FullName, Is.EqualTo("/Bar"));
+					Assert.That(renamed.Path, Is.EqualTo(FdbPath.MakeAbsolute("Bar")));
 					Assert.That(renamed.GetPrefix(), Is.EqualTo(original.GetPrefix()));
 
 					return original.GetPrefix();
 				}, this.Cancellation);
 
 				// opening the old path should fail
-				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, "Foo"), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// opening the new path should succeed
 				await logged.WriteAsync(async tr =>
 				{
-					var folder = await directory.OpenAsync(tr, "Bar");
+					var folder = await dl.OpenAsync(tr, FdbPath.Parse("/Bar"));
 					Assert.That(folder, Is.Not.Null);
-					Assert.That(folder.FullName, Is.EqualTo("Bar"));
-					Assert.That(folder.Path, Is.EqualTo(FdbDirectoryPath.Combine("Bar")));
+					Assert.That(folder.FullName, Is.EqualTo("/Bar"));
+					Assert.That(folder.Path, Is.EqualTo(FdbPath.MakeAbsolute("Bar")));
 					Assert.That(folder.GetPrefix(), Is.EqualTo(originalPrefix));
 
 					// moving the folder under itself should fail
-					Assert.That(async () => await folder.MoveToAsync(tr, new[] { "Bar", "Baz" }), Throws.InstanceOf<InvalidOperationException>());
+					Assert.That(async () => await folder.MoveToAsync(tr, FdbPath.Parse("/Foo/Bar")), Throws.InstanceOf<InvalidOperationException>());
 				}, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -460,7 +463,7 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("DL");
 				await CleanLocation(db, location);
 
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
 #if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
@@ -471,14 +474,14 @@ namespace FoundationDB.Client.Tests
 
 				// RemoveAsync
 
-				string[] path = new[] { "CrashTestDummy" };
-				await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, path), this.Cancellation);
+				var path = FdbPath.Parse("/CrashTestDummy");
+				await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, path), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// removing an existing folder should succeed
-				await logged.WriteAsync(tr => directory.RemoveAsync(tr, path), this.Cancellation);
+				await logged.WriteAsync(tr => dl.RemoveAsync(tr, path), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -486,27 +489,27 @@ namespace FoundationDB.Client.Tests
 
 				// Removing it a second time should fail
 				Assert.That(
-					async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, path), this.Cancellation), 
-					Throws.InstanceOf<InvalidOperationException>(), 
+					async () => await logged.WriteAsync(tr => dl.RemoveAsync(tr, path), this.Cancellation),
+					Throws.InstanceOf<InvalidOperationException>(),
 					"Removing a non-existent directory should fail"
 				);
 
 				// TryRemoveAsync
 
-				await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, path), this.Cancellation);
+				await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, path), this.Cancellation);
 
 				// attempting to remove a folder should return true
-				bool res = await logged.ReadWriteAsync(tr => directory.TryRemoveAsync(tr, path), this.Cancellation);
+				bool res = await logged.ReadWriteAsync(tr => dl.TryRemoveAsync(tr, path), this.Cancellation);
 				Assert.That(res, Is.True);
 
 				// further attempts should return false
-				res = await logged.ReadWriteAsync(tr => directory.TryRemoveAsync(tr, path), this.Cancellation);
+				res = await logged.ReadWriteAsync(tr => dl.TryRemoveAsync(tr, path), this.Cancellation);
 				Assert.That(res, Is.False);
 
 				// Corner Cases
 
 				// removing the root folder is not allowed (too dangerous)
-				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, FdbDirectoryPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>(), "Attempting to remove the root directory should fail");
+				Assert.That(async () => await logged.WriteAsync(tr => dl.RemoveAsync(tr, FdbPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>(), "Attempting to remove the root directory should fail");
 
 #if ENABLE_LOGGING
 				foreach (var log in list)
@@ -533,37 +536,41 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				await logged.WriteAsync(async tr =>
-				{
-					var folder = await directory.CreateAsync(tr, "Test", layer: Slice.FromString("foo"));
+				await logged.WriteAsync(
+					async tr =>
+					{
+						var folder = await directory.CreateAsync(tr, FdbPath.Root["Test"], layer: Slice.FromString("foo"));
 #if DEBUG
-					await DumpSubspace(db, location);
+						await DumpSubspace(db, location);
 #endif
-					Assert.That(folder, Is.Not.Null);
-					Assert.That(folder.Layer.ToUnicode(), Is.EqualTo("foo"));
-	
-					var folder2 = await folder.ChangeLayerAsync(tr, Slice.FromString("bar"));
+						Assert.That(folder, Is.Not.Null);
+						Assert.That(folder.Layer.ToUnicode(), Is.EqualTo("foo"));
+
+						var folder2 = await folder.ChangeLayerAsync(tr, Slice.FromString("bar"));
 #if DEBUG
-					await DumpSubspace(db, location);
+						await DumpSubspace(db, location);
 #endif
-					Assert.That(folder2, Is.Not.Null);
-					Assert.That(folder2.Layer.ToUnicode(), Is.EqualTo("bar"));
-					Assert.That(folder2.FullName, Is.EqualTo("Test"));
-					Assert.That(folder2.Path, Is.EqualTo(new[] { "Test" }));
-					Assert.That(folder2.GetPrefix(), Is.EqualTo(folder.GetPrefix()));
-				}, this.Cancellation);
+						Assert.That(folder2, Is.Not.Null);
+						Assert.That(folder2.Layer.ToUnicode(), Is.EqualTo("bar"));
+						Assert.That(folder2.FullName, Is.EqualTo("/Test"));
+						Assert.That(folder2.Path, Is.EqualTo(FdbPath.MakeAbsolute("Test")));
+						Assert.That(folder2.GetPrefix(), Is.EqualTo(folder.GetPrefix()));
+					},
+					this.Cancellation);
 
 				// opening the directory with the new layer should succeed
-				await logged.ReadAsync(async tr =>
-				{
-					var folder3 = await directory.OpenAsync(tr, "Test", layer: Slice.FromString("bar"));
-					Assert.That(folder3, Is.Not.Null);
-					return default(object);
-				}, this.Cancellation);
+				await logged.ReadAsync(
+					async tr =>
+					{
+						var folder3 = await directory.OpenAsync(tr, FdbPath.Parse("/Test"), layer: Slice.FromString("bar"));
+						Assert.That(folder3, Is.Not.Null);
+						return default(object);
+					},
+					this.Cancellation);
 
 				// opening the directory with the old layer should fail
 				Assert.That(
-					async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, "Test", Slice.FromString("foo")), this.Cancellation),
+					async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Parse("/Test"), Slice.FromString("foo")), this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>()
 				);
 
@@ -584,56 +591,58 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				var directory = FdbDirectoryLayer.Create(location);
-				Dump(directory);
+				var dl = FdbDirectoryLayer.Create(location);
+				Dump(dl);
 
-				await logged.WriteAsync(async tr =>
-				{
-					Log("Creating partition /Foo$ ...");
-					var partition = await directory.CreateAsync(tr, "Foo$", Slice.FromStringAscii("partition"));
-					Dump(partition);
-					await DumpSubspace(tr, location);
-					// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
-					var partitionKey = partition.Copy().GetPrefix();
-					Log($"> Created with prefix: {partitionKey:K}");
+				await logged.WriteAsync(
+					async tr =>
+					{
+						Log("Creating partition /Foo$ ...");
+						var partition = await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo$"), Slice.FromStringAscii("partition"));
+						Dump(partition);
+						await DumpSubspace(tr, location);
+						// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
+						var partitionKey = partition.Copy().GetPrefix();
+						Log($"> Created with prefix: {partitionKey:K}");
 
-					Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
-					Assert.That(partition.Layer, Is.EqualTo(Slice.FromStringAscii("partition")));
-					Assert.That(partition.FullName, Is.EqualTo("Foo$"));
-					Assert.That(partition.Path, Is.EqualTo(new[] { "Foo$" }), "Partition's path should be absolute");
-					Assert.That(partition.DirectoryLayer, Is.SameAs(directory), "Partitions share the same DL");
+						Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
+						Assert.That(partition.Layer, Is.EqualTo(Slice.FromStringAscii("partition")));
+						Assert.That(partition.FullName, Is.EqualTo("/Foo$"));
+						Assert.That(partition.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo$")), "Partition's path should be absolute");
+						Assert.That(partition.DirectoryLayer, Is.SameAs(dl), "Partitions share the same DL");
 
-					Log("Creating sub-directory Bar under partition Foo$ ...");
-					var bar = await partition.CreateAsync(tr, "Bar");
-					Dump(bar);
-					await DumpSubspace(tr, location);
-					Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
-					Assert.That(bar.Path.ToString(), Is.EqualTo("Foo$/Bar"), "Path of directories under a partition should be absolute");
-					Assert.That(bar.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", bar, partition);
-					Assert.That(bar.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", bar, partition);
+						Log("Creating sub-directory Bar under partition Foo$ ...");
+						var bar = await partition.CreateAsync(tr, FdbPath.MakeRelative("Bar"));
+						Dump(bar);
+						await DumpSubspace(tr, location);
+						Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
+						Assert.That(bar.Path.ToString(), Is.EqualTo("/Foo$/Bar"), "Path of directories under a partition should be absolute");
+						Assert.That(bar.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", bar, partition);
+						Assert.That(bar.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", bar, partition);
 
-					Log("Creating sub-directory /Foo$/Baz starting from the root...");
-					var baz = await directory.CreateAsync(tr, FdbDirectoryPath.Combine("Foo$", "Baz"));
-					Dump(baz);
-					await DumpSubspace(tr, location);
-					Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
-					Assert.That(baz.FullName, Is.EqualTo("Foo$/Baz"));
-					Assert.That(baz.Path, Is.EqualTo(new[] { "Foo$", "Baz" }), "Path of directories under a partition should be absolute");
-					Assert.That(baz.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", baz, partition);
-					Assert.That(baz.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", baz, partition);
+						Log("Creating sub-directory /Foo$/Baz starting from the root...");
+						var baz = await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo$", "Baz"));
+						Dump(baz);
+						await DumpSubspace(tr, location);
+						Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
+						Assert.That(baz.FullName, Is.EqualTo("/Foo$/Baz"));
+						Assert.That(baz.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo$", "Baz")), "Path of directories under a partition should be absolute");
+						Assert.That(baz.GetPrefix(), Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", baz, partition);
+						Assert.That(baz.GetPrefix().StartsWith(partitionKey), Is.True, "{0} should be located under {1}", baz, partition);
 
-					// Rename 'Bar' to 'BarBar'
-					Log("Renaming /Foo$/Bar to /Foo$/BarBar...");
-					var bar2 = await bar.MoveToAsync(tr, FdbDirectoryPath.Combine("Foo$", "BarBar"));
-					Dump(bar2);
-					await DumpSubspace(tr, location);
-					Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
-					Assert.That(bar2, Is.Not.SameAs(bar));
-					Assert.That(bar2.GetPrefix(), Is.EqualTo(bar.GetPrefix()));
-					Assert.That(bar2.FullName, Is.EqualTo("Foo$/BarBar"));
-					Assert.That(bar2.Path, Is.EqualTo(new[] { "Foo$", "BarBar" }));
-					Assert.That(bar2.DirectoryLayer, Is.SameAs(bar.DirectoryLayer));
-				}, this.Cancellation);
+						// Rename 'Bar' to 'BarBar'
+						Log("Renaming /Foo$/Bar to /Foo$/BarBar...");
+						var bar2 = await bar.MoveToAsync(tr, FdbPath.MakeAbsolute("Foo$", "BarBar"));
+						Dump(bar2);
+						await DumpSubspace(tr, location);
+						Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
+						Assert.That(bar2, Is.Not.SameAs(bar));
+						Assert.That(bar2.GetPrefix(), Is.EqualTo(bar.GetPrefix()));
+						Assert.That(bar2.FullName, Is.EqualTo("/Foo$/BarBar"));
+						Assert.That(bar2.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo$", "BarBar")));
+						Assert.That(bar2.DirectoryLayer, Is.SameAs(bar.DirectoryLayer));
+					},
+					this.Cancellation);
 			}
 		}
 
@@ -651,32 +660,32 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				var directory = FdbDirectoryLayer.Create(location);
-				Dump(directory);
+				var dl = FdbDirectoryLayer.Create(location);
+				Dump(dl);
 
 				await logged.WriteAsync(async tr =>
 				{
 
 					Log("Creating /Foo$ ...");
-					var foo = await directory.CreateAsync(tr, "Foo$", Slice.FromStringAscii("partition"));
+					var foo = await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo$"), Slice.FromStringAscii("partition"));
 					Dump(foo);
 					await DumpSubspace(tr, location);
 
 					Log("Creating /Foo$/Bar ...");
 					// create a 'Bar' under the 'Foo' partition
-					var bar = await foo.CreateAsync(tr, "Bar");
+					var bar = await foo.CreateAsync(tr, FdbPath.MakeRelative("Bar"));
 					Dump(bar);
 					await DumpSubspace(tr, location);
 
-					Assert.That(bar.FullName, Is.EqualTo("Foo$/Bar"));
-					Assert.That(bar.Path, Is.EqualTo(new string[] { "Foo$", "Bar" }));
-					Assert.That(bar.DirectoryLayer, Is.SameAs(directory));
+					Assert.That(bar.FullName, Is.EqualTo("/Foo$/Bar"));
+					Assert.That(bar.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo$", "Bar")));
+					Assert.That(bar.DirectoryLayer, Is.SameAs(dl));
 					Assert.That(bar.DirectoryLayer, Is.SameAs(foo.DirectoryLayer));
 
 					// Attempting to move 'Bar' outside the Foo partition should fail
 					Log("Attempting to move /Foo$/Bar to /Bar ...");
 					Assert.That(
-						async () => await bar.MoveToAsync(tr, FdbDirectoryPath.Combine("Bar")),
+						async () => await bar.MoveToAsync(tr, FdbPath.MakeAbsolute("Bar")),
 						Throws.InstanceOf<InvalidOperationException>()
 					);
 
@@ -684,7 +693,7 @@ namespace FoundationDB.Client.Tests
 
 				Log("Attempting to move /Foo$/Bar to /Bar ...");
 				Assert.That(
-					async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, FdbDirectoryPath.Combine("Foo", "Bar"), FdbDirectoryPath.Combine("Bar")), this.Cancellation),
+					async () => await logged.ReadWriteAsync(tr => dl.MoveAsync(tr, FdbPath.MakeAbsolute("Foo$", "Bar"), FdbPath.MakeAbsolute("Bar")), this.Cancellation),
 					Throws.InstanceOf<InvalidOperationException>()
 				);
 			}
@@ -705,73 +714,75 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				var directory = FdbDirectoryLayer.Create(location);
-				Dump(directory);
+				var dl = FdbDirectoryLayer.Create(location);
+				Dump(dl);
 
-				await logged.WriteAsync(async tr =>
-				{
-					Log("Create [Outer$]");
-					var outer = await directory.CreateAsync(tr, "Outer", Slice.FromStringAscii("partition"));
-					Dump(outer);
-					await DumpSubspace(tr, location);
+				await logged.WriteAsync(
+					async tr =>
+					{
+						Log("Create [Outer$]");
+						var outer = await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Outer"), Slice.FromStringAscii("partition"));
+						Dump(outer);
+						await DumpSubspace(tr, location);
 
-					// create a 'Inner' subpartition under the 'Outer' partition
-					Log("Create [Outer$][Inner$]");
-					var inner = await outer.CreateAsync(tr, "Inner", Slice.FromString("partition"));
-					Dump(inner);
-					await DumpSubspace(tr, location);
+						// create a 'Inner' subpartition under the 'Outer' partition
+						Log("Create [Outer$][Inner$]");
+						var inner = await outer.CreateAsync(tr, FdbPath.MakeRelative("Inner"), Slice.FromString("partition"));
+						Dump(inner);
+						await DumpSubspace(tr, location);
 
-					Assert.That(inner.Path, Is.EqualTo(FdbDirectoryPath.Combine("Outer", "Inner")));
-					Assert.That(inner.FullName, Is.EqualTo("Outer/Inner"));
-					Assert.That(inner.DirectoryLayer, Is.SameAs(directory));
-					Assert.That(inner.DirectoryLayer, Is.SameAs(outer.DirectoryLayer));
+						Assert.That(inner.Path, Is.EqualTo(FdbPath.MakeAbsolute("Outer", "Inner")));
+						Assert.That(inner.FullName, Is.EqualTo("/Outer/Inner"));
+						Assert.That(inner.DirectoryLayer, Is.SameAs(dl));
+						Assert.That(inner.DirectoryLayer, Is.SameAs(outer.DirectoryLayer));
 
-					// create folder /Outer/Foo
-					Log("Create [Outer$][Foo]...");
-					var foo = await outer.CreateAsync(tr, "Foo");
-					await DumpSubspace(tr, location);
-					Assert.That(foo.Path, Is.EqualTo(FdbDirectoryPath.Combine("Outer", "Foo")));
-					Assert.That(foo.FullName, Is.EqualTo("Outer/Foo"));
+						// create folder /Outer/Foo
+						Log("Create [Outer$][Foo]...");
+						var foo = await outer.CreateAsync(tr, FdbPath.MakeRelative("Foo"));
+						await DumpSubspace(tr, location);
+						Assert.That(foo.Path, Is.EqualTo(FdbPath.MakeAbsolute("Outer", "Foo")));
+						Assert.That(foo.FullName, Is.EqualTo("/Outer/Foo"));
 
-					// create folder /Outer/Inner/Bar
-					Log("Create [Outer$/Inner$][Bar]...");
-					var bar = await inner.CreateAsync(tr, "Bar");
-					await DumpSubspace(tr, location);
-					Assert.That(bar.Path, Is.EqualTo(FdbDirectoryPath.Combine("Outer", "Inner", "Bar")));
-					Assert.That(bar.FullName, Is.EqualTo("Outer/Inner/Bar"));
+						// create folder /Outer/Inner/Bar
+						Log("Create [Outer$/Inner$][Bar]...");
+						var bar = await inner.CreateAsync(tr, FdbPath.MakeRelative("Bar"));
+						await DumpSubspace(tr, location);
+						Assert.That(bar.Path, Is.EqualTo(FdbPath.MakeAbsolute("Outer", "Inner", "Bar")));
+						Assert.That(bar.FullName, Is.EqualTo("/Outer/Inner/Bar"));
 
-					// Attempting to move 'Foo' inside the Inner partition should fail
-					Assert.That(async () => await foo.MoveToAsync(tr, FdbDirectoryPath.Combine("Outer", "Inner", "Foo")), Throws.InstanceOf<InvalidOperationException>());
-					Assert.That(async () => await directory.MoveAsync(tr, FdbDirectoryPath.Combine("Outer", "Foo"), FdbDirectoryPath.Combine("Outer", "Inner", "Foo")), Throws.InstanceOf<InvalidOperationException>());
+						// Attempting to move 'Foo' inside the Inner partition should fail
+						Assert.That(async () => await foo.MoveToAsync(tr, FdbPath.MakeAbsolute("Outer", "Inner", "Foo")), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(async () => await dl.MoveAsync(tr, FdbPath.MakeAbsolute("Outer", "Foo"), FdbPath.MakeAbsolute("Outer", "Inner", "Foo")), Throws.InstanceOf<InvalidOperationException>());
 
-					// Attempting to move 'Bar' outside the Inner partition should fail
-					Assert.That(async () => await bar.MoveToAsync(tr, FdbDirectoryPath.Combine("Outer", "Bar")), Throws.InstanceOf<InvalidOperationException>());
-					Assert.That(async () => await directory.MoveAsync(tr, FdbDirectoryPath.Combine("Outer", "Inner", "Bar"), FdbDirectoryPath.Combine("Outer", "Bar")), Throws.InstanceOf<InvalidOperationException>());
+						// Attempting to move 'Bar' outside the Inner partition should fail
+						Assert.That(async () => await bar.MoveToAsync(tr, FdbPath.MakeAbsolute("Outer", "Bar")), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(async () => await dl.MoveAsync(tr, FdbPath.MakeAbsolute("Outer", "Inner", "Bar"), FdbPath.MakeAbsolute("Outer", "Bar")), Throws.InstanceOf<InvalidOperationException>());
 
-					// Moving 'Foo' inside the Outer partition itself should work
-					Log("Create [Outer$/SubFolder]...");
-					await directory.CreateAsync(tr, FdbDirectoryPath.Combine("Outer", "SubFolder")); // parent of destination folder must already exist when moving...
-					await DumpSubspace(tr, location);
+						// Moving 'Foo' inside the Outer partition itself should work
+						Log("Create [Outer$/SubFolder]...");
+						await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Outer", "SubFolder")); // parent of destination folder must already exist when moving...
+						await DumpSubspace(tr, location);
 
-					Log("Move [Outer$/Foo] to [Outer$/SubFolder/Foo]");
-					var foo2 = await directory.MoveAsync(tr, FdbDirectoryPath.Combine("Outer", "Foo"), FdbDirectoryPath.Combine("Outer", "SubFolder", "Foo"));
-					await DumpSubspace(tr, location);
-					Assert.That(foo2.Path, Is.EqualTo(FdbDirectoryPath.Combine("Outer", "SubFolder", "Foo")));
-					Assert.That(foo2.FullName, Is.EqualTo("Outer/SubFolder/Foo"));
-					Assert.That(foo2.GetPrefix(), Is.EqualTo(foo.GetPrefix()));
+						Log("Move [Outer$/Foo] to [Outer$/SubFolder/Foo]");
+						var foo2 = await dl.MoveAsync(tr, FdbPath.MakeAbsolute("Outer", "Foo"), FdbPath.MakeAbsolute("Outer", "SubFolder", "Foo"));
+						await DumpSubspace(tr, location);
+						Assert.That(foo2.Path, Is.EqualTo(FdbPath.MakeAbsolute("Outer", "SubFolder", "Foo")));
+						Assert.That(foo2.FullName, Is.EqualTo("/Outer/SubFolder/Foo"));
+						Assert.That(foo2.GetPrefix(), Is.EqualTo(foo.GetPrefix()));
 
-					// Moving 'Bar' inside the Inner partition itself should work
-					Log("Create 'Outer/Inner/SubFolder'...");
-					await directory.CreateAsync(tr, new[] { "Outer", "Inner", "SubFolder" }); // parent of destination folder must already exist when moving...
-					await DumpSubspace(tr, location);
+						// Moving 'Bar' inside the Inner partition itself should work
+						Log("Create 'Outer/Inner/SubFolder'...");
+						await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Outer", "Inner", "SubFolder")); // parent of destination folder must already exist when moving...
+						await DumpSubspace(tr, location);
 
-					Log("Move 'Outer/Inner/Bar' to 'Outer/Inner/SubFolder/Bar'");
-					var bar2 = await directory.MoveAsync(tr, FdbDirectoryPath.Combine("Outer", "Inner", "Bar"), FdbDirectoryPath.Combine("Outer", "Inner", "SubFolder", "Bar"));
-					await DumpSubspace(tr, location);
-					Assert.That(bar2.Path, Is.EqualTo(FdbDirectoryPath.Combine("Outer", "Inner", "SubFolder", "Bar")));
-					Assert.That(bar2.FullName, Is.EqualTo("Outer/Inner/SubFolder/Bar"));
-					Assert.That(bar2.GetPrefix(), Is.EqualTo(bar.GetPrefix()));
-				}, this.Cancellation);
+						Log("Move 'Outer/Inner/Bar' to 'Outer/Inner/SubFolder/Bar'");
+						var bar2 = await dl.MoveAsync(tr, FdbPath.MakeAbsolute("Outer", "Inner", "Bar"), FdbPath.MakeAbsolute("Outer", "Inner", "SubFolder", "Bar"));
+						await DumpSubspace(tr, location);
+						Assert.That(bar2.Path, Is.EqualTo(FdbPath.MakeAbsolute("Outer", "Inner", "SubFolder", "Bar")));
+						Assert.That(bar2.FullName, Is.EqualTo("/Outer/Inner/SubFolder/Bar"));
+						Assert.That(bar2.GetPrefix(), Is.EqualTo(bar.GetPrefix()));
+					},
+					this.Cancellation);
 			}
 
 		}
@@ -795,27 +806,27 @@ namespace FoundationDB.Client.Tests
 				{
 					// create foo
 					Log("Creating /Foo$ ...");
-					var foo = await directory.CreateOrOpenAsync(tr, "Foo$", Slice.FromString("partition"));
+					var foo = await directory.CreateOrOpenAsync(tr, FdbPath.MakeAbsolute("Foo$"), Slice.FromString("partition"));
 					Dump(foo);
 					await DumpSubspace(tr, location);
 					Assert.That(foo, Is.Not.Null);
-					Assert.That(foo.FullName, Is.EqualTo("Foo$"));
-					Assert.That(foo.Path, Is.EqualTo(new[] { "Foo$" }));
+					Assert.That(foo.FullName, Is.EqualTo("/Foo$"));
+					Assert.That(foo.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo$")));
 					Assert.That(foo.Layer, Is.EqualTo(Slice.FromString("partition")));
 					Assert.That(foo, Is.InstanceOf<FdbDirectoryPartition>());
 
 					// verify list
 					Log("Checking top...");
 					var folders = await directory.ListAsync(tr);
-					Assert.That(folders, Is.EqualTo(new[] { "Foo$" }));
+					Assert.That(folders, Is.EqualTo(new[] { FdbPath.MakeAbsolute("Foo$") }));
 
 					// rename to bar
 					Log("Renaming [Foo$] to [Bar$]");
-					var bar = await foo.MoveToAsync(tr, "Bar$");
+					var bar = await foo.MoveToAsync(tr, FdbPath.MakeAbsolute("Bar$"));
 					await DumpSubspace(tr, location);
 					Assert.That(bar, Is.Not.Null);
-					Assert.That(bar.FullName, Is.EqualTo("Bar$"));
-					Assert.That(bar.Path, Is.EqualTo(new[] { "Bar$" }));
+					Assert.That(bar.FullName, Is.EqualTo("/Bar$"));
+					Assert.That(bar.Path, Is.EqualTo(FdbPath.MakeAbsolute("Bar$")));
 					Assert.That(bar.Layer, Is.EqualTo(Slice.FromString("partition")));
 					Assert.That(bar, Is.InstanceOf<FdbDirectoryPartition>());
 
@@ -825,7 +836,7 @@ namespace FoundationDB.Client.Tests
 
 					// verify list again
 					folders = await directory.ListAsync(tr);
-					Assert.That(folders, Is.EqualTo(new[] { "Bar$" }));
+					Assert.That(folders, Is.EqualTo(new [] { FdbPath.MakeAbsolute("Bar$") }));
 
 					//no need to commit
 				}
@@ -846,34 +857,34 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("DL");
 				await CleanLocation(db, location);
 
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// create foo
-					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
+					var foo = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/foo"), Slice.FromString("partition"));
 					Assert.That(foo, Is.Not.Null);
-					Assert.That(foo.FullName, Is.EqualTo("foo"));
-					Assert.That(foo.Path, Is.EqualTo(new[] { "foo" }));
+					Assert.That(foo.FullName, Is.EqualTo("/foo"));
+					Assert.That(foo.Path, Is.EqualTo(FdbPath.MakeAbsolute("foo")));
 					Assert.That(foo.Layer, Is.EqualTo(Slice.FromString("partition")));
 					Assert.That(foo, Is.InstanceOf<FdbDirectoryPartition>());
 
 					// verify list
-					var folders = await directory.ListAsync(tr);
-					Assert.That(folders, Is.EqualTo(new[] { "foo" }));
+					var folders = await dl.ListAsync(tr);
+					Assert.That(folders, Is.EqualTo(new[] { FdbPath.MakeAbsolute("foo") }));
 
 					// delete foo
 					await foo.RemoveAsync(tr);
 
 					// verify list again
-					folders = await directory.ListAsync(tr);
+					folders = await dl.ListAsync(tr);
 					Assert.That(folders, Is.Empty);
 
 					// verify that it does not exist anymore
 					var res = await foo.ExistsAsync(tr);
 					Assert.That(res, Is.False);
 
-					res = await directory.ExistsAsync(tr, "foo");
+					res = await dl.ExistsAsync(tr, FdbPath.MakeAbsolute("foo"));
 					Assert.That(res, Is.False);
 
 					//no need to commit
@@ -894,36 +905,32 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 
 				// CreateOrOpen
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, FdbPath.Root), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, FdbPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// Create
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, FdbPath.Root), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, FdbPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// Open
-				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Root), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// Move
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, default(string[]), new[] { "foo" }), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, new[] { "foo" }, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, new string[0], new[] { "foo" }), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, new[] { "foo" }, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, FdbPath.Root, FdbPath.Parse("/foo")), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, FdbPath.Parse("/foo"), FdbPath.Root), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, FdbPath.Empty, FdbPath.Parse("/foo")), this.Cancellation), Throws.InstanceOf<ArgumentException>());
+				Assert.That(async () => await logged.ReadWriteAsync(tr => directory.MoveAsync(tr, FdbPath.Parse("/foo"), FdbPath.Empty), this.Cancellation), Throws.InstanceOf<ArgumentException>());
 
 				// Remove
-				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, new string[0]), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, new string[] { "Foo", " ", "Bar" }), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, FdbPath.Root), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, FdbPath.Empty), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await logged.WriteAsync(tr => directory.RemoveAsync(tr, FdbPath.MakeAbsolute("Foo", " ", "Bar")), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 				// List
-				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, default(string[])), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
-				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, new string[] { "Foo", "", "Bar" }), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, default(string)), this.Cancellation), Throws.InstanceOf<ArgumentNullException>());
+				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Root), this.Cancellation), Throws.Nothing);
+				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Empty), this.Cancellation), Throws.Nothing);
+				Assert.That(async () => await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.MakeAbsolute("Foo", " ", "Bar")), this.Cancellation), Throws.InstanceOf<InvalidOperationException>());
 
 			}
 		}
@@ -941,8 +948,8 @@ namespace FoundationDB.Client.Tests
 
 				var logged = db;
 
-				var directoryLayer = FdbDirectoryLayer.Create(location);
-				Dump(directoryLayer);
+				var dl = FdbDirectoryLayer.Create(location);
+				Dump(dl);
 
 				// the constraint will always be the same for all the checks
 				void ShouldFail<T>(ActualValueDelegate<T> del)
@@ -957,10 +964,10 @@ namespace FoundationDB.Client.Tests
 
 				await logged.WriteAsync(async tr =>
 				{
-					var partition = await directoryLayer.CreateAsync(tr, "Foo", Slice.FromStringAscii("partition"));
+					var partition = await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo"), Slice.FromStringAscii("partition"));
 					Log($"Partition: {partition.Descriptor.Prefix:K}");
 					//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
-					var subdir = await partition.CreateOrOpenAsync(tr, "Bar");
+					var subdir = await partition.CreateOrOpenAsync(tr, FdbPath.MakeRelative("Bar"));
 					Log($"SubDir: {subdir.Descriptor.Prefix:K}");
 					var barKey = subdir.GetPrefix();
 
@@ -993,7 +1000,7 @@ namespace FoundationDB.Client.Tests
 					// Keys
 
 					ShouldFail(() => partition.Append(Slice.FromString("hello")));
-					var subspace = await location.Resolve(tr, directoryLayer);
+					var subspace = await location.Resolve(tr, dl);
 					ShouldFail(() => partition.Append(subspace.GetPrefix()));
 					ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
@@ -1037,11 +1044,11 @@ namespace FoundationDB.Client.Tests
 
 				var logged = db;
 
-				var directory = FdbDirectoryLayer.Create(location);
-				Dump(directory);
+				var dl = FdbDirectoryLayer.Create(location);
+				Dump(dl);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
-				await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, "Zero"), this.Cancellation);
+				await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.Root["Zero"]), this.Cancellation);
 
 				var logdb = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 
@@ -1060,11 +1067,11 @@ namespace FoundationDB.Client.Tests
 						);
 
 						// T1 creates first directory
-						var first = await directory.CreateAsync(tr1, new[] { "First" }, Slice.Nil);
+						var first = await dl.CreateAsync(tr1, FdbPath.MakeAbsolute("First"), Slice.Nil);
 						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
 
 						// T2 creates second directory
-						var second = await directory.CreateAsync(tr2, new[] { "Second" }, Slice.Nil);
+						var second = await dl.CreateAsync(tr2, FdbPath.MakeAbsolute("Second"), Slice.Nil);
 						tr2.Set(second.GetPrefix(), Value("This belongs to the second directory"));
 
 						// T1 commits first
@@ -1102,11 +1109,11 @@ namespace FoundationDB.Client.Tests
 				// but using strings so that they do not collide with the integers used by the normal allocator
 				// ie: regular prefix would be ("DL", 123) and our custom prefixes will be ("DL", "abc")
 
-				var directoryLayer = FdbDirectoryLayer.Create(location);
-				Dump(directoryLayer);
+				var dl = FdbDirectoryLayer.Create(location);
+				Dump(dl);
 
 				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
-				await logged.ReadWriteAsync(tr => directoryLayer.CreateAsync(tr, "Zero"), this.Cancellation);
+				await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.MakeAbsolute("Zero")), this.Cancellation);
 
 				var logdb = db.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
 
@@ -1124,13 +1131,13 @@ namespace FoundationDB.Client.Tests
 							tr2.GetReadVersionAsync()
 						);
 
-						var subspace1 = await location.Resolve(tr1, directoryLayer);
-						var subspace2 = await location.Resolve(tr2, directoryLayer);
+						var subspace1 = await location.Resolve(tr1, dl);
+						var subspace2 = await location.Resolve(tr2, dl);
 
-						var first = await directoryLayer.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, subspace1.Encode("abc"));
+						var first = await dl.RegisterAsync(tr1, FdbPath.MakeAbsolute("First"), Slice.Nil, subspace1.Encode("abc"));
 						tr1.Set(first.GetPrefix(), Value("This belongs to the first directory"));
 
-						var second = await directoryLayer.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, subspace2.Encode("def"));
+						var second = await dl.RegisterAsync(tr2, FdbPath.MakeAbsolute("Second"), Slice.Nil, subspace2.Encode("def"));
 						tr2.Set(second.GetPrefix(), Value("This belongs to the second directory"));
 
 						Log("Committing T1...");
@@ -1143,7 +1150,7 @@ namespace FoundationDB.Client.Tests
 						{
 							await tr2.CommitAsync();
 						}
-						catch(FdbException x)
+						catch (FdbException x)
 						{
 							if (x.Code == FdbError.NotCommitted)
 							{
@@ -1152,8 +1159,10 @@ namespace FoundationDB.Client.Tests
 								Log("INCONCLUSIVE!");
 								Assert.Inconclusive("FIXME: Current implementation of DirectoryLayer creates read conflict when registering directories with custom key prefix");
 							}
+
 							throw;
 						}
+
 						Log("T2 committed");
 					}
 				}
@@ -1182,10 +1191,10 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
-				Assert.That(directory.Content, Is.Not.Null);
-				Assert.That(directory.Content, Is.EqualTo(location));
+				Assert.That(dl.Content, Is.Not.Null);
+				Assert.That(dl.Content, Is.EqualTo(location));
 
 				void Validate(FdbDirectorySubspace actual, FdbDirectorySubspace expected)
 				{
@@ -1199,12 +1208,12 @@ namespace FoundationDB.Client.Tests
 
 				// first, initialize the subspace
 				Log("Creating 'Foo' ...");
-				var foo = await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, "Foo"), this.Cancellation);
+				var foo = await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo")), this.Cancellation);
 				Assert.That(foo, Is.Not.Null);
-				Assert.That(foo.FullName, Is.EqualTo("Foo"));
-				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo.FullName, Is.EqualTo("/Foo"));
+				Assert.That(foo.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo")));
 				Assert.That(foo.Layer, Is.EqualTo(Slice.Empty));
-				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
+				Assert.That(foo.DirectoryLayer, Is.SameAs(dl));
 				Assert.That(foo.Context, Is.InstanceOf<SubspaceContext>());
 #if DEBUG
 				Log("After creating 'Foo':");
@@ -1215,7 +1224,7 @@ namespace FoundationDB.Client.Tests
 				Log("OpenCached (#1)...");
 				var foo1 = await logged.ReadAsync(async tr =>
 				{
-					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
+					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Foo"));
 					Validate(folder, foo);
 					return folder.Descriptor;
 				}, this.Cancellation);
@@ -1229,10 +1238,9 @@ namespace FoundationDB.Client.Tests
 				Log("OpenCached (#2)...");
 				var foo2 = await logged.ReadAsync(async tr =>
 				{
-					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
+					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Foo"));
 					Validate(folder, foo);
 					return folder.Descriptor;
-
 				}, this.Cancellation);
 				// We expect to get the same instance as the previous call, since no change was made to the directory layer
 				Assert.That(foo2, Is.SameAs(foo1), "Subspace descriptor should be the same instance as previous transaction!");
@@ -1245,7 +1253,7 @@ namespace FoundationDB.Client.Tests
 				Log("OpenCached (#3)...");
 				var foo3 = await logged.ReadAsync(async tr =>
 				{
-					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
+					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Foo"));
 					Validate(folder, foo);
 					return folder.Descriptor;
 				}, this.Cancellation);
@@ -1258,7 +1266,7 @@ namespace FoundationDB.Client.Tests
 
 				// creating a subfolder /Foo/Bar should bust the cache of the partition
 				Log("Creating 'Foo/Bar' ...");
-				await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, new[] { "Foo", "Bar" }), this.Cancellation);
+				await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo", "Bar")), this.Cancellation);
 #if DEBUG
 				Log("After creating 'Foo/Bar':");
 				await DumpSubspace(db, location);
@@ -1267,7 +1275,7 @@ namespace FoundationDB.Client.Tests
 				Log("OpenCached (#4)...");
 				var foo4 = await logged.ReadAsync(async tr =>
 				{
-					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
+					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Foo"));
 					Validate(folder, foo);
 					return folder.Descriptor;
 				}, this.Cancellation);
@@ -1279,7 +1287,7 @@ namespace FoundationDB.Client.Tests
 				// now another read, this time should be a cached instance
 				var foo5 = await logged.ReadAsync(async tr =>
 				{
-					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
+					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Foo"));
 					Validate(folder, foo);
 					return folder.Descriptor;
 				}, this.Cancellation);
@@ -1304,7 +1312,7 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
 				// create multiple batches of folders, and attempt to read them all back sequentially
 				// - without cache, we expect the latency to be latency for GRV plus N times the latency per folder
@@ -1316,14 +1324,15 @@ namespace FoundationDB.Client.Tests
 
 				// create a bunch of subspaces and read them back multiple times
 
-				for(int k = 1; k <= K; k++)
+				for (int k = 1; k <= K; k++)
 				{
 					Log($"Creating Batch #{k}/{K}...");
-					await logged.WriteAsync(async tr =>
-					{
-						for (int i = 0; i < N; i++) await directory.CreateAsync(tr, FdbDirectoryPath.Combine("Tests", k.ToString(), i.ToString()));
-					},
-					this.Cancellation);
+					await logged.WriteAsync(
+						async tr =>
+						{
+							for (int i = 0; i < N; i++) await dl.CreateAsync(tr, FdbPath.MakeAbsolute("Tests", k.ToString(), i.ToString()));
+						},
+						this.Cancellation);
 
 					Log($"> Reading...");
 					for (int r = 0; r < R; r++)
@@ -1335,9 +1344,10 @@ namespace FoundationDB.Client.Tests
 							var res = new List<FdbDirectorySubspace>();
 							for (int i = 0; i < N; i++)
 							{
-								res.Add(await directory.TryOpenCachedAsync(tr, FdbDirectoryPath.Combine("Tests", k.ToString(), i.ToString())));
+								res.Add(await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Tests", k.ToString(), i.ToString())));
 							}
-							return res; 
+
+							return res;
 						}, this.Cancellation);
 						var dur = sw.Elapsed;
 
@@ -1365,13 +1375,13 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
-				await logged.ReadWriteAsync(tr => directory.CreateAsync(tr, "Foo"), this.Cancellation);
+				await logged.ReadWriteAsync(tr => dl.CreateAsync(tr, FdbPath.MakeAbsolute("Foo")), this.Cancellation);
 
 				var fooCached = await logged.ReadAsync(async tr =>
 				{
-					var folder = await directory.TryOpenCachedAsync(tr, "Foo");
+					var folder = await dl.TryOpenCachedAsync(tr, FdbPath.MakeAbsolute("Foo"));
 					Assert.That(folder.Context, Is.InstanceOf<FdbDirectoryLayer.State>());
 					return folder;
 				}, this.Cancellation);
@@ -1379,11 +1389,10 @@ namespace FoundationDB.Client.Tests
 				// the fooCached instance should dead outside the transaction!
 				Assert.That(() => fooCached.GetPrefix(), Throws.InstanceOf<InvalidOperationException>(), "Accessing a cached subspace outside the transaction should throw");
 
-				var fooUncached = await logged.ReadAsync(tr => directory.TryOpenAsync(tr, "Foo"), this.Cancellation);
+				var fooUncached = await logged.ReadAsync(tr => dl.TryOpenAsync(tr, FdbPath.MakeAbsolute("Foo")), this.Cancellation);
 				Assert.That(() => fooUncached.Context.EnsureIsValid(), Throws.Nothing, "Accessing a non-cached subspace outside the transaction should not throw");
 			}
 		}
-
 
 		[Test]
 		public async Task Test_SubspacePath_Resolve()
@@ -1402,7 +1411,7 @@ namespace FoundationDB.Client.Tests
 
 				var directoryLayer = FdbDirectoryLayer.Create(location);
 
-				var dir = new FdbDirectorySubspaceLocation(FdbDirectoryPath.Combine("Hello", "World"));
+				var dir = new FdbDirectorySubspaceLocation(FdbPath.Root["Hello"]["World"]);
 
 				// create the corresponding location
 				Log("Creating " + dir);
@@ -1412,22 +1421,26 @@ namespace FoundationDB.Client.Tests
 				await DumpSubspace(db, location);
 
 				// resolve the location
-				await logged.ReadAsync(async tr =>
-				{
-					Log("Resolving " + dir);
-					var subspace = await dir.Resolve(tr, directoryLayer);
-					Assert.That(subspace, Is.Not.Null);
-					Assert.That(subspace.Path, Is.EqualTo(dir.Path), ".Path");
-					Log("> Found under " + subspace.GetPrefix());
-					Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
-				}, this.Cancellation);
+				await logged.ReadAsync(
+					async tr =>
+					{
+						Log("Resolving " + dir);
+						var subspace = await dir.Resolve(tr, directoryLayer);
+						Assert.That(subspace, Is.Not.Null);
+						Assert.That(subspace.Path, Is.EqualTo(dir.Path), ".Path");
+						Log("> Found under " + subspace.GetPrefix());
+						Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
+					},
+					this.Cancellation);
 
 				// resolving again should return a cached version
-				await logged.ReadAsync(async tr =>
-				{
-					var subspace = await dir.Resolve(tr, directoryLayer);
-					Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
-				}, this.Cancellation);
+				await logged.ReadAsync(
+					async tr =>
+					{
+						var subspace = await dir.Resolve(tr, directoryLayer);
+						Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
+					},
+					this.Cancellation);
 
 			}
 		}
@@ -1437,25 +1450,25 @@ namespace FoundationDB.Client.Tests
 		{
 
 			{
-				var path = FdbDirectoryPath.Empty;
+				var path = FdbPath.Empty;
 				Assert.That(path.IsEmpty, Is.True, "Empty.IsEmpty");
 				Assert.That(path.Count, Is.EqualTo(0), "Empty.Count");
 				Assert.That(path.Name, Is.EqualTo(string.Empty), "Empty.Name");
 				Assert.That(path.ToString(), Is.EqualTo(string.Empty), "Empty.ToString()");
 
-				Assert.That(path, Is.EqualTo(FdbDirectoryPath.Empty), "Empty.Equals(Empty)");
-				Assert.That(path == FdbDirectoryPath.Empty, Is.True, "Empty == Empty");
-				Assert.That(path != FdbDirectoryPath.Empty, Is.False, "Empty != Empty");
+				Assert.That(path, Is.EqualTo(FdbPath.Empty), "Empty.Equals(Empty)");
+				Assert.That(path == FdbPath.Empty, Is.True, "Empty == Empty");
+				Assert.That(path != FdbPath.Empty, Is.False, "Empty != Empty");
 			}
 
 			{
-				var path = FdbDirectoryPath.Combine("Foo");
+				var path = FdbPath.MakeRelative("Foo");
 				Assert.That(path.IsEmpty, Is.False, "[Foo].IsEmpty");
 				Assert.That(path.Count, Is.EqualTo(1), "[Foo].Count");
 				Assert.That(path.Name, Is.EqualTo("Foo"), "[Foo].Name");
 				Assert.That(path.ToString(), Is.EqualTo("Foo"), "[Foo].ToString()");
 				Assert.That(path[0], Is.EqualTo("Foo"), "[Foo][0]");
-				Assert.That(path.GetParent(), Is.EqualTo(FdbDirectoryPath.Empty), "[Foo].Name");
+				Assert.That(path.GetParent(), Is.EqualTo(FdbPath.Empty), "[Foo].Name");
 
 				Assert.That(path, Is.EqualTo(path), "[Foo].Equals([Foo])");
 #pragma warning disable CS1718 // Comparison made to same variable
@@ -1465,18 +1478,18 @@ namespace FoundationDB.Client.Tests
 				// ReSharper restore EqualExpressionComparison
 #pragma warning restore CS1718 // Comparison made to same variable
 
-				Assert.That(path, Is.EqualTo(FdbDirectoryPath.Combine("Foo")), "[Foo].Equals([Foo]')");
-				Assert.That(path, Is.EqualTo(FdbDirectoryPath.Combine("Foo", "Bar").GetParent()), "[Foo].Equals([Foo/Bar].GetParent())");
+				Assert.That(path, Is.EqualTo(FdbPath.MakeRelative("Foo")), "[Foo].Equals([Foo]')");
+				Assert.That(path, Is.EqualTo(FdbPath.MakeRelative("Foo", "Bar").GetParent()), "[Foo].Equals([Foo/Bar].GetParent())");
 
-				Assert.That(path, Is.Not.EqualTo(FdbDirectoryPath.Empty), "[Foo].Equals(Empty)");
-				Assert.That(path == FdbDirectoryPath.Empty, Is.False, "[Foo] == Empty");
-				Assert.That(path != FdbDirectoryPath.Empty, Is.True, "[Foo] != Empty");
+				Assert.That(path, Is.Not.EqualTo(FdbPath.Empty), "[Foo].Equals(Empty)");
+				Assert.That(path == FdbPath.Empty, Is.False, "[Foo] == Empty");
+				Assert.That(path != FdbPath.Empty, Is.True, "[Foo] != Empty");
 			}
 
 			{
-				var path1 = FdbDirectoryPath.Combine("Foo", "Bar");
-				var path2 = FdbDirectoryPath.Parse("Foo/Bar");
-				var path3 = new FdbDirectoryPath(new [] { "Foo", "Bar"});
+				var path1 = FdbPath.MakeRelative("Foo", "Bar");
+				var path2 = FdbPath.Parse("Foo/Bar");
+				var path3 = new FdbPath(new[] { "Foo", "Bar" }, false);
 
 				Assert.That(path2, Is.EqualTo(path1), "path1 eq path2");
 				Assert.That(path3, Is.EqualTo(path1), "path1 eq path3");
@@ -1489,5 +1502,4 @@ namespace FoundationDB.Client.Tests
 		}
 
 	}
-
 }

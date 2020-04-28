@@ -544,8 +544,8 @@ namespace FoundationDB.Client
 
 			string? clusterFile = options.ClusterFile;
 			bool readOnly = options.ReadOnly;
-			var directory = new FdbDirectoryLayer(SubspaceLocation.Empty);
-			var root = new FdbDirectorySubspaceLocation(options.Root, FdbDirectoryPartition.LayerId);
+			var directory = new FdbDirectoryLayer(SubspaceLocation.Root);
+			var root = new FdbDirectorySubspaceLocation(options.Root ?? FdbPath.Root, FdbDirectoryPartition.LayerId);
 			bool hasPartition = root.Path.Count != 0;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile ?? "<default>"}' and root '{root}' ...");

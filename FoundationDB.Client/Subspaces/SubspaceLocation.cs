@@ -48,8 +48,10 @@ namespace FoundationDB.Client
 		// - Path: not empty, Prefix: not empty => a directory subspace that has been divided into another local subspace
 
 		/// <summary>Path of the <see cref="FdbDirectorySubspace">directory subspace</see> that contains the subspace.</summary>
-		/// <remarks>Can be <see cref="FdbDirectoryPath.Empty"/> if this subspace is located at the root of the database (ie: not using the Directory Layer)</remarks>
-		FdbDirectoryPath Path { get; }
+		/// <remarks>
+		/// This path is always absolute. Relative paths are not allowed.
+		/// Can be <see cref="FdbPath.Root"/> if this subspace is located at the root of the database (ie: not using the Directory Layer)</remarks>
+		FdbPath Path { get; }
 
 		/// <summary>Optional key prefix of the subspace, added immediately after the prefix of the <see cref="FdbDirectorySubspace">subspace</see> resolved by the <see cref="Path"/>.</summary>
 		Slice Prefix { get; }
@@ -85,7 +87,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <inheritdoc />
-		public FdbDirectoryPath Path { get; } // can be empty
+		public FdbPath Path { get; } // can be empty
 
 		/// <inheritdoc />
 		public Slice Prefix { get; } // can be empty
@@ -93,7 +95,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public abstract IKeyEncoding Encoding { get; }
 
-		protected SubspaceLocation(in FdbDirectoryPath path, in Slice prefix)
+		protected SubspaceLocation(in FdbPath path, in Slice prefix)
 		{
 			this.Path = path;
 			this.Prefix = prefix.IsNull ? Slice.Empty : prefix;
@@ -139,7 +141,7 @@ namespace FoundationDB.Client
 		public BinaryKeySubspaceLocation(in Slice suffix) : base(default, suffix)
 		{ }
 
-		public BinaryKeySubspaceLocation(in FdbDirectoryPath path, in Slice suffix)
+		public BinaryKeySubspaceLocation(in FdbPath path, in Slice suffix)
 			: base(path, suffix)
 		{ }
 
@@ -180,7 +182,7 @@ namespace FoundationDB.Client
 
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
 
-		public DynamicKeySubspaceLocation(in FdbDirectoryPath path, in Slice suffix, IDynamicKeyEncoder encoder)
+		public DynamicKeySubspaceLocation(in FdbPath path, in Slice suffix, IDynamicKeyEncoder encoder)
 			: base(path, suffix)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
@@ -261,7 +263,7 @@ namespace FoundationDB.Client
 			: this(default, suffix, encoder)
 		{ }
 
-		public TypedKeySubspaceLocation(FdbDirectoryPath path, Slice suffix, IKeyEncoder<T1> encoder)
+		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, IKeyEncoder<T1> encoder)
 			: base(path, suffix)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
@@ -316,7 +318,7 @@ namespace FoundationDB.Client
 			: this(default, suffix, encoder)
 		{ }
 
-		public TypedKeySubspaceLocation(FdbDirectoryPath path, Slice suffix, ICompositeKeyEncoder<T1, T2> encoder)
+		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, ICompositeKeyEncoder<T1, T2> encoder)
 			: base(path, suffix)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
@@ -372,7 +374,7 @@ namespace FoundationDB.Client
 			: this(default, suffix, encoder)
 		{ }
 
-		public TypedKeySubspaceLocation(FdbDirectoryPath path, Slice suffix, ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, ICompositeKeyEncoder<T1, T2, T3> encoder)
 			: base(path, suffix)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
@@ -428,7 +430,7 @@ namespace FoundationDB.Client
 			: this(default, suffix, encoder)
 		{ }
 
-		public TypedKeySubspaceLocation(FdbDirectoryPath path, Slice suffix, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 			: base(path, suffix)
 		{
 			Contract.NotNull(encoder, nameof(encoder));
@@ -650,48 +652,52 @@ namespace FoundationDB.Client
 	public static class SubspaceLocation
 	{
 
+		/// <summary>Represent the root directory of the Directory Layer</summary>
+		public static readonly DynamicKeySubspaceLocation Root = new DynamicKeySubspaceLocation(FdbPath.Root, Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+
+		/// <summary>Represent a location without any prefix, and outside the jurisdiction of the Directory Layer</summary>
 		public static readonly DynamicKeySubspaceLocation Empty = new DynamicKeySubspaceLocation(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
 
 		#region FromPath...
 
 		[Pure]
-		public static DynamicKeySubspaceLocation FromPath(FdbDirectoryPath path)
+		public static DynamicKeySubspaceLocation FromPath(FdbPath path)
 		{
 			return new DynamicKeySubspaceLocation(path, default, TuPack.Encoding.GetDynamicKeyEncoder());
 		}
 
 		[Pure]
-		public static DynamicKeySubspaceLocation FromPath(FdbDirectoryPath path, IDynamicKeyEncoder encoder)
+		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoder encoder)
 		{
 			return new DynamicKeySubspaceLocation(path, default, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
 		}
 
 		[Pure]
-		public static DynamicKeySubspaceLocation FromPath(FdbDirectoryPath path, IDynamicKeyEncoding encoding)
+		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoding encoding)
 		{
 			return new DynamicKeySubspaceLocation(path, default, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1> FromPath<T1>(FdbDirectoryPath path, IKeyEncoder<T1> encoder)
+		public static TypedKeySubspaceLocation<T1> FromPath<T1>(FdbPath path, IKeyEncoder<T1> encoder)
 		{
 			return new TypedKeySubspaceLocation<T1>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1>());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1, T2> FromPath<T1, T2>(FdbDirectoryPath path, ICompositeKeyEncoder<T1, T2> encoder)
+		public static TypedKeySubspaceLocation<T1, T2> FromPath<T1, T2>(FdbPath path, ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			return new TypedKeySubspaceLocation<T1, T2>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2>());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1, T2, T3> FromPath<T1, T2, T3>(FdbDirectoryPath path, ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static TypedKeySubspaceLocation<T1, T2, T3> FromPath<T1, T2, T3>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			return new TypedKeySubspaceLocation<T1, T2, T3>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
 		}
 
 		[Pure]
-		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromPath<T1, T2, T3, T4>(FdbDirectoryPath path, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromPath<T1, T2, T3, T4>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
 			return new TypedKeySubspaceLocation<T1, T2, T3, T4>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>());
 		}

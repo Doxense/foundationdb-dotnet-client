@@ -191,7 +191,7 @@ namespace FdbShell
 			#region Options Parsing...
 
 			string clusterFile = null;
-			var partition = FdbDirectoryPath.Empty;
+			var partition = FdbPath.Root;
 			bool showHelp = false;
 			int timeout = 30;
 			int maxRetries = 10;
@@ -207,7 +207,7 @@ namespace FdbShell
 				{ 
 					"p|partition=",
 					"The name of the database partition to open.",
-					v => partition = FdbDirectoryPath.Parse(v.Trim())
+					v => partition = FdbPath.Parse(v.Trim())
 				},
 				{
 					"t|timeout=",
@@ -687,12 +687,12 @@ namespace FdbShell
 								string prm = PopParam(ref extras);
 								if (string.IsNullOrEmpty(prm))
 								{
-									StdOut($"# Current partition is {String.Join("/", partition)}");
+									StdOut($"# Current partition is {partition}");
 									//TODO: browse existing partitions ?
 									break;
 								}
 
-								var newPartition = FdbDirectoryPath.Parse(prm.Trim());
+								var newPartition = FdbPath.Parse(prm.Trim());
 								IFdbDatabase newDb = null;
 								try
 								{
@@ -721,7 +721,7 @@ namespace FdbShell
 
 										Db = newDb;
 										partition = newPartition;
-										StdOut($"# Changed partition to /{string.Join("/", partition)}");
+										StdOut($"# Changed partition to {partition}");
 									}
 								}
 
@@ -870,7 +870,7 @@ namespace FdbShell
 
 		private static FdbDirectorySubspaceLocation ParsePath(string path)
 		{
-			return Db.Root[FdbDirectoryPath.Parse(path)];
+			return Db.Root[FdbPath.Parse(path)];
 			//path = path.Replace("\\", "/").Trim();
 			//return path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 		}
@@ -881,8 +881,8 @@ namespace FdbShell
 			var parent = await db.ReadAsync(tr => BasicCommands.TryOpenCurrentDirectoryAsync(tr, path), ct);
 			if (parent == null) return null;
 
-			var names = await db.ReadAsync(tr => parent.ListAsync(tr), ct);
-			return names.ToArray();
+			var paths = await db.ReadAsync(tr => parent.ListAsync(tr), ct);
+			return paths.Select(p => p.Name).ToArray();
 		}
 
 		#endregion

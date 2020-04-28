@@ -120,7 +120,7 @@ namespace FdbShell
 				}
 
 				folder = await location.TryCreateAsync(tr, layer: Slice.FromString(layer));
-				return (folder.GetPrefix(), true);
+				return (Slice.Nil /*folder.GetPrefixUnsafe()*/, true);
 			}, ct);
 
 			if (!created)
@@ -738,7 +738,7 @@ namespace FdbShell
 			Program.StdOut(log, "Listing all directories...");
 			var map = new Dictionary<string, int>(StringComparer.Ordinal);
 
-			void Account(FdbDirectoryPath p, int c)
+			void Account(FdbPath p, int c)
 			{
 				for (int i = 1; i <= p.Count; i++)
 				{
