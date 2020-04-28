@@ -172,13 +172,13 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
 		{
-			return trans.Context.Database.DirectoryLayer.CreateAsync(trans, this.Path.Add(subPath));
+			return trans.Context.Database.DirectoryLayer.CreateAsync(trans, this.Path.Add(subPath), layer);
 		}
 
 		/// <inheritdoc />
 		public Task<FdbDirectorySubspace?> TryCreateAsync(IFdbTransaction trans, FdbDirectoryPath subPath = default, Slice layer = default)
 		{
-			return trans.Context.Database.DirectoryLayer.TryCreateAsync(trans, this.Path.Add(subPath));
+			return trans.Context.Database.DirectoryLayer.TryCreateAsync(trans, this.Path.Add(subPath), layer);
 		}
 
 		/// <inheritdoc />
