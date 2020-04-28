@@ -29,11 +29,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Buffers;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -51,16 +53,8 @@ namespace FoundationDB.Client
 		/// <summary>Segments of this path</summary>
 		public readonly ReadOnlyMemory<string> Segments;
 
+		/// <summary>If <c>true</c>, this is an absolute path (ex: "/Foo/Bar"); otherwise, this a relative path ("Foo/Bar")</summary>
 		public readonly bool IsAbsolute;
-
-		//REVIEW: TODO: support the notion of relative vs absolute path?
-		// - "/Foo/Bar" could be considered as an absolute path (starts with a '/')
-		// - "Foo/Bar" could be bonsidered as a relative path (does not start with a '/')
-		// Valid combinations:
-		// - "/Foo/Bar" + "Baz" => "/Foo/Bar/Baz" (absolute)
-		// - "Foo/Bar" + "Baz" => "Foo/Bar/Baz" (still relative)
-		// - "/Foo/Bar" + "/Baz" => ERROR (dangerous, we don't want to introduce relative path vulnerabilities!)
-		// - "Foo/Bar" + "/Baz" => ERROR (dangerous, we don't want to introduce relative path vulnerabilities!)
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal FdbPath(ReadOnlyMemory<string> path, bool absolute)
@@ -85,6 +79,7 @@ namespace FoundationDB.Client
 			get => this.IsAbsolute & this.Segments.Length == 0;
 		}
 
+		/// <summary>Number of segments in the path</summary>
 		public int Count => this.Segments.Length;
 
 		/// <summary>Return the segment at the specified index (0-based)</summary>
@@ -109,6 +104,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the name of the last segment of this path</summary>
 		/// <example><see cref="MakeRelative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
+		/// <remarks>The name of the <see cref="Empty"/> or <see cref="Root"/> paths is, by convention, the empty string.</remarks>
 		public string Name
 		{
 			[Pure]
@@ -119,7 +115,9 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Return the parent path of the current path, if it is not empty.</summary>
+		/// <summary>Get the parent path of the current path, if it is not empty.</summary>
+		/// <param name="parent">Receive the path of the parent, if there is one.</param>
+		/// <returns>If <c>true</c>, <paramref name="parent"/> contains the parent path. If <c>false</c>, the current path was <see cref="Empty"/> or the <see cref="Root"/>, and does not have a parent.</returns>>
 		/// <example>"/Foo/Bar/Baz".TryGetParent() => (true, "/Foo/Bar")</example>
 		public bool TryGetParent(out FdbPath parent)
 		{
@@ -316,26 +314,47 @@ namespace FoundationDB.Client
 				? relative
 				: throw new ArgumentException("The current path is not equal to, or a child of, the specified parent path.", nameof(parent));
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IEnumerator<string> GetEnumerator()
-		{
-			//note: ReadOnlyMemory<> does not implement IEnumerable<> and we can't foreach(...) on a span inside an enumerator...
-			var segments = this.Segments;
-			for (int i = 0; i < segments.Length; i++)
-			{
-				yield return segments.Span[i];
-			}
-		}
-
+		/// <summary>Return a serialized string that represents this path.</summary>
+		/// <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
+		/// <remarks>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</remarks>
 		public override string ToString()
 		{
 			return FormatPath(this.Segments.Span, this.IsAbsolute);
+		}
+
+		[Pure]
+		internal static string FormatPath(ReadOnlySpan<string> paths, bool absolute)
+		{
+			if (paths.Length == 0) return absolute ? "/" : string.Empty;
+
+			var sb = new StringBuilder();
+			foreach(var seg in paths)
+			{
+				if (absolute || sb.Length != 0) sb.Append('/');
+				if (seg.Contains('\\') || seg.Contains('/') || seg.Contains('['))
+				{
+					sb.Append(seg.Replace("\\", "\\\\").Replace("/", "\\/")).Replace("[", "\\[");
+				}
+				else
+				{
+					sb.Append(seg);
+				}
+			}
+			return sb.ToString();
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public IEnumerator<string> GetEnumerator()
+		{
+			return MemoryMarshal.ToEnumerable(this.Segments).GetEnumerator();
 		}
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
 		}
+
+		#region Factory Methods...
 
 		/// <summary>Add a segment to a parent path</summary>
 		[Pure]
@@ -443,22 +462,51 @@ namespace FoundationDB.Client
 			return new FdbPath(segments.ToArray(), absolute: true);
 		}
 
+		/// <summary>Parse a string representing a path into the corresponding <see cref="FdbPath"/> instance.</summary>
+		/// <param name="path">Path (either absolute or relative).</param>
+		/// <returns>Corresponding path.</returns>
+		/// <remarks>This method can take the out of <see cref="ToString()"/> and return the original path.</remarks>
 		[Pure]
 		public static FdbPath Parse(string? path)
-		{
-			if (string.IsNullOrEmpty(path)) return Empty;
-			if (path == "/") return FdbPath.Root;
+			=> !string.IsNullOrEmpty(path) ? Parse(path.AsSpan()) : Empty;
 
+		/// <summary>Parse a string representing a path into the corresponding <see cref="FdbPath"/> instance.</summary>
+		/// <param name="path">Path (either absolute or relative).</param>
+		/// <returns>Corresponding path.</returns>
+		/// <remarks>This method can take the out of <see cref="ToString()"/> and return the original path.</remarks>
+		[Pure]
+		public static FdbPath Parse(ReadOnlySpan<char> path)
+		{
+			if (path.Length == 0) return Empty;
+			if (path.Length == 1 && path[0] == '/') return FdbPath.Root;
+
+			if (path.Length < 1024)
+			{ // for small path, use the stack as buffer
+				Span<char> buf = stackalloc char[path.Length];
+				return ParseInternal(path, buf);
+			}
+			else
+			{ // else rent a buffer from a pool
+				char[] buf = ArrayPool<char>.Shared.Rent(path.Length);
+				var res = ParseInternal(path, buf);
+				ArrayPool<char>.Shared.Return(buf);
+				return res;
+			}
+		}
+
+		private static FdbPath ParseInternal(ReadOnlySpan<char> path, Span<char> buffer)
+		{
 			var segments = new List<string>();
-			var sb = new StringBuilder();
+
+			int pos = 0;
 			bool absolute = false;
 			bool escaped = false;
-			foreach (var c in path!)
+			foreach (var c in path)
 			{
 				if (escaped)
 				{
 					escaped = false;
-					sb.Append(c);
+					buffer[pos++] = c;
 					continue;
 				}
 
@@ -471,64 +519,43 @@ namespace FoundationDB.Client
 					}
 					case '/':
 					{
-						if (sb.Length == 0 && segments.Count == 0)
-						{ // first '/' means that it is an absolute path
-							absolute = true;
-							continue;
+						if (pos == 0)
+						{
+							if (segments.Count == 0)
+							{ // first '/' means that it is an absolute path
+								absolute = true;
+								continue;
+							}
+							throw new FormatException("Invalid directory path: segment cannot be empty.");
 						}
 
-						segments.Add(sb.ToString());
-						sb.Clear();
+						segments.Add(buffer.Slice(0, pos).ToString());
+						pos = 0;
 						break;
 					}
 					default:
 					{
-						sb.Append(c);
+						buffer[pos++] = c;
 						break;
 					}
 				}
 			}
 
-			if (sb.Length > 0)
-			{
-				segments.Add(sb.ToString());
+			if (pos > 0)
+			{ // add last segment
+				segments.Add(buffer.Slice(0, pos).ToString());
+			}
+			else if (segments.Count > 0 && path[path.Length - 1] == '/')
+			{ // extra '/' at the end !
+				throw new FormatException("Invalid directory path: last segment cannot be empty.");
 			}
 
 			return new FdbPath(segments.ToArray(), absolute);
 		}
 
-		//[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		//public static implicit operator FdbDirectoryPath(string segment)
-		//{
-		//	return Combine(segment);
-		//}
+		#endregion
 
-		//[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		//public static implicit operator FdbDirectoryPath(string[] segments)
-		//{
-		//	return Combine(segments);
-		//}
-
-		[Pure]
-		internal static string FormatPath(ReadOnlySpan<string> paths, bool absolute)
-		{
-			if (paths.Length == 0) return absolute ? "/" : string.Empty;
-
-			var sb = new StringBuilder();
-			foreach(var seg in paths)
-			{
-				if (absolute || sb.Length != 0) sb.Append('/');
-				if (seg.Contains('\\') || seg.Contains('/') || seg.Contains('['))
-				{
-					sb.Append(seg.Replace("\\", "\\\\").Replace("/", "\\/")).Replace("[", "\\[");
-				}
-				else
-				{
-					sb.Append(seg);
-				}
-			}
-			return sb.ToString();
-		}
+		#region Equality...
 
 		public override int GetHashCode()
 		{
@@ -549,7 +576,7 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object obj)
 		{
-			return obj is FdbPath other && this.Segments.Span.SequenceEqual(other.Segments.Span);
+			return obj is FdbPath other && Equals(other);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -577,6 +604,8 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPath operator +(FdbPath path, string segment)
 			=> path.Add(segment);
+
+		#endregion
 
 	}
 }

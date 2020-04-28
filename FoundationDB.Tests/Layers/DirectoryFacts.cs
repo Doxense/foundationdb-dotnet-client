@@ -248,28 +248,54 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = FdbDirectoryLayer.Create(location);
+				var dl = FdbDirectoryLayer.Create(location);
 
-				FdbDirectorySubspace folder;
 				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
 				{
-
-					folder = await directory.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz"));
+					var folder = await dl.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz"));
+					Assert.That(folder, Is.Not.Null);
+					Assert.That(folder.FullName, Is.EqualTo("/Foo/Bar/Baz"));
+					Assert.That(folder.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar", "Baz")));
 					await tr.CommitAsync();
 				}
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				Assert.That(folder, Is.Not.Null);
-				Assert.That(folder.FullName, Is.EqualTo("/Foo/Bar/Baz"));
-				Assert.That(folder.Path, Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar", "Baz")));
-
 				// all the parent folders should also now exist
-				var foo = await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
-				var bar = await logged.ReadAsync(tr => directory.OpenAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
+				var foo = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
 				Assert.That(foo, Is.Not.Null);
+				Assert.That(foo.FullName, Is.EqualTo("/Foo"));
+
+				var bar = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 				Assert.That(bar, Is.Not.Null);
+				Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
+
+				// We can also access /Foo/Bar via 'Foo'
+				using (var tr = await logged.BeginTransactionAsync(this.Cancellation))
+				{
+					foo = await dl.OpenAsync(tr, FdbPath.Parse("/Foo"));
+					Assert.That(foo, Is.Not.Null);
+					Assert.That(foo.FullName, Is.EqualTo("/Foo"));
+
+					// via relative path
+					bar = await foo.OpenAsync(tr, FdbPath.MakeRelative("Bar"));
+					Assert.That(bar, Is.Not.Null);
+					Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
+
+					// via absolute path
+					bar = await foo.OpenAsync(tr, FdbPath.Parse("/Foo/Bar"));
+					Assert.That(bar, Is.Not.Null);
+					Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
+
+					// opening a non existing folder should fail
+					Assert.That(async () => await foo.OpenAsync(tr, FdbPath.MakeRelative("Baz")), Throws.Exception, "Open on a missing folder should fail");
+					Assert.That(await foo.TryOpenAsync(tr, FdbPath.MakeRelative("Baz")), Is.Null, "TryOpen on a missing folder should return null");
+
+					// attempting to open a "foreign" folder via "foo" should fail
+					Assert.That(async () => await foo.OpenAsync(tr, FdbPath.Parse("/Other/Bar")), Throws.InvalidOperationException, "Should not be able to open a sub-folder with a path outside its parent");
+					Assert.That(async () => await foo.TryOpenAsync(tr, FdbPath.Parse("/Other/Bar")), Throws.InvalidOperationException, "Should not be able to open a sub-folder with a path outside its parent");
+				}
 
 #if ENABLE_LOGGING
 				foreach (var log in list)
@@ -298,35 +324,45 @@ namespace FoundationDB.Client.Tests
 				var logged = db;
 #endif
 
+				Log("Creating directory tree...");
 				// linear subtree "/Foo/Bar/Baz"
 				await logged.ReadWriteAsync(tr => directory.CreateOrOpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
 				// flat subtree "/numbers/0" to "/numbers/9"
-				await logged.WriteAsync(
-					async tr =>
+				await logged.WriteAsync(async tr =>
+				{
+					for (int i = 0; i < 10; i++)
 					{
-						for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(tr, FdbPath.MakeAbsolute("numbers", i.ToString()));
-					},
-					this.Cancellation);
+						await directory.CreateOrOpenAsync(tr, FdbPath.MakeAbsolute("numbers", i.ToString()));
+					}
+				}, this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
+				Log("List '/Foo':");
 				var subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
+				foreach (var subdir in subdirs) Log($"- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar")));
 
+				Log("List '/Foo/Bar':");
 				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
+				foreach (var subdir in subdirs) Log($"- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo(FdbPath.MakeAbsolute("Foo", "Bar", "Baz")));
 
+				Log("List '/Foo/Bar/Baz':");
 				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
+				foreach (var subdir in subdirs) Log($"- " + subdir);
 				Assert.That(subdirs.Count, Is.Zero);
 
+				Log("List '/numbers':");
 				subdirs = await logged.ReadAsync(tr => directory.ListAsync(tr, FdbPath.Parse("/numbers")), this.Cancellation);
 				Assert.That(subdirs, Is.Not.Null);
+				foreach (var subdir in subdirs) Log($"- " + subdir);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
 				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => FdbPath.MakeAbsolute("numbers", x.ToString())).ToList()));
 
@@ -351,6 +387,7 @@ namespace FoundationDB.Client.Tests
 				var dl = FdbDirectoryLayer.Create(location);
 
 				// insert letters in random order
+				Log("Inserting sub-folders in random order...");
 				await db.WriteAsync(async tr =>
 				{
 					var rnd = new Random();
@@ -369,18 +406,15 @@ namespace FoundationDB.Client.Tests
 #endif
 
 				// they should sorted when listed
-				await db.ReadAsync(async tr =>
+				Log("Listing '/letters':");
+				var subdirs = await db.ReadAsync(tr => dl.ListAsync(tr, FdbPath.MakeAbsolute("letters")), this.Cancellation);
+				Assert.That(subdirs, Is.Not.Null);
+				foreach (var subdir in subdirs) Log($"- " + subdir);
+				Assert.That(subdirs.Count, Is.EqualTo(10));
+				for (int i = 0; i < subdirs.Count; i++)
 				{
-					var subdirs = await dl.ListAsync(tr, FdbPath.MakeAbsolute("letters"));
-					Assert.That(subdirs, Is.Not.Null);
-					Assert.That(subdirs.Count, Is.EqualTo(10));
-					for (int i = 0; i < subdirs.Count; i++)
-					{
-						Assert.That(subdirs[i], Is.EqualTo(FdbPath.MakeAbsolute("letters", new string((char) (65 + i), 1))));
-					}
-
-					return default(object);
-				}, this.Cancellation);
+					Assert.That(subdirs[i], Is.EqualTo(FdbPath.MakeAbsolute("letters", new string((char) (65 + i), 1))));
+				}
 
 			}
 		}

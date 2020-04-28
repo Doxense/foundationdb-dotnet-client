@@ -1358,14 +1358,6 @@ namespace FoundationDB.Client
 			return location;
 		}
 
-		/// <summary>Maps an absolute path to a relative path within this directory layer</summary>
-		internal FdbPath ToRelativePath(FdbPath path)
-		{
-			if (!path.StartsWith(this.Path)) throw new InvalidOperationException("The path cannot be outside of this partition.");
-			return path.Substring(this.Path.Count);
-		}
-
-
 		private static void CheckVersion(Slice value, bool writeAccess)
 		{
 			// the version is stored as 3 x 32-bit unsigned int, so (1, 0, 0) will be "<01><00><00><00> <00><00><00><00> <00><00><00><00>"

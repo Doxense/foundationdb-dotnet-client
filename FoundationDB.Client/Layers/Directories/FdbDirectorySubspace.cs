@@ -89,6 +89,15 @@ namespace FoundationDB.Client
 		/// <returns>Path relative to the path of the current partition</returns>
 		protected virtual FdbPath ToAbsolutePath(FdbPath location)
 		{
+			if (location.IsAbsolute)
+			{ // we only accept an absolute path if it is technically contained in the current directory
+				if (!location.StartsWith(this.Descriptor.Path))
+				{
+					throw new InvalidOperationException("Cannot use absolute path that is not contained within the current directory path.");
+				}
+				return location;
+			}
+
 			return this.Descriptor.Path.Add(location);
 		}
 

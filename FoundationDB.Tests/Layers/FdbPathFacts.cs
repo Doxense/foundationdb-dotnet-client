@@ -33,7 +33,7 @@ namespace FoundationDB.Client.Tests
 	using NUnit.Framework;
 
 	[TestFixture]
-	public class FdbDirectoryPathFacts : FdbTest
+	public class FdbPathFacts : FdbTest
 	{
 
 		[Test]
@@ -277,6 +277,15 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path[1], Is.EqualTo("Baz"));
 				Assert.That(path.ToString(), Is.EqualTo("/Foo\\[Bar]/Baz"));
 				Assert.That(path.Name, Is.EqualTo("Baz"));
+			}
+
+			// invalid paths
+			{ 
+				// "/Foo//Baz" => empty segment
+				Assert.That(() => FdbPath.Parse("/Foo//Baz"), Throws.InstanceOf<FormatException>());
+
+				// "/Foo/Bar/" => last is empty
+				Assert.That(() => FdbPath.Parse("/Foo/Bar/"), Throws.InstanceOf<FormatException>());
 			}
 
 		}
