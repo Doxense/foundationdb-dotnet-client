@@ -545,7 +545,7 @@ namespace FoundationDB.Client
 			string? clusterFile = options.ClusterFile;
 			bool readOnly = options.ReadOnly;
 			var directory = new FdbDirectoryLayer(SubspaceLocation.Root);
-			var root = new FdbDirectorySubspaceLocation(options.Root ?? FdbPath.Root, FdbDirectoryPartition.LayerId);
+			var root = new FdbDirectorySubspaceLocation(options.Root ?? FdbPath.Root);
 			bool hasPartition = root.Path.Count != 0;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), nameof(OpenInternalAsync), $"Connecting to database using cluster file '{clusterFile ?? "<default>"}' and root '{root}' ...");
@@ -565,7 +565,7 @@ namespace FoundationDB.Client
 
 				if (hasPartition)
 				{ // open the partition, and switch the root of the db
-					await Fdb.Directory.SwitchToNamedPartitionAsync(db, root, readOnly, ct);
+					await Fdb.Directory.SwitchToNamedPartitionAsync(db, root.Path, ct);
 				}
 
 				success = true;

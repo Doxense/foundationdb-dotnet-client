@@ -42,22 +42,24 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
-	public readonly struct FdbPath : IReadOnlyList<string>, IEquatable<FdbPath>
+	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>
 	{
 		/// <summary>The "empty" path</summary>
+		/// <remarks>This path is relative</remarks>
 		public static readonly FdbPath Empty = new FdbPath(default, absolute: false);
 
 		/// <summary>The "root" path ("/").</summary>
+		/// <remarks>This path is absolute</remarks>
 		public static readonly FdbPath Root = new FdbPath(default, absolute: true);
 
 		/// <summary>Segments of this path</summary>
-		public readonly ReadOnlyMemory<string> Segments;
+		public readonly ReadOnlyMemory<FdbPathSegment> Segments;
 
 		/// <summary>If <c>true</c>, this is an absolute path (ex: "/Foo/Bar"); otherwise, this a relative path ("Foo/Bar")</summary>
 		public readonly bool IsAbsolute;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbPath(ReadOnlyMemory<string> path, bool absolute)
+		internal FdbPath(ReadOnlyMemory<FdbPathSegment> path, bool absolute)
 		{
 			this.Segments = path;
 			this.IsAbsolute = absolute;
@@ -83,12 +85,12 @@ namespace FoundationDB.Client
 		public int Count => this.Segments.Length;
 
 		/// <summary>Return the segment at the specified index (0-based)</summary>
-		public string this[int index] => this.Segments.Span[index];
+		public FdbPathSegment this[int index] => this.Segments.Span[index];
 
 #if USE_RANGE_API
 
 		/// <summary>Return the segment at the specified index</summary>
-		public string this[Index index]
+		public FdbPathSegment this[Index index]
 		{
 			get
 			{
@@ -111,8 +113,37 @@ namespace FoundationDB.Client
 			get
 			{
 				var path = this.Segments.Span;
-				return path.Length != 0 ? path[path.Length - 1] : string.Empty;
+				return path.Length != 0 ? path[path.Length - 1].Name : string.Empty;
 			}
+		}
+
+		/// <summary>Return the Layer Id of the last segment of this path</summary>
+		/// <example><see cref="MakeRelative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
+		/// <remarks>Be convention, the layer id of the <see cref="Empty"/> path is the <c>empty</c> string, and the layer id of the <see cref="Root"/> path is <c>"partition"</c></remarks>
+		public string LayerId
+		{
+			[Pure]
+			get
+			{
+				var path = this.Segments.Span;
+				return path.Length != 0 ? path[path.Length - 1].LayerId
+				       : this.IsAbsolute ? FdbDirectoryPartition.LayerId
+				       : string.Empty;
+			}
+		}
+
+		public FdbPath WithLayer(string? layerId)
+		{
+			layerId ??= string.Empty;
+
+			var path = this.Segments.Span;
+			if (path.Length == 0) throw new InvalidOperationException("Cannot change the layer of the empty path.");
+			var tail = path[path.Length - 1];
+			if (tail.LayerId == layerId) return this;
+
+			var tmp = this.Segments.ToArray();
+			tmp[tmp.Length - 1] = new FdbPathSegment(tail.Name, layerId);
+			return new FdbPath(tmp, this.IsAbsolute);
 		}
 
 		/// <summary>Get the parent path of the current path, if it is not empty.</summary>
@@ -141,80 +172,86 @@ namespace FoundationDB.Client
 				: throw new InvalidOperationException("The root path does not have a parent path.");
 
 		/// <summary>Append a new segment to the curent path</summary>
-		public FdbPath this[string segment] => Add(segment);
+		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
+		public FdbPath this[string segment] => Add(FdbPathSegment.Parse(segment));
 
-		/// <summary>Append one or more new segments to the curent path</summary>
-		public FdbPath this[ReadOnlySpan<string> segments] => Add(segments);
+		/// <summary>Append a new segment - composed of a name and layer id - to the curent path</summary>
+		public FdbPath this[string name, string layer] => Add(FdbPathSegment.Create(name, layer));
+
+		/// <summary>Append a new segment to the curent path</summary>
+		public FdbPath this[FdbPathSegment segment] => Add(segment);
 
 		/// <summary>Append a relative path to the curent path</summary>
 		public FdbPath this[FdbPath path] => Add(path);
 
-		private static ReadOnlyMemory<string> AppendSegment(ReadOnlySpan<string> head, string segment)
+		private static ReadOnlyMemory<FdbPathSegment> AppendSegment(ReadOnlySpan<FdbPathSegment> head, FdbPathSegment segment)
 		{
-			Contract.NotNull(segment, nameof(segment));
+			if (segment.IsEmpty) throw new ArgumentException("Segment cannot be empty", nameof(segment));
 			int n = head.Length;
-			var tmp = new string[n + 1];
+			var tmp = new FdbPathSegment[n + 1];
 			head.CopyTo(tmp);
 			tmp[n] = segment;
 			return tmp;
 		}
 
-		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, string segment1, string segment2)
+		private static ReadOnlyMemory<FdbPathSegment> AppendSegments(ReadOnlySpan<FdbPathSegment> head, FdbPathSegment segment1, FdbPathSegment segment2)
 		{
-			Contract.NotNull(segment1, nameof(segment1));
-			Contract.NotNull(segment2, nameof(segment2));
+			if (segment1.IsEmpty) throw new ArgumentException("Segment cannot be empty", nameof(segment1));
+			if (segment2.IsEmpty) throw new ArgumentException("Segment cannot be empty", nameof(segment2));
 			int n = head.Length;
-			var tmp = new string[n + 2];
+			var tmp = new FdbPathSegment[n + 2];
 			head.CopyTo(tmp);
 			tmp[n] = segment1;
 			tmp[n + 1] = segment2;
 			return tmp;
 		}
 
-		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, ReadOnlySpan<string> tail)
+		private static ReadOnlyMemory<FdbPathSegment> AppendSegments(ReadOnlySpan<FdbPathSegment> head, ReadOnlySpan<FdbPathSegment> tail)
 		{
-			var tmp = new string[head.Length + tail.Length];
+			var tmp = new FdbPathSegment[head.Length + tail.Length];
 			head.CopyTo(tmp);
 			tail.CopyTo(tmp.AsSpan(head.Length));
 			return tmp;
 		}
 
-		private static ReadOnlyMemory<string> AppendSegments(ReadOnlySpan<string> head, IEnumerable<string> suffix)
+		private static ReadOnlyMemory<FdbPathSegment> AppendSegments(ReadOnlySpan<FdbPathSegment> head, IEnumerable<FdbPathSegment> suffix)
 		{
-			var list = new List<string>(head.Length + ((suffix as ICollection<string>)?.Count ?? 4));
+			var list = new List<FdbPathSegment>(head.Length + ((suffix as ICollection<FdbPath>)?.Count ?? 4));
 			foreach (var segment in head) list.Add(segment);
 			foreach (var segment in suffix) list.Add(segment);
 			return list.ToArray();
 		}
 
 		/// <summary>Append a new segment to the curent path</summary>
+		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public FdbPath Add(string segment)
+			=> new FdbPath(AppendSegment(this.Segments.Span, FdbPathSegment.Parse(segment)), this.IsAbsolute);
+
+		/// <summary>Append a new segment to the curent path</summary>
+		[Pure]
+		public FdbPath Add(FdbPathSegment segment)
 			=> new FdbPath(AppendSegment(this.Segments.Span, segment), this.IsAbsolute);
 
 		/// <summary>Append a new segment to the curent path</summary>
-		[Pure]
-		public FdbPath Add(string segment1, string segment2)
-			=> new FdbPath(AppendSegments(this.Segments.Span, segment1, segment2), this.IsAbsolute);
-
-		/// <summary>Append a new segment to the curent path</summary>
+		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public FdbPath Add(ReadOnlySpan<char> segment)
-			=> new FdbPath(AppendSegment(this.Segments.Span, segment.ToString()), this.IsAbsolute);
+			=> new FdbPath(AppendSegment(this.Segments.Span, FdbPathSegment.Parse(segment)), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbPath Add(ReadOnlySpan<string> segments)
+		public FdbPath Add(ReadOnlySpan<FdbPathSegment> segments)
 			=> new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbPath Add(params string[] segments)
+		public FdbPath Add(params FdbPathSegment[] segments)
 			=> new FdbPath(AppendSegments(this.Segments.Span, segments.AsSpan()), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
-		public FdbPath Add(IEnumerable<string> segments)
+		public FdbPath Add(IEnumerable<FdbPathSegment> segments)
 			=> new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
 
 		/// <summary>Add a path to the current path</summary>
@@ -318,33 +355,46 @@ namespace FoundationDB.Client
 		/// <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
 		/// <remarks>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</remarks>
 		public override string ToString()
-		{
-			return FormatPath(this.Segments.Span, this.IsAbsolute);
-		}
+			=> FormatPath(this.Segments.Span, this.IsAbsolute, namesOnly: false);
+
+		/// <summary>Encode a path into a string representation</summary>
+		/// <param name="path">Path to encode</param>
+		/// <param name="namesOnly">If <c>true</c>, ommit the layer ids in the resulting string.</param>
+		/// <returns>String representation of the path (with or without the layer id)</returns>
+		/// <remarks>If <paramref name="namesOnly"/> is <c>true</c>, the result will not <see cref="Parse(string)">round-trip</see> into the original path (layer ids will be lost).</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static string Encode(FdbPath path, bool namesOnly = false)
+			=> FormatPath(path.Segments.Span, path.IsAbsolute, namesOnly);
 
 		[Pure]
-		internal static string FormatPath(ReadOnlySpan<string> paths, bool absolute)
+		internal static string FormatPath(ReadOnlySpan<FdbPathSegment> paths, bool absolute, bool namesOnly)
 		{
 			if (paths.Length == 0) return absolute ? "/" : string.Empty;
 
+			//TODO: maybe use a Span<char> buffer instead of a string builder?
 			var sb = new StringBuilder();
-			foreach(var seg in paths)
+			if (namesOnly)
 			{
-				if (absolute || sb.Length != 0) sb.Append('/');
-				if (seg.Contains('\\') || seg.Contains('/') || seg.Contains('['))
+				foreach (var seg in paths)
 				{
-					sb.Append(seg.Replace("\\", "\\\\").Replace("/", "\\/")).Replace("[", "\\[");
-				}
-				else
-				{
-					sb.Append(seg);
+					if (absolute || sb.Length != 0) sb.Append('/');
+					FdbPathSegment.AppendTo(sb, seg.Name);
 				}
 			}
+			else
+			{
+				foreach (var seg in paths)
+				{
+					if (absolute || sb.Length != 0) sb.Append('/');
+					FdbPathSegment.AppendTo(sb, seg.Name, seg.LayerId);
+				}
+			}
+
 			return sb.ToString();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IEnumerator<string> GetEnumerator()
+		public IEnumerator<FdbPathSegment> GetEnumerator()
 		{
 			return MemoryMarshal.ToEnumerable(this.Segments).GetEnumerator();
 		}
@@ -357,44 +407,100 @@ namespace FoundationDB.Client
 		#region Factory Methods...
 
 		/// <summary>Add a segment to a parent path</summary>
+		/// <param name="path">Parent path</param>
+		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public static FdbPath Combine(FdbPath path, string segment)
+		{
+			return path.Add(FdbPathSegment.Parse(segment));
+		}
+
+		/// <summary>Add a segment to a parent path</summary>
+		/// <param name="path">Parent path</param>
+		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
+		[Pure]
+		public static FdbPath Combine(FdbPath path, FdbPathSegment segment)
 		{
 			return path.Add(segment);
 		}
 
 		/// <summary>Add a pair of segments to a root path</summary>
+		/// <param name="path">Parent path</param>
+		/// <param name="segment1">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
+		/// <param name="segment2">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public static FdbPath Combine(FdbPath path, string segment1, string segment2)
+		{
+			return path.Add(FdbPathSegment.Parse(segment1), FdbPathSegment.Parse(segment2));
+		}
+
+		/// <summary>Add a pair of segments to a root path</summary>
+		[Pure]
+		public static FdbPath Combine(FdbPath path, FdbPathSegment segment1, FdbPathSegment segment2)
 		{
 			return path.Add(segment1, segment2);
 		}
 
 		/// <summary>Add one or more segments to a parent path</summary>
+		/// <param name="path">Parent path</param>
+		/// <param name="segments">Array of encoded path segments, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public static FdbPath Combine(FdbPath path, params string[] segments)
 		{
+			Contract.NotNull(segments, nameof(segments));
+			if (segments.Length == 0) return path;
+			return path.Add(FdbPathSegment.Parse(segments.AsSpan()));
+		}
+
+		/// <summary>Add one or more segments to a parent path</summary>
+		[Pure]
+		public static FdbPath Combine(FdbPath path, params FdbPathSegment[] segments)
+		{
+			Contract.NotNull(segments, nameof(segments));
+			if (segments.Length == 0) return path;
+
 			return path.Add(segments);
 		}
 
 		/// <summary>Add one or more segments to a parent path</summary>
 		[Pure]
-		public static FdbPath Combine(FdbPath path, ReadOnlySpan<string> segments)
+		public static FdbPath Combine(FdbPath path, ReadOnlySpan<FdbPathSegment> segments)
 		{
+			if (segments.Length == 0) return path;
+
 			return path.Add(segments);
 		}
 
 		/// <summary>Return a relative path composed of a single segment</summary>
+		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public static FdbPath MakeRelative(string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
+			return new FdbPath(new [] { FdbPathSegment.Parse(segment) }, absolute: false);
+		}
+
+		/// <summary>Return a relative path composed of a single segment</summary>
+		[Pure]
+		public static FdbPath MakeRelative(FdbPathSegment segment)
+		{
+			if (segment.IsEmpty) throw new ArgumentException("Segment cannot be empty", nameof(segment));
 			return new FdbPath(new [] { segment }, absolute: false);
 		}
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
+		/// <param name="segments">Array of encoded path segments, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
 		public static FdbPath MakeRelative(params string[] segments)
+		{
+			Contract.NotNull(segments, nameof(segments));
+			if (segments.Length == 0) return FdbPath.Empty;
+			return new FdbPath(FdbPathSegment.Parse(segments.AsSpan()), absolute: false);
+		}
+
+		/// <summary>Return a relative path composed of the specified segments</summary>
+		[Pure]
+		public static FdbPath MakeRelative(params FdbPathSegment[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			if (segments.Length == 0) return FdbPath.Empty;
@@ -403,7 +509,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeRelative(ReadOnlySpan<string> segments)
+		public static FdbPath MakeRelative(ReadOnlySpan<FdbPathSegment> segments)
 		{
 			// we have to copy the buffer!
 			return new FdbPath(segments.ToArray(), absolute: false);
@@ -411,13 +517,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeRelative(ReadOnlyMemory<string> segments)
+		public static FdbPath MakeRelative(ReadOnlyMemory<FdbPathSegment> segments)
 		{
 			return new FdbPath(segments, absolute: false);
 		}
 
+		/// <summary>Return a relative path composed of the specified segments</summary>
+		/// <param name="segments">Sequence of path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
-		public static FdbPath MakeRelative(IEnumerable<string> segments)
+		public static FdbPath MakeRelative(IEnumerable<FdbPathSegment> segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbPath(segments.ToArray(), absolute: false);
@@ -428,6 +536,14 @@ namespace FoundationDB.Client
 		public static FdbPath MakeAbsolute(string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
+			return new FdbPath(new [] { FdbPathSegment.Parse(segment) }, absolute: true);
+		}
+
+		/// <summary>Return a relative path composed of a single segment</summary>
+		[Pure]
+		public static FdbPath MakeAbsolute(FdbPathSegment segment)
+		{
+			if (segment.IsEmpty) throw new ArgumentException("Segment cannot be empty.", nameof(segment));
 			return new FdbPath(new [] { segment }, absolute: true);
 		}
 
@@ -437,12 +553,21 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(segments, nameof(segments));
 			if (segments.Length == 0) return FdbPath.Empty;
+			return new FdbPath(FdbPathSegment.Parse(segments.AsSpan()), absolute: true);
+		}
+
+		/// <summary>Return a relative path composed of the specified segments</summary>
+		[Pure]
+		public static FdbPath MakeAbsolute(params FdbPathSegment[] segments)
+		{
+			Contract.NotNull(segments, nameof(segments));
+			if (segments.Length == 0) return FdbPath.Empty;
 			return new FdbPath(segments, absolute: true);
 		}
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(ReadOnlySpan<string> segments)
+		public static FdbPath MakeAbsolute(ReadOnlySpan<FdbPathSegment> segments)
 		{
 			// we have to copy the buffer!
 			return new FdbPath(segments.ToArray(), absolute: true);
@@ -450,13 +575,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(ReadOnlyMemory<string> segments)
+		public static FdbPath MakeAbsolute(ReadOnlyMemory<FdbPathSegment> segments)
 		{
 			return new FdbPath(segments, absolute: true);
 		}
 
 		[Pure]
-		public static FdbPath MakeAbsolute(IEnumerable<string> segments)
+		public static FdbPath MakeAbsolute(IEnumerable<FdbPathSegment> segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbPath(segments.ToArray(), absolute: true);
@@ -496,54 +621,66 @@ namespace FoundationDB.Client
 
 		private static FdbPath ParseInternal(ReadOnlySpan<char> path, Span<char> buffer)
 		{
-			var segments = new List<string>();
+			var segments = new List<FdbPathSegment>();
 
-			int pos = 0;
+			// the main loop only only attempts to split the segments by finding valid '/' separators (note that '/' can be escaped (via '\/') and is NOT a segment separator)
+			// => when we find a segment, we slice it and then use FdbPathSegment.Parse(...) to actual unescape the name (and optional layer Id)
+
 			bool absolute = false;
 			bool escaped = false;
+			int start = 0;
+			int pos = 0;
 			foreach (var c in path)
 			{
-				if (escaped)
-				{
-					escaped = false;
-					buffer[pos++] = c;
-					continue;
-				}
-
 				switch (c)
 				{
 					case '\\':
 					{
-						escaped = true;
-						continue;
+						escaped = !escaped;
+						++pos;
+						break;
 					}
 					case '/':
 					{
+						if (escaped)
+						{
+							escaped = false;
+							++pos;
+							break;
+						}
+
 						if (pos == 0)
 						{
 							if (segments.Count == 0)
 							{ // first '/' means that it is an absolute path
 								absolute = true;
+								pos = 1;
+								start = 1;
 								continue;
 							}
 							throw new FormatException("Invalid directory path: segment cannot be empty.");
 						}
 
-						segments.Add(buffer.Slice(0, pos).ToString());
-						pos = 0;
+						segments.Add(FdbPathSegment.Parse(path.Slice(start, pos - start)));
+						++pos;
+						start = pos;
 						break;
 					}
 					default:
 					{
-						buffer[pos++] = c;
+						if (escaped)
+						{
+							escaped = false;
+						}
+						++pos;
 						break;
 					}
 				}
 			}
 
-			if (pos > 0)
+			if (pos != start)
 			{ // add last segment
-				segments.Add(buffer.Slice(0, pos).ToString());
+				segments.Add(FdbPathSegment.Parse(path.Slice(start, pos - start)));
 			}
 			else if (segments.Count > 0 && path[path.Length - 1] == '/')
 			{ // extra '/' at the end !
@@ -568,9 +705,9 @@ namespace FoundationDB.Client
 			switch (segments.Length)
 			{
 				case 0: return this.IsAbsolute ? -1 : 0;
-				case 1: return HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0]?.GetHashCode() ?? -1);
-				case 2: return HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0]?.GetHashCode() ?? -1, segments[1]?.GetHashCode() ?? -1);
-				default: return HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0]?.GetHashCode() ?? -1, segments[segments.Length >> 1]?.GetHashCode() ?? -1, segments[segments.Length - 1]?.GetHashCode() ?? -1);
+				case 1: return HashCodes.Combine(this.IsAbsolute ? -1 : 1, segments[0].GetHashCode());
+				case 2: return HashCodes.Combine(this.IsAbsolute ? -2 : 2, segments[0].GetHashCode(), segments[1].GetHashCode());
+				default: return HashCodes.Combine(this.IsAbsolute ? -3 : 3, segments[0].GetHashCode(), segments[segments.Length >> 1].GetHashCode(), segments[segments.Length - 1].GetHashCode());
 			}
 		}
 

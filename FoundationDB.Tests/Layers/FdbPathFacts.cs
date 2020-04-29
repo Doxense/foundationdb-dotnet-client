@@ -37,7 +37,7 @@ namespace FoundationDB.Client.Tests
 	{
 
 		[Test]
-		public void Test_FdbDirectoryPath_Empty()
+		public void Test_FdbPath_Empty()
 		{
 			var empty = FdbPath.Empty;
 			Assert.That(empty.IsAbsolute, Is.False);
@@ -62,7 +62,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbDirectoryPath_Root()
+		public void Test_FdbPath_Root()
 		{
 			var root = FdbPath.Root;
 			Assert.That(root.IsAbsolute, Is.True);
@@ -87,7 +87,51 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbDirectoryPath_Simple_Relative()
+		public void Test_FdbPath_Basics()
+		{
+			{
+				var path = FdbPath.MakeRelative("Foo");
+				Assert.That(path.IsEmpty, Is.False, "[Foo].IsEmpty");
+				Assert.That(path.Count, Is.EqualTo(1), "[Foo].Count");
+				Assert.That(path.Name, Is.EqualTo("Foo"), "[Foo].Name");
+				Assert.That(path.ToString(), Is.EqualTo("Foo"), "[Foo].ToString()");
+				Assert.That(path[0].Name, Is.EqualTo("Foo"), "[Foo][0]");
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty), "[Foo][0]");
+				Assert.That(path.GetParent(), Is.EqualTo(FdbPath.Empty), "[Foo].Name");
+
+				Assert.That(path, Is.EqualTo(path), "[Foo].Equals([Foo])");
+#pragma warning disable CS1718 // Comparison made to same variable
+				// ReSharper disable EqualExpressionComparison
+				Assert.That(path == path, Is.True, "[Foo] == [Foo]");
+				Assert.That(path != path, Is.False, "[Foo] != [Foo]");
+				// ReSharper restore EqualExpressionComparison
+#pragma warning restore CS1718 // Comparison made to same variable
+
+				Assert.That(path, Is.EqualTo(FdbPath.MakeRelative("Foo")), "[Foo].Equals([Foo]')");
+				Assert.That(path, Is.EqualTo(FdbPath.MakeRelative("Foo", "Bar").GetParent()), "[Foo].Equals([Foo/Bar].GetParent())");
+
+				Assert.That(path, Is.Not.EqualTo(FdbPath.Empty), "[Foo].Equals(Empty)");
+				Assert.That(path == FdbPath.Empty, Is.False, "[Foo] == Empty");
+				Assert.That(path != FdbPath.Empty, Is.True, "[Foo] != Empty");
+			}
+
+			{
+				var path1 = FdbPath.MakeRelative("Foo", "Bar");
+				var path2 = FdbPath.Parse("Foo/Bar");
+				var path3 = new FdbPath(new[] { FdbPathSegment.Create("Foo"), FdbPathSegment.Create("Bar") }, false);
+
+				Assert.That(path2, Is.EqualTo(path1), "path1 eq path2");
+				Assert.That(path3, Is.EqualTo(path1), "path1 eq path3");
+				Assert.That(path3, Is.EqualTo(path2), "path2 eq path3");
+
+				Assert.That(path2.GetHashCode(), Is.EqualTo(path1.GetHashCode()), "h(path1) == h(path2)");
+				Assert.That(path3.GetHashCode(), Is.EqualTo(path1.GetHashCode()), "h(path1) == h(path3)");
+			}
+
+		}
+
+		[Test]
+		public void Test_FdbPath_Simple_Relative()
 		{
 			var foo = FdbPath.MakeRelative("Foo");
 			Assert.That(foo.ToString(), Is.EqualTo("Foo"));
@@ -95,9 +139,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo.IsEmpty, Is.False);
 			Assert.That(foo.IsRoot, Is.False);
 			Assert.That(foo.Count, Is.EqualTo(1));
-			Assert.That(foo[0], Is.EqualTo("Foo"));
+			Assert.That(foo[0].Name, Is.EqualTo("Foo"));
+			Assert.That(foo[0].LayerId, Is.EqualTo(string.Empty));
 			Assert.That(foo.Name, Is.EqualTo("Foo"));
-			Assert.That(foo.ToArray(), Is.EqualTo(new [] { "Foo" }));
+			Assert.That(foo.ToArray(), Is.EqualTo(new [] { FdbPathSegment.Create("Foo") }));
 			Assert.That(foo.StartsWith(FdbPath.Empty), Is.True);
 			Assert.That(foo.IsChildOf(FdbPath.Empty), Is.True);
 			Assert.That(foo.EndsWith(FdbPath.Empty), Is.True);
@@ -109,10 +154,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(fooBar.IsEmpty, Is.False);
 			Assert.That(fooBar.IsRoot, Is.False);
 			Assert.That(fooBar.Count, Is.EqualTo(2));
-			Assert.That(fooBar[0], Is.EqualTo("Foo"));
-			Assert.That(fooBar[1], Is.EqualTo("Bar"));
+			Assert.That(fooBar[0].Name, Is.EqualTo("Foo"));
+			Assert.That(fooBar[0].LayerId, Is.EqualTo(string.Empty));
+			Assert.That(fooBar[1].Name, Is.EqualTo("Bar"));
+			Assert.That(fooBar[1].LayerId, Is.EqualTo(string.Empty));
 			Assert.That(fooBar.Name, Is.EqualTo("Bar"));
-			Assert.That(fooBar.ToArray(), Is.EqualTo(new [] { "Foo", "Bar" }));
+			Assert.That(fooBar.ToArray(), Is.EqualTo(new [] { FdbPathSegment.Create("Foo"), FdbPathSegment.Create("Bar") }));
 			Assert.That(fooBar.StartsWith(FdbPath.Empty), Is.True);
 			Assert.That(fooBar.IsChildOf(FdbPath.Empty), Is.True);
 			Assert.That(fooBar.IsParentOf(FdbPath.Empty), Is.False);
@@ -125,7 +172,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbDirectoryPath_Simple_Absolute()
+		public void Test_FdbPath_Simple_Absolute()
 		{
 			var foo = FdbPath.MakeAbsolute("Foo");
 			Assert.That(foo.ToString(), Is.EqualTo("/Foo"));
@@ -133,9 +180,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo.IsEmpty, Is.False);
 			Assert.That(foo.IsRoot, Is.False);
 			Assert.That(foo.Count, Is.EqualTo(1));
-			Assert.That(foo[0], Is.EqualTo("Foo"));
+			Assert.That(foo[0].Name, Is.EqualTo("Foo"));
+			Assert.That(foo[0].LayerId, Is.EqualTo(string.Empty));
 			Assert.That(foo.Name, Is.EqualTo("Foo"));
-			Assert.That(foo.ToArray(), Is.EqualTo(new [] { "Foo" }));
+			Assert.That(foo.ToArray(), Is.EqualTo(new [] { FdbPathSegment.Create("Foo") }));
 			Assert.That(foo.StartsWith(FdbPath.Root), Is.True);
 			Assert.That(foo.IsChildOf(FdbPath.Root), Is.True);
 			Assert.That(foo.EndsWith(FdbPath.Root), Is.False);
@@ -147,10 +195,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(fooBar.IsEmpty, Is.False);
 			Assert.That(fooBar.IsRoot, Is.False);
 			Assert.That(fooBar.Count, Is.EqualTo(2));
-			Assert.That(fooBar[0], Is.EqualTo("Foo"));
-			Assert.That(fooBar[1], Is.EqualTo("Bar"));
+			Assert.That(fooBar[0].Name, Is.EqualTo("Foo"));
+			Assert.That(fooBar[0].LayerId, Is.EqualTo(string.Empty));
+			Assert.That(fooBar[1].Name, Is.EqualTo("Bar"));
+			Assert.That(fooBar[1].LayerId, Is.EqualTo(string.Empty));
 			Assert.That(fooBar.Name, Is.EqualTo("Bar"));
-			Assert.That(fooBar.ToArray(), Is.EqualTo(new [] { "Foo", "Bar" }));
+			Assert.That(fooBar.ToArray(), Is.EqualTo(new [] { FdbPathSegment.Create("Foo"), FdbPathSegment.Create("Bar") }));
 			Assert.That(fooBar.StartsWith(FdbPath.Root), Is.True);
 			Assert.That(fooBar.IsChildOf(FdbPath.Root), Is.True);
 			Assert.That(fooBar.IsParentOf(FdbPath.Root), Is.False);
@@ -162,18 +212,32 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbDirectoryPath_Substring_Absolute()
+		public void Test_FdbPath_Substring_Absolute()
 		{
 			var path = FdbPath.MakeAbsolute("Foo", "Bar", "Baz");
 
 			var slice = path.Substring(0, 2);
 			Assert.That(slice.IsAbsolute, Is.True);
-			Assert.That(slice[0], Is.EqualTo("Foo"));
-			Assert.That(slice[1], Is.EqualTo("Bar"));
+			Assert.That(slice[0].Name, Is.EqualTo("Foo"));
+			Assert.That(slice[0].LayerId, Is.EqualTo(string.Empty));
+			Assert.That(slice[1].Name, Is.EqualTo("Bar"));
+			Assert.That(slice[1].LayerId, Is.EqualTo(string.Empty));
 		}
 
 		[Test]
-		public void Test_FdbDirectoryPath_Parse()
+		public void Test_FdbPathSegment_Parse()
+		{
+			Assert.That(FdbPathSegment.Parse(@"Hello"), Is.EqualTo(FdbPathSegment.Create("Hello")));
+			Assert.That(FdbPathSegment.Parse(@"Hello[World]"), Is.EqualTo(FdbPathSegment.Create("Hello", "World")));
+			Assert.That(FdbPathSegment.Parse(@"Hello[]"), Is.EqualTo(FdbPathSegment.Create("Hello", "")));
+			Assert.That(FdbPathSegment.Parse(@"Hello\[World\]"), Is.EqualTo(FdbPathSegment.Create("Hello[World]")));
+			Assert.That(FdbPathSegment.Parse(@"Hello\[World\][Layer]"), Is.EqualTo(FdbPathSegment.Create("Hello[World]", "Layer")));
+			Assert.That(FdbPathSegment.Parse(@"Hello\/World[Foo\[Bar]"), Is.EqualTo(FdbPathSegment.Create("Hello/World", "Foo[Bar")));
+			Assert.That(FdbPathSegment.Parse(@"Hello\/World[Foo\[Bar\]]"), Is.EqualTo(FdbPathSegment.Create("Hello/World", "Foo[Bar]")));
+		}
+
+		[Test]
+		public void Test_FdbPath_Parse()
 		{
 			// Relative paths
 
@@ -205,7 +269,8 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path.IsRoot, Is.False, ".IsRoot");
 				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
 				Assert.That(path.Count, Is.EqualTo(1), ".Count");
-				Assert.That(path[0], Is.EqualTo("Foo"));
+				Assert.That(path[0].Name, Is.EqualTo("Foo"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
 				Assert.That(path.ToString(), Is.EqualTo("Foo"));
 				Assert.That(path.Name, Is.EqualTo("Foo"));
 			}
@@ -215,9 +280,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path.IsRoot, Is.False, ".IsRoot");
 				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
 				Assert.That(path.Count, Is.EqualTo(3), ".Count");
-				Assert.That(path[0], Is.EqualTo("Foo"));
-				Assert.That(path[1], Is.EqualTo("Bar"));
-				Assert.That(path[2], Is.EqualTo("Baz"));
+				Assert.That(path[0].Name, Is.EqualTo("Foo"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[1].Name, Is.EqualTo("Bar"));
+				Assert.That(path[1].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[2].Name, Is.EqualTo("Baz"));
+				Assert.That(path[2].LayerId, Is.EqualTo(string.Empty));
 				Assert.That(path.ToString(), Is.EqualTo("Foo/Bar/Baz"));
 				Assert.That(path.Name, Is.EqualTo("Baz"));
 			}
@@ -239,7 +307,8 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
 				Assert.That(path.IsRoot, Is.False, ".IsRoot");
 				Assert.That(path.Count, Is.EqualTo(1));
-				Assert.That(path[0], Is.EqualTo("Foo"));
+				Assert.That(path[0].Name, Is.EqualTo("Foo"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
 				Assert.That(path.ToString(), Is.EqualTo("/Foo"));
 				Assert.That(path.Name, Is.EqualTo("Foo"));
 			}
@@ -250,21 +319,39 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
 				Assert.That(path.IsRoot, Is.False, ".IsRoot");
 				Assert.That(path.Count, Is.EqualTo(3));
-				Assert.That(path[0], Is.EqualTo("Foo"));
-				Assert.That(path[1], Is.EqualTo("Bar"));
-				Assert.That(path[2], Is.EqualTo("Baz"));
+				Assert.That(path[0].Name, Is.EqualTo("Foo"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[1].Name, Is.EqualTo("Bar"));
+				Assert.That(path[1].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[2].Name, Is.EqualTo("Baz"));
+				Assert.That(path[2].LayerId, Is.EqualTo(string.Empty));
 				Assert.That(path.ToString(), Is.EqualTo("/Foo/Bar/Baz"));
 				Assert.That(path.Name, Is.EqualTo("Baz"));
 			}
 			{ // /Foo\/Bar/Baz => { "Foo/Bar", "Baz" }
-				var path = Parse("/Foo\\/Bar/Baz");
+				var path = Parse(@"/Foo\/Bar/Baz");
 				Assert.That(path.IsAbsolute, Is.True, ".Absolute");
 				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
 				Assert.That(path.IsRoot, Is.False, ".IsRoot");
 				Assert.That(path.Count, Is.EqualTo(2));
-				Assert.That(path[0], Is.EqualTo("Foo/Bar"));
-				Assert.That(path[1], Is.EqualTo("Baz"));
-				Assert.That(path.ToString(), Is.EqualTo("/Foo\\/Bar/Baz"));
+				Assert.That(path[0].Name, Is.EqualTo("Foo/Bar"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[1].Name, Is.EqualTo("Baz"));
+				Assert.That(path[1].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path.ToString(), Is.EqualTo(@"/Foo\/Bar/Baz"));
+				Assert.That(path.Name, Is.EqualTo("Baz"));
+			}
+			{ // /Foo\\Bar/Baz => { @"Foo\Bar", "Baz" }
+				var path = Parse(@"/Foo\\Bar/Baz");
+				Assert.That(path.IsAbsolute, Is.True, ".Absolute");
+				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
+				Assert.That(path.IsRoot, Is.False, ".IsRoot");
+				Assert.That(path.Count, Is.EqualTo(2));
+				Assert.That(path[0].Name, Is.EqualTo("Foo\\Bar"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[1].Name, Is.EqualTo("Baz"));
+				Assert.That(path[1].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path.ToString(), Is.EqualTo(@"/Foo\\Bar/Baz"));
 				Assert.That(path.Name, Is.EqualTo("Baz"));
 			}
 			{ // /Foo[Bar]/Baz => { "Foo[Bar]", "Baz" }
@@ -273,10 +360,32 @@ namespace FoundationDB.Client.Tests
 				Assert.That(path.IsEmpty, Is.False, ".IsEmpty");
 				Assert.That(path.IsRoot, Is.False, ".IsRoot");
 				Assert.That(path.Count, Is.EqualTo(2));
-				Assert.That(path[0], Is.EqualTo("Foo[Bar]"));
-				Assert.That(path[1], Is.EqualTo("Baz"));
-				Assert.That(path.ToString(), Is.EqualTo("/Foo\\[Bar]/Baz"));
+				Assert.That(path[0].Name, Is.EqualTo("Foo[Bar]"));
+				Assert.That(path[0].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path[1].Name, Is.EqualTo("Baz"));
+				Assert.That(path[1].LayerId, Is.EqualTo(string.Empty));
+				Assert.That(path.ToString(), Is.EqualTo(@"/Foo\[Bar\]/Baz"));
 				Assert.That(path.Name, Is.EqualTo("Baz"));
+			}
+
+			// Layers
+
+			{ // "/Foo[Test]"
+				var path = Parse("/Foo[test]");
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.ToString(), Is.EqualTo("/Foo[test]"));
+				Assert.That(path.IsEmpty, Is.False);
+				Assert.That(path.IsRoot, Is.False);
+				Assert.That(path.Count, Is.EqualTo(1));
+				Assert.That(path[0].Name, Is.EqualTo("Foo"));
+				Assert.That(path[0].LayerId, Is.EqualTo("test"));
+				Assert.That(path.Name, Is.EqualTo("Foo"));
+				Assert.That(path.LayerId, Is.EqualTo("test"));
+				Assert.That(path.ToArray(), Is.EqualTo(new [] { FdbPathSegment.Create("Foo", "test") }));
+				Assert.That(path.StartsWith(FdbPath.Root), Is.True);
+				Assert.That(path.IsChildOf(FdbPath.Root), Is.True);
+				Assert.That(path.EndsWith(FdbPath.Root), Is.False);
+				Assert.That(path.IsParentOf(FdbPath.Root), Is.False);
 			}
 
 			// invalid paths
