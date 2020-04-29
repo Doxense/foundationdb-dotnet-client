@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2019, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
- 
+
 namespace FoundationDB.Client.Tests
 {
 	using System;

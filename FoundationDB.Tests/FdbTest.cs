@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2019, Doxense SAS
+/* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,6 @@ namespace FoundationDB.Client.Tests
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.IO;
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
