@@ -30,6 +30,7 @@ namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -351,8 +352,9 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(new byte[] { 1, 2, 3 }.AsSlice())), Is.EqualTo("(`<01><02><03>`,)"));
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(default(object), true, false)), Is.EqualTo("(null, true, false)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, 3.1415926535897931, 2.7182818284590451)"), "Doubles should used dot and have full precision (17 digits)");
-			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, 3.14159274, 2.71828175)"), "Singles should used dot and have full precision (10 digits)");
+			//note: the string representation of double is not identical between NetFx and .NET Core! So we cannot used a constant literal here
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, " + Math.PI.ToString("R", CultureInfo.InvariantCulture) + ", " + Math.E.ToString("R", CultureInfo.InvariantCulture) + ")"), "Doubles should used dot and have full precision (17 digits)");
+			Assert.That(FdbKey.Dump(TuPack.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, " + ((float) Math.PI).ToString("R", CultureInfo.InvariantCulture)+ ", " + ((float) Math.E).ToString("R", CultureInfo.InvariantCulture) + ")"), "Singles should used dot and have full precision (10 digits)");
 			var guid = Guid.NewGuid();
 			Assert.That(FdbKey.Dump(TuPack.EncodeKey(guid)), Is.EqualTo($"({guid:B},)"), "GUIDs should be displayed as a string literal, surrounded by {{...}}, and without quotes");
 			var uuid128 = Uuid128.NewUuid();
