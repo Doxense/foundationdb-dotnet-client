@@ -299,16 +299,20 @@ namespace FoundationDB.Client
 										case 0xFF:
 										{
 											//***README*** if you break under here, see README in the last catch() block
-											tuple = TuPack.Unpack(key[0, -1]);
-											suffix = ".<FF>";
+											if (TuPack.TryUnpack(key[0, -1], out tuple))
+											{
+												suffix = ".<FF>";
+											}
 											break;
 										}
 										case 0x01:
 										{
 											var tmp = key[0, -1] + (byte)0;
 											//***README*** if you break under here, see README in the last catch() block
-											tuple = TuPack.Unpack(tmp);
-											suffix = " + 1";
+											if (TuPack.TryUnpack(tmp, out tuple))
+											{
+												suffix = " + 1";
+											}
 											break;
 										}
 									}
@@ -324,8 +328,10 @@ namespace FoundationDB.Client
 									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
 										//***README*** if you break under here, see README in the last catch() block
-										tuple = TuPack.Unpack(key[0, -1]);
-										suffix = ".<00>";
+										if (TuPack.TryUnpack(key[0, -1], out tuple))
+										{
+											suffix = ".<00>";
+										}
 									}
 									break;
 								}
@@ -339,8 +345,7 @@ namespace FoundationDB.Client
 
 						if (tuple == null && !skip)
 						{ // attempt a regular decoding
-							//***README*** if you break under here, see README in the last catch() block
-							tuple = TuPack.Unpack(key);
+							TuPack.TryUnpack(key, out tuple);
 						}
 
 						if (tuple != null) return tuple.ToString() + suffix;
