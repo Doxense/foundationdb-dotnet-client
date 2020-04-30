@@ -61,7 +61,7 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				Root = FdbPath.MakeAbsolute(FdbPathSegment.Partition("Tests"), FdbPathSegment.Create("Fdb"), FdbPathSegment.Partition(Environment.MachineName)),
+				Root = FdbPath.Absolute(FdbPathSegment.Partition("Tests"), FdbPathSegment.Create("Fdb"), FdbPathSegment.Partition(Environment.MachineName)),
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);

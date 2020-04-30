@@ -533,7 +533,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of a single segment</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(string segment)
+		public static FdbPath Absolute(string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
 			return new FdbPath(new [] { FdbPathSegment.Parse(segment) }, absolute: true);
@@ -541,7 +541,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of a single segment</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(FdbPathSegment segment)
+		public static FdbPath Absolute(FdbPathSegment segment)
 		{
 			if (segment.IsEmpty) throw new ArgumentException("Segment cannot be empty.", nameof(segment));
 			return new FdbPath(new [] { segment }, absolute: true);
@@ -549,7 +549,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(params string[] segments)
+		public static FdbPath Absolute(params string[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			if (segments.Length == 0) return FdbPath.Empty;
@@ -558,7 +558,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(params FdbPathSegment[] segments)
+		public static FdbPath Absolute(params FdbPathSegment[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			if (segments.Length == 0) return FdbPath.Empty;
@@ -567,7 +567,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(ReadOnlySpan<FdbPathSegment> segments)
+		public static FdbPath Absolute(ReadOnlySpan<FdbPathSegment> segments)
 		{
 			// we have to copy the buffer!
 			return new FdbPath(segments.ToArray(), absolute: true);
@@ -575,13 +575,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeAbsolute(ReadOnlyMemory<FdbPathSegment> segments)
+		public static FdbPath Absolute(ReadOnlyMemory<FdbPathSegment> segments)
 		{
 			return new FdbPath(segments, absolute: true);
 		}
 
 		[Pure]
-		public static FdbPath MakeAbsolute(IEnumerable<FdbPathSegment> segments)
+		public static FdbPath Absolute(IEnumerable<FdbPathSegment> segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbPath(segments.ToArray(), absolute: true);

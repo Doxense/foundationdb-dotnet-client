@@ -174,7 +174,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbPath_Simple_Absolute()
 		{
-			var foo = FdbPath.MakeAbsolute("Foo");
+			var foo = FdbPath.Absolute("Foo");
 			Assert.That(foo.ToString(), Is.EqualTo("/Foo"));
 			Assert.That(foo.IsAbsolute, Is.True);
 			Assert.That(foo.IsEmpty, Is.False);
@@ -214,7 +214,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbPath_Substring_Absolute()
 		{
-			var path = FdbPath.MakeAbsolute("Foo", "Bar", "Baz");
+			var path = FdbPath.Absolute("Foo", "Bar", "Baz");
 
 			var slice = path.Substring(0, 2);
 			Assert.That(slice.IsAbsolute, Is.True);
