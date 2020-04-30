@@ -90,7 +90,7 @@ namespace FoundationDB.Client.Tests
 		public void Test_FdbPath_Basics()
 		{
 			{
-				var path = FdbPath.MakeRelative("Foo");
+				var path = FdbPath.Relative("Foo");
 				Assert.That(path.IsEmpty, Is.False, "[Foo].IsEmpty");
 				Assert.That(path.Count, Is.EqualTo(1), "[Foo].Count");
 				Assert.That(path.Name, Is.EqualTo("Foo"), "[Foo].Name");
@@ -107,8 +107,8 @@ namespace FoundationDB.Client.Tests
 				// ReSharper restore EqualExpressionComparison
 #pragma warning restore CS1718 // Comparison made to same variable
 
-				Assert.That(path, Is.EqualTo(FdbPath.MakeRelative("Foo")), "[Foo].Equals([Foo]')");
-				Assert.That(path, Is.EqualTo(FdbPath.MakeRelative("Foo", "Bar").GetParent()), "[Foo].Equals([Foo/Bar].GetParent())");
+				Assert.That(path, Is.EqualTo(FdbPath.Relative("Foo")), "[Foo].Equals([Foo]')");
+				Assert.That(path, Is.EqualTo(FdbPath.Relative("Foo", "Bar").GetParent()), "[Foo].Equals([Foo/Bar].GetParent())");
 
 				Assert.That(path, Is.Not.EqualTo(FdbPath.Empty), "[Foo].Equals(Empty)");
 				Assert.That(path == FdbPath.Empty, Is.False, "[Foo] == Empty");
@@ -116,7 +116,7 @@ namespace FoundationDB.Client.Tests
 			}
 
 			{
-				var path1 = FdbPath.MakeRelative("Foo", "Bar");
+				var path1 = FdbPath.Relative("Foo", "Bar");
 				var path2 = FdbPath.Parse("Foo/Bar");
 				var path3 = new FdbPath(new[] { FdbPathSegment.Create("Foo"), FdbPathSegment.Create("Bar") }, false);
 
@@ -133,7 +133,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbPath_Simple_Relative()
 		{
-			var foo = FdbPath.MakeRelative("Foo");
+			var foo = FdbPath.Relative("Foo");
 			Assert.That(foo.ToString(), Is.EqualTo("Foo"));
 			Assert.That(foo.IsAbsolute, Is.False);
 			Assert.That(foo.IsEmpty, Is.False);

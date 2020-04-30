@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 				// open all the subdirectories
 				var folders = await names
 					.ToAsyncEnumerable()
-					.SelectAsync((name, _) => parent.OpenAsync(tr, FdbPath.MakeRelative(name)))
+					.SelectAsync((name, _) => parent.OpenAsync(tr, FdbPath.Relative(name)))
 					.ToListAsync();
 
 				// map the result

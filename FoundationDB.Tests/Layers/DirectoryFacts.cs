@@ -282,7 +282,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(foo.FullName, Is.EqualTo("/Foo"));
 
 					// via relative path
-					bar = await foo.OpenAsync(tr, FdbPath.MakeRelative("Bar"));
+					bar = await foo.OpenAsync(tr, FdbPath.Relative("Bar"));
 					Assert.That(bar, Is.Not.Null);
 					Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
 
@@ -292,8 +292,8 @@ namespace FoundationDB.Client.Tests
 					Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
 
 					// opening a non existing folder should fail
-					Assert.That(async () => await foo.OpenAsync(tr, FdbPath.MakeRelative("Baz")), Throws.Exception, "Open on a missing folder should fail");
-					Assert.That(await foo.TryOpenAsync(tr, FdbPath.MakeRelative("Baz")), Is.Null, "TryOpen on a missing folder should return null");
+					Assert.That(async () => await foo.OpenAsync(tr, FdbPath.Relative("Baz")), Throws.Exception, "Open on a missing folder should fail");
+					Assert.That(await foo.TryOpenAsync(tr, FdbPath.Relative("Baz")), Is.Null, "TryOpen on a missing folder should return null");
 
 					// attempting to open a "foreign" folder via "foo" should fail
 					Assert.That(async () => await foo.OpenAsync(tr, FdbPath.Parse("/Other/Bar")), Throws.InvalidOperationException, "Should not be able to open a sub-folder with a path outside its parent");
@@ -648,7 +648,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(partition.DirectoryLayer, Is.SameAs(dl), "Partitions share the same DL");
 
 					Log("Creating sub-directory Bar under partition Foo$ ...");
-					var bar = await partition.CreateAsync(tr, FdbPath.MakeRelative(segBar));
+					var bar = await partition.CreateAsync(tr, FdbPath.Relative(segBar));
 					Dump(bar);
 					await DumpSubspace(tr, location);
 					Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
@@ -707,7 +707,7 @@ namespace FoundationDB.Client.Tests
 
 					Log("Creating /Foo$/Bar ...");
 					// create a 'Bar' under the 'Foo' partition
-					var bar = await foo.CreateAsync(tr, FdbPath.MakeRelative("Bar"));
+					var bar = await foo.CreateAsync(tr, FdbPath.Relative("Bar"));
 					Dump(bar);
 					await DumpSubspace(tr, location);
 
@@ -766,7 +766,7 @@ namespace FoundationDB.Client.Tests
 
 					// create a 'Inner' subpartition under the 'Outer' partition
 					Log("Create [Outer$][Inner$]");
-					var inner = await outer.CreateAsync(tr, FdbPath.MakeRelative(segInner));
+					var inner = await outer.CreateAsync(tr, FdbPath.Relative(segInner));
 					Dump(inner);
 					await DumpSubspace(tr, location);
 
@@ -777,14 +777,14 @@ namespace FoundationDB.Client.Tests
 
 					// create folder /Outer/Foo
 					Log("Create [Outer$][Foo]...");
-					var foo = await outer.CreateAsync(tr, FdbPath.MakeRelative(segFoo));
+					var foo = await outer.CreateAsync(tr, FdbPath.Relative(segFoo));
 					await DumpSubspace(tr, location);
 					Assert.That(foo.FullName, Is.EqualTo("/Outer/Foo"));
 					Assert.That(foo.Path, Is.EqualTo(FdbPath.Absolute(segOuter, segFoo)));
 
 					// create folder /Outer/Inner/Bar
 					Log("Create [Outer$/Inner$][Bar]...");
-					var bar = await inner.CreateAsync(tr, FdbPath.MakeRelative(segBar));
+					var bar = await inner.CreateAsync(tr, FdbPath.Relative(segBar));
 					await DumpSubspace(tr, location);
 					Assert.That(bar.FullName, Is.EqualTo("/Outer/Inner/Bar"));
 					Assert.That(bar.Path, Is.EqualTo(FdbPath.Absolute(segOuter, segInner, segBar)));
@@ -1014,7 +1014,7 @@ namespace FoundationDB.Client.Tests
 					var partition = await dl.CreateAsync(tr, FdbPath.Absolute("Foo[partition]"));
 					Log($"Partition: {partition.Descriptor.Prefix:K}");
 					//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
-					var subdir = await partition.CreateOrOpenAsync(tr, FdbPath.MakeRelative("Bar"));
+					var subdir = await partition.CreateOrOpenAsync(tr, FdbPath.Relative("Bar"));
 					Log($"SubDir: {subdir.Descriptor.Prefix:K}");
 					var barKey = subdir.GetPrefix();
 

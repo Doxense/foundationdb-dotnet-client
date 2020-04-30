@@ -105,7 +105,7 @@ namespace FoundationDB.Client
 #endif
 
 		/// <summary>Return the name of the last segment of this path</summary>
-		/// <example><see cref="MakeRelative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
+		/// <example><see cref="Relative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
 		/// <remarks>The name of the <see cref="Empty"/> or <see cref="Root"/> paths is, by convention, the empty string.</remarks>
 		public string Name
 		{
@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the Layer Id of the last segment of this path</summary>
-		/// <example><see cref="MakeRelative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
+		/// <example><see cref="Relative(string[])"/>Combine("Foo", "Bar", "Baz").Name => "Baz"</example>
 		/// <remarks>Be convention, the layer id of the <see cref="Empty"/> path is the <c>empty</c> string, and the layer id of the <see cref="Root"/> path is <c>"partition"</c></remarks>
 		public string LayerId
 		{
@@ -474,7 +474,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a relative path composed of a single segment</summary>
 		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
-		public static FdbPath MakeRelative(string segment)
+		public static FdbPath Relative(string segment)
 		{
 			Contract.NotNull(segment, nameof(segment));
 			return new FdbPath(new [] { FdbPathSegment.Parse(segment) }, absolute: false);
@@ -482,7 +482,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of a single segment</summary>
 		[Pure]
-		public static FdbPath MakeRelative(FdbPathSegment segment)
+		public static FdbPath Relative(FdbPathSegment segment)
 		{
 			if (segment.IsEmpty) throw new ArgumentException("Segment cannot be empty", nameof(segment));
 			return new FdbPath(new [] { segment }, absolute: false);
@@ -491,7 +491,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		/// <param name="segments">Array of encoded path segments, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
-		public static FdbPath MakeRelative(params string[] segments)
+		public static FdbPath Relative(params string[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			if (segments.Length == 0) return FdbPath.Empty;
@@ -500,7 +500,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeRelative(params FdbPathSegment[] segments)
+		public static FdbPath Relative(params FdbPathSegment[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			if (segments.Length == 0) return FdbPath.Empty;
@@ -509,7 +509,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeRelative(ReadOnlySpan<FdbPathSegment> segments)
+		public static FdbPath Relative(ReadOnlySpan<FdbPathSegment> segments)
 		{
 			// we have to copy the buffer!
 			return new FdbPath(segments.ToArray(), absolute: false);
@@ -517,7 +517,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		[Pure]
-		public static FdbPath MakeRelative(ReadOnlyMemory<FdbPathSegment> segments)
+		public static FdbPath Relative(ReadOnlyMemory<FdbPathSegment> segments)
 		{
 			return new FdbPath(segments, absolute: false);
 		}
@@ -525,7 +525,7 @@ namespace FoundationDB.Client
 		/// <summary>Return a relative path composed of the specified segments</summary>
 		/// <param name="segments">Sequence of path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
-		public static FdbPath MakeRelative(IEnumerable<FdbPathSegment> segments)
+		public static FdbPath Relative(IEnumerable<FdbPathSegment> segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
 			return new FdbPath(segments.ToArray(), absolute: false);
