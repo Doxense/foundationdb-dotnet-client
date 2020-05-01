@@ -575,7 +575,7 @@ namespace FoundationDB.Client.Tests
 
 				await logged.WriteAsync(async tr =>
 				{
-					var folder = await directory.CreateAsync(tr, FdbPath.Root["Test[foo]"]);
+					var folder = await directory.CreateAsync(tr, FdbPath.Root["Test", "foo"]);
 #if DEBUG
 					await DumpSubspace(db, location);
 #endif
@@ -1380,7 +1380,7 @@ namespace FoundationDB.Client.Tests
 					await logged.WriteAsync(
 						async tr =>
 						{
-							for (int i = 0; i < N; i++) await dl.CreateAsync(tr, FdbPath.Absolute("Tests", k.ToString(), i.ToString()));
+							for (int i = 0; i < N; i++) await dl.CreateAsync(tr, FdbPath.Absolute("Students", k.ToString(), i.ToString()));
 						},
 						this.Cancellation);
 
@@ -1394,7 +1394,7 @@ namespace FoundationDB.Client.Tests
 							var res = new List<FdbDirectorySubspace>();
 							for (int i = 0; i < N; i++)
 							{
-								res.Add(await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Tests", k.ToString(), i.ToString())));
+								res.Add(await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Students", k.ToString(), i.ToString())));
 							}
 
 							return res;

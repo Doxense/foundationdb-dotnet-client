@@ -172,11 +172,14 @@ namespace FoundationDB.Client
 				: throw new InvalidOperationException("The root path does not have a parent path.");
 
 		/// <summary>Append a new segment to the curent path</summary>
-		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		public FdbPath this[string segment] => Add(FdbPathSegment.Parse(segment));
+		/// <param name="name">Name of the segment</param>
+		/// <remarks>The new segment will not have a layer id.</remarks>
+		public FdbPath this[string name] => Add(FdbPathSegment.Create(name));
 
 		/// <summary>Append a new segment - composed of a name and layer id - to the curent path</summary>
-		public FdbPath this[string name, string layer] => Add(FdbPathSegment.Create(name, layer));
+		/// <param name="name">Name of the segment</param>
+		/// <param name="layerId">Layer Id of the segment</param>
+		public FdbPath this[string name, string layerId] => Add(FdbPathSegment.Create(name, layerId));
 
 		/// <summary>Append a new segment to the curent path</summary>
 		public FdbPath this[FdbPathSegment segment] => Add(segment);
@@ -223,21 +226,23 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Append a new segment to the curent path</summary>
-		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
+		/// <param name="name">Name of the segment</param>
+		/// <remarks>This segment will not have any layer id defined.</remarks>
 		[Pure]
-		public FdbPath Add(string segment)
-			=> new FdbPath(AppendSegment(this.Segments.Span, FdbPathSegment.Parse(segment)), this.IsAbsolute);
+		public FdbPath Add(string name)
+			=> new FdbPath(AppendSegment(this.Segments.Span, FdbPathSegment.Create(name)), this.IsAbsolute);
+
+		/// <summary>Append a new segment to the curent path</summary>
+		/// <param name="name">Name of the segment</param>
+		/// <param name="layerId">Layer Id of the segment</param>
+		[Pure]
+		public FdbPath Add(string name, string layerId)
+			=> new FdbPath(AppendSegment(this.Segments.Span, FdbPathSegment.Create(name, layerId)), this.IsAbsolute);
 
 		/// <summary>Append a new segment to the curent path</summary>
 		[Pure]
 		public FdbPath Add(FdbPathSegment segment)
 			=> new FdbPath(AppendSegment(this.Segments.Span, segment), this.IsAbsolute);
-
-		/// <summary>Append a new segment to the curent path</summary>
-		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		[Pure]
-		public FdbPath Add(ReadOnlySpan<char> segment)
-			=> new FdbPath(AppendSegment(this.Segments.Span, FdbPathSegment.Parse(segment)), this.IsAbsolute);
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
@@ -410,28 +415,9 @@ namespace FoundationDB.Client
 		/// <param name="path">Parent path</param>
 		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
 		[Pure]
-		public static FdbPath Combine(FdbPath path, string segment)
-		{
-			return path.Add(FdbPathSegment.Parse(segment));
-		}
-
-		/// <summary>Add a segment to a parent path</summary>
-		/// <param name="path">Parent path</param>
-		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		[Pure]
 		public static FdbPath Combine(FdbPath path, FdbPathSegment segment)
 		{
 			return path.Add(segment);
-		}
-
-		/// <summary>Add a pair of segments to a root path</summary>
-		/// <param name="path">Parent path</param>
-		/// <param name="segment1">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		/// <param name="segment2">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		[Pure]
-		public static FdbPath Combine(FdbPath path, string segment1, string segment2)
-		{
-			return path.Add(FdbPathSegment.Parse(segment1), FdbPathSegment.Parse(segment2));
 		}
 
 		/// <summary>Add a pair of segments to a root path</summary>
@@ -439,17 +425,6 @@ namespace FoundationDB.Client
 		public static FdbPath Combine(FdbPath path, FdbPathSegment segment1, FdbPathSegment segment2)
 		{
 			return path.Add(segment1, segment2);
-		}
-
-		/// <summary>Add one or more segments to a parent path</summary>
-		/// <param name="path">Parent path</param>
-		/// <param name="segments">Array of encoded path segments, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		[Pure]
-		public static FdbPath Combine(FdbPath path, params string[] segments)
-		{
-			Contract.NotNull(segments, nameof(segments));
-			if (segments.Length == 0) return path;
-			return path.Add(FdbPathSegment.Parse(segments.AsSpan()));
 		}
 
 		/// <summary>Add one or more segments to a parent path</summary>
@@ -739,7 +714,7 @@ namespace FoundationDB.Client
 			=> head.Add(tail);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbPath operator +(FdbPath path, string segment)
+		public static FdbPath operator +(FdbPath path, FdbPathSegment segment)
 			=> path.Add(segment);
 
 		#endregion

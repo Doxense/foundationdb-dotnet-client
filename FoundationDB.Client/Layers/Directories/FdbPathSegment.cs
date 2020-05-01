@@ -30,7 +30,6 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using System.Text;
 
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
@@ -235,6 +234,14 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(FdbPathSegment other)
 			=> string.Equals(this.Name, other.Name) && string.Equals(this.LayerId ?? string.Empty, other.LayerId ?? string.Empty);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbPathSegment left, FdbPathSegment right)
+			=> left.Equals(right);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbPathSegment left, FdbPathSegment right)
+			=> !left.Equals(right);
 
 		#endregion
 

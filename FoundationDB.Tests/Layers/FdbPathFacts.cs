@@ -237,6 +237,66 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_FdbPathSegment_Create()
+		{
+			{ // ("Hello",) => "Hello"
+				var seg = FdbPathSegment.Create("Hello");
+				Assert.That(seg.Name, Is.EqualTo("Hello"));
+				Assert.That(seg.LayerId, Is.Empty);
+				Assert.That(seg.ToString(), Is.EqualTo("Hello"));
+				Assert.That(seg, Is.EqualTo(new FdbPathSegment("Hello")));
+				Assert.That(seg == new FdbPathSegment("Hello"), Is.True);
+				Assert.That(seg != new FdbPathSegment("Hello"), Is.False);
+				Assert.That(seg == new FdbPathSegment("World"), Is.False);
+				Assert.That(seg != new FdbPathSegment("World"), Is.True);
+				Assert.That(seg == new FdbPathSegment("Hello", "World"), Is.False);
+				Assert.That(seg != new FdbPathSegment("Hello", "World"), Is.True);
+				Assert.That(seg == new FdbPathSegment("Hello", "Hello"), Is.False);
+				Assert.That(seg != new FdbPathSegment("Hello", "Hello"), Is.True);
+			}
+
+			{ // ("Hello", null) => "Hello"
+				var seg = FdbPathSegment.Create("Hello", null!);
+				Assert.That(seg.Name, Is.EqualTo("Hello"));
+				Assert.That(seg.LayerId, Is.Empty);
+				Assert.That(seg.ToString(), Is.EqualTo("Hello"));
+				Assert.That(seg, Is.EqualTo(new FdbPathSegment("Hello")));
+				Assert.That(seg == new FdbPathSegment("Hello"), Is.True);
+				Assert.That(seg != new FdbPathSegment("Hello"), Is.False);
+				Assert.That(seg == new FdbPathSegment("World"), Is.False);
+				Assert.That(seg != new FdbPathSegment("World"), Is.True);
+				Assert.That(seg == new FdbPathSegment("Hello", "World"), Is.False);
+				Assert.That(seg != new FdbPathSegment("Hello", "World"), Is.True);
+				Assert.That(seg == new FdbPathSegment("Hello", "Hello"), Is.False);
+				Assert.That(seg != new FdbPathSegment("Hello", "Hello"), Is.True);
+			}
+
+			{ // ("Hello", "World") => "Hello[World]"
+				var seg = FdbPathSegment.Create("Hello", "World");
+				Assert.That(seg.Name, Is.EqualTo("Hello"));
+				Assert.That(seg.LayerId, Is.EqualTo("World"));
+				Assert.That(seg.ToString(), Is.EqualTo("Hello[World]"));
+				Assert.That(seg, Is.EqualTo(new FdbPathSegment("Hello", "World")));
+				Assert.That(seg == new FdbPathSegment("Hello", "World"), Is.True);
+				Assert.That(seg != new FdbPathSegment("Hello", "World"), Is.False);
+				Assert.That(seg == new FdbPathSegment("Hello"), Is.False);
+				Assert.That(seg != new FdbPathSegment("Hello"), Is.True);
+				Assert.That(seg == new FdbPathSegment("World", "Hello"), Is.False);
+				Assert.That(seg != new FdbPathSegment("World", "Hello"), Is.True);
+			}
+		}
+
+		[Test]
+		public void Test_FdbPathSegment_Encode()
+		{
+			Assert.That(FdbPathSegment.Create("Hello").ToString(), Is.EqualTo("Hello"));
+			Assert.That(FdbPathSegment.Create("A[B]C").ToString(), Is.EqualTo(@"A\[B\]C"));
+			Assert.That(FdbPathSegment.Create("A[B]C", "D[E]F").ToString(), Is.EqualTo(@"A\[B\]C[D\[E\]F]"));
+			Assert.That(FdbPathSegment.Create("A/B\\C", "D/E\\F").ToString(), Is.EqualTo(@"A\/B\\C[D\/E\\F]"));
+			Assert.That(FdbPathSegment.Create("/\\/\\", "][][").ToString(), Is.EqualTo(@"\/\\\/\\[\]\[\]\[]"));
+		}
+
+		[Test]
 		public void Test_FdbPath_Parse()
 		{
 			// Relative paths
@@ -399,5 +459,54 @@ namespace FoundationDB.Client.Tests
 
 		}
 
+		[Test]
+		public void Test_FdbPath_Concat()
+		{
+			{
+				var path = FdbPath.Root["Hello"];
+				Assert.That(path.ToString(), Is.EqualTo("/Hello"));
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.Count, Is.EqualTo(1));
+				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello")));
+			}
+			{
+				var path = FdbPath.Root["Hello", "World"];
+				Assert.That(path.ToString(), Is.EqualTo("/Hello[World]"));
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.Count, Is.EqualTo(1));
+				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello", "World")));
+			}
+			{
+				var path = FdbPath.Root["Hello"]["World"];
+				Assert.That(path.ToString(), Is.EqualTo("/Hello/World"));
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.Count, Is.EqualTo(2));
+				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello")));
+				Assert.That(path[1], Is.EqualTo(new FdbPathSegment("World")));
+			}
+			{
+				var path = FdbPath.Root[FdbPathSegment.Create("Hello")];
+				Assert.That(path.ToString(), Is.EqualTo("/Hello"));
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.Count, Is.EqualTo(1));
+				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello")));
+			}
+			{
+				var path = FdbPath.Root[FdbPathSegment.Create("Hello", "World")];
+				Assert.That(path.ToString(), Is.EqualTo("/Hello[World]"));
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.Count, Is.EqualTo(1));
+				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello", "World")));
+			}
+			{
+				var relative = FdbPath.Empty["Hello"]["World"];
+				var path = FdbPath.Root[relative];
+				Assert.That(path.ToString(), Is.EqualTo("/Hello/World"));
+				Assert.That(path.IsAbsolute, Is.True);
+				Assert.That(path.Count, Is.EqualTo(2));
+				Assert.That(path[0], Is.EqualTo(new FdbPathSegment("Hello")));
+				Assert.That(path[1], Is.EqualTo(new FdbPathSegment("World")));
+			}
+		}
 	}
 }

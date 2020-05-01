@@ -108,18 +108,21 @@ namespace FoundationDB.Client
 		/// <summary>Append a segment to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbPathSegment segment] => new FdbDirectorySubspaceLocation(this.Path.Add(segment));
 
+		/// <summary>Append one or more segments to the current path</summary>
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => new FdbDirectorySubspaceLocation(this.Path.Add(segments));
+
 		/// <summary>Append a segment to the current path</summary>
-		/// <param name="segment">Encoded path segment, composed of just a name (<c>"Foo"</c>), with an optional layer id (<c>"Foo[SomeLayer]"</c>)</param>
-		public FdbDirectorySubspaceLocation this[string segment] => new FdbDirectorySubspaceLocation(this.Path.Add(FdbPathSegment.Parse(segment)));
+		/// <param name="name">Name of the segment</param>
+		/// <remarks>The new segment will not have a layer id.</remarks>
+		public FdbDirectorySubspaceLocation this[string name] => new FdbDirectorySubspaceLocation(this.Path.Add(FdbPathSegment.Create(name)));
 
 		/// <summary>Append a segment - composed of a name and layer id - to the current path</summary>
-		public FdbDirectorySubspaceLocation this[string name, string layer] => new FdbDirectorySubspaceLocation(this.Path.Add(new FdbPathSegment(name, layer)));
+		/// <param name="name">Name of the segment</param>
+		/// <param name="layerId">Layer Id of the segment</param>
+		public FdbDirectorySubspaceLocation this[string name, string layerId] => new FdbDirectorySubspaceLocation(this.Path.Add(new FdbPathSegment(name, layerId)));
 
 		/// <summary>Append a relative path to the current path</summary>
 		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => new FdbDirectorySubspaceLocation(this.Path.Add(relativePath));
-
-		/// <summary>Append one or more segments to the current path</summary>
-		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => new FdbDirectorySubspaceLocation(this.Path.Add(segments));
 
 		/// <summary>Append an encoded key to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the key</typeparam>
