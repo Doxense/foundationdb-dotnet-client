@@ -597,8 +597,9 @@ namespace FoundationDB.Client
 						return new Node(path, Slice.Nil, null, partition, parent, Slice.Nil);
 					}
 
-					if (AnnotateTransactions) tr.Annotate("Reading Layer value for subfolder '{0}' found at {1}", path[i], FdbKey.Dump(current));
+					// get the layer id of this node
 					layer = (await tr.GetAsync(partition.Nodes.Encode(current, LayerAttribute)).ConfigureAwait(false)).ToStringUtf8() ?? string.Empty;
+					if (AnnotateTransactions) tr.Annotate("Found subfolder '{0}' at {1} ({2})", path[i].Name, FdbKey.Dump(current), layer);
 
 					parent = partition;
 
@@ -747,7 +748,7 @@ namespace FoundationDB.Client
 
 					if (!string.IsNullOrEmpty(layer) && layer != existingNode.Layer)
 					{
-						throw new InvalidOperationException($"The directory {path} was created with incompatible layer {existingNode.Layer} instead of expected '{layer}'.");
+						throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{existingNode.Layer}' instead of expected '{layer}'.");
 					}
 					return ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.Partition, existingNode.ParentPartition, null);
 				}
@@ -815,8 +816,8 @@ namespace FoundationDB.Client
 				trans.Set(partition.Nodes.Encode(parentPrefix, SUBDIRS, path.Name), prefix);
 
 				// initialize the new folder
-				SetLayer(trans, existingNode.Partition, prefix, layer);
-				UpdatePartitionMetadataVersion(trans, existingNode.Partition);
+				SetLayer(trans, partition, prefix, layer);
+				UpdatePartitionMetadataVersion(trans, partition);
 
 				if (layer == FdbDirectoryPartition.LayerId)
 				{
@@ -1092,7 +1093,7 @@ namespace FoundationDB.Client
 					.ToListAsync();
 
 				// fetch the layers from the corresponding directories
-				var layers = includeLayers ? await tr.GetValuesAsync(items.Select(item => partition.Nodes.Encode(item.Prefix, FdbDirectoryLayer.LayerAttribute))) : null;
+				var layers = includeLayers ? await tr.GetValuesAsync(items.Select(item => partition.Nodes.Encode(item.Prefix, LayerAttribute))) : null;
 
 				var res = new List<(string, string?, Slice)>(items.Count);
 				for (int i = 0; i < items.Count; i++)
