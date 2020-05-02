@@ -53,9 +53,9 @@ namespace FdbShell
 					return;
 				}
 
-				if (parent.Layer.IsPresent)
+				if (!string.IsNullOrEmpty(parent.Layer))
 				{
-					log.WriteLine($"# Layer: {parent.Layer:P}");
+					log.WriteLine($"# Layer: {parent.Layer}");
 				}
 
 				var folders = await Fdb.Directory.BrowseAsync(tr, parent);
@@ -72,16 +72,16 @@ namespace FdbShell
 								if (!(subfolder is FdbDirectoryPartition))
 								{
 									long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
-									Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">")),-12} {count,9:N0} {name}", ConsoleColor.White);
+									Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("<" + subfolder.Layer + ">")),-12} {count,9:N0} {name}", ConsoleColor.White);
 								}
 								else
 								{
-									Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">")),-12} {"-",9} {name}", ConsoleColor.White);
+									Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("<" + subfolder.Layer + ">")),-12} {"-",9} {name}", ConsoleColor.White);
 								}
 							}
 							else
 							{
-								Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">")),-12} {name}", ConsoleColor.White);
+								Program.StdOut(log, $"  {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("<" + subfolder.Layer + ">")),-12} {name}", ConsoleColor.White);
 							}
 						}
 						else
@@ -109,7 +109,9 @@ namespace FdbShell
 
 			string layer = extras.Count > 0 ? extras.Get<string>(0) : null;
 
-			log.WriteLine($"# Creating directory {location.Path} with layer '{layer}'");
+			throw new NotImplementedException();
+			var path = location.Path.WithLayer(layer);
+			log.WriteLine($"# Creating directory {path}");
 
 			(var prefix, var created) = await db.ReadWriteAsync(async tr =>
 			{
@@ -119,8 +121,8 @@ namespace FdbShell
 					return (folder.GetPrefix(), false);
 				}
 
-				folder = await location.TryCreateAsync(tr, layer: Slice.FromString(layer));
-				return (folder.GetPrefix(), true);
+				folder = await location.TryCreateAsync(tr);
+				return (Slice.Nil /*folder.GetPrefixUnsafe()*/, true);
 			}, ct);
 
 			if (!created)
@@ -225,8 +227,8 @@ namespace FdbShell
 			{
 				if (dir.Layer == FdbDirectoryPartition.LayerId)
 					log.WriteLine($"# Directory {location.Path} is a partition");
-				else if (dir.Layer.IsPresent)
-					log.WriteLine($"# Directory {location.Path} has layer {dir.Layer:P}");
+				else if (!string.IsNullOrEmpty(dir.Layer))
+					log.WriteLine($"# Directory {location.Path} has layer '{dir.Layer}'");
 				else
 					log.WriteLine($"# Directory {location.Path} does not have a layer defined");
 			}
@@ -243,7 +245,7 @@ namespace FdbShell
 				}
 				else
 				{
-					dir = await dir.ChangeLayerAsync(tr, Slice.FromString(layer));
+					dir = await dir.ChangeLayerAsync(tr, layer);
 					Program.Success(log, $"# Directory {location.Path} layer changed to {dir.Layer:P}");
 				}
 			}, ct);
@@ -700,7 +702,7 @@ namespace FdbShell
 			}
 			else
 			{
-				stream.WriteLine($"{sb}{(folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(folder.Layer.IsNullOrEmpty ? string.Empty : (" [" + folder.Layer.ToString() + "]"))}");
+				stream.WriteLine($"{sb}{(folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name)}{(string.IsNullOrEmpty(folder.Layer) ? string.Empty : (" [" + folder.Layer + "]"))}");
 				node = folder;
 			}
 
@@ -738,7 +740,7 @@ namespace FdbShell
 			Program.StdOut(log, "Listing all directories...");
 			var map = new Dictionary<string, int>(StringComparer.Ordinal);
 
-			void Account(FdbDirectoryPath p, int c)
+			void Account(FdbPath p, int c)
 			{
 				for (int i = 1; i <= p.Count; i++)
 				{

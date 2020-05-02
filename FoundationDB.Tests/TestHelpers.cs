@@ -49,7 +49,7 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				Root = FdbDirectoryPath.Empty, // core tests cannot rely on the DirectoryLayer!
+				Root = FdbPath.Root, // core tests cannot rely on the DirectoryLayer!
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);
@@ -61,7 +61,7 @@ namespace FoundationDB.Client.Tests
 			var options = new FdbConnectionOptions
 			{
 				ClusterFile = TestClusterFile,
-				Root = FdbDirectoryPath.Combine("Tests", "Fdb", Environment.MachineName),
+				Root = FdbPath.Absolute(FdbPathSegment.Partition("Tests"), FdbPathSegment.Create("Fdb"), FdbPathSegment.Partition(Environment.MachineName)),
 				DefaultTimeout = TimeSpan.FromMilliseconds(DefaultTimeout),
 			};
 			return Fdb.OpenAsync(options, ct);

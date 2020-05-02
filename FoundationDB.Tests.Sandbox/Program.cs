@@ -170,7 +170,7 @@ namespace FoundationDB.Tests.Sandbox
 				var settings = new FdbConnectionOptions()
 				{
 					ClusterFile = CLUSTER_FILE,
-					Root = FdbDirectoryPath.Combine("Sandbox"),
+					Root = FdbPath.Parse("/Sandbox"),
 				};
 
 				Console.WriteLine("Connecting to local cluster...");

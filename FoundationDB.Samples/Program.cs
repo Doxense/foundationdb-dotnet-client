@@ -126,7 +126,7 @@ namespace FoundationDB.Samples
 			bool stop = false;
 
 			string clusterFile = null;
-			var partition = FdbDirectoryPath.Empty;
+			var partition = FdbPath.Root;
 
 			int pStart = 0;
 			string startCommand = null;
@@ -144,7 +144,7 @@ namespace FoundationDB.Samples
 						}
 						case "P": case "p":
 						{
-							partition = FdbDirectoryPath.Parse(args[pStart + 1].Trim());
+							partition = FdbPath.Parse(args[pStart + 1].Trim());
 							pStart += 2;
 							break;
 						}

@@ -46,17 +46,17 @@ namespace FoundationDB.Client
 		{
 
 			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
-			internal static async Task SwitchToNamedPartitionAsync(FdbDatabase db, FdbDirectorySubspaceLocation top, bool readOnly, CancellationToken ct)
+			internal static async Task SwitchToNamedPartitionAsync(FdbDatabase db, FdbPath root, CancellationToken ct)
 			{
-				Contract.Requires(db != null && top != null);
+				Contract.Requires(db != null);
 				ct.ThrowIfCancellationRequested();
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer using cluster file '{db.ClusterFile}'");
 
-				if (top.Path.Count != 0)
+				if (root.Count != 0)
 				{
 					// create the root partition if does not already exist
-					var descriptor = await db.ReadWriteAsync(tr => db.DirectoryLayer.CreateOrOpenAsync(tr, top.Path, layer: FdbDirectoryPartition.LayerId), ct).ConfigureAwait(false);
+					var descriptor = await db.ReadWriteAsync(tr => db.DirectoryLayer.CreateOrOpenAsync(tr, root), ct).ConfigureAwait(false);
 					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened partition {descriptor.Path} at {descriptor.GetPrefixUnsafe()}");
 				}
 			}
@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 				// open all the subdirectories
 				var folders = await names
 					.ToAsyncEnumerable()
-					.SelectAsync((name, _) => parent.OpenAsync(tr, name))
+					.SelectAsync((name, _) => parent.OpenAsync(tr, FdbPath.Relative(name)))
 					.ToListAsync();
 
 				// map the result

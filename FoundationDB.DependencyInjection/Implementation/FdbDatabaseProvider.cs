@@ -64,7 +64,7 @@ namespace FoundationDB.DependencyInjection
 		{
 			Contract.NotNull(optionsAccessor, nameof(optionsAccessor));
 			this.Options = optionsAccessor.Value;
-			this.Root = new FdbDirectorySubspaceLocation(this.Options.ConnectionOptions.Root);
+			this.Root = new FdbDirectorySubspaceLocation(this.Options.ConnectionOptions.Root ?? FdbPath.Root);
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
 		}
 
