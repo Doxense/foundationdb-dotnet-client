@@ -310,6 +310,93 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_CreateOrOpen_AutoCreate_Nested_SubFolders()
+		{
+			// Create a deeply nested subfolder and verify that all parents are also created with the proper layer ids
+
+			var path = FdbPath.Parse("/Outer[partition]/Foo/Inner[partition]/Bar[BarLayer]/Baz[BazLayer]");
+			// pre-flight checks...
+			Assert.That(path.Count, Is.EqualTo(5));
+			Assert.That(path[0], Is.EqualTo(FdbPathSegment.Partition("Outer")));
+			Assert.That(path[1], Is.EqualTo(FdbPathSegment.Create("Foo")));
+			Assert.That(path[2], Is.EqualTo(FdbPathSegment.Partition("Inner")));
+			Assert.That(path[3], Is.EqualTo(FdbPathSegment.Create("Bar", "BarLayer")));
+			Assert.That(path[4], Is.EqualTo(FdbPathSegment.Create("Baz", "BazLayer")));
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+
+				// we will put everything under a custom namespace
+				var location = db.Root.ByKey("DL");
+				await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
+				var dl = FdbDirectoryLayer.Create(location);
+
+				var folder = await logged.ReadWriteAsync(tr => dl.CreateOrOpenAsync(tr, path), this.Cancellation);
+#if DEBUG
+				await DumpSubspace(db, location);
+#endif
+
+				Assert.That(folder, Is.Not.Null);
+				Assert.That(folder.FullName, Is.EqualTo("/Outer/Foo/Inner/Bar/Baz"));
+				Assert.That(folder.Path, Is.EqualTo(path));
+
+				// all the parent folders should also now exist
+				Log("Checking parents from the root:");
+				var outer = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer")), this.Cancellation);
+				Assert.That(outer, Is.Not.Null);
+				Log($"- {outer} @ {outer.GetPrefixUnsafe()}");
+				Assert.That(outer.FullName, Is.EqualTo("/Outer"));
+				Assert.That(outer.Layer, Is.EqualTo("partition"));
+				Assert.That(outer.GetPrefixUnsafe().StartsWith(location.Prefix), Is.True, "Outer prefix {0} MUST starts with DL content location prefix {1} because it is contained in that partition", outer.GetPrefixUnsafe(), dl.Content.Prefix);
+
+				var foo = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo")), this.Cancellation);
+				Assert.That(foo, Is.Not.Null);
+				Log($"- {foo} @ {foo.GetPrefixUnsafe()}");
+				Assert.That(foo.FullName, Is.EqualTo("/Outer/Foo"));
+				Assert.That(foo.Layer, Is.EqualTo(string.Empty));
+				Assert.That(foo.GetPrefixUnsafe().StartsWith(outer.GetPrefixUnsafe()), Is.True, "Foo prefix {0} MUST starts with outer prefix {1} because it is contained in that partition", foo.GetPrefixUnsafe(), outer.GetPrefixUnsafe());
+
+				var inner = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo/Inner")), this.Cancellation);
+				Assert.That(inner, Is.Not.Null);
+				Log($"- {inner} @ {inner.GetPrefixUnsafe()}");
+				Assert.That(inner.FullName, Is.EqualTo("/Outer/Foo/Inner"));
+				Assert.That(inner.Layer, Is.EqualTo("partition"));
+				Assert.That(inner.GetPrefixUnsafe().StartsWith(outer.GetPrefixUnsafe()), Is.True, "Inner prefix {0} MUST starts with outer prefix {1} because it is contained in that partition", inner.GetPrefixUnsafe(), outer.GetPrefixUnsafe());
+				Assert.That(inner.GetPrefixUnsafe().StartsWith(foo.GetPrefixUnsafe()), Is.False, "Inner prefix {0} MUST NOT starts with foo prefix {1} because they are both in the same partition", inner.GetPrefixUnsafe(), foo.GetPrefixUnsafe());
+
+				var bar = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo/Inner/Bar")), this.Cancellation);
+				Assert.That(bar, Is.Not.Null);
+				Log($"- {bar} @ {bar.GetPrefixUnsafe()}");
+				Assert.That(bar.FullName, Is.EqualTo("/Outer/Foo/Inner/Bar"));
+				Assert.That(bar.Layer, Is.EqualTo("BarLayer"));
+				Assert.That(bar.GetPrefixUnsafe().StartsWith(inner.GetPrefixUnsafe()), Is.True, "Bar prefix {0} MUST starts with inner prefix {1} because it is contained in that partition", bar.GetPrefixUnsafe(), inner.GetPrefixUnsafe());
+
+				var baz = await logged.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Outer/Foo/Inner/Bar/Baz")), this.Cancellation);
+				Assert.That(baz, Is.Not.Null);
+				Log($"- {baz} @ {baz.GetPrefixUnsafe()}");
+				Assert.That(baz.FullName, Is.EqualTo("/Outer/Foo/Inner/Bar/Baz"));
+				Assert.That(baz.Layer, Is.EqualTo("BazLayer"));
+				Assert.That(baz.GetPrefixUnsafe().StartsWith(inner.GetPrefixUnsafe()), Is.True, "Baz prefix {0} MUST starts with inner prefix {1} because it is contained in that partition", baz.GetPrefixUnsafe(), inner.GetPrefixUnsafe());
+				Assert.That(baz.GetPrefixUnsafe().StartsWith(bar.GetPrefixUnsafe()), Is.False, "Baz prefix {0} MUST NOT starts with Bar prefix {1} because they are both in the same partition", baz.GetPrefixUnsafe(), bar.GetPrefixUnsafe());
+
+#if ENABLE_LOGGING
+				foreach (var log in list)
+				{
+					Log(log.GetTimingsReport(true));
+				}
+#endif
+			}
+		}
+
+		[Test]
 		public async Task Test_List_SubFolders()
 		{
 			using (var db = await OpenTestDatabaseAsync())
