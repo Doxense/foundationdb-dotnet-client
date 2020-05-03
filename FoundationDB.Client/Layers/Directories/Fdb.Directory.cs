@@ -71,12 +71,12 @@ namespace FoundationDB.Client
 				Contract.NotNull(parent, nameof(parent));
 
 				// read the names of all the subdirectories
-				var names = await parent.ListAsync(tr).ConfigureAwait(false);
+				var children = await parent.ListAsync(tr).ConfigureAwait(false);
 
 				// open all the subdirectories
-				var folders = await names
+				var folders = await children
 					.ToAsyncEnumerable()
-					.SelectAsync((name, _) => parent.OpenAsync(tr, FdbPath.Relative(name)))
+					.SelectAsync((child, _) => parent.OpenAsync(tr, FdbPath.Relative(child.Name)))
 					.ToListAsync();
 
 				// map the result
