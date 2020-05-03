@@ -527,7 +527,7 @@ namespace FoundationDB.Client
 		public static FdbPath Absolute(params string[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
-			if (segments.Length == 0) return FdbPath.Empty;
+			if (segments.Length == 0) return FdbPath.Root;
 			return new FdbPath(FdbPathSegment.Parse(segments.AsSpan()), absolute: true);
 		}
 
@@ -536,7 +536,7 @@ namespace FoundationDB.Client
 		public static FdbPath Absolute(params FdbPathSegment[] segments)
 		{
 			Contract.NotNull(segments, nameof(segments));
-			if (segments.Length == 0) return FdbPath.Empty;
+			if (segments.Length == 0) return FdbPath.Root;
 			return new FdbPath(segments, absolute: true);
 		}
 
