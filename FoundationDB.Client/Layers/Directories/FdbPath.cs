@@ -146,6 +146,60 @@ namespace FoundationDB.Client
 			return new FdbPath(tmp, this.IsAbsolute);
 		}
 
+		/// <summary>Return the equivalent relative path, using the same path segments.</summary>
+		/// <returns>The relative version of this path</returns>
+		/// <example>"/Foo/Bar".AsRelative() == "Foo/Bar"; "Foo/Bar".AsRelative() == "Foo/Bar"</example>
+		public FdbPath AsRelative() => new FdbPath(this.Segments, absolute: false);
+
+		/// <summary>Return the equivalent absolute path, using the same path segments.</summary>
+		/// <returns>The absolute version of this path</returns>
+		/// <example>"Foo/Bar".AsAbsolute() == "/Foo/Bar"; "/Foo/Bar".AsAbsolute() == "/Foo/Bar"</example>
+		/// <remarks>This is the equivalent of adding this path to the <see cref="Root"/> path</remarks>
+		public FdbPath AsAbsolute() => new FdbPath(this.Segments, absolute: true);
+
+		/// <summary>Return the relative path that, if added to <paramref name="parent"/>, would be equal to the current path.</summary>
+		/// <param name="parent">Parent path. Must be of the same type (absolute/relative) as the current path.</param>
+		/// <param name="relative">If the method returns <c>true</c>, receives the relative path from <paramref name="parent"/> to the current path.</param>
+		/// <returns>Returns <c>true</c> if <paramref name="parent"/> is an ancestor or equal to the current path; otherwise, returns <c>false</c>.</returns>
+		public bool TryGetRelative(FdbPath parent, out FdbPath relative)
+		{
+			if (this.IsAbsolute)
+			{
+				if (!parent.IsAbsolute)
+				{ // We cannot compare an absolute path with a relative parent path
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					throw new ArgumentException("Parent path cannot be relative.", nameof(parent));
+				}
+			}
+			else
+			{
+				if (parent.IsAbsolute)
+				{ // We cannot compare a relative path with an absolute parent path
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					throw new ArgumentException("Parent path cannot be absolute.", nameof(parent));
+				}
+			}
+
+			if (!StartsWith(parent))
+			{
+				relative = default;
+				return false;
+			}
+
+			if (parent.Count == this.Count)
+			{ // both paths are the same!
+				relative = FdbPath.Empty;
+				return true;
+			}
+
+			relative = new FdbPath(this.Segments.Slice(parent.Count), absolute: false);
+			return true;
+		}
+
 		/// <summary>Get the parent path of the current path, if it is not empty.</summary>
 		/// <param name="parent">Receive the path of the parent, if there is one.</param>
 		/// <returns>If <c>true</c>, <paramref name="parent"/> contains the parent path. If <c>false</c>, the current path was <see cref="Empty"/> or the <see cref="Root"/>, and does not have a parent.</returns>>
@@ -266,13 +320,25 @@ namespace FoundationDB.Client
 			if (this.IsAbsolute)
 			{
 				// Can only add relative to an absolute
-				if (path.IsAbsolute) throw new InvalidOperationException("Cannot add two absolute directory path together.");
+				if (path.IsAbsolute)
+				{
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					throw new InvalidOperationException("Cannot add two absolute directory path together.");
+				}
 				if (path.IsEmpty) return this;
 			}
 			else
 			{
 				// we still empty Empty + "/Foo/Bar"
-				if (!this.IsEmpty && path.IsAbsolute) throw new InvalidOperationException("Cannot add an absolute directory path to a relative path.");
+				if (!this.IsEmpty && path.IsAbsolute)
+				{
+#if DEBUG
+					if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+					throw new InvalidOperationException("Cannot add an absolute directory path to a relative path.");
+				}
 				if (this.IsEmpty) return path;
 			}
 			return new FdbPath(AppendSegments(this.Segments.Span, path.Segments.Span), this.IsAbsolute);
@@ -568,7 +634,7 @@ namespace FoundationDB.Client
 		/// <remarks>This method can take the out of <see cref="ToString()"/> and return the original path.</remarks>
 		[Pure]
 		public static FdbPath Parse(string? path)
-			=> !string.IsNullOrEmpty(path) ? Parse(path.AsSpan()) : Empty;
+			=> !string.IsNullOrWhiteSpace(path) ? Parse(path.AsSpan()) : Empty;
 
 		/// <summary>Parse a string representing a path into the corresponding <see cref="FdbPath"/> instance.</summary>
 		/// <param name="path">Path (either absolute or relative).</param>
