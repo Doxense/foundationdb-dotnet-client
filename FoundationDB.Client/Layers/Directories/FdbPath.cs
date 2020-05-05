@@ -273,7 +273,7 @@ namespace FoundationDB.Client
 
 		private static ReadOnlyMemory<FdbPathSegment> AppendSegments(ReadOnlySpan<FdbPathSegment> head, IEnumerable<FdbPathSegment> suffix)
 		{
-			var list = new List<FdbPathSegment>(head.Length + ((suffix as ICollection<FdbPath>)?.Count ?? 4));
+			var list = new List<FdbPathSegment>(head.Length + ((suffix as ICollection<FdbPathSegment>)?.Count ?? 4));
 			foreach (var segment in head) list.Add(segment);
 			foreach (var segment in suffix) list.Add(segment);
 			return list.ToArray();
@@ -301,17 +301,17 @@ namespace FoundationDB.Client
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
 		public FdbPath Add(ReadOnlySpan<FdbPathSegment> segments)
-			=> new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
+			=> segments.Length != 0 ? new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute) : this;
 
 		/// <summary>Add new segments to the current path</summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbPath Add(params FdbPathSegment[] segments)
-			=> new FdbPath(AppendSegments(this.Segments.Span, segments.AsSpan()), this.IsAbsolute);
+			=> Add(segments.AsSpan());
 
 		/// <summary>Add new segments to the current path</summary>
 		[Pure]
 		public FdbPath Add(IEnumerable<FdbPathSegment> segments)
-			=> new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
+			=> segments is FdbPathSegment[] arr ? Add(arr.AsSpan()) : new FdbPath(AppendSegments(this.Segments.Span, segments), this.IsAbsolute);
 
 		/// <summary>Add a path to the current path</summary>
 		[Pure]

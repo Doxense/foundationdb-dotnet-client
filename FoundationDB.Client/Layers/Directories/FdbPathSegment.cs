@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Runtime.CompilerServices;
 	using System.Text;
+	using JetBrains.Annotations;
 
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
 	/// <remark>A path segment is composed of a <see cref="Name"/> and optional <see cref="LayerId"/> field.</remark>
@@ -74,18 +75,21 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a path segment composed of only a name, but without any layer id specified</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPathSegment Create(string name)
 			=> new FdbPathSegment(name, string.Empty);
 
 		/// <summary>Return a path segment composed both a name, and a layer id</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbPathSegment Create(string name, string layerId)
 			=> new FdbPathSegment(name, layerId);
 
 		/// <summary>Return a path segment composed a name, and the "partition" layer id</summary>
-		public static FdbPathSegment Partition(string name) => new FdbPathSegment(name, FdbDirectoryPartition.LayerId);
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbPathSegment Partition(string name)
+			=> new FdbPathSegment(name, FdbDirectoryPartition.LayerId);
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string Encode(string name)
 			=> Escape(name);
 

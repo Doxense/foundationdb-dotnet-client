@@ -109,7 +109,7 @@ namespace FoundationDB.Client
 		public FdbDirectorySubspaceLocation this[FdbPathSegment segment] => new FdbDirectorySubspaceLocation(this.Path.Add(segment));
 
 		/// <summary>Append one or more segments to the current path</summary>
-		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => new FdbDirectorySubspaceLocation(this.Path.Add(segments));
+		public FdbDirectorySubspaceLocation this[ReadOnlySpan<FdbPathSegment> segments] => segments.Length != 0 ? new FdbDirectorySubspaceLocation(this.Path.Add(segments)) : this;
 
 		/// <summary>Append a segment to the current path</summary>
 		/// <param name="name">Name of the segment</param>
@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 		public FdbDirectorySubspaceLocation this[string name, string layerId] => new FdbDirectorySubspaceLocation(this.Path.Add(new FdbPathSegment(name, layerId)));
 
 		/// <summary>Append a relative path to the current path</summary>
-		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => new FdbDirectorySubspaceLocation(this.Path.Add(relativePath));
+		public FdbDirectorySubspaceLocation this[FdbPath relativePath] => !relativePath.IsEmpty ? new FdbDirectorySubspaceLocation(this.Path.Add(relativePath)) : this;
 
 		/// <summary>Append an encoded key to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the key</typeparam>
