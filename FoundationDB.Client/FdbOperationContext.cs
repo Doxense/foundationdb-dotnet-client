@@ -29,10 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
+	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -438,6 +440,188 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Value Checkers...
+
+		/// <summary>List of outstanding checks that must match in order for the transaction to commit successfully</summary>
+		private List<(Slice Key, Slice ExpectedValue, string Tag, Task<Slice> ActualValue)>? ValueChecks { get; set; }
+
+		/// <summary>If <c>true</c>, then a value check was unsuccessfull during the previous iteration of the retry loop. Defaults to <c>false</c> on the first attempt, and is reset to <c>false</c> if the previous attempt failed for an unrelated reason.</summary>
+		/// <remarks>
+		/// This can be used by layers wanting to implement deferred cache validation.
+		/// The layer implementation can short-circuit any cache validation if this is <c>true</c>, and reload everything from the database.
+		/// Please note that this flag is shared by all the layers that were touched by this transaction, so there can be false-positives (a check from layer A can invalidate the cache from layer B).
+		/// </remarks>
+		public bool HasAtLeastOneFailedValueCheck { get; private set; }
+
+		/// <summary>Test if a value check with the specified tag has failed during the previous attempt</summary>
+		/// <param name="tag">Tag that was passed to a call to <see cref="AddValueCheck"/> (or similar overloads) in the previous attempt of this context, that failed (meaning the expected value did not match with the database)</param>
+		/// <returns>If <c>true</c> there is a very high probability that the cached key value has changed in the database. If <c>false</c> there is a low probabilty that the value has changed in the database.</returns>
+		/// <remarks>
+		/// The caller should use this as a hint that any previously cached data is highly likely to be stale, and should be discarded.
+		/// Note that this method can fall victim to the ABA pattern, meaning that a subsquent read of the checked key could return the expected value (changed back to its original value by another transaction).
+		/// To reduce the chances of ABA, checked keys should only be updated using atomic increment operations, or use versionstamps if possible.
+		/// </remarks>
+		public bool ValueCheckFailedInPreviousAttempt(string tag)
+		{
+			HashSet<string>? checks;
+			lock (this)
+			{
+				checks = this.FailedValueCheckTags;
+			}
+			return checks != null && checks.Contains(tag);
+		}
+
+		/// <summary>Contains the tags of all the failed value checks from the previous attempt</summary>
+		private HashSet<string>? FailedValueCheckTags { get; set; }
+
+		/// <summary>Add a check on the value of the key, that will be resolved before the transaction is able to commit</summary>
+		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
+		/// <param name="key">Key to check</param>
+		/// <param name="expectedValue">Expected value of the key. A value of <see cref="Slice.Nil"/> means the key is expected to NOT exist.</param>
+		/// <remarks>
+		/// If key does not have the expected value, the transaction will fail to commit, with an <see cref="FdbError.NotCommitted"/> error (simulating a conflict), which should trigger a retry,
+		/// and the <see cref="HasAtLeastOneFailedValueCheck"/> property will then be set to <c>true</c>, for the next iteration of the retry-loop. A call to <see cref="ValueCheckFailedInPreviousAttempt"/>(<paramref name="tag"/>) will also return <c>true</c>.
+		/// Any change to the value of the key _after_ this call, in the same transaction, will not be seen by this check. Only the value seen by this transaction at call time is considered.
+		/// </remarks>
+		public void AddValueCheck(string tag, Slice key, Slice expectedValue)
+		{
+			Contract.NotNullOrEmpty(tag, nameof(tag));
+
+			var tr = this.Transaction;
+			if (tr == null) throw new InvalidOperationException();
+			var task = tr.GetAsync(key);
+
+			lock (this)
+			{
+				(this.ValueChecks ??= new List<(Slice, Slice, string, Task<Slice>)>())
+					.Add((key, expectedValue, tag, task));
+			}
+		}
+
+		/// <summary>Add a check on the values of one or more keys, that will be resolved before the transaction is able to commit</summary>
+		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
+		/// <param name="items">List of keys to check, and their expected values. A value of <see cref="Slice.Nil"/> means the corresponding key is expected to NOT exist.</param>
+		/// <remarks>
+		/// If any of the keys does not have the expected value, the transaction will fail to commit, with an <see cref="FdbError.NotCommitted"/> error (simulating a conflict), which should trigger a retry,
+		/// and the <see cref="HasAtLeastOneFailedValueCheck"/> property will then be set to <c>true</c>, for the next iteration of the retry-loop.
+		/// Any change to the value of these keys _after_ this call, in the same transaction, will not be seen by this check. Only values seen by this transaction at call time are considered.
+		/// </remarks>
+		public void AddValueChecks(string tag, IEnumerable<KeyValuePair<Slice, Slice>> items)
+		{
+			Contract.NotNull(items, nameof(items));
+			AddValueChecks(tag, (items as KeyValuePair<Slice, Slice>[] ?? items.ToArray()).AsSpan());
+		}
+
+		/// <summary>Add a check on the values of one or more keys, that will be resolved before the transaction is able to commit</summary>
+		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
+		/// <param name="items">List of keys to check, and their expected values. A value of <see cref="Slice.Nil"/> means the corresponding key is expected to NOT exist.</param>
+		/// <remarks>
+		/// If any of the keys does not have the expected value, the transaction will fail to commit, with an <see cref="FdbError.NotCommitted"/> error (simulating a conflict), which should trigger a retry,
+		/// and the <see cref="HasAtLeastOneFailedValueCheck"/> property will then be set to <c>true</c>, for the next iteration of the retry-loop.
+		/// Any change to the value of these keys _after_ this call, in the same transaction, will not be seen by this check. Only values seen by this transaction at call time are considered.
+		/// </remarks>
+		public void AddValueChecks(string tag, KeyValuePair<Slice, Slice>[] items)
+		{
+			Contract.NotNull(items, nameof(items));
+			AddValueChecks(tag, items.AsSpan());
+		}
+
+		/// <summary>Add a check on the values of one or more keys, that will be resolved before the transaction is able to commit</summary>
+		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
+		/// <param name="items">List of keys to check, and their expected values. A value of <see cref="Slice.Nil"/> means the corresponding key is expected to NOT exist.</param>
+		/// <remarks>
+		/// If any of the keys does not have the expected value, the transaction will fail to commit, with an <see cref="FdbError.NotCommitted"/> error (simulating a conflict), which should trigger a retry,
+		/// and the <see cref="HasAtLeastOneFailedValueCheck"/> property will then be set to <c>true</c>, for the next iteration of the retry-loop.
+		/// Any change to the value of these keys _after_ this call, in the same transaction, will not be seen by this check. Only values seen by this transaction at call time are considered.
+		/// </remarks>
+		public void AddValueChecks(string tag, ReadOnlySpan<KeyValuePair<Slice, Slice>> items)
+		{
+			var tr = this.Transaction;
+			if (tr == null) throw new InvalidOperationException("Transaction is not in a valid state.");
+
+			// quick paths...
+			if (items.Length == 0) return;
+			if (items.Length == 1)
+			{
+				AddValueCheck(tag, items[0].Key, items[0].Value);
+				return;
+			}
+
+			var taskBuffer = ArrayPool<Task<Slice>>.Shared.Rent(items.Length);
+			try
+			{
+				for (int i = 0; i < items.Length; i++)
+				{
+					taskBuffer[i] = tr.GetAsync(items[i].Key);
+				}
+
+				lock (this)
+				{
+					var checks = this.ValueChecks ??= new List<(Slice, Slice, string, Task<Slice>)>();
+					int capa = checked(checks.Count + items.Length);
+					if (capa > checks.Capacity) checks.Capacity = capa;
+					for (int i = 0; i < items.Length; i++)
+					{
+						checks.Add((items[i].Key, items[i].Value, tag, taskBuffer[i]));
+					}
+				}
+			}
+			finally
+			{
+				ArrayPool<Task<Slice>>.Shared.Return(taskBuffer, clearArray: true);
+			}
+		}
+
+
+		private bool EnsureValueCheck(string tag, Slice expectedValue, Slice actualResult)
+		{
+			if (!expectedValue.Equals(actualResult))
+			{
+				this.HasAtLeastOneFailedValueCheck = true;
+				var tags = (this.FailedValueCheckTags ??= new HashSet<string>(StringComparer.Ordinal));
+				tags.Add(tag);
+				return false;
+			}
+
+			return true;
+		}
+
+		private ValueTask ValidateValueChecks()
+		{
+			List<(Slice, Slice, string, Task<Slice>)>? checks;
+			lock (this)
+			{
+				checks = this.ValueChecks;
+				this.ValueChecks = null;
+			}
+
+			if (checks == null || checks.Count == 0) return default;
+			return ValidateValueChecksSlow(checks);
+		}
+
+		private async ValueTask ValidateValueChecksSlow(List<(Slice Key, Slice ExpectedValue, string Tag, Task<Slice> ActualValue)> checks)
+		{
+			var results = await Task.WhenAll(checks.Select(x => x.ActualValue));
+			bool pass = true;
+			for (int i = 0; i < checks.Count; i++)
+			{
+				pass &= EnsureValueCheck(checks[i].Tag, checks[i].ExpectedValue, results[i]);
+			}
+
+			if (!pass)
+			{
+				throw FailValueCheck();
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static Exception FailValueCheck()
+		{
+			return new FdbException(FdbError.NotCommitted, "The value of the a key in the database did not match the expected value.");
+		}
+
+		#endregion
+
 		/// <summary>Execute a retry loop on this context</summary>
 		internal static async Task<TResult> ExecuteInternal<TState, TIntermediate, TResult>(FdbOperationContext context, [AllowNull] TState state, Delegate handler, Delegate? success)
 		{
@@ -732,6 +916,11 @@ namespace FoundationDB.Client
 							{
 								break;
 							}
+
+							// make sure any pending value checks are completed and match the expected value!
+							context.FailedValueCheckTags?.Clear();
+							await context.ValidateValueChecks();
+							context.HasAtLeastOneFailedValueCheck = false;
 
 							if (!trans.IsReadOnly)
 							{ // commit the transaction
