@@ -2982,7 +2982,7 @@ namespace FoundationDB.Client.Tests
 							if (tr.Context.Retries == 0)
 							{ // first attepmpt: all should be default
 								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 								return true;
 							}
 							else
@@ -3009,7 +3009,7 @@ namespace FoundationDB.Client.Tests
 							if (tr.Context.Retries == 0)
 							{ // first attepmpt: all should be default
 								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 								return true;
 							}
 							else
@@ -3036,8 +3036,8 @@ namespace FoundationDB.Client.Tests
 							if (tr.Context.Retries == 0)
 							{ // first attepmpt: all should be default
 								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("barCheck"), Is.False);
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("barCheck"), Is.Null);
 								return true;
 							}
 							else
@@ -3067,13 +3067,13 @@ namespace FoundationDB.Client.Tests
 								case 0:
 									// on first attempt, everything should be default
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
 									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3101,13 +3101,13 @@ namespace FoundationDB.Client.Tests
 								case 0:
 									// on first attempt, everything should be default
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
 									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3135,7 +3135,7 @@ namespace FoundationDB.Client.Tests
 								case 0:
 									// on first attempt, everything should be default
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 									return true;
 								default:
 									// should not fire twice!
@@ -3166,7 +3166,7 @@ namespace FoundationDB.Client.Tests
 								case 0:
 									// on first attempt, everything should be default
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 									return true;
 								default:
 									// should not fire twice!
@@ -3197,13 +3197,13 @@ namespace FoundationDB.Client.Tests
 								case 0:
 									// on first attempt, everything should be default
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
 									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3234,13 +3234,13 @@ namespace FoundationDB.Client.Tests
 								case 0:
 									// on first attempt, everything should be default
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
 									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
 									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.False);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:

@@ -461,18 +461,18 @@ namespace FoundationDB.Client
 		/// Note that this method can fall victim to the ABA pattern, meaning that a subsquent read of the checked key could return the expected value (changed back to its original value by another transaction).
 		/// To reduce the chances of ABA, checked keys should only be updated using atomic increment operations, or use versionstamps if possible.
 		/// </remarks>
-		public bool ValueCheckFailedInPreviousAttempt(string tag)
+		public bool? ValueCheckFailedInPreviousAttempt(string tag)
 		{
-			HashSet<string>? checks;
+			Dictionary<string, bool>? checks;
 			lock (this)
 			{
 				checks = this.FailedValueCheckTags;
 			}
-			return checks != null && checks.Contains(tag);
+			return checks != null && checks.TryGetValue(tag, out var result) ? result : default(bool?);
 		}
 
 		/// <summary>Contains the tags of all the failed value checks from the previous attempt</summary>
-		private HashSet<string>? FailedValueCheckTags { get; set; }
+		private Dictionary<string, bool>? FailedValueCheckTags { get; set; }
 
 		/// <summary>Add a check on the value of the key, that will be resolved before the transaction is able to commit</summary>
 		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
@@ -575,14 +575,15 @@ namespace FoundationDB.Client
 
 		private bool EnsureValueCheck(string tag, Slice expectedValue, Slice actualResult)
 		{
+			var tags = (this.FailedValueCheckTags ??= new Dictionary<string, bool>(StringComparer.Ordinal));
 			if (!expectedValue.Equals(actualResult))
 			{
 				this.HasAtLeastOneFailedValueCheck = true;
-				var tags = (this.FailedValueCheckTags ??= new HashSet<string>(StringComparer.Ordinal));
-				tags.Add(tag);
+				tags[tag] = true;
 				return false;
 			}
 
+			if (!tags.ContainsKey(tag)) tags[tag] = false;
 			return true;
 		}
 
