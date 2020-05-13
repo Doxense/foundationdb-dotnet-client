@@ -45,18 +45,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbTop", "FdbTop\FdbTop.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbBurner", "FdbBurner\FdbBurner.csproj", "{60049BA1-A95F-4127-BAC5-74AF023D3082}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{1B6BEB71-8C92-4B06-9715-9DAF49907BA1}"
-	ProjectSection(SolutionItems) = preProject
-		Tuples.md = Tuples.md
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{49DAFCA7-401C-4274-A559-4685E832DAF3}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.DependencyInjection", "FoundationDB.DependencyInjection\FoundationDB.DependencyInjection.csproj", "{CC454E83-5B58-4548-9B5F-A5AFFBA98D83}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Layers.Common.Tests", "FoundationDB.Layers.Common.Tests\FoundationDB.Layers.Common.Tests.csproj", "{3EFE133B-F38A-44A2-B4B8-98EFF4425383}"
@@ -64,6 +52,12 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Layers.Experimental.Tests", "FoundationDB.Layers.Experimental.Tests\FoundationDB.Layers.Experimental.Tests.csproj", "{45DE6B21-333C-4343-8592-D6C37D776230}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Linq.Providers.Tests", "FoundationDB.Linq.Providers.Tests\FoundationDB.Linq.Providers.Tests.csproj", "{C8546E7D-9E83-480D-9299-A0AF670FF369}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{ECC50955-2906-46BE-BBEA-A3F132E8E38C}"
+	ProjectSection(SolutionItems) = preProject
+		Documentation\Tuples.md = Documentation\Tuples.md
+		Documentation\Transaction_Basics.md = Documentation\Transaction_Basics.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
