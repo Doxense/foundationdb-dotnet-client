@@ -39,6 +39,7 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
 #if ENABLE_LOGGING
 	using FoundationDB.Filters.Logging;
@@ -2909,5 +2910,357 @@ namespace FoundationDB.Client.Tests
 			}
 
 		}
+
+		[Test]
+		public async Task Test_Value_Checks()
+		{
+			// Verify that value-check perform as expected:
+			// - We have a set of keys that are used for value checks (AAA, BBB, ...)
+			// - We have a "witness" key that will be used to verify if the transaction actually committed or not.
+			// - On each retry of the retry-loop, we will check that the previous iteration did update the context state as it should have.
+
+			//NOTE: this test is vulnerable to transient errors that could happen to the cluster while it runs! (timeouts, etc...)
+			//TODO: we should use a more robust way to "skip" the retries that are for unrelated reasons?
+
+			using (var zdb = await OpenTestDatabaseAsync())
+			{
+				var location = zdb.Root.ByKey("value_checks");
+
+				await CleanLocation(zdb, location);
+
+				var db = zdb.Logged(tr => Log(tr.Log.GetTimingsReport(true)));
+
+				var initialA = Slice.FromStringAscii("Initial value of AAA");
+				var initialB = Slice.FromStringAscii("Initial value of BBB");
+
+				async Task RunCheck(Func<IFdbTransaction, bool> test, Func<IFdbTransaction, IDynamicKeySubspace, Task> handler, bool shouldCommit)
+				{
+					// read previous witness value
+					await zdb.WriteAsync(async tr =>
+					{
+						var subspace = (await location.Resolve(tr))!;
+
+						tr.ClearRange(subspace.ToRange());
+						tr.Set(subspace.Encode("AAA"), initialA);
+						tr.Set(subspace.Encode("BBB"), initialB);
+						// CCC does not exist
+						tr.Set(subspace.Encode("Witness"), Slice.FromStringAscii("Initial witness value"));
+					}, this.Cancellation);
+
+					await db.WriteAsync(async tr =>
+					{
+						Log($"- Retry #{tr.Context.Retries}: prev={tr.Context.PreviousError}, checkFailed={tr.Context.HasAtLeastOneFailedValueCheck}");
+						if (tr.Context.Retries > 10) Assert.Fail("Too many retries!");
+
+						if (!test(tr)) return;
+
+						var subspace = (await location.Resolve(tr))!;
+						await handler(tr, subspace);
+						tr.Set(subspace.Encode("Witness"), Slice.FromStringAscii("New witness value"));
+					}, this.Cancellation);
+					await DumpSubspace(zdb, location);
+
+					// read back the witness key to see if commit happened or not.
+					var actual = await zdb.ReadAsync(async tr =>
+					{
+						var subspace = await location.Resolve(tr);
+						return await tr.GetAsync(subspace.Encode("Witness"));
+					}, this.Cancellation);
+
+					if (shouldCommit)
+						Assert.That(actual, Is.EqualTo(Slice.FromStringAscii("New witness value")), "Transaction SHOULD have changed the database!");
+					else
+						Assert.That(actual, Is.EqualTo(Slice.FromStringAscii("Initial witness value")), "Transaction should NOT have changed the database!");
+				}
+
+				// Checking a key with its actual value should pass
+				{
+					Log("Value check for AAA == CORRECT => expect PASS...");
+					await RunCheck(
+						(tr) =>
+						{
+							if (tr.Context.Retries == 0)
+							{ // first attepmpt: all should be default
+								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+								return true;
+							}
+							else
+							{ // we don't expect any retries
+								Assert.Fail("Should not execute more than once!");
+								return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), initialA);
+							return Task.CompletedTask;
+						},
+						shouldCommit: true
+					);
+				}
+
+				// Checking a missing key with nil should pass
+				{
+					Log("Value check for CCC == Nil => expect PASS...");
+					await RunCheck(
+						(tr) =>
+						{
+							if (tr.Context.Retries == 0)
+							{ // first attepmpt: all should be default
+								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+								return true;
+							}
+							else
+							{ // we don't expect any retries
+								Assert.Fail("Should not execute more than once!");
+								return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("CCC"), Slice.Nil);
+							return Task.CompletedTask;
+						},
+						shouldCommit: true
+					);
+				}
+
+				// Checking a multiple keys should pass
+				{
+					Log("Value check for (AAA == CORRECT) & (BBB == CORRECT) & (CCC == nil) => expect PASS...");
+					await RunCheck(
+						(tr) =>
+						{
+							if (tr.Context.Retries == 0)
+							{ // first attepmpt: all should be default
+								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("barCheck"), Is.Null);
+								return true;
+							}
+							else
+							{ // we don't expect any retries
+								Assert.Fail("Should not execute more than once!");
+								return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), initialA);
+							tr.Context.AddValueCheck("barCheck", subspace.Encode("BBB"), initialB);
+							return Task.CompletedTask;
+						},
+						shouldCommit: true
+					);
+				}
+
+				// Checking a key with a different value should fail
+				{
+					Log("Value check BBB == INCORRECT => expect FAIL...");
+					await RunCheck(
+						(tr) =>
+						{
+							switch (tr.Context.Retries)
+							{
+								case 0:
+									// on first attempt, everything should be default
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									return true;
+								case 1:
+									// on second attempt, value-check "fooCheck" should be triggered
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
+									return false; // stop
+								default:
+									Assert.Fail("Should not execute more than twice!");
+									return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), Slice.FromStringAscii("Different value of AAA"));
+							return Task.CompletedTask;
+						},
+						shouldCommit: false
+					);
+				}
+
+				// Checking a missing key with a value should fail
+				{
+					Log("Value check CCC == SOMETHING => expect FAIL...");
+					await RunCheck(
+						(tr) =>
+						{
+							switch (tr.Context.Retries)
+							{
+								case 0:
+									// on first attempt, everything should be default
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									return true;
+								case 1:
+									// on second attempt, value-check "fooCheck" should be triggered
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
+									return false; // stop
+								default:
+									Assert.Fail("Should not execute more than twice!");
+									return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("CCC"), Slice.FromStringAscii("Some value"));
+							return Task.CompletedTask;
+						},
+						shouldCommit: false
+					);
+				}
+
+				// Changing the value after the check should not be observed by the check
+				{
+					Log("Value check AAA == CORRECT; Set AAA = DIFFERENT => expect PASS...");
+					await RunCheck(
+						(tr) =>
+						{
+							switch (tr.Context.Retries)
+							{
+								case 0:
+									// on first attempt, everything should be default
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									return true;
+								default:
+									// should not fire twice!
+									Assert.Fail("Should not execute more than once!");
+									return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							// check
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), initialA);
+							// then change
+							tr.Set(subspace.Encode("AAA"), Slice.FromStringAscii("Different value for AAA"));
+							return Task.CompletedTask;
+						},
+						shouldCommit: true
+					);
+				}
+
+				// Clearing the key after the check should not be observed by the check
+				{
+					Log("Value check AAA == CORRECT; Clear AAA expect PASS...");
+					await RunCheck(
+						(tr) =>
+						{
+							switch (tr.Context.Retries)
+							{
+								case 0:
+									// on first attempt, everything should be default
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									return true;
+								default:
+									// should not fire twice!
+									Assert.Fail("Should not execute more than once!");
+									return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							// check
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), initialA);
+							// then change
+							tr.Clear(subspace.Encode("AAA"));
+							return Task.CompletedTask;
+						},
+						shouldCommit: true
+					);
+				}
+
+				// Changing the value BEFORE the check should be observed by the check
+				{
+					Log("Set AAA = DIFFERENT; Value check AAA == CORRECT => expect FAIL...");
+					await RunCheck(
+						(tr) =>
+						{
+							switch (tr.Context.Retries)
+							{
+								case 0:
+									// on first attempt, everything should be default
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									return true;
+								case 1:
+									// on second attempt, value-check "fooCheck" should be triggered
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
+									return false; // stop
+								default:
+									Assert.Fail("Should not execute more than twice!");
+									return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							// change
+							tr.Set(subspace.Encode("AAA"), Slice.FromStringAscii("Different value for AAA"));
+							// then check
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), initialA);
+							return Task.CompletedTask;
+						},
+						shouldCommit: false
+					);
+				}
+
+				// Clearing a key BEFORE the check should be observed by the check
+				{
+					Log("Clear AAA; Value check AAA == CORRECT => expect FAIL...");
+					await RunCheck(
+						(tr) =>
+						{
+							switch (tr.Context.Retries)
+							{
+								case 0:
+									// on first attempt, everything should be default
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									return true;
+								case 1:
+									// on second attempt, value-check "fooCheck" should be triggered
+									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
+									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
+									return false; // stop
+								default:
+									Assert.Fail("Should not execute more than twice!");
+									return false;
+							}
+						},
+						(tr, subspace) =>
+						{
+							// change
+							tr.Clear(subspace.Encode("AAA"));
+							// then check
+							tr.Context.AddValueCheck("fooCheck", subspace.Encode("AAA"), initialA);
+							return Task.CompletedTask;
+						},
+						shouldCommit: false
+					);
+				}
+			}
+		}
+
 	}
 }
