@@ -40,6 +40,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
+	using FoundationDB.Filters.Logging;
 	using JetBrains.Annotations;
 
 	/// <summary>
@@ -573,17 +574,27 @@ namespace FoundationDB.Client
 		}
 
 
-		private bool EnsureValueCheck(string tag, Slice expectedValue, Slice actualResult)
+		private bool EnsureValueCheck(string tag, Slice key, Slice expectedValue, Slice actualResult)
 		{
 			var tags = (this.FailedValueCheckTags ??= new Dictionary<string, bool>(StringComparer.Ordinal));
+			bool? previous = null;
+			if (tags.TryGetValue(tag, out var x)) previous = x;
+
 			if (!expectedValue.Equals(actualResult))
 			{
 				this.HasAtLeastOneFailedValueCheck = true;
-				tags[tag] = true;
+				if (previous != true)
+				{
+					if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for '{key:P}': expected '{expectedValue:V}', actual '{actualResult:V}'");
+					tags[tag] = true;
+				}
 				return false;
 			}
 
-			if (!tags.ContainsKey(tag)) tags[tag] = false;
+			if (previous == null)
+			{
+				tags[tag] = false;
+			}
 			return true;
 		}
 
@@ -606,7 +617,7 @@ namespace FoundationDB.Client
 			bool pass = true;
 			for (int i = 0; i < checks.Count; i++)
 			{
-				pass &= EnsureValueCheck(checks[i].Tag, checks[i].ExpectedValue, results[i]);
+				pass &= EnsureValueCheck(checks[i].Tag, checks[i].Key, checks[i].ExpectedValue, results[i]);
 			}
 
 			if (!pass)
