@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		internal static FdbDirectoryLayer.DirectoryDescriptor MakePartition(FdbDirectoryLayer.DirectoryDescriptor descriptor)
 		{
 			var partition = new FdbDirectoryLayer.PartitionDescriptor(descriptor.Path, KeySubspace.CreateDynamic(descriptor.Prefix), descriptor.Partition);
-			return new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, descriptor.Layer, partition);
+			return new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, descriptor.Layer, partition, descriptor.ValidationChain);
 		}
 
 		/// <summary>Descriptor of the partition directory in its parent partition</summary>
