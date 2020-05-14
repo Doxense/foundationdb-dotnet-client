@@ -35,9 +35,29 @@ namespace FoundationDB.Filters.Logging
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using System.Threading;
+	using System.Threading.Tasks;
+	using Doxense;
 	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
+
+	[Flags]
+	[PublicAPI]
+	public enum FdbLoggingOptions
+	{
+		/// <summary>Default logging options</summary>
+		Default = 0,
+
+		/// <summary>Capture the stacktrace of the caller method that created the transaction</summary>
+		RecordCreationStackTrace = 0x100,
+
+		/// <summary>Capture the stacktrace of the caller method for each operation</summary>
+		RecordOperationStackTrace = 0x200,
+
+		/// <summary>Capture all the stack traces.</summary>
+		/// <remarks>This is a shortcut for <see cref="RecordCreationStackTrace"/> | <see cref="RecordOperationStackTrace"/></remarks>
+		WithStackTraces = RecordCreationStackTrace | RecordOperationStackTrace,
+	}
 
 	/// <summary>Container that logs all operations performed by a transaction</summary>
 	public sealed partial class FdbTransactionLog
@@ -72,6 +92,171 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>StackTrace of the method that created this transaction</summary>
 		/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordCreationStackTrace"/> option is set</remarks>
 		public StackTrace? CallSite { get; private set; }
+
+		#region Interning...
+		
+		private byte[] m_buffer = new byte[1024];
+		private int m_offset;
+		private readonly object m_lock = new object();
+
+		internal Slice Grab(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return slice.IsNull ? Slice.Nil : Slice.Empty;
+
+			lock (m_lock)
+			{
+				if (slice.Count > m_buffer.Length - m_offset)
+				{ // not enough ?
+					if (slice.Count >= 2048)
+					{
+						return slice.Memoize();
+					}
+					m_buffer = new byte[4096];
+					m_offset = 0;
+				}
+
+				int start = m_offset;
+				slice.CopyTo(m_buffer, m_offset);
+				m_offset += slice.Count;
+				return m_buffer.AsSlice(start, slice.Count);
+			}
+		}
+
+		internal Slice Grab(ReadOnlySpan<byte> slice)
+		{
+			if (slice.Length == 0) return Slice.Empty;
+
+			lock (m_lock)
+			{
+				if (slice.Length > m_buffer.Length - m_offset)
+				{ // not enough ?
+					if (slice.Length >= 2048)
+					{
+						return slice.ToArray().AsSlice();
+					}
+					m_buffer = new byte[4096];
+					m_offset = 0;
+				}
+
+				int start = m_offset;
+				slice.CopyTo(m_buffer.AsSpan(m_offset));
+				m_offset += slice.Length;
+				return m_buffer.AsSlice(start, slice.Length);
+			}
+		}
+
+		internal Slice[] Grab(Slice[]? slices)
+		{
+			if (slices == null || slices.Length == 0) return Array.Empty<Slice>();
+
+			lock (m_lock)
+			{
+				int total = 0;
+				for (int i = 0; i < slices.Length; i++)
+				{
+					total += slices[i].Count;
+				}
+
+				if (total > m_buffer.Length - m_offset)
+				{
+					return FdbKey.Merge(Slice.Empty, slices);
+				}
+
+				var res = new Slice[slices.Length];
+				for (int i = 0; i < slices.Length; i++)
+				{
+					res[i] = Grab(slices[i]);
+				}
+				return res;
+			}
+		}
+
+		internal KeySelector Grab(in KeySelector selector)
+		{
+			return new KeySelector(
+				Grab(selector.Key),
+				selector.OrEqual,
+				selector.Offset
+			);
+		}
+
+		internal KeySelector[] Grab(KeySelector[]? selectors)
+		{
+			if (selectors == null || selectors.Length == 0) return Array.Empty<KeySelector>();
+
+			var res = new KeySelector[selectors.Length];
+			for (int i = 0; i < selectors.Length; i++)
+			{
+				res[i] = Grab(in selectors[i]);
+			}
+			return res;
+		}
+
+		#endregion
+
+		internal void Execute<TCommand>(FdbTransaction tr, TCommand cmd, Action<FdbTransaction, TCommand> action)
+			where TCommand : FdbTransactionLog.Command
+		{
+			Exception? error = null;
+			BeginOperation(cmd);
+			try
+			{
+				action(tr, cmd);
+			}
+			catch (Exception e)
+			{
+				error = e;
+				throw;
+			}
+			finally
+			{
+				EndOperation(cmd, error);
+			}
+		}
+
+		internal async Task ExecuteAsync<TCommand>(FdbTransaction tr, TCommand cmd, Func<FdbTransaction, TCommand, Task> lambda, Action<FdbTransaction, TCommand, FdbTransactionLog>? onSuccess = null)
+			where TCommand : FdbTransactionLog.Command
+		{
+			Exception? error = null;
+			BeginOperation(cmd);
+			try
+			{
+				await lambda(tr, cmd).ConfigureAwait(false);
+			}
+			catch (Exception e)
+			{
+				error = e;
+				throw;
+			}
+			finally
+			{
+				EndOperation(cmd, error);
+				if (error == null) onSuccess?.Invoke(tr, cmd, this);
+			}
+		}
+
+		internal async Task<TResult> ExecuteAsync<TCommand, TResult>(FdbTransaction tr, TCommand cmd, Func<FdbTransaction, TCommand, Task<TResult>> lambda)
+			where TCommand : FdbTransactionLog.Command<TResult>
+		{
+			Exception? error = null;
+			BeginOperation(cmd);
+			try
+			{
+				TResult result = await lambda(tr, cmd).ConfigureAwait(false);
+				cmd.Result = Maybe.Return<TResult>(result);
+				return result;
+			}
+			catch (Exception e)
+			{
+				error = e;
+				cmd.Result = Maybe.Error<TResult>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
+				throw;
+			}
+			finally
+			{
+				EndOperation(cmd, error);
+			}
+		}
 
 		internal StackTrace CaptureStackTrace(int numStackFramesToSkip)
 		{
@@ -151,6 +336,8 @@ namespace FoundationDB.Filters.Logging
 		/// <remarks>This value will be non-null only if the last attempt used VersionStamped operations and committed successfully.</remarks>
 		public VersionStamp? VersionStamp { get; internal set; }
 
+		internal bool RequiresVersionStamp { get; set; }
+
 		internal static long GetTimestamp()
 		{
 			return Stopwatch.GetTimestamp();
@@ -204,6 +391,11 @@ namespace FoundationDB.Filters.Logging
 				this.StopTimestamp = GetTimestamp();
 				this.StoppedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
 			}
+		}
+
+		public void Annotate(string text)
+		{
+			AddOperation(new LogCommand(text), countAsOperation: false);
 		}
 
 		/// <summary>Adds a new already completed command to the log</summary>
@@ -522,6 +714,8 @@ namespace FoundationDB.Filters.Logging
 			OnError,
 			SetOption,
 			GetVersionStamp,
+			GetAddressesForKey,
+			GetApproximateSize,
 
 			Log,
 		}

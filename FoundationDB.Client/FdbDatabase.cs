@@ -39,6 +39,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
@@ -185,6 +186,11 @@ namespace FoundationDB.Client
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
 				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
 				if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
+				if (this.DefaultLogHandler != null)
+				{
+					trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
+				}
+
 				// flag as ready
 				trans.State = FdbTransaction.STATE_READY;
 				return trans;
@@ -232,6 +238,16 @@ namespace FoundationDB.Client
 			m_transactions.TryRemove(transaction.Id, out _);
 			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
 		}
+
+		public void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default)
+		{
+			this.DefaultLogHandler = handler;
+			this.DefaultLogOptions = options;
+		}
+
+		private Action<FdbTransactionLog> DefaultLogHandler { get; set; }
+
+		private FdbLoggingOptions DefaultLogOptions { get; set; }
 
 		#endregion
 

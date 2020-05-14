@@ -39,11 +39,7 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
-#if ENABLE_LOGGING
-	using FoundationDB.Filters.Logging;
-#endif
 
 	[TestFixture]
 	public class TransactionFacts : FdbTest
@@ -106,6 +102,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null);
@@ -132,6 +130,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				IFdbTransaction tr1 = null;
 				IFdbTransaction tr2 = null;
 				try
@@ -174,6 +174,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
@@ -193,6 +195,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// do nothing with it
@@ -212,6 +216,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
@@ -234,6 +240,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("test").AsTyped<int>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -263,6 +271,8 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				var rnd = new Random();
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -302,6 +312,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test").AsTyped<int>();
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				var rnd = new Random();
 
 				using(var cts = new CancellationTokenSource())
@@ -333,6 +345,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					long ver = await tr.GetReadVersionAsync();
@@ -358,6 +372,8 @@ namespace FoundationDB.Client.Tests
 
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// write a bunch of keys
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
@@ -425,6 +441,8 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 				}
 				#endregion
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -572,6 +590,8 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 				}
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
@@ -620,6 +640,8 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 				}
 				#endregion
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -699,11 +721,10 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test", "atomic");
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				//note: we take a risk by reading the key separately, but this simplifies the rest of the code !
-				Task<Slice> ResolveKey(string name)
-				{
-					return db.ReadAsync(async tr => (await location.Resolve(tr)).Encode(name), this.Cancellation);
-				}
+				Task<Slice> ResolveKey(string name) => db.ReadAsync(async tr => (await location.Resolve(tr)).Encode(name), this.Cancellation);
 
 				Slice key;
 
@@ -781,6 +802,8 @@ namespace FoundationDB.Client.Tests
 				Log(location);
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				// setup
 				await db.WriteAsync(async (tr) =>
 				{
@@ -829,6 +852,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				// setup
 				await db.WriteAsync(async tr =>
 				{
@@ -871,6 +896,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// setup
 				await db.WriteAsync(async (tr) =>
@@ -915,6 +942,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				// setup
 				await db.WriteAsync(async (tr) =>
 				{
@@ -957,6 +986,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("test", "atomic").AsTyped<string>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// setup
 				await db.WriteAsync(async (tr) =>
@@ -1016,6 +1047,8 @@ namespace FoundationDB.Client.Tests
 					//EEE does not exist
 				}, this.Cancellation);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				// execute
 				await db.WriteAsync(async (tr) =>
 				{
@@ -1049,6 +1082,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// write a bunch of keys
 				await db.WriteAsync(async (tr) =>
@@ -1194,6 +1229,8 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace["foo"], Value("foo"));
 				}, this.Cancellation);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var trA = await db.BeginTransactionAsync(this.Cancellation))
 				using (var trB = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -1229,6 +1266,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				await db.WriteAsync(async (tr) =>
 				{
@@ -1270,6 +1309,8 @@ namespace FoundationDB.Client.Tests
 					var subspace = await location.Resolve(tr);
 					tr.Set(subspace.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// we will read the first key from [0, 100), expected 50
 				// but another transaction will insert 42, in effect changing the result of our range
@@ -1352,6 +1393,8 @@ namespace FoundationDB.Client.Tests
 					tr.ClearRange(subspace);
 					tr.Set(subspace.Encode("foo", 50), Value("fifty"));
 				}, this.Cancellation);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
 
@@ -1526,6 +1569,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await db.Root.Resolve(tr);
@@ -1625,6 +1670,8 @@ namespace FoundationDB.Client.Tests
 
 				Log("Initial db state:");
 				await DumpSubspace(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -1729,6 +1776,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("test");
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				#region Default behaviour...
 
 				// By default, a transaction see its own writes with non-snapshot reads
@@ -1809,6 +1858,8 @@ namespace FoundationDB.Client.Tests
 
 				long committedVersion;
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				// create first version
 				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -1852,6 +1903,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 
@@ -1955,6 +2008,8 @@ namespace FoundationDB.Client.Tests
 				// But if the DefaultRetryLimit and DefaultTimeout are set on the database instance, they should automatically be re-applied inside transaction loops!
 				db.DefaultRetryLimit = 3;
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				int counter = 0;
 				var t = db.ReadAsync<int>((tr) =>
 				{
@@ -1992,6 +2047,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// simulate a first error
@@ -2025,6 +2082,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("conflict").AsTyped<int>();
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -2065,6 +2124,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("conflict");
 				await CleanLocation(db, location);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using (var tr1 = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr1);
@@ -2104,6 +2165,8 @@ namespace FoundationDB.Client.Tests
 			{
 				var location = db.Root.ByKey("test", "bigbrother");
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				await db.WriteAsync(async tr =>
 				{
@@ -2266,6 +2329,8 @@ namespace FoundationDB.Client.Tests
 					tr.Set(subspace.Encode(1), Value("one"));
 				}, this.Cancellation);
 
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				// look for the address of key1
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
@@ -2395,6 +2460,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using(var db = await OpenTestDatabaseAsync())
 			{
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
 				using(var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					_ = await tr.GetReadVersionAsync();
@@ -2518,6 +2585,8 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root.ByKey("versionstamps");
 
 				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				VersionStamp vsActual; // will contain the actual version stamp used by the database
 
@@ -2647,17 +2716,13 @@ namespace FoundationDB.Client.Tests
 			{
 				// reading the mv twice in _should_ return the same value, unless the test cluster is used by another application!
 
-#if ENABLE_LOGGING
-				var logged = db.Logged(tr => Log(tr.Log.GetTimingsReport(true)));
-#else
-				var logged = db;
-#endif
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-				var version1 = await logged.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
+				var version1 = await db.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
 				Assert.That(version1, Is.Not.Null, "Version should be valid");
 				Log($"Version1: {version1}");
 
-				var version2 = await logged.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
+				var version2 = await db.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
 				Assert.That(version1, Is.Not.Null, "Version should be valid");
 				Log($"Version2: {version2}");
 
@@ -2667,12 +2732,12 @@ namespace FoundationDB.Client.Tests
 				Log("Changing version...");
 				await db.WriteAsync(tr => tr.TouchMetadataVersionKey(), this.Cancellation);
 
-				var version3 = await logged.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
+				var version3 = await db.ReadAsync(tr => tr.GetMetadataVersionKeyAsync(), this.Cancellation);
 				Log($"Version3: {version3}");
 				Assert.That(version3, Is.Not.Null.And.Not.EqualTo(version2), "Metadata version should have changed");
 
 				// changing the metadata version and then reading it back from the same transaction should return <null>
-				await logged.WriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					// We can read the version before
 					var before = await tr.GetMetadataVersionKeyAsync();
@@ -2702,11 +2767,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-#if ENABLE_LOGGING
-				var logged = db.Logged(tr => Log(tr.Log.GetTimingsReport(true)));
-#else
-				var logged = db;
-#endif
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				const string foo = "Foo";
 				const string bar = "Bar";
@@ -2717,24 +2778,24 @@ namespace FoundationDB.Client.Tests
 				// - Bar: different version stamp
 				// - Baz: _missing_
 
-				await logged.WriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.TouchMetadataVersionKey(subspace.Encode(foo));
 				}, this.Cancellation);
-				await logged.WriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.TouchMetadataVersionKey(subspace.Encode(bar));
 				}, this.Cancellation);
-				await logged.WriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
 					tr.Clear(subspace.Encode(baz));
 				}, this.Cancellation);
 
 				// changing the metadata version and then reading it back from the same transaction CANNOT WORK!
-				await logged.WriteAsync(async tr =>
+				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
 
@@ -2922,13 +2983,13 @@ namespace FoundationDB.Client.Tests
 			//NOTE: this test is vulnerable to transient errors that could happen to the cluster while it runs! (timeouts, etc...)
 			//TODO: we should use a more robust way to "skip" the retries that are for unrelated reasons?
 
-			using (var zdb = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = zdb.Root.ByKey("value_checks");
+				var location = db.Root.ByKey("value_checks");
 
-				await CleanLocation(zdb, location);
+				await CleanLocation(db, location);
 
-				var db = zdb.Logged(tr => Log(tr.Log.GetTimingsReport(true)));
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				var initialA = Slice.FromStringAscii("Initial value of AAA");
 				var initialB = Slice.FromStringAscii("Initial value of BBB");
@@ -2936,7 +2997,7 @@ namespace FoundationDB.Client.Tests
 				async Task RunCheck(Func<IFdbTransaction, bool> test, Func<IFdbTransaction, IDynamicKeySubspace, Task> handler, bool shouldCommit)
 				{
 					// read previous witness value
-					await zdb.WriteAsync(async tr =>
+					await db.WriteAsync(async tr =>
 					{
 						var subspace = (await location.Resolve(tr))!;
 
@@ -2958,10 +3019,10 @@ namespace FoundationDB.Client.Tests
 						await handler(tr, subspace);
 						tr.Set(subspace.Encode("Witness"), Slice.FromStringAscii("New witness value"));
 					}, this.Cancellation);
-					await DumpSubspace(zdb, location);
+					await DumpSubspace(db, location);
 
 					// read back the witness key to see if commit happened or not.
-					var actual = await zdb.ReadAsync(async tr =>
+					var actual = await db.ReadAsync(async tr =>
 					{
 						var subspace = await location.Resolve(tr);
 						return await tr.GetAsync(subspace.Encode("Witness"));

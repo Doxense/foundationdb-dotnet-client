@@ -585,7 +585,7 @@ namespace FoundationDB.Client
 				this.HasAtLeastOneFailedValueCheck = true;
 				if (previous != true)
 				{
-					if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for '{key:P}': expected '{expectedValue:V}', actual '{actualResult:V}'");
+					if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for '{FdbKey.Dump(key)}': expected '{expectedValue:V}', actual '{actualResult:V}'");
 					tags[tag] = true;
 				}
 				return false;
