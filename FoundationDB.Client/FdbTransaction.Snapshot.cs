@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public partial class FdbTransaction
@@ -185,8 +186,6 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot: true, ct: m_parent.m_cancellation);
 			}
 
-
-
 			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 			{
 				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, kv => kv);
@@ -260,6 +259,16 @@ namespace FoundationDB.Client
 			{
 				// NO-OP
 			}
+
+
+			public FdbTransactionLog? Log => m_parent.Log;
+
+			public bool IsLogged() => m_parent.IsLogged();
+
+			public void StopLogging() => m_parent.StopLogging();
+
+			public void Annotate(string comment) => m_parent.Annotate(comment);
+
 		}
 
 	}

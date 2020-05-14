@@ -45,9 +45,11 @@ namespace FoundationDB.Samples
 
 		static IFdbDatabase GetLoggedDatabase(IFdbDatabase db, StreamWriter stream, bool autoFlush = false)
 		{
-			if (stream == null) return db;
-
-			return new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); });
+			if (stream != null)
+			{
+				db.SetDefaultLogHandler(log => { stream.WriteLine(log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); });
+			}
+			return db;
 		}
 
 		public static void RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command)

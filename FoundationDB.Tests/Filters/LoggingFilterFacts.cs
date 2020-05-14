@@ -87,28 +87,29 @@ namespace FoundationDB.Filters.Logging.Tests
 				}, this.Cancellation);
 
 				bool first = true;
-				Action<FdbLoggedTransaction> logHandler = (tr) =>
+				Action<FdbTransactionLog> logHandler = (log) =>
 				{
 					if (first)
 					{
-						Log(tr.Log.GetCommandsReport());
+						Log(log.GetCommandsReport());
 						first = false;
 					}
 
-					Log(tr.Log.GetTimingsReport(true));
+					Log(log.GetTimingsReport(true));
 				};
 
 				// create a logged version of the database
-				var logged = new FdbLoggedDatabase(db, false, false, logHandler);
+				db.SetDefaultLogHandler(logHandler);
 
 				for (int k = 0; k < N; k++)
 				{
 					Log("==== " + k + " ==== ");
 					Log();
 
-					await logged.WriteAsync(async (tr) =>
+					await db.WriteAsync(async (tr) =>
 					{
-						Assert.That(tr, Is.InstanceOf<FdbLoggedTransaction>());
+						Assert.That(tr.Log, Is.Not.Null);
+						Assert.That(tr.IsLogged(), Is.True);
 
 						var subspace = await location.Resolve(tr);
 

@@ -33,6 +33,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
+	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
 	using Doxense.Diagnostics.Contracts;
@@ -881,6 +882,29 @@ namespace FoundationDB.Filters.Logging
 			{
 				return value?.ToString() ?? "<null>";
 			}
+		}
+
+		public sealed class GetApproximateSizeCommand : Command<long>
+		{
+			public override Operation Op => Operation.GetApproximateSize;
+		}
+
+		public sealed class GetAddressesForKeyCommand : Command<string[]>
+		{
+			/// <summary>Selector to a key in the database</summary>
+			public Slice Key { get; }
+
+			public override Operation Op => Operation.GetAddressesForKey;
+
+			public GetAddressesForKeyCommand(Slice key)
+			{
+				this.Key = key;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count;
+
+			public override string GetArguments(KeyResolver resolver) => resolver.Resolve(this.Key);
+
 		}
 
 		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand

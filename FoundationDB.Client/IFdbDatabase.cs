@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]
@@ -71,6 +72,11 @@ namespace FoundationDB.Client
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter</param>
 		void SetOption(FdbDatabaseOption option, long value);
+
+		/// <summary>Sets the default log handler for this database</summary>
+		/// <param name="handler">Default handler that is attached to any new transction, and will be invoked when they complete.</param>
+		/// <remarks>This handler may not be called if logging is disabled, if a transaction overrides its handler, or if it calls <see cref="IFdbReadOnlyTransaction.StopLogging"/></remarks>
+		void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default);
 
 		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
 		/// <remarks>Only effective for future transactions</remarks>
