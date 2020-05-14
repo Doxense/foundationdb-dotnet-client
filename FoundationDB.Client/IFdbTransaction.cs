@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>Transaction that allows read and write operations</summary>
 	[PublicAPI]

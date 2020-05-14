@@ -67,10 +67,10 @@ namespace FoundationDB.Layers.Messaging
 
 			StringBuilder sb = new StringBuilder();
 
-			db = new FdbLoggedDatabase(db, false, false, (log) =>
+			db.SetDefaultLogHandler((log) =>
 			{
-				sb.AppendLine(log.Log.GetTimingsReport(true));
-				//Console.WriteLine(log.Log.GetTimingsReport(true));
+				sb.AppendLine(log.GetTimingsReport(true));
+				//Console.WriteLine(log.GetTimingsReport(true));
 			});
 			try
 			{

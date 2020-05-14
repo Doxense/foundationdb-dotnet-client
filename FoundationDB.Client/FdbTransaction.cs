@@ -43,6 +43,7 @@ namespace FoundationDB.Client
 	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
+	using FoundationDB.Filters.Logging;
 	using JetBrains.Annotations;
 
 	/// <summary>FoundationDB transaction handle.</summary>
@@ -96,6 +97,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Random token (but constant per transaction retry) used to generate incomplete VersionStamps</summary>
 		private ulong m_versionStampToken;
+
+		/// <summary>Contains the log used by this transaction (or null if logging is disabled)</summary>
+		private FdbTransactionLog? m_log;
+
+		private Action<FdbTransactionLog>? m_logHandler;
 
 		#endregion
 
@@ -199,6 +205,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()}");
 
+			m_log?.Annotate($"SetOption({option})");
 			m_handler.SetOption(option, default);
 		}
 
@@ -209,6 +216,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
 
+			m_log?.Annotate($"SetOption({option}, \"{value}\")");
 			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
 		}
@@ -220,6 +228,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
 
+			m_log?.Annotate($"SetOption({option}, \"{value.ToString()}\")");
 			var data = FdbNative.ToNativeString(value, nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
 		}
@@ -231,10 +240,53 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to {value}");
 
+			m_log?.Annotate($"SetOption({option}, \"{value:N0}\")");
+
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			Span<byte> tmp = stackalloc byte[8];
 			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
 			m_handler.SetOption(option, tmp);
+		}
+
+		#endregion
+
+		#region Logging...
+
+		/// <summary>Log of all operations performed on this transaction (if logging was enabled on the database or transaction)</summary>
+		public FdbTransactionLog? Log => m_log;
+
+		/// <summary>Return <c>true</c> if logging is enabled on this transaction</summary>
+		/// <remarks>
+		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
+		/// The log can be accessed via the <see cref="Log"/> property.
+		/// Comments can be added via the <see cref="Annotate"/> method.
+		/// </remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsLogged() => m_log != null;
+
+		/// <summary>Add a comment to the transaction log</summary>
+		/// <param name="comment">Line of text that will be added to the log</param>
+		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
+		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public void Annotate(string comment)
+		{
+			m_log?.Annotate(comment);
+		}
+
+		/// <summary>If logging was previously enabled on this transaction, clear the log and stop logging any new operations</summary>
+		/// <remarks>Any log handler attached to this transaction will not be called</remarks>
+		public void StopLogging()
+		{
+			m_log = null;
+		}
+
+		internal void SetLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options)
+		{
+			if (m_log != null) throw new InvalidOperationException("There is already a log handler attached to this transaction.");
+			m_logHandler = handler;
+			m_log = new FdbTransactionLog(options);
+			m_log.Start(this);
 		}
 
 		#endregion
@@ -244,6 +296,7 @@ namespace FoundationDB.Client
 		private Task<long>? CachedReadVersion;
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Task<long> GetReadVersionAsync()
 		{
 			// can be called after the transaction has been committed
@@ -252,11 +305,29 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Get the read version when it is not in cache</summary>
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private Task<long> GetReadVersionSlow()
 		{
 			lock (this)
 			{
-				return this.CachedReadVersion ??= m_handler.GetReadVersionAsync(m_cancellation);
+				return this.CachedReadVersion ??= FetchReadVersionInternal();
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private Task<long> FetchReadVersionInternal()
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetReadVersionCommand(),
+					(tr, cmd) => tr.m_handler.GetReadVersionAsync(tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetReadVersionAsync(m_cancellation);
 			}
 		}
 
@@ -274,6 +345,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
+			m_log?.Annotate($"Set read version to {version:N0}");
 			m_handler.SetReadVersion(version);
 		}
 
@@ -365,7 +437,7 @@ namespace FoundationDB.Client
 			try
 			{
 				// this can fail if the value has been changed earlier in the transaction!
-				value = await m_handler.GetAsync(key.Span, snapshot: true, m_cancellation).ConfigureAwait(false);
+				value = await PerformGetOperation(key.Span, snapshot: true).ConfigureAwait(false);
 			}
 			catch (FdbException e)
 			{
@@ -409,9 +481,8 @@ namespace FoundationDB.Client
 				cache[key] = (PoisonedMetadataVersion, false);
 
 				// update the key with a new versionstamp
-				m_handler.Atomic(key.Span, Fdb.System.MetadataVersionValue.Span, FdbMutationType.VersionStampedValue);
+				PerformAtomicOperation(key.Span, Fdb.System.MetadataVersionValue.Span, FdbMutationType.VersionStampedValue);
 			}
-
 		}
 
 		/// <inheritdoc />
@@ -503,9 +574,24 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-			return m_handler.GetAsync(key, snapshot: false, ct: m_cancellation);
+			return PerformGetOperation(key, snapshot: false);
 		}
 
+		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetCommand(m_log.Grab(key)) { Snapshot =  snapshot },
+					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetAsync(key, snapshot: snapshot, m_cancellation);
+			}
+		}
 
 		#endregion
 
@@ -525,7 +611,23 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
-			return m_handler.GetValuesAsync(keys, snapshot: false, ct: m_cancellation);
+			return PerformGetValuesOperation(keys, snapshot: false);
+		}
+
+		private Task<Slice[]> PerformGetValuesOperation(Slice[] keys, bool snapshot)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetValuesCommand(m_log.Grab(keys)) { Snapshot =  snapshot },
+					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Snapshot, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation);
+			}
 		}
 
 		#endregion
@@ -553,7 +655,40 @@ namespace FoundationDB.Client
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot: false, ct: m_cancellation);
+			return PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: false, limit, reverse, targetBytes, mode, read, iteration);
+		}
+
+		private Task<FdbRangeChunk> PerformGetRangeOperation(
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			bool snapshot,
+			int limit,
+			bool reverse,
+			int targetBytes,
+			FdbStreamingMode mode,
+			FdbReadMode read,
+			int iteration)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetRangeCommand(
+						m_log.Grab(beginInclusive),
+						m_log.Grab(endExclusive),
+						new FdbRangeOptions(limit, reverse, targetBytes, mode, read),
+						iteration
+					)
+					{
+						Snapshot =  snapshot
+					},
+					(tr, cmd) => tr.m_handler.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options.Limit.Value, cmd.Options.Reverse.Value, cmd.Options.TargetBytes.Value, cmd.Options.Mode.Value, cmd.Options.Read.Value, cmd.Iteration, cmd.Snapshot, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot, m_cancellation);
+			}
 		}
 
 		#endregion
@@ -606,7 +741,23 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
 #endif
 
-			return m_handler.GetKeyAsync(selector, snapshot: false, ct: m_cancellation);
+			return PerformGetKeyOperation(selector, snapshot: false);
+		}
+
+		private Task<Slice> PerformGetKeyOperation(KeySelector selector, bool snapshot)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetKeyCommand(m_log.Grab(selector)) { Snapshot =  snapshot },
+					(tr, cmd) => tr.m_handler.GetKeyAsync(cmd.Selector, cmd.Snapshot, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation);
+			}
 		}
 
 		#endregion
@@ -627,7 +778,24 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", $"Getting batch of {selectors.Length} keys ...");
 #endif
 
-			return m_handler.GetKeysAsync(selectors, snapshot: false, ct: m_cancellation);
+			return PerformGetKeysOperation(selectors, snapshot: false);
+		}
+
+
+		private Task<Slice[]> PerformGetKeysOperation(KeySelector[] selectors, bool snapshot)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetKeysCommand(m_log.Grab(selectors)) { Snapshot =  snapshot },
+					(tr, cmd) => tr.m_handler.GetKeysAsync(cmd.Selectors, cmd.Snapshot, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation);
+			}
 		}
 
 		#endregion
@@ -645,8 +813,23 @@ namespace FoundationDB.Client
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", $"Setting '{FdbKey.Dump(key)}' = {Slice.Dump(value)}");
 #endif
+			PerformSetOperation(key, value);
+		}
 
-			m_handler.Set(key, value);
+		private void PerformSetOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+		{
+			if (m_log != null)
+			{
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.SetCommand(m_log.Grab(key), m_log.Grab(value)),
+					(tr, cmd) => tr.m_handler.Set(cmd.Key.Span, cmd.Value.Span)
+				);
+			}
+			else
+			{
+				m_handler.Set(key, value);
+			}
 		}
 
 		#endregion
@@ -785,7 +968,24 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", $"Atomic {mutation.ToString()} on '{FdbKey.Dump(key)}' = {Slice.Dump(param)}");
 #endif
 
-			m_handler.Atomic(key, param, mutation);
+			PerformAtomicOperation(key, param, mutation);
+		}
+
+		private void PerformAtomicOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
+		{
+			if (m_log != null)
+			{
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.AtomicCommand(m_log.Grab(key), m_log.Grab(param), type),
+					(tr, cmd) => tr.m_handler.Atomic(cmd.Key.Span, cmd.Param.Span, cmd.Mutation)
+				);
+			}
+			else
+			{
+				m_handler.Atomic(key, param, type);
+			
+			}
 		}
 
 		#endregion
@@ -803,7 +1003,23 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", $"Clearing '{FdbKey.Dump(key)}'");
 #endif
 
-			m_handler.Clear(key);
+			PerformClearOperation(key);
+		}
+
+		private void PerformClearOperation(ReadOnlySpan<byte> key)
+		{
+			if (m_log != null)
+			{
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.ClearCommand(m_log.Grab(key)),
+					(tr, cmd) => tr.m_handler.Clear(cmd.Key.Span)
+				);
+			}
+			else
+			{
+				m_handler.Clear(key);
+			}
 		}
 
 		#endregion
@@ -822,7 +1038,23 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", $"Clearing Range '{beginKeyInclusive.ToString()}' <= k < '{endKeyExclusive.ToString()}'");
 #endif
 
-			m_handler.ClearRange(beginKeyInclusive, endKeyExclusive);
+			PerformClearRangeOperation(beginKeyInclusive, endKeyExclusive);
+		}
+
+		private void PerformClearRangeOperation(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
+		{
+			if (m_log != null)
+			{
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.ClearRangeCommand(m_log.Grab(beginKeyInclusive), m_log.Grab(endKeyExclusive)),
+					(tr, cmd) => tr.m_handler.ClearRange(cmd.Begin.Span, cmd.End.Span)
+				);
+			}
+			else
+			{
+				m_handler.ClearRange(beginKeyInclusive, endKeyExclusive);
+			}
 		}
 
 		#endregion
@@ -841,7 +1073,23 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
 #endif
 
-			m_handler.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
+			PerformAddConflictRangeOperation(beginKeyInclusive, endKeyExclusive, type);
+		}
+
+		private void PerformAddConflictRangeOperation(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
+		{
+			if (m_log != null)
+			{
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.AddConflictRangeCommand(m_log.Grab(beginKeyInclusive), m_log.Grab(endKeyExclusive), type),
+					(tr, cmd) => tr.m_handler.AddConflictRange(cmd.Begin.Span, cmd.End.Span, cmd.Type)
+				);
+			}
+			else
+			{
+				m_handler.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
+			}
 		}
 
 		#endregion
@@ -859,7 +1107,23 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
 #endif
 
-			return m_handler.GetAddressesForKeyAsync(key, ct: m_cancellation);
+			return PerformGetAddressesForKeyOperation(key);
+		}
+
+		private Task<string[]> PerformGetAddressesForKeyOperation(ReadOnlySpan<byte> key)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetAddressesForKeyCommand(m_log.Grab(key)),
+					(tr, cmd) => tr.m_handler.GetAddressesForKeyAsync(cmd.Key.Span, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetAddressesForKeyAsync(key, m_cancellation);
+			}
 		}
 
 		#endregion
@@ -871,7 +1135,23 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			return m_handler.GetApproximateSizeAsync(m_cancellation);
+			return PerformGetApproximateSizeOperation();
+		}
+
+		private Task<long> PerformGetApproximateSizeOperation()
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.GetApproximateSizeCommand(),
+					(tr, cmd) => tr.m_handler.GetApproximateSizeAsync(tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.GetApproximateSizeAsync(m_cancellation);
+			}
 		}
 
 		#endregion
@@ -902,6 +1182,38 @@ namespace FoundationDB.Client
 					if (Logging.On) Logging.Exception(this, "CommitAsync", e);
 				}
 				throw;
+			}
+		}
+
+		private Task PerformCommitOperation()
+		{
+			if (m_log != null)
+			{
+				int size = this.Size;
+				m_log.CommitSize = size;
+				m_log.TotalCommitSize += size;
+				m_log.Attempts++;
+
+				Task<VersionStamp>? tvs = m_log.RequiresVersionStamp ? m_handler.GetVersionStampAsync(m_cancellation) : null;
+
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.CommitCommand(),
+					(tr, cmd) => tr.m_handler.CommitAsync(tr.m_cancellation),
+					(tr, cmd, log) =>
+					{
+						log.CommittedUtc = DateTimeOffset.UtcNow;
+						var cv = tr.GetCommittedVersion();
+						log.CommittedVersion = cv;
+						cmd.CommitVersion = cv;
+						if (tvs != null) log.VersionStamp = tvs.GetAwaiter().GetResult();
+					}
+				);
+
+			}
+			else
+			{
+				return m_handler.CommitAsync(m_cancellation);
 			}
 		}
 
@@ -937,7 +1249,13 @@ namespace FoundationDB.Client
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource every time),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return m_handler.Watch(mkey, ct);
+			return PerformWatchOperation(mkey, ct);
+		}
+
+		private FdbWatch PerformWatchOperation(Slice key, CancellationToken ct)
+		{
+			m_log?.AddOperation(new FdbTransactionLog.WatchCommand(m_log.Grab(key)));
+			return m_handler.Watch(key, ct);
 		}
 
 		#endregion
@@ -949,13 +1267,31 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRetry();
 
-			await m_handler.OnErrorAsync(code, ct: m_cancellation).ConfigureAwait(false);
+			await PerformOnErrorOperation(code).ConfigureAwait(false);
 
 			// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
 			var state = this.State;
 			if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
 
 			RestoreDefaultSettings();
+		}
+
+		private Task PerformOnErrorOperation(FdbError code)
+		{
+
+			if (m_log != null)
+			{
+				m_log.RequiresVersionStamp = false;
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.OnErrorCommand(code),
+					(tr, cmd) => tr.m_handler.OnErrorAsync(cmd.Code, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.OnErrorAsync(code, ct: m_cancellation);
+			}
 		}
 
 		#endregion
@@ -1002,12 +1338,30 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Resetting transaction");
 
-			m_handler.Reset();
+			PerformResetOperation();
+
 			m_state = STATE_READY;
 
 			RestoreDefaultSettings();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Transaction has been reset");
+		}
+
+		private void PerformResetOperation()
+		{
+			if (m_log != null)
+			{
+				m_log.RequiresVersionStamp = false;
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.ResetCommand(),
+					(tr, cmd) => tr.m_handler.Reset()
+				);
+			}
+			else
+			{
+				m_handler.Reset();
+			}
 		}
 
 		/// <inheritdoc />
@@ -1029,9 +1383,25 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Canceling transaction...");
 
-			m_handler.Cancel();
+			PerformCancelOperation();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Transaction has been canceled");
+		}
+
+		private void PerformCancelOperation()
+		{
+			if (m_log != null)
+			{
+				m_log.Execute(
+					this,
+					new FdbTransactionLog.CancelCommand(),
+					(tr, cmd) => tr.m_handler.Cancel()
+				);
+			}
+			else
+			{
+				m_handler.Cancel();
+			}
 		}
 
 		#endregion
@@ -1067,6 +1437,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the transaction is not safely retryable</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void EnsureCanRetry()
 		{
 			EnsureStillValid(allowFromNetworkThread: false, allowFailedState: true);
@@ -1176,6 +1547,26 @@ namespace FoundationDB.Client
 						context.Dispose();
 					}
 					m_cts.Dispose();
+
+					if (m_log?.Completed == false)
+					{
+						m_log.Stop(this);
+						if (m_logHandler != null)
+						{
+							try
+							{
+								m_logHandler.Invoke(m_log);
+							}
+#if DEBUG
+							catch(Exception e)
+							{
+								System.Diagnostics.Debug.WriteLine("Logged transaction handler failed: " + e.ToString());
+							}
+#else
+							catch { }
+#endif
+						}
+					}
 				}
 			}
 		}

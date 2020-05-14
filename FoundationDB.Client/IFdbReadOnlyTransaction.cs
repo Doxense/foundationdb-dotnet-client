@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>Transaction that allows read operations</summary>
 	[PublicAPI]
@@ -218,6 +219,27 @@ namespace FoundationDB.Client
 		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
 		/// </summary>
 		int MaxRetryDelay { get; set; }
+
+		/// <summary>Log of all operations performed on this transaction (if logging was enabled on the database or transaction)</summary>
+		FdbTransactionLog? Log { get; }
+
+		/// <summary>Return <c>true</c> if logging is enabled on this transaction</summary>
+		/// <remarks>
+		/// If logging is enabled, the transaction will track all the operations performed by this transaction until it completes.
+		/// The log can be accessed via the <see cref="Log"/> property.
+		/// Comments can be added via the <see cref="Annotate"/> method.
+		/// </remarks>
+		bool IsLogged();
+
+		/// <summary>Add a comment to the transaction log</summary>
+		/// <param name="comment">Line of text that will be added to the log</param>
+		/// <remarks>This method does nothing if logging is disabled. To prevent unnecessary allocations, you may check <see cref="IsLogged"/> first</remarks>
+		/// <example><code>if (tr.IsLogged()) tr.Annonate($"Reticulated {splines.Count} splines");</code></example>
+		void Annotate(string comment);
+
+		/// <summary>If logging was previously enabled on this transaction, clear the log and stop logging any new operations</summary>
+		/// <remarks>Any log handler attached to this transaction will not be called</remarks>
+		void StopLogging();
 
 	}
 
