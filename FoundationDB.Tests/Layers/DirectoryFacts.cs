@@ -135,6 +135,14 @@ namespace FoundationDB.Client.Tests
 				Assert.That(foo.Layer, Is.EqualTo(string.Empty), "foo.Layer");
 				Assert.That(foo.DirectoryLayer, Is.SameAs(dl), "foo.DirectoryLayer");
 				Assert.That(foo.Context, Is.Not.Null, ".Context");
+				Assert.That(foo.Descriptor, Is.Not.Null, ".Descriptor");
+				Assert.That(foo.Descriptor.Prefix, Is.EqualTo(foo.GetPrefixUnsafe()));
+				Assert.That(foo.Descriptor.Path, Is.EqualTo(FdbPath.Absolute("Foo")));
+				Assert.That(foo.Descriptor.Layer, Is.EqualTo(string.Empty));
+				Assert.That(foo.Descriptor.ValidationChain, Is.Not.Null);
+				Log("Validation chain: " + string.Join(", ", foo.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
+				Assert.That(foo.Descriptor.ValidationChain[0].Value, Is.EqualTo(foo.GetPrefixUnsafe()));
+				Assert.That(foo.Descriptor.ValidationChain, Has.Count.EqualTo(1));
 
 				// second call should return the same subspace
 
@@ -149,6 +157,8 @@ namespace FoundationDB.Client.Tests
 				Assert.That(foo2.Layer, Is.EqualTo(string.Empty), "foo2.Layer");
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(dl), "foo2.DirectoryLayer");
 				Assert.That(foo2.Context, Is.Not.Null, "foo2.Context");
+				Assert.That(foo.Descriptor, Is.Not.Null, "foo2.Descriptor");
+				Log("Validation chain: " + string.Join(", ", foo2.Descriptor.ValidationChain.Select(kv => $"{kv.Key:K}={kv.Value:V}")));
 
 				Assert.That(foo2.GetPrefix(), Is.EqualTo(foo.GetPrefix()), "Second call to CreateOrOpen should return the same subspace");
 			}
@@ -261,10 +271,32 @@ namespace FoundationDB.Client.Tests
 				var foo = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo")), this.Cancellation);
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(foo.FullName, Is.EqualTo("/Foo"));
+				Assert.That(foo.Descriptor, Is.Not.Null);
+				Assert.That(foo.Descriptor.ValidationChain, Is.Not.Null);
+				Log("Foo validation chain: " + string.Join(", ", foo.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
+				Assert.That(foo.Descriptor.ValidationChain, Has.Count.EqualTo(1));
+				Assert.That(foo.Descriptor.ValidationChain[0].Value, Is.EqualTo(foo.GetPrefixUnsafe()));
 
 				var bar = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 				Assert.That(bar, Is.Not.Null);
 				Assert.That(bar.FullName, Is.EqualTo("/Foo/Bar"));
+				Assert.That(bar.Descriptor, Is.Not.Null);
+				Assert.That(bar.Descriptor.ValidationChain, Is.Not.Null);
+				Log("Bar validation chain: " + string.Join(", ", bar.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
+				Assert.That(bar.Descriptor.ValidationChain, Has.Count.EqualTo(2));
+				Assert.That(bar.Descriptor.ValidationChain[0], Is.EqualTo(foo.Descriptor.ValidationChain[0]));
+				Assert.That(bar.Descriptor.ValidationChain[1].Value, Is.EqualTo(bar.GetPrefixUnsafe()));
+
+				var baz = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo/Bar/Baz")), this.Cancellation);
+				Assert.That(baz, Is.Not.Null);
+				Assert.That(baz.FullName, Is.EqualTo("/Foo/Bar/Baz"));
+				Assert.That(baz.Descriptor, Is.Not.Null);
+				Assert.That(baz.Descriptor.ValidationChain, Is.Not.Null);
+				Log("Baz validation chain: " + string.Join(", ", baz.Descriptor.ValidationChain.Select(kv => $"{TuPack.Unpack(kv.Key)} = {TuPack.Unpack(kv.Value)}")));
+				Assert.That(baz.Descriptor.ValidationChain, Has.Count.EqualTo(3));
+				Assert.That(baz.Descriptor.ValidationChain[0], Is.EqualTo(foo.Descriptor.ValidationChain[0]));
+				Assert.That(baz.Descriptor.ValidationChain[1], Is.EqualTo(bar.Descriptor.ValidationChain[1]));
+				Assert.That(baz.Descriptor.ValidationChain[2].Value, Is.EqualTo(baz.GetPrefixUnsafe()));
 
 				// We can also access /Foo/Bar via 'Foo'
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
@@ -1276,6 +1308,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_TryOpenCached()
 		{
+			// Verify that we can open a previously cached subspace without paying the cost of resolving the nodes each time,
+			// while still observing changes from other transactions
+
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
@@ -1306,7 +1341,7 @@ namespace FoundationDB.Client.Tests
 				var pathBar = pathFoo[FdbPathSegment.Create("Bar")];
 
 				// first, initialize the subspace
-				Log("Creating 'Foo' ...");
+				Log($"Creating '{pathFoo}' ...");
 				var foo = await db.ReadWriteAsync(tr => dl.CreateAsync(tr, pathFoo), this.Cancellation);
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(foo.FullName, Is.EqualTo("/Foo"));
@@ -1315,12 +1350,12 @@ namespace FoundationDB.Client.Tests
 				Assert.That(foo.DirectoryLayer, Is.SameAs(dl));
 				Assert.That(foo.Context, Is.InstanceOf<SubspaceContext>());
 #if DEBUG
-				Log("After creating 'Foo':");
+				Log($"After creating '{pathFoo}':");
 				await DumpSubspace(db, location);
 #endif
 				// first transaction wants to open the folder, which is not in cache.
 				// => we expect the subspace to be a new instance
-				Log("OpenCached (#1)...");
+				Log($"OpenCached({pathFoo}) #1...");
 				var foo1 = await db.ReadAsync(async tr =>
 				{
 					var folder = await dl.TryOpenCachedAsync(tr, pathFoo);
@@ -1334,7 +1369,7 @@ namespace FoundationDB.Client.Tests
 
 				// second transaction wants to open the same folder, which should be in cache
 				// => we expect the subspace to be the SAME instance
-				Log("OpenCached (#2)...");
+				Log($"OpenCached({pathFoo}) #2...");
 				var foo2 = await db.ReadAsync(async tr =>
 				{
 					var folder = await dl.TryOpenCachedAsync(tr, pathFoo);
@@ -1344,12 +1379,16 @@ namespace FoundationDB.Client.Tests
 				// We expect to get the same instance as the previous call, since no change was made to the directory layer
 				Assert.That(foo2, Is.SameAs(foo1), "Subspace descriptor should be the same instance as previous transaction!");
 
-				// update the global metadata version of the database
-				Log("Bump the global metadataVersion only...");
-				await db.WriteAsync(tr => tr.TouchMetadataVersionKey(), this.Cancellation);
+				// creating *another* subspace should not change the cache
+				Log($"Creating '{pathBar}'...");
+				var bar = await db.ReadWriteAsync(tr => dl.CreateAsync(tr, pathBar), this.Cancellation);
+#if DEBUG
+				Log($"After creating '{pathBar}':");
+				await DumpSubspace(db, location);
+#endif
 
-				// This should NOT bust the DL cache because the change is unrelated
-				Log("OpenCached (#3)...");
+				// This should NOT bust the DL cache because we did not change Foo
+				Log($"OpenCached({pathFoo}) #3...");
 				var foo3 = await db.ReadAsync(async tr =>
 				{
 					var folder = await dl.TryOpenCachedAsync(tr, pathFoo);
@@ -1357,42 +1396,24 @@ namespace FoundationDB.Client.Tests
 					return folder.Descriptor;
 				}, this.Cancellation);
 
-				//TODO: currently the DL does NOT have its own "version key" so it has to drop the cache whenever the MV is changed globally, which is not efficient
-				// => If we implement a proper cache management, we may need to update the behavior of this test!
-
 				// We expect the instance to change since the cache SHOULD have been reset after the change to the metadataVersion
-				Assert.That(foo3, Is.SameAs(foo1), "Subspace should be the same instance as previous transaction after bumping the global metadataVersion");
+				Assert.That(foo3, Is.SameAs(foo1), "Subspace should be the same instance as previous transaction after creating _another_ directory.");
 
-				// creating a subfolder /Foo/Bar should bust the cache of the partition
-				Log("Creating 'Foo/Bar' ...");
-				await db.ReadWriteAsync(tr => dl.CreateAsync(tr, pathBar), this.Cancellation);
-#if DEBUG
-				Log("After creating 'Foo/Bar':");
-				await DumpSubspace(db, location);
-#endif
+				// If we *delete* Foo, we should observe that it changed
+				await db.WriteAsync(tr => dl.RemoveAsync(tr, pathFoo), this.Cancellation);
 
-				Log("OpenCached (#4)...");
+				// note: we expect the transaction to retry at least once!
+				Log($"OpenCached({pathFoo}) #4...");
 				var foo4 = await db.ReadAsync(async tr =>
 				{
 					var folder = await dl.TryOpenCachedAsync(tr, pathFoo);
-					Validate(folder, foo);
-					return folder.Descriptor;
+
+					// on first attempt, we expect "folder" to NOT be null. On second attempt we expect it to be null.
+					Log($"- Attempt #{tr.Context.Retries}: {pathFoo} => {folder?.GetPrefixUnsafe().ToString("P") ?? "<not_found>"}");
+				
+					return folder?.Descriptor;
 				}, this.Cancellation);
-
-				// We expect the instance to change since the cache SHOULD have been reset after the change to the metadataVersion
-				Assert.That(foo4, Is.Not.SameAs(foo3), "Subspace should NOT be the same instance as previous transaction after modifying the partition!");
-
-				Log("Get 'Foo'...");
-				// now another read, this time should be a cached instance
-				var foo5 = await db.ReadAsync(async tr =>
-				{
-					var folder = await dl.TryOpenCachedAsync(tr, pathFoo);
-					Validate(folder, foo);
-					return folder.Descriptor;
-				}, this.Cancellation);
-
-				// We expect the instance to change since the cache SHOULD have been reset after the change to the metadataVersion
-				Assert.That(foo5, Is.SameAs(foo4), "Subspace should be the same cached instance");
+				Assert.That(foo4, Is.Null, "Should not have reused previously cached instance of deleted folder!");
 			}
 		}
 
@@ -1424,14 +1445,12 @@ namespace FoundationDB.Client.Tests
 				for (int k = 1; k <= K; k++)
 				{
 					Log($"Creating Batch #{k}/{K}...");
-					await db.WriteAsync(
-						async tr =>
-						{
-							for (int i = 0; i < N; i++) await dl.CreateAsync(tr, FdbPath.Absolute("Students", k.ToString(), i.ToString()));
-						},
-						this.Cancellation);
+					await db.WriteAsync(async tr =>
+					{
+						for (int i = 0; i < N; i++) await dl.CreateAsync(tr, FdbPath.Absolute("Students", k.ToString(), i.ToString()));
+					}, this.Cancellation);
 
-					Log($"> Reading...");
+					Log("> Reading...");
 					for (int r = 0; r < R; r++)
 					{
 						var sw = Stopwatch.StartNew();

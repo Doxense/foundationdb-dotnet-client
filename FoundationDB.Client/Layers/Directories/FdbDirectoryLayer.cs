@@ -63,18 +63,17 @@ namespace FoundationDB.Client
 		//   - The sub-directories of directory at prefix X are located under Key = Nodes + Pack(X, 0, SUBDIR_NAME), Value = Prefix of subdirectory
 		//   - For the root of the directory partition, X = the prefix of the nodes subspace
 
-		internal static readonly Version LayerVersion = new Version(1, 1, 0);
+		internal static readonly Version LayerVersion = new Version(1, 0, 0);
 		internal static readonly Slice LayerAttribute = Slice.FromStringAscii("layer");
 		internal static readonly Slice HcaAttribute = Slice.FromStringAscii("hca");
 		internal static readonly Slice VersionAttribute = Slice.FromStringAscii("version");
-		internal static readonly Slice MetadataAttribute = Slice.FromStringAscii("metadata");
 
 		/// <summary>Use this flag to make the Directory Layer start annotating the transactions with a descriptions of all operations.</summary>
 		/// <remarks>
 		/// This is only useful if you want to diagnose performance or read conflict issues.
 		/// This will only work with logged transactions, obtained by applying the Logging Filter on a database instance
 		/// </remarks>
-		public static bool AnnotateTransactions { get; set; }
+		public static bool AnnotateTransactions { get; set; } = true;
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
 		public DynamicKeySubspaceLocation Content { get; }
@@ -452,7 +451,7 @@ namespace FoundationDB.Client
 		internal readonly struct Node
 		{
 
-			public Node(FdbPath path, Slice prefix, string? layer, PartitionDescriptor partition, PartitionDescriptor parentPartition, Slice prefixInParentPartition)
+			public Node(FdbPath path, Slice prefix, string? layer, PartitionDescriptor partition, PartitionDescriptor parentPartition, Slice prefixInParentPartition, List<KeyValuePair<Slice, Slice>> validationChain)
 			{
 				Contract.Requires(partition != null && parentPartition != null);
 				this.Prefix = prefix;
@@ -461,6 +460,7 @@ namespace FoundationDB.Client
 				this.Partition = partition;
 				this.ParentPartition = parentPartition;
 				this.PrefixInParentPartition = prefixInParentPartition;
+				this.ValidationChain = validationChain;
 			}
 
 			public readonly Slice Prefix;
@@ -469,6 +469,7 @@ namespace FoundationDB.Client
 			public readonly PartitionDescriptor Partition;
 			public readonly PartitionDescriptor ParentPartition;
 			public readonly Slice PrefixInParentPartition;
+			public readonly List<KeyValuePair<Slice, Slice>> ValidationChain;
 
 			public bool Exists => !this.Prefix.IsNull;
 
@@ -486,13 +487,12 @@ namespace FoundationDB.Client
 
 		private async ValueTask<State> ResolveMetadata(IFdbReadOnlyTransaction tr)
 		{
-			var rv = await tr.GetReadVersionAsync();
 			var content = await this.Content.Resolve(tr);
 			if (content == null) throw new InvalidOperationException("Directory Layer content subspace was not found");
 
 			var partition = new PartitionDescriptor(this.Path, content, null);
 
-			var metadata = new State(this, partition, this.AllocatorRng, rv);
+			var metadata = new State(this, partition, this.AllocatorRng);
 			//TODO: locking?
 
 			return tr.Context.GetOrCreateLocalData(this, metadata);
@@ -529,45 +529,17 @@ namespace FoundationDB.Client
 
 			public Random Allocator { get; }
 
-			public long ReadVersion { get; }
-
-			internal State(FdbDirectoryLayer layer, PartitionDescriptor partition, Random rng, long readVersion)
+			internal State(FdbDirectoryLayer layer, PartitionDescriptor partition, Random rng)
 			{
 				this.Layer = layer;
 				this.Partition = partition;
 				this.Allocator = rng;
-				this.ReadVersion = readVersion;
 			}
 
 			private static void SetLayer(IFdbTransaction trans, PartitionDescriptor partition, Slice prefix, string layer)
 			{
 				Contract.Requires(layer != null);
 				trans.Set(partition.Nodes.Encode(prefix, LayerAttribute), Slice.FromStringUtf8(layer));
-			}
-
-			private void UpdatePartitionMetadataVersion(IFdbTransaction trans, PartitionDescriptor partition, bool init = false)
-			{
-				// update the metadata version of this partition
-				if (init && partition.Parent == null)
-				{
-					// IMPORTANT: The metadata key is NOT a read-version or version-stamp, it is a simple counter atomically incremented!
-					// instead of starting the counter at 0, we use the current read-version of the database, in hope that it would be
-					// greater than any previously used value if the entire DL was cleared and re-created, but from then on it is a simple
-					// opaque monotonically incremeting number.
-					trans.Set(partition.MetadataKey, Slice.FromInt64BE(this.ReadVersion));
-				}
-				else
-				{
-					trans.AtomicIncrement64(partition.MetadataKey);
-					//note: creating multiple embedded partitions may increment the version of the root multiple times,
-					// but this is not really an issue: we just need it to be different than any previously observed value.
-				}
-
-				// make sure that the transaction is safe for mutation, and update the global metadata version if required
-				if (EnsureCanMutate())
-				{
-					trans.TouchMetadataVersionKey();
-				}
 			}
 
 			/// <summary>Finds a node subspace, given its path, by walking the tree from the root.</summary>
@@ -579,6 +551,8 @@ namespace FoundationDB.Client
 				// look for the node by traversing from the root down. jumping over when crossing a partition...
 
 				var current = partition.Nodes.GetPrefix();
+
+				var chain = new List<KeyValuePair<Slice, Slice>>();
 
 				int i = 0;
 				string layer = FdbDirectoryPartition.LayerId; // the root is by convention a "partition"
@@ -592,9 +566,11 @@ namespace FoundationDB.Client
 					var key = partition.Nodes.Encode(current, SUBDIRS, path[i].Name);
 					current = await tr.GetAsync(key).ConfigureAwait(false);
 
+					chain.Add(new KeyValuePair<Slice, Slice>(key, current));
+
 					if (current.IsNull)
 					{
-						return new Node(path, Slice.Nil, null, partition, parent, Slice.Nil);
+						return new Node(path, Slice.Nil, null, partition, parent, Slice.Nil, chain);
 					}
 
 					// get the layer id of this node
@@ -613,7 +589,7 @@ namespace FoundationDB.Client
 					++i;
 				}
 
-				return new Node(path, current, layer, partition, parent, prefixInParentPartition);
+				return new Node(path, current, layer, partition, parent, prefixInParentPartition, chain);
 			}
 
 			/// <summary>Open a subspace using the local cache</summary>
@@ -630,6 +606,12 @@ namespace FoundationDB.Client
 				{
 					if (ctx.TryGetSubspace(trans, this, path, out var subspace))
 					{
+						if (subspace != null)
+						{
+							//TODO: only add value-check for a directory "once" !
+							trans.Context.AddValueChecks("DirectoryLayer", subspace.Descriptor.ValidationChain);
+						}
+
 						return subspace;
 					}
 				}
@@ -651,7 +633,7 @@ namespace FoundationDB.Client
 					{
 						throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{layer}' instead of expected '{existingNode.Layer}'.");
 					}
-					subspace = ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.Partition, existingNode.ParentPartition, context);
+					subspace = ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, context);
 				}
 				else
 				{
@@ -750,7 +732,7 @@ namespace FoundationDB.Client
 					{
 						throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{existingNode.Layer}' instead of expected '{layer}'.");
 					}
-					return ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.Partition, existingNode.ParentPartition, null);
+					return ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, null);
 				}
 
 				if (!allowCreate)
@@ -767,6 +749,7 @@ namespace FoundationDB.Client
 				// we need to recursively create any missing parents
 				Slice parentPrefix;
 				var partition  = this.Partition;
+				var chain = existingNode.ValidationChain;
 				if (path.Count > 1)
 				{
 					var parentSubspace = await CreateOrOpenInternalAsync(readTrans, trans, path.GetParent(), Slice.Nil, true, true, true).ConfigureAwait(false);
@@ -775,6 +758,7 @@ namespace FoundationDB.Client
 					var parentNode = await FindAsync(readTrans, this.Partition, path.GetParent());
 					partition = parentNode.Partition;
 					parentPrefix = parentNode.Prefix;
+					chain = parentNode.ValidationChain;
 				}
 				else
 				{
@@ -813,18 +797,26 @@ namespace FoundationDB.Client
 				// initialize the metadata for this new directory
 
 				if (AnnotateTransactions) trans.Annotate("Registering the new prefix {0:K} into the folder sub-tree", prefix);
-				trans.Set(partition.Nodes.Encode(parentPrefix, SUBDIRS, path.Name), prefix);
+				var key = partition.Nodes.Encode(parentPrefix, SUBDIRS, path.Name);
+				trans.Set(key, prefix);
+
+				// update the chain so that the last step contains the correct prefix
+				if (chain.Count != 0 && chain[chain.Count - 1].Key.Equals(key))
+				{ // make sure we remove the incomplete last node
+					chain.RemoveAt(chain.Count - 1);
+				}
+				// add the correct last node in the chain
+				chain.Add(new KeyValuePair<Slice, Slice>(key, prefix));
 
 				// initialize the new folder
 				SetLayer(trans, partition, prefix, layer);
-				UpdatePartitionMetadataVersion(trans, partition);
 
 				if (layer == FdbDirectoryPartition.LayerId)
 				{
 					InitializePartition(trans, existingNode.Partition);
 				}
 
-				return ContentsOfNode(path, prefix, layer, existingNode.Partition, existingNode.ParentPartition ?? existingNode.Partition, null);
+				return ContentsOfNode(path, prefix, layer, chain, existingNode.Partition, existingNode.ParentPartition ?? existingNode.Partition, null);
 			}
 
 			internal async Task<FdbDirectorySubspace?> MoveInternalAsync(IFdbTransaction trans, FdbPath oldPath, FdbPath newPath, bool throwOnError)
@@ -898,11 +890,11 @@ namespace FoundationDB.Client
 				}
 
 				trans.Set(parentPartition.Nodes.Encode(parentPrefix, SUBDIRS, newPath.Name), oldNode.PrefixInParentPartition);
-				UpdatePartitionMetadataVersion(trans, parentPartition);
 
 				await RemoveFromParent(trans, oldPath).ConfigureAwait(false);
 
-				return ContentsOfNode(newPath, oldNode.Prefix, oldNode.Layer, newNode.Partition, newNode.ParentPartition, null);
+				//BUGBUG: we need to recalculate the "validation chain" with the new path!
+				return ContentsOfNode(newPath, oldNode.Prefix, oldNode.Layer, oldNode.ValidationChain, newNode.Partition, newNode.ParentPartition, null);
 			}
 
 			internal async Task<bool> RemoveInternalAsync(IFdbTransaction trans, FdbPath path, bool throwIfMissing)
@@ -990,7 +982,6 @@ namespace FoundationDB.Client
 				}
 
 				SetLayer(trans, node.Partition, node.Prefix, newLayer);
-				UpdatePartitionMetadataVersion(trans, node.Partition);
 			}
 
 			private async Task<Slice> CheckReadVersionAsync(IFdbReadOnlyTransaction trans)
@@ -1020,7 +1011,6 @@ namespace FoundationDB.Client
 			{
 				// Set the version key
 				trans.Set(partition.VersionKey, MakeVersionValue());
-				UpdatePartitionMetadataVersion(trans, partition, init: true);
 			}
 
 			private static Slice MakeVersionValue()
@@ -1064,18 +1054,18 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
-			private FdbDirectorySubspace ContentsOfNode(FdbPath path, Slice prefix, string layer, PartitionDescriptor partition, PartitionDescriptor parentPartition, ISubspaceContext? context)
+			private FdbDirectorySubspace ContentsOfNode(FdbPath path, Slice prefix, string layer, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain, PartitionDescriptor partition, PartitionDescriptor parentPartition, ISubspaceContext? context)
 			{
 				Contract.Requires(partition != null && parentPartition != null);
 
 				if (layer == FdbDirectoryPartition.LayerId)
 				{
-					var descriptor = new DirectoryDescriptor(this.Layer, path, partition.Content.GetPrefix(), FdbDirectoryPartition.LayerId, partition);
+					var descriptor = new DirectoryDescriptor(this.Layer, path, partition.Content.GetPrefix(), FdbDirectoryPartition.LayerId, partition, validationChain);
 					return new FdbDirectoryPartition(descriptor, parentPartition, TuPack.Encoding.GetDynamicKeyEncoder(), context);
 				}
 				else
 				{
-					var descriptor = new DirectoryDescriptor(this.Layer, path, prefix, layer, partition);
+					var descriptor = new DirectoryDescriptor(this.Layer, path, prefix, layer, partition, validationChain);
 					return new FdbDirectorySubspace(descriptor, TuPack.Encoding.GetDynamicKeyEncoder(), context);
 				}
 			}
@@ -1115,7 +1105,6 @@ namespace FoundationDB.Client
 				{
 					if (AnnotateTransactions) tr.Annotate("Removing path {0} from its parent folder at {1}", path, parent.Prefix);
 					tr.Clear(GetSubDirKey(parent.Partition, parent.Prefix, path.Name));
-					UpdatePartitionMetadataVersion(tr, parent.Partition);
 					return true;
 				}
 				return false;
@@ -1226,11 +1215,6 @@ namespace FoundationDB.Client
 							{ // another thread is racing with us! try again
 								continue;
 							}
-							if (tr is IFdbTransaction writable && !writable.IsReadOnly)
-							{
-								// the transaction is using a cached entry, so we must add a read conflict to protect against external changes!
-								writable.AddReadConflictKey(this.Partition.MetadataKey);
-							}
 							return true;
 						}
 						case STATUS_CACHED:
@@ -1259,52 +1243,40 @@ namespace FoundationDB.Client
 				//  - If it hasn't changed, the current context is still valid, and can be updated to the last global metadata version
 				//  - If it has changed, then we (for now) throw away the entire cache and start a new one.
 
-				// Check the global metadata version key (should be fast, obtained along side the transaction read version)
-				var gmv = await trans.GetMetadataVersionKeyAsync().ConfigureAwait(false);
-				// We can observe "null" if the key has already been touched previously in the same transaction.
-				// Since it is a versionstamp, we have no way to know its value until we commit, and this transaction will not be able cache anything
-				// => we hope that the NEXT transaction will rebuild the cache for us.
-
 				var context = Volatile.Read(ref this.Context) ?? this.Layer.Cache;
 				if (context != null)
 				{
-					if (gmv != null && context.MetadataVersion == gmv.Value)
-					{ // no change in the read version means that the context is unchanged
-						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context still valid (GMV hit)");
+					if (trans.Context.ValueCheckFailedInPreviousAttempt("DirectoryLayer") != true)
+					{ // all good!
+						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context #{context.ReadVersion} likely still valid (no failed value-checks at attempt #{trans.Context.Retries})");
 						return context;
 					}
+					// the previous attempt yielded _at least_ one difference!
+					// => right now we don't distinguish *which* directory changed, so we throw out the entire cache.
 
-					if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context must be re-validated (GMV miss {gmv} != {context.MetadataVersion})");
-					// context is not valid anymore!
+					if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context #{context.ReadVersion} failed a value-check in previous transaction attempt!");
+
+					// discard this cache (if it hasn't been changed by another thread yet)
+					Interlocked.CompareExchange(ref this.Context, null, context);
 				}
 
 				//TODO: if this is the first call on this transaction, we must check the read layer version!
 
-				// we need to check if the context is valid
-				long? pmv = (await trans.GetAsync(this.Partition.MetadataKey)).ToInt64BE();
-
-				if (context != null)
-				{
-					// if the pmv has a value, then no other mutating DL operation has run on this transaction
-					// if it is null, then another transaction has mutated the DL, which is not supported
-					if (pmv == null) throw new InvalidOperationException("Cannot use cached Directory Layer operations if the partition has already been mutated in the same transaction");
-
-					if (context.PartitionVersion == pmv.Value)
-					{ // no change in the partition read version means that the change was from someone else
-						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context still valid (PMV hit {pmv})");
-						if (gmv != null) context.BumpMetadataVersion(gmv.Value);
-						return context;
-					}
-					if (AnnotateTransactions) trans.Annotate($"{this.Layer} partition version has changed (PMV miss {pmv} != {context.PartitionVersion})");
-				}
+				// we need to know the read-version where this cache context was created
+				long rv = await trans.GetReadVersionAsync();
 
 				// create a new context!
-				context = new CacheContext(this.Layer, gmv, pmv);
+				context = new CacheContext(this.Layer, rv);
 
 				var global = this.Layer.Cache;
-				if (gmv != null && pmv != null && (global == null || global.PartitionVersion < pmv))
+				if (global == null || global.ReadVersion < rv)
 				{ // make this the most recent context!
 					this.Layer.Cache = context;
+					if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context #{context.ReadVersion} set as new global context.");
+				}
+				else
+				{
+					if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context #{context.ReadVersion} has been superseded by newer global context #{global.ReadVersion}.");
 				}
 
 				// attach that context to the transaction
@@ -1386,14 +1358,8 @@ namespace FoundationDB.Client
 
 			public FdbDirectoryLayer DirectoryLayer { get; }
 
-			/// <summary>Maximum global metadata version at which this state has been observed to be still valid</summary>
-			public VersionStamp? MetadataVersion { get; private set; }
-			// content of '\xff/metadataVersion' key
-
-			/// <summary>Metadata version of the partition that produced this context</summary>
-			//public VersionStamp? PartitionVersion { get; set; }
-			public long? PartitionVersion { get; set; }
-			// content of [PARTITION, "metadata"] key
+			/// <summary>Read version at which this context was last used successfully</summary>
+			public long ReadVersion { get; private set; }
 
 			/// <summary>Version of the Directory Layer in the database</summary>
 			public Slice LayerVersion { get; set; }
@@ -1406,18 +1372,12 @@ namespace FoundationDB.Client
 			private static int IdCounter;
 			public readonly int Id = Interlocked.Increment(ref IdCounter);
 
-			public CacheContext(FdbDirectoryLayer dl, VersionStamp? globalVersion, long? partitionVersion)
+			public CacheContext(FdbDirectoryLayer dl, long readVersion)
 			{
 				Contract.NotNull(dl, nameof(dl));
 
 				this.DirectoryLayer = dl;
-				this.MetadataVersion = globalVersion;
-				this.PartitionVersion = partitionVersion;
-			}
-
-			public void BumpMetadataVersion(VersionStamp metadataVersion)
-			{
-				this.MetadataVersion = metadataVersion;
+				this.ReadVersion = readVersion;
 			}
 
 			/// <summary>Lookup a subspace in the cache</summary>
@@ -1495,8 +1455,6 @@ namespace FoundationDB.Client
 
 			public Slice VersionKey { get; }
 
-			public Slice MetadataKey { get; }
-
 			public PartitionDescriptor(FdbPath path, IDynamicKeySubspace content, PartitionDescriptor? parent)
 			{
 				Contract.Requires(path.IsAbsolute && content != null);
@@ -1506,7 +1464,6 @@ namespace FoundationDB.Client
 				this.Nodes = content.Partition[FdbKey.Directory];
 				var rootNode = this.Nodes.Partition.ByKey(this.Nodes.GetPrefix());
 				this.VersionKey = rootNode.Encode(VersionAttribute);
-				this.MetadataKey = parent?.MetadataKey ?? rootNode.Encode(FdbDirectoryLayer.MetadataAttribute);
 			}
 
 			/// <summary>Return a child partition of the current partition</summary>
@@ -1523,7 +1480,8 @@ namespace FoundationDB.Client
 		[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Layer={Layer}, Partition={Partition.Path}|{Partition.Content.GetPrefix()}")]
 		internal sealed class DirectoryDescriptor
 		{
-			public DirectoryDescriptor(FdbDirectoryLayer directoryLayer, FdbPath path, Slice prefix, string layer, PartitionDescriptor partition)
+
+			public DirectoryDescriptor(FdbDirectoryLayer directoryLayer, FdbPath path, Slice prefix, string layer, PartitionDescriptor partition, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain)
 			{
 				Contract.Requires(directoryLayer != null && partition != null && path.StartsWith(partition.Path));
 
@@ -1532,6 +1490,7 @@ namespace FoundationDB.Client
 				this.Prefix = prefix;
 				this.Layer = layer ?? string.Empty;
 				this.Partition = partition;
+				this.ValidationChain = validationChain;
 
 				Contract.Ensures(this.DirectoryLayer != null);
 			}
@@ -1548,6 +1507,10 @@ namespace FoundationDB.Client
 
 			/// <summary>Layer id of this directory</summary>
 			public string Layer { get; }
+
+			/// <summary>List of all (key, value) pairs that were used to look-up this directory</summary>
+			/// <remarks>These keys can be used as "value checks" to support caching of subspaces</remarks>
+			public IReadOnlyList<KeyValuePair<Slice, Slice>> ValidationChain { get; }
 
 			public override string ToString() => $"DirectoryDescriptor(Path={Path}, Prefix={Prefix:K}, Layer={Layer}, Partition=({Partition.Path}, {Partition.Content.GetPrefix():K}))";
 

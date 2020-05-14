@@ -155,7 +155,7 @@ namespace FoundationDB.Client
 			await metadata.ChangeLayerInternalAsync(trans, descriptor.Path, newLayer).ConfigureAwait(false);
 
 			// and return the new version of the subspace
-			var changed = new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, newLayer, descriptor.Partition);
+			var changed = new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, newLayer, descriptor.Partition, descriptor.ValidationChain);
 
 			return new FdbDirectorySubspace(changed, this.KeyEncoder, this.Context);
 		}
