@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 		/// This is only useful if you want to diagnose performance or read conflict issues.
 		/// This will only work with logged transactions, obtained by applying the Logging Filter on a database instance
 		/// </remarks>
-		public static bool AnnotateTransactions { get; set; } = true;
+		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
 		public DynamicKeySubspaceLocation Content { get; }
@@ -1061,12 +1061,12 @@ namespace FoundationDB.Client
 				if (layer == FdbDirectoryPartition.LayerId)
 				{
 					var descriptor = new DirectoryDescriptor(this.Layer, path, partition.Content.GetPrefix(), FdbDirectoryPartition.LayerId, partition, validationChain);
-					return new FdbDirectoryPartition(descriptor, parentPartition, TuPack.Encoding.GetDynamicKeyEncoder(), context);
+					return new FdbDirectoryPartition(descriptor, parentPartition, TuPack.Encoding.GetDynamicKeyEncoder(), context, false);
 				}
 				else
 				{
 					var descriptor = new DirectoryDescriptor(this.Layer, path, prefix, layer, partition, validationChain);
-					return new FdbDirectorySubspace(descriptor, TuPack.Encoding.GetDynamicKeyEncoder(), context);
+					return new FdbDirectorySubspace(descriptor, TuPack.Encoding.GetDynamicKeyEncoder(), context, false);
 				}
 			}
 
