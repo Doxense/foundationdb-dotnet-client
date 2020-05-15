@@ -1548,9 +1548,8 @@ namespace FoundationDB.Client
 					}
 					m_cts.Dispose();
 
-					if (m_log?.Completed == false)
+					if (m_log?.Stop(this) == true)
 					{
-						m_log.Stop(this);
 						if (m_logHandler != null)
 						{
 							try

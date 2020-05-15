@@ -368,7 +368,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Marks the start of the transaction</summary>
 		/// <param name="trans"></param>
-		public void Start(IFdbTransaction trans)
+		internal void Start(IFdbTransaction trans)
 		{
 			Contract.Requires(trans != null);
 
@@ -379,18 +379,20 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Marks the end of the transaction</summary>
-		/// <param name="trans"></param>
-		public void Stop(IFdbTransaction trans)
+		internal bool Stop(IFdbTransaction trans)
 		{
 			Contract.Requires(trans != null);
 
 			//TODO: verify that the trans is the same one that was passed to Start(..)?
-			if (!this.Completed)
+			if (this.Completed)
 			{
-				this.Completed = true;
-				this.StopTimestamp = GetTimestamp();
-				this.StoppedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
+				return false;
 			}
+
+			this.Completed = true;
+			this.StopTimestamp = GetTimestamp();
+			this.StoppedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
+			return true;
 		}
 
 		public void Annotate(string text)
