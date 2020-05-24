@@ -38,8 +38,8 @@ namespace FoundationDB.Client
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public const string LayerId = "partition";
 
-		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, IDynamicKeyEncoder keyEncoder, ISubspaceContext? context)
-			: base(descriptor, keyEncoder, context)
+		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, IDynamicKeyEncoder keyEncoder, ISubspaceContext? context, bool cached)
+			: base(descriptor, keyEncoder, context, cached)
 		{
 			Contract.NotNull(parent, nameof(parent));
 			this.Parent = parent;
@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(context, nameof(context));
 
 			if (context == this.Context) return this;
-			return new FdbDirectoryPartition(this.Descriptor, this.Parent, this.KeyEncoder, context);
+			return new FdbDirectoryPartition(this.Descriptor, this.Parent, this.KeyEncoder, context, true);
 		}
 
 		public override bool IsPartition => true;

@@ -44,11 +44,12 @@ namespace FoundationDB.Client
 	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, IDynamicKeyEncoder encoder, ISubspaceContext? context)
+		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, IDynamicKeyEncoder encoder, ISubspaceContext? context, bool cached)
 			: base(descriptor.Prefix, encoder, context ?? SubspaceContext.Default)
 		{
 			Contract.Requires(descriptor?.Partition != null);
 			this.Descriptor = descriptor;
+			this.Cached = cached;
 		}
 
 		/// <summary>Descriptor of this directory</summary>
@@ -60,12 +61,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Gets the location that points to this <code>Directory</code></summary>
 		public FdbDirectorySubspaceLocation Location => new FdbDirectorySubspaceLocation(this.Descriptor.Path);
-
-		/// <summary>Read Version of the transaction that produced this cached instance</summary>
-		internal long ReadVersion { get; set; }
-
-		/// <summary>MetadataVersion of the database when this instance is cached</summary>
-		internal VersionStamp CachedVersion { get; set; }
 
 		/// <summary>Name of the directory</summary>
 		public string Name => this.Descriptor.Path.Name;
@@ -80,13 +75,15 @@ namespace FoundationDB.Client
 		/// <summary>Layer id of this directory</summary>
 		public string Layer => this.Descriptor.Layer;
 
+		public bool Cached { get; }
+
 		/// <summary>Returns a new subspace instance that is identical to this one, but attached to a different context</summary>
 		internal virtual FdbDirectorySubspace ChangeContext(ISubspaceContext context)
 		{
 			Contract.NotNull(context, nameof(context));
 
 			if (context == this.Context) return this;
-			return new FdbDirectorySubspace(this.Descriptor, this.KeyEncoder, context);
+			return new FdbDirectorySubspace(this.Descriptor, this.KeyEncoder, context, true);
 		}
 
 		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
@@ -157,7 +154,7 @@ namespace FoundationDB.Client
 			// and return the new version of the subspace
 			var changed = new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, newLayer, descriptor.Partition, descriptor.ValidationChain);
 
-			return new FdbDirectorySubspace(changed, this.KeyEncoder, this.Context);
+			return new FdbDirectorySubspace(changed, this.KeyEncoder, this.Context, false);
 		}
 
 		/// <summary>Opens a sub-directory with the given <paramref name="path"/>.
