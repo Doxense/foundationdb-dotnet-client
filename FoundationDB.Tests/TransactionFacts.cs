@@ -3323,5 +3323,86 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Value_Checks_Retries_On_Application_Exception()
+		{
+			// If we observe an application exception being thrown by the handler, normally we would stop the retry loop there.
+			// But if there was at least one failed value-check, we HAVE to retry because it is possible that the application threw due to some invalid assumption.
+			// Normally, any layer that used cached data will observe the failed check, and re-validate the cache.
+			// If the application error was caused by this stale data, then it should not throw in the new attempt.
+			// If the application error was caused by something completely unrelated, then it should throw again, and we should NOT retry
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("value_checks");
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+				for (int i = 0; i < 15; i++)
+				{
+
+					if (i % 5 == 0)
+					{
+						Log("Clear the database...");
+
+						await CleanLocation(db, location);
+
+						// if the application code fails we have to make sure that if there was also a failed value-check, the handler retries again!
+
+						await db.WriteAsync(async tr =>
+						{
+							var subspace = (await location.Resolve(tr))!;
+							tr.Set(subspace.Encode("Foo"), Slice.FromStringAscii("NotReady"));
+							// Bar does not exist
+						}, this.Cancellation);
+					}
+
+					var task = db.ReadWriteAsync(async tr =>
+					{
+						//note: this subspace does not use the DL so it does not introduce any value checks!
+						var subspace = await location.Resolve(tr);
+
+						if (true == tr.Context.ValueCheckFailedInPreviousAttempt("foo"))
+						{
+							Log("# Oh, no! 'foo' check failed previously, check and initialze the db if required...");
+
+							tr.Annotate("APP: doing the actual work to check the state of the db, and initialize the schema if required...");
+
+							// read foo, and update the Bar key accordingly
+							var foo = await tr.GetAsync(subspace.Encode("Foo"));
+							if (foo.ToStringAscii() == "NotReady")
+							{
+								tr.Annotate("APP: initializing the database!");
+								Log("# Moving 'foo' from Value1 to Value2 and setting Bar...");
+								tr.Set(subspace.Encode("Foo"), Slice.FromStringAscii("Ready"));
+								tr.Set(subspace.Encode("Bar"), Slice.FromStringAscii("Something"));
+							}
+						}
+						else
+						{
+							tr.Annotate("APP: I'm feeling lucky! Let's assume the db is already initialized");
+							tr.Context.AddValueCheck("foo", subspace.Encode("Foo"), Slice.FromStringAscii("Ready"));
+						}
+						// let's that if "Foo" was equal to "Value2", then "Bar" SHOULD exist
+						// We simulate some application code reading the "Bar" value, and then finding out that it does not exist
+
+						tr.Annotate("APP: The value of 'Bar' better not be empty...");
+						var x = await tr.GetAsync(subspace.Encode("Bar"));
+						Log($"On attempt #{tr.Context.Retries} we found the value of Bar to be '{x}'");
+						if (x.IsNull)
+						{
+							tr.Annotate("APP: UH OH... something's wrong! let's throw an exception!!");
+							throw new InvalidOperationException("Oh noes! There is some corruption in the database!");
+						}
+
+						return x.ToStringAscii();
+					}, this.Cancellation);
+
+					Assert.That(async () => await task, Is.EqualTo("Something"));
+
+				}
+
+			}
+		}
 	}
 }

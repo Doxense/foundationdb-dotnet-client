@@ -585,7 +585,7 @@ namespace FoundationDB.Client
 				this.HasAtLeastOneFailedValueCheck = true;
 				if (previous != true)
 				{
-					if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for '{FdbKey.Dump(key)}': expected '{expectedValue:V}', actual '{actualResult:V}'");
+					if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for {FdbKey.Dump(key)}: expected {expectedValue:V}, actual {actualResult:V}");
 					tags[tag] = true;
 				}
 				return false;
@@ -598,7 +598,7 @@ namespace FoundationDB.Client
 			return true;
 		}
 
-		private ValueTask ValidateValueChecks()
+		private ValueTask<bool> ValidateValueChecks(bool ignoreFailedTasks)
 		{
 			List<(Slice, Slice, string, Task<Slice>)>? checks;
 			lock (this)
@@ -607,23 +607,32 @@ namespace FoundationDB.Client
 				this.ValueChecks = null;
 			}
 
-			if (checks == null || checks.Count == 0) return default;
-			return ValidateValueChecksSlow(checks);
+			if (checks == null || checks.Count == 0) return new ValueTask<bool>(true);
+			return ValidateValueChecksSlow(checks, ignoreFailedTasks);
 		}
 
-		private async ValueTask ValidateValueChecksSlow(List<(Slice Key, Slice ExpectedValue, string Tag, Task<Slice> ActualValue)> checks)
+		private async ValueTask<bool> ValidateValueChecksSlow(List<(Slice Key, Slice ExpectedValue, string Tag, Task<Slice> ActualValue)> checks, bool ignoreFailedTasks)
 		{
-			var results = await Task.WhenAll(checks.Select(x => x.ActualValue));
+			//note: even if it looks like we are sequentially await all tasks, by the time the first one is complete,
+			// the rest of the tasks will probably be already completed as well. Anyway, we need to inspect each individual task
+			// to check for any failed tasks anyway, so we can't use Task.WhenAll(...) here
+
 			bool pass = true;
-			for (int i = 0; i < checks.Count; i++)
+			foreach (var check in checks)
 			{
-				pass &= EnsureValueCheck(checks[i].Tag, checks[i].Key, checks[i].ExpectedValue, results[i]);
+				Slice result;
+				try
+				{
+					result = await check.ActualValue.ConfigureAwait(false);
+				}
+				catch (FdbException) when (ignoreFailedTasks)
+				{
+					continue;
+				}
+				pass &= EnsureValueCheck(check.Tag, check.Key, check.ExpectedValue, result);
 			}
 
-			if (!pass)
-			{
-				throw FailValueCheck();
-			}
+			return pass;
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
@@ -665,6 +674,7 @@ namespace FoundationDB.Client
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
 						bool hasResult = false;
+						bool hasRunValueChecks = false;
 						result = default!;
 
 						try
@@ -931,8 +941,13 @@ namespace FoundationDB.Client
 
 							// make sure any pending value checks are completed and match the expected value!
 							context.FailedValueCheckTags?.Clear();
-							await context.ValidateValueChecks();
 							context.HasAtLeastOneFailedValueCheck = false;
+							hasRunValueChecks = true;
+							if (!await context.ValidateValueChecks(ignoreFailedTasks: false))
+							{
+								context.HasAtLeastOneFailedValueCheck = true;
+								throw FailValueCheck();
+							}
 
 							if (!trans.IsReadOnly)
 							{ // commit the transaction
@@ -1150,6 +1165,18 @@ namespace FoundationDB.Client
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with error code {1}", trans.Id, e.Code));
 
+							if (!hasRunValueChecks)
+							{ // we need to resolve any check that would still have passed before the error
+
+								context.FailedValueCheckTags?.Clear();
+								context.HasAtLeastOneFailedValueCheck = false;
+								if (!await context.ValidateValueChecks(ignoreFailedTasks: true))
+								{
+									context.HasAtLeastOneFailedValueCheck = true;
+									// we don't override the original error, though
+								}
+							}
+
 							bool shouldRethrow = false;
 							try
 							{
@@ -1168,9 +1195,10 @@ namespace FoundationDB.Client
 
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(string.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
 						}
-						catch (Exception)
+						catch (Exception e)
 						{
 							context.PreviousError = FdbError.UnknownError;
+							if (context.Transaction.IsLogged()) context.Transaction.Annotate($"Handler failed with error: [{e.GetType().Name}] {e.Message}");
 
 							// execute any state callbacks, if there are any
 							if (context.StateCallbacks != null)
@@ -1178,7 +1206,36 @@ namespace FoundationDB.Client
 								await context.ExecuteHandlers(ref context.StateCallbacks, context, FdbTransactionState.Faulted).ConfigureAwait(false);
 							}
 
-							throw;
+							// if we have pending value-checks, we have to run them !
+							// => the exception thrown by the handler may be caused because of an invalid assumption on the value of a key,
+							// and we HAVE to run the handler again, to give a change to the layer code to realize that it needs to update any cached data
+							//REVIEW: TODO: how can we distinguish between errors that are caused by the bad assumption of a failed value check, and errors that are completely unrelated?
+
+							bool shouldThrow = true;
+							if (!hasRunValueChecks)
+							{
+								context.FailedValueCheckTags?.Clear();
+								context.HasAtLeastOneFailedValueCheck = false;
+								if (!await context.ValidateValueChecks(ignoreFailedTasks: false))
+								{
+									context.HasAtLeastOneFailedValueCheck = true;
+
+									try
+									{
+										await trans.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
+									}
+									catch (FdbException e2)
+									{
+										if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate("Handler failure MAY be due to a failed value-check, but no more attempt is possible!");
+										if (e2.Code != FdbError.NotCommitted) throw;
+									}
+									shouldThrow = false;
+									// note: technically we are after the "OnError" so any new comment will be seen as part of the next attempt..
+									if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags.Where(x => x.Value == true).Select(x => x.Key))}");
+								}
+							}
+
+							if (shouldThrow) throw;
 						}
 
 						// update the base time for the next attempt
