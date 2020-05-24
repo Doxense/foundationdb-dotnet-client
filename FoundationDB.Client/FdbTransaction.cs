@@ -240,7 +240,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to {value}");
 
-			m_log?.Annotate($"SetOption({option}, \"{value:N0}\")");
+			m_log?.Annotate($"SetOption({option}, {value})");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			Span<byte> tmp = stackalloc byte[8];
