@@ -1246,7 +1246,7 @@ namespace FoundationDB.Client
 				var context = Volatile.Read(ref this.Context) ?? this.Layer.Cache;
 				if (context != null)
 				{
-					if (trans.Context.ValueCheckFailedInPreviousAttempt("DirectoryLayer") != true)
+					if (trans.Context.ValueCheckFailedInPreviousAttempt("DirectoryLayer") != FdbValueCheckResult.Failed)
 					{ // all good!
 						if (AnnotateTransactions) trans.Annotate($"{this.Layer} cache context #{context.ReadVersion} likely still valid (no failed value-checks at attempt #{trans.Context.Retries})");
 						return context;

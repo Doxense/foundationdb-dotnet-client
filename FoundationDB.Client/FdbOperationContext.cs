@@ -462,18 +462,50 @@ namespace FoundationDB.Client
 		/// Note that this method can fall victim to the ABA pattern, meaning that a subsquent read of the checked key could return the expected value (changed back to its original value by another transaction).
 		/// To reduce the chances of ABA, checked keys should only be updated using atomic increment operations, or use versionstamps if possible.
 		/// </remarks>
-		public bool? ValueCheckFailedInPreviousAttempt(string tag)
+		public FdbValueCheckResult ValueCheckFailedInPreviousAttempt(string tag)
 		{
-			Dictionary<string, bool>? checks;
+			Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult, Slice, Slice, Slice)>)>? checks;
 			lock (this)
 			{
 				checks = this.FailedValueCheckTags;
 			}
-			return checks != null && checks.TryGetValue(tag, out var result) ? result : default(bool?);
+			return checks != null && checks.TryGetValue(tag, out var check) ? check.Result : FdbValueCheckResult.Unknown;
+		}
+
+		/// <summary>Return the list of all value-checks performed in the previous transaction attempt</summary>
+		/// <param name="tag">If not-null, only return the checks with the specified tag.</param>
+		/// <param name="result">If not-null, only return the checks with the specified result</param>
+		/// <returns>List of value-checks that match the specified filters.</returns>
+		public List<(string Tag, FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)> ListValueChecksFromPreviousAttempt(string? tag = null, FdbValueCheckResult? result = null)
+		{
+			Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)> Checks)>? checks;
+			lock (this)
+			{
+				checks = this.FailedValueCheckTags;
+			}
+
+			var res = new List<(string Tag, FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)>();
+			if (checks != null)
+			{
+				foreach (var kv in checks)
+				{
+					if (tag == null || tag == kv.Key)
+					{
+						foreach (var item in kv.Value.Checks)
+						{
+							if (result == null || item.Result == result)
+							{
+								res.Add((kv.Key, item.Result, item.Key, item.Expected, item.Actual));
+							}
+						}
+					}
+				}
+			}
+			return res;
 		}
 
 		/// <summary>Contains the tags of all the failed value checks from the previous attempt</summary>
-		private Dictionary<string, bool>? FailedValueCheckTags { get; set; }
+		private Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)>)>? FailedValueCheckTags { get; set; }
 
 		/// <summary>Add a check on the value of the key, that will be resolved before the transaction is able to commit</summary>
 		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
@@ -573,29 +605,34 @@ namespace FoundationDB.Client
 			}
 		}
 
-
 		private bool EnsureValueCheck(string tag, Slice key, Slice expectedValue, Slice actualResult)
 		{
-			var tags = (this.FailedValueCheckTags ??= new Dictionary<string, bool>(StringComparer.Ordinal));
-			bool? previous = null;
-			if (tags.TryGetValue(tag, out var x)) previous = x;
+			var tags = (this.FailedValueCheckTags ??= new Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult, Slice, Slice, Slice)> Checks)>(StringComparer.Ordinal));
 
+			if (!tags.TryGetValue(tag, out (FdbValueCheckResult Result, List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)> Checks) previous))
+			{
+				previous.Result = FdbValueCheckResult.Success;
+				previous.Checks = new List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)>();
+			}
+
+			bool pass;
 			if (!expectedValue.Equals(actualResult))
 			{
 				this.HasAtLeastOneFailedValueCheck = true;
-				if (previous != true)
-				{
-					if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for {FdbKey.Dump(key)}: expected {expectedValue:V}, actual {actualResult:V}");
-					tags[tag] = true;
-				}
-				return false;
+				previous.Result = FdbValueCheckResult.Failed;
+				previous.Checks.Add((FdbValueCheckResult.Failed, key, expectedValue, actualResult));
+				if (this.Transaction?.IsLogged() == true) this.Transaction.Annotate($"Failed value-check '{tag}' for {FdbKey.Dump(key)}: expected {expectedValue:V}, actual {actualResult:V}");
+				pass = false;
+			}
+			else
+			{
+				previous.Checks.Add((FdbValueCheckResult.Success, key, expectedValue, actualResult));
+				pass = true;
 			}
 
-			if (previous == null)
-			{
-				tags[tag] = false;
-			}
-			return true;
+			tags[tag] = previous;
+
+			return pass;
 		}
 
 		private ValueTask<bool> ValidateValueChecks(bool ignoreFailedTasks)
@@ -1231,7 +1268,7 @@ namespace FoundationDB.Client
 									}
 									shouldThrow = false;
 									// note: technically we are after the "OnError" so any new comment will be seen as part of the next attempt..
-									if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags.Where(x => x.Value == true).Select(x => x.Key))}");
+									if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags.Where(x => x.Value.Result == FdbValueCheckResult.Failed).Select(x => x.Key))}");
 								}
 							}
 
@@ -1746,5 +1783,16 @@ namespace FoundationDB.Client
 		/// <summary>The last execution of the handler was aborted</summary>
 		Aborted,
 	}
+
+	public enum FdbValueCheckResult
+	{
+		/// <summary>There was no value-check performed with this tag in the previous attempt.</summary>
+		Unknown = 0,
+		/// <summary>All value-checks performed with this tag passed in the previous attempt.</summary>
+		Success = 1,
+		/// <summary>At least one value-check performed with this tag failed in the previous attempt.</summary>
+		Failed = 2,
+	}
+
 
 }
