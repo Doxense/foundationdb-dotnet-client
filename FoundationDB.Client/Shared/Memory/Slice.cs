@@ -1991,11 +1991,11 @@ namespace System
 
 				case "K":
 				case "k":
-					return PrettyPrint(); //TODO: Key ! (cf USlice)
+					return this.IsNull ? "<null>" : PrettyPrint(); //TODO: Key ! (cf USlice)
 
 				case "V":
 				case "v":
-					return PrettyPrint(); //TODO: Value ! (cf USlice)
+					return this.IsNull ? "<null>" : PrettyPrint(); //TODO: Value ! (cf USlice)
 
 				default:
 					throw new FormatException("Format is invalid or not supported");
