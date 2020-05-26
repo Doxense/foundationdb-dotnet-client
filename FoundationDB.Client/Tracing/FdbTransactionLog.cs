@@ -707,6 +707,7 @@ namespace FoundationDB.Filters.Logging
 			GetValues,
 			GetKeys,
 			GetRange,
+			CheckValue,
 			Watch,
 
 			GetReadVersion,

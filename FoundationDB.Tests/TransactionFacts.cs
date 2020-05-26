@@ -672,6 +672,86 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Check_Value()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("test").AsTyped<string>();
+				await CleanLocation(db, location);
+
+				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+				// write a bunch of keys
+				await db.WriteAsync(async tr =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.Set(subspace["hello"], Value("World!"));
+					tr.Set(subspace["foo"], Slice.Empty);
+				}, this.Cancellation);
+
+				async Task Check(IFdbReadOnlyTransaction tr, Slice key, Slice expected, FdbValueCheckResult result, Slice actual)
+				{
+					Log($"Check {key} == {expected} ?");
+					var res = await tr.CheckValueAsync(key, expected);
+					Log($"> [{res.Result}], {res.Actual:V}");
+					Assert.That(res.Actual, Is.EqualTo(actual), "Check({0} == {1}) => ({2}, {3}).Actual was {4}", key, expected, result, actual, res.Actual);
+					Assert.That(res.Result, Is.EqualTo(result), "Check({0} == {1}) => ({2}, {3}).Result was {4}", key, expected, result, actual, res.Result);
+				}
+
+				// hello should only be equal to 'World!', not any other value, empty or nil
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr);
+
+					// hello should only be equal to 'World!', not any other value, empty or nil
+					await Check(tr, subspace["hello"], Value("World!"), FdbValueCheckResult.Success, Value("World!"));
+					await Check(tr, subspace["hello"], Value("Le Monde!"), FdbValueCheckResult.Failed, Value("World!"));
+					await Check(tr, subspace["hello"], Slice.Nil, FdbValueCheckResult.Failed, Value("World!"));
+					await Check(tr, subspace["hello"], subspace["hello"], FdbValueCheckResult.Failed, Value("World!"));
+				}
+
+				// foo should only be equal to Empty, *not* Nil or any other value
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr);
+					await Check(tr, subspace["foo"], Slice.Empty, FdbValueCheckResult.Success, Slice.Empty);
+					await Check(tr, subspace["foo"], Value("bar"), FdbValueCheckResult.Failed, Slice.Empty);
+					await Check(tr, subspace["foo"], Slice.Nil, FdbValueCheckResult.Failed, Slice.Empty);
+					await Check(tr, subspace["foo"], subspace["foo"], FdbValueCheckResult.Failed, Slice.Empty);
+				}
+
+				// not_found should only be equal to Nil, *not* Empty or any other value
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr);
+					await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
+					await Check(tr, subspace["not_found"], Slice.Empty, FdbValueCheckResult.Failed, Slice.Nil);
+					await Check(tr, subspace["not_found"], subspace["not_found"], FdbValueCheckResult.Failed, Slice.Nil);
+				}
+
+				// checking, changing and checking again: 2nd check should see the modified value!
+				// not_found should only be equal to Nil, *not* Empty or any other value
+				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr);
+
+					await Check(tr, subspace["hello"], Value("World!"), FdbValueCheckResult.Success, Value("World!"));
+					await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
+
+					tr.Set(subspace["hello"], Value("Le Monde!"));
+					await Check(tr, subspace["hello"], Value("Le Monde!"), FdbValueCheckResult.Success, Value("Le Monde!"));
+					await Check(tr, subspace["hello"], Value("World!"), FdbValueCheckResult.Failed, Value("Le Monde!"));
+
+					tr.Set(subspace["not_found"], Value("Surprise!"));
+					await Check(tr, subspace["not_found"], Value("Surprise!"), FdbValueCheckResult.Success, Value("Surprise!"));
+					await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Failed, Value("Surprise!"));
+
+					//note: don't commit!
+				}
+			}
+		}
+
 		/// <summary>Performs (x OP y) and ensure that the result is correct</summary>
 		private async Task PerformAtomicOperationAndCheck(IFdbDatabase db, Slice key, int x, FdbMutationType type, int y)
 		{
@@ -2999,6 +3079,7 @@ namespace FoundationDB.Client.Tests
 					// read previous witness value
 					await db.WriteAsync(async tr =>
 					{
+						tr.StopLogging();
 						var subspace = (await location.Resolve(tr))!;
 
 						tr.ClearRange(subspace.ToRange());
@@ -3010,7 +3091,12 @@ namespace FoundationDB.Client.Tests
 
 					await db.WriteAsync(async tr =>
 					{
-						Log($"- Retry #{tr.Context.Retries}: prev={tr.Context.PreviousError}, checkFailed={tr.Context.HasAtLeastOneFailedValueCheck}");
+						var checks = tr.Context.GetValueChecksFromPreviousAttempt(result: FdbValueCheckResult.Failed);
+						Log($"- Retry #{tr.Context.Retries}: prev={tr.Context.PreviousError}, checksFromPrevious={checks.Count}");
+						foreach (var check in checks)
+						{
+							Log($"  > [{check.Tag}]: {check.Result}, {FdbKey.Dump(check.Key)} => {check.Expected:V} vs {check.Actual:V}");
+						}
 						if (tr.Context.Retries > 10) Assert.Fail("Too many retries!");
 
 						if (!test(tr)) return;
@@ -3024,6 +3110,7 @@ namespace FoundationDB.Client.Tests
 					// read back the witness key to see if commit happened or not.
 					var actual = await db.ReadAsync(async tr =>
 					{
+						tr.StopLogging();
 						var subspace = await location.Resolve(tr);
 						return await tr.GetAsync(subspace.Encode("Witness"));
 					}, this.Cancellation);
@@ -3041,9 +3128,9 @@ namespace FoundationDB.Client.Tests
 						(tr) =>
 						{
 							if (tr.Context.Retries == 0)
-							{ // first attepmpt: all should be default
-								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+							{ // first attempt: all should be default
+								Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+								Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 								return true;
 							}
 							else
@@ -3068,9 +3155,9 @@ namespace FoundationDB.Client.Tests
 						(tr) =>
 						{
 							if (tr.Context.Retries == 0)
-							{ // first attepmpt: all should be default
-								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+							{ // first attempt: all should be default
+								Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+								Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 								return true;
 							}
 							else
@@ -3096,9 +3183,10 @@ namespace FoundationDB.Client.Tests
 						{
 							if (tr.Context.Retries == 0)
 							{ // first attepmpt: all should be default
-								Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
-								Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("barCheck"), Is.Null);
+								Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+								Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
+								Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("barCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+								Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("barCheck"), Is.Empty);
 								return true;
 							}
 							else
@@ -3127,14 +3215,16 @@ namespace FoundationDB.Client.Tests
 							{
 								case 0:
 									// on first attempt, everything should be default
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Has.Count.EqualTo(1));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck")[0].Result, Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("unrelated"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("unrelated"), Is.Empty);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3161,14 +3251,16 @@ namespace FoundationDB.Client.Tests
 							{
 								case 0:
 									// on first attempt, everything should be default
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Has.Count.EqualTo(1));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck")[0].Result, Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("unrelated"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("unrelated"), Is.Empty);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3195,8 +3287,8 @@ namespace FoundationDB.Client.Tests
 							{
 								case 0:
 									// on first attempt, everything should be default
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 									return true;
 								default:
 									// should not fire twice!
@@ -3226,8 +3318,8 @@ namespace FoundationDB.Client.Tests
 							{
 								case 0:
 									// on first attempt, everything should be default
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 									return true;
 								default:
 									// should not fire twice!
@@ -3257,14 +3349,16 @@ namespace FoundationDB.Client.Tests
 							{
 								case 0:
 									// on first attempt, everything should be default
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Has.Count.EqualTo(1));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck")[0].Result, Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("unrelated"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("unrelated"), Is.Empty);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3294,14 +3388,16 @@ namespace FoundationDB.Client.Tests
 							{
 								case 0:
 									// on first attempt, everything should be default
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.False, "Should be false on first attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Is.Empty);
 									return true;
 								case 1:
 									// on second attempt, value-check "fooCheck" should be triggered
-									Assert.That(tr.Context.HasAtLeastOneFailedValueCheck, Is.True, "Should be true on second attempt");
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("fooCheck"), Is.True);
-									Assert.That(tr.Context.ValueCheckFailedInPreviousAttempt("unrelated"), Is.Null);
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("fooCheck"), Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck"), Has.Count.EqualTo(1));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("fooCheck")[0].Result, Is.EqualTo(FdbValueCheckResult.Failed));
+									Assert.That(tr.Context.TestValueCheckFromPreviousAttempt("unrelated"), Is.EqualTo(FdbValueCheckResult.Unknown));
+									Assert.That(tr.Context.GetValueChecksFromPreviousAttempt("unrelated"), Is.Empty);
 									Assert.That(tr.Context.PreviousError, Is.EqualTo(FdbError.NotCommitted), "Should emulate a 'not_committed'");
 									return false; // stop
 								default:
@@ -3362,7 +3458,7 @@ namespace FoundationDB.Client.Tests
 						//note: this subspace does not use the DL so it does not introduce any value checks!
 						var subspace = await location.Resolve(tr);
 
-						if (true == tr.Context.ValueCheckFailedInPreviousAttempt("foo"))
+						if (tr.Context.TestValueCheckFromPreviousAttempt("foo") == FdbValueCheckResult.Failed)
 						{
 							Log("# Oh, no! 'foo' check failed previously, check and initialze the db if required...");
 

@@ -1584,6 +1584,25 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region CheckValueAsync...
+
+		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="expected">Expected value for this key</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		/// <returns>Return the result of the check, plus the actual value of the key.</returns>
+		public static Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(this IFdbReadOnlyTransaction trans, Slice key, Slice expected)
+		{
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return trans.CheckValueAsync(key.Span, expected);
+		}
+
+		#endregion
+
 		#region Clear...
 
 		/// <summary>

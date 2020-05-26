@@ -838,6 +838,39 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
+		public sealed class CheckValueCommand : Command<(FdbValueCheckResult Result, Slice Actual)>
+		{
+			/// <summary>Selector to a key in the database</summary>
+			public Slice Key { get; }
+
+			/// <summary>Selector to a key in the database</summary>
+			public Slice Expected { get; }
+
+			public override Operation Op => Operation.CheckValue;
+
+			public CheckValueCommand(Slice key, Slice expected)
+			{
+				this.Key = key;
+				this.Expected = expected;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count + this.Expected.Count;
+
+			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : this.Result.Value.Actual.Count;
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return resolver.Resolve(this.Key) + " =?= " + (this.Expected.IsNull ? "<missing>" : this.Expected.ToString("V"));
+			}
+
+			protected override string Dump((FdbValueCheckResult Result, Slice Actual) value)
+			{
+				return value.Actual.IsNull ? $"<missing> [{value.Result}]" : $"{value.Actual:V} [{value.Result}]";
+			}
+
+		}
+
+
 		public sealed class GetVersionStampCommand : Command<VersionStamp>
 		{
 			public override Operation Op => Operation.GetVersionStamp;

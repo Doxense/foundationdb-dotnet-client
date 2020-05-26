@@ -111,6 +111,14 @@ namespace FoundationDB.Client.Core
 		/// <returns></returns>
 		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, bool snapshot, CancellationToken ct);
 
+		/// <summary>Check the the value of a key in the database snapshot is equal to the expected value.</summary>
+		/// <param name="key">Key to check</param>
+		/// <param name="expected">Expected value of the key</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns>Task that will return a pair of <see cref="FdbValueCheckResult"/> and the actual value of the key in the database.</returns>
+		Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected, bool snapshot, CancellationToken ct);
+
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>

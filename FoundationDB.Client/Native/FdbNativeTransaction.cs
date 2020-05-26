@@ -143,6 +143,18 @@ namespace FoundationDB.Client.Native
 			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
 
+		private static bool TryPeekValueResultBytes(FutureHandle h, out ReadOnlySpan<byte> result)
+		{
+			Contract.Requires(h != null);
+			var err = FdbNative.FutureGetValue(h, out bool present, out result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].TryPeekValueResultBytes() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+#endif
+			Fdb.DieOnError(err);
+
+			return present;
+		}
+
 		private static Slice GetValueResultBytes(FutureHandle h)
 		{
 			Contract.Requires(h != null);
@@ -328,7 +340,25 @@ namespace FoundationDB.Client.Native
 				throw;
 			}
 			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetKeyResult(h), ct);
+		}
 
+		public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected, bool snapshot, CancellationToken ct)
+		{
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.TransactionGet(m_handle, key, snapshot),
+				(h) =>
+				{
+					if (TryPeekValueResultBytes(h, out var actual))
+					{ // key exists
+						return !expected.IsNull && expected.Span.SequenceEqual(actual) ? (FdbValueCheckResult.Success, expected) : (FdbValueCheckResult.Failed, Slice.Copy(actual));
+					}
+					else
+					{ // key does not exist, pass only if expected is Nil
+						return expected.IsNull ? (FdbValueCheckResult.Success, Slice.Nil) : (FdbValueCheckResult.Failed, Slice.Nil);
+					}
+				},
+				ct
+			);
 		}
 
 		#endregion

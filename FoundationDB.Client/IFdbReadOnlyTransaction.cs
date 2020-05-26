@@ -134,6 +134,17 @@ namespace FoundationDB.Client
 		[Pure, LinqTunnel]
 		FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null);
 
+		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="expected">Expected value for this key</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		/// <returns>Return the result of the check, plus the actual value of the key.</returns>
+		Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected);
+
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>

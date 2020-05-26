@@ -593,6 +593,36 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <inheritdoc />
+		public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected)
+		{
+			EnsureCanRead();
+
+			FdbKey.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ValueCheckAsync", $"Checking the value for '{key.ToString()}'");
+#endif
+
+			return PerformValueCheckOperation(key, expected, snapshot: false);
+		}
+
+		private Task<(FdbValueCheckResult Result, Slice Actual)> PerformValueCheckOperation(ReadOnlySpan<byte> key, Slice expected, bool snapshot)
+		{
+			if (m_log != null)
+			{
+				return m_log.ExecuteAsync(
+					this,
+					new FdbTransactionLog.CheckValueCommand(m_log.Grab(key), m_log.Grab(expected)) { Snapshot =  snapshot },
+					(tr, cmd) => tr.m_handler.CheckValueAsync(cmd.Key.Span, cmd.Expected, cmd.Snapshot, tr.m_cancellation)
+				);
+			}
+			else
+			{
+				return m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation);
+			}
+		}
+
 		#endregion
 
 		#region GetValues...

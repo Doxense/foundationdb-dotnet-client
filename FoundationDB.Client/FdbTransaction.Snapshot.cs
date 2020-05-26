@@ -203,6 +203,20 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetAddressesForKeyOperation(key);
 			}
 
+			/// <inheritdoc />
+			public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected)
+			{
+				EnsureCanRead();
+
+				FdbKey.EnsureKeyIsValid(key);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ValueCheckAsync", $"Checking the value for '{key.ToString()}'");
+#endif
+
+				return m_parent.PerformValueCheckOperation(key, expected, snapshot: true);
+			}
+
 			void IFdbReadOnlyTransaction.Cancel()
 			{
 				throw new NotSupportedException("You cannot cancel the Snapshot view of a transaction.");
