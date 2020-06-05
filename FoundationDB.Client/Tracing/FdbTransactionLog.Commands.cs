@@ -452,7 +452,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver)
 			{
-				return string.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("K"));
+				return string.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("V"));
 			}
 
 		}
@@ -571,7 +571,34 @@ namespace FoundationDB.Filters.Logging
 				resolver ??= KeyResolver.Default;
 				var sb = new StringBuilder();
 				if (this.Snapshot) sb.Append("Snapshot.");
-				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(GetUserKey())).Append(", <").Append(GetUserValue().ToHexaString(' ')).Append('>');
+
+				// Depending on the type of mutations, the value is either known to be binary, or could be anything...
+				var value = GetUserValue();
+				string str;
+				string? suffix = null;
+				switch (this.Mutation)
+				{
+					case FdbMutationType.VersionStampedKey:
+					{
+						str = value.ToString("V");
+						break;
+					}
+					default:
+					{
+						str = "<" + value.ToHexaString(' ') + ">";
+						switch (value.Count)
+						{
+							case 4:
+								suffix = " (" + value.ToInt32() + ")";
+								break;
+							case 8:
+								suffix = " (" + value.ToInt64() + ")";
+								break;
+						}
+						break;
+					}
+				}
+				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(GetUserKey())).Append(", ").Append(str).Append(suffix);
 				return sb.ToString();
 			}
 		}
