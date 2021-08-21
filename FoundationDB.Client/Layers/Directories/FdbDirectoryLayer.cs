@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
@@ -604,12 +605,12 @@ namespace FoundationDB.Client
 
 				if (EnsureCanCache(trans))
 				{
-					if (ctx.TryGetSubspace(trans, this, path, out var subspace))
+					if (ctx.TryGetSubspace(trans, this, path, out var subspace, out var validationChain))
 					{
-						if (subspace != null)
+						Contract.Assert(validationChain != null);
+						if (validationChain.Count != 0)
 						{
-							//TODO: only add value-check for a directory "once" !
-							trans.Context.AddValueChecks("DirectoryLayer", subspace.Descriptor.ValidationChain);
+							trans.Context.AddValueChecks("DirectoryLayer", validationChain);
 						}
 
 						return subspace;
@@ -639,9 +640,10 @@ namespace FoundationDB.Client
 				{
 					if (throwOnError) throw new InvalidOperationException($"The directory {path} does not exist.");
 					subspace = null;
+					Contract.Ensures(existingNode.ValidationChain != null);
 				}
 
-				return context.AddSubspace(path, subspace)?.ChangeContext(this);
+				return context.AddSubspace(path, subspace, existingNode.ValidationChain)?.ChangeContext(this);
 			}
 
 			/// <summary>Open a subspace using the local cache</summary>
@@ -660,9 +662,13 @@ namespace FoundationDB.Client
 					{
 						var path = paths.Span[i];
 						EnsureAbsolutePath(in path);
-						if (ctx.TryGetSubspace(trans, this, path, out var subspace))
+						if (ctx.TryGetSubspace(trans, this, path, out var subspace, out var validationChain))
 						{
-							//TODO: check layer!
+							Contract.Assert(validationChain != null);
+							if (validationChain.Count != 0)
+							{
+								trans.Context.AddValueChecks("DirectoryLayer", validationChain);
+							}
 							results[i] = subspace;
 						}
 						else
@@ -1349,7 +1355,7 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <summary>Represents the cached state used by the DirectoryLayer to map key prefixes to subspaces</summary>
-		[DebuggerDisplay("Id={Id}, MV={MetadataVersion}, PV={PartitionVersion}")]
+		[DebuggerDisplay("Id={Id}, RV={ReadVersion}")]
 		internal sealed class CacheContext : ISubspaceContext
 		{
 			// Multiple transactions can link to the same cache context
@@ -1365,7 +1371,7 @@ namespace FoundationDB.Client
 			public Slice LayerVersion { get; set; }
 			// content of [PARTITION, "version"] key
 
-			public Dictionary<FdbPath, FdbDirectorySubspace?> CachedSubspaces { get; } = new Dictionary<FdbPath, FdbDirectorySubspace?>();
+			public Dictionary<FdbPath, (FdbDirectorySubspace? Subspace, IReadOnlyList<KeyValuePair<Slice, Slice>> ValidationChain) > CachedSubspaces { get; } = new Dictionary<FdbPath, (FdbDirectorySubspace?, IReadOnlyList<KeyValuePair<Slice, Slice>>)>();
 
 			private ReaderWriterLockSlim Lock { get; } = new ReaderWriterLockSlim();
 
@@ -1382,15 +1388,18 @@ namespace FoundationDB.Client
 
 			/// <summary>Lookup a subspace in the cache</summary>
 			/// <param name="tr">Parent transaction</param>
+			/// <param name="state"></param>
 			/// <param name="path">Absolute path to the subspace</param>
-			/// <param name="subspace">If the method returns <c>true</c>, receives the cached subspace instance.</param>
-			/// <returns>True if the subspace was found in the cache.</returns>
-			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, State state, FdbPath path, out FdbDirectorySubspace? subspace)
+			/// <param name="subspace">If the method returns <c>true</c>, receives the cached subspace instance (or null if the cache knows that the subspace does not exist).</param>
+			/// <param name="validationCain">If the method returns <c>true</c>, receives the validation chain</param>
+			/// <returns>True if the cache contains information about the subspace.</returns>
+			public bool TryGetSubspace(IFdbReadOnlyTransaction tr, State state, FdbPath path, out FdbDirectorySubspace? subspace, [MaybeNullWhen(false)] out IReadOnlyList<KeyValuePair<Slice, Slice>> validationCain)
 			{
 				Contract.Requires(tr != null);
 				subspace = null;
+				validationCain = null;
 
-				FdbDirectorySubspace? candidate;
+				(FdbDirectorySubspace? Subspace, IReadOnlyList<KeyValuePair<Slice, Slice>> ValidationChain) candidate;
 
 				this.Lock.EnterReadLock();
 				try
@@ -1409,21 +1418,23 @@ namespace FoundationDB.Client
 				// if candidate == null, we know it DOES NOT exist (we checked previously, and noted its absence by inserting null in the cache)
 				// if candidate != null, we know it DOES exist.
 
-				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {candidate?.ToString() ?? "<not_found>"}");
+				if (AnnotateTransactions) tr.Annotate($"{this.DirectoryLayer} subspace HIT for {path}: {candidate.Subspace?.ToString() ?? "<not_found>"}");
 
 				// the subspace was created with another context, we must migrate it to the current transaction's context
-				subspace = candidate?.ChangeContext(state);
+				subspace = candidate.Subspace?.ChangeContext(state);
+				validationCain = candidate.ValidationChain;
 				return true;
 			}
 
-			public FdbDirectorySubspace? AddSubspace(FdbPath path, FdbDirectorySubspace? subspace)
+			public FdbDirectorySubspace? AddSubspace(FdbPath path, FdbDirectorySubspace? subspace, IReadOnlyList<KeyValuePair<Slice, Slice>> validationChain)
 			{
 				Contract.Requires(subspace == null || subspace.Descriptor.Path == path);
-				//TODO: check !
+				Contract.Requires(validationChain != null);
+
 				this.Lock.EnterWriteLock();
 				try
 				{
-					this.CachedSubspaces[path] = subspace;
+					this.CachedSubspaces[path] = (subspace, validationChain);
 				}
 				finally
 				{
