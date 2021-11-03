@@ -10,6 +10,7 @@
     <AssemblyName>FdbShell</AssemblyName>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+	<PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <Import Project="..\Common\VersionInfo.props" />

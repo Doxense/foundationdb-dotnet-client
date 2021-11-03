@@ -11,6 +11,7 @@
     <LangVersion>8.0</LangVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+	<PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <Import Project="..\Common\VersionInfo.props" />
