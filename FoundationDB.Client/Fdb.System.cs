@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 			public static readonly Slice MetadataVersion = Slice.FromByteString("\xff/metadataVersion");
 
 			/// <summary>Placeholder value used when updating the metadataVersion key (80-bit version stamp + 32 bit offset)</summary>
-			internal static readonly Slice MetadataVersionValue = Slice.Create(14);
+			internal static readonly Slice MetadataVersionValue = new byte[14].AsSlice();
 
 			/// <summary>"\xFF/backupDataFormat"</summary>
 			public static readonly Slice BackupDataFormat = Slice.FromByteString("\xFF/backupDataFormat");

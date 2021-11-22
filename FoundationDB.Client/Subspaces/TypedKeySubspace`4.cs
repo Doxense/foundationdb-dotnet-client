@@ -221,7 +221,7 @@ namespace FoundationDB.Client
 		{
 			var bytes = this.Encoder.EncodeKey(item1, item2, item3, item4);
 			var sw = this.Parent.OpenWriter(bytes.Count);
-			sw.WriteBytes(in bytes);
+			sw.WriteBytes(bytes);
 			return sw.ToSlice();
 		}
 

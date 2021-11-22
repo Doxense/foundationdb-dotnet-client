@@ -828,26 +828,23 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					var page = new byte[total];
-					fixed (byte* ptr = &page[0])
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
 					{
-						uint p = 0;
-						for (int i = 0; i < result.Length; i++)
-						{
-							uint kl = kvp[i].KeyLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-							Slice key = page.AsSlice(p, kl);
-							p += kl;
+						int kl = (int) kvp[i].KeyLength;
+						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						Slice key = page.AsSlice(p, kl);
+						p += kl;
 
-							uint vl = kvp[i].ValueLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
-							Slice value = page.AsSlice(p, vl);
-							p += vl;
+						int vl = (int) kvp[i].ValueLength;
+						new ReadOnlySpan<byte>(kvp[i].Value.ToPointer(), vl).CopyTo(page.AsSpan(p));
+						Slice value = page.AsSlice(p, vl);
+						p += vl;
 
-							result[i] = new KeyValuePair<Slice, Slice>(key, value);
-						}
-
-						Contract.Assert(p == total);
+						result[i] = new KeyValuePair<Slice, Slice>(key, value);
 					}
+
+					Contract.Assert(p == total);
 				}
 			}
 
@@ -900,21 +897,18 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					var page = new byte[total];
-					fixed (byte* ptr = &page[0])
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
 					{
-						uint p = 0;
-						for (int i = 0; i < result.Length; i++)
-						{
-							uint kl = kvp[i].KeyLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-							Slice key = page.AsSlice(p, kl);
-							p += kl;
+						int kl = checked((int) kvp[i].KeyLength);
+						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						Slice key = page.AsSlice(p, kl);
+						p += kl;
 
-							result[i] = new KeyValuePair<Slice, Slice>(key, default);
-						}
-
-						Contract.Assert(p == total);
+						result[i] = new KeyValuePair<Slice, Slice>(key, default);
 					}
+
+					Contract.Assert(p == total);
 				}
 			}
 
@@ -973,33 +967,30 @@ namespace FoundationDB.Client.Native
 					//consider having to copy methods, optimized for each scenario ?
 
 					var page = new byte[total];
-					fixed (byte* ptr = &page[0])
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
 					{
-						uint p = 0;
-						for (int i = 0; i < result.Length; i++)
+						// note: even if we only read the values, we still need to keep the first and last keys,
+						// because we will need them for pagination when reading multiple ranges (ex: last key will be used as selector for next chunk when going forward)
+						if (i == 0 || i == end)
 						{
-							// note: even if we only read the values, we still need to keep the first and last keys,
-							// because we will need them for pagination when reading multiple ranges (ex: last key will be used as selector for next chunk when going forward)
-							if (i == 0 || i == end)
-							{
-								uint kl = kvp[i].KeyLength;
-								UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Key.ToPointer(), kl);
-								Slice key = page.AsSlice(p, kl);
-								p += kl;
-								if (i == 0) first = key;
-								if (i == end) last = key;
-							}
-
-							uint vl = kvp[i].ValueLength;
-							UnsafeHelpers.CopyUnsafe(ptr + p, (byte*) kvp[i].Value.ToPointer(), vl);
-							Slice value = page.AsSlice(p, vl);
-							p += vl;
-
-							result[i] = new KeyValuePair<Slice, Slice>(default, value);
+							int kl = checked((int) kvp[i].KeyLength);
+							new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+							Slice key = page.AsSlice(p, kl);
+							p += kl;
+							if (i == 0) first = key;
+							if (i == end) last = key;
 						}
 
-						Contract.Assert(p == total);
+						int vl = checked((int) kvp[i].ValueLength);
+						new ReadOnlySpan<byte>(kvp[i].Value.ToPointer(), vl).CopyTo(page.AsSpan(p));
+						Slice value = page.AsSlice(p, vl);
+						p += vl;
+
+						result[i] = new KeyValuePair<Slice, Slice>(default, value);
 					}
+
+					Contract.Assert(p == total);
 				}
 			}
 
@@ -1056,7 +1047,7 @@ namespace FoundationDB.Client.Native
 				return err;
 			}
 
-			VersionStamp.ReadUnsafe(ptr, 10, out stamp);
+			VersionStamp.ReadUnsafe(new ReadOnlySpan<byte>(ptr, 10), out stamp);
 			return err;
 		}
 

@@ -700,14 +700,14 @@ namespace FoundationDB.Client
 			if (apiVer < 520)
 			{ // prior to 520, the offset is only 16-bits
 				var writer = new SliceWriter(key.Count + 2);
-				writer.WriteBytes(in key);
+				writer.WriteBytes(key);
 				writer.WriteFixed16(checked((ushort) offset)); // 16-bits little endian
 				arg = writer.ToSlice();
 			}
 			else
 			{ // starting from 520, the offset is 32 bits
 				var writer = new SliceWriter(key.Count + 4);
-				writer.WriteBytes(in key);
+				writer.WriteBytes(key);
 				writer.WriteFixed32(checked((uint) offset)); // 32-bits little endian
 				arg = writer.ToSlice();
 			}
@@ -737,14 +737,14 @@ namespace FoundationDB.Client
 			{ // prior to 520, the offset is only 16-bits
 				if (stampOffset > 0xFFFF) throw new ArgumentException("The offset is too large to fit within 16-bits.");
 				var writer = new SliceWriter(key.Count + 2);
-				writer.WriteBytes(in key);
+				writer.WriteBytes(key);
 				writer.WriteFixed16(checked((ushort) stampOffset)); //stored as 32-bits in Little Endian
 				arg = writer.ToSlice();
 			}
 			else
 			{ // starting from 520, the offset is 32 bits
 				var writer = new SliceWriter(key.Count + 4);
-				writer.WriteBytes(in key);
+				writer.WriteBytes(key);
 				writer.WriteFixed32(checked((uint) stampOffset)); //stored as 32-bits in Little Endian
 				arg = writer.ToSlice();
 			}
@@ -781,7 +781,7 @@ namespace FoundationDB.Client
 				Contract.Requires(offset >=0 && offset <= value.Count - 10);
 
 				var writer = new SliceWriter(value.Count + 4);
-				writer.WriteBytes(in value);
+				writer.WriteBytes(value);
 				writer.WriteFixed32(checked((uint) offset));
 				arg = writer.ToSlice();
 			}
@@ -818,7 +818,7 @@ namespace FoundationDB.Client
 
 				//TODO: PERF: optimize this to not have to allocate!
 				var writer = new SliceWriter(value.Count + 4);
-				writer.WriteBytes(in value);
+				writer.WriteBytes(value);
 				writer.WriteFixed32(checked((uint) stampOffset));
 				arg = writer.ToSlice();
 			}
