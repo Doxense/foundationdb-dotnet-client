@@ -1167,6 +1167,10 @@ namespace FdbTop
 			public bool Log;
 			public bool Storage;
 			public bool Resolver;
+			public bool RateKeeper;
+			public bool DataDistributor;
+			public bool CommitProxy;
+			public bool GrvProxy;
 			public bool Other;
 
 			public void Add(string role)
@@ -1176,9 +1180,13 @@ namespace FdbTop
 					case "master": this.Master = true; break;
 					case "cluster_controller": this.ClusterController = true; break;
 					case "proxy": this.Proxy = true; break;
+					case "commit_proxy": this.Proxy = true; this.CommitProxy = true; break;
+					case "grv_proxy": this.Proxy = true; this.GrvProxy = true; break;
 					case "log": this.Log = true; break;
 					case "storage": this.Storage = true; break;
 					case "resolver": this.Resolver = true; break;
+					case "ratekeeper": this.Other = true; this.RateKeeper = true; break;
+					case "data_distributor": this.Other = true; this.DataDistributor = true; break;
 					default: this.Other = true; break;
 				}
 			}
@@ -1188,21 +1196,30 @@ namespace FdbTop
 				this.Master = false;
 				this.ClusterController = false;
 				this.Proxy = false;
+				this.CommitProxy = false;
+				this.GrvProxy = false;
 				this.Log = false;
 				this.Storage = false;
 				this.Resolver = false;
 				this.Other = false;
+				this.RateKeeper = false;
+				this.DataDistributor = false;
 			}
 
 			public override string ToString()
 			{
 				var sb = new StringBuilder(11);
-				sb.Append(this.Master ? "M " : "- ");
-				sb.Append(this.ClusterController ? "C " : "- ");
-				sb.Append(this.Proxy ? "P " : "- ");
-				sb.Append(this.Log ? "L " : "- ");
-				sb.Append(this.Storage ? "S " : "- ");
+				sb.Append(this.Master ? "M" : "-");
+				sb.Append(this.ClusterController ? "C" : "-");
+				sb.Append(this.Proxy ? "P" : "-");
+				sb.Append(this.CommitProxy ? "c" : "-");
+				sb.Append(this.GrvProxy? "g" : "-");
+				sb.Append(this.Log ? "L" : "-");
+				sb.Append(this.Storage ? "S" : "-");
 				sb.Append(this.Resolver ? "R" : "-");
+				sb.Append(this.Other ? "O" : "-");
+				sb.Append(this.RateKeeper ? "r" : "-");
+				sb.Append(this.DataDistributor ? "d" : "-");
 				return sb.ToString();
 			}
 		}
@@ -1615,7 +1632,7 @@ namespace FdbTop
 				.SelectMany(kv => kv.Value.Roles.Select(r => (Process: kv.Value, Role: r, MachineId: kv.Value.MachineId)))
 				.ToLookup(x => x.Role.Role);
 
-			foreach (var roleId in new [] { "log", "storage", "proxy", "resolver", "master", "cluster_controller" })
+			foreach (var roleId in new [] { "log", "storage", "proxy", "commit_proxy", "grv_proxy", "resolver", "master", "cluster_controller", "data_distributor", "ratekeeper" })
 			{
 				var kv = byRoles[roleId].ToList();
 

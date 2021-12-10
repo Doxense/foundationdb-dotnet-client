@@ -224,6 +224,10 @@ namespace FoundationDB.Client.Status
 			m_data = data;
 		}
 
+		/// <summary>Returns <c>true</c> if this section was present in the parent</summary>
+		/// <remarks>If <c>false</c>, the content of this instance should be discarded</remarks>
+		public bool Exists() => m_data != null;
+
 		protected Dictionary<string, object?>? GetMap(string field)
 		{
 			return TinyJsonParser.GetMapField(m_data, field);
@@ -350,91 +354,92 @@ namespace FoundationDB.Client.Status
 		private Dictionary<string, ProcessStatus>? m_processes;
 		private Dictionary<string, MachineStatus>? m_machines;
 
-		/// <summary>Unix time of the cluster controller</summary>
+		/// <summary><c>cluster_controller_timestamp</c>: Unix time of the cluster controller</summary>
 		/// <remarks>Number of seconds since the Unix epoch (1970-01-01Z)</remarks>
 		public long ClusterControllerTimestamp => GetInt64("cluster_controller_timestamp") ?? 0;
 
+		/// <summary><c>connection_string</c></summary>
 		public string ConnectionString => GetString("connection_string") ?? string.Empty;
 
+		/// <summary><c>database_available</c></summary>
 		public bool DatabaseAvailable => GetBoolean("database_available") ?? false;
 
+		/// <summary><c>database_locked</c></summary>
 		public bool DatabaseLocked => GetBoolean("database_locked") ?? false;
 
+		/// <summary><c>protocol_version</c></summary>
+		public string ProtocolVersion => GetString("protocol_version") ?? string.Empty;
+
+		/// <summary><c>full_replication</c></summary>
 		public bool FullReplication => GetBoolean("full_replication") ?? false;
 
+		/// <summary><c>generation</c></summary>
 		public long Generation => GetInt64("generation") ?? 0;
 
-		/// <summary>License string of the cluster</summary>
-		public string License => GetString("license") ?? String.Empty;
+		/// <summary><c>license</c>: License string of the cluster</summary>
+		public string License => GetString("license") ?? string.Empty;
 
-		/// <summary>List of currently active messages</summary>
+		/// <summary><c>messages</c>: List of currently active messages</summary>
 		/// <remarks>Includes notifications, warnings, errors, ...</remarks>
 		public Message[] Messages => m_messages ??= Message.FromArray(m_data, "messages");
 
-		/// <summary>Recovery state of the cluster</summary>
+		/// <summary><c>recovery_state</c>: Recovery state of the cluster</summary>
 		public Message RecoveryState => Message.From(m_data, "recovery_state");
 
+		/// <summary><c>configuration</c></summary>
 		public ClusterConfiguration Configuration => m_configuration ??= new ClusterConfiguration(GetMap("configuration"));
 
+		/// <summary><c>data</c></summary>
 		public DataMetrics Data => m_dataMetrics ??= new DataMetrics(GetMap("data"));
 
+		/// <summary><c>latency_probe</c></summary>
 		public LatencyMetrics Latency => m_latency ??= new LatencyMetrics(GetMap("latency_probe"));
 
-		/// <summary>QoS metrics</summary>
+		/// <summary><c>qos</c>: QoS metrics</summary>
 		public QosMetrics Qos => m_qos ??= new QosMetrics(GetMap("qos"));
 
-		/// <summary>Workload metrics</summary>
+		/// <summary><c>workload</c>: Workload metrics</summary>
 		public WorkloadMetrics Workload => m_workload ??= new WorkloadMetrics(GetMap("workload"));
 
+		/// <summary><c>clients</c></summary>
 		public ClusterClientsMetrics Clients => m_clients ??= new ClusterClientsMetrics(GetMap("clients"));
 
-		/// <summary>List of the processes that are currently active in the cluster</summary>
-		public IReadOnlyDictionary<string, ProcessStatus> Processes
-		{
-			get
-			{
-				if (m_processes == null)
-				{
-					var obj = GetMap("processes");
-					var procs = new Dictionary<string, ProcessStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
-					if (obj != null)
-					{
-						//REVIEW: are ids case sensitive?
-						foreach (var kvp in obj)
-						{
-							var item = (Dictionary<string, object?>?) kvp.Value;
-							procs[kvp.Key] = new ProcessStatus(item, kvp.Key);
-						}
-					}
+		/// <summary><c>processes</c>: List of the processes that are currently active in the cluster</summary>
+		public IReadOnlyDictionary<string, ProcessStatus> Processes => m_processes ??= ComputeProcesses();
 
-					m_processes = procs;
+		private Dictionary<string, ProcessStatus> ComputeProcesses()
+		{
+			var obj = GetMap("processes");
+			var procs = new Dictionary<string, ProcessStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
+			if (obj != null)
+			{
+				//REVIEW: are ids case sensitive?
+				foreach (var kvp in obj)
+				{
+					var item = (Dictionary<string, object?>?) kvp.Value;
+					procs[kvp.Key] = new ProcessStatus(item, kvp.Key);
 				}
-				return m_processes;
 			}
+			return procs;
 		}
 
-		/// <summary>List of the machines that are currently active in the cluster</summary>
-		public IReadOnlyDictionary<string, MachineStatus> Machines
+		/// <summary><c>machines</c>: List of the machines that are currently active in the cluster</summary>
+		public IReadOnlyDictionary<string, MachineStatus> Machines => m_machines ??= ComputeMachines();
+
+		private Dictionary<string, MachineStatus> ComputeMachines()
 		{
-			get
+			var obj = GetMap("machines");
+			var machines = new Dictionary<string, MachineStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
+			if (obj != null)
 			{
-				if (m_machines == null)
+				//REVIEW: are ids case sensitive?
+				foreach (var kvp in obj)
 				{
-					var obj = GetMap("machines");
-					var machines = new Dictionary<string, MachineStatus>(obj?.Count ?? 0, StringComparer.OrdinalIgnoreCase);
-					if (obj != null)
-					{
-						//REVIEW: are ids case sensitive?
-						foreach (var kvp in obj)
-						{
-							var item = (Dictionary<string, object?>?) kvp.Value;
-							machines[kvp.Key] = new MachineStatus(item, kvp.Key);
-						}
-					}
-					m_machines = machines;
+					var item = (Dictionary<string, object?>?) kvp.Value;
+					machines[kvp.Key] = new MachineStatus(item, kvp.Key);
 				}
-				return m_machines;
 			}
+			return machines;
 		}
 
 	}
@@ -747,49 +752,138 @@ namespace FoundationDB.Client.Status
 		public static ProcessRoleMetrics Create(Dictionary<string, object?>? data)
 		{
 			string? role = TinyJsonParser.GetStringField(data, "role");
-			switch (role)
+			return role switch
 			{
-				case null:
-					return null!; //invalid!
-				case "master":
-					return new MasterRoleMetrics(data);
-				case "proxy":
-					return new ProxyRoleMetrics(data);
-				case "resolver":
-					return new ResolverRoleMetrics(data);
-				case "cluster_controller":
-					return new ClusterControllerRoleMetrics(data);
-				case "log":
-					return new LogRoleMetrics(data);
-				case "storage":
-					return new StorageRoleMetrics(data);
-				default:
-					return new ProcessRoleMetrics(data, role);
-			}
+				null => null!, //invalid!
+				"master" => new MasterRoleMetrics(data),
+				"proxy" => new ProxyRoleMetrics(data),
+				"commit_proxy" => new CommitProxyRoleMetrics(data),
+				"grv_proxy" => new GrvProxyRoleMetrics(data),
+				"resolver" => new ResolverRoleMetrics(data),
+				"cluster_controller" => new ClusterControllerRoleMetrics(data),
+				"log" => new LogRoleMetrics(data),
+				"storage" => new StorageRoleMetrics(data),
+				"ratekeeper" => new RateKeeperRoleMetrics(data),
+				"data_distributor" => new DataDistributorRoleMetrics(data),
+				_ => new ProcessRoleMetrics(data, role)
+			};
 		}
+
 	}
 
+	/// <summary>Metrics related to the <c>proxy_proxy</c> role</summary>
 	public sealed class ProxyRoleMetrics : ProcessRoleMetrics
 	{
-		public ProxyRoleMetrics(Dictionary<string, object?>? data) : base(data, "proxy")
+		public ProxyRoleMetrics(Dictionary<string, object?>? data)
+			: base(data, "proxy")
 		{ }
 	}
 
+	/// <summary>Metrics related to the <c>commit_proxy</c> role</summary>
+	public sealed class CommitProxyRoleMetrics : ProcessRoleMetrics
+	{
+		public CommitProxyRoleMetrics(Dictionary<string, object?>? data) : base(data, "commit_proxy")
+		{ }
+
+		private MetricStatistics? m_commitBatchingWindowSize;
+		private MetricStatistics? m_commitLatencyStatistics;
+
+		public MetricStatistics CommitBatchingWindowSize => m_commitBatchingWindowSize ??= new MetricStatistics(GetMap("commit_batching_window_size"));
+
+		public MetricStatistics CommitLatencyStatistics => m_commitLatencyStatistics ??= new MetricStatistics(GetMap("commit_latency_statistics"));
+
+	}
+
+	/// <summary>Metrics related to the <c>grv_proxy</c> role</summary>
+	public sealed class GrvProxyRoleMetrics : ProcessRoleMetrics
+	{
+		public GrvProxyRoleMetrics(Dictionary<string, object?>? data) : base(data, "grv_proxy")
+		{ }
+
+		private MetricStatistics? m_batchGrvLatencyStatistics;
+		private MetricStatistics? m_defaultGrvLatencyStatistics;
+
+		public MetricStatistics BatchGrvLatencyStatistics => m_batchGrvLatencyStatistics ??= new MetricStatistics(TinyJsonParser.GetMapField(GetMap("grv_latency_statistics"), "batch"));
+
+		public MetricStatistics DefaultGrvLatencyStatistics => m_defaultGrvLatencyStatistics ??= new MetricStatistics(TinyJsonParser.GetMapField(GetMap("grv_latency_statistics"), "default"));
+
+	}
+
+	/// <summary>Characteristics of a measured value (count, max, avg, percentiles, ...)</summary>
+	[DebuggerDisplay("Count={Count}, Mean={Mean}, Min={Min}, P25={P25}, Med={Median}, P90={P90}, P95={P95}, P99={P99}, P99.9={P999}, Max={Max}")]
+	public sealed class MetricStatistics : MetricsBase
+	{
+
+		internal MetricStatistics(Dictionary<string, object?>? data) : base(data) { }
+
+		/// <summary>Number of elements in the series</summary>
+		public long Count => GetInt64("count") ?? 0;
+
+		/// <summary>Average value</summary>
+		public double Mean => GetDouble("mean") ?? 0;
+
+		/// <summary>Minimum value (0th percentile)</summary>
+		public double Min => GetDouble("min") ?? 0;
+
+		/// <summary>25th percentile</summary>
+		public double P25 => GetDouble("p925") ?? 0;
+
+		/// <summary>Median value (50th percentile)</summary>
+		public double Median => GetDouble("median") ?? 0;
+
+		public double P90 => GetDouble("p90") ?? 0;
+
+		/// <summary>95th percential</summary>
+		public double P95 => GetDouble("p95") ?? 0;
+
+		/// <summary>99th percentile</summary>
+		public double P99 => GetDouble("p99") ?? 0;
+
+		/// <summary>99.9th percentile</summary>
+		public double P999 => GetDouble("p99.9") ?? 0;
+
+		/// <summary>Maximum value (100th percentile)</summary>
+		public double Max => GetDouble("max") ?? 0;
+
+		public override string ToString()
+		{
+			return string.Format(CultureInfo.InvariantCulture, "Count={0:N0}, Min={1}, Med={2}, Max={3}", this.Count, this.Min, this.Median, this.Max);
+		}
+
+	}
+
+	/// <summary>Metrics related to the <c>master</c> role</summary>
 	public sealed class MasterRoleMetrics : ProcessRoleMetrics
 	{
 		public MasterRoleMetrics(Dictionary<string, object?>? data) : base(data, "master")
 		{ }
 	}
 
+	/// <summary>Metrics related to the <c>resolver</c> role</summary>
 	public sealed class ResolverRoleMetrics : ProcessRoleMetrics
 	{
 		public ResolverRoleMetrics(Dictionary<string, object?>? data) : base(data, "resolver")
 		{ }
 	}
 
+	/// <summary>Metrics related to the <c>cluster_controller</c> role</summary>
 	public sealed class ClusterControllerRoleMetrics : ProcessRoleMetrics
 	{
 		public ClusterControllerRoleMetrics(Dictionary<string, object?>? data) : base(data, "cluster_controller")
+		{ }
+	}
+
+	/// <summary>Metrics related to the <c>ratekeeper</c> role</summary>
+	public sealed class RateKeeperRoleMetrics : ProcessRoleMetrics
+	{
+		public RateKeeperRoleMetrics(Dictionary<string, object?>? data) : base(data, "ratekeeper")
+		{ }
+	}
+
+	/// <summary>Metrics related to the <c>data_distributor</c> role</summary>
+	public sealed class DataDistributorRoleMetrics : ProcessRoleMetrics
+	{
+		public DataDistributorRoleMetrics(Dictionary<string, object?>? data) : base(data, "data_distributor")
 		{ }
 	}
 
@@ -813,10 +907,15 @@ namespace FoundationDB.Client.Status
 
 		public long KVStoreTotalBytes => GetInt64("kvstore_total_bytes") ?? 0;
 
+		public long KVStoreTotalNodes => GetInt64("kvstore_total_nodes") ?? 0;
+
+		public long KVStoreTotalSize => GetInt64("kvstore_total_size") ?? 0;
+
 		public long KVStoreUsedBytes => GetInt64("kvstore_used_bytes") ?? 0;
 
 	}
 
+	/// <summary>Metrics related to the <c>storage</c> role</summary>
 	public sealed class StorageRoleMetrics : DiskBasedRoleMetrics
 	{
 		internal StorageRoleMetrics(Dictionary<string, object?>? data) : base(data, "storage")
@@ -829,6 +928,10 @@ namespace FoundationDB.Client.Status
 			this.TotalQueries = new RoughnessCounter(GetMap("total_queries"));
 			this.DataLag = new LagCounter(GetMap("data_lag"));
 			this.DurabilityLag = new LagCounter(GetMap("durability_lag"));
+			this.FetchedVersions = new RoughnessCounter(GetMap("fetched_versions"));
+			this.FetchesFromLogs = new RoughnessCounter(GetMap("fetched_versions"));
+			this.LowPriorityQueries = new RoughnessCounter(GetMap("low_priority_queries"));
+			this.ReadLatencyStatistics = new MetricStatistics(GetMap("read_latency_statistics"));
 		}
 
 		public int QueryQueueMax => (int) (GetInt64("query_queue_max") ?? 0);
@@ -847,14 +950,25 @@ namespace FoundationDB.Client.Status
 
 		public RoughnessCounter TotalQueries { get; }
 
+		public RoughnessCounter FetchedVersions { get; }
+
+		public RoughnessCounter FetchesFromLogs { get; }
+
 		public LagCounter DataLag { get; }
 
 		public long DurableVersion => GetInt64("durable_version") ?? 0;
 
 		public LagCounter DurabilityLag { get; }
 
+		public long LocalRate => GetInt64("local_rate") ?? 0; //note: int or double? (only seen '100')
+
+		public RoughnessCounter LowPriorityQueries { get; }
+
+		public MetricStatistics ReadLatencyStatistics { get; }
+
 	}
 
+	/// <summary>Metrics related to the <c>log</c> role</summary>
 	public sealed class LogRoleMetrics : DiskBasedRoleMetrics
 	{
 		internal LogRoleMetrics(Dictionary<string, object?>? data) : base(data, "log")
