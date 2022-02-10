@@ -43,7 +43,7 @@ namespace FoundationDB.DependencyInjection
 
 		public FdbDatabaseSingletonProvider(IFdbDatabase db, [AllowNull] TState state, CancellationTokenSource lifetime)
 		{
-			Contract.Requires(db != null && lifetime != null);
+			Contract.Debug.Requires(db != null && lifetime != null);
 			this.Lifetime = lifetime;
 			Volatile.Write(ref this.InternalState, new Scope(db, state));
 			Interlocked.MemoryBarrier();

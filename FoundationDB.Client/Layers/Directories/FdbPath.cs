@@ -408,7 +408,7 @@ namespace FoundationDB.Client
 				return false;
 			}
 			relativePath = new FdbPath(this.Segments.Slice(parent.Segments.Length), absolute: false);
-			Contract.Ensures(!relativePath.IsAbsolute);
+			Contract.Debug.Ensures(!relativePath.IsAbsolute);
 			return true;
 		}
 
@@ -497,7 +497,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Combine(FdbPath path, params FdbPathSegment[] segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (segments.Length == 0) return path;
 
 			return path.Add(segments);
@@ -517,7 +517,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Relative(string segment)
 		{
-			Contract.NotNull(segment, nameof(segment));
+			Contract.NotNull(segment);
 			return new FdbPath(new [] { FdbPathSegment.Parse(segment) }, absolute: false);
 		}
 
@@ -534,7 +534,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Relative(params string[] segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (segments.Length == 0) return FdbPath.Empty;
 			return new FdbPath(FdbPathSegment.Parse(segments.AsSpan()), absolute: false);
 		}
@@ -543,7 +543,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Relative(params FdbPathSegment[] segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (segments.Length == 0) return FdbPath.Empty;
 			return new FdbPath(segments, absolute: false);
 		}
@@ -568,7 +568,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Relative(IEnumerable<FdbPathSegment> segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			return new FdbPath(segments.ToArray(), absolute: false);
 		}
 
@@ -576,7 +576,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Absolute(string segment)
 		{
-			Contract.NotNull(segment, nameof(segment));
+			Contract.NotNull(segment);
 			return new FdbPath(new [] { FdbPathSegment.Parse(segment) }, absolute: true);
 		}
 
@@ -592,7 +592,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Absolute(params string[] segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (segments.Length == 0) return FdbPath.Root;
 			return new FdbPath(FdbPathSegment.Parse(segments.AsSpan()), absolute: true);
 		}
@@ -601,7 +601,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Absolute(params FdbPathSegment[] segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (segments.Length == 0) return FdbPath.Root;
 			return new FdbPath(segments, absolute: true);
 		}
@@ -624,7 +624,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbPath Absolute(IEnumerable<FdbPathSegment> segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			return new FdbPath(segments.ToArray(), absolute: true);
 		}
 

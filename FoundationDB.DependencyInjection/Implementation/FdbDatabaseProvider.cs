@@ -56,13 +56,13 @@ namespace FoundationDB.DependencyInjection
 
 		public static IFdbDatabaseProvider Create(FdbDatabaseProviderOptions options)
 		{
-			Contract.NotNull(options, nameof(options));
+			Contract.NotNull(options);
 			return new FdbDatabaseProvider(Microsoft.Extensions.Options.Options.Create(options));
 		}
 
 		public FdbDatabaseProvider(IOptions<FdbDatabaseProviderOptions> optionsAccessor)
 		{
-			Contract.NotNull(optionsAccessor, nameof(optionsAccessor));
+			Contract.NotNull(optionsAccessor);
 			this.Options = optionsAccessor.Value;
 			this.Root = new FdbDirectorySubspaceLocation(this.Options.ConnectionOptions.Root ?? FdbPath.Root);
 			this.DbTask = Task.FromException<IFdbDatabase>(new InvalidOperationException("The database has not been initialized."));
@@ -77,7 +77,7 @@ namespace FoundationDB.DependencyInjection
 					if (this.InitTask == null)
 					{
 						StartCore();
-						Contract.Assert(this.InitTask != null);
+						Contract.Debug.Assert(this.InitTask != null);
 					}
 				}
 			}

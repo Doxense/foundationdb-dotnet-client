@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		internal CompressedBitmapWordIterator(MutableSlice buffer)
 		{
-			Contract.Requires((buffer.Count & 3) == 0 && (buffer.Count == 0 || buffer.Count >= 8));
+			Contract.Debug.Requires((buffer.Count & 3) == 0 && (buffer.Count == 0 || buffer.Count >= 8));
 			if (buffer.Count == 0)
 			{
 				m_reader = new SliceReader();

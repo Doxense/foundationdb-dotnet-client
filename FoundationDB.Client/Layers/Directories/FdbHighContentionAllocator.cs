@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Allocators
 		/// <summary>Create an allocator operating under a specific location</summary>
 		public FdbHighContentionAllocator(ISubspaceLocation location)
 		{
-			Contract.NotNull(location, nameof(location));
+			Contract.NotNull(location);
 
 			this.Location = location.AsTyped<int, long>();
 		}
@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Allocators
 
 		public static async Task<long> AllocateAsync(IFdbTransaction trans, ITypedKeySubspace<int, long> subspace, Random rng)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			// find the current window size, by reading the last entry in the 'counters' subspace
 			long start = 0, count = 0;

@@ -52,7 +52,7 @@ namespace FoundationDB.Client.Native
 
 		internal FdbFutureSingle(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			Contract.Requires(handle != null && selector != null);
+			Contract.Debug.Requires(handle != null && selector != null);
 
 			m_handle = handle;
 			m_resultSelector = selector;

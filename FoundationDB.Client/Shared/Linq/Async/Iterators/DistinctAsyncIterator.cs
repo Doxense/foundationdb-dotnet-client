@@ -47,7 +47,7 @@ namespace Doxense.Linq.Async.Iterators
 		public DistinctAsyncIterator(IAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
 			: base(source)
 		{
-			Contract.Requires(comparer != null);
+			Contract.Debug.Requires(comparer != null);
 
 			m_comparer = comparer;
 		}
@@ -70,7 +70,7 @@ namespace Doxense.Linq.Async.Iterators
 			var iterator = m_iterator;
 			var set = m_set;
 			var ct = m_ct;
-			Contract.Requires(iterator != null && set != null);
+			Contract.Debug.Requires(iterator != null && set != null);
 
 			while (!ct.IsCancellationRequested)
 			{
@@ -97,7 +97,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
@@ -124,7 +124,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
 		{
-			Contract.NotNull(asyncHandler, nameof(asyncHandler));
+			Contract.NotNull(asyncHandler);
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 

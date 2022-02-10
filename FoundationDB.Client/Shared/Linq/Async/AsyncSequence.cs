@@ -46,7 +46,7 @@ namespace Doxense.Linq.Async
 
 		public AsyncSequence(IAsyncEnumerable<TSource> source, Func<IAsyncEnumerator<TSource>, IAsyncEnumerator<TResult>> factory)
 		{
-			Contract.Requires(source != null && factory != null);
+			Contract.Debug.Requires(source != null && factory != null);
 			this.Source = source;
 			this.Factory = factory;
 		}
@@ -60,7 +60,7 @@ namespace Doxense.Linq.Async
 			try
 			{
 				inner = this.Source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : this.Source.GetAsyncEnumerator(ct);
-				Contract.Requires(inner != null, "The underlying async sequence returned an empty enumerator");
+				Contract.Debug.Requires(inner != null, "The underlying async sequence returned an empty enumerator");
 
 				var outer = this.Factory(inner);
 				if (outer == null) throw new InvalidOperationException("The async factory returned en empty enumerator");

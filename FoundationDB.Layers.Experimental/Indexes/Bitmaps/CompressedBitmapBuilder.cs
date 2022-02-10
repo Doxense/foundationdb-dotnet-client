@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		internal CompressedBitmapBuilder(CompressedWord[] words, int size, BitRange range)
 		{
-			Contract.Requires(words != null && size >= 0);
+			Contract.Debug.Requires(words != null && size >= 0);
 			m_words = words;
 			m_size = size;
 			m_lowest = range.Lowest;
@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		internal static CompressedWord[] DecodeWords(Slice data, int size, BitRange bounds)
 		{
-			Contract.Requires(size >= 0 && data.Count >= 4 && (data.Count & 3) == 0);
+			Contract.Debug.Requires(size >= 0 && data.Count >= 4 && (data.Count & 3) == 0);
 
 			int capacity = BitHelpers.NextPowerOfTwo(size);
 			if (capacity < 0) capacity = size;
@@ -402,7 +402,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		internal static MutableSlice Pack(CompressedWord[] words, int size, int highest)
 		{
-			Contract.Requires(size >= 0 && size <= words.Length);
+			Contract.Debug.Requires(size >= 0 && size <= words.Length);
 
 			if (size == 0)
 			{ // empty bitmap

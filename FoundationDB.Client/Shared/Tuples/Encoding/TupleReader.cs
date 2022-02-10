@@ -64,7 +64,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TupleReader Embedded(Slice packed)
 		{
-			Contract.Requires(packed.Count >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[-1] == 0);
+			Contract.Debug.Requires(packed.Count >= 2 && packed[0] == TupleTypes.EmbeddedTuple && packed[-1] == 0);
 			return new TupleReader(packed.Substring(1, packed.Count - 2), 1);
 		}
 

@@ -47,7 +47,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected AsyncFilterIterator(IAsyncEnumerable<TSource> source)
 		{
-			Contract.Requires(source != null);
+			Contract.Debug.Requires(source != null);
 			m_source = source;
 		}
 

@@ -185,14 +185,14 @@ namespace FoundationDB.Client
 		public DynamicKeySubspaceLocation(in FdbPath path, in Slice suffix, IDynamicKeyEncoder encoder)
 			: base(path, suffix)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
 		public DynamicKeySubspaceLocation(in Slice prefix, IDynamicKeyEncoder encoder)
 			: base(default, prefix)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
@@ -212,7 +212,7 @@ namespace FoundationDB.Client
 
 		public override ValueTask<IDynamicKeySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
-			Contract.NotNull(tr, nameof(tr));
+			Contract.NotNull(tr);
 
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -266,7 +266,7 @@ namespace FoundationDB.Client
 		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, IKeyEncoder<T1> encoder)
 			: base(path, suffix)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
@@ -281,7 +281,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc/>
 		public override ValueTask<ITypedKeySubspace<T1>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
-			Contract.NotNull(tr, nameof(tr));
+			Contract.NotNull(tr);
 
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -294,7 +294,7 @@ namespace FoundationDB.Client
 
 		private async ValueTask<ITypedKeySubspace<T1>?> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			Contract.Requires(this.Path.Count != 0);
+			Contract.Debug.Requires(this.Path.Count != 0);
 
 			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			if (folder == null) return null;
@@ -321,7 +321,7 @@ namespace FoundationDB.Client
 		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, ICompositeKeyEncoder<T1, T2> encoder)
 			: base(path, suffix)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
@@ -334,7 +334,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc/>
 		public override ValueTask<ITypedKeySubspace<T1, T2>?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
-			Contract.NotNull(tr, nameof(tr));
+			Contract.NotNull(tr);
 
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
@@ -347,7 +347,7 @@ namespace FoundationDB.Client
 
 		private async ValueTask<ITypedKeySubspace<T1, T2>?> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			Contract.Requires(this.Path.Count != 0);
+			Contract.Debug.Requires(this.Path.Count != 0);
 
 			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			if (folder == null) return null;
@@ -377,7 +377,7 @@ namespace FoundationDB.Client
 		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, ICompositeKeyEncoder<T1, T2, T3> encoder)
 			: base(path, suffix)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
@@ -400,7 +400,7 @@ namespace FoundationDB.Client
 
 		private async ValueTask<ITypedKeySubspace<T1, T2, T3>?> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			Contract.Requires(tr != null && this.Path.Count != 0);
+			Contract.Debug.Requires(tr != null && this.Path.Count != 0);
 
 			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			if (folder == null) return null;
@@ -433,7 +433,7 @@ namespace FoundationDB.Client
 		public TypedKeySubspaceLocation(FdbPath path, Slice suffix, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 			: base(path, suffix)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			this.Encoder = encoder;
 		}
 
@@ -456,7 +456,7 @@ namespace FoundationDB.Client
 
 		private async ValueTask<ITypedKeySubspace<T1, T2, T3, T4>?> ResolveWithDirectory(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
-			Contract.Requires(tr != null && this.Path.Count != 0);
+			Contract.Debug.Requires(tr != null && this.Path.Count != 0);
 
 			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 			if (folder == null) return null;
@@ -479,7 +479,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static BinaryKeySubspaceLocation AsBinary(this ISubspaceLocation self)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is BinaryKeySubspaceLocation bsp)
 			{
@@ -496,7 +496,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static DynamicKeySubspaceLocation AsDynamic(this ISubspaceLocation self, IKeyEncoding? encoding = null)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is DynamicKeySubspaceLocation ksp)
 			{
@@ -513,7 +513,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static FdbDirectorySubspaceLocation AsDirectory(this ISubspaceLocation self)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is FdbDirectorySubspaceLocation dsl)
 			{
@@ -531,8 +531,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static DynamicKeySubspaceLocation UsingEncoder(this ISubspaceLocation self, IDynamicKeyEncoder encoder)
 		{
-			Contract.NotNull(self, nameof(self));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(self);
+			Contract.NotNull(encoder);
 
 			if (self is DynamicKeySubspaceLocation ksp)
 			{
@@ -548,7 +548,7 @@ namespace FoundationDB.Client
 		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
 		public static TypedKeySubspaceLocation<T1> AsTyped<T1>(this ISubspaceLocation self, IKeyEncoding? encoding = null)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is TypedKeySubspaceLocation<T1> tsp)
 			{
@@ -564,8 +564,8 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom encoder used by subspace</param>
 		public static TypedKeySubspaceLocation<T1> UsingEncoder<T1>(this ISubspaceLocation self, IKeyEncoder<T1> encoder)
 		{
-			Contract.NotNull(self, nameof(self));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(self);
+			Contract.NotNull(encoder);
 
 			if (self is TypedKeySubspaceLocation<T1> tsp)
 			{
@@ -582,7 +582,7 @@ namespace FoundationDB.Client
 		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
 		public static TypedKeySubspaceLocation<T1, T2> AsTyped<T1, T2>(this ISubspaceLocation self, IKeyEncoding? encoding = null)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is TypedKeySubspaceLocation<T1, T2> tsp)
 			{
@@ -599,8 +599,8 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom encoder used by subspace</param>
 		public static TypedKeySubspaceLocation<T1, T2> UsingEncoder<T1, T2>(this ISubspaceLocation self, ICompositeKeyEncoder<T1, T2> encoder)
 		{
-			Contract.NotNull(self, nameof(self));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(self);
+			Contract.NotNull(encoder);
 
 			if (self is TypedKeySubspaceLocation<T1, T2> tsp)
 			{
@@ -618,7 +618,7 @@ namespace FoundationDB.Client
 		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
 		public static TypedKeySubspaceLocation<T1, T2, T3> AsTyped<T1, T2, T3>(this ISubspaceLocation self, IKeyEncoding? encoding = null)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is TypedKeySubspaceLocation<T1, T2, T3> tsp)
 			{
@@ -636,7 +636,7 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom encoder used by subspace</param>
 		public static TypedKeySubspaceLocation<T1, T2, T3> UsingEncoder<T1, T2, T3>(this ISubspaceLocation self, ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			Contract.NotNull(self, nameof(self));
+			Contract.NotNull(self);
 
 			if (self is TypedKeySubspaceLocation<T1, T2, T3> tsp)
 			{

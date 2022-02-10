@@ -85,7 +85,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 
 		internal Maybe(bool hasValue, [AllowNull] T value, object? errorContainer)
 		{
-			Contract.Requires(errorContainer == null || (errorContainer is Exception) || (errorContainer is ExceptionDispatchInfo));
+			Contract.Debug.Requires(errorContainer == null || (errorContainer is Exception) || (errorContainer is ExceptionDispatchInfo));
 
 			m_hasValue = hasValue;
 			m_value = value;
@@ -495,11 +495,11 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		public static Maybe<T> Error<T>([AllowNull] T _, Exception? error0, Exception? error1)
 		{
 			// At least one of them must be non-null
-			Contract.Assert(error0 != null || error1 != null);
+			Contract.Debug.Assert(error0 != null || error1 != null);
 
 			if (error1 == null)
 			{
-				Contract.Assert(error0 != null);
+				Contract.Debug.Assert(error0 != null);
 				return Maybe<T>.Failure(error0);
 			}
 			if (error0 == null)
@@ -542,7 +542,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		[Pure]
 		public static Maybe<TResult> Apply<T, TResult>(T value, [InstantHandle] Func<T, TResult> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			try
 			{
 				return Return<TResult>(lambda(value));
@@ -557,7 +557,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		[Pure]
 		public static Maybe<TResult> Apply<T, TResult>(T value, [InstantHandle] Func<T, Maybe<TResult>> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			try
 			{
 				return lambda(value);
@@ -572,7 +572,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		[Pure]
 		public static Maybe<TResult> Apply<T, TResult>(Maybe<T> value, [InstantHandle] Func<T, TResult> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			if (!value.HasValue)
 			{
 				if (value.Failed)
@@ -596,7 +596,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		[Pure]
 		public static Maybe<TResult> Apply<T, TResult>(Maybe<T> value, [InstantHandle] Func<T, Maybe<TResult>> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			if (!value.HasValue)
 			{
 				if (value.Failed)
@@ -621,7 +621,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		public static Maybe<T> FromTask<T>(Task<T> task)
 		{
 			//REVIEW: should we return Maybe<T>.Empty if task == null ?
-			Contract.Requires(task != null);
+			Contract.Debug.Requires(task != null);
 			switch (task.Status)
 			{
 				case TaskStatus.RanToCompletion:
@@ -653,7 +653,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		[Pure]
 		public static Maybe<T> FromTask<T>(Task<Maybe<T>> task)
 		{
-			Contract.Requires(task != null);
+			Contract.Debug.Requires(task != null);
 			switch (task.Status)
 			{
 				case TaskStatus.RanToCompletion:
@@ -685,7 +685,7 @@ namespace Doxense //REVIEW: what would be the best namespace for this? (mostly u
 		[Pure]
 		public static Task<Maybe<T>> Unwrap<T>(Task<Maybe<T>> task)
 		{
-			Contract.Requires(task != null);
+			Contract.Debug.Requires(task != null);
 			switch (task.Status)
 			{
 				case TaskStatus.RanToCompletion:

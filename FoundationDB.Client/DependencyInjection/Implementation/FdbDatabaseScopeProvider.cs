@@ -43,8 +43,8 @@ namespace FoundationDB.DependencyInjection
 
 		public FdbDatabaseScopeProvider(IFdbDatabaseScopeProvider parent, Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(parent, nameof(parent));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(parent);
+			Contract.NotNull(handler);
 
 			this.Parent = parent;
 			this.Handler = handler;
@@ -118,7 +118,7 @@ namespace FoundationDB.DependencyInjection
 				ct.ThrowIfCancellationRequested();
 				TState state;
 				(db, state) = await this.Handler(db, ct).ConfigureAwait(false);
-				Contract.Assert(db != null);
+				Contract.Debug.Assert(db != null);
 				UpdateInternalState(db,  state, null);
 			}
 			catch (Exception e)
@@ -133,7 +133,7 @@ namespace FoundationDB.DependencyInjection
 		/// <inheritdoc />
 		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TNewState)>> start, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(start, nameof(start));
+			Contract.NotNull(start);
 			//REVIEW: should we instantly failed if lifetime is already disposed?
 			return new FdbDatabaseScopeProvider<TNewState>(this, start, lifetime);
 		}
@@ -172,7 +172,7 @@ namespace FoundationDB.DependencyInjection
 		private async ValueTask<(IFdbDatabase, TState)> GetDatabaseAndStateSlow(CancellationToken ct)
 		{
 			(var db, var state, _) = await EnsureInitialized(ct);
-			Contract.Assert(db != null);
+			Contract.Debug.Assert(db != null);
 			return (db!, state);
 		}
 
@@ -188,7 +188,7 @@ namespace FoundationDB.DependencyInjection
 		private async ValueTask<IFdbDatabase> GetDatabaseSlow(CancellationToken ct)
 		{
 			(var db, _, _) = await EnsureInitialized(ct);
-			Contract.Assert(db != null);
+			Contract.Debug.Assert(db != null);
 			return db;
 		}
 

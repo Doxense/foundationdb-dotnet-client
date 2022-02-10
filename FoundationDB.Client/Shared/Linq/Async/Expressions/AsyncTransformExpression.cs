@@ -47,13 +47,13 @@ namespace Doxense.Linq.Async.Expressions
 
 		public AsyncTransformExpression(Func<TSource, TResult> transform)
 		{
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(transform);
 			m_transform = transform;
 		}
 
 		public AsyncTransformExpression(Func<TSource, CancellationToken, Task<TResult>> asyncTransform)
 		{
-			Contract.NotNull(asyncTransform, nameof(asyncTransform));
+			Contract.NotNull(asyncTransform);
 			m_asyncTransform = asyncTransform;
 		}
 
@@ -79,7 +79,7 @@ namespace Doxense.Linq.Async.Expressions
 			}
 			else
 			{
-				Contract.Requires(m_transform != null);
+				Contract.Debug.Requires(m_transform != null);
 				return Task.FromResult(m_transform(item));
 			}
 		}
@@ -107,7 +107,7 @@ namespace Doxense.Linq.Async.Expressions
 				else
 				{
 					var f = m_asyncTransform;
-					Contract.Assert(f != null);
+					Contract.Debug.Assert(f != null);
 					return new AsyncTransformExpression<TSource, TCasted>(async (x, ct) => (TCasted) (object) (await f(x, ct).ConfigureAwait(false))!);
 				}
 			}
@@ -120,8 +120,8 @@ namespace Doxense.Linq.Async.Expressions
 
 		public static AsyncTransformExpression<TSource, TOuter> Then<TOuter>(AsyncTransformExpression<TSource, TResult> left, AsyncTransformExpression<TResult, TOuter> right)
 		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			if (left.IsIdentity())
 			{ // we can optimize the left expression away, since we know that TSource == TResult !
@@ -137,34 +137,34 @@ namespace Doxense.Linq.Async.Expressions
 			if (left.m_transform != null)
 			{
 				var f = left.m_transform;
-				Contract.Assert(f != null);
+				Contract.Debug.Assert(f != null);
 				if (right.m_transform != null)
 				{
 					var g = right.m_transform;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>((x) => g(f(x)));
 				}
 				else
 				{
 					var g = right.m_asyncTransform;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>((x, ct) => g(f(x), ct));
 				}
 			}
 			else
 			{
 				var f = left.m_asyncTransform;
-				Contract.Assert(f != null);
+				Contract.Debug.Assert(f != null);
 				if (right.m_asyncTransform != null)
 				{
 					var g = right.m_asyncTransform;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>(async (x, ct) => await g(await f(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false));
 				}
 				else
 				{
 					var g = right.m_transform;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncTransformExpression<TSource, TOuter>(async (x, ct) => g(await f(x, ct).ConfigureAwait(false)));
 				}
 			}

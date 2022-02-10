@@ -169,7 +169,7 @@ namespace Doxense.Runtime.Converters
 
 		private static Func<object?, object?, bool> CreateTypeComparator(Type t1, Type t2)
 		{
-			Contract.Requires(t1 != null && t2 != null);
+			Contract.Debug.Requires(t1 != null && t2 != null);
 
 			// note: the most common scenarios will be when we compare 'A' to "A", or (int)123 to (long)123, Guids in string or System.Guid form, ...
 			// We should not try too hard to compare complex objects (what about dates ? timespans? Guids?)
@@ -255,14 +255,14 @@ namespace Doxense.Runtime.Converters
 			if (x == null || y == null) return false;
 
 			var comparator = GetTypeComparator(x.GetType(), y.GetType());
-			Contract.Requires(comparator != null);
+			Contract.Debug.Requires(comparator != null);
 			return comparator(x, y);
 		}
 
 		public static bool AreSimilar<T1, T2>(T1 x, T2 y)
 		{
 			var comparator = GetTypeComparator(typeof(T1), typeof(T2));
-			Contract.Requires(comparator != null);
+			Contract.Debug.Requires(comparator != null);
 			return comparator(x, y);
 		}
 

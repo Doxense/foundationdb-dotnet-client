@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 		internal TypedKeySubspace(Slice prefix, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
-			Contract.Requires(encoder != null);
+			Contract.Debug.Requires(encoder != null);
 			this.KeyEncoder = encoder;
 		}
 

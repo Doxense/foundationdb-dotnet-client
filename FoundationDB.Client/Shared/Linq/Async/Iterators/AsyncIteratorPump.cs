@@ -61,8 +61,8 @@ namespace Doxense.Linq.Async.Iterators
 			IAsyncTarget<TInput> target
 		)
 		{
-			Contract.Requires(iterator != null);
-			Contract.Requires(target != null);
+			Contract.Debug.Requires(iterator != null);
+			Contract.Debug.Requires(target != null);
 
 			m_iterator = iterator;
 			m_target = target;

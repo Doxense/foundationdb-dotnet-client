@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Collections
 					if (level == 0) continue;
 
 					var prevKey = await GetPreviousNodeAsync(trans, level, key);
-					Contract.Assert(prevKey != key);
+					Contract.Debug.Assert(prevKey != key);
 					long countChange = -1;
 					if (c.HasValue) countChange += DecodeCount(c);
 

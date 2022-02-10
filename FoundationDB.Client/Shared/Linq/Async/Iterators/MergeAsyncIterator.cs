@@ -69,7 +69,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		protected MergeAsyncIterator(IEnumerable<IAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey>? comparer)
 		{
-			Contract.Requires(sources != null && (limit == null || limit >= 0) && keySelector != null && resultSelector != null);
+			Contract.Debug.Requires(sources != null && (limit == null || limit >= 0) && keySelector != null && resultSelector != null);
 			m_sources = sources;
 			m_limit = limit;
 			m_keySelector = keySelector;
@@ -134,7 +134,7 @@ namespace Doxense.Linq.Async.Iterators
 			TSource current;
 
 			var iterators = m_iterators;
-			Contract.Requires(iterators != null);
+			Contract.Debug.Requires(iterators != null);
 
 			do
 			{
@@ -185,7 +185,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected void AdvanceIterator(int index)
 		{
 			var iterators = m_iterators;
-			Contract.Requires(iterators != null);
+			Contract.Debug.Requires(iterators != null);
 			iterators[index].HasCurrent = false;
 			iterators[index].Current = default!;
 			iterators[index].Next = iterators[index].Iterator.MoveNextAsync();

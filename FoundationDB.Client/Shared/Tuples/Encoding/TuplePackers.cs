@@ -71,7 +71,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static Delegate? GetSerializerFor(Type type)
 		{
-			Contract.NotNull(type, nameof(type));
+			Contract.NotNull(type);
 
 			if (type == typeof(object))
 			{ // return a generic serializer that will inspect the runtime type of the object
@@ -328,7 +328,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		private static Encoder<object> CreateBoxedEncoder(Type type)
 		{
 			var m = typeof(TuplePacker<>).MakeGenericType(type).GetMethod(nameof(TuplePacker<int>.SerializeBoxedTo));
-			Contract.Assert(m != null);
+			Contract.Debug.Assert(m != null);
 
 			var writer = Expression.Parameter(typeof(TupleWriter).MakeByRefType(), "writer");
 			var value = Expression.Parameter(typeof(object), "value");
@@ -651,7 +651,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
 			where TTuple : IVarTuple
 		{
-			Contract.Requires(tuple != null);
+			Contract.Debug.Requires(tuple != null);
 
 			TupleParser.BeginTuple(ref writer);
 			TupleEncoder.WriteTo(ref writer, tuple);
@@ -876,7 +876,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
 		{
-			Contract.Requires(nullableType != null && type != null && decoder != null);
+			Contract.Debug.Requires(nullableType != null && type != null && decoder != null);
 			// We have a Decoder of T, but we have to transform it into a Decoder for Nullable<T>, which returns null if the slice is "nil", or falls back to the underlying decoder if the slice contains something
 
 			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
@@ -895,7 +895,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		private static Delegate MakeSTupleDeserializer(Type type)
 		{
-			Contract.Requires(type != null);
+			Contract.Debug.Requires(type != null);
 
 			// (slice) => TuPack.DeserializeTuple<T...>(slice)
 
@@ -921,7 +921,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		private static Delegate MakeValueTupleDeserializer(Type type)
 		{
-			Contract.Requires(type != null);
+			Contract.Debug.Requires(type != null);
 
 			// (slice) => TuPack.DeserializeValueTuple<T...>(slice)
 
@@ -1923,7 +1923,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (type >= TupleTypes.IntPos1 && type <= TupleTypes.IntPos4)
 			{ // could be an IPv4 encoded as a 32-bit unsigned integer
 				var value = TupleParser.ParseInt64(type, slice);
-				Contract.Assert(value >= 0 && value <= uint.MaxValue);
+				Contract.Debug.Assert(value >= 0 && value <= uint.MaxValue);
 				return new System.Net.IPAddress(value);
 			}
 

@@ -45,13 +45,13 @@ namespace Doxense.Linq.Async.Expressions
 
 		public AsyncObserverExpression(Action<TSource> handler)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 			m_handler = handler;
 		}
 
 		public AsyncObserverExpression(Func<TSource, CancellationToken, Task> asyncHandler)
 		{
-			Contract.NotNull(asyncHandler, nameof(asyncHandler));
+			Contract.NotNull(asyncHandler);
 			m_asyncHandler = asyncHandler;
 		}
 
@@ -72,7 +72,7 @@ namespace Doxense.Linq.Async.Expressions
 			}
 			else
 			{
-				Contract.Assert(m_handler != null);
+				Contract.Debug.Assert(m_handler != null);
 				m_handler(item);
 			}
 
@@ -92,40 +92,40 @@ namespace Doxense.Linq.Async.Expressions
 
 		public static AsyncObserverExpression<TSource> Then(AsyncObserverExpression<TSource> left, AsyncObserverExpression<TSource> right)
 		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			if (left.m_handler != null)
 			{
 				var f = left.m_handler;
-				Contract.Requires(f != null);
+				Contract.Debug.Requires(f != null);
 				if (right.m_handler != null)
 				{
 					var g = right.m_handler;
-					Contract.Requires(g != null);
+					Contract.Debug.Requires(g != null);
 					return new AsyncObserverExpression<TSource>((x) => { f(x); g(x); });
 				}
 				else
 				{
 					var g = right.m_asyncHandler;
-					Contract.Requires(g != null);
+					Contract.Debug.Requires(g != null);
 					return new AsyncObserverExpression<TSource>((x, ct) => { f(x); return g(x, ct); });
 				}
 			}
 			else
 			{
 				var f = left.m_asyncHandler;
-				Contract.Requires(f != null);
+				Contract.Debug.Requires(f != null);
 				if (right.m_asyncHandler != null)
 				{
 					var g = right.m_asyncHandler;
-					Contract.Requires(g != null);
+					Contract.Debug.Requires(g != null);
 					return new AsyncObserverExpression<TSource>(async (x, ct) => { await f(x, ct).ConfigureAwait(false); await g(x, ct).ConfigureAwait(false); });
 				}
 				else
 				{
 					var g = right.m_handler;
-					Contract.Requires(g != null);
+					Contract.Debug.Requires(g != null);
 					return new AsyncObserverExpression<TSource>(async (x, ct) => { await f(x, ct).ConfigureAwait(false); g(x); });
 				}
 			}

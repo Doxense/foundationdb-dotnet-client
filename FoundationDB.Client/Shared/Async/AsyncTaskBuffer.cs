@@ -38,7 +38,6 @@ namespace Doxense.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Buffer that holds a fixed number of Tasks, output them in arrival or completion order, and can rate-limit the producer</summary>
 	/// <typeparam name="T"></typeparam>
@@ -115,7 +114,7 @@ namespace Doxense.Async
 
 		private void NotifyConsumerOfTaskCompletion_NeedsLocking()
 		{
-			Contract.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
+			Contract.Debug.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
 
 			if (!m_receivedLast && m_completionLock.Set(async: true))
 			{
@@ -186,7 +185,7 @@ namespace Doxense.Async
 
 			lock (m_lock)
 			{
-				Contract.Assert(m_queue.Count < m_capacity);
+				Contract.Debug.Assert(m_queue.Count < m_capacity);
 				Enqueue_NeedsLocking(task);
 
 				if (m_mode == AsyncOrderingMode.CompletionOrder)
@@ -299,7 +298,7 @@ namespace Doxense.Async
 
 				lock(m_lock)
 				{
-					Contract.Assert(m_queue.First.Value == task);
+					Contract.Debug.Assert(m_queue.First.Value == task);
 					LogConsumer("Notified that task #" + task + " completed");
 					m_queue.RemoveFirst();
 					WakeUpBlockedConsumer_NeedsLocking();
@@ -325,7 +324,7 @@ namespace Doxense.Async
 
 		protected Task MarkConsumerAsAwaitingCompletion_NeedsLocking(CancellationToken ct)
 		{
-			Contract.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
+			Contract.Debug.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
 
 			var cl = m_completionLock;
 			if (cl.IsCompleted)

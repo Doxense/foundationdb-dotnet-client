@@ -54,7 +54,7 @@ namespace Doxense.Async
 
 		public AsyncTransformQueue(Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler? scheduler)
 		{
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(transform);
 			if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than zero");
 
 			m_transform = transform;
@@ -216,7 +216,7 @@ namespace Doxense.Async
 
 		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken ct)
 		{
-			Contract.NotNull(batch, nameof(batch));
+			Contract.NotNull(batch);
 
 			if (batch.Length == 0) return;
 
@@ -249,7 +249,7 @@ namespace Doxense.Async
 				if (m_queue.Count > 0)
 				{
 					task = m_queue.Peek();
-					Contract.Assert(task != null);
+					Contract.Debug.Assert(task != null);
 
 					if (task.IsCompleted)
 					{
@@ -265,7 +265,7 @@ namespace Doxense.Async
 				else
 				{
 					waiter = WaitForNextItem_NeedsLocking(ct);
-					Contract.Assert(waiter != null);
+					Contract.Debug.Assert(waiter != null);
 				}
 			}
 
@@ -275,7 +275,7 @@ namespace Doxense.Async
 			}
 			else
 			{ // nothing scheduled yet, slow code path will wait for something new to happen...
-				Contract.Assert(waiter != null);
+				Contract.Debug.Assert(waiter != null);
 				return ReceiveSlowAsync(waiter, ct);
 			}
 		}
@@ -333,7 +333,7 @@ namespace Doxense.Async
 				{
 					// we need to wait again
 					waiter = WaitForNextItem_NeedsLocking(ct);
-					Contract.Assert(waiter != null);
+					Contract.Debug.Assert(waiter != null);
 				}
 
 			}
@@ -380,7 +380,7 @@ namespace Doxense.Async
 				lock(m_lock)
 				{
 					waiter = WaitForNextItem_NeedsLocking(ct);
-					Contract.Assert(waiter != null);
+					Contract.Debug.Assert(waiter != null);
 				}
 
 				await waiter.ConfigureAwait(false);
@@ -430,7 +430,7 @@ namespace Doxense.Async
 		{
 			if (m_done) return Task.CompletedTask;
 
-			Contract.Requires(m_blockedConsumer == null || m_blockedConsumer.Task.IsCompleted);
+			Contract.Debug.Requires(m_blockedConsumer == null || m_blockedConsumer.Task.IsCompleted);
 
 			var waiter = new AsyncCancelableMutex(ct);
 			m_blockedConsumer = waiter;

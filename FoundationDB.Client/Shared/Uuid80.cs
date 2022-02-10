@@ -63,7 +63,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid80(int a, long b)
 		{
-			Contract.Requires((uint) a <= 0xFFFF);
+			Contract.Debug.Requires((uint) a <= 0xFFFF);
 			this.Hi = (ushort) a;
 			this.Lo = (ulong) b;
 		}
@@ -86,7 +86,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid80(int a, int b, int c)
 		{
-			Contract.Requires((uint) a <= 0xFFFF);
+			Contract.Debug.Requires((uint) a <= 0xFFFF);
 			this.Hi = (ushort) a;
 			this.Lo = ((ulong) (uint) b) << 32 | (uint) c;
 		}
@@ -196,7 +196,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Parse(string buffer)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (!TryParse(buffer, out var value))
 			{
 				throw FailInvalidFormat();
@@ -231,14 +231,14 @@ namespace System
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		public static bool TryParse(string buffer, out Uuid80 result)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			return TryParse(buffer.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		public static bool TryParse(ReadOnlySpan<char> s, out Uuid80 result)
 		{
-			Contract.Requires(s != null);
+			Contract.Debug.Requires(s != null);
 
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
@@ -414,7 +414,7 @@ namespace System
 
 		private static unsafe char* HexsToLowerChars(char* ptr, ushort a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar((uint) a >> 12);
 			ptr[1] = HexToLowerChar((uint) a >> 8);
 			ptr[2] = HexToLowerChar((uint) a >> 4);
@@ -424,7 +424,7 @@ namespace System
 
 		private static unsafe char* HexsToLowerChars(char* ptr, uint a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
 			ptr[1] = HexToLowerChar(a >> 24);
 			ptr[2] = HexToLowerChar(a >> 20);
@@ -445,7 +445,7 @@ namespace System
 
 		private static unsafe char* Hex16ToUpperChars(char* ptr, ushort a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar((uint) a >> 12);
 			ptr[1] = HexToUpperChar((uint) a >> 8);
 			ptr[2] = HexToUpperChar((uint) a >> 4);
@@ -455,7 +455,7 @@ namespace System
 
 		private static unsafe char* Hex32ToUpperChars(char* ptr, uint a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);
 			ptr[1] = HexToUpperChar(a >> 24);
 			ptr[2] = HexToUpperChar(a >> 20);
@@ -488,7 +488,7 @@ namespace System
 				: HexsToLowerChars(ptr, (uint) lo);
 			if (quotes) *ptr++ = '}';
 
-			Contract.Ensures(ptr == buffer + size);
+			Contract.Debug.Ensures(ptr == buffer + size);
 			return new string(buffer, 0, size);
 		}
 

@@ -1,8 +1,10 @@
-﻿#region Copyright (c) 2013-2020, Doxense SAS. All rights reserved.
+﻿#region Copyright (c) 2013-2022, Doxense SAS. All rights reserved.
 // See License.MD for license information
 #endregion
 
 #if !USE_SHARED_FRAMEWORK
+
+#nullable enable
 
 namespace Doxense.Diagnostics.Contracts
 {
@@ -23,7 +25,7 @@ namespace Doxense.Diagnostics.Contracts
 			base.HResult = -2146233022;
 		}
 
-		public ContractException(SDC.ContractFailureKind kind, string failure, string? userMessage, string? condition, Exception? innerException)
+		public ContractException(SDC.ContractFailureKind kind, string? failure, string? userMessage, string? condition, Exception? innerException)
 			: base(failure, innerException)
 		{
 			base.HResult = -2146233022;
@@ -50,7 +52,7 @@ namespace Doxense.Diagnostics.Contracts
 
 		public string? UserMessage { get; }
 
-		public string Failure => this.Message;
+		public string? Failure => this.Message;
 
 		#endregion
 

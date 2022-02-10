@@ -48,7 +48,7 @@ namespace FoundationDB.DependencyInjection
 
 		public static IFdbDatabaseProviderBuilder WithConnectionString(this IFdbDatabaseProviderBuilder builder, FdbConnectionOptions options)
 		{
-			Contract.NotNull(options, nameof(options));
+			Contract.NotNull(options);
 			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
 			{
 				c.ConnectionOptions = options;

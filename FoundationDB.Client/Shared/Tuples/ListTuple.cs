@@ -75,8 +75,8 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new list tuple by merging the items of two tuples together</summary>
 		public ListTuple(ListTuple<T> a, ListTuple<T> b)
 		{
-			Contract.NotNull(a, nameof(a));
-			Contract.NotNull(b, nameof(b));
+			Contract.NotNull(a);
+			Contract.NotNull(b);
 
 			int nA = a.Count;
 			int nB = b.Count;
@@ -91,9 +91,9 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Create a new list tuple by merging the items of three tuples together</summary>
 		public ListTuple(ListTuple<T> a, ListTuple<T> b, ListTuple<T> c)
 		{
-			Contract.NotNull(a, nameof(a));
-			Contract.NotNull(b, nameof(b));
-			Contract.NotNull(c, nameof(c));
+			Contract.NotNull(a);
+			Contract.NotNull(b);
+			Contract.NotNull(c);
 
 			int nA = a.Count;
 			int nB = b.Count;
@@ -128,8 +128,8 @@ namespace Doxense.Collections.Tuples
 				if (len <= 0) return STuple.Empty;
 				if (begin == 0 && len == count) return this;
 
-				Contract.Assert(begin >= 0);
-				Contract.Assert((uint) len <= count);
+				Contract.Debug.Assert(begin >= 0);
+				Contract.Debug.Assert((uint) len <= count);
 
 				return new ListTuple<T>(m_items.Slice(begin, len));
 			}

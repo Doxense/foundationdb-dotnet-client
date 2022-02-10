@@ -50,7 +50,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		public PrefixedTuple(Slice prefix, IVarTuple items)
 		{
-			Contract.Requires(!prefix.IsNull && items != null);
+			Contract.Debug.Requires(!prefix.IsNull && items != null);
 
 			m_prefix = prefix;
 			m_items = items;
@@ -122,7 +122,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public PrefixedTuple Concat(IVarTuple tuple)
 		{
-			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(tuple);
 			if (tuple.Count == 0) return this;
 
 			return new PrefixedTuple(m_prefix, m_items.Concat(tuple));

@@ -223,7 +223,7 @@ namespace FoundationDB.Client.Native
 		/// <remarks>The caller MUST call ClearCallbackHandler to ensure that the future instance is removed from the list</remarks>
 		internal static IntPtr RegisterCallback(FdbFuture<T> future)
 		{
-			Contract.Requires(future != null);
+			Contract.Debug.Requires(future != null);
 
 			// generate a new unique id for this future, that will be use to lookup the future instance in the callback handler
 			long id = Interlocked.Increment(ref s_futureCounter);
@@ -234,7 +234,7 @@ namespace FoundationDB.Client.Native
 			{
 				Volatile.Write(ref future.m_key, prm);
 #if DEBUG_FUTURES
-				Contract.Assert(!s_futures.ContainsKey(prm));
+				Contract.Debug.Assert(!s_futures.ContainsKey(prm));
 #endif
 				s_futures[prm.ToInt64()] = future;
 				Interlocked.Increment(ref DebugCounters.CallbackHandlesTotal);
@@ -247,7 +247,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="future">Future that has just completed, or is being destroyed</param>
 		internal static void UnregisterCallback(FdbFuture<T> future)
 		{
-			Contract.Requires(future != null);
+			Contract.Debug.Requires(future != null);
 
 			// critical region
 			try

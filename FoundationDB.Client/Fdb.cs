@@ -532,14 +532,14 @@ namespace FoundationDB.Client
 		/// <exception cref="OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		public static Task<IFdbDatabase> OpenAsync(FdbConnectionOptions options, CancellationToken ct)
 		{
-			Contract.NotNull(options, nameof(options));
+			Contract.NotNull(options);
 			return OpenInternalAsync(options, ct);
 		}
 
 		/// <summary>Create a new database handler instance using the specified cluster file, database name, global subspace and read only settings</summary>
 		internal static async Task<IFdbDatabase> OpenInternalAsync(FdbConnectionOptions options, CancellationToken ct)
 		{
-			Contract.Requires(options != null);
+			Contract.Debug.Requires(options != null);
 			ct.ThrowIfCancellationRequested();
 
 			string? clusterFile = options.ClusterFile;
@@ -793,7 +793,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IFdbDatabaseScopeProvider CreateRootScope(IFdbDatabase db, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 
 			if (db is IFdbDatabaseProvider provider && (lifetime == default || lifetime == db.Cancellation))
 			{ // already a provider, and can reuse the same cancellation token
@@ -814,8 +814,8 @@ namespace FoundationDB.Client
 			CancellationToken lifetime = default
 		)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(init, nameof(init));
+			Contract.NotNull(db);
+			Contract.NotNull(init);
 			return CreateRootScope(db).CreateScope(init, lifetime);
 		}
 
@@ -829,8 +829,8 @@ namespace FoundationDB.Client
 			Func<IFdbDatabase, CancellationToken, Task> init,
 			CancellationToken lifetime = default)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(init, nameof(init));
+			Contract.NotNull(db);
+			Contract.NotNull(init);
 
 			return CreateRootScope(db).CreateScope<object?>(async (database, cancel) =>
 			{
@@ -850,8 +850,8 @@ namespace FoundationDB.Client
 			CancellationToken lifetime = default
 		)
 		{
-			Contract.NotNull(parent, nameof(parent));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(parent);
+			Contract.NotNull(handler);
 			return new FdbDatabaseScopeProvider<object>(
 				parent, 
 				async (db, ct) =>
@@ -875,8 +875,8 @@ namespace FoundationDB.Client
 
 		)
 		{
-			Contract.NotNull(parent, nameof(parent));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(parent);
+			Contract.NotNull(handler);
 			return new FdbDatabaseScopeProvider<TState>(parent, handler, lifetime);
 		}
 
@@ -891,8 +891,8 @@ namespace FoundationDB.Client
 			CancellationToken lifetime = default
 		)
 		{
-			Contract.NotNull(parent, nameof(parent));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(parent);
+			Contract.NotNull(handler);
 			return new FdbDatabaseScopeProvider<TState>(
 				parent,
 				async (db, ct) =>
@@ -915,8 +915,8 @@ namespace FoundationDB.Client
 			CancellationToken lifetime = default
 		)
 		{
-			Contract.NotNull(provider, nameof(provider));
-			Contract.NotNull(init, nameof(init));
+			Contract.NotNull(provider);
+			Contract.NotNull(init);
 			return provider.CreateScope<object?>(async (db, cancel) =>
 			{
 				await init(db, cancel).ConfigureAwait(false);
@@ -931,7 +931,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IFdbDatabaseScopeProvider<TState> CreateFailedScope<TState>(Exception error, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(error, nameof(error));
+			Contract.NotNull(error);
 			return new FdbDatabaseTombstoneProvider<TState>(null, error, lifetime);
 		}
 
@@ -941,7 +941,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IFdbDatabaseScopeProvider CreateFailedScope(Exception error, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(error, nameof(error));
+			Contract.NotNull(error);
 			return new FdbDatabaseTombstoneProvider<object>(null, error, lifetime);
 		}
 

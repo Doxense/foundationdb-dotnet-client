@@ -92,8 +92,8 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(data, nameof(data));
+				Contract.NotNull(db);
+				Contract.NotNull(data);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -114,8 +114,8 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions options, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(data, nameof(data));
+				Contract.NotNull(db);
+				Contract.NotNull(data);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -135,8 +135,8 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(data, nameof(data));
+				Contract.NotNull(db);
+				Contract.NotNull(data);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -157,8 +157,8 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non retry-able error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, WriteOptions options, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(data, nameof(data));
+				Contract.NotNull(db);
+				Contract.NotNull(data);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 
 			internal static async Task<long> RunWriteOperationAsync(IFdbDatabase db, IEnumerable<(Slice Key, Slice Value)> data, WriteOptions options, CancellationToken ct)
 			{
-				Contract.Requires(db != null && data != null && options != null);
+				Contract.Debug.Requires(db != null && data != null && options != null);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -263,9 +263,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T, IFdbTransaction> handler, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -289,9 +289,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T, IFdbTransaction> handler, WriteOptions options, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -314,9 +314,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T, IFdbTransaction, Task> handler, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -340,9 +340,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T, IFdbTransaction, Task> handler, WriteOptions options, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -364,7 +364,7 @@ namespace FoundationDB.Client
 				CancellationToken ct
 			)
 			{
-				Contract.Requires(db != null && source != null && body != null && options != null);
+				Contract.Debug.Requires(db != null && source != null && body != null && options != null);
 
 				int batchCount = options.BatchCount ?? DEFAULT_WRITE_BATCH_COUNT;
 				int sizeThreshold = options.BatchSize ?? DEFAULT_WRITE_BATCH_SIZE;
@@ -454,7 +454,7 @@ namespace FoundationDB.Client
 						}
 						else
 						{
-							Contract.Assert(bodyBlocking != null);
+							Contract.Debug.Assert(bodyBlocking != null);
 							bodyBlocking(item, trans);
 						}
 
@@ -465,7 +465,7 @@ namespace FoundationDB.Client
 						)
 						{
 							await commit().ConfigureAwait(false);
-							Contract.Assert(batch.Count == 0);
+							Contract.Debug.Assert(batch.Count == 0);
 						}
 					}
 
@@ -484,7 +484,7 @@ namespace FoundationDB.Client
 			/// <summary>Retry commiting a segment of a chunk, splitting it in sub-segments as needed</summary>
 			private static async Task RetryChunk<TSource>(IFdbTransaction trans, List<TSource> chunk, int offset, int count, Func<TSource, IFdbTransaction, Task>? bodyAsync, Action<TSource, IFdbTransaction>? bodyBlocking)
 			{
-				Contract.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
+				Contract.Debug.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
 
 				// Steps:
 				// - reset transaction
@@ -513,7 +513,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{
-					Contract.Assert(bodyBlocking != null);
+					Contract.Debug.Assert(bodyBlocking != null);
 					for (int i = 0; i < count; i++)
 					{
 						bodyBlocking(chunk[offset + i], trans);
@@ -581,9 +581,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T[], IFdbTransaction> handler, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -607,9 +607,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Action<T[], IFdbTransaction> handler, WriteOptions options, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -632,9 +632,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T[], IFdbTransaction, Task> handler, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -658,9 +658,9 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
 			public static Task<long> InsertBatchedAsync<T>(IFdbDatabase db, IEnumerable<T> source, [InstantHandle] Func<T[], IFdbTransaction, Task> handler, WriteOptions options, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(handler);
 
 				ct.ThrowIfCancellationRequested();
 
@@ -682,7 +682,7 @@ namespace FoundationDB.Client
 				CancellationToken ct
 			)
 			{
-				Contract.Requires(db != null && source != null && body != null && options != null);
+				Contract.Debug.Requires(db != null && source != null && body != null && options != null);
 
 				int batchCount = options.BatchCount ?? DEFAULT_WRITE_BATCH_COUNT;
 				int sizeThreshold = options.BatchSize ?? DEFAULT_WRITE_BATCH_SIZE;
@@ -788,7 +788,7 @@ namespace FoundationDB.Client
 							}
 							else
 							{
-								Contract.Assert(bodyBlocking != null);
+								Contract.Debug.Assert(bodyBlocking != null);
 								bodyBlocking(batch, trans);
 							}
 							offset += batch.Length;
@@ -817,7 +817,7 @@ namespace FoundationDB.Client
 						}
 						else
 						{
-							Contract.Assert(bodyBlocking != null);
+							Contract.Debug.Assert(bodyBlocking != null);
 							bodyBlocking(batch, trans);
 						}
 
@@ -831,7 +831,7 @@ namespace FoundationDB.Client
 			/// <summary>Retry commiting a segment of a chunk, splitting it in sub-segments as needed</summary>
 			private static async Task RetryChunk<TSource>(IFdbTransaction trans, List<TSource> chunk, int offset, int count, Func<TSource[], IFdbTransaction, Task>? bodyAsync, Action<TSource[], IFdbTransaction>? bodyBlocking)
 			{
-				Contract.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
+				Contract.Debug.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
 
 				// Steps:
 				// - reset transaction
@@ -861,7 +861,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{
-					Contract.Assert(bodyBlocking != null);
+					Contract.Debug.Assert(bodyBlocking != null);
 					bodyBlocking(items, trans);
 				}
 
@@ -969,7 +969,7 @@ namespace FoundationDB.Client
 
 				internal BatchOperationContext(IFdbReadOnlyTransaction trans, int batchSize, Stopwatch totalTimer, Stopwatch generationTimer)
 				{
-					Contract.Requires(trans != null && batchSize > 0 && totalTimer != null && generationTimer != null);
+					Contract.Debug.Requires(trans != null && batchSize > 0 && totalTimer != null && generationTimer != null);
 					this.Transaction = trans;
 					this.Step = batchSize;
 					this.TotalTimer = totalTimer;
@@ -998,11 +998,11 @@ namespace FoundationDB.Client
 				[InstantHandle] Action<TLocal> localFinally,
 				CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(localInit, nameof(localInit));
-				Contract.NotNull(body, nameof(body));
-				Contract.NotNull(localFinally, nameof(localFinally));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(localInit);
+				Contract.NotNull(body);
+				Contract.NotNull(localFinally);
 
 				return RunBatchedReadOperationAsync<TSource, TLocal, object>(db, source, localInit, body, localFinally, DefaultInitialBatchSize, ct);
 			}
@@ -1025,11 +1025,11 @@ namespace FoundationDB.Client
 				[InstantHandle] Action<TLocal> localFinally,
 				CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(localInit, nameof(localInit));
-				Contract.NotNull(body, nameof(body));
-				Contract.NotNull(localFinally, nameof(localFinally));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(localInit);
+				Contract.NotNull(body);
+				Contract.NotNull(localFinally);
 
 				//REVIEW: what is the point if the body is not async ?
 				// > either is can read and generate past_version errors then it needs to be async
@@ -1052,9 +1052,9 @@ namespace FoundationDB.Client
 				[InstantHandle] Func<TSource[], BatchOperationContext, Task> body,
 				CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(body, nameof(body));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(body);
 
 				return RunBatchedReadOperationAsync<TSource, object, object>(db, source, null, body, null, DefaultInitialBatchSize, ct);
 			}
@@ -1073,9 +1073,9 @@ namespace FoundationDB.Client
 				[InstantHandle] Action<TSource[], BatchOperationContext> body,
 				CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(body, nameof(body));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(body);
 
 				//REVIEW: what is the point if the body is not async ?
 				// > either is can read and generate past_version errors then it needs to be async
@@ -1110,10 +1110,10 @@ namespace FoundationDB.Client
 				[InstantHandle] Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
 				CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(localInit, nameof(localInit));
-				Contract.NotNull(body, nameof(body));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(localInit);
+				Contract.NotNull(body);
 
 				return RunBatchedReadOperationAsync<TSource, TAggregate, TAggregate>(db, source, localInit, body, AggregateLambda<TAggregate>.Identity, DefaultInitialBatchSize, ct);
 			}
@@ -1137,11 +1137,11 @@ namespace FoundationDB.Client
 				[InstantHandle] Func<TAggregate, TResult> transform,
 				CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(source, nameof(source));
-				Contract.NotNull(init, nameof(init));
-				Contract.NotNull(body, nameof(body));
-				Contract.NotNull(transform, nameof(transform));
+				Contract.NotNull(db);
+				Contract.NotNull(source);
+				Contract.NotNull(init);
+				Contract.NotNull(body);
+				Contract.NotNull(transform);
 
 				return RunBatchedReadOperationAsync<TSource, TAggregate, TResult>(db, source, init, body, transform, DefaultInitialBatchSize, ct);
 			}
@@ -1159,7 +1159,7 @@ namespace FoundationDB.Client
 				CancellationToken ct
 			)
 			{
-				Contract.Requires(db != null && source != null && initialBatchSize > 0 && body != null);
+				Contract.Debug.Requires(db != null && source != null && initialBatchSize > 0 && body != null);
 
 				var bodyAsyncWithContextAndState = body as Func<TSource[], BatchOperationContext, TLocal, Task<TLocal>>;
 				var bodyWithContextAndState = body as Func<TSource[], BatchOperationContext, TLocal, TLocal>;
@@ -1245,7 +1245,7 @@ namespace FoundationDB.Client
 										}
 										else
 										{
-											Contract.Assert(bodyWithContext != null);
+											Contract.Debug.Assert(bodyWithContext != null);
 											bodyWithContext(items, ctx);
 										}
 										sw.Stop();
@@ -1344,7 +1344,7 @@ namespace FoundationDB.Client
 			/// <returns>Number items added to the batch, or 0 if it was already full</returns>
 			private static int FillNextBatch<T>(IEnumerator<T> iterator, List<T> batch, int size)
 			{
-				Contract.Requires(iterator != null && batch != null && size > 0);
+				Contract.Debug.Requires(iterator != null && batch != null && size > 0);
 
 				int count = 0;
 				while (batch.Count < size && iterator.MoveNext())
@@ -1394,8 +1394,8 @@ namespace FoundationDB.Client
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
 			public static async Task<long> ExportAsync(IFdbDatabase db, KeySelector begin, KeySelector end, [InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(handler);
 				ct.ThrowIfCancellationRequested();
 
 				// to maximize throughput, we want to read as much as possible per transaction, so that means that we should prefetch the next batch while the current batch is processing
@@ -1488,7 +1488,7 @@ namespace FoundationDB.Client
 			/// <returns>Task that will return the next batch</returns>
 			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, KeySelector begin, KeySelector end, FdbRangeOptions options, Func<IFdbReadOnlyTransaction, Task>? onReset = null)
 			{
-				Contract.Requires(tr != null && options != null);
+				Contract.Debug.Requires(tr != null && options != null);
 
 				// read the next batch from the db, retrying if needed
 				while (true)
@@ -1523,8 +1523,8 @@ namespace FoundationDB.Client
 			public static async Task<long> ExportAsync<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path, [InstantHandle] Func<KeyValuePair<Slice, Slice>[], TSubspace, long, CancellationToken, Task> handler, CancellationToken ct)
 				where TSubspace : class, IKeySubspace
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(handler, nameof(handler));
+				Contract.NotNull(db);
+				Contract.NotNull(handler);
 				ct.ThrowIfCancellationRequested();
 
 				// to maximize throughput, we want to read as much as possible per transaction, so that means that we should prefetch the next batch while the current batch is processing

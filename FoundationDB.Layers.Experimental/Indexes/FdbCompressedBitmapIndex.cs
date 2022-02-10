@@ -49,8 +49,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public FdbCompressedBitmapIndex(string name, ITypedKeySubspace<TValue> subspace, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 		{
-			Contract.NotNull(name, nameof(name));
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(name);
+			Contract.NotNull(subspace);
 
 			this.Name = name;
 			this.Subspace = subspace;

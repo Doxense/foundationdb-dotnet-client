@@ -67,7 +67,7 @@ namespace FoundationDB.Client
 
 		public FdbRangeChunk(KeyValuePair<Slice, Slice>[] items, bool hasMore, int iteration, bool reversed, FdbReadMode readMode, Slice first, Slice last)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 			this.Items = items;
 			this.HasMore = hasMore;
 			this.Iteration = iteration;
@@ -429,8 +429,8 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(Func<Slice, TKey> keyHandler, Func<Slice, TValue> valueHandler)
 		{
-			Contract.NotNull(keyHandler, nameof(keyHandler));
-			Contract.NotNull(valueHandler, nameof(valueHandler));
+			Contract.NotNull(keyHandler);
+			Contract.NotNull(valueHandler);
 
 			var results = this.Items;
 			var items = new KeyValuePair<TKey, TValue>[results.Length];
@@ -457,9 +457,9 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="subspace"/>, <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(KeySubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(keyEncoder, nameof(keyEncoder));
-			Contract.NotNull(valueEncoder, nameof(valueEncoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(keyEncoder);
+			Contract.NotNull(valueEncoder);
 
 			var results = this.Items;
 			var items = new KeyValuePair<TKey, TValue>[results.Length];
@@ -484,8 +484,8 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
-			Contract.NotNull(keyEncoder, nameof(keyEncoder));
-			Contract.NotNull(valueEncoder, nameof(valueEncoder));
+			Contract.NotNull(keyEncoder);
+			Contract.NotNull(valueEncoder);
 
 			var results = this.Items;
 			var items = new KeyValuePair<TKey, TValue>[results.Length];
@@ -507,7 +507,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
 		public T[] DecodeKeys<T>(Func<Slice, T> handler)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 
 			var results = this.Items;
 			var keys = new T[results.Length];
@@ -525,8 +525,8 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
 		public T[] DecodeKeys<T>(KeySubspace subspace, IKeyEncoder<T> keyEncoder)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(keyEncoder, nameof(keyEncoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(keyEncoder);
 
 			var results = this.Items;
 			var keys = new T[results.Length];
@@ -543,7 +543,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
 		public T[] DecodeKeys<T>(IKeyEncoder<T> keyEncoder)
 		{
-			Contract.NotNull(keyEncoder, nameof(keyEncoder));
+			Contract.NotNull(keyEncoder);
 
 			var results = this.Items;
 			var values = new T[results.Length];
@@ -560,7 +560,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded values, or an empty array if the chunk doesn't have any results</returns>
 		public T[] DecodeValues<T>(Func<Slice, T> handler)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 
 			var results = this.Items;
 			var values = new T[results.Length];
@@ -577,7 +577,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded values, or an empty array if the chunk doesn't have any results</returns>
 		public T[] DecodeValues<T>(IValueEncoder<T> valueEncoder)
 		{
-			Contract.NotNull(valueEncoder, nameof(valueEncoder));
+			Contract.NotNull(valueEncoder);
 
 			var results = this.Items;
 			var values = new T[results.Length];

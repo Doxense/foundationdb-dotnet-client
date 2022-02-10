@@ -71,7 +71,7 @@ namespace FoundationDB.Layers.Collections
 
 			internal State(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> encoder)
 			{
-				Contract.Requires(subspace != null && encoder != null);
+				Contract.Debug.Requires(subspace != null && encoder != null);
 				this.Subspace = subspace;
 				this.ValueEncoder = encoder;
 			}
@@ -456,7 +456,7 @@ namespace FoundationDB.Layers.Collections
 
 		private static KeyValuePair<TKey, TValue>[] DecodeItems(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue> valueEncoder, KeyValuePair<Slice, Slice>[] batch)
 		{
-			Contract.Requires(batch != null);
+			Contract.Debug.Requires(batch != null);
 
 			var items = new KeyValuePair<TKey, TValue>[batch.Length];
 			for (int i = 0; i < batch.Length; i++)

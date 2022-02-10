@@ -45,7 +45,7 @@ namespace Doxense.Linq.Async.Iterators
 		public TakeWhileAsyncIterator(IAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
 			: base(source)
 		{
-			Contract.Requires(condition != null);
+			Contract.Debug.Requires(condition != null);
 
 			m_condition = condition;
 		}
@@ -58,7 +58,7 @@ namespace Doxense.Linq.Async.Iterators
 		protected override async ValueTask<bool> OnNextAsync()
 		{
 			var iterator = m_iterator;
-			Contract.Requires(iterator != null);
+			Contract.Debug.Requires(iterator != null);
 
 			while (!m_ct.IsCancellationRequested)
 			{

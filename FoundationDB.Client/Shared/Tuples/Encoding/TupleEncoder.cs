@@ -143,7 +143,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice[] Pack<TTuple>(Slice prefix, params TTuple[] tuples)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNull(tuples, nameof(tuples));
+			Contract.NotNull(tuples);
 
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
 			var writer = new TupleWriter(tuples.Length * (16 + prefix.Count));
@@ -169,7 +169,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice[] Pack<TTuple>(Slice prefix, IEnumerable<TTuple> tuples)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNull(tuples, nameof(tuples));
+			Contract.NotNull(tuples);
 
 			// use optimized version for arrays
 			if (tuples is TTuple[] array) return Pack(prefix, array);
@@ -192,8 +192,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, TElement[] elements, Func<TElement, TTuple> transform)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNull(elements, nameof(elements));
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(elements);
+			Contract.NotNull(transform);
 
 			var next = new List<int>(elements.Length);
 			var writer = new TupleWriter(next.Capacity * (16 + prefix.Count));
@@ -221,8 +221,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNull(elements, nameof(elements));
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(elements);
+			Contract.NotNull(transform);
 
 			// use optimized version for arrays
 			if (elements is TElement[] array) return Pack(prefix, array, transform);
@@ -617,7 +617,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] EncodeKeys<T>(Slice prefix, IEnumerable<T> keys)
 		{
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 
 			// use optimized version for arrays
 			if (keys is T[] array) return EncodeKeys<T>(prefix, array);
@@ -652,7 +652,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] EncodeKeys<T>(Slice prefix, params T[] keys)
 		{
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var writer = new TupleWriter(keys.Length * (prefix.Count + 8));
@@ -692,8 +692,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] EncodeKeys<TKey, TElement>(Slice prefix, TElement[] elements, Func<TElement, TKey> selector)
 		{
-			Contract.NotNull(elements, nameof(elements));
-			Contract.NotNull(selector, nameof(selector));
+			Contract.NotNull(elements);
+			Contract.NotNull(selector);
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var writer = new TupleWriter(elements.Length * (prefix.Count + 8));
@@ -721,7 +721,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, IEnumerable<T1> keys)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(prefix, nameof(prefix));
+			Contract.NotNullAllowStructs(prefix);
 			var head = Pack(prefix);
 			return EncodeKeys<T1>(head, keys);
 		}
@@ -735,7 +735,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, params T1[] keys)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(prefix, nameof(prefix));
+			Contract.NotNullAllowStructs(prefix);
 
 			var head = Pack(prefix);
 			return EncodeKeys<T1>(head, keys);
@@ -1064,7 +1064,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				if (count != 1 & count != 2) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be either 1 or 2");
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-				Contract.Assert(t != null);
+				Contract.Debug.Assert(t != null);
 				key.Item1 = t.Get<T1>(0)!;
 				key.Item2 = count == 2 ? t.Get<T2>(1)! : default!;
 			}
@@ -1115,7 +1115,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				if (count < 1 | count > 3) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 3");
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-				Contract.Assert(t != null);
+				Contract.Debug.Assert(t != null);
 				key.Item1 = t.Get<T1>(0)!;
 				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
 				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
@@ -1169,7 +1169,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				if (count < 1 || count > 4) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 4");
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-				Contract.Assert(t != null);
+				Contract.Debug.Assert(t != null);
 				key.Item1 = t.Get<T1>(0)!;
 				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
 				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
@@ -1226,7 +1226,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				if (count < 1 || count > 5) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 5");
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-				Contract.Assert(t != null);
+				Contract.Debug.Assert(t != null);
 				key.Item1 = t.Get<T1>(0)!;
 				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
 				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;
@@ -1286,7 +1286,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				if (count < 1 || count > 6) throw new ArgumentOutOfRangeException(nameof(count), count, "Item count must be between 1 and 6");
 
 				var t = TuPack.Unpack(reader.ReadToEnd()).OfSize(count);
-				Contract.Assert(t != null);
+				Contract.Debug.Assert(t != null);
 				key.Item1 = t.Get<T1>(0)!;
 				key.Item2 = count >= 2 ? t.Get<T2>(1)! : default!;
 				key.Item3 = count >= 3 ? t.Get<T3>(2)! : default!;

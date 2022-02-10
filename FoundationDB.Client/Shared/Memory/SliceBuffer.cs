@@ -118,10 +118,10 @@ namespace Doxense.Memory
 				return AllocateFallback(count);
 			}
 
-			Contract.Assert(m_current != null && m_pos >= 0);
+			Contract.Debug.Assert(m_current != null && m_pos >= 0);
 			m_pos = p + (count + extra);
 			m_remaining = r - (count + extra);
-			Contract.Ensures(m_remaining >= 0);
+			Contract.Debug.Ensures(m_remaining >= 0);
 			//note: we rely on the fact that the buffer was pre-filled with zeroes
 			return new MutableSlice(m_current, p + extra, count);
 		}

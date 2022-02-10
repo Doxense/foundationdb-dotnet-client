@@ -63,7 +63,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Append a new value at the end of an existing tuple</summary>
 		public LinkedTuple(IVarTuple head, T tail)
 		{
-			Contract.NotNull(head, nameof(head));
+			Contract.NotNull(head);
 
 			this.Head = head;
 			this.Tail = tail;

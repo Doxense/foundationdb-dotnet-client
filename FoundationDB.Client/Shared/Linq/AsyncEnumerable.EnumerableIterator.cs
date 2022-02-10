@@ -54,7 +54,7 @@ namespace Doxense.Linq
 
 			public EnumerableIterator(IEnumerator<TSource> iterator, Func<TSource, Task<TResult>> transform, CancellationToken ct)
 			{
-				Contract.Requires(iterator != null && transform != null);
+				Contract.Debug.Requires(iterator != null && transform != null);
 
 				m_iterator = iterator;
 				m_transform = transform;

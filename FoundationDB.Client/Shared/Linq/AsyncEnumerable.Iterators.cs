@@ -90,7 +90,7 @@ namespace Doxense.Linq
 
 			public AnonymousIterable(Func<object?, CancellationToken, IAsyncEnumerator<T>> factory, object? state)
 			{
-				Contract.Requires(factory != null);
+				Contract.Debug.Requires(factory != null);
 				m_factory = factory;
 				m_state = state;
 			}
@@ -110,7 +110,7 @@ namespace Doxense.Linq
 		/// <summary>Create a new async sequence from a factory that will generated on the first iteration</summary>
 		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult>(Func<CancellationToken, Task<IAsyncEnumerable<TResult>>> factory)
 		{
-			Contract.NotNull(factory, nameof(factory));
+			Contract.NotNull(factory);
 			return new DeferredAsyncIterator<TResult, IAsyncEnumerable<TResult>>(factory);
 		}
 
@@ -118,7 +118,7 @@ namespace Doxense.Linq
 		public static IConfigurableAsyncEnumerable<TResult> Defer<TResult, TCollection>(Func<CancellationToken, Task<TCollection>> factory)
 			where TCollection: IAsyncEnumerable<TResult>
 		{
-			Contract.NotNull(factory, nameof(factory));
+			Contract.NotNull(factory);
 			return new DeferredAsyncIterator<TResult, TCollection>(factory);
 		}
 
@@ -199,15 +199,15 @@ namespace Doxense.Linq
 			[InstantHandle] Action<TSource> action,
 			CancellationToken ct)
 		{
-			Contract.NotNull(source, nameof(source));
-			Contract.NotNull(action, nameof(action));
+			Contract.NotNull(source);
+			Contract.NotNull(action);
 
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
-				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
@@ -231,15 +231,15 @@ namespace Doxense.Linq
 			Func<TSource, bool> action,
 			CancellationToken ct)
 		{
-			Contract.NotNull(source, nameof(source));
-			Contract.NotNull(action, nameof(action));
+			Contract.NotNull(source);
+			Contract.NotNull(action);
 
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
-				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
@@ -271,7 +271,7 @@ namespace Doxense.Linq
 			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
-				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
@@ -300,7 +300,7 @@ namespace Doxense.Linq
 			long count = 0;
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct))
 			{
-				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{
@@ -329,7 +329,7 @@ namespace Doxense.Linq
 
 			await using (var iterator = source is IConfigurableAsyncEnumerable<TSource> configurable ? configurable.GetAsyncEnumerator(ct, AsyncIterationHint.Head) : source.GetAsyncEnumerator(ct))
 			{
-				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
+				Contract.Debug.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				if (await iterator.MoveNextAsync().ConfigureAwait(false))
 				{

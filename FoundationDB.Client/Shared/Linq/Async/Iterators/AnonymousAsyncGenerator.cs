@@ -65,7 +65,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		private AnonymousAsyncGenerator(Delegate generator)
 		{
-			Contract.Requires(generator != null);
+			Contract.Debug.Requires(generator != null);
 			m_generator = generator;
 			m_index = -1;
 		}

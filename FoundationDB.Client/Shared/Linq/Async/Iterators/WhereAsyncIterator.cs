@@ -47,7 +47,7 @@ namespace Doxense.Linq.Async.Iterators
 		public WhereAsyncIterator(IAsyncEnumerable<TSource> source, AsyncFilterExpression<TSource> filter)
 			: base(source)
 		{
-			Contract.Requires(filter != null, "there can be only one kind of filter specified");
+			Contract.Debug.Requires(filter != null, "there can be only one kind of filter specified");
 
 			m_filter = filter;
 		}
@@ -62,7 +62,7 @@ namespace Doxense.Linq.Async.Iterators
 			var iterator = m_iterator;
 			var filter = m_filter;
 			var ct = m_ct;
-			Contract.Requires(iterator != null);
+			Contract.Debug.Requires(iterator != null);
 
 			while (!ct.IsCancellationRequested)
 			{
@@ -148,7 +148,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 
 			ct.ThrowIfCancellationRequested();
 
@@ -184,7 +184,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
 		{
-			Contract.NotNull(asyncHandler, nameof(asyncHandler));
+			Contract.NotNull(asyncHandler);
 
 			ct.ThrowIfCancellationRequested();
 

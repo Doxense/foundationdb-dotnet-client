@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Blobs
 
 			public State(IDynamicKeySubspace subspace)
 			{
-				Contract.Requires(subspace != null);
+				Contract.Debug.Requires(subspace != null);
 				this.Subspace = subspace;
 			}
 
@@ -124,7 +124,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset)
 			{
-				Contract.Requires(trans != null && offset >= 0);
+				Contract.Debug.Requires(trans != null && offset >= 0);
 
 				var chunkKey = await trans.GetKeyAsync(KeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
 				if (chunkKey.IsNull || !this.Subspace.Contains(chunkKey))
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset)
 			{
-				Contract.Requires(trans != null && offset >= 0);
+				Contract.Debug.Requires(trans != null && offset >= 0);
 
 				var chunk = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
 				if (chunk.Key == Slice.Nil) return; // already sparse
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private async Task<bool> TryRemoteSplitPointAsync(IFdbTransaction trans, long offset)
 			{
-				Contract.Requires(trans != null && offset >= 0);
+				Contract.Debug.Requires(trans != null && offset >= 0);
 
 				var b = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
 				if (b.Offset == 0 || b.Key == Slice.Nil) return false; // in sparse region, or at beginning
@@ -194,7 +194,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private void WriteToSparse(IFdbTransaction trans, long offset, ReadOnlySpan<byte> data)
 			{
-				Contract.Requires(trans != null && offset >= 0);
+				Contract.Debug.Requires(trans != null && offset >= 0);
 
 				if (data.Length == 0) return;
 
@@ -210,7 +210,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private void SetSize(IFdbTransaction trans, long size)
 			{
-				Contract.Requires(trans != null && size >= 0);
+				Contract.Debug.Requires(trans != null && size >= 0);
 
 				//note: python code converts the size into a string
 				trans.Set(SizeKey(), Slice.FromString(size.ToString()));

@@ -54,7 +54,7 @@ namespace Doxense.Linq.Async.Iterators
 			index = -1;
 			current = default!;
 			var iterators = m_iterators;
-			Contract.Requires(iterators != null);
+			Contract.Debug.Requires(iterators != null);
 
 			// we only returns values of the first that are not in the others
 

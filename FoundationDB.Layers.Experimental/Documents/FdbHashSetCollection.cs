@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Blobs
 			var keys = TuPack.EncodePrefixedKeys(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
-			Contract.Assert(values != null && values.Length == fields.Length);
+			Contract.Debug.Assert(values != null && values.Length == fields.Length);
 
 			var results = new Dictionary<string, Slice>(values.Length, StringComparer.OrdinalIgnoreCase);
 			for (int i = 0; i < fields.Length; i++)

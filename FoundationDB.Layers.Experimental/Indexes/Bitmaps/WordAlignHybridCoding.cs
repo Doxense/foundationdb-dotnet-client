@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			private bool FillRegister(ref ulong register, ref int bits)
 			{
-				Contract.Requires(bits >= 0 && bits < 31, "Bad bits " + bits);
+				Contract.Debug.Requires(bits >= 0 && bits < 31, "Bad bits " + bits);
 
 				int remaining = m_remaining;
 				if (remaining == 0)
@@ -143,9 +143,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					register |= (ulong)(*ptr++) << freeBits;
 					--remaining;
 				}
-				Contract.Assert(remaining >= 0);
+				Contract.Debug.Assert(remaining >= 0);
 				bits = 64 - freeBits;
-				Contract.Assert(bits > 0 && bits <= 64, "bits = " + bits + " freebits = " + freeBits);
+				Contract.Debug.Assert(bits > 0 && bits <= 64, "bits = " + bits + " freebits = " + freeBits);
 
 				m_buffer = ptr;
 				m_remaining = remaining;
@@ -156,7 +156,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			/// <returns>Value of the next word, or <see cref="NotEnough"/> if there are not enough bits remaining</returns>
 			public uint Peek()
 			{
-				Contract.Requires(m_bits >= 0 && m_bits <= 64, "Number of bits is invalid " + m_bits);
+				Contract.Debug.Requires(m_bits >= 0 && m_bits <= 64, "Number of bits is invalid " + m_bits);
 
 				int bits = m_bits;
 				ulong register = m_register;
@@ -172,12 +172,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					{ // not enough remaining
 						return NotEnough;
 					}
-					Contract.Assert(bits > 0 && bits <= 64);
+					Contract.Debug.Assert(bits > 0 && bits <= 64);
 
 					// save it for the next read
 					m_register = register;
 					m_bits = bits;
-					Contract.Ensures(m_bits > 0 && m_bits <= 64 && m_remaining >= 0, "Corrupted state after peeking");
+					Contract.Debug.Ensures(m_bits > 0 && m_bits <= 64 && m_remaining >= 0, "Corrupted state after peeking");
 				}
 
 				// peek 31 bits from the register
@@ -188,7 +188,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			/// <returns>Value of the word, or <see cref="NotEnough"/> if there are not enough bits remaining</returns>
 			public uint Read()
 			{
-				Contract.Requires(m_bits >= 0 && m_bits <= 64);
+				Contract.Debug.Requires(m_bits >= 0 && m_bits <= 64);
 
 				int bits = m_bits;
 				ulong register = m_register;
@@ -205,13 +205,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{ // not enough bits remaining
 					return NotEnough;
 				}
-				Contract.Assert(bits >= 31 && bits <= 64, "bad bits " + bits);
+				Contract.Debug.Assert(bits >= 31 && bits <= 64, "bad bits " + bits);
 
 				// consume 31 bits from the register
 				m_bits = bits - 31;
 				m_register = register << 31;
 
-				Contract.Ensures(m_bits >= 0 && m_bits <= 64 - 31 && m_remaining >= 0, "Corrupted state after reading " + m_bits + " " + m_remaining);
+				Contract.Debug.Ensures(m_bits >= 0 && m_bits <= 64 - 31 && m_remaining >= 0, "Corrupted state after reading " + m_bits + " " + m_remaining);
 				return (uint)(register >> (64 - 31));
 			}
 		
@@ -220,7 +220,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			/// <returns>True if the next word was equal to <paramref name="expected"/>; otherwise, false.</returns>
 			public bool ReadIf(uint expected)
 			{
-				Contract.Requires(expected != NotEnough);
+				Contract.Debug.Requires(expected != NotEnough);
 
 				if (m_bits < 31 && m_remaining == 0)
 				{ // not enough bits
@@ -231,11 +231,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				if (peek != expected) return false;
 
 				// advance the cursor
-				Contract.Assert(m_bits >= 0);
+				Contract.Debug.Assert(m_bits >= 0);
 				m_register <<= 31;
 				if (m_bits >= 31) m_bits -= 31; else m_bits = 0;
 
-				Contract.Ensures(m_bits >= 0);
+				Contract.Debug.Ensures(m_bits >= 0);
 				return true;
 			}
 
@@ -497,7 +497,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
 		internal static CompressedBitmap CompressedBinaryExpression(CompressedBitmap left, CompressedBitmap right, LogicalOperation op)
 		{
-			Contract.Requires(left != null && right != null && /*op != LogicalOperation.And &&*/ Enum.IsDefined(typeof(LogicalOperation), op));
+			Contract.Debug.Requires(left != null && right != null && /*op != LogicalOperation.And &&*/ Enum.IsDefined(typeof(LogicalOperation), op));
 
 			var writer = new CompressedBitmapWriter();
 			using (var liter = left.GetEnumerator())

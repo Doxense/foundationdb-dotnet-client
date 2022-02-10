@@ -69,7 +69,7 @@ namespace Doxense.Async
 		/// <summary>Publish a new result on this async target, by correctly handling success, termination and failure</summary>
 		public static Task Publish<T>(this IAsyncTarget<T> target, Maybe<T> result, CancellationToken ct)
 		{
-			Contract.Requires(target != null);
+			Contract.Debug.Requires(target != null);
 
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
@@ -105,7 +105,7 @@ namespace Doxense.Async
 				Action<ExceptionDispatchInfo>? onError
 			)
 			{
-				Contract.NotNull(onNextAsync, nameof(onNextAsync));
+				Contract.NotNull(onNextAsync);
 				m_onNextAsync = onNextAsync;
 				m_onCompleted = onCompleted;
 				m_onError = onError;
@@ -143,7 +143,7 @@ namespace Doxense.Async
 				Action<ExceptionDispatchInfo>? onError
 			)
 			{
-				Contract.NotNull(onNext, nameof(onNext));
+				Contract.NotNull(onNext);
 
 				m_onNext = onNext;
 				m_onCompleted = onCompleted;

@@ -58,8 +58,8 @@ namespace FoundationDB.Client.Native
 
 		public FdbNativeTransaction(FdbNativeDatabase db, TransactionHandle handle)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handle, nameof(handle));
+			Contract.NotNull(db);
+			Contract.NotNull(handle);
 
 			m_database = db;
 			m_handle = handle;
@@ -145,7 +145,7 @@ namespace FoundationDB.Client.Native
 
 		private static bool TryPeekValueResultBytes(FutureHandle h, out ReadOnlySpan<byte> result)
 		{
-			Contract.Requires(h != null);
+			Contract.Debug.Requires(h != null);
 			var err = FdbNative.FutureGetValue(h, out bool present, out result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].TryPeekValueResultBytes() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
@@ -157,7 +157,7 @@ namespace FoundationDB.Client.Native
 
 		private static Slice GetValueResultBytes(FutureHandle h)
 		{
-			Contract.Requires(h != null);
+			Contract.Debug.Requires(h != null);
 
 			var err = FdbNative.FutureGetValue(h, out bool present, out ReadOnlySpan<byte> result);
 #if DEBUG_TRANSACTIONS
@@ -179,7 +179,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct)
 		{
-			Contract.Requires(keys != null);
+			Contract.Debug.Requires(keys != null);
 
 			if (keys.Length == 0) return Task.FromResult(Array.Empty<Slice>());
 
@@ -216,7 +216,7 @@ namespace FoundationDB.Client.Native
 			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
 			Fdb.DieOnError(err);
 			//note: result can only be null if an error occured!
-			Contract.Ensures(result != null);
+			Contract.Debug.Ensures(result != null);
 			first = result.Length > 0 ? result[0].Key : default;
 			last = result.Length > 0 ? result[result.Length - 1].Key : default;
 			return result;
@@ -233,7 +233,7 @@ namespace FoundationDB.Client.Native
 			var err = FdbNative.FutureGetKeyValueArrayKeysOnly(h, out var result, out more);
 			Fdb.DieOnError(err);
 			//note: result can only be null if an error occured!
-			Contract.Ensures(result != null);
+			Contract.Debug.Ensures(result != null);
 			first = result.Length > 0 ? result[0].Key : default;
 			last = result.Length > 0 ? result[result.Length - 1].Key : default;
 			return result;
@@ -250,7 +250,7 @@ namespace FoundationDB.Client.Native
 			var err = FdbNative.FutureGetKeyValueArrayValuesOnly(h, out var result, out more, out first, out last);
 			Fdb.DieOnError(err);
 			//note: result can only be null if an error occured!
-			Contract.Ensures(result != null);
+			Contract.Debug.Ensures(result != null);
 			return result;
 		}
 
@@ -296,7 +296,7 @@ namespace FoundationDB.Client.Native
 
 		private static Slice GetKeyResult(FutureHandle h)
 		{
-			Contract.Requires(h != null);
+			Contract.Debug.Requires(h != null);
 
 			var err = FdbNative.FutureGetKey(h, out ReadOnlySpan<byte> result);
 #if DEBUG_TRANSACTIONS
@@ -318,7 +318,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors, bool snapshot, CancellationToken ct)
 		{
-			Contract.Requires(selectors != null);
+			Contract.Debug.Requires(selectors != null);
 
 			if (selectors.Length == 0) return Task.FromResult(Array.Empty<Slice>());
 
@@ -410,14 +410,14 @@ namespace FoundationDB.Client.Native
 
 		private static string[] GetStringArrayResult(FutureHandle h)
 		{
-			Contract.Requires(h != null);
+			Contract.Debug.Requires(h != null);
 
 			var err = FdbNative.FutureGetStringArray(h, out var result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
 			Fdb.DieOnError(err);
-			Contract.Ensures(result != null); // can only be null in case of an error
+			Contract.Debug.Ensures(result != null); // can only be null in case of an error
 			return result!;
 		}
 
@@ -489,7 +489,7 @@ namespace FoundationDB.Client.Native
 
 		private static VersionStamp GetVersionStampResult(FutureHandle h)
 		{
-			Contract.Requires(h != null);
+			Contract.Debug.Requires(h != null);
 			var err = FdbNative.FutureGetVersionStamp(h, out VersionStamp stamp);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[" + m_id + "].FutureGetVersionStamp() => err=" + err + ", vs=" + stamp + ")");

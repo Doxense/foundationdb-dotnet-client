@@ -46,7 +46,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Create a new expression that returns a single result from a source sequence</summary>
 		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, string name, Expression<Func<IAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
-			Contract.Requires(sequence != null && lambda != null);
+			Contract.Debug.Requires(sequence != null && lambda != null);
 			this.Sequence = sequence;
 			this.Name = name;
 			this.Handler = lambda;
@@ -88,7 +88,7 @@ namespace FoundationDB.Linq.Expressions
 			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
 			var method = typeof(FdbExpressionHelpers).GetMethod("ExecuteEnumerable", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(typeof(T), typeof(R));
-			Contract.Assert(method != null, "ExecuteEnumerable helper method is missing!");
+			Contract.Debug.Assert(method != null, "ExecuteEnumerable helper method is missing!");
 
 			var body = Expression.Call(
 				method,

@@ -48,7 +48,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple Splice(IVarTuple tuple, int? fromIncluded, int? toExcluded)
 		{
-			Contract.Requires(tuple != null);
+			Contract.Debug.Requires(tuple != null);
 			int count = tuple.Count;
 			if (count == 0) return STuple.Empty;
 
@@ -88,7 +88,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple Splice(IVarTuple tuple, Range range)
 		{
-			Contract.Requires(tuple != null);
+			Contract.Debug.Requires(tuple != null);
 			int count = tuple.Count;
 
 			(int start, int len) = range.GetOffsetAndLength(count);
@@ -122,7 +122,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
 		public static bool StartsWith(IVarTuple a, IVarTuple b)
 		{
-			Contract.Requires(a != null && b != null);
+			Contract.Debug.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
 			int an = a.Count;
 			int bn = b.Count;
@@ -143,7 +143,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
 		public static bool EndsWith(IVarTuple a, IVarTuple b)
 		{
-			Contract.Requires(a != null && b != null);
+			Contract.Debug.Requires(a != null && b != null);
 			if (object.ReferenceEquals(a, b)) return true;
 			int an = a.Count;
 			int bn = b.Count;
@@ -163,7 +163,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Updated offset just after the last element of the copied tuple</returns>
 		public static int CopyTo(IVarTuple tuple, object?[] array, int offset)
 		{
-			Contract.Requires(tuple != null && array != null && offset >= 0);
+			Contract.Debug.Requires(tuple != null && array != null && offset >= 0);
 
 			foreach (var item in tuple)
 			{
@@ -245,7 +245,7 @@ namespace Doxense.Collections.Tuples
 
 		public static bool DeepEquals(IVarTuple x, IVarTuple y, IEqualityComparer comparer)
 		{
-			Contract.Requires(x != null && y != null && comparer != null);
+			Contract.Debug.Requires(x != null && y != null && comparer != null);
 
 			using (var xs = x.GetEnumerator())
 			using (var ys = y.GetEnumerator())
@@ -262,7 +262,7 @@ namespace Doxense.Collections.Tuples
 
 		public static int StructuralGetHashCode(IVarTuple? tuple, IEqualityComparer comparer)
 		{
-			Contract.Requires(comparer != null);
+			Contract.Debug.Requires(comparer != null);
 
 			if (tuple == null)
 			{
@@ -279,7 +279,7 @@ namespace Doxense.Collections.Tuples
 
 		public static int StructuralCompare(IVarTuple? x, IVarTuple? y, IComparer comparer)
 		{
-			Contract.Requires(comparer != null);
+			Contract.Debug.Requires(comparer != null);
 
 			if (object.ReferenceEquals(x, y)) return 0;
 			if (x ==  null) return -1;

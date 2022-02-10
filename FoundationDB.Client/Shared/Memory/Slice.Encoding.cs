@@ -901,7 +901,7 @@ namespace System
 				fixed (char* inp = &MemoryMarshal.GetReference(value))
 				{
 					int len = Utf8NoBomEncoding.GetByteCount(inp, value.Length);
-					Contract.Assert(len > 0);
+					Contract.Debug.Assert(len > 0);
 
 					//TODO: we could optimize conversion if we know it is only ascii!
 					asciiOnly = len == value.Length;

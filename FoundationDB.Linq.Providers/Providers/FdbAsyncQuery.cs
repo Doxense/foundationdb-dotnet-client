@@ -202,7 +202,7 @@ namespace FoundationDB.Linq.Providers
 			if (sequence.Transaction != null)
 			{
 				var source = generator(sequence.Transaction);
-				Contract.Assert(source != null);
+				Contract.Debug.Assert(source != null);
 				return source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(sequence.Transaction.Cancellation, mode) : source.GetAsyncEnumerator(sequence.Transaction.Cancellation);
 			}
 
@@ -217,7 +217,7 @@ namespace FoundationDB.Linq.Providers
 #warning Fix async begin transaction!
 				trans = sequence.Database!.BeginTransactionAsync(ct).GetAwaiter().GetResult(); //HACKHACK: BUGBUG: async!
 				var source = generator(trans);
-				Contract.Assert(source != null);
+				Contract.Debug.Assert(source != null);
 				iterator = source is IConfigurableAsyncEnumerable<T> configurable ? configurable.GetAsyncEnumerator(ct, mode) : source.GetAsyncEnumerator(ct);
 
 				return new TransactionIterator(trans, iterator);

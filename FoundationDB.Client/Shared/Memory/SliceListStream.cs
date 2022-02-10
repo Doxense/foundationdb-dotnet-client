@@ -53,13 +53,13 @@ namespace Doxense.Memory
 
 		internal SliceListStream(Slice[] slices)
 		{
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(slices);
 			Init(slices);
 		}
 
 		public SliceListStream(IEnumerable<Slice> slices)
 		{
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(slices);
 			Init(slices.ToArray());
 		}
 
@@ -135,7 +135,7 @@ namespace Doxense.Memory
 
 			m_position = (int)offset;
 
-			Contract.Ensures(m_position >= 0 && m_position <= m_length);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_length);
 
 			return offset;
 		}
@@ -171,7 +171,7 @@ namespace Doxense.Memory
 
 		public override int ReadByte()
 		{
-			Contract.Ensures(m_position >= 0 && m_position <= m_length);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_length);
 
 			var slices = m_slices;
 			if (slices == null) throw StreamIsClosed();
@@ -196,7 +196,7 @@ namespace Doxense.Memory
 			var slices = m_slices;
 			if (slices == null) throw StreamIsClosed();
 
-			Contract.Ensures(m_position >= 0 && m_position <= m_length);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_length);
 
 			if (m_position >= m_length) return 0;
 
@@ -237,7 +237,7 @@ namespace Doxense.Memory
 				count -= remaining;
 			}
 
-			Contract.Ensures(m_position >= 0 && m_position <= m_length);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_length);
 			return read;
 		}
 
@@ -295,7 +295,7 @@ namespace Doxense.Memory
 
 		private static void ValidateBuffer(byte[] buffer, int offset, int count)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero");
 			if (offset < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(offset), "Offset cannot be less than zero");
 			if (offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Offset and count must fit inside the buffer");

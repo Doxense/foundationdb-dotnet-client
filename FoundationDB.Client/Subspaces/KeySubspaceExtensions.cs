@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IBinaryKeySubspace AsBinary(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			if (subspace is IBinaryKeySubspace bin && (context == null || context == bin.Context))
 			{ // already a binary subspace
 				return bin;
@@ -67,7 +67,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IDynamicKeySubspace AsDynamic(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			if (subspace is IDynamicKeySubspace dyn && (context == null || context == dyn.Context) && (encoding == null || encoding == dyn.KeyEncoder.Encoding))
 			{ // already a dynamic subspace
 				return dyn;
@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			if (subspace is ITypedKeySubspace<T> typed && (context == null || context == typed.Context) && encoding == null)
 			{ // already a typed subspace
 				return typed;
@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			if (subspace is ITypedKeySubspace<T1, T2> typed && (context == null || context == typed.Context) && encoding == null)
 			{ // already a typed subspace
 				return typed;
@@ -115,7 +115,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			if (subspace is ITypedKeySubspace<T1, T2, T3> typed && (context == null || context == typed.Context) && encoding == null)
 			{ // already a typed subspace
 				return typed;
@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			if (subspace is ITypedKeySubspace<T1, T2, T3, T4> typed && (context == null || context == typed.Context) && encoding == null)
 			{ // already a typed subspace
 				return typed;
@@ -151,8 +151,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IDynamicKeySubspace UsingEncoder(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoder);
 			return new DynamicKeySubspace(subspace.GetPrefix(), encoder, context ?? subspace.Context);
 		}
 
@@ -164,8 +164,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T> UsingEncoder<T>(this IKeySubspace subspace, IKeyEncoder<T> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T>(subspace.GetPrefix(), encoder, context ?? subspace.Context);
 		}
 
@@ -177,8 +177,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), encoder, context ?? subspace.Context);
 		}
 
@@ -190,8 +190,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), encoder, context ?? subspace.Context);
 		}
 
@@ -203,8 +203,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3, T4> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), encoder, context ?? subspace.Context);
 		}
 
@@ -226,7 +226,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static KeySubspace Copy(this IKeySubspace subspace)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 
 			var prefix = StealPrefix(subspace);
 
@@ -243,8 +243,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static DynamicKeySubspace Copy(this IKeySubspace subspace, IDynamicKeyEncoding encoding, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoding, nameof(encoding));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoding);
 			return new DynamicKeySubspace(StealPrefix(subspace), encoding.GetDynamicKeyEncoder(), context ?? subspace.Context);
 		}
 
@@ -252,8 +252,8 @@ namespace FoundationDB.Client
 		[Pure]
 		public static DynamicKeySubspace Copy(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(encoder);
 			return new DynamicKeySubspace(StealPrefix(subspace), encoder, context ?? subspace.Context);
 		}
 
@@ -261,7 +261,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static DynamicKeySubspace Copy(this IDynamicKeySubspace subspace, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			return new DynamicKeySubspace(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
 
@@ -269,7 +269,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static TypedKeySubspace<T1> Copy<T1>(this ITypedKeySubspace<T1> subspace, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			return new TypedKeySubspace<T1>(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
 
@@ -277,7 +277,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static TypedKeySubspace<T1, T2> Copy<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			return new TypedKeySubspace<T1, T2>(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
 
@@ -285,7 +285,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static TypedKeySubspace<T1, T2, T3> Copy<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			return new TypedKeySubspace<T1, T2, T3>(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
 
@@ -293,7 +293,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static TypedKeySubspace<T1, T2, T3, T4> Copy<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 			return new TypedKeySubspace<T1, T2, T3, T4>(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
 
@@ -329,7 +329,7 @@ namespace FoundationDB.Client
 		/// <summary>Clear the entire content of a subspace</summary>
 		public static void ClearRange(this IFdbTransaction trans, IKeySubspace subspace)
 		{
-			Contract.Requires(trans != null && subspace != null);
+			Contract.Debug.Requires(trans != null && subspace != null);
 
 			//BUGBUG: should we call subspace.ToRange() ?
 			trans.ClearRange(subspace.ToRange());
@@ -338,8 +338,8 @@ namespace FoundationDB.Client
 		/// <summary>Clear the entire content of a subspace</summary>
 		public static Task ClearRangeAsync(this IFdbRetryable db, IKeySubspace subspace, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(db);
+			Contract.NotNull(subspace);
 
 			return db.WriteAsync((tr) => ClearRange(tr, subspace), ct);
 		}
@@ -350,7 +350,7 @@ namespace FoundationDB.Client
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, IKeySubspace subspace, FdbRangeOptions? options = null)
 		{
 			//REVIEW: should we remove this method?
-			Contract.Requires(trans != null && subspace != null);
+			Contract.Debug.Requires(trans != null && subspace != null);
 
 			return trans.GetRange(subspace.ToRange(), options);
 		}

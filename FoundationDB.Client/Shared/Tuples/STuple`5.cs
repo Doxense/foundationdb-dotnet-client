@@ -375,7 +375,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static implicit operator STuple<T1, T2, T3, T4, T5>(Tuple<T1, T2, T3, T4, T5> t)
 		{
-			Contract.NotNull(t, nameof(t));
+			Contract.NotNull(t);
 			return new STuple<T1, T2, T3, T4, T5>(t.Item1, t.Item2, t.Item3, t.Item4, t.Item5);
 		}
 

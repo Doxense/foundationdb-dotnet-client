@@ -62,7 +62,7 @@ namespace Doxense.Linq.Async.Iterators
 		public PrefetchingAsyncIterator(IAsyncEnumerable<TInput> source, int prefetchCount)
 			: base(source)
 		{
-			Contract.Requires(prefetchCount > 0);
+			Contract.Debug.Requires(prefetchCount > 0);
 			m_prefetchCount = prefetchCount;
 		}
 
@@ -96,7 +96,7 @@ namespace Doxense.Linq.Async.Iterators
 		{
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our prefetch buffer, then returns the first item in the buffer.
 			var iterator = m_iterator;
-			Contract.Requires(m_innerHasCompleted || iterator != null);
+			Contract.Debug.Requires(m_innerHasCompleted || iterator != null);
 
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)

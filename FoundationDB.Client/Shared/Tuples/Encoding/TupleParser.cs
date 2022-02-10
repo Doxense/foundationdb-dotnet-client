@@ -413,7 +413,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Writes a char array encoded in UTF-8</summary>
 		internal static unsafe void WriteChars(ref TupleWriter writer, char[] value, int offset, int count)
 		{
-			Contract.Requires(offset >= 0 && count >= 0);
+			Contract.Debug.Requires(offset >= 0 && count >= 0);
 
 			if (count == 0)
 			{
@@ -440,7 +440,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static unsafe void WriteUnescapedAsciiChars(ref TupleWriter writer, char* chars, int count)
 		{
-			Contract.Requires(chars != null && count >= 0);
+			Contract.Debug.Requires(chars != null && count >= 0);
 
 			// copy and convert an ASCII string directly into the destination buffer
 
@@ -462,7 +462,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		private static unsafe bool TryWriteUnescapedUtf8String(ref TupleWriter writer, char* chars, int count)
 		{
-			Contract.Requires(chars != null && count >= 0);
+			Contract.Debug.Requires(chars != null && count >= 0);
 
 			// Several observations:
 			// * Most strings will be keywords or ASCII-only with no zeroes. These can be copied directly to the buffer
@@ -532,7 +532,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				ptr += charsUsed;
 			}
 			while (!done);
-			Contract.Assert(remaining == 0 && ptr == end);
+			Contract.Debug.Assert(remaining == 0 && ptr == end);
 
 			// close the string
 			writer.Output.WriteByte(0x00);
@@ -878,7 +878,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static Slice ParseBytes(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[slice.Count - 1] == 0);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[slice.Count - 1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
 			var chunk = slice.Substring(1, slice.Count - 2);
@@ -892,7 +892,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			{ // should never happen since decoding can only reduce the size!?
 				throw new InvalidOperationException();
 			}
-			Contract.Requires(written <= span.Length);
+			Contract.Debug.Requires(written <= span.Length);
 
 			return new Slice(span, 0, written);
 		}
@@ -901,7 +901,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static string ParseAscii(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Bytes && slice[-1] == 0);
 
 			if (slice.Count <= 2) return string.Empty;
 
@@ -937,7 +937,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static string ParseUnicode(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Utf8 && slice[-1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
 
@@ -973,7 +973,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static IVarTuple ParseTuple(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.EmbeddedTuple && slice[-1] == 0);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.EmbeddedTuple && slice[-1] == 0);
 			if (slice.Count <= 2) return STuple.Empty;
 
 			return TuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
@@ -983,7 +983,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static float ParseSingle(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Single);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Single);
 
 			if (slice.Count != 5)
 			{
@@ -1014,7 +1014,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static double ParseDouble(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Double);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Double);
 
 			if (slice.Count != 9)
 			{
@@ -1046,7 +1046,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static decimal ParseDecimal(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Decimal);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Decimal);
 
 			if (slice.Count != 17)
 			{
@@ -1060,7 +1060,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static Guid ParseGuid(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
 
 			if (slice.Count != 17)
 			{
@@ -1075,7 +1075,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static Uuid128 ParseUuid128(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid128);
 
 			if (slice.Count != 17)
 			{
@@ -1089,7 +1089,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static Uuid64 ParseUuid64(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid64);
+			Contract.Debug.Requires(slice.HasValue && slice[0] == TupleTypes.Uuid64);
 
 			if (slice.Count != 9)
 			{
@@ -1103,7 +1103,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		[Pure]
 		public static VersionStamp ParseVersionStamp(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && (slice[0] == TupleTypes.VersionStamp80 || slice[0] == TupleTypes.VersionStamp96));
+			Contract.Debug.Requires(slice.HasValue && (slice[0] == TupleTypes.VersionStamp80 || slice[0] == TupleTypes.VersionStamp96));
 
 			if (slice.Count != 11 && slice.Count != 13)
 			{

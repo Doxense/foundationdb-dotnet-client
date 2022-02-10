@@ -112,7 +112,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static MutableSlice CreateUnsafe(byte[] buffer, [Positive] int offset, [Positive] int count)
 		{
-			Contract.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
+			Contract.Debug.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
 			return new MutableSlice(buffer, offset, count);
 		}
 
@@ -132,14 +132,14 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static MutableSlice CreateUnsafe(byte[] buffer, uint offset, uint count)
 		{
-			Contract.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
+			Contract.Debug.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
 			return new MutableSlice(buffer, (int) offset, (int) count);
 		}
 
 		/// <summary>Creates a new empty slice of a specified size containing all zeroes</summary>
 		public static MutableSlice Create(int size)
 		{
-			Contract.Positive(size, nameof(size));
+			Contract.Positive(size);
 			return size != 0 ? new MutableSlice(new byte[size]) : MutableSlice.Empty;
 		}
 
@@ -155,7 +155,7 @@ namespace System
 		[Pure]
 		public static MutableSlice Copy(byte[] source)
 		{
-			Contract.NotNull(source, nameof(source));
+			Contract.NotNull(source);
 			if (source.Length == 0) return Empty;
 			return Copy(source, 0, source.Length);
 		}
@@ -221,8 +221,8 @@ namespace System
 			{
 				return source == null ? default : Empty;
 			}
-			Contract.PointerNotNull(source, nameof(source));
-			Contract.Positive(count, nameof(count));
+			Contract.PointerNotNull(source);
+			Contract.Positive(count);
 
 			if (count == 1)
 			{ // Use the sprite cache
@@ -658,7 +658,7 @@ namespace System
 		public MutableSlice Truncate([Positive] int maxSize)
 		{
 			//note: the only difference with Substring(0, maxSize) is that we don't throw if the slice is smaller than !
-			Contract.Positive(maxSize, nameof(maxSize));
+			Contract.Positive(maxSize);
 
 			if (maxSize == 0) return this.Array == null ? Nil : Empty;
 			return this.Count <= maxSize ? this : new MutableSlice(this.Array, this.Offset, maxSize);
@@ -865,7 +865,7 @@ namespace System
 		/// <remarks>Warning: <see cref="System.Random"/> is not thread-safe ! If the <paramref name="prng"/> instance is shared between threads, then it needs to be locked before calling this method.</remarks>
 		public static MutableSlice Random(Random prng, int count)
 		{
-			Contract.NotNull(prng, nameof(prng));
+			Contract.NotNull(prng);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
 			if (count == 0) return MutableSlice.Empty;
 
@@ -882,7 +882,7 @@ namespace System
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
 		public static MutableSlice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
-			Contract.NotNull(rng, nameof(rng));
+			Contract.NotNull(rng);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
 			if (count == 0) return MutableSlice.Empty;
 
@@ -1171,7 +1171,7 @@ namespace System
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static MutableSlice FromStream(Stream data)
 		{
-			Contract.NotNull(data, nameof(data));
+			Contract.NotNull(data);
 
 			// special case for empty values
 			if (data == Stream.Null) return MutableSlice.Nil;
@@ -1201,7 +1201,7 @@ namespace System
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static Task<MutableSlice> FromStreamAsync(Stream data, CancellationToken ct)
 		{
-			Contract.NotNull(data, nameof(data));
+			Contract.NotNull(data);
 
 			// special case for empty values
 			if (data == Stream.Null) return Task.FromResult(MutableSlice.Nil);
@@ -1231,7 +1231,7 @@ namespace System
 		/// <returns>Slice containing the loaded data</returns>
 		private static MutableSlice LoadFromNonBlockingStream(Stream source, int length)
 		{
-			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
+			Contract.Debug.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
 
 			if (source is MemoryStream ms)
 			{ // Already holds onto a byte[]
@@ -1254,7 +1254,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Assert(r == 0 && p == length);
+			Contract.Debug.Assert(r == 0 && p == length);
 
 			return buffer.AsMutableSlice();
 		}
@@ -1266,7 +1266,7 @@ namespace System
 		/// <returns>Slice containing the loaded data</returns>
 		private static MutableSlice LoadFromBlockingStream(Stream source, int length, int chunkSize = 0)
 		{
-			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
+			Contract.Debug.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
 			if (chunkSize == 0) chunkSize = int.MaxValue;
 
@@ -1283,7 +1283,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Assert(r == 0 && p == length);
+			Contract.Debug.Assert(r == 0 && p == length);
 
 			return buffer.AsMutableSlice();
 		}
@@ -1296,7 +1296,7 @@ namespace System
 		/// <returns>Slice containing the loaded data</returns>
 		private static async Task<MutableSlice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken ct)
 		{
-			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
+			Contract.Debug.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
 			if (chunkSize == 0) chunkSize = int.MaxValue;
 
@@ -1313,7 +1313,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Assert(r == 0 && p == length);
+			Contract.Debug.Assert(r == 0 && p == length);
 
 			return buffer.AsMutableSlice();
 		}
@@ -1559,7 +1559,7 @@ namespace System
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
 		public static int GetTotalSizeAndCommonStore(int prefix, List<MutableSlice> slices, out byte[]? commonStore)
 		{
-			Contract.Requires(slices != null);
+			Contract.Debug.Requires(slices != null);
 			if (slices.Count == 0)
 			{
 				commonStore = null;
@@ -1601,7 +1601,7 @@ namespace System
 
 			internal Pinned(object owner, byte[] buffer, List<MutableSlice>? extra)
 			{
-				Contract.Requires(owner != null && buffer != null);
+				Contract.Debug.Requires(owner != null && buffer != null);
 
 				this.Owner = buffer;
 				this.Handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
@@ -1729,7 +1729,7 @@ namespace System
 		public static MutableSlice AsMutableSlice(this byte[] bytes, [Positive] int offset)
 		{
 			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
-			Contract.NotNull(bytes, nameof(bytes));
+			Contract.NotNull(bytes);
 			if ((uint) offset > (uint) bytes.Length) UnsafeHelpers.Errors.ThrowBufferArrayToSmall();
 			return bytes.Length != 0 ? new MutableSlice(bytes, offset, bytes.Length - offset) : MutableSlice.Empty;
 		}

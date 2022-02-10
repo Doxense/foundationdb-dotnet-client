@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public static IDynamicKeySubspace CreateDynamic(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new DynamicKeySubspace(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
@@ -100,7 +100,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
 		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, IKeyEncoder<T1> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
@@ -115,7 +115,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
 		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
@@ -130,7 +130,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
 		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
 		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, ICompositeKeyEncoder<T1, T2, T3, T4> encoder, ISubspaceContext? context = null)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 

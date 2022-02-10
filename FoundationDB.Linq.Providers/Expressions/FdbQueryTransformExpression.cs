@@ -43,7 +43,7 @@ namespace FoundationDB.Linq.Expressions
 
 		internal FdbQueryTransformExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
 		{
-			Contract.Requires(source != null && transform != null);
+			Contract.Debug.Requires(source != null && transform != null);
 			this.Source = source;
 			this.Transform = transform;
 		}

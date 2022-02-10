@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			Contract.Requires(handler != null && directory != null && root != null);
+			Contract.Debug.Requires(handler != null && directory != null && root != null);
 
 			m_handler = handler;
 			m_readOnly = readOnly;
@@ -106,9 +106,9 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		public static FdbDatabase Create(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
 		{
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(root, nameof(root));
+			Contract.NotNull(handler);
+			Contract.NotNull(directory);
+			Contract.NotNull(root);
 
 			return new FdbDatabase(handler, directory, root, readOnly);
 		}
@@ -164,7 +164,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context in which the transaction will run</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
-			Contract.Requires(context?.Database != null);
+			Contract.Debug.Requires(context?.Database != null);
 			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only
@@ -208,7 +208,7 @@ namespace FoundationDB.Client
 
 		internal void EnsureTransactionIsValid(FdbTransaction transaction)
 		{
-			Contract.Requires(transaction != null);
+			Contract.Debug.Requires(transaction != null);
 			if (m_disposed) ThrowIfDisposed();
 			//TODO?
 		}
@@ -216,7 +216,7 @@ namespace FoundationDB.Client
 		/// <summary>Add a new transaction to the list of tracked transactions</summary>
 		internal void RegisterTransaction(FdbTransaction transaction)
 		{
-			Contract.Requires(transaction != null);
+			Contract.Debug.Requires(transaction != null);
 
 			if (!m_transactions.TryAdd(transaction.Id, transaction))
 			{
@@ -228,7 +228,7 @@ namespace FoundationDB.Client
 		/// <param name="transaction"></param>
 		internal void UnregisterTransaction(FdbTransaction transaction)
 		{
-			Contract.Requires(transaction != null);
+			Contract.Debug.Requires(transaction != null);
 
 			//do nothing is already disposed
 			if (m_disposed) return;
@@ -272,7 +272,7 @@ namespace FoundationDB.Client
 
 		private Task<TResult> ExecuteReadOnlyAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 			ThrowIfDisposed();
 
@@ -334,7 +334,7 @@ namespace FoundationDB.Client
 
 		private Task<TResult> ExecuteReadWriteAsync<TState, TIntermediate, TResult>(TState state, Delegate handler, Delegate? success, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 			ThrowIfDisposed();
 			if (m_readOnly) throw new InvalidOperationException("Cannot mutate a read-only database.");
@@ -608,7 +608,7 @@ namespace FoundationDB.Client
 
 		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(start, nameof(start));
+			Contract.NotNull(start);
 			return new FdbDatabaseScopeProvider<TState>(this, start, lifetime);
 		}
 

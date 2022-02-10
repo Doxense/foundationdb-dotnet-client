@@ -47,13 +47,13 @@ namespace Doxense.Linq.Async.Expressions
 
 		public AsyncFilterExpression(Func<TSource, bool> filter)
 		{
-			Contract.NotNull(filter, nameof(filter));
+			Contract.NotNull(filter);
 			m_filter = filter;
 		}
 
 		public AsyncFilterExpression(Func<TSource, CancellationToken, Task<bool>> asyncFilter)
 		{
-			Contract.NotNull(asyncFilter, nameof(asyncFilter));
+			Contract.NotNull(asyncFilter);
 			m_asyncFilter = asyncFilter;
 		}
 
@@ -73,7 +73,7 @@ namespace Doxense.Linq.Async.Expressions
 			}
 			else
 			{
-				Contract.Requires(m_filter != null);
+				Contract.Debug.Requires(m_filter != null);
 				return Task.FromResult(m_filter(item));
 			}
 		}
@@ -96,8 +96,8 @@ namespace Doxense.Linq.Async.Expressions
 
 		public static AsyncFilterExpression<TSource> AndAlso(AsyncFilterExpression<TSource> left, AsyncFilterExpression<TSource> right)
 		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			// combine two expressions into a logical AND expression.
 			// Note: if the first expression returns false, the second one will NOT be evaluated
@@ -119,7 +119,7 @@ namespace Doxense.Linq.Async.Expressions
 			else
 			{ // we are async
 				var f = left.m_asyncFilter;
-				Contract.Assert(f != null);
+				Contract.Debug.Assert(f != null);
 				if (right.m_asyncFilter != null)
 				{ // so is the next one
 					var g = right.m_asyncFilter;
@@ -135,8 +135,8 @@ namespace Doxense.Linq.Async.Expressions
 
 		public static AsyncFilterExpression<TSource> OrElse(AsyncFilterExpression<TSource> left, AsyncFilterExpression<TSource> right)
 		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			// combine two expressions into a logical OR expression.
 			// Note: if the first expression returns true, the second one will NOT be evaluated
@@ -144,34 +144,34 @@ namespace Doxense.Linq.Async.Expressions
 			if (left.m_filter != null)
 			{ // we are async
 				var f = left.m_filter;
-				Contract.Assert(f != null);
+				Contract.Debug.Assert(f != null);
 				if (right.m_filter != null)
 				{ // so is the next one
 					var g = right.m_filter;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncFilterExpression<TSource>((x) => f(x) || g(x));
 				}
 				else
 				{ // next one is async
 					var g = right.m_asyncFilter;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncFilterExpression<TSource>((x, ct) => f(x) ? TaskHelpers.True : g(x, ct));
 				}
 			}
 			else
 			{ // we are async
 				var f = left.m_asyncFilter;
-				Contract.Assert(f != null);
+				Contract.Debug.Assert(f != null);
 				if (right.m_asyncFilter != null)
 				{ // so is the next one
 					var g = left.m_asyncFilter;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) || (await g(x, ct).ConfigureAwait(false)));
 				}
 				else
 				{
 					var g = left.m_filter;
-					Contract.Assert(g != null);
+					Contract.Debug.Assert(g != null);
 					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) || g(x));
 				}
 			}

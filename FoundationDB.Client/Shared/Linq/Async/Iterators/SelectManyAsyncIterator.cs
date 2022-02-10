@@ -48,7 +48,7 @@ namespace Doxense.Linq.Async.Iterators
 			: base(source)
 		{
 			// Must have at least one, but not both
-			Contract.Requires(selector != null);
+			Contract.Debug.Requires(selector != null);
 
 			m_selector = selector;
 		}
@@ -64,7 +64,7 @@ namespace Doxense.Linq.Async.Iterators
 			// if not, wait for the next batch
 
 			var iterator = m_iterator;
-			Contract.Requires(iterator != null);
+			Contract.Debug.Requires(iterator != null);
 
 			while (!m_ct.IsCancellationRequested)
 			{
@@ -91,7 +91,7 @@ namespace Doxense.Linq.Async.Iterators
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
 					m_batch = sequence.GetEnumerator();
-					Contract.Assert(m_batch != null);
+					Contract.Debug.Assert(m_batch != null);
 				}
 
 				if (!m_batch.MoveNext())
@@ -139,7 +139,7 @@ namespace Doxense.Linq.Async.Iterators
 		)
 			: base(source)
 		{
-			Contract.Requires(collectionSelector != null && resultSelector != null);
+			Contract.Debug.Requires(collectionSelector != null && resultSelector != null);
 
 			m_collectionSelector = collectionSelector;
 			m_resultSelector = resultSelector;
@@ -157,7 +157,7 @@ namespace Doxense.Linq.Async.Iterators
 			// if not, wait for the next batch
 
 			var iterator = m_iterator;
-			Contract.Requires(iterator != null);
+			Contract.Debug.Requires(iterator != null);
 
 			while (!m_ct.IsCancellationRequested)
 			{
@@ -187,7 +187,7 @@ namespace Doxense.Linq.Async.Iterators
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
 					m_batch = batch = sequence.GetEnumerator();
-					Contract.Requires(batch != null);
+					Contract.Debug.Requires(batch != null);
 				}
 
 				if (!batch.MoveNext())

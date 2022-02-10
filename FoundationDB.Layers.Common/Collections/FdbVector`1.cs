@@ -74,7 +74,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="encoder">Encoder used for the values of this vector</param>
 		public FdbVector(DynamicKeySubspaceLocation location, T defaultValue, IValueEncoder<T>? encoder = null)
 		{
-			Contract.NotNull(location, nameof(location));
+			Contract.NotNull(location);
 
 			this.Location = location;
 			this.DefaultValue = defaultValue;
@@ -303,7 +303,7 @@ namespace FoundationDB.Layers.Collections
 
 			private async Task<long> ComputeSizeAsync(IFdbReadOnlyTransaction tr)
 			{
-				Contract.Requires(tr != null);
+				Contract.Debug.Requires(tr != null);
 
 				var keyRange = this.Subspace.ToRange();
 

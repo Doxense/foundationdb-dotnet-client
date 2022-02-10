@@ -263,7 +263,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static implicit operator STuple<T1>(Tuple<T1> t)
 		{
-			Contract.NotNull(t, nameof(t));
+			Contract.NotNull(t);
 			return new STuple<T1>(t.Item1);
 		}
 

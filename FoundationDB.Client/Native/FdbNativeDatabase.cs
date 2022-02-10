@@ -57,7 +57,7 @@ namespace FoundationDB.Client.Native
 
 		public FdbNativeDatabase(DatabaseHandle handle, string? clusterFile, ClusterHandle? cluster = null)
 		{
-			Contract.NotNull(handle, nameof(handle));
+			Contract.NotNull(handle);
 
 			m_handle = handle;
 			m_clusterFile = clusterFile;

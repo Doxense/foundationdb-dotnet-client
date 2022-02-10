@@ -55,7 +55,7 @@ namespace Doxense.Linq
 
 			public OrderedSequence(IAsyncEnumerable<TSource> source, IComparer<TSource>? comparer, bool descending, OrderedSequence<TSource>? parent)
 			{
-				Contract.Requires(source != null);
+				Contract.Debug.Requires(source != null);
 
 				m_source = source;
 				m_descending = descending;
@@ -65,7 +65,7 @@ namespace Doxense.Linq
 
 			protected OrderedSequence(IAsyncEnumerable<TSource> source, bool descending, OrderedSequence<TSource>? parent)
 			{
-				Contract.Requires(source != null);
+				Contract.Debug.Requires(source != null);
 
 				m_source = source;
 				m_descending = descending;
@@ -100,7 +100,7 @@ namespace Doxense.Linq
 
 			public IAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending)
 			{
-				Contract.NotNull(keySelector, nameof(keySelector));
+				Contract.NotNull(keySelector);
 
 				return new OrderedSequence<TSource, TKey>(this, keySelector, comparer, descending, this);
 			}
@@ -118,7 +118,7 @@ namespace Doxense.Linq
 			public OrderedSequence(IAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey>? comparer, bool descending, OrderedSequence<TSource>? parent)
 				: base(source, descending, parent)
 			{
-				Contract.Requires(keySelector != null);
+				Contract.Debug.Requires(keySelector != null);
 				m_keySelector = keySelector;
 				m_keyComparer = comparer ?? Comparer<TKey>.Default;
 			}
@@ -149,7 +149,7 @@ namespace Doxense.Linq
 
 			public OrderedEnumerator(IAsyncEnumerator<TSource> enumerator, SequenceSorter<TSource> sorter, CancellationToken ct)
 			{
-				Contract.Requires(enumerator != null && sorter != null);
+				Contract.Debug.Requires(enumerator != null && sorter != null);
 				m_inner = enumerator;
 				m_sorter = sorter;
 				m_current = default!;
@@ -216,7 +216,7 @@ namespace Doxense.Linq
 
 			private void Publish(int offset)
 			{
-				Contract.Requires(m_items != null && m_map != null && offset >= 0 && offset < m_map.Length);
+				Contract.Debug.Requires(m_items != null && m_map != null && offset >= 0 && offset < m_map.Length);
 				m_current = m_items[m_map[offset]];
 				m_offset = offset;
 			}

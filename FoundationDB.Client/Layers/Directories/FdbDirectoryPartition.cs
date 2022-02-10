@@ -41,7 +41,7 @@ namespace FoundationDB.Client
 		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, IDynamicKeyEncoder keyEncoder, ISubspaceContext? context, bool cached)
 			: base(descriptor, keyEncoder, context, cached)
 		{
-			Contract.NotNull(parent, nameof(parent));
+			Contract.NotNull(parent);
 			this.Parent = parent;
 		}
 
@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 
 		internal override FdbDirectorySubspace ChangeContext(ISubspaceContext context)
 		{
-			Contract.NotNull(context, nameof(context));
+			Contract.NotNull(context);
 
 			if (context == this.Context) return this;
 			return new FdbDirectoryPartition(this.Descriptor, this.Parent, this.KeyEncoder, context, true);

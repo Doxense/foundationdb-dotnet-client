@@ -145,58 +145,58 @@ namespace Doxense.Linq.Async.Iterators
 
 		public virtual AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
 		{
-			Contract.NotNull(predicate, nameof(predicate));
+			Contract.NotNull(predicate);
 
 			return AsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(predicate));
 		}
 
 		public virtual AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			Contract.NotNull(asyncPredicate, nameof(asyncPredicate));
+			Contract.NotNull(asyncPredicate);
 
 			return AsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(asyncPredicate));
 		}
 
 		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
-			Contract.NotNull(selector, nameof(selector));
+			Contract.NotNull(selector);
 
 			return AsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(selector));
 		}
 
 		public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
-			Contract.NotNull(asyncSelector, nameof(asyncSelector));
+			Contract.NotNull(asyncSelector);
 
 			return AsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(asyncSelector));
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
 		{
-			Contract.NotNull(selector, nameof(selector));
+			Contract.NotNull(selector);
 
 			return AsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(selector));
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
-			Contract.NotNull(asyncSelector, nameof(asyncSelector));
+			Contract.NotNull(asyncSelector);
 
 			return AsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(asyncSelector));
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
 		{
-			Contract.NotNull(collectionSelector, nameof(collectionSelector));
-			Contract.NotNull(resultSelector, nameof(resultSelector));
+			Contract.NotNull(collectionSelector);
+			Contract.NotNull(resultSelector);
 
 			return AsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(collectionSelector), resultSelector);
 		}
 
 		public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
 		{
-			Contract.NotNull(asyncCollectionSelector, nameof(asyncCollectionSelector));
-			Contract.NotNull(resultSelector, nameof(resultSelector));
+			Contract.NotNull(asyncCollectionSelector);
+			Contract.NotNull(resultSelector);
 
 			return AsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
 		}

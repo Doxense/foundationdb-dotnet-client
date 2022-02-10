@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
 			internal static async Task SwitchToNamedPartitionAsync(FdbDatabase db, FdbPath root, CancellationToken ct)
 			{
-				Contract.Requires(db != null);
+				Contract.Debug.Requires(db != null);
 				ct.ThrowIfCancellationRequested();
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", $"Opened root layer using cluster file '{db.ClusterFile}'");
@@ -67,8 +67,8 @@ namespace FoundationDB.Client
 			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
 			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync(IFdbReadOnlyTransaction tr, IFdbDirectory parent)
 			{
-				Contract.NotNull(tr, nameof(tr));
-				Contract.NotNull(parent, nameof(parent));
+				Contract.NotNull(tr);
+				Contract.NotNull(parent);
 
 				// read the names of all the subdirectories
 				var children = await parent.ListAsync(tr).ConfigureAwait(false);

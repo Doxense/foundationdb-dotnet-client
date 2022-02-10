@@ -320,7 +320,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteBytesUnsafe(byte* cursor, byte* data, uint count)
 		{
-			Contract.Requires(cursor != null && data != null);
+			Contract.Debug.Requires(cursor != null && data != null);
 			if (count > 0) System.Buffer.MemoryCopy(data, cursor, count, count);
 			return cursor + count;
 		}
@@ -328,7 +328,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteBytes(byte* cursor, byte* stop, byte* data, uint count)
 		{
-			Contract.Requires(cursor != null && stop != null && data != null);
+			Contract.Debug.Requires(cursor != null && stop != null && data != null);
 			if (count > 0)
 			{
 				if (cursor + count > stop) throw Errors.BufferOutOfBound();
@@ -414,7 +414,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteVarInt16Unsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (value < 0x80)
 			{
@@ -433,7 +433,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteVarInt16(byte* cursor, byte* stop, ushort value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (cursor < stop & value < 0x80)
 			{
@@ -447,7 +447,7 @@ namespace Doxense.Memory
 		/// <remarks>Can read up to 3 bytes from the input</remarks>
 		public static byte* ReadVarint16(byte* cursor, byte* stop, out ushort value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor < stop && (value = *cursor) < 0x80)
 			{
 				return cursor + 1;
@@ -464,7 +464,7 @@ namespace Doxense.Memory
 			// unless  cursor >= stop, we already know that the first byte has the MSB set
 			if (cursor >= stop) goto overflow;
 			uint b = cursor[0];
-			Contract.Assert(b >= 0x80);
+			Contract.Debug.Assert(b >= 0x80);
 			uint res = b & 0x7F;
 
 			if (cursor + 1 >= stop) goto overflow;
@@ -522,7 +522,7 @@ namespace Doxense.Memory
 		/// <remarks>Can read up to 3 bytes from the input</remarks>
 		public static byte* ReadVarint16Unsafe(byte* cursor, out ushort value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			uint n = 1;
 
 			//TODO: we expect most values to be small (count or array length), so we should optimize for single byte varints where byte[0] <= 127 should be inlined, and defer to a slower method if >= 128.
@@ -561,7 +561,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteVarInt32Unsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			if (value < 0x80)
 			{
 				*cursor = (byte) value;
@@ -598,7 +598,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteVarInt32(byte* cursor, byte* stop, uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (cursor < stop & value < 0x80)
 			{
@@ -630,7 +630,7 @@ namespace Doxense.Memory
 		/// <remarks>Can read up to 5 bytes from the input</remarks>
 		public static byte* ReadVarint32Unsafe(byte* cursor, out uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			uint n = 1;
 
 			//TODO: we expect most values to be small (count or array length), so we should optimize for single byte varints where byte[0] <= 127 should be inlined, and defer to a slower method if >= 128.
@@ -682,7 +682,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* ReadVarint32(byte* cursor, byte* stop, out uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor < stop && (value = *cursor) < 0x80)
 			{
 				return cursor + 1;
@@ -697,7 +697,7 @@ namespace Doxense.Memory
 			// unless  cursor >= stop, we already know that the first byte has the MSB set
 			if (cursor >= stop) goto overflow;
 			uint b = cursor[0];
-			Contract.Assert(b >= 0x80);
+			Contract.Debug.Assert(b >= 0x80);
 			uint res = b & 0x7F;
 
 			if (cursor + 1 >= stop) goto overflow;
@@ -776,7 +776,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteVarInt64Unsafe(byte* cursor, ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			if (value < 0x80)
 			{
 				*cursor = (byte)value;
@@ -809,7 +809,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteVarInt64(byte* cursor, byte* stop, ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (cursor < stop & value < 0x80)
 			{
@@ -841,7 +841,7 @@ namespace Doxense.Memory
 		/// <remarks>Can read up to 10 bytes from the input</remarks>
 		public static byte* ReadVarint64Unsafe(byte* cursor, out ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			uint n = 1;
 
 			//note: we expect the value to be large (most frequent use it to decode a Sequence Number), so there is no point in optimizing for single byte varints...
@@ -933,7 +933,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* ReadVarint64(byte* cursor, byte* stop, out ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor < stop && (value = *cursor) < 0x80)
 			{
 				return cursor + 1;
@@ -952,7 +952,7 @@ namespace Doxense.Memory
 			// unless cursor >= stop, we already know that the first byte has the MSB set
 			if (cursor >= stop) goto overflow;
 			ulong b = cursor[0];
-			Contract.Assert(b >= 0x80);
+			Contract.Debug.Assert(b >= 0x80);
 			ulong res = b & 0x7F;
 
 			if (cursor >= stop) goto overflow;
@@ -1599,7 +1599,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed16Unsafe(byte* cursor, ushort value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt16LE((ushort*) cursor, value);
 			return cursor + 2;
 		}
@@ -1609,7 +1609,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed16(byte* cursor, byte* stop, ushort value)
 		{
-			Contract.Requires(cursor != null & stop != null);
+			Contract.Debug.Requires(cursor != null & stop != null);
 			if (cursor + 2 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt16LE((ushort*) cursor, value);
 			return cursor + 2;
@@ -1689,7 +1689,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed16BEUnsafe(byte* cursor, ushort value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt16BE((ushort*) cursor, value);
 			return cursor + 2;
 		}
@@ -1699,7 +1699,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed16BE(byte* cursor, byte* stop, ushort value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 2 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt16BE((ushort*) cursor, value);
 			return cursor + 2;
@@ -1792,7 +1792,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed32Unsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt32LE((uint*) cursor, value);
 			return cursor + 4;
 		}
@@ -1802,7 +1802,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed32(byte* cursor, byte* stop, uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 4 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt32LE((uint*) cursor, value);
 			return cursor + 4;
@@ -1880,7 +1880,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed32BEUnsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt32BE((uint*) cursor, value);
 			return cursor + 4;
 		}
@@ -1890,7 +1890,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed32BE(byte* cursor, byte* stop, uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 4 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt32BE((uint*) cursor, value);
 			return cursor + 4;
@@ -1981,7 +1981,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed64Unsafe(byte* cursor, ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt64LE((ulong*) cursor, value);
 			return cursor + 8;
 		}
@@ -1991,7 +1991,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed64(byte* cursor, byte* stop, ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 8 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt64LE((ulong*) cursor, value);
 			return cursor + 8;
@@ -2071,7 +2071,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed64BEUnsafe(byte* cursor, ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt64BE((ulong*) cursor, value);
 			return cursor + 8;
 		}
@@ -2081,7 +2081,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteFixed64BE(byte* cursor, byte* stop, ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 8 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt64BE((ulong*) cursor, value);
 			return cursor + 8;
@@ -2226,7 +2226,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteCompact16Unsafe(byte* ptr, ushort value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				*ptr = (byte) value;
@@ -2240,7 +2240,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteCompact16BEUnsafe(byte* ptr, ushort value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				*ptr = (byte) value;
@@ -2254,7 +2254,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteCompact32Unsafe(byte* ptr, uint value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				ptr[0] = (byte) value;
@@ -2285,7 +2285,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteCompact32BEUnsafe(byte* ptr, uint value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				ptr[0] = (byte) value;
@@ -2316,7 +2316,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteCompact64Unsafe(byte* ptr, ulong value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{ // 1 byte
 				ptr[0] = (byte) value;
@@ -2372,7 +2372,7 @@ namespace Doxense.Memory
 				}
 
 				// 7 bytes
-				Contract.Assert(value <= 0xFFFFFFFFFFFFFF);
+				Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
 				StoreUInt16LE((ushort*) (ptr + 4), (ushort) (value >> 32));
 				ptr[6] = (byte) (value >> 48);
 				return ptr + 7;
@@ -2382,7 +2382,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static byte* WriteCompact64BEUnsafe(byte* ptr, ulong value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{ // 1 byte
 				ptr[0] = (byte) value;
@@ -2440,7 +2440,7 @@ namespace Doxense.Memory
 				}
 
 				// 7 bytes
-				Contract.Assert(value <= 0xFFFFFFFFFFFFFF);
+				Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
 				StoreUInt32BE((uint*) ptr, (uint) (value >> 24));
 				StoreUInt16BE((ushort*) (ptr + 4), (ushort) (value >> 8));
 				ptr[6] = (byte) value;
@@ -2801,7 +2801,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static bool IsAsciiString(string value)
 		{
-			Contract.Requires(value != null);
+			Contract.Debug.Requires(value != null);
 			fixed (char* pChars = value)
 			{
 				return IsAsciiString(pChars, value.Length);
@@ -2812,7 +2812,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static bool IsAsciiString(string value, int offset, int count)
 		{
-			Contract.Requires(value != null && offset >= 0 && count <= 0 && offset + count <= value.Length);
+			Contract.Debug.Requires(value != null && offset >= 0 && count <= 0 && offset + count <= value.Length);
 			if (count == 0) return true;
 			fixed (char* pChars = value)
 			{
@@ -2835,7 +2835,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static bool IsAsciiString(char* pChars, int numChars)
 		{
-			Contract.Requires(pChars != null);
+			Contract.Debug.Requires(pChars != null);
 			// we test if each char has at least one bit set above bit 7, ie: (char & 0xFF80) != 0
 			// to speed things up, we check multiple chars at a time
 
@@ -2943,7 +2943,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static bool IsAsciiBytes(byte[] array, int offset, int count)
 		{
-			Contract.Requires(array != null);
+			Contract.Debug.Requires(array != null);
 			fixed (byte* pBytes = &array[offset])
 			{
 				return IsAsciiBytes(pBytes, checked((uint) count));
@@ -2966,7 +2966,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static bool IsAsciiBytes(byte* buffer, uint count)
 		{
-			Contract.Requires(buffer != null);
+			Contract.Debug.Requires(buffer != null);
 
 			// we test if each byte has at least one bit set above bit 7, ie: (byte & 0x80) != 0
 			// to speed things up, we check multiple bytes at a time
@@ -3041,7 +3041,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static string ConvertToByteString(byte[] array, int offset, int count)
 		{
-			Contract.Requires(array != null && offset >= 0 && count >= 0 && offset + count <= array.Length);
+			Contract.Debug.Requires(array != null && offset >= 0 && count >= 0 && offset + count <= array.Length);
 
 			// fast allocate a new empty string that will be mutated in-place.
 			//note: this calls String::CtorCharCount() which in turn calls FastAllocateString(..), but will not fill the buffer with 0s if 'char' == '\0'
@@ -3087,7 +3087,7 @@ namespace Doxense.Memory
 		[Pure]
 		public static string ConvertToByteString(byte* pBytes, uint count)
 		{
-			Contract.Requires(pBytes != null);
+			Contract.Debug.Requires(pBytes != null);
 
 			if (count == 0) return string.Empty;
 

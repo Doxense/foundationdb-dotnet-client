@@ -66,7 +66,7 @@ namespace Doxense.Linq
 
 			private SingletonSequence(Delegate lambda)
 			{
-				Contract.Requires(lambda != null);
+				Contract.Debug.Requires(lambda != null);
 				m_lambda = lambda;
 			}
 

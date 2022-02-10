@@ -45,7 +45,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Create a new expression that looks up a value in a source index</summary>
 		protected FdbQueryLookupExpression(Expression source, ExpressionType op, Expression value)
 		{
-			Contract.Requires(source != null && value != null);
+			Contract.Debug.Requires(source != null && value != null);
 			this.Source = source;
 			this.Operator = op;
 			this.Value = value;
@@ -93,7 +93,7 @@ namespace FoundationDB.Linq.Expressions
 		internal FdbQueryIndexLookupExpression(FdbIndex<K, V> index, ExpressionType op, Expression value)
 			: base(Expression.Constant(index), op, value)
 		{
-			Contract.Requires(index != null);
+			Contract.Debug.Requires(index != null);
 			this.Index = index;
 		}
 

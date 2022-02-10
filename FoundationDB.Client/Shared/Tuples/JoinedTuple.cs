@@ -60,8 +60,8 @@ namespace Doxense.Collections.Tuples
 
 		public JoinedTuple(IVarTuple head, IVarTuple tail)
 		{
-			Contract.NotNull(head, nameof(head));
-			Contract.NotNull(tail, nameof(tail));
+			Contract.NotNull(head);
+			Contract.NotNull(tail);
 
 			this.Head = head;
 			this.Tail = tail;
@@ -161,7 +161,7 @@ namespace Doxense.Collections.Tuples
 
 		public IVarTuple Concat(IVarTuple tuple)
 		{
-			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(tuple);
 
 			int n1 = tuple.Count;
 			if (n1 == 0) return this;

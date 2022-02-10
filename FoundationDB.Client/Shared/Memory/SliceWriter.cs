@@ -71,7 +71,7 @@ namespace Doxense.Memory
 		/// <param name="capacity">Initial capacity of the buffer</param>
 		public SliceWriter([Positive] int capacity)
 		{
-			Contract.Positive(capacity, nameof(capacity));
+			Contract.Positive(capacity);
 
 			this.Buffer = capacity == 0 ? Array.Empty<byte>() : ArrayPool<byte>.Shared.Rent(capacity); //REVIEW: BUGBUG: est-ce une bonne idée d'utiliser un pool ici?
 			this.Position = 0;
@@ -83,8 +83,8 @@ namespace Doxense.Memory
 		/// <param name="pool">Pool qui sera utilisé pour la gestion des buffers</param>
 		public SliceWriter([Positive] int capacity, ArrayPool<byte> pool)
 		{
-			Contract.Positive(capacity, nameof(capacity));
-			Contract.NotNull(pool, nameof(pool));
+			Contract.Positive(capacity);
+			Contract.NotNull(pool);
 
 			this.Buffer = capacity == 0 ? Array.Empty<byte>() : pool.Rent(capacity);
 			this.Position = 0;
@@ -96,7 +96,7 @@ namespace Doxense.Memory
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
 		public SliceWriter(byte[] buffer)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 
 			this.Buffer = buffer;
 			this.Position = 0;
@@ -107,7 +107,7 @@ namespace Doxense.Memory
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
 		public SliceWriter(byte[] buffer, int index)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			Contract.Between(index, 0, buffer.Length, nameof(index));
 
 			this.Buffer = buffer;
@@ -122,11 +122,11 @@ namespace Doxense.Memory
 		public SliceWriter(Slice prefix, int capacity = 0)
 		{
 			prefix.EnsureSliceIsValid();
-			Contract.Positive(capacity, nameof(capacity));
+			Contract.Positive(capacity);
 
 			var pool = ArrayPool<byte>.Shared;
 			int n = prefix.Count;
-			Contract.Assert(n >= 0);
+			Contract.Debug.Assert(n >= 0);
 
 			if (capacity == 0)
 			{ // most frequent usage is to add a packed integer at the end of a prefix
@@ -171,7 +171,7 @@ namespace Doxense.Memory
 			get
 			{
 				int pos = this.Position;
-				Contract.Assert(this.Buffer != null && pos >= 0);
+				Contract.Debug.Assert(this.Buffer != null && pos >= 0);
 				//note: we will get bound checking for free in release builds
 				if (index < 0) index += pos;
 				if ((uint) index >= pos) throw ThrowHelper.IndexOutOfRangeException();
@@ -249,7 +249,7 @@ namespace Doxense.Memory
 			{ // empty buffer
 				return default;
 			}
-			Contract.Assert(buffer.Length >= p, "Current position is outside of the buffer");
+			Contract.Debug.Assert(buffer.Length >= p, "Current position is outside of the buffer");
 			return new ReadOnlySpan<byte>(buffer, 0, p);
 		}
 
@@ -264,7 +264,7 @@ namespace Doxense.Memory
 			{ // empty buffer
 				return Slice.Empty;
 			}
-			Contract.Assert(buffer.Length >= p, "Current position is outside of the buffer");
+			Contract.Debug.Assert(buffer.Length >= p, "Current position is outside of the buffer");
 			return new Slice(buffer, 0, p);
 		}
 
@@ -279,7 +279,7 @@ namespace Doxense.Memory
 			{ // empty buffer
 				return MutableSlice.Empty;
 			}
-			Contract.Assert(buffer.Length >= p, "Current position is outside of the buffer");
+			Contract.Debug.Assert(buffer.Length >= p, "Current position is outside of the buffer");
 			return new MutableSlice(buffer, 0, p);
 		}
 
@@ -402,7 +402,7 @@ namespace Doxense.Memory
 		/// <remarks>If the buffer was smaller, it will be resized and filled with zeroes. If it was bigger, the cursor will be set to the specified position, but previous data will not be deleted.</remarks>
 		public void SetLength(int position)
 		{
-			Contract.Requires(position >= 0);
+			Contract.Debug.Requires(position >= 0);
 
 			int p = this.Position;
 			if (p < position)
@@ -447,7 +447,7 @@ namespace Doxense.Memory
 			if (this.Position != 0)
 			{
 				var buffer = this.Buffer;
-				Contract.Assert(buffer != null && buffer.Length >= this.Position);
+				Contract.Debug.Assert(buffer != null && buffer.Length >= this.Position);
 				// reduce size ?
 				// If the buffer exceeds 64K and we used less than 1/8 of it the last time, we will "shrink" the buffer
 				if (buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
@@ -480,7 +480,7 @@ namespace Doxense.Memory
 		/// <remarks>Will fill the skipped bytes with <paramref name="pad"/></remarks>
 		public int Skip([Positive] int skip, byte pad = 0xFF)
 		{
-			Contract.Requires(skip >= 0);
+			Contract.Debug.Requires(skip >= 0);
 
 			int p = this.Position;
 			if (skip == 0) return p;
@@ -497,7 +497,7 @@ namespace Doxense.Memory
 		/// <remarks>Will fill the reserved segment with <paramref name="pad"/> and the cursor will be positioned immediately after the segment.</remarks>
 		public MutableSlice Allocate(int count, byte pad)
 		{
-			Contract.Positive(count, nameof(count));
+			Contract.Positive(count);
 			if (count == 0) return MutableSlice.Empty;
 
 			int offset = Skip(count, pad);
@@ -509,7 +509,7 @@ namespace Doxense.Memory
 		/// <returns>Slice that corresponds to the reserved segment in the buffer</returns>
 		public MutableSlice Allocate(int count)
 		{
-			Contract.Positive(count, nameof(count));
+			Contract.Positive(count);
 			if (count == 0) return MutableSlice.Empty;
 
 			var buffer = EnsureBytes(count);
@@ -523,7 +523,7 @@ namespace Doxense.Memory
 		/// <param name="pad">Pad value (0 by default)</param>
 		public void Align(int alignment, byte pad = 0)
 		{
-			Contract.Requires(alignment > 0);
+			Contract.Debug.Requires(alignment > 0);
 			int r = this.Position % alignment;
 			if (r > 0) Skip(alignment - r, pad);
 		}
@@ -533,7 +533,7 @@ namespace Doxense.Memory
 		/// <param name="position">Previous position in the buffer</param>
 		public void Rewind(out int cursor, int position)
 		{
-			Contract.Requires(position >= 0 && position <= this.Position);
+			Contract.Debug.Requires(position >= 0 && position <= this.Position);
 			cursor = this.Position;
 			this.Position = position;
 		}
@@ -593,7 +593,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void UnsafeWriteByte(byte value)
 		{
-			Contract.Requires(this.Buffer != null && this.Position < this.Buffer.Length);
+			Contract.Debug.Requires(this.Buffer != null && this.Position < this.Buffer.Length);
 			this.Buffer[this.Position++] = value;
 		}
 
@@ -616,7 +616,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void UnsafeWriteBytes(byte value1, byte value2)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 1 < this.Buffer.Length);
+			Contract.Debug.Requires(this.Buffer != null && this.Position + 1 < this.Buffer.Length);
 			int p = this.Position;
 			this.Buffer[p] = value1;
 			this.Buffer[p + 1] = value2;
@@ -643,7 +643,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void UnsafeWriteBytes(byte value1, byte value2, byte value3)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 2 < this.Buffer.Length);
+			Contract.Debug.Requires(this.Buffer != null && this.Position + 2 < this.Buffer.Length);
 			var buffer = this.Buffer;
 			int p = this.Position;
 			buffer[p] = value1;
@@ -673,7 +673,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void UnsafeWriteBytes(byte value1, byte value2, byte value3, byte value4)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 3 < this.Buffer.Length);
+			Contract.Debug.Requires(this.Buffer != null && this.Position + 3 < this.Buffer.Length);
 			var buffer = this.Buffer;
 			int p = this.Position;
 			buffer[p] = value1;
@@ -705,7 +705,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void UnsafeWriteBytes(byte value1, byte value2, byte value3, byte value4, byte value5)
 		{
-			Contract.Requires(this.Buffer != null && this.Position + 4 < this.Buffer.Length);
+			Contract.Debug.Requires(this.Buffer != null && this.Position + 4 < this.Buffer.Length);
 			var buffer = this.Buffer;
 			int p = this.Position;
 			buffer[p] = value1;
@@ -818,7 +818,7 @@ namespace Doxense.Memory
 			if (data.Length != 0)
 			{
 				int p = this.Position;
-				Contract.Requires(this.Buffer != null && p >= 0 && data != null && p + data.Length <= this.Buffer.Length);
+				Contract.Debug.Requires(this.Buffer != null && p >= 0 && data != null && p + data.Length <= this.Buffer.Length);
 
 				int q = checked(p + data.Length);
 				data.CopyTo(this.Buffer.AsSpan(p));
@@ -903,7 +903,7 @@ namespace Doxense.Memory
 
 			var buffer = EnsureBytes(count);
 			int p = this.Position;
-			Contract.Assert(buffer != null && p >= 0 && p + count <= buffer.Length);
+			Contract.Debug.Assert(buffer != null && p >= 0 && p + count <= buffer.Length);
 			//note: we compute the end offset BEFORE, to protect against arithmetic overflow
 			int q = checked((int)(p + count));
 			fixed (byte* pOut = &buffer[p])
@@ -1398,7 +1398,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteVarBytes(byte[] bytes)
 		{
-			Contract.Requires(bytes != null);
+			Contract.Debug.Requires(bytes != null);
 			WriteVarBytes(bytes.AsSpan());
 		}
 
@@ -1407,7 +1407,7 @@ namespace Doxense.Memory
 		[Obsolete("Use ReadOnlySpan<byte> instead.")]
 		public void WriteVarBytes(byte[] bytes, int offset, int count)
 		{
-			Contract.Requires(count == 0 || bytes != null);
+			Contract.Debug.Requires(count == 0 || bytes != null);
 			WriteVarBytes(bytes.AsSpan(offset, count));
 		}
 
@@ -1453,7 +1453,7 @@ namespace Doxense.Memory
 
 			// write the count
 			WriteVarInt32((uint) n);
-			Contract.Assert(this.Buffer == buffer);
+			Contract.Debug.Assert(this.Buffer == buffer);
 
 			// write the bytes
 			int p = this.Position;
@@ -1487,7 +1487,7 @@ namespace Doxense.Memory
 
 			// write the count
 			WriteVarInt32(byteCount);
-			Contract.Assert(this.Buffer == buffer);
+			Contract.Debug.Assert(this.Buffer == buffer);
 
 			// write the chars
 			int p = this.Position;
@@ -1526,7 +1526,7 @@ namespace Doxense.Memory
 
 		private void WriteVarStringUtf8Internal(string value, int byteCount)
 		{
-			Contract.Assert(value != null && byteCount > 0 && byteCount >= value.Length);
+			Contract.Debug.Assert(value != null && byteCount > 0 && byteCount >= value.Length);
 			var buffer = EnsureBytes(byteCount + UnsafeHelpers.SizeOfVarBytes(byteCount));
 			WriteVarInt32((uint)byteCount);
 			int p = this.Position;
@@ -1553,7 +1553,7 @@ namespace Doxense.Memory
 		private unsafe void WriteVarAsciiInternal(string value)
 		{
 			// Caller must ensure that string is ASCII only! (otherwise it will be corrupted)
-			Contract.Requires(!string.IsNullOrEmpty(value));
+			Contract.Debug.Requires(!string.IsNullOrEmpty(value));
 
 			int len = value.Length;
 			var buffer = EnsureBytes(len + UnsafeHelpers.SizeOfVarBytes(len));
@@ -2162,12 +2162,12 @@ namespace Doxense.Memory
 		{
 			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
 
-			Contract.Requires(count >= 0);
+			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
 			if (buffer == null || this.Position + count > buffer.Length)
 			{
 				buffer = GrowBuffer(ref this.Buffer, this.Position + count, this.Pool);
-				Contract.Ensures(buffer != null && buffer.Length >= this.Position + count);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= this.Position + count);
 			}
 			return buffer;
 		}
@@ -2187,40 +2187,40 @@ namespace Doxense.Memory
 
 		public Span<byte> GetSpan(int minCapacity)
 		{
-			Contract.Requires(minCapacity >= 0);
+			Contract.Debug.Requires(minCapacity >= 0);
 			var buffer = this.Buffer;
 			int pos = this.Position;
 			if (buffer == null || pos + minCapacity > buffer.Length)
 			{
 				buffer = GrowBuffer(ref this.Buffer, pos + minCapacity);
-				Contract.Ensures(buffer != null && buffer.Length >= pos + minCapacity);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= pos + minCapacity);
 			}
 			return buffer.AsSpan(pos);
 		}
 		
 		public Memory<byte> GetMemory(int minCapacity)
 		{
-			Contract.Requires(minCapacity >= 0);
+			Contract.Debug.Requires(minCapacity >= 0);
 			var buffer = this.Buffer;
 			int pos = this.Position;
 			if (buffer == null || pos + minCapacity > buffer.Length)
 			{
 				buffer = GrowBuffer(ref this.Buffer, pos + minCapacity);
-				Contract.Ensures(buffer != null && buffer.Length >= pos + minCapacity);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= pos + minCapacity);
 			}
 			return buffer.AsMemory(pos);
 		}
 
 		public Span<byte> AllocateSpan(int count)
 		{
-			Contract.Requires(count >= 0);
+			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
 			int pos = this.Position;
 			int newPos = checked(pos + count);
 			if (buffer == null || newPos > buffer.Length)
 			{
 				buffer = GrowBuffer(ref this.Buffer, newPos);
-				Contract.Ensures(buffer != null && buffer.Length >= newPos);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			this.Position = newPos;
 			return buffer.AsSpan(pos, count);
@@ -2228,14 +2228,14 @@ namespace Doxense.Memory
 
 		public Memory<byte> AllocateMemory(int count)
 		{
-			Contract.Requires(count >= 0);
+			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
 			int pos = this.Position;
 			int newPos = checked(pos + count);
 			if (buffer == null || newPos > buffer.Length)
 			{
 				buffer = GrowBuffer(ref this.Buffer, newPos);
-				Contract.Ensures(buffer != null && buffer.Length >= newPos);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= newPos);
 			}
 			this.Position = newPos;
 			return buffer.AsMemory(pos, count);
@@ -2250,12 +2250,12 @@ namespace Doxense.Memory
 		{
 			//REVIEW: en C#7 on pourrait retourner le tuple (buffer, pos) !
 
-			Contract.Requires(count >= 0);
+			Contract.Debug.Requires(count >= 0);
 			var buffer = this.Buffer;
 			if (buffer == null || this.Position + count > buffer.Length)
 			{
 				buffer = GrowBuffer(ref this.Buffer, this.Position + count, pool);
-				Contract.Ensures(buffer != null && buffer.Length >= this.Position + count);
+				Contract.Debug.Ensures(buffer != null && buffer.Length >= this.Position + count);
 			}
 			return buffer;
 		}
@@ -2276,7 +2276,7 @@ namespace Doxense.Memory
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void EnsureOffsetAndSize(int offset, int count)
 		{
-			Contract.Requires(offset >= 0 && count >= 0);
+			Contract.Debug.Requires(offset >= 0 && count >= 0);
 			if (this.Buffer == null || offset + count > this.Buffer.Length)
 			{
 				GrowBuffer(ref this.Buffer, offset + count, this.Pool);
@@ -2295,7 +2295,7 @@ namespace Doxense.Memory
 			ArrayPool<byte>? pool = null
 		)
 		{
-			Contract.Requires(minimumCapacity >= 0);
+			Contract.Debug.Requires(minimumCapacity >= 0);
 
 			// double the size of the buffer, or use the minimum required
 			long newSize = Math.Max(buffer == null ? 0 : (((long) buffer.Length) << 1), minimumCapacity);
@@ -2327,8 +2327,8 @@ namespace Doxense.Memory
 		/// </remarks>
 		private static void ResizeUsingPool(ArrayPool<byte> pool, [System.Diagnostics.CodeAnalysis.NotNull] ref byte[]? array, int newSize)
 		{
-			Contract.NotNull(pool, nameof(pool));
-			Contract.Positive(newSize, nameof(newSize));
+			Contract.NotNull(pool);
+			Contract.Positive(newSize);
 
 			var larray = array;
 			if (larray == null)

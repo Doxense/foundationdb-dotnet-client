@@ -114,7 +114,7 @@ namespace Doxense.Linq
 
 			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
-				Contract.Requires(comparer != null);
+				Contract.Debug.Requires(comparer != null);
 
 				m_comparer = comparer;
 				m_descending = descending;
@@ -155,7 +155,7 @@ namespace Doxense.Linq
 
 			public SequenceByKeySorter(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, SequenceSorter<TSource>? next)
 			{
-				Contract.Requires(keySelector != null && comparer != null);
+				Contract.Debug.Requires(keySelector != null && comparer != null);
 
 				m_keySelector = keySelector;
 				m_comparer = comparer;

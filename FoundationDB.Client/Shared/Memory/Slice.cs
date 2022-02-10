@@ -114,7 +114,7 @@ namespace System
 		[Pure]
 		public static Slice Zero(int count)
 		{
-			Contract.Positive(count, nameof(count));
+			Contract.Positive(count);
 			return count != 0 ? new Slice(new byte[count]) : Empty;
 		}
 
@@ -134,7 +134,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice CreateUnsafe(byte[] buffer, [Positive] int offset, [Positive] int count)
 		{
-			Contract.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
+			Contract.Debug.Requires(buffer != null && (uint) offset <= (uint) buffer.Length && (uint) count <= (uint) (buffer.Length - offset));
 			return new Slice(buffer, offset, count);
 		}
 
@@ -154,7 +154,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice CreateUnsafe(byte[] buffer, uint offset, uint count)
 		{
-			Contract.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
+			Contract.Debug.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
 			return new Slice(buffer, (int) offset, (int) count);
 		}
 
@@ -162,7 +162,7 @@ namespace System
 		[Pure]
 		public static Slice Copy(byte[] source)
 		{
-			Contract.NotNull(source, nameof(source));
+			Contract.NotNull(source);
 			return Copy(new ReadOnlySpan<byte>(source));
 		}
 
@@ -229,8 +229,8 @@ namespace System
 			{
 				return source == null ? default : Empty;
 			}
-			Contract.PointerNotNull(source, nameof(source));
-			Contract.Positive(count, nameof(count));
+			Contract.PointerNotNull(source);
+			Contract.Positive(count);
 
 			if (count == 1)
 			{ // Use the sprite cache
@@ -725,7 +725,7 @@ namespace System
 		public Slice Truncate([Positive] int maxSize)
 		{
 			//note: the only difference with Substring(0, maxSize) is that we don't throw if the slice is smaller than !
-			Contract.Positive(maxSize, nameof(maxSize));
+			Contract.Positive(maxSize);
 
 			if (maxSize == 0) return this.Array == null ? Nil : Empty;
 			return this.Count <= maxSize ? this : new Slice(this.Array, this.Offset, maxSize);
@@ -954,7 +954,7 @@ namespace System
 		[Pure]
 		public Slice[] ConcatRange(Slice[] slices)
 		{
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(slices);
 			EnsureSliceIsValid();
 
 			// pre-allocate by computing final buffer capacity
@@ -1008,7 +1008,7 @@ namespace System
 		[Pure]
 		public Slice[] ConcatRange(IEnumerable<Slice> slices)
 		{
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(slices);
 
 			// use optimized version for arrays
 			if (slices is Slice[] array) return ConcatRange(array);
@@ -1036,7 +1036,7 @@ namespace System
 		/// <example>SplitIntoSegments("HelloWorld", 0, [5, 10]) => [{"Hello"}, {"World"}]</example>
 		public static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
 		{
-			Contract.Requires(buffer != null && endOffsets != null);
+			Contract.Debug.Requires(buffer != null && endOffsets != null);
 			if (endOffsets.Count == 0) return System.Array.Empty<Slice>();
 			var result = new Slice[endOffsets.Count];
 			int i = 0;
@@ -1099,7 +1099,7 @@ namespace System
 					buf = buf.Slice(arg.Count);
 				}
 			}
-			Contract.Assert(buf.Length == 0);
+			Contract.Debug.Assert(buf.Length == 0);
 			return new Slice(tmp);
 		}
 
@@ -1120,7 +1120,7 @@ namespace System
 					buf = buf.Slice(arg.Count);
 				}
 			}
-			Contract.Assert(buf.Length == 0);
+			Contract.Debug.Assert(buf.Length == 0);
 			return new Slice(tmp);
 		}
 
@@ -1149,7 +1149,7 @@ namespace System
 							buf = buf.Slice(arg.Count);
 						}
 					}
-					Contract.Assert(buf.Length == 0);
+					Contract.Debug.Assert(buf.Length == 0);
 					return new Slice(tmp);
 				}
 				default:
@@ -1173,7 +1173,7 @@ namespace System
 		[Pure]
 		public static Slice[] ConcatRange(Slice prefix, IEnumerable<Slice> slices)
 		{
-			Contract.NotNull(slices, nameof(slices));
+			Contract.NotNull(slices);
 
 			if (prefix.IsNullOrEmpty)
 			{ // nothing to do, but we still need to copy the array
@@ -1252,7 +1252,7 @@ namespace System
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, Slice[] values)
 		{
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(values);
 
 			int count = values.Length;
 			if (count == 0) return Empty;
@@ -1288,7 +1288,7 @@ namespace System
 				if (i > 0) buf = separator.WriteTo(buf);
 				buf = values[i].WriteTo(buf);
 			}
-			Contract.Assert(buf.Length == 0);
+			Contract.Debug.Assert(buf.Length == 0);
 			return new Slice(tmp);
 		}
 
@@ -1305,7 +1305,7 @@ namespace System
 			// Note: this method is modeled after String.Join() and should behave the same
 			// - Only difference is that Nil and Empty are equivalent (either for separator, or for the elements of the array)
 
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(values);
 
 			if (startIndex < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must be a positive integer");
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count must be a positive integer");
@@ -1329,7 +1329,7 @@ namespace System
 				if (i > 0) writer.WriteBytes(separator);
 				writer.WriteBytes(values[i]);
 			}
-			Contract.Assert(writer.Buffer?.Length == size);
+			Contract.Debug.Assert(writer.Buffer?.Length == size);
 			return writer.ToSlice();
 		}
 
@@ -1340,7 +1340,7 @@ namespace System
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static Slice Join(Slice separator, IEnumerable<Slice> values)
 		{
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(values);
 			var array = (values as Slice[]) ?? values.ToArray();
 			return Join(separator, array, 0, array.Length);
 		}
@@ -1358,7 +1358,7 @@ namespace System
 			// Note: this method is modeled after String.Join() and should behave the same
 			// - Only difference is that Nil and Empty are equivalent (either for separator, or for the elements of the array)
 
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(values);
 			//REVIEW: support negative indexing ?
 			if (startIndex < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must be a positive integer");
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count must be a positive integer");
@@ -1382,7 +1382,7 @@ namespace System
 				if (i > 0) buf = separator.WriteTo(buf);
 				buf = values[startIndex + i].WriteTo(buf);
 			}
-			Contract.Assert(buf.Length == 0);
+			Contract.Debug.Assert(buf.Length == 0);
 			return tmp;
 		}
 
@@ -1393,7 +1393,7 @@ namespace System
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		public static byte[] JoinBytes(Slice separator, IEnumerable<Slice> values)
 		{
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(values);
 			var array = (values as Slice[]) ?? values.ToArray();
 			return JoinBytes(separator, array, 0, array.Length);
 		}
@@ -1481,7 +1481,7 @@ namespace System
 			int r = input.Count;
 			for(int i = 0; i < result.Length; i++)
 			{
-				Contract.Assert(r >= 0);
+				Contract.Debug.Assert(r >= 0);
 				result[i] = new Slice(input.Array, input.Offset + p, Math.Min(r, stride));
 				p += stride;
 				r -= stride;
@@ -1529,7 +1529,7 @@ namespace System
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] Merge(Slice prefix, Slice[] keys)
 		{
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -1595,7 +1595,7 @@ namespace System
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] Merge(Slice prefix, IEnumerable<Slice> keys)
 		{
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -1654,7 +1654,7 @@ namespace System
 		/// <remarks>Warning: <see cref="System.Random"/> is not thread-safe ! If the <paramref name="prng"/> instance is shared between threads, then it needs to be locked before calling this method.</remarks>
 		public static Slice Random(Random prng, int count)
 		{
-			Contract.NotNull(prng, nameof(prng));
+			Contract.NotNull(prng);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
 			if (count == 0) return Empty;
 
@@ -1671,7 +1671,7 @@ namespace System
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
 		public static Slice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
-			Contract.NotNull(rng, nameof(rng));
+			Contract.NotNull(rng);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count cannot be negative");
 			if (count == 0) return Empty;
 
@@ -2075,7 +2075,7 @@ namespace System
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static Slice FromStream(Stream data)
 		{
-			Contract.NotNull(data, nameof(data));
+			Contract.NotNull(data);
 
 			// special case for empty values
 			if (data == Stream.Null) return default;
@@ -2105,7 +2105,7 @@ namespace System
 		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken ct)
 		{
-			Contract.NotNull(data, nameof(data));
+			Contract.NotNull(data);
 
 			// special case for empty values
 			if (data == Stream.Null) return Task.FromResult(Nil);
@@ -2135,7 +2135,7 @@ namespace System
 		/// <returns>Slice containing the loaded data</returns>
 		private static Slice LoadFromNonBlockingStream(Stream source, int length)
 		{
-			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
+			Contract.Debug.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
 
 			if (source is MemoryStream ms)
 			{ // Already holds onto a byte[]
@@ -2158,7 +2158,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Assert(r == 0 && p == length);
+			Contract.Debug.Assert(r == 0 && p == length);
 
 			return new Slice(buffer);
 		}
@@ -2170,7 +2170,7 @@ namespace System
 		/// <returns>Slice containing the loaded data</returns>
 		private static Slice LoadFromBlockingStream(Stream source, int length, int chunkSize = 0)
 		{
-			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
+			Contract.Debug.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
 			if (chunkSize == 0) chunkSize = int.MaxValue;
 
@@ -2187,7 +2187,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Assert(r == 0 && p == length);
+			Contract.Debug.Assert(r == 0 && p == length);
 
 			return new Slice(buffer);
 		}
@@ -2200,7 +2200,7 @@ namespace System
 		/// <returns>Slice containing the loaded data</returns>
 		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken ct)
 		{
-			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
+			Contract.Debug.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
 			if (chunkSize == 0) chunkSize = int.MaxValue;
 
@@ -2217,7 +2217,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Assert(r == 0 && p == length);
+			Contract.Debug.Assert(r == 0 && p == length);
 
 			return new Slice(buffer);
 		}
@@ -2476,7 +2476,7 @@ namespace System
 		/// <returns>Combined total size of all the slices and the prefixes</returns>
 		public static int GetTotalSizeAndCommonStore(int prefix, List<Slice> slices, out byte[]? commonStore)
 		{
-			Contract.Requires(slices != null);
+			Contract.Debug.Requires(slices != null);
 			if (slices.Count == 0)
 			{
 				commonStore = null;
@@ -2518,7 +2518,7 @@ namespace System
 
 			internal Pinned(object owner, byte[] buffer, List<Slice>? extra)
 			{
-				Contract.Requires(owner != null && buffer != null);
+				Contract.Debug.Requires(owner != null && buffer != null);
 
 				this.Owner = buffer;
 				this.Handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);

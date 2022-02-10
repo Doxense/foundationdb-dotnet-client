@@ -104,7 +104,7 @@ namespace Doxense.Linq.Async.Iterators
 		public WindowingAsyncIterator(IAsyncEnumerable<TInput> source, int maxWindowSize)
 			: base(source)
 		{
-			Contract.Requires(maxWindowSize > 0);
+			Contract.Debug.Requires(maxWindowSize > 0);
 			m_maxWindowSize = maxWindowSize;
 		}
 
@@ -125,7 +125,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			var iterator = m_iterator;
 			var buffer = m_buffer;
-			Contract.Requires(iterator != null && buffer != null);
+			Contract.Debug.Requires(iterator != null && buffer != null);
 
 			var ft = Interlocked.Exchange(ref m_nextTask, null);
 			if (ft == null)

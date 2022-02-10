@@ -98,7 +98,7 @@ namespace Doxense.Runtime.Converters
 
 			public Anonymous(Func<TInput, TOutput> converter)
 			{
-				Contract.NotNull(converter, nameof(converter));
+				Contract.NotNull(converter);
 				this.Converter = converter;
 			}
 
@@ -483,7 +483,7 @@ namespace Doxense.Runtime.Converters
 		/// <returns>Converters that wraps the lambda</returns>
 		public static ITypeConverter<TInput, TOutput> Create<TInput, TOutput>(Func<TInput, TOutput> converter)
 		{
-			Contract.NotNull(converter, nameof(converter));
+			Contract.NotNull(converter);
 			return new Anonymous<TInput, TOutput>(converter);
 		}
 
@@ -493,7 +493,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="TInput"/> into a value of type <typeparamref name="TOutput"/></param>
 		internal static void RegisterUnsafe<TInput, TOutput>(Func<TInput, TOutput> converter)
 		{
-			Contract.Requires(converter != null);
+			Contract.Debug.Requires(converter != null);
 			Converters[new ComparisonHelper.TypePair(typeof(TInput), typeof(TOutput))] = new Anonymous<TInput, TOutput>(converter);
 		}
 
@@ -503,7 +503,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="TInput"/> into a value of type <typeparamref name="TOutput"/></param>
 		public static void Register<TInput, TOutput>(Func<TInput, TOutput> converter)
 		{
-			Contract.Requires(converter != null);
+			Contract.Debug.Requires(converter != null);
 			Register<TInput, TOutput>(new Anonymous<TInput, TOutput>(converter));
 		}
 
@@ -513,7 +513,7 @@ namespace Doxense.Runtime.Converters
 		/// <param name="converter">Instance that can convert values of type <typeparamref name="TInput"/> into a values of type <typeparamref name="TOutput"/></param>
 		public static void Register<TInput, TOutput>(ITypeConverter<TInput, TOutput> converter)
 		{
-			Contract.NotNull(converter, nameof(converter));
+			Contract.NotNull(converter);
 			while (true)
 			{
 				var previous = Converters;

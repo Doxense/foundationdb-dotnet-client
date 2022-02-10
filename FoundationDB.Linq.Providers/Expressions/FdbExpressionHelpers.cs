@@ -125,7 +125,7 @@ namespace FoundationDB.Linq.Expressions
 
 		internal static Task<R> ExecuteEnumerable<T, R>(Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> generator, Func<IAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
-			Contract.Requires(generator != null && lambda != null && trans != null);
+			Contract.Debug.Requires(generator != null && lambda != null && trans != null);
 			try
 			{
 				if (ct.IsCancellationRequested) return Task.FromCanceled<R>(ct);
@@ -202,7 +202,7 @@ namespace FoundationDB.Linq.Expressions
 
 			public ParameterRewritingVisitor(Dictionary<ParameterExpression, Expression> rewrittenParameters)
 			{
-				Contract.Requires(rewrittenParameters != null && rewrittenParameters.Count > 0);
+				Contract.Debug.Requires(rewrittenParameters != null && rewrittenParameters.Count > 0);
 				this.Parameters = rewrittenParameters;
 			}
 

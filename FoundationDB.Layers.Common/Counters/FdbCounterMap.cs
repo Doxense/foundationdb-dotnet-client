@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
 		public FdbCounterMap(ITypedKeySubspace<TKey> subspace)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 
 			this.Subspace = subspace;
 			this.Location = subspace;

@@ -49,7 +49,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public DeferredAsyncIterator(Func<CancellationToken, Task<TCollection>> generator)
 		{
-			Contract.NotNull(generator, nameof(generator));
+			Contract.NotNull(generator);
 			this.Generator = generator;
 		}
 
@@ -71,7 +71,7 @@ namespace Doxense.Linq.Async.Iterators
 			if (sequence == null) throw new InvalidOperationException("Deferred generator cannot return a null async sequence.");
 
 			this.Inner = sequence.GetAsyncEnumerator(m_ct);
-			Contract.Assert(this.Inner != null);
+			Contract.Debug.Assert(this.Inner != null);
 
 			return true;
 		}

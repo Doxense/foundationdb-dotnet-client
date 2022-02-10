@@ -64,7 +64,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		public static object?[] ToArray(this IVarTuple tuple)
 		{
-			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(tuple);
 
 			var items = new object[tuple.Count];
 			if (items.Length > 0)
@@ -77,7 +77,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Returns a typed array containing all the items of a tuple</summary>
 		public static T[] ToArray<T>(this IVarTuple tuple)
 		{
-			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(tuple);
 
 			var items = new T[tuple.Count];
 			if (items.Length > 0)
@@ -129,21 +129,21 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Appends two values at the end of a tuple</summary>
 		public static IVarTuple Append<T1, T2>(this IVarTuple tuple, T1 value1, T2 value2)
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+			Contract.NotNullAllowStructs(tuple);
 			return new JoinedTuple(tuple, STuple.Create(value1, value2));
 		}
 
 		/// <summary>Appends three values at the end of a tuple</summary>
 		public static IVarTuple Append<T1, T2, T3>(this IVarTuple tuple, T1 value1, T2 value2, T3 value3)
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+			Contract.NotNullAllowStructs(tuple);
 			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
 
 		/// <summary>Appends four values at the end of a tuple</summary>
 		public static IVarTuple Append<T1, T2, T3, T4>(this IVarTuple tuple, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+			Contract.NotNullAllowStructs(tuple);
 			return new JoinedTuple(tuple, STuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
 		}
 
@@ -153,7 +153,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Tuple that contains only the items past the first <paramref name="offset"/> items of the current tuple</returns>
 		public static IVarTuple Substring<TTuple>(this TTuple tuple, int offset) where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+			Contract.NotNullAllowStructs(tuple);
 #if USE_RANGE_API
 			return tuple[Range.StartAt(offset)];
 #else
@@ -168,8 +168,8 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Tuple that contains only the selected items from the current tuple</returns>
 		public static IVarTuple Substring<TTuple>(this TTuple tuple, int offset, int count) where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
-			Contract.Positive(count, nameof(count));
+			Contract.NotNullAllowStructs(tuple);
+			Contract.Positive(count);
 
 			if (count == 0) return STuple.Empty;
 			return tuple[offset, offset + count];
@@ -208,8 +208,8 @@ namespace Doxense.Collections.Tuples
 		/// <returns>True if the beginning of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
 		public static bool StartsWith(this IVarTuple left, IVarTuple right)
 		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			//REVIEW: move this on ITuple interface ?
 			return TupleHelpers.StartsWith(left, right);
@@ -221,8 +221,8 @@ namespace Doxense.Collections.Tuples
 		/// <returns>True if the end of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
 		public static bool EndsWith(this IVarTuple left, IVarTuple right)
 		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
+			Contract.NotNull(left);
+			Contract.NotNull(right);
 
 			//REVIEW: move this on ITuple interface ?
 			return TupleHelpers.EndsWith(left, right);
@@ -234,7 +234,7 @@ namespace Doxense.Collections.Tuples
 		/// <example>(123, ABC, false,).Explode() => [ (123,), (ABC,), (false,) ]</example>
 		public static IEnumerable<IVarTuple> Explode(this IVarTuple tuple)
 		{
-			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(tuple);
 
 			int p = 0;
 			int n = tuple.Count;
@@ -287,7 +287,7 @@ namespace Doxense.Collections.Tuples
 		[MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, ContractAnnotation("=> halt")]
 		internal static TTuple ThrowInvalidTupleSize<TTuple>(TTuple tuple, int expected, int test) where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+			Contract.NotNullAllowStructs(tuple);
 			switch(test)
 			{
 				case 1: throw new InvalidOperationException($"This operation requires a tuple of size {expected} or less, but this tuple has {tuple.Count} elements");

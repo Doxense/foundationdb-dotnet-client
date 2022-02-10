@@ -323,7 +323,7 @@ namespace Doxense.Threading.Tasks
 		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
 		public static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>(Func<TSource, TResult> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			return (value, ct) =>
 			{
 				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -336,7 +336,7 @@ namespace Doxense.Threading.Tasks
 		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
 		public static Func<TSource, CancellationToken, Task<TResult>> WithCancellation<TSource, TResult>(Func<TSource, Task<TResult>> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			return (value, ct) =>
 			{
 				if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);

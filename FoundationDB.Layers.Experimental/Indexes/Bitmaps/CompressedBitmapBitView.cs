@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public CompressedBitmapBitView(CompressedBitmap bitmap)
 		{
-			Contract.NotNull(bitmap, nameof(bitmap));
+			Contract.NotNull(bitmap);
 			m_bitmap = bitmap;
 		}
 

@@ -46,7 +46,7 @@ namespace Doxense.Linq.Async.Iterators
 		public ObserverAsyncIterator(IAsyncEnumerable<TSource> source, AsyncObserverExpression<TSource> observer)
 			: base(source)
 		{
-			Contract.Requires(observer != null);
+			Contract.Debug.Requires(observer != null);
 			m_observer = observer;
 		}
 

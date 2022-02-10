@@ -181,7 +181,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 Parse(string buffer)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (!TryParse(buffer, out var value))
 			{
 				throw FailInvalidFormat();
@@ -203,14 +203,14 @@ namespace System
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		public static bool TryParse(string buffer, out Uuid96 result)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			return TryParse(buffer.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		public static bool TryParse(ReadOnlySpan<char> s, out Uuid96 result)
 		{
-			Contract.Requires(s != null);
+			Contract.Debug.Requires(s != null);
 
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
@@ -386,7 +386,7 @@ namespace System
 
 		private static unsafe char* Hex32ToLowerChars([System.Diagnostics.CodeAnalysis.NotNull] char* ptr, uint a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
 			ptr[1] = HexToLowerChar(a >> 24);
 			ptr[2] = HexToLowerChar(a >> 20);
@@ -407,7 +407,7 @@ namespace System
 
 		private static unsafe char* Hex32ToUpperChars([System.Diagnostics.CodeAnalysis.NotNull] char* ptr, uint a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);
 			ptr[1] = HexToUpperChar(a >> 24);
 			ptr[2] = HexToUpperChar(a >> 20);
@@ -445,7 +445,7 @@ namespace System
 			}
 			if (quotes) *ptr++ = '}';
 
-			Contract.Ensures(ptr == buffer + size);
+			Contract.Debug.Ensures(ptr == buffer + size);
 			return new string(buffer, 0, size);
 		}
 

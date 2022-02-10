@@ -58,7 +58,7 @@ namespace Doxense.Linq.Async.Iterators
 		public BatchingAsyncIterator(IAsyncEnumerable<TInput> source, int batchSize)
 			: base(source)
 		{
-			Contract.Requires(batchSize > 0);
+			Contract.Debug.Requires(batchSize > 0);
 			m_batchSize = batchSize;
 		}
 
@@ -84,7 +84,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			var iterator = m_iterator;
 			var buffer = m_buffer;
-			Contract.Assert(iterator != null && buffer != null);
+			Contract.Debug.Assert(iterator != null && buffer != null);
 
 			bool hasMore = await iterator.MoveNextAsync().ConfigureAwait(false);
 

@@ -104,7 +104,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
 		public FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 
 			this.Database = db;
 			this.Mode = mode;
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 
 		private void RegisterStateCallback(object callback)
 		{
-			Contract.Requires(callback is Delegate || callback is IHandleTransactionLifecycle);
+			Contract.Debug.Requires(callback is Delegate || callback is IHandleTransactionLifecycle);
 			lock (this)
 			{
 				var previous = this.StateCallbacks;
@@ -267,8 +267,8 @@ namespace FoundationDB.Client
 		public void SetLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
 		{
-			Contract.NotNullAllowStructs(key, nameof(key));
-			Contract.NotNull(newState, nameof(newState));
+			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(newState);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
@@ -292,8 +292,8 @@ namespace FoundationDB.Client
 		public TState ReplaceLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
 		{
-			Contract.NotNullAllowStructs(key, nameof(key));
-			Contract.NotNull(newState, nameof(newState));
+			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(newState);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
@@ -323,7 +323,7 @@ namespace FoundationDB.Client
 		/// <returns>Returns <c>true</c> if the value was found and removed; otherwise, false.</returns>
 		public bool RemoveLocalData<TState, TToken>(TToken key) where TState : class
 		{
-			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNullAllowStructs(key);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(false);
@@ -346,7 +346,7 @@ namespace FoundationDB.Client
 		public bool TryGetLocalData<TState, TToken>(TToken key, [NotNullWhen(true)] out TState? state)
 			where TState : class
 		{
-			Contract.NotNullAllowStructs(key, nameof(key));
+			Contract.NotNullAllowStructs(key);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(false);
@@ -373,8 +373,8 @@ namespace FoundationDB.Client
 		public TState GetOrCreateLocalData<TState, TToken>(TToken key, TState newState)
 			where TState : class
 		{
-			Contract.NotNullAllowStructs(key, nameof(key));
-			Contract.NotNull(newState, nameof(newState));
+			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(newState);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
@@ -411,8 +411,8 @@ namespace FoundationDB.Client
 		public TState GetOrCreateLocalData<TState, TToken>(TToken key, Func<TState> factory)
 			where TState : class
 		{
-			Contract.NotNullAllowStructs(key, nameof(key));
-			Contract.NotNull(factory, nameof(factory));
+			Contract.NotNullAllowStructs(key);
+			Contract.NotNull(factory);
 			lock (this)
 			{
 				var container = GetLocalDataContainer(true)!;
@@ -514,7 +514,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public void AddValueCheck(string tag, Slice key, Slice expectedValue)
 		{
-			Contract.NotNullOrEmpty(tag, nameof(tag));
+			Contract.NotNullOrEmpty(tag);
 
 			var tr = this.Transaction;
 			if (tr == null) throw new InvalidOperationException();
@@ -537,7 +537,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public void AddValueChecks(string tag, IEnumerable<KeyValuePair<Slice, Slice>> items)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 			AddValueChecks(tag, (items as KeyValuePair<Slice, Slice>[] ?? items.ToArray()).AsSpan());
 		}
 
@@ -551,7 +551,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public void AddValueChecks(string tag, KeyValuePair<Slice, Slice>[] items)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 			AddValueChecks(tag, items.AsSpan());
 		}
 
@@ -621,7 +621,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				Contract.Assert(result == FdbValueCheckResult.Success);
+				Contract.Debug.Assert(result == FdbValueCheckResult.Success);
 				pass = true;
 			}
 
@@ -685,10 +685,10 @@ namespace FoundationDB.Client
 		/// <summary>Execute a retry loop on this context</summary>
 		internal static async Task<TResult> ExecuteInternal<TState, TIntermediate, TResult>(FdbOperationContext context, [AllowNull] TState state, Delegate handler, Delegate? success)
 		{
-			Contract.Requires(context != null && handler != null && context.Shared);
+			Contract.Debug.Requires(context != null && handler != null && context.Shared);
 
 			var db = context.Database;
-			Contract.Requires(db != null);
+			Contract.Debug.Requires(db != null);
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
@@ -708,7 +708,7 @@ namespace FoundationDB.Client
 				using (var trans = await db.BeginTransactionAsync(context.Mode, CancellationToken.None, context))
 				{
 					//note: trans may be different from context.Transaction if it has been filtered!
-					Contract.Assert(context.Transaction != null);
+					Contract.Debug.Assert(context.Transaction != null);
 
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
@@ -1326,8 +1326,8 @@ namespace FoundationDB.Client
 
 		public static Task<TResult> RunReadAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
@@ -1497,8 +1497,8 @@ namespace FoundationDB.Client
 
 		public static Task<TResult> RunReadWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, TIntermediate> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -1507,8 +1507,8 @@ namespace FoundationDB.Client
 
 		public static Task<TResult> RunWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, Task<TIntermediate>> handler, Func<TState, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);

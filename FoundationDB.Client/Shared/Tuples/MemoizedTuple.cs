@@ -51,8 +51,8 @@ namespace Doxense.Collections.Tuples
 
 		internal MemoizedTuple(object[] items, Slice packed)
 		{
-			Contract.Requires(items != null);
-			Contract.Requires(packed.HasValue);
+			Contract.Debug.Requires(items != null);
+			Contract.Debug.Requires(packed.HasValue);
 
 			m_items = items;
 			m_packed = packed;

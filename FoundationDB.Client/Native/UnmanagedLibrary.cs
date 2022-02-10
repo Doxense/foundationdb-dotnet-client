@@ -126,7 +126,7 @@ namespace FoundationDB.Client.Native
 		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
 		public static UnmanagedLibrary Load(string path)
 		{
-			Contract.NotNull(path, nameof(path));
+			Contract.NotNull(path);
 
 			var handle = NativeMethods.LoadPlatformLibrary(path);
 			if (handle == null || handle.IsInvalid)

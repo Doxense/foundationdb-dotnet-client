@@ -199,13 +199,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public static uint MakeLiteral(uint value)
 		{
-			Contract.Requires(value <= ALL_ONES);
+			Contract.Debug.Requires(value <= ALL_ONES);
 			return WordAlignHybridEncoder.BIT_TYPE_LITERAL | (value & WordAlignHybridEncoder.LITERAL_MASK);
 		}
 
 		public static uint MakeFiller(bool set, int length)
 		{
-			Contract.Requires(length > 0 && length <= 0x40000000);
+			Contract.Debug.Requires(length > 0 && length <= 0x40000000);
 			return WordAlignHybridEncoder.BIT_TYPE_FILL
 				| (set ? WordAlignHybridEncoder.BIT_FILL_ONE : WordAlignHybridEncoder.BIT_FILL_ZERO)
 				| ((uint)(length - 1) & WordAlignHybridEncoder.LENGTH_MASK);
@@ -215,7 +215,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="length">Number of 31-bits word repeated</param>
 		public static uint MakeZeroes(int length)
 		{
-			Contract.Requires(length > 0 && length <= 0x40000000);
+			Contract.Debug.Requires(length > 0 && length <= 0x40000000);
 			return WordAlignHybridEncoder.BIT_TYPE_FILL | WordAlignHybridEncoder.BIT_FILL_ZERO | ((uint)(length - 1) & WordAlignHybridEncoder.LENGTH_MASK);
 		}
 
@@ -223,7 +223,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="length">Number of 31-bits word repeated</param>
 		public static uint MakeOnes(int length)
 		{
-			Contract.Requires(length > 0 && length <= 0x40000000);
+			Contract.Debug.Requires(length > 0 && length <= 0x40000000);
 			return WordAlignHybridEncoder.BIT_TYPE_FILL | WordAlignHybridEncoder.BIT_FILL_ONE | ((uint)(length - 1) & WordAlignHybridEncoder.LENGTH_MASK);
 		}
 

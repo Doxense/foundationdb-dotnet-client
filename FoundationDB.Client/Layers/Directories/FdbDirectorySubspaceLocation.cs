@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public ValueTask<FdbDirectorySubspace?> Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
 		{
-			Contract.NotNull(tr, nameof(tr));
+			Contract.NotNull(tr);
 			return (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path);
 		}
 

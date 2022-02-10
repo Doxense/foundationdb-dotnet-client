@@ -30,7 +30,7 @@ namespace FdbShell
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.Contracts;
+	using System.Diagnostics;
 	using System.IO;
 	using System.Linq;
 	using System.Text;
@@ -850,7 +850,7 @@ namespace FdbShell
 
 		private static FdbPath RemoveIndirection(FdbPath path)
 		{
-			Contract.Requires(path.IsAbsolute, "Path must be absolute");
+			Debug.Assert(path.IsAbsolute, "Path must be absolute");
 
 			var segments = new Stack<FdbPathSegment>(path.Count);
 			foreach (var seg in path.Segments.Span)

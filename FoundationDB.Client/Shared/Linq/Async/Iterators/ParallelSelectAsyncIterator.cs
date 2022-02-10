@@ -75,7 +75,7 @@ namespace Doxense.Linq.Async.Iterators
 		)
 			: base(source)
 		{
-			Contract.Requires(taskSelector != null && options != null);
+			Contract.Debug.Requires(taskSelector != null && options != null);
 
 			m_taskSelector = taskSelector;
 			m_options = options;
@@ -102,7 +102,7 @@ namespace Doxense.Linq.Async.Iterators
 			m_processingQueue = new AsyncTransformQueue<TSource, TResult>(m_taskSelector, m_options.MaxConcurrency ?? DefaultMaxConcurrency, m_options.Scheduler);
 
 			// we also need a pump that will work on the inner sequence
-			Contract.Assert(m_iterator != null);
+			Contract.Debug.Assert(m_iterator != null);
 			m_pump = new AsyncIteratorPump<TSource>(m_iterator, m_processingQueue);
 
 			// start pumping
@@ -115,7 +115,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			LogDebug("[OnFirstAsync] pump started");
 
-			Contract.Ensures(m_pumpTask != null);
+			Contract.Debug.Ensures(m_pumpTask != null);
 
 			return true;
 		}
@@ -128,7 +128,7 @@ namespace Doxense.Linq.Async.Iterators
 
 				if (m_done) return false;
 
-				Contract.Requires(m_processingQueue != null);
+				Contract.Debug.Requires(m_processingQueue != null);
 				var next = await m_processingQueue.ReceiveAsync(m_ct).ConfigureAwait(false);
 				LogDebug("[OnNextAsync] got result from queue");
 

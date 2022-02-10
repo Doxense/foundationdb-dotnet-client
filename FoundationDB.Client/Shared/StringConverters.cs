@@ -166,7 +166,7 @@ namespace Doxense.Serialization
 		/// <exception cref="System.ArgumentNullException">If <paramref name="buffer"/> is null</exception>
 		public static unsafe bool FastTryGetInt(char* buffer, int offset, int length, char separator, int defaultValue, out int result, out int newpos)
 		{
-			Contract.PointerNotNull(buffer, nameof(buffer));
+			Contract.PointerNotNull(buffer);
 			result = defaultValue;
 			newpos = offset;
 			if (offset < 0 || offset >= length) return false; // already at the end !!
@@ -220,7 +220,7 @@ namespace Doxense.Serialization
 		/// <exception cref="System.ArgumentNullException">If <paramref name="buffer"/> is null</exception>
 		public static unsafe bool FastTryGetLong(char* buffer, int offset, int length, char separator, long defaultValue, out long result, out int newpos)
 		{
-			Contract.PointerNotNull(buffer, nameof(buffer));
+			Contract.PointerNotNull(buffer);
 			result = defaultValue;
 			newpos = offset;
 			if (offset < 0 || offset >= length) return false; // already at the end !!

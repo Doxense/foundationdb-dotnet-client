@@ -58,7 +58,7 @@ namespace Doxense.Linq.Async.Iterators
 
 			var iterators = m_iterators;
 			var keyComparer = m_keyComparer;
-			Contract.Requires(iterators != null);
+			Contract.Debug.Requires(iterators != null);
 
 			for (int i = 0; i < iterators.Length; i++)
 			{

@@ -109,8 +109,8 @@ namespace FoundationDB.Client
 
 		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, IFdbTransactionHandler handler, FdbTransactionMode mode)
 		{
-			Contract.Requires(db != null && context != null && handler != null);
-			Contract.Requires(context.Database != null);
+			Contract.Debug.Requires(db != null && context != null && handler != null);
+			Contract.Debug.Requires(context.Database != null);
 
 			m_context = context;
 			m_database = db;
@@ -431,7 +431,7 @@ namespace FoundationDB.Client
 
 		private async Task<VersionStamp?> ReadAndParseMetadataVersionSlow(Slice key)
 		{
-			Contract.Requires(!key.IsNull);
+			Contract.Debug.Requires(!key.IsNull);
 
 			Slice value;
 			try
@@ -630,7 +630,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 			//TODO: should we make a copy of the key array ?
 
 			EnsureCanRead();
@@ -728,7 +728,7 @@ namespace FoundationDB.Client
 		[Pure, LinqTunnel]
 		internal FdbRangeQuery<TResult> GetRangeCore<TResult>(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot, Func<KeyValuePair<Slice, Slice>, TResult> selector)
 		{
-			Contract.Requires(selector != null);
+			Contract.Debug.Requires(selector != null);
 
 			EnsureCanRead();
 			FdbKey.EnsureKeyIsValid(begin.Key);
@@ -1444,7 +1444,7 @@ namespace FoundationDB.Client
 			get => Volatile.Read(ref m_state);
 			set
 			{
-				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, "Invalid state value");
+				Contract.Debug.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, "Invalid state value");
 				Volatile.Write(ref m_state, value);
 			}
 		}

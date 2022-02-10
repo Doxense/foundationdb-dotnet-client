@@ -92,7 +92,7 @@ namespace FoundationDB.Client.Utils
 						{
 							if (token != Token.Literal) throw SyntaxError("Expected field name in map, but found {0}", token);
 							string key = (string) m_current!;
-							Contract.Assert(key != null);
+							Contract.Debug.Assert(key != null);
 
 							if ((token = ReadToken()) != Token.Colon) throw SyntaxError("Expected ':' in map, but found {0}", token);
 

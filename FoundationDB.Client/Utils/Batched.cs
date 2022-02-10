@@ -40,7 +40,7 @@ namespace FoundationDB
 
 		public static Slice[] Convert(SliceWriter writer, IEnumerable<TValue> values, Handler handler, TState state)
 		{
-			Contract.Requires(values != null && handler != null);
+			Contract.Debug.Requires(values != null && handler != null);
 
 			//Note on performance:
 			// - we will reuse the same buffer for each temp key, and copy them into a slice buffer
@@ -64,7 +64,7 @@ namespace FoundationDB
 					// copy full key in the buffer
 					res[p++] = buffer.Intern(writer.ToSlice());
 				}
-				Contract.Assert(p == res.Length);
+				Contract.Debug.Assert(p == res.Length);
 				return res;
 			}
 			else

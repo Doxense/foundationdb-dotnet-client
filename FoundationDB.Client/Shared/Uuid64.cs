@@ -84,7 +84,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid64(ushort a, long b)
 		{
-			//Contract.Requires((ulong) b < (1UL << 48));
+			//Contract.Debug.Requires((ulong) b < (1UL << 48));
 			m_value = ((ulong) a << 48) | ((ulong) b & ((1UL << 48) - 1));
 		}
 
@@ -184,7 +184,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 Parse(string buffer)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (!TryParse(buffer.AsSpan(), out var value))
 			{
 				throw FailInvalidFormat();
@@ -207,7 +207,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64 FromBase62(string buffer)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (!TryParseBase62(buffer.AsSpan(), out var value))
 			{
 				throw FailInvalidFormat();
@@ -218,14 +218,14 @@ namespace System
 		/// <summary>Try parsing a string representation of an UUid64</summary>
 		public static bool TryParse(string buffer, out Uuid64 result)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			return TryParse(buffer.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an UUid64</summary>
 		public static bool TryParse(ReadOnlySpan<char> s, out Uuid64 result)
 		{
-			Contract.Requires(s != null);
+			Contract.Debug.Requires(s != null);
 
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
@@ -341,7 +341,7 @@ namespace System
 		public byte[] ToByteArray()
 		{
 			var bytes = Slice.FromFixedU64BE(m_value).Array;
-			Contract.Ensures(bytes != null && bytes.Length == 8); // HACKHACK: for perf reasons, we rely on the fact that Slice.FromFixedU64BE() allocates a new 8-byte array that we can return without copying
+			Contract.Debug.Ensures(bytes != null && bytes.Length == 8); // HACKHACK: for perf reasons, we rely on the fact that Slice.FromFixedU64BE() allocates a new 8-byte array that we can return without copying
 			return bytes;
 		}
 
@@ -477,7 +477,7 @@ namespace System
 
 		private static unsafe char* HexsToLowerChars(char* ptr, int a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
 			ptr[1] = HexToLowerChar(a >> 24);
 			ptr[2] = HexToLowerChar(a >> 20);
@@ -498,7 +498,7 @@ namespace System
 
 		private static unsafe char* HexsToUpperChars(char* ptr, int a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);
 			ptr[1] = HexToUpperChar(a >> 24);
 			ptr[2] = HexToUpperChar(a >> 20);
@@ -527,7 +527,7 @@ namespace System
 				: HexsToLowerChars(ptr, (int)(value & 0xFFFFFFFF));
 			if (quotes) *ptr++ = '}';
 
-			Contract.Ensures(ptr == buffer + size);
+			Contract.Debug.Ensures(ptr == buffer + size);
 			return new string(buffer, 0, size);
 		}
 
@@ -640,7 +640,7 @@ namespace System
 
 					++pc;
 					int count = MAX_SIZE - (int) (pc - chars);
-					Contract.Assert(count > 0 && count <= 11);
+					Contract.Debug.Assert(count > 0 && count <= 11);
 					return count <= 0 ? String.Empty : new string(pc, 0, count);
 				}
 			}
@@ -691,7 +691,7 @@ namespace System
 
 		internal static unsafe ulong ReadUnsafe(ReadOnlySpan<byte> src)
 		{
-			Contract.Requires(src.Length >= 8);
+			Contract.Debug.Requires(src.Length >= 8);
 			fixed (byte* ptr = &MemoryMarshal.GetReference(src))
 			{
 				return UnsafeHelpers.LoadUInt64BE(ptr);
@@ -700,7 +700,7 @@ namespace System
 
 		internal static void WriteUnsafe(ulong value, Span<byte> buffer)
 		{
-			Contract.Requires(buffer.Length >= 8);
+			Contract.Debug.Requires(buffer.Length >= 8);
 			unsafe
 			{
 				fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))

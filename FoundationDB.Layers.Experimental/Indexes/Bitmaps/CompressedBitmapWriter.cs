@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="word">Value containing 31 bits from the original uncompressed bitmap.</param>
 		public void Write(uint word)
 		{
-			Contract.Requires(word <= CompressedWord.ALL_ONES);
+			Contract.Debug.Requires(word <= CompressedWord.ALL_ONES);
 			if (m_packed) ThrowAlreadyPacked();
 
 			if (word == CompressedWord.ALL_ZEROES || word == CompressedWord.ALL_ONES)
@@ -132,7 +132,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		public void Write(uint word, int count)
 		{
 			// (NO_VALUE, 0) is used to flush the buffer by flushing the curent state
-			Contract.Requires(word <= CompressedWord.ALL_ONES && count > 0);
+			Contract.Debug.Requires(word <= CompressedWord.ALL_ONES && count > 0);
 			if (m_packed) ThrowAlreadyPacked();
 
 			if (word == CompressedWord.ALL_ZEROES || word == CompressedWord.ALL_ONES)
@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		private void WriteFiller(uint word, int count)
 		{
-			Contract.Requires(count > 0);
+			Contract.Debug.Requires(count > 0);
 
 			uint previous = m_current;
 
@@ -179,7 +179,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		private void WriteLiteral(uint word, int count)
 		{
-			Contract.Requires(count > 0);
+			Contract.Debug.Requires(count > 0);
 
 			uint previous = m_current;
 			int counter = m_counter;
@@ -187,7 +187,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			// finish whatever was left open previously
 			if (previous != NO_VALUE)
 			{ // need to close previous filler
-				Contract.Assert(counter > 0);
+				Contract.Debug.Assert(counter > 0);
 				if (previous == CompressedWord.ALL_ZEROES)
 				{
 					m_writer.WriteFixed32(CompressedWord.MakeZeroes(counter));
@@ -198,7 +198,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				}
 				else
 				{
-					Contract.Assert(counter == 1);
+					Contract.Debug.Assert(counter == 1);
 					m_writer.WriteFixed32(CompressedWord.MakeLiteral(previous));
 				}
 				m_words += counter;
@@ -225,7 +225,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			if (m_packed) ThrowAlreadyPacked();
 
 			// either previous was a literal, or a run of zeroes or ones.
-			Contract.Requires(m_counter == 0 ? (m_current == NO_VALUE) : (m_current == CompressedWord.ALL_ZEROES || m_current == CompressedWord.ALL_ONES));
+			Contract.Debug.Requires(m_counter == 0 ? (m_current == NO_VALUE) : (m_current == CompressedWord.ALL_ZEROES || m_current == CompressedWord.ALL_ONES));
 
 			int counter = m_counter;
 			if (counter > 0 && m_current == CompressedWord.ALL_ONES)
@@ -279,7 +279,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (!m_packed)
 			{
-				Contract.Assert(m_ownsBuffer);
+				Contract.Debug.Assert(m_ownsBuffer);
 				Pack();
 			}
 			m_ownsBuffer = false;

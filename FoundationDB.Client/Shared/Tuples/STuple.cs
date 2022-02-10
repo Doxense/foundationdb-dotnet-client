@@ -90,7 +90,7 @@ namespace Doxense.Collections.Tuples
 
 		public IVarTuple Concat(IVarTuple tuple)
 		{
-			Contract.NotNull(tuple, nameof(tuple));
+			Contract.NotNull(tuple);
 			if (tuple.Count == 0) return this;
 			return tuple;
 		}
@@ -205,7 +205,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple Create(params object?[] items)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 
 			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
 
@@ -239,7 +239,7 @@ namespace Doxense.Collections.Tuples
 		public static IVarTuple Wrap(object?[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 			if (items.Length == 0) return STuple.Empty;
 			return new ListTuple<object?>(items.AsMemory());
 		}
@@ -272,7 +272,7 @@ namespace Doxense.Collections.Tuples
 		public static IVarTuple FromObjects(object?[] items)
 		{
 			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 			if (items.Length == 0) return STuple.Empty;
 			return new ListTuple<object?>(items.ToArray().AsMemory());
 		}
@@ -295,7 +295,7 @@ namespace Doxense.Collections.Tuples
 
 		public static IVarTuple WrapArray<T>(T[] items)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 			if (items.Length == 0) return STuple.Empty;
 			return new ListTuple<T>(items.AsMemory());
 		}
@@ -318,7 +318,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple FromArray<T>(T[] items)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 
 			return FromArray<T>(items.AsSpan());
 		}
@@ -351,7 +351,7 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple FromEnumerable<T>(IEnumerable<T> items)
 		{
-			Contract.NotNull(items, nameof(items));
+			Contract.NotNull(items);
 
 			if (items is T[] arr)
 			{
@@ -391,8 +391,8 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple Concat(IVarTuple head, IVarTuple tail)
 		{
-			Contract.NotNull(head, nameof(head));
-			Contract.NotNull(tail, nameof(tail));
+			Contract.NotNull(head);
+			Contract.NotNull(tail);
 
 			return tail.Count == 0 ? head
 			     : head.Count == 0 ? tail
@@ -403,9 +403,9 @@ namespace Doxense.Collections.Tuples
 		[Pure]
 		public static IVarTuple Concat(IVarTuple head, IVarTuple middle, IVarTuple tail)
 		{
-			Contract.NotNull(head, nameof(head));
-			Contract.NotNull(middle, nameof(middle));
-			Contract.NotNull(tail, nameof(tail));
+			Contract.NotNull(head);
+			Contract.NotNull(middle);
+			Contract.NotNull(tail);
 
 			int numA = head.Count;
 			int numB = middle.Count;
@@ -681,7 +681,7 @@ namespace Doxense.Collections.Tuples
 			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
 			public static string ToString(object?[]? items, int offset, int count)
 			{
-				Contract.Requires(offset >= 0 && count >= 0);
+				Contract.Debug.Requires(offset >= 0 && count >= 0);
 				if (items == null) return string.Empty;
 				return ToString(items.AsSpan(offset, count));
 			}
@@ -778,7 +778,7 @@ namespace Doxense.Collections.Tuples
 			[Pure]
 			public static IVarTuple Parse(string expression)
 			{
-				Contract.NotNullOrWhiteSpace(expression, nameof(expression));
+				Contract.NotNullOrWhiteSpace(expression);
 				var parser = new Parser(expression.Trim());
 				var tuple = parser.ParseExpression();
 				if (parser.HasMore) throw new FormatException("Unexpected token after final ')' in Tuple expression.");
@@ -790,7 +790,7 @@ namespace Doxense.Collections.Tuples
 			/// <returns>First item is the parsed tuple, and the second item is the rest of the string (or null if we consumed the whole expression)</returns>
 			public static void ParseNext(string expression, out IVarTuple? tuple, out string? tail)
 			{
-				Contract.NotNullOrWhiteSpace(expression, nameof(expression));
+				Contract.NotNullOrWhiteSpace(expression);
 				if (string.IsNullOrWhiteSpace(expression))
 				{
 					tuple = null;

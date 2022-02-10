@@ -60,7 +60,7 @@ namespace Doxense.Async
 		public AsyncBuffer(Func<TInput, TOutput> transform, int capacity)
 			: base(capacity)
 		{
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(transform);
 
 			m_transform = transform;
 		}
@@ -141,7 +141,7 @@ namespace Doxense.Async
 
 			lock (m_lock)
 			{
-				Contract.Assert(m_queue.Count < m_capacity);
+				Contract.Debug.Assert(m_queue.Count < m_capacity);
 				Enqueue_NeedsLocking(Maybe.Return(value));
 			}
 		}
@@ -210,7 +210,7 @@ namespace Doxense.Async
 			{
 				ct.ThrowIfCancellationRequested();
 
-				Contract.Assert(m_queue.Count > 0);
+				Contract.Debug.Assert(m_queue.Count > 0);
 				item = m_queue.Dequeue();
 				WakeUpBlockedProducer_NeedsLocking();
 			}

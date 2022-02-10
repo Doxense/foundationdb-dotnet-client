@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 
 			public static async Task<FdbSystemStatus?> GetStatusAsync(IFdbReadOnlyTransaction trans)
 			{
-				Contract.NotNull(trans, nameof(trans));
+				Contract.NotNull(trans);
 
 				var data = await trans.GetAsync(StatusJsonKey).ConfigureAwait(false);
 
@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 
 			public static Task<FdbSystemStatus?> GetStatusAsync(IFdbDatabase db, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 
 				// we should not retry the read to the status key!
 				return db.ReadAsync(tr =>
@@ -139,7 +139,7 @@ namespace FoundationDB.Client
 			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
 			public static async Task<FdbClusterFile> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 
 				var coordinators = await db.ReadAsync((tr) =>
 				{
@@ -162,7 +162,7 @@ namespace FoundationDB.Client
 			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
 			public static Task<Slice> GetConfigParameterAsync(IFdbDatabase db, string name, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				Contract.NotNullOrEmpty(name, nameof(name), "Configuration parameter name cannot be null or empty.");
 
 				return db.ReadAsync<Slice>((tr) =>
@@ -238,8 +238,8 @@ namespace FoundationDB.Client
 			/// <remarks>This method is not transactional. It will return an answer no older than the Transaction object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
 			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
-				Contract.NotNull(trans, nameof(trans));
-				Contract.Requires(trans.Context?.Database != null);
+				Contract.NotNull(trans);
+				Contract.Debug.Requires(trans.Context?.Database != null);
 
 				var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);
 
@@ -263,7 +263,7 @@ namespace FoundationDB.Client
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
 			public static Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 
 				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), ct);
 			}
@@ -293,7 +293,7 @@ namespace FoundationDB.Client
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
 				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, ct).ConfigureAwait(false);
@@ -323,7 +323,7 @@ namespace FoundationDB.Client
 
 			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync(IFdbReadOnlyTransaction trans, Slice begin, Slice end)
 			{
-				Contract.Requires(trans != null && end >= begin);
+				Contract.Debug.Requires(trans != null && end >= begin);
 
 #if TRACE_COUNTING
 				trans.Annotate("Get boundary keys in range {0}", KeyRange.Create(begin, end));
@@ -428,7 +428,7 @@ namespace FoundationDB.Client
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
 				const int MIN_WINDOW_SIZE = 64; // use range reads when the windows size is smaller than 64
 
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
 				ct.ThrowIfCancellationRequested();
@@ -477,7 +477,7 @@ namespace FoundationDB.Client
 
 					while (cursor < end)
 					{
-						Contract.Assert(windowSize > 0);
+						Contract.Debug.Assert(windowSize > 0);
 
 						var selector = KeySelector.FirstGreaterOrEqual(cursor) + windowSize;
 						Slice next = Slice.Nil;

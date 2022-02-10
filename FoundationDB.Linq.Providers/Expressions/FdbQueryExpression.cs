@@ -45,7 +45,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <param name="type">Type of the results of this expression</param>
 		protected FdbQueryExpression(Type type)
 		{
-			Contract.Requires(type != null);
+			Contract.Debug.Requires(type != null);
 			m_type = type;
 		}
 

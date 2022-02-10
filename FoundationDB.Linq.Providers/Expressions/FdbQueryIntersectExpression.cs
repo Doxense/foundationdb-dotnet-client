@@ -53,7 +53,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Create a new merge expression</summary>
 		protected FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T>? keyComparer)
 		{
-			Contract.Requires(expressions != null);
+			Contract.Debug.Requires(expressions != null);
 			this.Expressions = expressions;
 			this.KeyComparer = keyComparer;
 		}

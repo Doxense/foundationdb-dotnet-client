@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 		internal DynamicKeySubspace(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
-			Contract.Requires(encoder != null);
+			Contract.Debug.Requires(encoder != null);
 			this.KeyEncoder = encoder;
 			this.Partition = new DynamicPartition(this);
 		}
@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		public Slice Pack<TTuple>(TTuple tuple)
 			where TTuple : IVarTuple
 		{
-			Contract.NotNullAllowStructs(tuple, nameof(tuple));
+			Contract.NotNullAllowStructs(tuple);
 
 			var sw = this.OpenWriter();
 			this.KeyEncoder.PackKey(ref sw, tuple);
@@ -493,7 +493,7 @@ namespace FoundationDB.Client
 
 		internal DynamicPartition(DynamicKeySubspace subspace)
 		{
-			Contract.Requires(subspace != null);
+			Contract.Debug.Requires(subspace != null);
 			this.Subspace = subspace;
 		}
 

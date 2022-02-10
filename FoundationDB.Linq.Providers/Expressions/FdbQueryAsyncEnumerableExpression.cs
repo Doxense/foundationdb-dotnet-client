@@ -42,7 +42,7 @@ namespace FoundationDB.Linq.Expressions
 
 		internal FdbQueryAsyncEnumerableExpression(IAsyncEnumerable<T> source)
 		{
-			Contract.Requires(source != null);
+			Contract.Debug.Requires(source != null);
 			this.Source = source;
 		}
 

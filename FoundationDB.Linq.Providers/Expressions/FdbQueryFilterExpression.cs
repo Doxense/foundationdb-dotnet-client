@@ -42,7 +42,7 @@ namespace FoundationDB.Linq.Expressions
 
 		internal FdbQueryFilterExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, bool>> filter)
 		{
-			Contract.Requires(source != null && filter != null);
+			Contract.Debug.Requires(source != null && filter != null);
 			this.Source = source;
 			this.Filter = filter;
 		}

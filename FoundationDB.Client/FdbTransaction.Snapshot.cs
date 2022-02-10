@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 
 			public Snapshotted(FdbTransaction parent)
 			{
-				Contract.NotNull(parent, nameof(parent));
+				Contract.NotNull(parent);
 				m_parent = parent;
 			}
 
@@ -111,7 +111,7 @@ namespace FoundationDB.Client
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
-				Contract.NotNull(keys, nameof(keys));
+				Contract.NotNull(keys);
 
 				EnsureCanRead();
 

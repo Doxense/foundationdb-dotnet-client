@@ -47,8 +47,8 @@ namespace Doxense.Async
 
 		public AsyncTransform(Func<TInput, CancellationToken, Task<TOutput>> transform, IAsyncTarget<Task<TOutput>> target, TaskScheduler? scheduler = null)
 		{
-			Contract.NotNull(transform, nameof(transform));
-			Contract.NotNull(target, nameof(target));
+			Contract.NotNull(transform);
+			Contract.NotNull(target);
 
 			m_transform = transform;
 			m_target = target;

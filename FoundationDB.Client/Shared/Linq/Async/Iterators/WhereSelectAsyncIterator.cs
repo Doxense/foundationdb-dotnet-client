@@ -61,8 +61,8 @@ namespace Doxense.Linq.Async.Iterators
 		)
 			: base(source)
 		{
-			Contract.Requires(transform != null); // must do at least something
-			Contract.Requires((limit ?? 0) >= 0 && (offset ?? 0) >= 0); // bounds cannot be negative
+			Contract.Debug.Requires(transform != null); // must do at least something
+			Contract.Debug.Requires((limit ?? 0) >= 0 && (offset ?? 0) >= 0); // bounds cannot be negative
 
 			m_filter = filter;
 			m_transform = transform;
@@ -90,7 +90,7 @@ namespace Doxense.Linq.Async.Iterators
 			}
 
 			var iterator = m_iterator;
-			Contract.Requires(iterator != null);
+			Contract.Debug.Requires(iterator != null);
 
 			while (!m_ct.IsCancellationRequested)
 			{
@@ -162,7 +162,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
-			Contract.NotNull(selector, nameof(selector));
+			Contract.NotNull(selector);
 
 			return new WhereSelectAsyncIterator<TSource, TNew>(
 				m_source,
@@ -175,7 +175,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
-			Contract.NotNull(asyncSelector, nameof(asyncSelector));
+			Contract.NotNull(asyncSelector);
 
 			return new WhereSelectAsyncIterator<TSource, TNew>(
 				m_source,
@@ -188,7 +188,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
 		{
-			Contract.NotNull(selector, nameof(selector));
+			Contract.NotNull(selector);
 
 			if (m_filter == null && m_limit == null && m_offset == null)
 			{
@@ -204,7 +204,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
-			Contract.NotNull(asyncSelector, nameof(asyncSelector));
+			Contract.NotNull(asyncSelector);
 
 			if (m_filter == null && m_limit == null && m_offset == null)
 			{
@@ -256,7 +256,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
 		{
-			Contract.NotNull(predicate, nameof(predicate));
+			Contract.NotNull(predicate);
 
 			// note: the only possible optimization here is if TSource == TResult, then we can combine both predicates
 			// remember: limit/offset are applied AFTER the filtering, so can only combine if they are null
@@ -287,7 +287,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			Contract.NotNull(asyncPredicate, nameof(asyncPredicate));
+			Contract.NotNull(asyncPredicate);
 
 			// note: the only possible optimization here is if TSource == TResult, then we can combine both predicates
 			// remember: limit/offset are applied AFTER the filtering, so can only combine if they are null
@@ -314,7 +314,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override async Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{
-			Contract.NotNull(action, nameof(action));
+			Contract.NotNull(action);
 
 			int? remaining = m_limit;
 			int? skipped = m_offset;
@@ -382,7 +382,7 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
-			Contract.NotNull(asyncAction, nameof(asyncAction));
+			Contract.NotNull(asyncAction);
 
 			int? remaining = m_limit;
 			int? skipped = m_offset;

@@ -328,7 +328,7 @@ namespace System
 		[Pure]
 		public static unsafe Guid Read(ReadOnlySpan<byte> source)
 		{
-			Contract.Requires(source.Length >= 16);
+			Contract.Debug.Requires(source.Length >= 16);
 			if (source.Length < 16) throw new ArgumentException("The source buffer is too small", nameof(source));
 			Guid tmp;
 			fixed (byte* src = &MemoryMarshal.GetReference(source))
@@ -523,7 +523,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128 Increment([Positive] int value)
 		{
-			Contract.Requires(value >= 0);
+			Contract.Debug.Requires(value >= 0);
 			return Increment(checked((ulong)value));
 		}
 
@@ -533,7 +533,7 @@ namespace System
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128 Increment([Positive] long value)
 		{
-			Contract.Requires(value >= 0);
+			Contract.Debug.Requires(value >= 0);
 			return Increment(checked((ulong)value));
 		}
 

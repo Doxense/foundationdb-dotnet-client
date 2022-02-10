@@ -90,14 +90,14 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Remove all items from the queue.</summary>
 			public void Clear(IFdbTransaction tr)
 			{
-				Contract.NotNull(tr, nameof(tr));
+				Contract.NotNull(tr);
 				tr.ClearRange(this.Subspace.ToRange());
 			}
 
 			/// <summary>Push a single item onto the queue.</summary>
 			public void Push(IFdbTransaction tr, T value)
 			{
-				Contract.NotNull(tr, nameof(tr));
+				Contract.NotNull(tr);
 
 #if DEBUG
 				tr.Annotate("Push({0})", value);
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
 			public async Task<(T Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
-				Contract.NotNull(tr, nameof(tr));
+				Contract.NotNull(tr);
 #if DEBUG
 				tr.Annotate("Pop()");
 #endif
@@ -143,7 +143,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Get the value of the next item in the queue without popping it.</summary>
 			public async Task<(T Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
 			{
-				Contract.NotNull(tr, nameof(tr));
+				Contract.NotNull(tr);
 
 				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
 				if (first.IsEmpty) return default;

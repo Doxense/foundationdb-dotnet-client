@@ -47,7 +47,7 @@ namespace Doxense.Linq
 		/// <remarks>This is the logical equivalent to "source.Count() == 0" or "!source.Any()" but can be better optimized by some providers</remarks>
 		public static bool None<T>([InstantHandle] this IEnumerable<T> source)
 		{
-			Contract.NotNull(source, nameof(source));
+			Contract.NotNull(source);
 
 			using (var iterator = source.GetEnumerator())
 			{
@@ -58,8 +58,8 @@ namespace Doxense.Linq
 		/// <summary>Determines whether none of the elements of a sequence satisfies a condition.</summary>
 		public static bool None<T>([InstantHandle] this IEnumerable<T> source, [InstantHandle] Func<T, bool> predicate)
 		{
-			Contract.NotNull(source, nameof(source));
-			Contract.NotNull(predicate, nameof(predicate));
+			Contract.NotNull(source);
+			Contract.NotNull(predicate);
 
 			using (var iterator = source.GetEnumerator())
 			{
@@ -80,7 +80,7 @@ namespace Doxense.Linq
 		[LinqTunnel]
 		public static IEnumerable<TSource> WithCountStatistics<TSource>(this IEnumerable<TSource> source, out QueryStatistics<int> counter)
 		{
-			Contract.NotNull(source, nameof(source));
+			Contract.NotNull(source);
 
 			var signal = new QueryStatistics<int>(0);
 			counter = signal;
@@ -98,7 +98,7 @@ namespace Doxense.Linq
 		[LinqTunnel]
 		public static IEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSizeStatistics> statistics)
 		{
-			Contract.NotNull(source, nameof(source));
+			Contract.NotNull(source);
 
 			var data = new KeyValueSizeStatistics();
 			statistics = new QueryStatistics<KeyValueSizeStatistics>(data);
@@ -116,7 +116,7 @@ namespace Doxense.Linq
 		[LinqTunnel]
 		public static IEnumerable<Slice> WithSizeStatistics(this IEnumerable<Slice> source, out QueryStatistics<DataSizeStatistics> statistics)
 		{
-			Contract.NotNull(source, nameof(source));
+			Contract.NotNull(source);
 
 			var data = new DataSizeStatistics();
 			statistics = new QueryStatistics<DataSizeStatistics>(data);
