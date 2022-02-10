@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net472</TargetFrameworks>
+    <TargetFrameworks>net5.0;net472</TargetFrameworks>
     <RootNamespace>FoundationDB.Tests</RootNamespace>
     <AssemblyName>FoundationDB.Layers.Experimental.Tests</AssemblyName>
     <LangVersion>8.0</LangVersion>

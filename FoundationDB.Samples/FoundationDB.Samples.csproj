@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net472;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>net472;net5.0</TargetFrameworks>
     <ProjectGuid>{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}</ProjectGuid>
     <RestorePackages>true</RestorePackages>
     <RootNamespace>FoundationDB.Samples</RootNamespace>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net472;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net472;net5.0</TargetFrameworks>
     <ProjectGuid>{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}</ProjectGuid>
     <RestorePackages>true</RestorePackages>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -10,6 +10,7 @@
     <AssemblyName>FdbShell</AssemblyName>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+	<PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <Import Project="..\Common\VersionInfo.props" />
