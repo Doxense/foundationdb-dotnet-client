@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 			[NotNull] TypedKeySubspace<T1, T2, T3, T4> parent,
 			[NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
-			Contract.Requires(parent != null && encoder != null);
+			Contract.Debug.Requires(parent != null && encoder != null);
 			this.Parent = parent;
 			this.Encoder = encoder;
 		}

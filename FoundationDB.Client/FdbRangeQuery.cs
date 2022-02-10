@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 		/// <summary>Construct a query with a set of initial settings</summary>
 		internal FdbRangeQuery([NotNull] IFdbReadOnlyTransaction transaction, KeySelector begin, KeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, [CanBeNull] FdbRangeOptions options)
 		{
-			Contract.Requires(transaction != null && transform != null);
+			Contract.Debug.Requires(transaction != null && transform != null);
 
 			this.Transaction = transaction;
 			this.Begin = begin;
@@ -60,7 +60,7 @@ namespace FoundationDB.Client
 		/// <summary>Copy constructor</summary>
 		private FdbRangeQuery([NotNull] FdbRangeQuery<T> query, [NotNull] FdbRangeOptions options)
 		{
-			Contract.Requires(query != null && options != null);
+			Contract.Debug.Requires(query != null && options != null);
 
 			this.Transaction = query.Transaction;
 			this.Begin = query.Begin;
@@ -125,7 +125,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public FdbRangeQuery<T> Take([Positive] int count)
 		{
-			Contract.Positive(count, nameof(count));
+			Contract.Positive(count);
 
 			if (this.Options.Limit == count)
 			{
@@ -144,7 +144,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public FdbRangeQuery<T> Skip([Positive] int count)
 		{
-			Contract.Positive(count, nameof(count));
+			Contract.Positive(count);
 
 			var limit = this.Options.Limit;
 			var begin = this.Begin;
@@ -223,7 +223,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public FdbRangeQuery<T> WithTargetBytes([Positive] int bytes)
 		{
-			Contract.Positive(bytes, nameof(bytes));
+			Contract.Positive(bytes);
 
 			return new FdbRangeQuery<T>(
 				this,
@@ -254,7 +254,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public FdbRangeQuery<T> UseTransaction([NotNull] IFdbReadOnlyTransaction transaction)
 		{
-			Contract.NotNull(transaction, nameof(transaction));
+			Contract.NotNull(transaction);
 
 			return new FdbRangeQuery<T>(
 				transaction,
@@ -323,7 +323,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		internal FdbRangeQuery<TResult> Map<TResult>([NotNull] Func<KeyValuePair<Slice, Slice>, TResult> transform)
 		{
-			Contract.Requires(transform != null);
+			Contract.Debug.Requires(transform != null);
 			return new FdbRangeQuery<TResult>(
 				this.Transaction,
 				this.Begin,
@@ -338,10 +338,10 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public FdbRangeQuery<TResult> Select<TResult>([NotNull] Func<T, TResult> lambda)
 		{
-			Contract.Requires(lambda != null);
+			Contract.Debug.Requires(lambda != null);
 			// note: avoid storing the query in the scope by storing the transform locally so that only 'f' and 'lambda' are kept alive
 			var f = this.Transform;
-			Contract.Assert(f != null);
+			Contract.Debug.Assert(f != null);
 			return Map<TResult>((x) => lambda(f(x)));
 		}
 
@@ -504,11 +504,11 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static FdbRangeQuery<TKey> Keys<TKey, TValue>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query)
 		{
-			Contract.NotNull(query, nameof(query));
+			Contract.NotNull(query);
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
-			Contract.Assert(f != null);
+			Contract.Debug.Assert(f != null);
 
 			return query.Map<TKey>((x) => f(x).Key);
 		}
@@ -516,12 +516,12 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static FdbRangeQuery<TResult> Keys<TKey, TValue, TResult>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query, [NotNull] Func<TKey, TResult> transform)
 		{
-			Contract.NotNull(query, nameof(query));
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(query);
+			Contract.NotNull(transform);
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
-			Contract.Assert(f != null);
+			Contract.Debug.Assert(f != null);
 
 			return query.Map<TResult>((x) => transform(f(x).Key));
 		}
@@ -529,11 +529,11 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static FdbRangeQuery<TValue> Values<TKey, TValue>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query)
 		{
-			Contract.NotNull(query, nameof(query));
+			Contract.NotNull(query);
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
-			Contract.Assert(f != null);
+			Contract.Debug.Assert(f != null);
 
 			return query.Map<TValue>((x) => f(x).Value);
 		}
@@ -541,12 +541,12 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static FdbRangeQuery<TResult> Values<TKey, TValue, TResult>([NotNull] this FdbRangeQuery<KeyValuePair<TKey, TValue>> query, [NotNull] Func<TValue, TResult> transform)
 		{
-			Contract.NotNull(query, nameof(query));
-			Contract.NotNull(transform, nameof(transform));
+			Contract.NotNull(query);
+			Contract.NotNull(transform);
 
 			var f = query.Transform;
 			//note: we only keep a reference on 'f' to allow the previous query instance to be collected.
-			Contract.Assert(f != null);
+			Contract.Debug.Assert(f != null);
 
 			return query.Map<TResult>((x) => transform(f(x).Value));
 		}

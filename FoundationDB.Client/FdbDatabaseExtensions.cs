@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction([NotNull] this IFdbDatabase db, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
 		}
 
@@ -78,7 +78,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbTransaction BeginTransaction([NotNull] this IFdbDatabase db, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.BeginTransaction(FdbTransactionMode.Default, ct, default(FdbOperationContext));
 		}
 
@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 		/// <param name="size">Max location cache entries</param>
 		public static void SetLocationCacheSize([NotNull] this IFdbDatabase db, int size)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
 
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
@@ -104,7 +104,7 @@ namespace FoundationDB.Client
 		/// <param name="count">Max outstanding watches</param>
 		public static void SetMaxWatches([NotNull] this IFdbDatabase db, int count)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
 
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
@@ -117,7 +117,7 @@ namespace FoundationDB.Client
 		/// <param name="hexId">Hexadecimal ID</param>
 		public static void SetMachineId([NotNull] this IFdbDatabase db, string hexId)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			db.SetOption(FdbDatabaseOption.MachineId, hexId);
@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 		/// <param name="hexId">Hexadecimal ID</param>
 		public static void SetDataCenterId([NotNull] this IFdbDatabase db, string hexId)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			db.SetOption(FdbDatabaseOption.DataCenterId, hexId);
@@ -178,7 +178,7 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		internal static void EnsureKeysAreValid([NotNull] this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
 		{
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 			for (int i = 0; i < keys.Length; i++)
 			{
 				Exception ex;
@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task<Slice> GetAsync([NotNull] this IFdbReadOnlyRetryable db, Slice key, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.ReadAsync((tr) => tr.GetAsync(key), ct);
 		}
 
@@ -230,7 +230,7 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] Slice[] keys, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), ct);
 		}
 
@@ -242,7 +242,7 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<Slice> keys, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), ct);
 		}
 
@@ -253,7 +253,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task<Slice> GetKeyAsync([NotNull] this IFdbReadOnlyRetryable db, KeySelector keySelector, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.ReadAsync((tr) => tr.GetKeyAsync(keySelector), ct);
 		}
 
@@ -265,8 +265,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] KeySelector[] keySelectors, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(keySelectors, nameof(keySelectors));
+			Contract.NotNull(db);
+			Contract.NotNull(keySelectors);
 			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), ct);
 		}
 
@@ -278,8 +278,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<KeySelector> keySelectors, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(keySelectors, nameof(keySelectors));
+			Contract.NotNull(db);
+			Contract.NotNull(keySelectors);
 			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), ct);
 		}
 
@@ -290,7 +290,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyRetryable db, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.ReadAsync((tr) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration), ct);
 		}
 
@@ -301,7 +301,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task SetAsync([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Set(key, value), ct);
 		}
 
@@ -312,7 +312,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> items, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) =>
 			{
 				foreach (var kv in items)
@@ -329,7 +329,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, IEnumerable<(Slice Key, Slice Value)> items, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) =>
 			{
 				foreach (var kv in items)
@@ -346,7 +346,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task ClearAsync([NotNull] this IFdbRetryable db, Slice key, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Clear(key), ct);
 		}
 
@@ -357,7 +357,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task ClearRangeAsync([NotNull] this IFdbRetryable db, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.ClearRange(beginKeyInclusive, endKeyExclusive), ct);
 		}
 
@@ -368,7 +368,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task ClearRangeAsync([NotNull] this IFdbRetryable db, KeyRange range, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.ClearRange(range), ct);
 		}
 
@@ -379,7 +379,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicAdd([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Add), ct);
 		}
 
@@ -390,7 +390,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicCompareAndClear([NotNull] this IFdbRetryable db, Slice key, Slice comparand, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, comparand, FdbMutationType.CompareAndClear), ct);
 		}
 
@@ -401,7 +401,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicBitAnd([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitAnd), ct);
 		}
 
@@ -412,7 +412,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicBitOr([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitOr), ct);
 		}
 
@@ -423,7 +423,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicBitXor([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitXor), ct);
 		}
 
@@ -434,7 +434,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicMax([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Max), ct);
 		}
 
@@ -445,7 +445,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static Task AtomicMin([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Min), ct);
 		}
 

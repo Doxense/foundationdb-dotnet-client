@@ -45,18 +45,17 @@ namespace Doxense.Memory
 {
 	using System;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.IO;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
-	using System.Security;
 	using JetBrains.Annotations;
 	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Helper methods for dealing with unmanaged memory. HANDLE WITH CARE!</summary>
 	/// <remarks>Use of this class is unsafe. YOU HAVE BEEN WARNED!</remarks>
 	[DebuggerNonUserCode] // <-- remove this when debugging the class itself!
-	public static unsafe class UnsafeHelpers
+	public static class UnsafeHelpers
 	{
 
 #if EXPECT_LITTLE_ENDIAN_HOST
@@ -69,7 +68,7 @@ namespace Doxense.Memory
 		/// <summary>Validates that <paramref name="offset"/> and <paramref name="count"/> represent a valid location in <paramref name="array"/></summary>
 		/// <remarks>If <paramref name="count"/> is 0, then <paramref name="array"/> is allowed to be null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EnsureBufferIsValid(byte[] array, int offset, int count)
+		public static void EnsureBufferIsValid(byte[]? array, int offset, int count)
 		{
 			// note: same test has for a Slice
 			if (count != 0 && (array == null || (uint) offset > (uint) array.Length || (uint) count > (uint) (array.Length - offset)))
@@ -81,7 +80,7 @@ namespace Doxense.Memory
 		/// <summary>Validates that <paramref name="offset"/> and <paramref name="count"/> represent a valid location in <paramref name="array"/></summary>
 		/// <remarks>If <paramref name="count"/> is 0, then <paramref name="array"/> is allowed to be null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EnsureBufferIsValid(byte[] array, uint offset, uint count)
+		public static void EnsureBufferIsValid(byte[]? array, uint offset, uint count)
 		{
 			// note: same test has for a Slice
 			if (count != 0 && (array == null || (long) count > (long) array.Length - offset))
@@ -117,7 +116,7 @@ namespace Doxense.Memory
 		/// <summary>Validates that an unmanaged buffer represents a valid memory location</summary>
 		/// <remarks>If <paramref name="count"/> is 0, then <paramref name="bytes"/> is allowed to be null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EnsureBufferIsValid(byte* bytes, long count)
+		public static unsafe void EnsureBufferIsValid(byte* bytes, long count)
 		{
 			if (count != 0 & (bytes == null || count < 0))
 			{
@@ -129,7 +128,7 @@ namespace Doxense.Memory
 		/// <remarks><paramref name="bytes"/> is not allowed to be null, even if <paramref name="count"/> is 0.</remarks>
 		[ContractAnnotation("bytes:null => halt")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void EnsureBufferIsValidNotNull(byte* bytes, long count)
+		public static unsafe void EnsureBufferIsValidNotNull(byte* bytes, long count)
 		{
 			if (bytes == null || count < 0)
 			{
@@ -137,141 +136,12 @@ namespace Doxense.Memory
 			}
 		}
 
-		/// <summary>Compare two byte segments for equality</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="count">Number of bytes to compare</param>
-		/// <returns>true if all bytes are the same in both segments</returns>
-		[Pure]
-		public static bool SameBytes(byte[] left, int leftOffset, byte[] right, int rightOffset, int count)
-		{
-			EnsureBufferIsValid(left, leftOffset, count);
-			EnsureBufferIsValid(right, rightOffset, count);
-
-			if (left == null || right == null) return left == right;
-			return SameBytesUnsafe(left, leftOffset, right, rightOffset, count);
-		}
-
-#if ENABLE_SPAN
-		/// <summary>Compare two spans for equality</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <returns>true if all bytes are the same in both segments</returns>
-		public static bool SameBytes(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
-		{
-			if (left.Length != right.Length) return false;
-			//REVIEW: is there a more direct wait to compare two spans ?? (did not find anything in ReadOnlySpan, MemoryExtensions nor MemoryMarshal ... ?)
-			fixed (byte* pLeft = &MemoryMarshal.GetReference(left))
-			fixed (byte* pRight = &MemoryMarshal.GetReference(right))
-			{
-				//TODO: version of comapre that is optimized for equality checks!
-				return 0 == CompareUnsafe(pLeft, pRight, (uint) left.Length);
-			}
-		}
-#endif
-
-		/// <summary>Compare two byte segments for equality, without validating the arguments</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="count">Number of bytes to compare</param>
-		/// <returns>true if all bytes are the same in both segments</returns>
-		[Pure]
-		public static bool SameBytesUnsafe([NotNull] byte[] left, int leftOffset, [NotNull] byte[] right, int rightOffset, int count)
-		{
-			Contract.Requires(left != null && leftOffset >= 0 && right != null && rightOffset >= 0 && count >= 0);
-
-			if (count == 0 || (object.ReferenceEquals(left, right) && leftOffset == rightOffset))
-			{ // empty, or same segment of the same buffer
-				return true;
-			}
-
-			fixed (byte* pLeft = &left[leftOffset])
-			fixed (byte* pRight = &right[rightOffset])
-			{
-				//TODO: version of comapre that is optimized for equality checks!
-				return 0 == CompareUnsafe(pLeft, pRight, checked((uint)count));
-			}
-		}
-
-		/// <summary>Compare two byte buffers lexicographically</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <returns>Returns zero if both buffers are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"
-		/// </remarks>
-		[Pure]
-		public static int Compare([NotNull] byte[] left, [NotNull] byte[] right)
-		{
-			Contract.NotNull(left, nameof(left));
-			Contract.NotNull(right, nameof(right));
-			return CompareUnsafe(left, 0, left.Length, right, 0, right.Length);
-		}
-
-		/// <summary>Compare two byte segments lexicographically</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="leftCount">Number of bytes in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="rightCount">Number of bytes in right buffer</param>
-		/// <returns>Returns zero if segments are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"
-		/// </remarks>
-		[Pure]
-		public static int Compare([NotNull] byte[] left, int leftOffset, int leftCount, [NotNull] byte[] right, int rightOffset, int rightCount)
-		{
-			EnsureBufferIsValidNotNull(left, leftOffset, leftCount);
-			EnsureBufferIsValidNotNull(right, rightOffset, rightCount);
-
-			return CompareUnsafe(left, leftOffset, leftCount, right, rightOffset, rightCount);
-		}
-
-		/// <summary>Compare two byte segments lexicographically, without validating the arguments</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="leftCount">Number of bytes in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="rightCount">Number of bytes in right buffer</param>
-		/// <returns>Returns zero if segments are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"
-		/// </remarks>
-		[Pure]
-		public static int CompareUnsafe([NotNull] byte[] left, int leftOffset, int leftCount, [NotNull] byte[] right, int rightOffset, int rightCount)
-		{
-			Contract.Requires(left != null && right != null && leftOffset >= 0 && leftCount >= 0 && rightOffset >= 0 && rightCount >= 0);
-
-			if (object.ReferenceEquals(left, right) && leftCount == rightCount && leftOffset == rightOffset)
-			{ // same segment in the same buffer
-				return 0;
-			}
-
-			fixed (byte* pLeft = &left[leftOffset])
-			fixed (byte* pRight = &right[rightOffset])
-			{
-				return CompareUnsafe(pLeft, (uint) leftCount, pRight, (uint) rightCount);
-			}
-		}
-
 		/// <summary>Ensure that the specified temporary buffer is large enough</summary>
 		/// <param name="buffer">Pointer to a temporary scratch buffer (previous data will not be maintained)</param>
 		/// <param name="minCapacity">Minimum expected capacity</param>
 		/// <returns>Same buffer if it was large enough, or a new allocated buffer with length greater than or equal to <paramref name="minCapacity"/></returns>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte[] EnsureCapacity(ref byte[] buffer, int minCapacity)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte[] EnsureCapacity(ref byte[]? buffer, int minCapacity)
 		{
 			if (buffer == null || buffer.Length < minCapacity)
 			{
@@ -284,8 +154,8 @@ namespace Doxense.Memory
 		/// <param name="buffer">Pointer to a temporary scratch buffer (previous data will not be maintained)</param>
 		/// <param name="minCapacity">Minimum expected capacity</param>
 		/// <returns>Same buffer if it was large enough, or a new allocated buffer with length greater than or equal to <paramref name="minCapacity"/></returns>
-		[Pure, NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte[] EnsureCapacity(ref byte[] buffer, uint minCapacity)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static byte[] EnsureCapacity(ref byte[]? buffer, uint minCapacity)
 		{
 			if (minCapacity > int.MaxValue) throw FailBufferTooLarge(minCapacity);
 			if (buffer == null || buffer.Length < (int) minCapacity)
@@ -295,666 +165,131 @@ namespace Doxense.Memory
 			return buffer;
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static byte[] AllocateAligned(int minCapacity)
 		{
 			if (minCapacity < 0) throw FailBufferTooLarge(minCapacity); //note: probably an integer overflow (unsigned -> signed)
 			return new byte[BitHelpers.AlignPowerOfTwo(minCapacity, 8)];
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailBufferTooLarge(long minCapacity)
 		{
 			return new ArgumentOutOfRangeException(nameof(minCapacity), minCapacity, "Cannot allocate buffer larger than 2GB.");
 		}
 
-		/// <summary>Copy the content of a byte segment into another. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void Copy(byte[] dst, int dstOffset, byte[] src, int srcOffset, int count)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(dst, dstOffset, count);
-				EnsureBufferIsValidNotNull(src, srcOffset, count);
-
-				fixed (byte* pDst = &dst[dstOffset]) // throw if dst == null or dstOffset outside of the array
-				fixed (byte* pSrc = &src[srcOffset]) // throw if src == null or srcOffset outside of the array
-				{
-					Buffer.MemoryCopy(pSrc, pDst, dst.Length - dstOffset, count);
-				}
-			}
-		}
-
-		/// <summary>Copy the content of a byte segment into another. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void Copy(byte[] dst, uint dstOffset, byte[] src, uint srcOffset, uint count)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(dst, dstOffset, count);
-				EnsureBufferIsValidNotNull(src, srcOffset, count);
-
-				fixed (byte* pDst = &dst[dstOffset]) // throw if dst == null or dstOffset outside of the array
-				fixed (byte* pSrc = &src[srcOffset]) // throw if src == null or srcOffset outside of the array
-				{
-					Buffer.MemoryCopy(pSrc, pDst, dst.Length - dstOffset, count);
-				}
-			}
-		}
-
-#if ENABLE_SPAN
-		public static void Copy(Span<byte> destination, byte[] src, int srcOffset, int count)
-		{
-			if (count > 0)
-			{
-				new ReadOnlySpan<byte>(src, srcOffset, count).CopyTo(destination);
-			}
-		}
-
-		public static void Copy(Span<byte> destination, Slice source)
-		{
-			if (source.Count > 0)
-			{
-				new ReadOnlySpan<byte>(source.Array, source.Offset, source.Count).CopyTo(destination);
-			}
-		}
-
-		public static void Copy(byte[] dst, int dstOffset, ReadOnlySpan<byte> source)
-		{
-			if (source.Length > 0)
-			{
-				source.CopyTo(new Span<byte>(dst).Slice(dstOffset));
-			}
-		}
-
-		public static void Copy(Slice destination, ReadOnlySpan<byte> source)
-		{
-			if (source.Length > 0)
-			{
-				source.CopyTo(new Span<byte>(destination.Array, destination.Offset, destination.Count));
-			}
-		}
-#endif
-
-		/// <summary>Copy the content of a byte segment into another, without validating the arguments. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, [NotNull] byte[] src, int srcOffset, int count)
-		{
-			//Contract.Requires(count >= 0);
-			if (count > 0)
-			{
-				//Contract.Requires(dst != null && dstOffset >= 0 && src != null && srcOffset >= 0);
-
-				fixed (byte* pDst = &dst[dstOffset])
-				fixed (byte* pSrc = &src[srcOffset])
-				{
-					Buffer.MemoryCopy(pSrc, pDst, count, count);
-				}
-			}
-		}
-
-#if ENABLE_SPAN
-		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Point to the source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, ReadOnlySpan<byte> src)
-		{
-			//Contract.Requires(dst != null && dstOffset >= 0 && src.Length >= 0);
-
-			fixed (byte* pDst = &dst[dstOffset])
-			fixed (byte* pSrc = &MemoryMarshal.GetReference(src))
-			{
-				Buffer.MemoryCopy(pSrc, pDst, src.Length, src.Length);
-			}
-		}
-#endif
-
-		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Point to the source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, byte* src, int count)
-		{
-			//Contract.Requires(dst != null && src != null && dstOffset >= 0 && count >= 0);
-
-			fixed (byte* pDst = &dst[dstOffset])
-			{
-				Buffer.MemoryCopy(src, pDst, count, count);
-			}
-		}
-
-		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Point to the source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		[DebuggerStepThrough]
-		public static void CopyUnsafe([NotNull] byte[] dst, int dstOffset, byte* src, uint count)
-		{
-			//Contact.Requires(dst != null && src != null && dstOffset >= 0);
-
-			fixed (byte* pDst = &dst[dstOffset])
-			{
-				Buffer.MemoryCopy(src, pDst, count, count);
-			}
-		}
-
-		/// <summary>Copy a managed slice to the specified memory location</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Reference to the first byte to copy</param>
-		/// <param name="count">Number of bytes to copy</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe(byte* dest, ref byte src, int count)
-		{
-			if (count > 0)
-			{
-				Contract.Requires(dest != null);
-				fixed (byte* ptr = &src)
-				{
-					Buffer.MemoryCopy(ptr, dest, count, count);
-				}
-			}
-		}
-		
-		/// <summary>Copy a managed slice to the specified memory location</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Slice of managed memory that will be copied to the destination</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe(byte* dest, Slice src)
-		{
-			int count = src.Count;
-			if (count > 0)
-			{
-				Contract.Requires(dest != null && src.Array != null && src.Offset >= 0 && src.Count >= 0);
-				fixed (byte* ptr = &src.DangerousGetPinnableReference())
-				{
-					Buffer.MemoryCopy(ptr, dest, count, count);
-				}
-			}
-		}
-
-		/// <summary>Copy a managed slice to the specified memory location</summary>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe(Slice dest, byte* src, uint count)
-		{
-			if (count > 0)
-			{
-				Contract.Requires(dest.Array != null && dest.Offset >= 0 && dest.Count >= 0 && src != null);
-				fixed (byte* ptr = &dest.DangerousGetPinnableReference())
-				{
-					Buffer.MemoryCopy(src, ptr, dest.Count, count);
-				}
-			}
-		}
-
-		/// <summary>Dangerously copy native memory from one location to another</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Where to read the bytes</param>
-		/// <param name="count">Number of bytes to copy</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void CopyUnsafe([NotNull] byte* dest, [NotNull] byte* src, uint count)
-		{
-			Contract.Requires(dest != null && src != null);
-			Buffer.MemoryCopy(src, dest, count, count);
-		}
-
-		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
-		/// <param name="left">Pointer to the first buffer</param>
-		/// <param name="leftCount">Size (in bytes) of the first buffer</param>
-		/// <param name="right">Pointer to the second buffer</param>
-		/// <param name="rightCount">Size (in bytes) of the second buffer</param>
-		/// <returns>The returned value will be &lt; 0 if <paramref name="left"/> is "before" <paramref name="right"/>, 0 if <paramref name="left"/> is the same as <paramref name="right"/>, and &lt; 0 if <paramref name="left"/> is "after" right.</returns>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int CompareUnsafe(byte* left, uint leftCount, byte* right, uint rightCount)
+		public static unsafe bool SameBytesUnsafe(void* left, void* right, int count)
 		{
-			Contract.Requires((left != null || leftCount == 0) && (right != null || rightCount == 0));
-
-			int c = CompareUnsafe(left, right, Math.Min(leftCount, rightCount));
-			return c != 0 ? c : (int) (leftCount - rightCount);
+			return new ReadOnlySpan<byte>(left, count).SequenceEqual(new ReadOnlySpan<byte>(right, count));
 		}
 
-		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int CompareUnsafe(byte* left, byte* right, uint count)
+		public static unsafe bool SameBytesUnsafe(void* left, void* right, uint count)
 		{
-			// the most frequent case is to compare keys that are natural or GUIDs,
-			// in which case there is a very high probability that the first byte is different already
-			// => we check for that case immediately
-			if (count != 0 && *left != *right) return *left - *right;
-			//REVIEW: we could special case count==4 or count==8 because they are probably frequent (FreeSpace map uses 4, indexes may use 8, ...)
-			return CompareUnsafeInternal(left, right, count);
+			int length = checked((int) count);
+			return new ReadOnlySpan<byte>(left, length).SequenceEqual(new ReadOnlySpan<byte>(right, length));
 		}
 
-		/// <summary>Compare two buffers in memory, using the lexicographical order, without checking the arguments</summary>
-		/// <param name="left">Pointer to the first buffer</param>
-		/// <param name="right">Pointer to the second buffer</param>
-		/// <param name="count">Size (in bytes) of both buffers</param>
-		/// <returns>The returned value will be &lt; 0 if <paramref name="left"/> is "before" <paramref name="right"/>, 0 if <paramref name="left"/> is the same as <paramref name="right"/>, and &lt; 0 if <paramref name="left"/> is "after" right.</returns>
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static int CompareUnsafeInternal(byte* left, byte* right, uint count)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe int CompareUnsafe(void* left, void* right, int count)
 		{
-			Contract.Requires(count == 0 || (left != null && right != null));
-
-			// We would like to always use memcmp (fastest), but the overhead of PInvoke makes it slower for small keys (<= 256)
-			// For these, we will use a custom implementation which is a bit slower than memcmp but faster than the overhead of PInvoke.
-
-			if (count == 0) return 0;
-
-			// the minimum size to amortize the cost of P/Invoke seems to be over 256 bytes, On My Machine(tm)
-			if (count > 256)
-			{
-				return _memcmp(left, right, count);
-			}
-
-			// we will scan the strings by XORing together segments of 8 bytes (then 4, then 2, ...) looking for the first segment that contains at least one difference (ie: at least one bit set after XORing)
-			// then, if we find a difference, we will "fine tune" the pointers to locate the first byte that is different
-			// then, we will return the difference between the bytes at this location
-
-			// Sample scenario:
-			//            __ cursor   ___ first difference is at byte (cursor + 4)
-			//           v           v
-			// LEFT : .. AA AA AA AA AA AA AA AA ..
-			// RIGHT: .. AA AA AA AA BB AA AA AA ..
-			// XOR  :  ( 00 00 00 00 11 00 00 00 )
-			//
-			// The result of the XOR is 0x11000000 and is not equal to 0, so the first difference is within these 8 bytes
-			// The first 4 bytes of the result are 0, which means that the difference is at offset 4 (ie: we needed to SHR 8 the result 4 times before having at least one bit set in 0..7
-			//
-			// L XOR R:  00 00 00 00 11 00 00 00
-			// offset :  +0 +1 +2 +3 +4 +5 +6 +7
-			//                       ^^__ first non-zero byte
-
-			// number of 16-bytes segments to scan
-			long x;
-			if (count >= 16)
-			{
-				long y;
-				byte* end = left + (count & ~0xF);
-				while (left < end)
-				{
-					// parallelize the reads
-					x = *(long*) left ^ *(long*) right;
-					y = *(long*) (left + 8) ^ *(long*) (right + 8);
-					if (x != 0)
-					{
-						goto fine_tune_8;
-					}
-					if (y != 0)
-					{
-						x = y;
-						goto fine_tune_8_with_offset;
-					}
-					left += 16;
-					right += 16;
-				}
-
-				if ((count & 0xF) == 0)
-				{ // size is multiple of 16 with no differences => equal
-					return 0; // fast path for Guid keys
-				}
-			}
-
-			// use the last 4 bits in the count to parse the tail
-
-			if ((count & 8) != 0)
-			{ // at least 8 bytes remaining
-				x = *(long*) left ^ *(long*) right;
-				if (x != 0) goto fine_tune_8;
-				if ((count & 7) == 0) return 0; // fast path for long keys
-				left += 8;
-				right += 8;
-			}
-			if ((count & 4) != 0)
-			{ // at least 4 bytes remaining
-				x = *(int*) left ^ *(int*) right;
-				if (x != 0) goto fine_tune_4;
-				if ((count & 3) == 0) return 0; // fast path for int keys
-				left += 4;
-				right += 4;
-			}
-			if ((count & 2) != 0)
-			{ // at least 2 bytes remaining
-				x = *(short*) left ^ *(short*) right;
-				if (x != 0) goto fine_tune_2;
-				left += 2;
-				right += 2;
-			}
-			if ((count & 1) != 0)
-			{ // at least one byte remaining
-				return left[0] - right[0];
-			}
-			// both strings are equal
-			return 0;
-
-		fine_tune_8_with_offset:
-			// adjust the pointers (we were looking at the upper 8 bytes in a 16-bytes segment
-			left += 8;
-			right += 8;
-
-		fine_tune_8:
-			// the difference is somewhere in the last 8 bytes
-			if ((uint)x == 0)
-			{ // it is not in the first 4 bytes
-				x >>= 32;
-				left += 4;
-				right += 4;
-			}
-		fine_tune_4:
-			// the difference is somewhere in the last 4 bytes
-			if ((ushort) x == 0)
-			{ // if is not in the first 2 bytes
-				// the difference is either at +2 or +3
-				return (x & 0xFF0000) == 0
-					? left[3] - right[3]
-					: left[2] - right[2];
-			}
-
-		fine_tune_2:
-			// the difference is somewhere in the last 2 bytes
-			return (x & 0xFF) == 0
-				? left[1] - right[1]
-				: left[0] - right[0];
+			return new ReadOnlySpan<byte>(left, count).SequenceCompareTo(new ReadOnlySpan<byte>(right, count));
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static int _memcmp([NotNull] byte* left, byte* right, uint count)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe int CompareUnsafe(void* left, void* right, uint count)
 		{
-			return NativeMethods.memcmp(left, right, (UIntPtr) count);
-		}
-
-		/// <summary>Fill the content of a managed segment with zeroes</summary>
-		public static void Clear([NotNull] byte[] bytes, int offset, int count)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(bytes, offset, count);
-				fixed (byte* ptr = &bytes[offset])
-				{
-					ClearUnsafe(ptr, (uint) count);
-				}
-			}
-		}
-
-		/// <summary>Fill the content of a managed segment with zeroes</summary>
-		public static void Clear([NotNull] byte[] bytes, uint offset, uint count)
-		{
-			if (count > 0)
-			{
-				EnsureBufferIsValidNotNull(bytes, offset, count);
-				fixed (byte* ptr = &bytes[offset])
-				{
-					ClearUnsafe(ptr, count);
-				}
-			}
-		}
-
-		/// <summary>Fill the content of a managed slice with zeroes</summary>
-		public static void Clear(Slice buffer)
-		{
-			Clear(buffer.Array, buffer.Offset, buffer.Count);
-		}
-
-		/// <summary>Fill the content of an unmanaged buffer with zeroes, without checking the arguments</summary>
-		/// <remarks>WARNING: invalid use of this method WILL corrupt the heap!</remarks>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		public static void ClearUnsafe([NotNull] byte* ptr, uint length)
-		{
-			Contract.Requires(ptr != null);
-			switch (length)
-			{
-				case 0:
-					return;
-				case 1:
-					*ptr = 0;
-					return;
-				case 2:
-					*(short*) ptr = 0;
-					return;
-				case 3:
-					*(short*) ptr = 0;
-					*(ptr + 2) = 0;
-					return;
-				case 4:
-					*(int*) ptr = 0;
-					return;
-				case 5:
-					((int*) ptr)[0] = 0;
-					*(ptr + 4) = 0;
-					return;
-				case 6:
-					*(int*) ptr = 0;
-					*(short*) (ptr + 4) = 0;
-					return;
-				case 7:
-					*(int*)ptr = 0;
-					*(short*)(ptr + 4) = 0;
-					*(ptr + 6) = 0;
-					return;
-				case 8:
-					*(long*)ptr = 0;
-					return;
-			}
-
-			if (length >= 512)
-			{ // PInvoke into the native memset
-				_memset(ptr, 0, length);
-				return;
-			}
-
-			while (length >= 16)
-			{
-				((long*) ptr)[0] = 0;
-				((long*) ptr)[1] = 0;
-				ptr += 16;
-				length -= 16;
-			}
-			if ((length & 8) != 0)
-			{
-				((long*)ptr)[0] = 0;
-				ptr += 8;
-			}
-			if ((length & 4) != 0)
-			{
-				((uint*) ptr)[0] = 0;
-				ptr += 4;
-			}
-			if ((length & 2) != 0)
-			{
-				((short*)ptr)[0] = 0;
-				ptr += 2;
-			}
-			if ((length & 1) != 0)
-			{
-				*ptr = 0;
-			}
-		}
-
-		/// <summary>Fill the content of an unmanaged buffer with zeroes, without checking the arguments</summary>
-		/// <remarks>WARNING: invalid use of this method WILL corrupt the heap!</remarks>
-		public static void ClearUnsafe([NotNull] byte* ptr, ulong length)
-		{
-			//pre-check in case of uint overflow
-			if (length >= 512)
-			{
-				Contract.Requires(ptr != null);
-				_memset(ptr, 0, length);
-			}
-			else
-			{
-				ClearUnsafe(ptr, (uint) length);
-			}
+			int length = checked((int) count);
+			return new ReadOnlySpan<byte>(left, length).SequenceCompareTo(new ReadOnlySpan<byte>(right, length));
 		}
 
 		/// <summary>Fill the content of an unmanaged array with zeroes, without checking the arguments</summary>
-		/// <param name="ptr">Pointer to the start of the array</param>
-		/// <param name="count">Number of items to clear</param>
-		/// <param name="sizeOfItem">Size (in bytes) of one item</param>
-		/// <remarks>Will clear <paramref name="count"/> * <paramref name="sizeOfItem"/> elements in the array</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void ClearUnsafe([NotNull] void* ptr, [Positive] int count, uint sizeOfItem)
+		public static unsafe void ClearUnsafe(byte* bytes, int count)
 		{
-			ClearUnsafe((byte*) ptr, checked((uint) count * sizeOfItem));
+			new Span<byte>(bytes, count).Clear();
+		}
+
+		/// <summary>Fill the content of an unmanaged array with zeroes, without checking the arguments</summary>
+		public static unsafe void ClearUnsafe(byte* bytes, uint count)
+		{
+			new Span<byte>(bytes, checked((int) count)).Clear();
 		}
 
 		/// <summary>Fill the content of a managed segment with the same byte repeated</summary>
-		public static void Fill([NotNull] byte[] bytes, int offset, int count, byte filler)
+		public static unsafe void FillUnsafe(byte* bytes, int count, byte filler)
 		{
-			if (count > 0)
+			new Span<byte>(bytes, count).Fill(filler);
+		}
+
+		/// <summary>Fill the content of a managed segment with the same byte repeated</summary>
+		public static unsafe void FillUnsafe(byte* bytes, uint count, byte filler)
+		{
+			new Span<byte>(bytes, checked((int) count)).Fill(filler);
+		}
+
+		internal static int Unescape(ReadOnlySpan<char> value, ref byte[]? buffer)
+		{
+			// decode size will always be less or equal to buffer size!
+			buffer = EnsureCapacity(ref buffer, value.Length);
+			int p = 0;
+			for (int i = 0; i < value.Length; i++)
 			{
-				EnsureBufferIsValidNotNull(bytes, offset, count);
-				fixed (byte* ptr = &bytes[offset])
+				char c = value[i];
+				if (c == '<')
 				{
-					if (filler == 0)
-					{
-						ClearUnsafe(ptr, (uint)count);
-					}
-					else
-					{
-						_memset(ptr, filler, (uint)count);
-					}
+					if (i + 3 >= value.Length || value[i + 3] != '>') throw new FormatException($"Invalid escape character at offset {i}");
+					c = (char) (NibbleToDecimal(value[i + 1]) << 4 | NibbleToDecimal(value[i + 2]));
+					i += 3;
 				}
+				buffer[p++] = (byte) c;
 			}
+			return p;
 		}
 
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void FillUnsafe([NotNull] byte* ptr, uint count, byte filler)
+		internal static int FromHexa(ReadOnlySpan<char> hexaString, ref byte[]? buffer)
 		{
-			if (count != 0)
+			int capacity = hexaString.Length >> 1;
+			buffer = EnsureCapacity(ref buffer, capacity);
+			int i = 0, p = 0;
+			while (i < hexaString.Length)
 			{
-				Contract.Requires(ptr != null);
-				_memset(ptr, filler, count);
+				char x = hexaString[i++];
+				if (x == ' ') { continue; } // skip whitespaces
+				if (i >= hexaString.Length) throw new ArgumentException("Hexadecimal string must be of even length", nameof(hexaString));
+				char y = hexaString[i++];
+				buffer[p++] = (byte) ((NibbleToDecimal(x) << 4) | NibbleToDecimal(y));
 			}
+			return p;
 		}
 
-		public static void FillUnsafe([NotNull] byte* ptr, ulong count, byte filler)
+		/// <summary>Convert an hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
+		/// <param name="c">Hexadecimal digit (case insensitive)</param>
+		/// <returns>Decimal value between 0 and 15, or an exception</returns>
+		[Pure]
+		private static int NibbleToDecimal(char c)
 		{
-			if (count != 0)
-			{
-				Contract.Requires(ptr != null);
-				_memset(ptr, filler, count);
-			}
+			int x = c - 48;
+			if (x < 10) return x;
+			if (x >= 17 && x <= 42) return x - 7;
+			if (x >= 49 && x <= 74) return x - 39;
+			return ThrowInputNotValidHexadecimalDigit();
 		}
 
-		[SecurityCritical]
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static void _memset([NotNull] byte* ptr, byte filler, uint count)
+		private static int ThrowInputNotValidHexadecimalDigit()
 		{
-			NativeMethods.memset(ptr, filler, (UIntPtr) count);
+			throw FailInputNotValidHexadecimalDigit();
 		}
 
-		[SecurityCritical]
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static void _memset([NotNull] byte* ptr, byte filler, ulong count)
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static FormatException FailInputNotValidHexadecimalDigit()
 		{
-			NativeMethods.memset(ptr, filler, (UIntPtr) count);
+			return ThrowHelper.FormatException("Input is not a valid hexadecimal digit");
 		}
 
-		/// <summary>Add padding bytes to the end of buffer if it is not aligned to a specific value, and advance the cursor</summary>
-		/// <param name="buffer">Start of a buffer that may need padding</param>
-		/// <param name="size">Size of the buffer</param>
-		/// <param name="alignment">Required alignment of the buffer size, which MUST be a power of two. If the buffer is not aligned, additional 0 bytes are added at the end.</param>
-		/// <returns>Address of the next byte after the buffer, with padding included</returns>
-		[NotNull]
-		public static byte* PadBuffer([NotNull] byte* buffer, uint size, uint alignment)
+		public static unsafe int ComputeHashCode(byte* bytes, uint count)
 		{
-			Contract.PointerNotNull(buffer, nameof(buffer));
-			Contract.PowerOfTwo(alignment, nameof(alignment));
-			uint pad = size % (alignment - 1);
-			byte* ptr = buffer + size;
-			if (pad != 0)
-			{
-				ClearUnsafe(ptr, pad);
-				ptr += alignment - pad;
-			}
-			return ptr;
-		}
-
-		/// <summary>Compute the hash code of a byte segment</summary>
-		/// <param name="bytes">Buffer</param>
-		/// <param name="offset">Offset of the start of the segment in the buffer</param>
-		/// <param name="count">Number of bytes in the segment</param>
-		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		public static int ComputeHashCode(byte[] bytes, int offset, int count)
-		{
-			if (count == 0) return unchecked((int) 2166136261);
-			EnsureBufferIsValidNotNull(bytes, offset, count);
-			fixed (byte* ptr = &bytes[offset])
-			{
-				return ComputeHashCodeUnsafe(ptr, (uint) count);
-			}
-		}
-
-		/// <summary>Compute the hash code of a byte buffer</summary>
-		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		public static int ComputeHashCode(byte* bytes, uint count)
-		{
-			if (count == 0) return unchecked((int) 2166136261);
-			EnsureBufferIsValidNotNull(bytes, count);
-			return ComputeHashCodeUnsafe(bytes, count);
-		}
-
-		/// <summary>Compute the hash code of a byte buffer</summary>
-		/// <param name="bytes">Array that contains the byte buffer (ignored if count == 0)</param>
-		/// <param name="offset">Offset of the first byte in the buffer (ignored if count == 0)</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		/// <remarks>
-		/// If count == 0, then the value of <paramref name="bytes"/> is ignored.
-		/// This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.
-		/// </remarks>
-		internal static int ComputeHashCodeUnsafe([NotNull] byte[] bytes, int offset, int count)
-		{
-			if (count == 0) return unchecked((int) 2166136261);
-			fixed (byte* ptr = &bytes[offset])
-			{
-				return ComputeHashCodeUnsafe(ptr, (uint) count);
-			}
-		}
-
-		/// <summary>Compute the hash code of a byte buffer</summary>
-		/// <param name="bytes">Pointer to the first byte of the buffer (ignored if count == 0)</param>
-		/// <param name="count">Number of bytes in the buffer</param>
-		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
-		internal static int ComputeHashCodeUnsafe([NotNull] byte* bytes, uint count)
-		{
-			//note: callers should have handled the case where bytes == null, but they can call us with count == 0
-			Contract.Requires(bytes != null);
+			if (count != 0 && bytes == null) throw new ArgumentNullException(nameof(bytes));
 
 			//TODO: use a better hash algorithm? (xxHash, CityHash, SipHash, ...?)
 			// => will be called a lot when Slices are used as keys in an hash-based dictionary (like Dictionary<Slice, ...>)
@@ -964,28 +299,42 @@ namespace Doxense.Memory
 
 			// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
 			uint h = 2166136261; // FNV1 32 bits offset basis
-			uint n = count;
-			while (n > 0)
+			byte* ptr = bytes;
+			byte* end = bytes + count;
+			while(ptr < end)
 			{
-				h = unchecked ((h ^ *bytes++) * 16777619); // FNV1 32 prime
-				--n;
+				h = unchecked((h ^ *ptr++) * 16777619); // FNV1 32 prime
 			}
 			return unchecked((int) h);
 			// </HACKHACK>
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteBytesUnsafe([NotNull] byte* cursor, [NotNull] byte* data, uint count)
+		/// <summary>Compute the hash code of a byte buffer</summary>
+		/// <remarks>This should only be used for dictionaries or hashset that reside in memory only! The hashcode could change at any time in future versions.</remarks>
+		public static int ComputeHashCode(ReadOnlySpan<byte> bytes)
 		{
-			Contract.Requires(cursor != null && data != null);
+			//note: callers should have handled the case where bytes == null, but they can call us with count == 0
+			unsafe
+			{
+				fixed(byte* ptr = bytes)
+				{
+					return ComputeHashCode(ptr, checked((uint) bytes.Length));
+				}
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteBytesUnsafe(byte* cursor, byte* data, uint count)
+		{
+			Contract.Debug.Requires(cursor != null && data != null);
 			if (count > 0) System.Buffer.MemoryCopy(data, cursor, count, count);
 			return cursor + count;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteBytes([NotNull] byte* cursor, [NotNull] byte* stop, [NotNull] byte* data, uint count)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteBytes(byte* cursor, byte* stop, byte* data, uint count)
 		{
-			Contract.Requires(cursor != null && stop != null && data != null);
+			Contract.Debug.Requires(cursor != null && stop != null && data != null);
 			if (count > 0)
 			{
 				if (cursor + count > stop) throw Errors.BufferOutOfBound();
@@ -993,6 +342,17 @@ namespace Doxense.Memory
 			}
 			return cursor + count;
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ref T NullRef<T>()
+		{
+			//TODO: a partir de net50, on peut utiliser Unsafe.NullRef<T>() directement!
+			unsafe
+			{
+				return ref Unsafe.AsRef<T>(null);
+			}
+		}
+
 
 		#region VarInt Encoding...
 
@@ -1068,10 +428,10 @@ namespace Doxense.Memory
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 3 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteVarInt16Unsafe([NotNull] byte* cursor, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarInt16Unsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (value < 0x80)
 			{
@@ -1087,10 +447,10 @@ namespace Doxense.Memory
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 3 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteVarInt16([NotNull] byte* cursor, [NotNull] byte* stop, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarInt16(byte* cursor, byte* stop, ushort value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (cursor < stop & value < 0x80)
 			{
@@ -1102,10 +462,9 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 3 bytes from the input</remarks>
-		[NotNull]
-		public static byte* ReadVarint16([NotNull] byte* cursor, [NotNull] byte* stop, out ushort value)
+		public static unsafe byte* ReadVarint16(byte* cursor, byte* stop, out ushort value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor < stop && (value = *cursor) < 0x80)
 			{
 				return cursor + 1;
@@ -1115,15 +474,14 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		[NotNull]
-		private static byte* ReadVarint16Slow([NotNull] byte* cursor, [NotNull] byte* stop, out ushort value)
+		private static unsafe byte* ReadVarint16Slow(byte* cursor, byte* stop, out ushort value)
 		{
 			uint n;
 
 			// unless  cursor >= stop, we already know that the first byte has the MSB set
 			if (cursor >= stop) goto overflow;
 			uint b = cursor[0];
-			Contract.Assert(b >= 0x80);
+			Contract.Debug.Assert(b >= 0x80);
 			uint res = b & 0x7F;
 
 			if (cursor + 1 >= stop) goto overflow;
@@ -1154,10 +512,37 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 3 bytes from the input</remarks>
-		[NotNull]
-		public static byte* ReadVarint16Unsafe([NotNull] byte* cursor, out ushort value)
+		public static ReadOnlySpan<byte> ReadVarint16(ReadOnlySpan<byte> buffer, out ushort value)
 		{
-			Contract.Requires(cursor != null);
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return buffer.Slice(1);
+			}
+			return ReadVarint16Slow(buffer, out value);
+		}
+
+		private static ReadOnlySpan<byte> ReadVarint16Slow(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length == 0)
+			{
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+			unsafe
+			{
+				fixed (byte* cursor = buffer)
+				{
+					byte* next = ReadVarint16Slow(cursor, cursor + buffer.Length, out value);
+					return buffer.Slice(checked((int) (next - cursor)));
+				}
+			}
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 3 bytes from the input</remarks>
+		public static unsafe byte* ReadVarint16Unsafe(byte* cursor, out ushort value)
+		{
+			Contract.Debug.Requires(cursor != null);
 			uint n = 1;
 
 			//TODO: we expect most values to be small (count or array length), so we should optimize for single byte varints where byte[0] <= 127 should be inlined, and defer to a slower method if >= 128.
@@ -1193,10 +578,10 @@ namespace Doxense.Memory
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 5 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteVarInt32Unsafe([NotNull] byte* cursor, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarInt32Unsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			if (value < 0x80)
 			{
 				*cursor = (byte) value;
@@ -1210,8 +595,8 @@ namespace Doxense.Memory
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 5 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* WriteVarInt32UnsafeSlow([NotNull] byte* cursor, uint value)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static unsafe byte* WriteVarInt32UnsafeSlow(byte* cursor, uint value)
 		{
 			byte* ptr = cursor;
 			while (value >= 0x80)
@@ -1230,10 +615,10 @@ namespace Doxense.Memory
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 5 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteVarInt32([NotNull] byte* cursor, [NotNull] byte* stop, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarInt32(byte* cursor, byte* stop, uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (cursor < stop & value < 0x80)
 			{
@@ -1243,8 +628,8 @@ namespace Doxense.Memory
 			return WriteVarInt32Slow(cursor, stop, value);
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* WriteVarInt32Slow([NotNull] byte* cursor, [NotNull] byte* stop, uint value)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static unsafe byte* WriteVarInt32Slow(byte* cursor, byte* stop, uint value)
 		{
 			//note: we know that value >= 128 (or that cursor is >= stop, in which case we will immediately fail below)
 			byte* ptr = cursor;
@@ -1263,10 +648,9 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		[NotNull]
-		public static byte* ReadVarint32Unsafe([NotNull] byte* cursor, out uint value)
+		public static unsafe byte* ReadVarint32Unsafe(byte* cursor, out uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			uint n = 1;
 
 			//TODO: we expect most values to be small (count or array length), so we should optimize for single byte varints where byte[0] <= 127 should be inlined, and defer to a slower method if >= 128.
@@ -1313,10 +697,12 @@ namespace Doxense.Memory
 			return cursor + n;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadVarint32([NotNull] byte* cursor, [NotNull] byte* stop, out uint value)
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 5 bytes from the input</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadVarint32(byte* cursor, byte* stop, out uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor < stop && (value = *cursor) < 0x80)
 			{
 				return cursor + 1;
@@ -1324,17 +710,14 @@ namespace Doxense.Memory
 			return ReadVarint32Slow(cursor, stop, out value);
 		}
 
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can read up to 5 bytes from the input</remarks>
-		[NotNull]
-		private static byte* ReadVarint32Slow([NotNull] byte* cursor, [NotNull] byte* stop, out uint value)
+		private static unsafe byte* ReadVarint32Slow(byte* cursor, byte* stop, out uint value)
 		{
 			uint n;
 
 			// unless  cursor >= stop, we already know that the first byte has the MSB set
 			if (cursor >= stop) goto overflow;
 			uint b = cursor[0];
-			Contract.Assert(b >= 0x80);
+			Contract.Debug.Assert(b >= 0x80);
 			uint res = b & 0x7F;
 
 			if (cursor + 1 >= stop) goto overflow;
@@ -1380,15 +763,44 @@ namespace Doxense.Memory
 			throw Errors.VarIntTruncated();
 		}
 
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 5 bytes from the input</remarks>
+		public static ReadOnlySpan<byte> ReadVarint32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return buffer.Slice(1);
+			}
+			return ReadVarint32Slow(buffer, out value);
+		}
+
+		private static ReadOnlySpan<byte> ReadVarint32Slow(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length == 0)
+			{
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+
+			unsafe
+			{
+				fixed (byte* cursor = buffer)
+				{
+					byte* next = ReadVarint32Slow(cursor, cursor + buffer.Length, out value);
+					return buffer.Slice(checked((int) (next - cursor)));
+				}
+			}
+		}
+
 		/// <summary>Append a variable sized number to the output buffer</summary>
 		/// <param name="cursor">Pointer to the next free byte in the buffer</param>
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 10 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteVarInt64Unsafe([NotNull] byte* cursor, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarInt64Unsafe(byte* cursor, ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			if (value < 0x80)
 			{
 				*cursor = (byte)value;
@@ -1397,8 +809,8 @@ namespace Doxense.Memory
 			return WriteVarInt64UnsafeSlow(cursor, value);
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* WriteVarInt64UnsafeSlow([NotNull] byte* cursor, ulong value)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static unsafe byte* WriteVarInt64UnsafeSlow(byte* cursor, ulong value)
 		{
 			//note: we know that value >= 128
 			byte* ptr = cursor;
@@ -1418,10 +830,10 @@ namespace Doxense.Memory
 		/// <param name="value">Value of the number to output</param>
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 10 bytes</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteVarInt64([NotNull] byte* cursor, byte* stop, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarInt64(byte* cursor, byte* stop, ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			//note: use of '&' is intentional (prevent a branch in the generated code)
 			if (cursor < stop & value < 0x80)
 			{
@@ -1431,8 +843,8 @@ namespace Doxense.Memory
 			return WriteVarInt64Slow(cursor, stop, value);
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* WriteVarInt64Slow([NotNull] byte* cursor, byte* stop, ulong value)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static unsafe byte* WriteVarInt64Slow(byte* cursor, byte* stop, ulong value)
 		{
 			//note: we know that value >= 128 (or that cursor is >= stop, in which case we will immediately fail below)
 			byte* ptr = cursor;
@@ -1451,10 +863,9 @@ namespace Doxense.Memory
 
 		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 10 bytes from the input</remarks>
-		[NotNull]
-		public static byte* ReadVarint64Unsafe([NotNull] byte* cursor, out ulong value)
+		public static unsafe byte* ReadVarint64Unsafe(byte* cursor, out ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			uint n = 1;
 
 			//note: we expect the value to be large (most frequent use it to decode a Sequence Number), so there is no point in optimizing for single byte varints...
@@ -1541,12 +952,12 @@ namespace Doxense.Memory
 			return cursor + n;
 		}
 
-		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint64') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can read up to 10 bytes from the input</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadVarint64([NotNull] byte* cursor, [NotNull] byte* stop, out ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadVarint64(byte* cursor, byte* stop, out ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor < stop && (value = *cursor) < 0x80)
 			{
 				return cursor + 1;
@@ -1557,15 +968,15 @@ namespace Doxense.Memory
 			}
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* ReadVarint64Slow([NotNull] byte* cursor, [NotNull] byte* stop, out ulong value)
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private static unsafe byte* ReadVarint64Slow(byte* cursor, byte* stop, out ulong value)
 		{
 			uint n;
 
 			// unless cursor >= stop, we already know that the first byte has the MSB set
 			if (cursor >= stop) goto overflow;
 			ulong b = cursor[0];
-			Contract.Assert(b >= 0x80);
+			Contract.Debug.Assert(b >= 0x80);
 			ulong res = b & 0x7F;
 
 			if (cursor >= stop) goto overflow;
@@ -1656,10 +1067,46 @@ namespace Doxense.Memory
 			throw Errors.VarIntTruncated();
 		}
 
+		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint64') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 10 bytes from the input</remarks>
+		public static ReadOnlySpan<byte> ReadVarint64(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length != 0 && (value = buffer[0]) < 0x80)
+			{
+				return buffer.Slice(1);
+			}
+			return ReadVarint64Slow(buffer, out value);
+		}
+
+		private static ReadOnlySpan<byte> ReadVarint64Slow(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length == 0)
+			{
+				value = 0;
+				throw Errors.VarIntTruncated();
+			}
+
+			unsafe
+			{
+				fixed (byte* cursor = buffer)
+				{
+					byte* next = ReadVarint64Slow(cursor, cursor + buffer.Length, out value);
+					return buffer.Slice(checked((int) (next - cursor)));
+				}
+			}
+		}
+
 		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
 		/// <remarks>This method performs bound checking.</remarks>
-		[NotNull]
-		public static byte* WriteVarBytes([NotNull] byte* ptr, [NotNull] byte* stop, byte* data, uint count)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteVarBytes(byte* ptr, byte* stop, byte* data, int count)
+		{
+			return WriteVarBytes(ptr, stop, data, checked((uint) count));
+		}
+
+		/// <summary>Append a variable size byte sequence, using the VarInt encoding</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		public static unsafe byte* WriteVarBytes(byte* ptr, byte* stop, byte* data, uint count)
 		{
 			if (count == 0)
 			{ // "Nil"
@@ -1673,14 +1120,32 @@ namespace Doxense.Memory
 
 		/// <summary>Append a variable size byte sequence with an extra 0 at the end, using the VarInt encoding</summary>
 		/// <remarks>This method performs bound checking.</remarks>
-		[NotNull]
-		public static byte* WriteZeroTerminatedVarBytes([NotNull] byte* ptr, [NotNull] byte* stop, byte* data, uint count)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteZeroTerminatedVarBytes(byte* ptr, byte* stop, byte* data, int count)
+		{
+			return WriteZeroTerminatedVarBytes(ptr, stop, data, checked((uint) count));
+		}
+
+		/// <summary>Append a variable size byte sequence with an extra 0 at the end, using the VarInt encoding</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		public static unsafe byte* WriteZeroTerminatedVarBytes(byte* ptr, byte* stop, byte* data, uint count)
 		{
 			var cursor = WriteVarInt32(ptr, stop, count + 1);
 			cursor = WriteBytes(cursor, stop, data, count);
 			if (cursor >= stop) throw Errors.BufferOutOfBound();
 			*cursor = 0;
 			return cursor + 1;
+		}
+
+		/// <summary>Read a variable size byte sequence</summary>
+		/// <remarks>This method performs bound checking.</remarks>
+		public static unsafe byte* ReadVarBytes(byte* ptr, byte* stop, out byte* data, out uint count)
+		{
+			var cursor = ReadVarint32(ptr, stop, out var len);
+			if (cursor + len > stop) throw Errors.VarIntTruncated();
+			data = cursor;
+			count = len;
+			return cursor + len;
 		}
 
 		#endregion
@@ -1719,7 +1184,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt16LE"/>([ 0x34, 0x12) => 0x1234</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static short LoadInt16LE([NotNull] void* ptr)
+		public static unsafe short LoadInt16LE(void* ptr)
 		{
 			return IsLittleEndian ? *(short*)ptr : ByteSwap16(*(short*)ptr);
 		}
@@ -1729,7 +1194,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt16LE"/>([ 0x34, 0x12) => 0x1234</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort LoadUInt16LE([NotNull] void* ptr)
+		public static unsafe ushort LoadUInt16LE(void* ptr)
 		{
 			return IsLittleEndian ? *(ushort*) ptr : ByteSwap16(*(ushort*) ptr);
 		}
@@ -1739,7 +1204,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreInt16LE"/>(ptr, 0x1234) => ptr[0] == 0x34, ptr[1] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt16LE([NotNull] void* ptr, short value)
+		public static unsafe void StoreInt16LE(void* ptr, short value)
 		{
 			*(short*)ptr = IsLittleEndian ? value : ByteSwap16(value);
 		}
@@ -1749,7 +1214,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt16LE"/>(ptr, 0x1234) => ptr[0] == 0x34, ptr[1] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt16LE([NotNull] void* ptr, ushort value)
+		public static unsafe void StoreUInt16LE(void* ptr, ushort value)
 		{
 			*(ushort*) ptr = IsLittleEndian ? value : ByteSwap16(value);
 		}
@@ -1759,7 +1224,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt16BE"/>([ 0x34, 0x12) => 0x1234</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static short LoadInt16BE([NotNull] void* ptr)
+		public static unsafe short LoadInt16BE(void* ptr)
 		{
 			return IsLittleEndian ? ByteSwap16(*(short*) ptr) : *(short*) ptr;
 		}
@@ -1769,7 +1234,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt16BE"/>([ 0x12, 0x34) => 0x1234</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort LoadUInt16BE([NotNull] void* ptr)
+		public static unsafe ushort LoadUInt16BE(void* ptr)
 		{
 			return IsLittleEndian ? ByteSwap16(*(ushort*) ptr) : *(ushort*) ptr;
 		}
@@ -1779,7 +1244,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt16BE"/>(ptr, 0x1234) => ptr[0] == 0x12, ptr[1] == 0x34</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt16BE([NotNull] void* ptr, short value)
+		public static unsafe void StoreInt16BE(void* ptr, short value)
 		{
 			*(short*) ptr = IsLittleEndian ? ByteSwap16(value) : value;
 		}
@@ -1789,7 +1254,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt16BE"/>(ptr, 0x1234) => ptr[0] == 0x12, ptr[1] == 0x34</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt16BE([NotNull] void* ptr, ushort value)
+		public static unsafe void StoreUInt16BE(void* ptr, ushort value)
 		{
 			*(ushort*) ptr = IsLittleEndian ? ByteSwap16(value) : value;
 		}
@@ -1824,7 +1289,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt24LE"/>([ 0x56, 0x34, 0x12 ]) => 0x123456</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int LoadInt24LE([NotNull] void* ptr)
+		public static unsafe int LoadInt24LE(void* ptr)
 		{
 			uint x = *(ushort*) ptr;
 			x |= (uint) ((byte*) ptr)[2] << 16;
@@ -1836,7 +1301,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt24LE"/>([ 0x56, 0x34, 0x12 ]) => 0x123456</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint LoadUInt24LE([NotNull] void* ptr)
+		public static unsafe uint LoadUInt24LE(void* ptr)
 		{
 			uint x = *(ushort*)ptr;
 			x |= (uint) ((byte*) ptr)[2] << 16;
@@ -1848,7 +1313,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer. Bits 24-31 are ignored</param>
 		/// <remarks><see cref="StoreInt24LE"/>(ptr, 0x123456) => ptr[0] == 0x56, ptr[1] == 0x34, ptr[2] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt24LE([NotNull] void* ptr, int value)
+		public static unsafe void StoreInt24LE(void* ptr, int value)
 		{
 			int x = IsLittleEndian ? value : ByteSwap24(value);
 			*(short*) ptr = (short) x;
@@ -1860,11 +1325,11 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer. Bits 24-31 are ignored</param>
 		/// <remarks><see cref="StoreUInt24LE"/>(ptr, 0x123456) => ptr[0] == 0x56, ptr[1] == 0x34, ptr[2] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt24LE([NotNull] void* ptr, uint value)
+		public static unsafe void StoreUInt24LE(void* ptr, uint value)
 		{
 			uint x = IsLittleEndian ? value : ByteSwap24(value);
-			*(ushort*)ptr = (ushort)x;
-			((byte*)ptr)[2] = (byte)(x >> 16);
+			*(ushort*) ptr = (ushort)x;
+			((byte*) ptr)[2] = (byte)(x >> 16);
 		}
 
 		/// <summary>Load a 24-bit integer from an in-memory buffer that holds a value in Big-Endian ordering (also known as Network Order)</summary>
@@ -1872,7 +1337,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt24BE"/>([ 0x12, 0x34, 0x56 ]) => 0x123456</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int LoadInt24BE([NotNull] void* ptr)
+		public static unsafe int LoadInt24BE(void* ptr)
 		{
 			uint x = *(ushort*) ptr | ((uint) ((byte*) ptr)[2] << 16);
 			return IsLittleEndian ? ByteSwap24((int) x) : (int) x;
@@ -1883,7 +1348,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt24BE"/>([ 0x12, 0x34, 0x56 ]) => 0x123456</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint LoadUInt24BE([NotNull] void* ptr)
+		public static unsafe uint LoadUInt24BE(void* ptr)
 		{
 			uint x = *(ushort*) ptr | ((uint) ((byte*) ptr)[2] << 16);
 			return IsLittleEndian ? ByteSwap24(x) : x;
@@ -1894,7 +1359,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer. Bits 24-31 are ignored</param>
 		/// <remarks><see cref="StoreInt24BE"/>(ptr, 0x123456) => ptr[0] == 0x12, ptr[1] == 0x34, ptr[2] = 0x56</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt24BE([NotNull] void* ptr, int value)
+		public static unsafe void StoreInt24BE(void* ptr, int value)
 		{
 			int x = IsLittleEndian ? ByteSwap24(value) : value;
 			*(short*) ptr = (short) x;
@@ -1906,7 +1371,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer. Bits 24-31 are ignored</param>
 		/// <remarks><see cref="StoreUInt24BE"/>(ptr, 0x123456) => ptr[0] == 0x12, ptr[1] == 0x34, ptr[2] = 0x56</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt24BE([NotNull] void* ptr, uint value)
+		public static unsafe void StoreUInt24BE(void* ptr, uint value)
 		{
 			uint x = IsLittleEndian ? ByteSwap24(value) : value;
 			*(ushort*)ptr = (ushort)x;
@@ -1948,7 +1413,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt32LE"/>([ 0x78, 0x56, 0x34, 0x12) => 0x12345678</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int LoadInt32LE([NotNull] void* ptr)
+		public static unsafe int LoadInt32LE(void* ptr)
 		{
 			return IsLittleEndian ? *(int*) ptr : ByteSwap32(*(int*) ptr);
 		}
@@ -1958,7 +1423,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt32LE"/>([ 0x78, 0x56, 0x34, 0x12) => 0x12345678</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint LoadUInt32LE([NotNull] void* ptr)
+		public static unsafe uint LoadUInt32LE(void* ptr)
 		{
 			return IsLittleEndian ? * (uint*) ptr : ByteSwap32(* (uint*) ptr);
 		}
@@ -1968,7 +1433,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreInt32LE"/>(0x12345678) => ptr[0] == 0x78, ptr[1] == 0x56, ptr[2] == 0x34, ptr[3] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt32LE([NotNull] void* ptr, int value)
+		public static unsafe void StoreInt32LE(void* ptr, int value)
 		{
 			*(int*) ptr = IsLittleEndian ? value : ByteSwap32(value);
 		}
@@ -1978,7 +1443,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt32LE"/>(0x12345678) => ptr[0] == 0x78, ptr[1] == 0x56, ptr[2] == 0x34, ptr[3] == 0x12</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt32LE([NotNull] void* ptr, uint value)
+		public static unsafe void StoreUInt32LE(void* ptr, uint value)
 		{
 			*(uint*) ptr = IsLittleEndian ? value : ByteSwap32(value);
 		}
@@ -1988,7 +1453,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt32BE"/>([ 0x12, 0x34, 0x56, 0x78) => 0x12345678</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int LoadInt32BE([NotNull] void* ptr)
+		public static unsafe int LoadInt32BE(void* ptr)
 		{
 			return IsLittleEndian ? ByteSwap32(*(int*) ptr) : *(int*) ptr;
 		}
@@ -1998,7 +1463,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt32BE"/>([ 0x12, 0x34, 0x56, 0x78) => 0x12345678</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint LoadUInt32BE([NotNull] void* ptr)
+		public static unsafe uint LoadUInt32BE(void* ptr)
 		{
 			return IsLittleEndian ? ByteSwap32(*(uint*) ptr) : *(uint*) ptr;
 		}
@@ -2008,7 +1473,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreInt32BE"/>(ptr, 0x12345678) => ptr[0] == 0x12, ptr[1] == 0x34, ptr[2] == 0x56, ptr[3] == 0x78</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt32BE([NotNull] void* ptr, int value)
+		public static unsafe void StoreInt32BE(void* ptr, int value)
 		{
 			*(int*) ptr = IsLittleEndian ? ByteSwap32(value) : value;
 		}
@@ -2018,7 +1483,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt32BE"/>(ptr, 0x12345678) => ptr[0] == 0x12, ptr[1] == 0x34, ptr[2] == 0x56, ptr[3] == 0x78</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt32BE([NotNull] void* ptr, uint value)
+		public static unsafe void StoreUInt32BE(void* ptr, uint value)
 		{
 			*(uint*) ptr = IsLittleEndian ? ByteSwap32(value) : value;
 		}
@@ -2066,7 +1531,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt64LE"/>([ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01) => 0x0123456789ABCDEF</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static long LoadInt64LE([NotNull] void* ptr)
+		public static unsafe long LoadInt64LE(void* ptr)
 		{
 			return IsLittleEndian ? *(long*) ptr : ByteSwap64(*(long*) ptr);
 		}
@@ -2076,7 +1541,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt64LE"/>([ 0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x456, 0x23, 0x01) => 0x0123456789ABCDEF</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong LoadUInt64LE([NotNull] void* ptr)
+		public static unsafe ulong LoadUInt64LE(void* ptr)
 		{
 			return IsLittleEndian ? *(ulong*) ptr : ByteSwap64(*(ulong*) ptr);
 		}
@@ -2086,7 +1551,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreInt64LE"/>(0x0123456789ABCDEF) => ptr[0] == 0xEF, ptr[1] == 0xCD, ptr[2] == 0xAB, ptr[3] == 0x89, ..., ptr[7] == 0x01</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt64LE([NotNull] void* ptr, long value)
+		public static unsafe void StoreInt64LE(void* ptr, long value)
 		{
 			*(long*) ptr = IsLittleEndian ? value : ByteSwap64(value);
 		}
@@ -2096,7 +1561,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt64LE"/>(0x0123456789ABCDEF) => ptr[0] == 0xEF, ptr[1] == 0xCD, ptr[2] == 0xAB, ptr[3] == 0x89, ..., ptr[7] == 0x01</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt64LE([NotNull] void* ptr, ulong value)
+		public static unsafe void StoreUInt64LE(void* ptr, ulong value)
 		{
 			*(ulong*) ptr = IsLittleEndian ? value : ByteSwap64(value);
 		}
@@ -2106,7 +1571,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadInt64BE"/>([ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF) => 0x0123456789ABCDEF</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static long LoadInt64BE([NotNull] void* ptr)
+		public static unsafe long LoadInt64BE(void* ptr)
 		{
 			return IsLittleEndian ? ByteSwap64(*(long*) ptr) : *(long*) ptr;
 		}
@@ -2116,7 +1581,7 @@ namespace Doxense.Memory
 		/// <returns>Logical value in host order</returns>
 		/// <remarks><see cref="LoadUInt64BE"/>([ 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF) => 0x0123456789ABCDEF</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong LoadUInt64BE([NotNull] void* ptr)
+		public static unsafe ulong LoadUInt64BE(void* ptr)
 		{
 			return IsLittleEndian ? ByteSwap64(*(ulong*) ptr) : *(ulong*) ptr;
 		}
@@ -2126,7 +1591,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreInt64BE"/>(ptr, 0x0123456789ABCDEF) => ptr[0] == 0x01, ptr[1] == 0x23, ptr[2] == 0x45, ptr[3] == 0x67, ..., ptr[7] == 0xEF</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreInt64BE([NotNull] void* ptr, long value)
+		public static unsafe void StoreInt64BE(void* ptr, long value)
 		{
 			*(long*) ptr = IsLittleEndian ? ByteSwap64(value) : value;
 		}
@@ -2136,7 +1601,7 @@ namespace Doxense.Memory
 		/// <param name="value">Logical value to store in the buffer</param>
 		/// <remarks><see cref="StoreUInt64BE"/>(ptr, 0x0123456789ABCDEF) => ptr[0] == 0x01, ptr[1] == 0x23, ptr[2] == 0x45, ptr[3] == 0x67, ..., ptr[7] == 0xEF</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void StoreUInt64BE([NotNull] void* ptr, ulong value)
+		public static unsafe void StoreUInt64BE(void* ptr, ulong value)
 		{
 			*(ulong*) ptr = IsLittleEndian ? ByteSwap64(value) : value;
 		}
@@ -2159,61 +1624,164 @@ namespace Doxense.Memory
 		#region 16-bit
 
 		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed16Unsafe([NotNull] byte* cursor, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed16Unsafe(byte* cursor, ushort value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt16LE((ushort*) cursor, value);
 			return cursor + 2;
 		}
 
 		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
 		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed16([NotNull] byte* cursor, [NotNull] byte* stop, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed16(byte* cursor, byte* stop, ushort value)
 		{
-			Contract.Requires(cursor != null & stop != null);
+			Contract.Debug.Requires(cursor != null & stop != null);
 			if (cursor + 2 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt16LE((ushort*) cursor, value);
 			return cursor + 2;
 		}
 
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteFixed16(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt16LE((ushort*) ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteFixed16(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) return false;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt16LE((ushort*) ptr, value);
+				}
+			}
+			return true;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ReadFixed16([NotNull] byte* p)
+		public static unsafe ushort ReadFixed16(byte* p)
 		{
 			return LoadUInt16LE((ushort*) p);
 		}
 
-		[NotNull, Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadFixed16([NotNull] byte* p, out ushort value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadFixed16(byte* p, out ushort value)
 		{
 			value = LoadUInt16LE((ushort*) p);
 			return p + 2;
 		}
 
-		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed16BEUnsafe([NotNull] byte* cursor, ushort value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadFixed16(ReadOnlySpan<byte> buffer)
 		{
-			Contract.Requires(cursor != null);
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return LoadUInt16LE((ushort*) ptr);
+				}
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed16(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt16LE((ushort*) ptr);
+				}
+			}
+			return buffer.Slice(2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed16(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) { value = 0; return false; }
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt16LE((ushort*) ptr);
+				}
+			}
+			return true;
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed16BEUnsafe(byte* cursor, ushort value)
+		{
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt16BE((ushort*) cursor, value);
 			return cursor + 2;
 		}
 
-		/// <summary>Append a fixed size 16-bit number to the output buffer, using little-endian ordering</summary>
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
 		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed16BE([NotNull] byte* cursor, [NotNull] byte* stop, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed16BE(byte* cursor, byte* stop, ushort value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 2 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt16BE((ushort*) cursor, value);
 			return cursor + 2;
 		}
 
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteFixed16BE(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt16BE((ushort*) ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Append a fixed size 16-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteFixed16BE(Span<byte> buffer, ushort value)
+		{
+			if (buffer.Length < 2) return false;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt16BE((ushort*) ptr, value);
+				}
+			}
+			return true;
+		}
+
 		/// <summary>Write a 16-bit zero</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteZeroFixed16([NotNull] byte* cursor)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteZeroFixed16(byte* cursor)
 		{
 			// this does not care about LE or BE
 			*((ushort*)cursor) = 0;
@@ -2221,16 +1789,57 @@ namespace Doxense.Memory
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort ReadFixed16BE([NotNull] byte* p)
+		public static unsafe ushort ReadFixed16BE(byte* p)
 		{
 			return LoadUInt16BE((ushort*) p);
 		}
 
-		[NotNull, Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadFixed16BE([NotNull] byte* p, out ushort value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadFixed16BE(byte* p, out ushort value)
 		{
 			value = LoadUInt16BE((ushort*) p);
 			return p + 2;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ushort ReadFixed16BE(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return LoadUInt16BE((ushort*) ptr);
+				}
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed16BE(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt16BE((ushort*) ptr);
+				}
+			}
+			return buffer.Slice(2);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed16BE(ReadOnlySpan<byte> buffer, out ushort value)
+		{
+			if (buffer.Length < 2) { value = 0; return false; }
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt16BE((ushort*) ptr);
+				}
+			}
+			return true;
 		}
 
 		#endregion
@@ -2238,18 +1847,18 @@ namespace Doxense.Memory
 		#region 32-bits
 
 		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed32Unsafe([NotNull] byte* cursor, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed32Unsafe(byte* cursor, uint value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt32LE((uint*) cursor, value);
 			return cursor + 4;
 		}
 
 		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
 		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed32([NotNull] byte* cursor, [NotNull] byte* stop, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed32(byte* cursor, byte* stop, uint value)
 		{
 			Contract.Requires(cursor != null && stop != null);
 			if (cursor + 4 > stop) throw Errors.BufferOutOfBound();
@@ -2257,42 +1866,142 @@ namespace Doxense.Memory
 			return cursor + 4;
 		}
 
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static void WriteFixed32(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt32LE((uint*) ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static bool TryWriteFixed32(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) return false;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt32LE((uint*) ptr, value);
+				}
+			}
+
+			return true;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint ReadFixed32([NotNull] byte* p)
+		public static unsafe uint ReadFixed32(byte* p)
 		{
 			return LoadUInt32LE((uint*) p);
 		}
 
-		[NotNull, Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadFixed32([NotNull] byte* p, out uint value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadFixed32(byte* p, out uint value)
 		{
 			value = LoadUInt32LE((uint*) p);
 			return p + 4;
 		}
 
-		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed32BEUnsafe([NotNull] byte* cursor, uint value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint ReadFixed32(ReadOnlySpan<byte> buffer)
 		{
-			Contract.Requires(cursor != null);
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return LoadUInt32LE((uint*) ptr);
+				}
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt32LE((uint*) ptr);
+				}
+			}
+			return buffer.Slice(4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed32(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) { value = 0; return false; }
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt32LE((uint*) ptr);
+				}
+			}
+			return false;
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed32BEUnsafe(byte* cursor, uint value)
+		{
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt32BE((uint*) cursor, value);
 			return cursor + 4;
 		}
 
-		/// <summary>Append a fixed size 32-bit number to the output buffer, using little-endian ordering</summary>
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
 		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed32BE([NotNull] byte* cursor, [NotNull] byte* stop, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed32BE(byte* cursor, byte* stop, uint value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 4 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt32BE((uint*) cursor, value);
 			return cursor + 4;
 		}
 
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static void WriteFixed32BE(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt32BE((uint*) ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Append a fixed size 32-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static bool TryWriteFixed32BE(Span<byte> buffer, uint value)
+		{
+			if (buffer.Length < 4) return false;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt32BE((uint*) ptr, value);
+				}
+			}
+			return true;
+		}
+
 		/// <summary>Write a 32-bit zero</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteZeroFixed32([NotNull] byte* cursor)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteZeroFixed32(byte* cursor)
 		{
 			// this does not care about LE or BE
 			*((uint*)cursor) = 0;
@@ -2300,16 +2009,57 @@ namespace Doxense.Memory
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint ReadFixed32BE([NotNull] byte* p)
+		public static unsafe uint ReadFixed32BE(byte* p)
 		{
 			return LoadUInt32BE((uint*) p);
 		}
 
-		[NotNull, Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadFixed32BE([NotNull] byte* p, out uint value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadFixed32BE(byte* p, out uint value)
 		{
 			value = LoadUInt32BE((uint*) p);
 			return p + 4;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static uint ReadFixed32BE(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return LoadUInt32BE((uint*) ptr);
+				}
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed32BE(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt32BE((uint*) ptr);
+				}
+			}
+			return buffer.Slice(4);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed32BE(ReadOnlySpan<byte> buffer, out uint value)
+		{
+			if (buffer.Length < 4) { value = 0; return false; }
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt32BE((uint*) ptr);
+				}
+			}
+			return true;
 		}
 
 		#endregion
@@ -2317,61 +2067,162 @@ namespace Doxense.Memory
 		#region 64-bits
 
 		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed64Unsafe([NotNull] byte* cursor, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed64Unsafe(byte* cursor, ulong value)
 		{
-			Contract.Requires(cursor != null);
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt64LE((ulong*) cursor, value);
 			return cursor + 8;
 		}
 
 		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
 		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed64([NotNull] byte* cursor, [NotNull] byte* stop, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed64(byte* cursor, byte* stop, ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 8 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt64LE((ulong*) cursor, value);
 			return cursor + 8;
 		}
 
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteFixed64(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt64LE((ulong*) ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteFixed64(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) return false;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt64LE((ulong*) ptr, value);
+				}
+			}
+			return true;
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong ReadFixed64([NotNull] byte* p)
+		public static unsafe ulong ReadFixed64(byte* p)
 		{
 			return LoadUInt64LE((ulong*) p);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadFixed64([NotNull] byte* p, out ulong value)
+		public static unsafe byte* ReadFixed64(byte* p, out ulong value)
 		{
 			value = LoadUInt64LE((ulong*) p);
 			return p + 8;
 		}
 
-		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed64BEUnsafe([NotNull] byte* cursor, ulong value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ReadFixed64(ReadOnlySpan<byte> buffer)
 		{
-			Contract.Requires(cursor != null);
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return LoadUInt64LE((ulong*) ptr);
+				}
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed64(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt64LE((ulong*) ptr);
+				}
+			}
+			return buffer.Slice(8);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed64(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) { value = 0; return false; }
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt64LE((ulong*) ptr);
+				}
+			}
+			return true;
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed64BEUnsafe(byte* cursor, ulong value)
+		{
+			Contract.Debug.Requires(cursor != null);
 			StoreUInt64BE((ulong*) cursor, value);
 			return cursor + 8;
 		}
 
-		/// <summary>Append a fixed size 64-bit number to the output buffer, using little-endian ordering</summary>
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
 		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteFixed64BE([NotNull] byte* cursor, [NotNull] byte* stop, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteFixed64BE(byte* cursor, byte* stop, ulong value)
 		{
-			Contract.Requires(cursor != null && stop != null);
+			Contract.Debug.Requires(cursor != null && stop != null);
 			if (cursor + 8 > stop) throw Errors.BufferOutOfBound();
 			StoreUInt64BE((ulong*) cursor, value);
 			return cursor + 8;
 		}
 
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static void WriteFixed64BE(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt64BE((ulong*) ptr, value);
+				}
+			}
+		}
+
+		/// <summary>Append a fixed size 64-bit number to the output buffer, using big-endian ordering</summary>
+		/// <remarks>This method DOES perform bound checking! Caller must ensure that the buffer has enough capacity</remarks>
+		public static bool TryWriteFixed64BE(Span<byte> buffer, ulong value)
+		{
+			if (buffer.Length < 8) return false;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					StoreUInt64BE((ulong*) ptr, value);
+				}
+			}
+			return true;
+		}
+
 		/// <summary>Write a 64-bit zero</summary>
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteZeroFixed64([NotNull] byte* cursor)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteZeroFixed64(byte* cursor)
 		{
 			// this does not care about LE or BE
 			*((ulong*)cursor) = 0;
@@ -2379,16 +2230,57 @@ namespace Doxense.Memory
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong ReadFixed64BE([NotNull] byte* p)
+		public static unsafe ulong ReadFixed64BE(byte* p)
 		{
 			return LoadUInt64BE((ulong*) p);
 		}
 
-		[NotNull, Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* ReadFixed64BE([NotNull] byte* p, out ulong value)
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* ReadFixed64BE(byte* p, out ulong value)
 		{
 			value = LoadUInt64BE((ulong*) p);
 			return p + 8;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ulong ReadFixed64BE(ReadOnlySpan<byte> buffer)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return LoadUInt64BE((ulong*) ptr);
+				}
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static ReadOnlySpan<byte> ReadFixed64BE(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) throw Errors.BufferOutOfBound();
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt64BE((ulong*) ptr);
+				}
+			}
+			return buffer.Slice(8);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryReadFixed64BE(ReadOnlySpan<byte> buffer, out ulong value)
+		{
+			if (buffer.Length < 8) { value = 0; return false; }
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					value = LoadUInt64BE((ulong*) ptr);
+				}
+			}
+			return true;
 		}
 
 		#endregion
@@ -2450,10 +2342,10 @@ namespace Doxense.Memory
 			return 8;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteCompact16Unsafe([NotNull] byte* ptr, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteCompact16Unsafe(byte* ptr, ushort value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				*ptr = (byte) value;
@@ -2464,10 +2356,10 @@ namespace Doxense.Memory
 			return ptr + 2;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteCompact16BEUnsafe([NotNull] byte* ptr, ushort value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteCompact16BEUnsafe(byte* ptr, ushort value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				*ptr = (byte) value;
@@ -2478,10 +2370,10 @@ namespace Doxense.Memory
 			return ptr + 2;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteCompact32Unsafe([NotNull] byte* ptr, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteCompact32Unsafe(byte* ptr, uint value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				ptr[0] = (byte) value;
@@ -2490,8 +2382,7 @@ namespace Doxense.Memory
 			return WriteCompact32UnsafeSlow(ptr, value);
 		}
 
-		[NotNull]
-		private static byte* WriteCompact32UnsafeSlow([NotNull] byte* ptr, uint value)
+		private static unsafe byte* WriteCompact32UnsafeSlow(byte* ptr, uint value)
 		{
 			if (value <= 0xFFFF)
 			{
@@ -2510,10 +2401,10 @@ namespace Doxense.Memory
 			return ptr + 4;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteCompact32BEUnsafe([NotNull] byte* ptr, uint value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteCompact32BEUnsafe(byte* ptr, uint value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{
 				ptr[0] = (byte) value;
@@ -2522,8 +2413,7 @@ namespace Doxense.Memory
 			return WriteCompact32BEUnsafeSlow(ptr, value);
 		}
 
-		[NotNull]
-		private static byte* WriteCompact32BEUnsafeSlow([NotNull] byte* ptr, uint value)
+		private static unsafe byte* WriteCompact32BEUnsafeSlow(byte* ptr, uint value)
 		{
 			if (value <= 0xFFFF)
 			{
@@ -2542,10 +2432,10 @@ namespace Doxense.Memory
 			return ptr + 4;
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteCompact64Unsafe([NotNull] byte* ptr, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteCompact64Unsafe(byte* ptr, ulong value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{ // 1 byte
 				ptr[0] = (byte) value;
@@ -2561,8 +2451,7 @@ namespace Doxense.Memory
 			return WriteCompact64UnsafeSlow(ptr, value);
 		}
 
-		[NotNull]
-		private static byte* WriteCompact64UnsafeSlow([NotNull] byte* ptr, ulong value)
+		private static unsafe byte* WriteCompact64UnsafeSlow(byte* ptr, ulong value)
 		{
 			if (value <= 0xFFFFFFFF)
 			{ // 2 .. 4 bytes
@@ -2602,17 +2491,17 @@ namespace Doxense.Memory
 				}
 
 				// 7 bytes
-				Contract.Assert(value <= 0xFFFFFFFFFFFFFF);
+				Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
 				StoreUInt16LE((ushort*) (ptr + 4), (ushort) (value >> 32));
 				ptr[6] = (byte) (value >> 48);
 				return ptr + 7;
 			}
 		}
 
-		[NotNull, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteCompact64BEUnsafe([NotNull] byte* ptr, ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static unsafe byte* WriteCompact64BEUnsafe(byte* ptr, ulong value)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			if (value <= 0xFF)
 			{ // 1 byte
 				ptr[0] = (byte) value;
@@ -2628,8 +2517,7 @@ namespace Doxense.Memory
 			return WriteCompact64BEUnsafeSlow(ptr, value);
 		}
 
-		[NotNull]
-		private static byte* WriteCompact64BEUnsafeSlow([NotNull] byte* ptr, ulong value)
+		private static unsafe byte* WriteCompact64BEUnsafeSlow(byte* ptr, ulong value)
 		{
 			if (value <= 0xFFFFFFFF)
 			{ // 2 .. 4 bytes
@@ -2671,7 +2559,7 @@ namespace Doxense.Memory
 				}
 
 				// 7 bytes
-				Contract.Assert(value <= 0xFFFFFFFFFFFFFF);
+				Contract.Debug.Assert(value <= 0xFFFFFFFFFFFFFF);
 				StoreUInt32BE((uint*) ptr, (uint) (value >> 24));
 				StoreUInt16BE((ushort*) (ptr + 4), (ushort) (value >> 8));
 				ptr[6] = (byte) value;
@@ -2779,7 +2667,7 @@ namespace Doxense.Memory
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 5 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteOrderedUInt32Unsafe([NotNull] byte* cursor, uint value)
+		public static unsafe byte* WriteOrderedUInt32Unsafe(byte* cursor, uint value)
 		{
 			if (value <= OCU_MAX0)
 			{ // < 32
@@ -2796,7 +2684,7 @@ namespace Doxense.Memory
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* WriteOrderedUInt32UnsafeSlow([NotNull] byte* cursor, uint value)
+		private static unsafe byte* WriteOrderedUInt32UnsafeSlow(byte* cursor, uint value)
 		{
 			if (value <= OCU_MAX2)
 			{ // < 2 MB
@@ -2827,13 +2715,13 @@ namespace Doxense.Memory
 		/// <returns>Pointer updated with the number of bytes written</returns>
 		/// <remarks>Will write between 1 and 8 bytes</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte* WriteOrderedUInt64Unsafe([NotNull] byte* cursor, ulong value)
+		public static unsafe byte* WriteOrderedUInt64Unsafe(byte* cursor, ulong value)
 		{
 			return value <= uint.MaxValue ? WriteOrderedUInt32Unsafe(cursor, (uint) value) : WriteOrderedUInt64UnsafeSlow(cursor, value);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static byte* WriteOrderedUInt64UnsafeSlow([NotNull] byte* cursor, ulong value)
+		private static unsafe byte* WriteOrderedUInt64UnsafeSlow(byte* cursor, ulong value)
 		{
 			if (value <= OCU_MAX4)
 			{
@@ -2886,7 +2774,7 @@ namespace Doxense.Memory
 		/// <param name="cursor"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static byte* ReadOrderedUInt32Unsafe(byte* cursor, out uint value)
+		public static unsafe byte* ReadOrderedUInt32Unsafe(byte* cursor, out uint value)
 		{
 			uint start = cursor[0];
 			switch (start >> 5)
@@ -2918,7 +2806,7 @@ namespace Doxense.Memory
 		/// <param name="cursor"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public static byte* ReadOrderedUInt64Unsafe(byte* cursor, out ulong value)
+		public static unsafe byte* ReadOrderedUInt64Unsafe(byte* cursor, out ulong value)
 		{
 			ulong start = cursor[0];
 			switch (start >> 5)
@@ -3030,45 +2918,52 @@ namespace Doxense.Memory
 
 		/// <summary>Check if a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
-		public static bool IsAsciiString([NotNull] string value)
+		public static bool IsAsciiString(string value)
 		{
-			Contract.Requires(value != null);
-			fixed (char* pChars = value)
+			Contract.Debug.Requires(value != null);
+			unsafe
 			{
-				return IsAsciiString(pChars, value.Length);
+				fixed (char* pChars = value)
+				{
+					return IsAsciiString(pChars, value.Length);
+				}
 			}
 		}
 
 		/// <summary>Check if a section of a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
-		public static bool IsAsciiString([NotNull] string value, int offset, int count)
+		public static bool IsAsciiString(string value, int offset, int count)
 		{
-			Contract.Requires(value != null && offset >= 0 && count <= 0 && offset + count <= value.Length);
+			Contract.Debug.Requires(value != null && offset >= 0 && count <= 0 && offset + count <= value.Length);
 			if (count == 0) return true;
-			fixed (char* pChars = value)
+			unsafe
 			{
-				return IsAsciiString(pChars + offset, count);
+				fixed (char* pChars = value)
+				{
+					return IsAsciiString(pChars + offset, count);
+				}
 			}
 		}
 
-#if ENABLE_SPAN
 		/// <summary>Check if a section of a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
 		public static bool IsAsciiString(ReadOnlySpan<char> value)
 		{
 			if (value.Length == 0) return true;
-			fixed (char* pChars = &MemoryMarshal.GetReference(value))
+			unsafe
 			{
-				return IsAsciiString(pChars, value.Length);
+				fixed (char* pChars = &MemoryMarshal.GetReference(value))
+				{
+					return IsAsciiString(pChars, value.Length);
+				}
 			}
 		}
-#endif
 
 		/// <summary>Check if a string only contains characters between 0 and 127 (ASCII)</summary>
 		[Pure]
-		public static bool IsAsciiString([NotNull] char* pChars, int numChars)
+		public static unsafe bool IsAsciiString(char* pChars, int numChars)
 		{
-			Contract.Requires(pChars != null);
+			Contract.Debug.Requires(pChars != null);
 			// we test if each char has at least one bit set above bit 7, ie: (char & 0xFF80) != 0
 			// to speed things up, we check multiple chars at a time
 
@@ -3174,21 +3069,38 @@ namespace Doxense.Memory
 		/// <summary>Check if a section of byte array only contains bytes between 0 and 127 (7-bit ASCII)</summary>
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
 		[Pure]
-		public static bool IsAsciiBytes([NotNull] byte[] array, int offset, int count)
+		public static bool IsAsciiBytes(byte[] array, int offset, int count)
 		{
-			Contract.Requires(array != null);
-			fixed (byte* pBytes = &array[offset])
+			Contract.Debug.Requires(array != null);
+			unsafe
 			{
-				return IsAsciiBytes(pBytes, checked((uint) count));
+				fixed (byte* pBytes = &array[offset])
+				{
+					return IsAsciiBytes(pBytes, checked((uint) count));
+				}
 			}
 		}
 
 		/// <summary>Check if a memory region only contains bytes between 0 and 127 (7-bit ASCII)</summary>
 		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
-		[Pure]
-		public static bool IsAsciiBytes([NotNull] byte* buffer, uint count)
+		public static bool IsAsciiBytes(ReadOnlySpan<byte> buffer)
 		{
-			Contract.Requires(buffer != null);
+			if (buffer.Length == 0) return true;
+			unsafe
+			{
+				fixed (byte* pBytes = buffer)
+				{
+					return IsAsciiBytes(pBytes, checked((uint) buffer.Length));
+				}
+			}
+		}
+		
+		/// <summary>Check if a memory region only contains bytes between 0 and 127 (7-bit ASCII)</summary>
+		/// <returns>False if at least one byte has bit 7 set to 1; otherwise, True.</returns>
+		[Pure]
+		public static unsafe bool IsAsciiBytes(byte* buffer, uint count)
+		{
+			Contract.Debug.Requires(buffer != null);
 
 			// we test if each byte has at least one bit set above bit 7, ie: (byte & 0x80) != 0
 			// to speed things up, we check multiple bytes at a time
@@ -3260,20 +3172,23 @@ namespace Doxense.Memory
 		/// ConvertToByteString(new byte[] { 255, 'A', 'B', 'C' }, 0, 4) => "\xffABC"
 		/// ConvertToByteString(UTF8("é"), ...) => "Ã©" (len=2, 'C3 A9')
 		/// </example>
-		[Pure, NotNull]
-		public static string ConvertToByteString([NotNull] byte[] array, int offset, int count)
+		[Pure]
+		public static string ConvertToByteString(byte[] array, int offset, int count)
 		{
-			Contract.Requires(array != null && offset >= 0 && count >= 0 && offset + count <= array.Length);
+			Contract.Debug.Requires(array != null && offset >= 0 && count >= 0 && offset + count <= array.Length);
 
 			// fast allocate a new empty string that will be mutated in-place.
 			//note: this calls String::CtorCharCount() which in turn calls FastAllocateString(..), but will not fill the buffer with 0s if 'char' == '\0'
 			string str = new string('\0', count);
 
-			fixed (byte* ptr = &array[offset])
-			fixed (char* pChars = str)
+			unsafe
 			{
-				ConvertToByteStringUnsafe(pChars, ptr, (uint) count);
-				return str;
+				fixed (byte* ptr = &array[offset])
+				fixed (char* pChars = str)
+				{
+					ConvertToByteStringUnsafe(pChars, ptr, (uint) count);
+					return str;
+				}
 			}
 		}
 
@@ -3284,12 +3199,37 @@ namespace Doxense.Memory
 		/// You should *NOT* use this if the buffer contains ANSI or UTF-8 encoded strings!
 		/// If the buffer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
 		/// </remarks>
-		[Pure, NotNull]
-		public static string ConvertToByteString(byte* pBytes, uint count)
+		/// <example>
+		/// ConvertToByteString(new byte[] { 'A', 'B', 'C' }, 0, 3) => "ABC"
+		/// ConvertToByteString(new byte[] { 255, 'A', 'B', 'C' }, 0, 4) => "\xffABC"
+		/// ConvertToByteString(UTF8("é"), ...) => "Ã©" (len=2, 'C3 A9')
+		/// </example>
+		public static string ConvertToByteString(ReadOnlySpan<byte> buffer)
 		{
-			Contract.Requires(pBytes != null);
+			if (buffer.Length == 0) return string.Empty;
 
-			if (count == 0) return String.Empty;
+			unsafe
+			{
+				fixed (byte* ptr = buffer)
+				{
+					return ConvertToByteString(ptr, checked((uint) buffer.Length));
+				}
+			}
+		}
+
+		/// <summary>Convert a byte stream into a .NET string by expanding each byte to 16 bits characters</summary>
+		/// <returns>Equivalent .NET string</returns>
+		/// <remarks>
+		/// This is safe to use with 7-bit ASCII strings.
+		/// You should *NOT* use this if the buffer contains ANSI or UTF-8 encoded strings!
+		/// If the buffer contains bytes that are >= 0x80, they will be mapped to the equivalent Unicode code points (0x80..0xFF), WITHOUT converting them using current ANSI code page.
+		/// </remarks>
+		[Pure]
+		public static unsafe string ConvertToByteString(byte* pBytes, uint count)
+		{
+			Contract.Debug.Requires(pBytes != null);
+
+			if (count == 0) return string.Empty;
 
 			// fast allocate a new empty string that will be mutated in-place.
 			//note: this calls String::CtorCharCount() which in turn calls FastAllocateString(..), but will not fill the buffer with 0s if 'char' == '\0'
@@ -3301,7 +3241,7 @@ namespace Doxense.Memory
 			}
 		}
 
-		internal static void ConvertToByteStringUnsafe(char* pChars, byte* pBytes, uint count)
+		internal static unsafe void ConvertToByteStringUnsafe(char* pChars, byte* pBytes, uint count)
 		{
 			byte* inp = pBytes;
 			char* outp = pChars;
@@ -3353,48 +3293,8 @@ namespace Doxense.Memory
 				*outp = (char) *inp;
 			}
 		}
+
 		#endregion
-
-		[SuppressUnmanagedCodeSecurity]
-		[SecurityCritical]
-		internal static class NativeMethods
-		{
-			// C/C++		.NET
-			// ---------------------------------
-			// void*		byte* (or IntPtr)
-			// size_t		UIntPtr (or IntPtr)
-			// int			int
-			// char			byte
-
-			/// <summary>Compare characters in two buffers.</summary>
-			/// <param name="buf1">First buffer.</param>
-			/// <param name="buf2">Second buffer.</param>
-			/// <param name="count">Number of bytes to compare.</param>
-			/// <returns>The return value indicates the relationship between the buffers.</returns>
-			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			public static extern int memcmp(byte* buf1, byte* buf2, UIntPtr count);
-
-			/// <summary>Moves one buffer to another.</summary>
-			/// <param name="dest">Destination object.</param>
-			/// <param name="src">Source object.</param>
-			/// <param name="count">Number of bytes to copy.</param>
-			/// <returns>The value of dest.</returns>
-			/// <remarks>Copies count bytes from src to dest. If some regions of the source area and the destination overlap, both functions ensure that the original source bytes in the overlapping region are copied before being overwritten.</remarks>
-			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			public static extern byte* memmove(byte* dest, byte* src, UIntPtr count);
-
-			/// <summary>Sets buffers to a specified character.</summary>
-			/// <param name="dest">Pointer to destination</param>
-			/// <param name="ch">Character to set</param>
-			/// <param name="count">Number of characters</param>
-			/// <returns>memset returns the value of dest.</returns>
-			/// <remarks>The memset function sets the first count bytes of dest to the character c.</remarks>
-			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern byte* memset(byte* dest, int ch, UIntPtr count);
-
-		}
 
 		[DebuggerNonUserCode]
 		internal static class Errors
@@ -3402,8 +3302,8 @@ namespace Doxense.Memory
 
 			/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 			/// <exception cref="ArgumentException">If the corresponding slice is invalid (offset or count out of bounds, array is null, ...)</exception>
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-			public static Exception MalformedBuffer(byte* bytes, long count)
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			public static unsafe Exception MalformedBuffer(byte* bytes, long count)
 			{
 				if (count < 0) return BufferCountNotNeg();
 				if (count > 0)
@@ -3416,8 +3316,8 @@ namespace Doxense.Memory
 
 			/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 			/// <exception cref="ArgumentException">If the corresponding slice is invalid (offset or count out of bounds, array is null, ...)</exception>
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-			public static Exception MalformedBuffer(byte[] array, long offset, long count)
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			public static Exception MalformedBuffer(byte[]? array, long offset, long count)
 			{
 				if (offset < 0) return BufferOffsetNotNeg();
 				if (count < 0) return BufferCountNotNeg();
@@ -3430,20 +3330,20 @@ namespace Doxense.Memory
 				return BufferInvalid();
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static OverflowException PowerOfTwoOverflow()
 			{
 				return new OverflowException("Cannot compute the next power of two because the value would overflow.");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static OverflowException PowerOfTwoNegative()
 			{
 				return new OverflowException("Cannot compute the next power of two for negative numbers.");
 			}
 
 			/// <summary>Reject an attempt to write past the end of a buffer</summary>
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static InvalidOperationException BufferOutOfBound()
 			{
 				return new InvalidOperationException("Attempt to write outside of the buffer, or at a position that would overflow past the end.");
@@ -3455,7 +3355,7 @@ namespace Doxense.Memory
 				throw OffsetOutsideSlice();
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static Exception OffsetOutsideSlice()
 			{
 				// ReSharper disable once NotResolvedInText
@@ -3463,18 +3363,18 @@ namespace Doxense.Memory
 			}
 
 			[ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowIndexOutOfBound(int index)
+			public static void ThrowIndexOutOfBound()
 			{
-				throw IndexOutOfBound(index);
+				throw IndexOutOfBound();
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
-			public static IndexOutOfRangeException IndexOutOfBound(int index)
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+			public static IndexOutOfRangeException IndexOutOfBound()
 			{
 				return new IndexOutOfRangeException("Index is outside the slice");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceOffsetNotNeg()
 			{
 				return new FormatException("The specified slice has a negative offset, which is not legal. This may be a side effect of memory corruption.");
@@ -3486,13 +3386,13 @@ namespace Doxense.Memory
 				throw SliceCountNotNeg();
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceCountNotNeg()
 			{
 				return new FormatException("The specified slice has a negative size, which is not legal. This may be a side effect of memory corruption.");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceBufferNotNull()
 			{
 				return new FormatException("The specified slice is missing its underlying buffer.");
@@ -3504,13 +3404,13 @@ namespace Doxense.Memory
 				throw SliceBufferTooSmall();
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceBufferTooSmall()
 			{
 				return new FormatException("The specified slice is larger than its underlying buffer.");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceInvalid()
 			{
 				return new FormatException("The specified slice is invalid.");
@@ -3528,21 +3428,21 @@ namespace Doxense.Memory
 				throw new FormatException($"Cannot convert slice of size {size} to value of type {typeof(T).Name}.");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static ArgumentException BufferOffsetNotNeg()
 			{
 				// ReSharper disable once NotResolvedInText
 				return new ArgumentException("The specified segment has a negative offset, which is not legal. This may be a side effect of memory corruption.", "offset");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static ArgumentException BufferCountNotNeg()
 			{
 				// ReSharper disable once NotResolvedInText
 				return new ArgumentException("The specified segment has a negative size, which is not legal. This may be a side effect of memory corruption.", "count");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static ArgumentException BufferArrayNotNull()
 			{
 				// ReSharper disable once NotResolvedInText
@@ -3555,33 +3455,33 @@ namespace Doxense.Memory
 				throw BufferArrayToSmall();
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static ArgumentException BufferArrayToSmall()
 			{
 				// ReSharper disable once NotResolvedInText
 				return new ArgumentException("The specified segment is larger than its underlying buffer.", "count");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static ArgumentException BufferInvalid()
 			{
 				// ReSharper disable once NotResolvedInText
 				return new ArgumentException("The specified segment is invalid.");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException VarIntOverflow()
 			{
 				return new FormatException("Malformed Varint would overflow the expected range");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException VarIntTruncated()
 			{
 				return new FormatException("Malformed Varint seems to be truncated");
 			}
 
-			[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException VarBytesTruncated()
 			{
 				return new FormatException("Malformed VarBytes seems to be truncated");

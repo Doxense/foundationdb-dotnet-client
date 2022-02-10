@@ -1,4 +1,4 @@
-﻿#region Copyright (c) 2013-2018, Doxense SAS. All rights reserved.
+﻿#region Copyright (c) 2013-2022, Doxense SAS. All rights reserved.
 // See License.MD for license information
 #endregion
 
@@ -63,7 +63,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid80(int a, long b)
 		{
-			Contract.Requires((uint) a <= 0xFFFF);
+			Contract.Debug.Requires((uint) a <= 0xFFFF);
 			this.Hi = (ushort) a;
 			this.Lo = (ulong) b;
 		}
@@ -86,7 +86,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid80(int a, int b, int c)
 		{
-			Contract.Requires((uint) a <= 0xFFFF);
+			Contract.Debug.Requires((uint) a <= 0xFFFF);
 			this.Hi = (ushort) a;
 			this.Lo = ((ulong) (uint) b) << 32 | (uint) c;
 		}
@@ -104,13 +104,13 @@ namespace System
 			this.Lo = ((ulong) b) << 48 | ((ulong) c) << 32 | ((ulong) d) << 16 | ((ulong) e);
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg)
 		{
 			return ThrowHelper.ArgumentException(arg, "Value must be 10 bytes long");
 		}
 
-		[Pure, NotNull, MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidFormat()
 		{
 			return ThrowHelper.FormatException("Invalid " + nameof(Uuid80) + " format");
@@ -152,7 +152,7 @@ namespace System
 		public void Deconstruct(out ushort a, out uint b, out uint c)
 		{
 			a = this.Hi;
-			b = (uint) this.Lo >> 32;
+			b = (uint) (this.Lo >> 32);
 			c = (uint) this.Lo;
 		}
 
@@ -162,27 +162,20 @@ namespace System
 
 		/// <summary>Read a 80-bit UUID from a byte array</summary>
 		/// <param name="value">Array of exactly 0 or 10 bytes</param>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Read(byte[] value)
 		{
-			Contract.NotNull(value, nameof(value));
-			if (value.Length == 0) return default;
-			if (value.Length == SizeOf) { ReadUnsafe(value, 0, out var res); return res; }
-			throw FailInvalidBufferSize(nameof(value));
+			return Read(value.AsSpan());
 		}
 
 		/// <summary>Read a 80-bit UUID from slice of memory</summary>
 		/// <param name="value">slice of exactly 0 or 10 bytes</param>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Read(Slice value)
 		{
-			Contract.NotNull(value.Array, nameof(value));
-			if (value.Count == 0) return default;
-			if (value.Count == SizeOf) { ReadUnsafe(value.Array, value.Offset, out var res); return res; }
-			throw FailInvalidBufferSize(nameof(value));
+			return Read(value.Span);
 		}
 
-#if ENABLE_SPAN
 		/// <summary>Read a 80-bit UUID from slice of memory</summary>
 		/// <param name="value">Span of exactly 0 or 10 bytes</param>
 		[Pure]
@@ -191,16 +184,6 @@ namespace System
 			if (value.Length == 0) return default;
 			if (value.Length == SizeOf) { ReadUnsafe(value, out var res); return res; }
 			throw FailInvalidBufferSize(nameof(value));
-		}
-#endif
-
-		/// <summary>Read a 80-bit UUID from slice of memory</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe Uuid80 Read(byte* ptr, uint count)
-		{
-			if (count == 0) return default;
-			if (count == SizeOf) { ReadUnsafe(ptr, out var res); return res; }
-			throw FailInvalidBufferSize(nameof(count));
 		}
 
 		#endregion
@@ -211,9 +194,9 @@ namespace System
 		/// <paramref name="buffer">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</paramref>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid80.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid80 Parse([NotNull] string buffer)
+		public static Uuid80 Parse(string buffer)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (!TryParse(buffer, out var value))
 			{
 				throw FailInvalidFormat();
@@ -221,7 +204,6 @@ namespace System
 			return value;
 		}
 
-#if ENABLE_SPAN
 		/// <summary>Parse a string representation of an Uuid80</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Parse(ReadOnlySpan<char> buffer)
@@ -247,16 +229,16 @@ namespace System
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
-		public static bool TryParse([NotNull] string buffer, out Uuid80 result)
+		public static bool TryParse(string buffer, out Uuid80 result)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			return TryParse(buffer.AsSpan(), out result);
 		}
 
 		/// <summary>Try parsing a string representation of an Uuid80</summary>
 		public static bool TryParse(ReadOnlySpan<char> s, out Uuid80 result)
 		{
-			Contract.Requires(s != null);
+			Contract.Debug.Requires(s != null);
 
 			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
@@ -289,59 +271,6 @@ namespace System
 				}
 			}
 		}
-#else
-
-		/// <summary>Try parsing a string representation of an Uuid80</summary>
-		public static bool TryParse([NotNull] string buffer, out Uuid80 result)
-		{
-			Contract.NotNull(buffer, nameof(buffer));
-			unsafe
-			{
-				fixed (char* chars = buffer)
-				{
-					return TryParse(chars, buffer.Length, out result);
-				}
-			}
-		}
-
-		/// <summary>Try parsing a string representation of an Uuid80</summary>
-		public static unsafe bool TryParse([NotNull] char* s, int length, out Uuid80 result)
-		{
-			Contract.Requires(s != null && length >= 0);
-
-			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
-			// we don't support base10 format, because there is no way to differentiate from hex or base62
-
-			// remove "{...}" if there is any
-			if (length > 2 && s[0] == '{' && s[length - 1] == '}')
-			{
-				s += 1;
-				length -= 2;
-			}
-
-			result = default(Uuid80);
-			switch (length)
-			{
-				case 0:
-				{ // empty
-					return true;
-				}
-				case 20:
-				{ // xxxxxxxxxxxxxxxxxxxx
-					return TryDecode16Unsafe(s, separator: false, out result);
-				}
-				case 22:
-				{ // xxxx-xxxxxxxx-xxxxxxxx
-					if (s[4] != '-' || s[13] != '-') return false;
-					return TryDecode16Unsafe(s, separator: true, out result);
-				}
-				default:
-				{
-					return false;
-				}
-			}
-		}
-#endif
 
 		#endregion
 
@@ -356,7 +285,7 @@ namespace System
 			return writer.ToSlice();
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		public byte[] ToByteArray()
 		{
 			var tmp = new byte[SizeOf];
@@ -384,7 +313,7 @@ namespace System
 		/// <returns>The value of this <see cref="Uuid80"/>, using the specified format.</returns>
 		/// <remarks>See <see cref="ToString(string, IFormatProvider)"/> for a description of the different formats</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public string ToString(string format)
+		public string ToString(string? format)
 		{
 			return ToString(format, null);
 		}
@@ -398,7 +327,7 @@ namespace System
 		/// <p>The <b>X</b> and <b>N</b> format encodes the value as a single group of 20 hexadecimal digits: "aaaabbbbbbbbcccccccc" (20 characters).</p>
 		/// <p>The <b>B</b> format is equivalent to the <b>D</b> format, but surrounded with '{' and '}': "{aaaa-bbbbbbbb-cccccccc}" (24 characters).</p>
 		/// </example>
-		public string ToString(string format, IFormatProvider formatProvider)
+		public string ToString(string? format, IFormatProvider? formatProvider)
 		{
 			if (string.IsNullOrEmpty(format)) format = "D";
 
@@ -442,7 +371,7 @@ namespace System
 
 		#region IEquatable / IComparable...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			switch (obj)
 			{
@@ -483,10 +412,9 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* HexsToLowerChars([NotNull] char* ptr, ushort a)
+		private static unsafe char* HexsToLowerChars(char* ptr, ushort a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar((uint) a >> 12);
 			ptr[1] = HexToLowerChar((uint) a >> 8);
 			ptr[2] = HexToLowerChar((uint) a >> 4);
@@ -494,10 +422,9 @@ namespace System
 			return ptr + 4;
 		}
 
-		[NotNull]
-		private static unsafe char* HexsToLowerChars([NotNull] char* ptr, uint a)
+		private static unsafe char* HexsToLowerChars(char* ptr, uint a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToLowerChar(a >> 28);
 			ptr[1] = HexToLowerChar(a >> 24);
 			ptr[2] = HexToLowerChar(a >> 20);
@@ -516,10 +443,9 @@ namespace System
 			return a > 9 ? (char)(a - 10 + 'A') : (char)(a + '0');
 		}
 
-		[NotNull]
-		private static unsafe char* Hex16ToUpperChars([NotNull] char* ptr, ushort a)
+		private static unsafe char* Hex16ToUpperChars(char* ptr, ushort a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar((uint) a >> 12);
 			ptr[1] = HexToUpperChar((uint) a >> 8);
 			ptr[2] = HexToUpperChar((uint) a >> 4);
@@ -527,10 +453,9 @@ namespace System
 			return ptr + 4;
 		}
 
-		[NotNull]
-		private static unsafe char* Hex32ToUpperChars([NotNull] char* ptr, uint a)
+		private static unsafe char* Hex32ToUpperChars(char* ptr, uint a)
 		{
-			Contract.Requires(ptr != null);
+			Contract.Debug.Requires(ptr != null);
 			ptr[0] = HexToUpperChar(a >> 28);
 			ptr[1] = HexToUpperChar(a >> 24);
 			ptr[2] = HexToUpperChar(a >> 20);
@@ -542,7 +467,7 @@ namespace System
 			return ptr + 8;
 		}
 
-		[Pure, NotNull]
+		[Pure]
 		private static unsafe string Encode16(ushort hi, ulong lo, bool separator, bool quotes, bool upper)
 		{
 			int size = 20 + (separator ? 2 : 0) + (quotes ? 2 : 0);
@@ -563,7 +488,7 @@ namespace System
 				: HexsToLowerChars(ptr, (uint) lo);
 			if (quotes) *ptr++ = '}';
 
-			Contract.Ensures(ptr == buffer + size);
+			Contract.Debug.Ensures(ptr == buffer + size);
 			return new string(buffer, 0, size);
 		}
 
@@ -586,8 +511,6 @@ namespace System
 			}
 			return INVALID_CHAR;
 		}
-
-#if ENABLE_SPAN
 
 		private static bool TryCharsToHex16(ReadOnlySpan<char> chars, out ushort result)
 		{
@@ -638,110 +561,26 @@ namespace System
 			result = default(Uuid80);
 			return false;
 		}
-#else
-		private static unsafe bool TryCharsToHex16(char* chars, out ushort result)
-		{
-			int word = 0;
-			for (int i = 0; i < 4; i++)
-			{
-				int a = CharToHex(chars[i]);
-				if (a == INVALID_CHAR)
-				{
-					result = 0;
-					return false;
-				}
-				word = (word << 4) | a;
-			}
-			result = (ushort) word;
-			return true;
-		}
-
-		private static unsafe bool TryCharsToHex32(char* chars, out uint result)
-		{
-			int word = 0;
-			for (int i = 0; i < 8; i++)
-			{
-				int a = CharToHex(chars[i]);
-				if (a == INVALID_CHAR)
-				{
-					result = 0;
-					return false;
-				}
-				word = (word << 4) | a;
-			}
-			result = (uint)word;
-			return true;
-		}
-
-		private static unsafe bool TryDecode16Unsafe(char* chars, bool separator, out Uuid80 result)
-		{
-			// aaaabbbbbbbbcccccccc
-			// aaaa-bbbbbbbb-cccccccc
-			if ((!separator || (chars[4] == '-' && chars[13] == '-'))
-			&& TryCharsToHex16(chars, out ushort hi)
-			&& TryCharsToHex32(chars + (separator ? 5 : 4), out uint med)
-			&& TryCharsToHex32(chars + (separator ? 14 : 12), out uint lo))
-			{
-				result = new Uuid80(hi, med, lo);
-				return true;
-			}
-			result = default(Uuid80);
-			return false;
-		}
-#endif
 
 		#endregion
 
 		#region Unsafe I/O...
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe void ReadUnsafe([NotNull] byte* src, out Uuid80 result)
+		internal static unsafe void ReadUnsafe(ReadOnlySpan<byte> src, out Uuid80 result)
 		{
-			//Paranoid.Requires(src != null);
-			result = new Uuid80(UnsafeHelpers.LoadUInt16BE(src), UnsafeHelpers.LoadUInt64BE(src + 2));
-		}
-
-#if ENABLE_SPAN
-		public static unsafe void ReadUnsafe(ReadOnlySpan<byte> src, out Uuid80 result)
-		{
-			//Paranoid.Requires(src.Length >= 0);
+			//Paranoid.Requires(src.Length >= 10);
 			fixed (byte* ptr = &MemoryMarshal.GetReference(src))
 			{
 				result = new Uuid80(UnsafeHelpers.LoadUInt16BE(ptr), UnsafeHelpers.LoadUInt64BE(ptr + 2));
 			}
 		}
-#endif
 
-		[Pure]
-		public static void ReadUnsafe([NotNull] byte[] buffer, int offset, out Uuid80 result)
+		internal static void WriteUnsafe(ushort hi, ulong lo, Span<byte> buffer)
 		{
-			//Paranoid.Requires(buffer != null && offset >= 0 && offset + 9 < buffer.Length);
-			// buffer contains the bytes in Big Endian
+			//Paranoid.Requires(buffer.Length >= 10);
 			unsafe
 			{
-				fixed (byte* ptr = &buffer[offset])
-				{
-					ushort hi = UnsafeHelpers.LoadUInt16BE(ptr);
-					ulong lo = UnsafeHelpers.LoadUInt64BE(ptr + 2);
-					result = new Uuid80(hi, lo);
-				}
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static unsafe void WriteUnsafe(ushort hi, ulong lo, byte* ptr)
-		{
-			//Paranoid.Requires(ptr != null);
-			UnsafeHelpers.StoreUInt16BE(ptr, hi);
-			UnsafeHelpers.StoreUInt64BE(ptr + 2, lo);
-		}
-
-		public static void WriteUnsafe(ushort hi, ulong lo, [NotNull] byte[] buffer, int offset)
-		{
-			//Paranoid.Requires(buffer != null && offset >= 0 && offset + 9 < buffer.Length);
-			unsafe
-			{
-				fixed (byte* ptr = &buffer[offset])
+				fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
 				{
 					UnsafeHelpers.StoreUInt16BE(ptr, hi);
 					UnsafeHelpers.StoreUInt64BE(ptr + 2, lo);
@@ -750,78 +589,23 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public unsafe void WriteToUnsafe([NotNull] byte* ptr)
+		internal void WriteToUnsafe(Span<byte> buf)
 		{
-			WriteUnsafe(this.Hi, this.Lo, ptr);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteToUnsafe([NotNull] byte[] buffer, int offset)
-		{
-			WriteUnsafe(this.Hi, this.Lo, buffer, offset);
-		}
-
-#if ENABLE_SPAN
-		public void WriteTo(byte[] buffer, int offset)
-		{
-			WriteTo(buffer.AsSpan(offset));
+			WriteUnsafe(this.Hi, this.Lo, buf);
 		}
 
 		public void WriteTo(Span<byte> destination)
 		{
 			if (destination.Length < SizeOf) throw FailInvalidBufferSize(nameof(destination));
-			unsafe
-			{
-				fixed (byte* ptr = &MemoryMarshal.GetReference(destination))
-				{
-					WriteUnsafe(this.Hi, this.Lo, ptr);
-				}
-			}
+			WriteUnsafe(this.Hi, this.Lo, destination);
 		}
 
 		public bool TryWriteTo(Span<byte> destination)
 		{
 			if (destination.Length < SizeOf) return false;
-			unsafe
-			{
-				fixed (byte* ptr = &MemoryMarshal.GetReference(destination))
-				{
-					WriteUnsafe(this.Hi, this.Lo, ptr);
-					return true;
-				}
-			}
+			WriteUnsafe(this.Hi, this.Lo, destination);
+			return true;
 		}
-#else
-		public void WriteTo(byte[] buffer, int offset)
-		{
-			WriteTo(buffer.AsSlice(offset));
-		}
-
-		public void WriteTo(Slice destination)
-		{
-			if (destination.Count < SizeOf) throw FailInvalidBufferSize(nameof(destination));
-			unsafe
-			{
-				fixed (byte* ptr = &destination.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(this.Hi, this.Lo, ptr);
-				}
-			}
-		}
-
-		public bool TryWriteTo(Slice destination)
-		{
-			if (destination.Count < SizeOf) return false;
-			unsafe
-			{
-				fixed (byte* ptr = &destination.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(this.Hi, this.Lo, ptr);
-					return true;
-				}
-			}
-		}
-#endif
 
 		#endregion
 
@@ -968,13 +752,10 @@ namespace System
 
 			/// <summary>Default instance of a random generator</summary>
 			/// <remarks>Using this instance will introduce a global lock in your application. You can create specific instances for worker threads, if you require concurrency.</remarks>
-			[NotNull]
 			public static readonly Uuid80.RandomGenerator Default = new Uuid80.RandomGenerator();
 
-			[NotNull] 
 			private RandomNumberGenerator Rng { get; }
 
-			[NotNull] 
 			private readonly byte[] Scratch = new byte[SizeOf];
 
 			/// <summary>Create a new instance of a random UUID generator</summary>
@@ -983,7 +764,7 @@ namespace System
 			{ }
 
 			/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
-			public RandomGenerator(RandomNumberGenerator generator)
+			public RandomGenerator(RandomNumberGenerator? generator)
 			{
 				this.Rng = generator ?? RandomNumberGenerator.Create();
 			}

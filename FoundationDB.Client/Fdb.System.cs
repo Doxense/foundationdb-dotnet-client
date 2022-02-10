@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
 			{
-				Contract.NotNull(trans, nameof(trans));
+				Contract.NotNull(trans);
 
 				Slice data = await trans.GetAsync(StatusJsonKey).ConfigureAwait(false);
 
@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 
 				// we should not retry the read to the status key!
 				using (var trans = db.BeginReadOnlyTransaction(ct))
@@ -141,7 +141,7 @@ namespace FoundationDB.Client
 			/// </remarks>
 			public static Task<Slice> GetMetadataVersionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				if (Fdb.ApiVersion < 610) throw new NotSupportedException($"The metadata version system key is only available on version 6.1 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You will need to select API version 610 or greater.");
 				return db.ReadAsync(tr => tr.GetAsync(System.MetadataVersion), ct);
 			}
@@ -153,7 +153,7 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<FdbClusterFile> GetCoordinatorsAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 
 				var coordinators = await db.ReadAsync((tr) =>
 				{
@@ -176,7 +176,7 @@ namespace FoundationDB.Client
 			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
 			public static Task<Slice> GetConfigParameterAsync([NotNull] IFdbDatabase db, [NotNull] string name, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				Contract.NotNullOrEmpty(name, nameof(name), "Configuration parameter name cannot be null or empty.");
 
 				return db.ReadAsync<Slice>((tr) =>
@@ -254,8 +254,8 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
-				Contract.NotNull(trans, nameof(trans));
-				Contract.Requires(trans.Context?.Database != null);
+				Contract.NotNull(trans);
+				Contract.Debug.Requires(trans.Context?.Database != null);
 
 				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
 				{
@@ -279,7 +279,7 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 
 				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), ct);
 			}
@@ -311,7 +311,7 @@ namespace FoundationDB.Client
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
 				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, ct).ConfigureAwait(false);
@@ -342,7 +342,7 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync([NotNull] IFdbReadOnlyTransaction trans, Slice begin, Slice end)
 			{
-				Contract.Requires(trans != null && end >= begin);
+				Contract.Debug.Requires(trans != null && end >= begin);
 
 #if TRACE_COUNTING
 				trans.Annotate("Get boundary keys in range {0}", KeyRange.Create(begin, end));
@@ -447,7 +447,7 @@ namespace FoundationDB.Client
 				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
 				const int MIN_WINDOW_SIZE = 64; // use range reads when the windows size is smaller than 64
 
-				Contract.NotNull(db, nameof(db));
+				Contract.NotNull(db);
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", nameof(endExclusive));
 
 				ct.ThrowIfCancellationRequested();
@@ -496,7 +496,7 @@ namespace FoundationDB.Client
 
 					while (cursor < end)
 					{
-						Contract.Assert(windowSize > 0);
+						Contract.Debug.Assert(windowSize > 0);
 
 						var selector = KeySelector.FirstGreaterOrEqual(cursor) + windowSize;
 						Slice next = Slice.Nil;

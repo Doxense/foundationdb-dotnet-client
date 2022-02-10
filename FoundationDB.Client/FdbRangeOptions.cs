@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 		/// <param name="options"></param>
 		public FdbRangeOptions([NotNull] FdbRangeOptions options)
 		{
-			Contract.Requires(options != null);
+			Contract.Debug.Requires(options != null);
 			this.Limit = options.Limit;
 			this.Reverse = options.Reverse;
 			this.TargetBytes = options.TargetBytes;
@@ -108,7 +108,7 @@ namespace FoundationDB.Client
 		/// <returns>Options with all the values filled</returns>
 		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int? limit, int? targetBytes, FdbStreamingMode mode, FdbReadMode read, bool reverse)
 		{
-			Contract.Requires((limit ?? 0) >= 0 && (targetBytes ?? 0) >= 0);
+			Contract.Debug.Requires((limit ?? 0) >= 0 && (targetBytes ?? 0) >= 0);
 
 			if (options == null)
 			{
@@ -133,11 +133,11 @@ namespace FoundationDB.Client
 				};
 			}
 
-			Contract.Ensures(options.Mode != null && options.Reverse != null);
-			Contract.Ensures((options.Limit ?? 0) >= 0, "Limit cannot be negative");
-			Contract.Ensures((options.TargetBytes ?? 0) >= 0, "TargetBytes cannot be negative");
-			Contract.Ensures(options.Mode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), "Streaming mode must be valid");
-			Contract.Ensures(options.Read.HasValue && Enum.IsDefined(typeof(FdbReadMode), options.Read.Value), "Reading mode must be valid");
+			Contract.Debug.Ensures(options.Mode != null && options.Reverse != null);
+			Contract.Debug.Ensures((options.Limit ?? 0) >= 0, "Limit cannot be negative");
+			Contract.Debug.Ensures((options.TargetBytes ?? 0) >= 0, "TargetBytes cannot be negative");
+			Contract.Debug.Ensures(options.Mode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), "Streaming mode must be valid");
+			Contract.Debug.Ensures(options.Read.HasValue && Enum.IsDefined(typeof(FdbReadMode), options.Read.Value), "Reading mode must be valid");
 
 			return options;
 		}

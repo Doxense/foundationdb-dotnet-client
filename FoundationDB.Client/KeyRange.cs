@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 		{
 			this.Begin = begin;
 			this.End = end;
-			Contract.Ensures(this.Begin <= this.End, "The range is inverted");
+			Contract.Debug.Ensures(this.Begin <= this.End, "The range is inverted");
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -274,7 +274,7 @@ namespace FoundationDB.Client
 
 			private Comparer(int mode)
 			{
-				Contract.Requires(mode >= BOTH && mode <= END);
+				Contract.Debug.Requires(mode >= BOTH && mode <= END);
 				m_mode = mode;
 			}
 

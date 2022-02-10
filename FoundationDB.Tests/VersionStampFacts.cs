@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2019, Doxense SAS
+/* Copyright (c) 2013-2022, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -113,9 +113,9 @@ namespace FoundationDB.Client.Tests
 			}
 
 			{
-				var buf = Slice.Repeat(0xAA, 18);
-				VersionStamp.Incomplete(123).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.ToHexaString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
+				var buf = Slice.Repeat(0xAA, 18).GetBytes();
+				VersionStamp.Incomplete(123).WriteTo(buf.AsSpan(3, 12));
+				Assert.That(buf.AsSlice().ToHexaString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
 			}
 		}
 
@@ -191,9 +191,9 @@ namespace FoundationDB.Client.Tests
 			}
 
 			{
-				var buf = Slice.Repeat(0xAA, 18);
-				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.ToHexaString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
+				var buf = Slice.Repeat(0xAA, 18).GetBytes();
+				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(buf.AsSpan(3, 12));
+				Assert.That(buf.AsSlice().ToHexaString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
 			}
 		}
 

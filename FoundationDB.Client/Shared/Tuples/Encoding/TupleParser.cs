@@ -536,7 +536,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				encoder.Convert(ptr, remaining, buf, bufLen, true, out int charsUsed, out int bytesUsed, out done);
 				if (bytesUsed > 0)
 				{
-					writer.Output.WriteBytes(buf, (uint) bytesUsed);
+					writer.Output.WriteBytes(new ReadOnlySpan<byte>(buf, bytesUsed));
 				}
 				remaining -= charsUsed;
 				ptr += charsUsed;
@@ -575,7 +575,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				var tmp = Encoding.UTF8.GetBytes(new string(value, 1));
 				writer.Output.EnsureBytes(tmp.Length + 2);
 				writer.Output.UnsafeWriteByte(TupleTypes.Utf8);
-				writer.Output.UnsafeWriteBytes(tmp, 0, tmp.Length);
+				writer.Output.UnsafeWriteBytes(tmp.AsSpan());
 				writer.Output.UnsafeWriteByte(0x00);
 			}
 		}
@@ -656,7 +656,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				if (n == count)
 				{ // no NULs in the string, can copy all at once
-					UnsafeHelpers.CopyUnsafe(buffer, p, value, offset, n);
+					value.AsSpan(offset, n).CopyTo(buffer.AsSpan(p));
 					p += n;
 				}
 				else
@@ -693,7 +693,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				if (n == value.Length)
 				{ // no NULs in the string, can copy all at once
-					UnsafeHelpers.CopyUnsafe(buffer, p, value, 0, n);
+					value.AsSpan(0, n).CopyTo(buffer.AsSpan(p));
 					p += n;
 				}
 				else
@@ -715,7 +715,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
 			// Guids should be stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid (handled by Uuid128)
-			writer.Output.UnsafeWriteUuid128(new Uuid128(value));
+			writer.Output.WriteUuid128(new Uuid128(value));
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -729,7 +729,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			writer.Output.EnsureBytes(17);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid128);
-			writer.Output.UnsafeWriteUuid128(value);
+			writer.Output.WriteUuid128(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -743,7 +743,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			writer.Output.EnsureBytes(11);
 			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
-			writer.Output.UnsafeWriteUuid96(value);
+			writer.Output.WriteUuid96(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -757,7 +757,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			writer.Output.EnsureBytes(11);
 			writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
-			writer.Output.UnsafeWriteUuid80(value);
+			writer.Output.WriteUuid80(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -771,7 +771,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			writer.Output.EnsureBytes(9);
 			writer.Output.UnsafeWriteByte(TupleTypes.Uuid64);
-			writer.Output.UnsafeWriteUuid64(value);
+			writer.Output.WriteUuid64(value);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -786,13 +786,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			{ // 96-bits Versionstamp
 				writer.Output.EnsureBytes(13);
 				writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp96);
-				value.WriteTo(writer.Output.Allocate(12));
+				value.WriteTo(writer.Output.AllocateSpan(12));
 			}
 			else
 			{ // 80-bits Versionstamp
 				writer.Output.EnsureBytes(11);
 				writer.Output.UnsafeWriteByte(TupleTypes.VersionStamp80);
-				value.WriteTo(writer.Output.Allocate(10));
+				value.WriteTo(writer.Output.AllocateSpan(10));
 			}
 		}
 
@@ -819,7 +819,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			{
 				writer.Output.EnsureBytes(checked(1 + arg.Count));
 				writer.Output.WriteByte(value.Type);
-				writer.Output.WriteBytes(in arg);
+				writer.Output.WriteBytes(arg);
 			}
 		}
 
@@ -899,7 +899,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			int i = 0;
 			if (offsetOfFirstZero > 0)
 			{
-				UnsafeHelpers.CopyUnsafe(tmp, 0, buffer, offset, offsetOfFirstZero);
+				buffer.AsSpan(offset, offsetOfFirstZero).CopyTo(tmp);
 				p += offsetOfFirstZero;
 				i = offsetOfFirstZero;
 			}

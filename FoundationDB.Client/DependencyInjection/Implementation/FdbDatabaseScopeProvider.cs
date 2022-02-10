@@ -43,7 +43,7 @@ namespace FoundationDB.DependencyInjection
 
 		public FdbDatabaseScopeProvider([NotNull] IFdbDatabaseScopeProvider parent, [NotNull] Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TState)>> handler, CancellationToken lifetime = default)
 		{
-			Contract.Requires(parent != null && handler != null);
+			Contract.Debug.Requires(parent != null && handler != null);
 			this.Parent = parent;
 			this.Handler = handler;
 			this.LifeTime = lifetime == default || lifetime == parent.Cancellation
@@ -79,7 +79,7 @@ namespace FoundationDB.DependencyInjection
 				ct.ThrowIfCancellationRequested();
 				TState state;
 				(db, state) = await this.Handler(db, ct).ConfigureAwait(false);
-				Contract.Assert(db != null);
+				Contract.Debug.Assert(db != null);
 				this.State = state;
 				this.Db = db;
 			}
@@ -94,7 +94,7 @@ namespace FoundationDB.DependencyInjection
 
 		public IFdbDatabaseScopeProvider<TNewState> CreateScope<TNewState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase, TNewState)>> start, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(start, nameof(start));
+			Contract.NotNull(start);
 			//REVIEW: should we instantly failed if lifetime is already disposed?
 			return new FdbDatabaseScopeProvider<TNewState>(this, start, lifetime);
 		}

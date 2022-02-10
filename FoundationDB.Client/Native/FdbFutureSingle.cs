@@ -53,8 +53,8 @@ namespace FoundationDB.Client.Native
 
 		internal FdbFutureSingle([NotNull] FutureHandle handle, [NotNull] Func<FutureHandle, T> selector, CancellationToken ct)
 		{
-			Contract.NotNull(handle, nameof(handle));
-			Contract.NotNull(selector, nameof(selector));
+			Contract.NotNull(handle);
+			Contract.NotNull(selector);
 
 			m_handle = handle;
 			m_resultSelector = selector;

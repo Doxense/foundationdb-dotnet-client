@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 			/// <summary>Opens a named partition, and change the root subspace of the database to the corresponding prefix</summary>
 			internal static async Task SwitchToNamedPartitionAsync([NotNull] FdbDatabase db, [NotNull, ItemNotNull] string[] path, bool readOnly, CancellationToken ct)
 			{
-				Contract.Requires(db != null && path != null);
+				Contract.Debug.Requires(db != null && path != null);
 				ct.ThrowIfCancellationRequested();
 
 				if (path.Length == 0) throw new ArgumentException("The path to the named partition cannot be empty", nameof(path));
@@ -76,8 +76,8 @@ namespace FoundationDB.Client
 			[ItemNotNull]
 			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbDatabase db, [NotNull] IFdbDirectory parent, CancellationToken ct)
 			{
-				Contract.NotNull(db, nameof(db));
-				Contract.NotNull(parent, nameof(parent));
+				Contract.NotNull(db);
+				Contract.NotNull(parent);
 
 				return await db.ReadAsync(async (tr) =>
 				{

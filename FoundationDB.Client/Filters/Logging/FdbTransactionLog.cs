@@ -181,7 +181,7 @@ namespace FoundationDB.Filters.Logging
 		/// <param name="trans"></param>
 		public void Start([NotNull] IFdbTransaction trans)
 		{
-			Contract.Requires(trans != null);
+			Contract.Debug.Requires(trans != null);
 
 			this.Id = trans.Id;
 			this.IsReadOnly = trans.IsReadOnly;
@@ -193,7 +193,7 @@ namespace FoundationDB.Filters.Logging
 		/// <param name="trans"></param>
 		public void Stop([NotNull] IFdbTransaction trans)
 		{
-			Contract.Requires(trans != null);
+			Contract.Debug.Requires(trans != null);
 
 			//TODO: verify that the trans is the same one that was passed to Start(..)?
 			if (!this.Completed)
@@ -207,7 +207,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Adds a new already completed command to the log</summary>
 		public void AddOperation([NotNull] Command cmd, bool countAsOperation = true)
 		{
-			Contract.Requires(cmd != null);
+			Contract.Debug.Requires(cmd != null);
 
 			var ts = GetTimeOffset();
 			int step = Volatile.Read(ref m_step);
@@ -224,7 +224,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Start tracking the execution of a new command</summary>
 		public void BeginOperation([NotNull] Command cmd)
 		{
-			Contract.Requires(cmd != null);
+			Contract.Debug.Requires(cmd != null);
 
 			var ts = GetTimeOffset();
 			int step = Volatile.Read(ref m_step);
@@ -241,7 +241,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Mark the end of the execution of a command</summary>
 		public void EndOperation([NotNull] Command cmd, Exception error = null)
 		{
-			Contract.Requires(cmd != null);
+			Contract.Debug.Requires(cmd != null);
 
 			var ts = GetTimeOffset();
 			var step = Interlocked.Increment(ref m_step);
@@ -486,9 +486,9 @@ namespace FoundationDB.Filters.Logging
 
 		private static string GetUserFriendlyMethodName([NotNull] MethodBase m)
 		{
-			Contract.Requires(m != null);
+			Contract.Debug.Requires(m != null);
 			var t = m.DeclaringType;
-			Contract.Assert(t != null);
+			Contract.Debug.Assert(t != null);
 
 			if (m.Name == "MoveNext")
 			{ // compiler generated state machine?

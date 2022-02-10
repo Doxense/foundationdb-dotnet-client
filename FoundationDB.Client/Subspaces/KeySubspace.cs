@@ -67,7 +67,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static DynamicKeySubspace CreateDynamic(Slice prefix, [NotNull] IDynamicKeyEncoder encoder)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new DynamicKeySubspace(prefix, encoder);
 		}
 
@@ -90,7 +90,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
 		public static TypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, [NotNull] IKeyEncoder<T1> encoder)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1>(prefix, encoder);
 		}
 
@@ -105,7 +105,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
 		public static TypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2>(prefix, encoder);
 		}
 
@@ -120,7 +120,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
 		public static TypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3>(prefix, encoder);
 		}
 
@@ -135,7 +135,7 @@ namespace FoundationDB.Client
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
 		public static TypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, encoder);
 		}
 

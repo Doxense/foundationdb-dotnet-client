@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, Slice key)
 			{
-				Contract.Requires(db != null);
+				Contract.Debug.Requires(db != null);
 				return new FdbException(
 					FdbError.KeyOutsideLegalRange,
 #if DEBUG
@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 
 			internal static Exception FailedToRegisterTransactionOnDatabase(IFdbTransaction transaction, FdbDatabase db)
 			{
-				Contract.Requires(transaction != null && db != null);
+				Contract.Debug.Requires(transaction != null && db != null);
 				return new InvalidOperationException($"Failed to register transaction #{transaction.Id}");
 			}
 

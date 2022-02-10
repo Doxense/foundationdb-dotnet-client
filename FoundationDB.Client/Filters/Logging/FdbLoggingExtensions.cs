@@ -47,8 +47,8 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
-			Contract.NotNull(database, nameof(database));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(database);
+			Contract.NotNull(handler);
 
 			// prevent multiple logging
 			database = WithoutLogging(database);
@@ -64,8 +64,8 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static IFdbDatabaseScopeProvider Logged([NotNull] this IFdbDatabaseScopeProvider provider, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
-			Contract.NotNull(provider, nameof(provider));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(provider);
+			Contract.NotNull(handler);
 
 			return provider.CreateScope<object>((db, ct) => !ct.IsCancellationRequested ? Task.FromResult<(IFdbDatabase, object)>((Logged(db, handler), null)) : Task.FromCanceled<(IFdbDatabase, object)>(ct));
 		}
@@ -76,7 +76,7 @@ namespace FoundationDB.Filters.Logging
 		[NotNull]
 		public static IFdbDatabase WithoutLogging([NotNull] this IFdbDatabase database)
 		{
-			Contract.NotNull(database, nameof(database));
+			Contract.NotNull(database);
 
 			return database is FdbLoggedDatabase logged ? logged.GetInnerDatabase() : database;
 		}

@@ -60,7 +60,7 @@ namespace FoundationDB.Client
 
 		private FdbClusterFile(string rawValue, string description, string identifier, FdbEndPoint[] coordinators)
 		{
-			Contract.Requires(rawValue != null && description != null && identifier != null && coordinators != null);
+			Contract.Debug.Requires(rawValue != null && description != null && identifier != null && coordinators != null);
 			this.RawValue = rawValue;
 			this.Description = description;
 			this.Id = identifier;
@@ -73,9 +73,9 @@ namespace FoundationDB.Client
 		/// <param name="coordinators"></param>
 		public FdbClusterFile([NotNull] string description, [NotNull] string identifier, [NotNull, ItemNotNull] IEnumerable<FdbEndPoint> coordinators)
 		{
-			Contract.NotNull(description, nameof(description));
-			Contract.NotNull(identifier, nameof(identifier));
-			Contract.NotNull(coordinators, nameof(coordinators));
+			Contract.NotNull(description);
+			Contract.NotNull(identifier);
+			Contract.NotNull(coordinators);
 
 			this.Description = description;
 			this.Id = identifier;

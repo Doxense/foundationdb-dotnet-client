@@ -56,7 +56,7 @@ namespace Doxense.Memory
 
 		private SlicePairComparer(int mode)
 		{
-			Contract.Requires(mode >= BOTH && mode <= VALUE_ONLY);
+			Contract.Debug.Requires(mode >= BOTH && mode <= VALUE_ONLY);
 			m_mode = mode;
 		}
 

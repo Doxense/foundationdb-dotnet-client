@@ -26,11 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#nullable enable
+
 namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Layers.Directories;
@@ -177,6 +180,67 @@ namespace FoundationDB.Client.Tests
 		public static void Log(string text)
 		{
 			TestContext.Progress.WriteLine(text);
+		}
+
+		/// <summary>Retourne une représentation textuelle basique d'un object, tenant sur une seule ligne</summary>
+		protected static string Stringify(object? item)
+		{
+			if (item == null)
+			{ // Null
+				return "<null>";
+			}
+
+			if (item is string str)
+			{ // hack pour empecher les CRLF de casser l'affichage
+				if (str.Length == 0) return @"""""";
+				return "\"" + str.Replace(@"\", @"\\").Replace("\r", @"\r").Replace("\n", @"\n").Replace("\0", @"\0").Replace(@"""", @"\""") + "\"";
+			}
+
+			var type = item.GetType();
+			if (type.Name.StartsWith("ValueTuple`", StringComparison.Ordinal))
+			{
+				return item.ToString()!;
+			}
+
+			// Formattable
+			if (item is IFormattable formattable)
+			{
+				// utilise le format le plus adapté en fonction du type
+				string? fmt = null;
+				if (item is int || item is uint || item is long || item is ulong)
+				{
+					fmt = "N0";
+				}
+				else if (item is double || item is float)
+				{
+					fmt = "R";
+				}
+				else if (item is DateTime || item is DateTimeOffset)
+				{
+					fmt = "O";
+				}
+				return $"({item.GetType().Name}) {formattable.ToString(fmt, CultureInfo.InvariantCulture)}";
+			}
+
+			if (type.IsArray)
+			{ // Array
+				Array arr = (Array) item;
+				var elType = type.GetElementType()!;
+				if (typeof(IFormattable).IsAssignableFrom(elType))
+				{
+					return $"({elType.Name}[{arr.Length}]) [ {string.Join(", ", arr.Cast<IFormattable>().Select(x => x.ToString(null, CultureInfo.InvariantCulture)))} ]";
+				}
+				return $"({elType.Name}[{arr.Length}]) [{string.Join(", ", arr.Cast<object>().Select(x => Stringify(x)))}]";
+			}
+
+			// Alea Jacta Est
+			return $"({type.Name}) {item.ToString()}";
+		}
+
+		[DebuggerNonUserCode]
+		public static void Log(object? item)
+		{
+			Log(item as string ?? Stringify(item));
 		}
 
 		[DebuggerStepThrough]

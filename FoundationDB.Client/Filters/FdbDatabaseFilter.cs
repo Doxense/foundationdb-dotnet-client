@@ -66,7 +66,7 @@ namespace FoundationDB.Filters
 
 		protected FdbDatabaseFilter([NotNull] IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
-			Contract.NotNull(database, nameof(database));
+			Contract.NotNull(database);
 
 			m_database = database;
 			m_readOnly = forceReadOnly || database.IsReadOnly;

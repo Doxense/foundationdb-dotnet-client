@@ -42,7 +42,7 @@ namespace FoundationDB.Filters
 		[NotNull]
 		public static IFdbReadOnlyTransaction AsReadOnly([NotNull] this IFdbTransaction trans)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			if (trans.IsReadOnly)
 			{ // this is already read-only

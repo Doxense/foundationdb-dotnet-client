@@ -20,7 +20,7 @@ namespace FoundationDB.DependencyInjection
 
 		public FdbDatabaseTombstoneProvider([CanBeNull] IFdbDatabaseScopeProvider parent, [NotNull] Exception error, CancellationToken lifetime)
 		{
-			Contract.Requires(error != null);
+			Contract.Debug.Requires(error != null);
 			this.Parent = parent;
 			this.Error = error;
 			this.FailedTask = Task.FromException<IFdbDatabase>(error);

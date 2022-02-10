@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 
 		internal FdbWatch([NotNull] FdbFuture<Slice> future, Slice key)
 		{
-			Contract.Requires(future != null);
+			Contract.Debug.Requires(future != null);
 			this.Future = future;
 			this.Key = key;
 		}

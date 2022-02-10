@@ -91,13 +91,13 @@ namespace FoundationDB.Client.Tests
 			var cmp = Slice.Comparer.Default;
 			Assert.That(cmp, Is.Not.Null);
 
-			Assert.That(cmp.Compare(Slice.Nil, Slice.Nil), Is.Zero);
-			Assert.That(cmp.Compare(Slice.Empty, Slice.Empty), Is.Zero);
-			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(42)), Is.Zero);
+			Assert.That(cmp.Compare(Slice.Nil, Slice.Nil), Is.EqualTo(0));
+			Assert.That(cmp.Compare(Slice.Empty, Slice.Empty), Is.EqualTo(0));
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(42)), Is.EqualTo(0));
 
 			//REVIEW: Inconsistency: compare(nil, empty) == 0, but Equals(nil, empty) == false
-			Assert.That(cmp.Compare(Slice.Nil, Slice.Empty), Is.Zero, "Nil and Empty are considered similar regarding ordering");
-			Assert.That(cmp.Compare(Slice.Empty, Slice.Nil), Is.Zero, "Nil and Empty are considered similar regarding ordering");
+			Assert.That(cmp.Compare(Slice.Nil, Slice.Empty), Is.EqualTo(0), "Nil and Empty are considered similar regarding ordering");
+			Assert.That(cmp.Compare(Slice.Empty, Slice.Nil), Is.EqualTo(0), "Nil and Empty are considered similar regarding ordering");
 
 			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(77)), Is.LessThan(0));
 			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(21)), Is.GreaterThan(0));

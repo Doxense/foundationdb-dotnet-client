@@ -59,7 +59,7 @@ namespace System
 				//REVIEW: cmp(Nil, Empty) returns 0 but Nil != Empty ?
 				if (x.Count == 0) return y.Count == 0 ? 0 : -1;
 				if (y.Count == 0) return +1;
-				return UnsafeHelpers.Compare(x.Array, x.Offset, x.Count, y.Array, y.Offset, y.Count);
+				return x.Span.SequenceCompareTo(y.Span);
 			}
 
 			/// <summary>Checks if two slices are equal.</summary>
@@ -68,7 +68,8 @@ namespace System
 			/// <returns>true if <paramref name="x"/> and <paramref name="y"/> have the same size and contain the same sequence of bytes; otherwise, false.</returns>
 			public bool Equals(Slice x, Slice y)
 			{
-				return x.Count == y.Count && UnsafeHelpers.SameBytes(x.Array, x.Offset, y.Array, y.Offset, y.Count);
+				if (x.Array == null) return y.Array == null;
+				return x.Count == y.Count && y.Array != null && x.Span.SequenceEqual(y.Span);
 			}
 
 			/// <summary>Computes the hash code of a slice</summary>
@@ -76,7 +77,7 @@ namespace System
 			/// <returns>A 32-bit signed hash coded calculated from all the bytes in the slice</returns>
 			public int GetHashCode(Slice obj)
 			{
-				return obj.Array == null ? 0 : UnsafeHelpers.ComputeHashCode(obj.Array, obj.Offset, obj.Count);
+				return obj.Array == null ? 0 : UnsafeHelpers.ComputeHashCode(obj.Span);
 			}
 
 			int IComparer<KeyValuePair<Slice, Slice>>.Compare(KeyValuePair<Slice, Slice> x, KeyValuePair<Slice, Slice> y)

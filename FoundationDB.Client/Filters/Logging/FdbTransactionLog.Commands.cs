@@ -280,7 +280,7 @@ namespace FoundationDB.Filters.Logging
 
 			public DirectoryKeyResolver([NotNull] Dictionary<Slice, string> knownSubspaces)
 			{
-				Contract.Requires(knownSubspaces != null);
+				Contract.Debug.Requires(knownSubspaces != null);
 				var prefixes = new Slice[knownSubspaces.Count];
 				var paths = new string[knownSubspaces.Count];
 				int p = 0;
@@ -676,7 +676,7 @@ namespace FoundationDB.Filters.Logging
 
 			public GetValuesCommand([NotNull] Slice[] keys)
 			{
-				Contract.Requires(keys != null);
+				Contract.Debug.Requires(keys != null);
 				this.Keys = keys;
 			}
 
@@ -732,7 +732,7 @@ namespace FoundationDB.Filters.Logging
 
 			public GetKeysCommand([NotNull] KeySelector[] selectors)
 			{
-				Contract.Requires(selectors != null);
+				Contract.Debug.Requires(selectors != null);
 				this.Selectors = selectors;
 			}
 

@@ -33,6 +33,7 @@ namespace Doxense.Memory
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods to work with bits</summary>
@@ -191,7 +192,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static int Align(int size, [Positive] int alignment, int minimum = 0)
 		{
-			//Contract.Requires(alignment > 0);
 			long x = Math.Max(size, minimum);
 			x += alignment - 1;
 			x /= alignment;
@@ -207,7 +207,6 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int AlignPowerOfTwo(int size, [PowerOfTwo] int powerOfTwo = 16)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			if (size <= 0)
 			{
 				return size < 0 ? 0 : powerOfTwo;
@@ -229,7 +228,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static uint Align(uint size, uint alignment, uint minimum = 0)
 		{
-			//Contract.Requires(alignment > 0);
 			ulong x = Math.Max(size, minimum);
 			x += alignment - 1;
 			x /= alignment;
@@ -245,7 +243,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static uint AlignPowerOfTwo(uint size, [PowerOfTwo] uint powerOfTwo = 16U)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			if (size == 0) return powerOfTwo;
 			uint mask = powerOfTwo - 1;
 			// force an exception if we overflow above 4GB
@@ -262,7 +259,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static long Align(long size, [Positive] long alignment, long minimum = 0)
 		{
-			//Contract.Requires(alignment > 0);
 			long x = Math.Max(size, minimum);
 			// we have to divide first and check the modulo, because adding (alignment+1) before could overflow at the wrong time
 			long y = x /alignment;
@@ -278,7 +274,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static long AlignPowerOfTwo(long size, [PowerOfTwo] long powerOfTwo = 16L)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			if (size <= 0)
 			{
 				return size < 0 ? 0 : powerOfTwo;
@@ -300,7 +295,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static ulong Align(ulong size, ulong alignment, ulong minimum = 0)
 		{
-			//Contract.Requires(alignment > 0);
 			ulong x = Math.Max(size, minimum);
 			// we have to divide first and check the modulo, because adding (alignment+1) before could overflow at the wrong time
 			ulong y = x / alignment;
@@ -316,8 +310,6 @@ namespace Doxense.Memory
 		[Pure]
 		public static ulong AlignPowerOfTwo(ulong size, [PowerOfTwo] ulong powerOfTwo = 16UL)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
-
 			if (size == 0)
 			{
 				return powerOfTwo;
@@ -334,9 +326,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int PaddingPowerOfTwo(int size, [PowerOfTwo] int powerOfTwo = 16)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			return (~size + 1) & (powerOfTwo - 1);
-
 		}
 
 		/// <summary>Computes the number of padding bytes needed to align a buffer to a specific alignment</summary>
@@ -347,7 +337,6 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint PaddingPowerOfTwo(uint size, [PowerOfTwo] uint powerOfTwo = 16)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			return (~size + 1) & (powerOfTwo - 1);
 		}
 
@@ -359,7 +348,6 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long PaddingPowerOfTwo(long size, [PowerOfTwo] long powerOfTwo = 16)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			return (~size + 1) & (powerOfTwo - 1);
 
 		}
@@ -372,7 +360,6 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong PaddingPowerOfTwo(ulong size, [PowerOfTwo] ulong powerOfTwo = 16)
 		{
-			//Contract.Requires(BitHelpers.IsPowerOfTwo(powerOfTwo));
 			return (~size + 1) & (powerOfTwo - 1);
 		}
 

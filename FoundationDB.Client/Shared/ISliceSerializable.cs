@@ -1,5 +1,5 @@
-ï»¿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+#region BSD License
+/* Copyright (c) 2013-2022, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.DependencyInjection
+#if !USE_SHARED_FRAMEWORK
+
+namespace Doxense.Serialization
 {
 	using System;
-	using Doxense.Diagnostics.Contracts;
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
-	using Microsoft.Extensions.DependencyInjection;
+	using System.Diagnostics.CodeAnalysis;
+	using Doxense.Memory;
 
-	[PublicAPI]
-	public static class FdbDatabaseProviderBuilderExtensions
+	/// <summary>Représente la capacité de se sérialiser de manière binaire</summary>
+	public interface ISliceSerializable
 	{
-
-		[NotNull]
-		public static IFdbDatabaseProviderBuilder WithApiVersion([NotNull] this IFdbDatabaseProviderBuilder builder, int apiVersion)
-		{
-			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
-			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
-			{
-				c.ApiVersion = apiVersion;
-			});
-			return builder;
-		}
-
-		[NotNull]
-		public static IFdbDatabaseProviderBuilder WithConnectionString([NotNull] this IFdbDatabaseProviderBuilder builder, [NotNull] FdbConnectionOptions options)
-		{
-			Contract.NotNull(options);
-			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
-			{
-				c.ConnectionOptions = options;
-			});
-			return builder;
-		}
-
-		[NotNull]
-		public static IFdbDatabaseProviderBuilder WithClusterFile([NotNull] this IFdbDatabaseProviderBuilder builder, [CanBeNull] string clusterFile)
-		{
-			builder.Services.Configure<FdbDatabaseProviderOptions>(c =>
-			{
-				c.ConnectionOptions.ClusterFile = clusterFile;
-			});
-			return builder;
-		}
-
+		void WriteTo(ref SliceWriter writer);
 	}
+
+	public interface ISliceSerializer<T>
+	{
+		void WriteTo(ref SliceWriter writer, T value);
+
+		bool TryReadFrom(ref SliceReader reader, out T value);
+	}
+
 }
+
+#endif

@@ -128,7 +128,7 @@ namespace FoundationDB.Client.Native
 		[NotNull]
 		public static UnmanagedLibrary Load([NotNull] string path)
 		{
-			Contract.NotNull(path, nameof(path));
+			Contract.NotNull(path);
 
 			var handle = NativeMethods.LoadPlatformLibrary(path);
 			if (handle == null || handle.IsInvalid)

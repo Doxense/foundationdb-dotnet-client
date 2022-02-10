@@ -96,7 +96,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that will abort the retry loop if triggered.</param>
 		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(db);
 
 			this.Database = db;
 			this.Mode = mode;
@@ -119,7 +119,7 @@ namespace FoundationDB.Client
 
 		private void RegisterSuccessHandler(object handler)
 		{
-			Contract.Requires(handler is Delegate || handler is IHandleTransactionSuccess);
+			Contract.Debug.Requires(handler is Delegate || handler is IHandleTransactionSuccess);
 			lock (this)
 			{
 				var previous = this.SuccessHandlers;
@@ -201,8 +201,8 @@ namespace FoundationDB.Client
 		/// <summary>Execute a retry loop on this context</summary>
 		internal static async Task ExecuteInternal([NotNull] IFdbDatabase db, [NotNull] FdbOperationContext context, [NotNull] Delegate handler, Delegate success)
 		{
-			Contract.Requires(db != null && context != null && handler != null);
-			Contract.Requires(context.Shared);
+			Contract.Debug.Requires(db != null && context != null && handler != null);
+			Contract.Debug.Requires(context.Shared);
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
@@ -347,8 +347,8 @@ namespace FoundationDB.Client
 		[Obsolete("Will be removed soon.")]
 		public static Task RunReadAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
@@ -358,8 +358,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
@@ -376,8 +376,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunReadWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TResult>> handler, [NotNull] Action<IFdbReadOnlyTransaction, TResult> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
@@ -399,8 +399,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunReadWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbReadOnlyTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			ct.ThrowIfCancellationRequested();
 
 			TIntermediate tmp= default;
@@ -423,8 +423,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read-only operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunReadWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbReadOnlyTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			ct.ThrowIfCancellationRequested();
 
 			TIntermediate tmp= default;
@@ -451,8 +451,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -462,8 +462,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails a with non retry-able error</summary>
 		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -473,9 +473,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, [NotNull] Action<IFdbTransaction> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -485,9 +485,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, [NotNull] Func<IFdbTransaction, Task> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -497,9 +497,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, [NotNull] Func<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
@@ -516,9 +516,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Action<IFdbTransaction> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -528,9 +528,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Func<IFdbTransaction, Task> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			if (ct.IsCancellationRequested) return Task.FromCanceled(ct);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
@@ -540,8 +540,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, TResult> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
@@ -558,8 +558,8 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
@@ -576,9 +576,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TResult>> handler, [NotNull] Action<IFdbTransaction, TResult> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			ct.ThrowIfCancellationRequested();
 
 			TResult result = default;
@@ -600,9 +600,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			ct.ThrowIfCancellationRequested();
 
 			TIntermediate tmp = default;
@@ -625,9 +625,9 @@ namespace FoundationDB.Client
 		/// <summary>Run a read/write operation until it succeeds, timeouts, or fails with a non retry-able error</summary>
 		public static async Task<TResult> RunWriteWithResultAsync<TIntermediate, TResult>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<TIntermediate>> handler, [NotNull] Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(success, nameof(success));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
+			Contract.NotNull(success);
 			ct.ThrowIfCancellationRequested();
 
 			TIntermediate tmp = default;

@@ -118,7 +118,7 @@ namespace FoundationDB.Layers.Directories
 		[Pure]
 		public FdbDirectoryPath Concat([NotNull, ItemNotNull] IEnumerable<string> segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (this.IsEmpty) return Create(segments);
 			var after = new List<string>();
 			after.AddRange(this.Segments);
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Directories
 		[Pure]
 		public FdbDirectoryPath Concat([NotNull] IVarTuple segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			if (this.IsEmpty) return Create(segments);
 			var after = new List<string>();
 			after.AddRange(this.Segments);
@@ -177,14 +177,14 @@ namespace FoundationDB.Layers.Directories
 		[Pure]
 		public static FdbDirectoryPath Create([NotNull, ItemNotNull] IEnumerable<string> segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			return new FdbDirectoryPath(segments.ToArray());
 		}
 
 		[Pure]
 		public static FdbDirectoryPath Create([NotNull] string segment)
 		{
-			Contract.NotNull(segment, nameof(segment));
+			Contract.NotNull(segment);
 			return new FdbDirectoryPath(new [] { segment });
 		}
 
@@ -202,14 +202,14 @@ namespace FoundationDB.Layers.Directories
 		[Pure]
 		public static FdbDirectoryPath Create([NotNull] IVarTuple path)
 		{
-			Contract.NotNull(path, nameof(path));
+			Contract.NotNull(path);
 			return Create(path.ToArray<string>());
 		}
 
 		[Pure]
 		public static FdbDirectoryPath Create([NotNull, ItemNotNull] params string[] segments)
 		{
-			Contract.NotNull(segments, nameof(segments));
+			Contract.NotNull(segments);
 			return new FdbDirectoryPath(segments);
 		}
 
@@ -277,7 +277,7 @@ namespace FoundationDB.Layers.Directories
 		[Pure, NotNull]
 		internal static string FormatPath([NotNull, ItemNotNull] string[] paths)
 		{
-			Contract.NotNull(paths, nameof(paths));
+			Contract.NotNull(paths);
 
 			return string.Join("/", paths.Select(path => path.Contains('\\') || path.Contains('/')
 				? path.Replace("\\", "\\\\").Replace("/", "\\/")

@@ -46,9 +46,9 @@ namespace FoundationDB.Client
 		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(ranges, nameof(ranges));
-			Contract.NotNull(keySelector, nameof(keySelector));
+			Contract.NotNull(trans);
+			Contract.NotNull(ranges);
+			Contract.NotNull(keySelector);
 
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
@@ -64,10 +64,10 @@ namespace FoundationDB.Client
 		public static IAsyncEnumerable<TResult> MergeSort<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(ranges, nameof(ranges));
-			Contract.NotNull(keySelector, nameof(keySelector));
-			Contract.NotNull(resultSelector, nameof(resultSelector));
+			Contract.NotNull(trans);
+			Contract.NotNull(ranges);
+			Contract.NotNull(keySelector);
+			Contract.NotNull(resultSelector);
 
 			trans.EnsureCanRead();
 			return new MergeSortAsyncIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
@@ -82,8 +82,8 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Union<TKey, TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			Contract.NotNull(sources, nameof(sources));
-			Contract.NotNull(keySelector, nameof(keySelector));
+			Contract.NotNull(sources);
+			Contract.NotNull(keySelector);
 			return new MergeSortAsyncIterator<TResult, TKey, TResult>(
 				sources,
 				null,
@@ -96,7 +96,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Union<TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
 		{
-			Contract.NotNull(sources, nameof(sources));
+			Contract.NotNull(sources);
 			return new MergeSortAsyncIterator<TResult, TResult, TResult>(
 				sources,
 				null,
@@ -114,9 +114,9 @@ namespace FoundationDB.Client
 		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(ranges, nameof(ranges));
-			Contract.NotNull(keySelector, nameof(keySelector));
+			Contract.NotNull(trans);
+			Contract.NotNull(ranges);
+			Contract.NotNull(keySelector);
 
 			trans.EnsureCanRead();
 			return new IntersectAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
@@ -146,8 +146,8 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			Contract.NotNull(first, nameof(first));
-			Contract.NotNull(second, nameof(second));
+			Contract.NotNull(first);
+			Contract.NotNull(second);
 			return new IntersectAsyncIterator<TResult, TKey, TResult>(
 				new[] { first, second },
 				null,
@@ -160,8 +160,8 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Intersect<TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
-			Contract.NotNull(first, nameof(first));
-			Contract.NotNull(second, nameof(second));
+			Contract.NotNull(first);
+			Contract.NotNull(second);
 			return new IntersectAsyncIterator<TResult, TResult, TResult>(
 				new [] { first, second },
 				null,
@@ -174,8 +174,8 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			Contract.NotNull(sources, nameof(sources));
-			Contract.NotNull(keySelector, nameof(keySelector));
+			Contract.NotNull(sources);
+			Contract.NotNull(keySelector);
 			return new IntersectAsyncIterator<TResult, TKey, TResult>(
 				sources,
 				null,
@@ -188,7 +188,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Intersect<TResult>([NotNull] IEnumerable<IAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
 		{
-			Contract.NotNull(sources, nameof(sources));
+			Contract.NotNull(sources);
 			return new IntersectAsyncIterator<TResult, TResult, TResult>(
 				sources,
 				null,
@@ -213,9 +213,9 @@ namespace FoundationDB.Client
 		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(ranges, nameof(ranges));
-			Contract.NotNull(keySelector, nameof(keySelector));
+			Contract.NotNull(trans);
+			Contract.NotNull(ranges);
+			Contract.NotNull(keySelector);
 
 			trans.EnsureCanRead();
 			return new ExceptAsyncIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
@@ -237,7 +237,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			Contract.NotNull(ranges, nameof(ranges));
+			Contract.NotNull(ranges);
 			return Except<TKey>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, keyComparer);
 		}
 
@@ -277,7 +277,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
-			Contract.NotNull(ranges, nameof(ranges));
+			Contract.NotNull(ranges);
 			return Except<TKey, TResult>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, resultSelector, keyComparer);
 		}
 
@@ -292,9 +292,9 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, [NotNull] Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			Contract.NotNull(first, nameof(first));
-			Contract.NotNull(second, nameof(second));
-			Contract.NotNull(keySelector, nameof(keySelector));
+			Contract.NotNull(first);
+			Contract.NotNull(second);
+			Contract.NotNull(keySelector);
 			return new ExceptAsyncIterator<TResult, TKey, TResult>(
 				new[] { first, second },
 				null,
@@ -313,8 +313,8 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static IAsyncEnumerable<TResult> Except<TResult>([NotNull] this IAsyncEnumerable<TResult> first, [NotNull] IAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
-			Contract.NotNull(first, nameof(first));
-			Contract.NotNull(second, nameof(second));
+			Contract.NotNull(first);
+			Contract.NotNull(second);
 			return new ExceptAsyncIterator<TResult, TResult, TResult>(
 				new[] { first, second },
 				null,

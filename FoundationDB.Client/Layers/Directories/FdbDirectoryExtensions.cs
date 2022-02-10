@@ -49,8 +49,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, Slice.Nil), ct);
 		}
@@ -61,8 +61,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, Slice layer, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer), ct);
 		}
@@ -79,8 +79,8 @@ namespace FoundationDB.Layers.Directories
 		/// <returns></returns>
 		public static Task<FdbDirectorySubspace> TryCreateOrOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbTransaction trans, FdbDirectoryPath path, bool readOnly, Slice layer = default)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(directory);
+			Contract.NotNull(trans);
 
 			return readOnly ? directory.TryOpenAsync(trans, path, layer) : directory.CreateOrOpenAsync(trans, path, layer);
 		}
@@ -94,8 +94,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, Slice.Nil), ct);
 		}
@@ -106,8 +106,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, Slice layer, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, layer), ct);
 		}
@@ -115,8 +115,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Attempts to create a directory with the given <paramref name="path"/> (creating parent directories if necessary).</summary>
 		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, Slice.Nil), ct);
 		}
@@ -126,8 +126,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> TryCreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, Slice layer, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, layer), ct);
 		}
@@ -141,8 +141,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, Slice.Nil), ct);
 		}
@@ -152,8 +152,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> OpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, Slice layer, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, layer), ct);
 		}
@@ -161,8 +161,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, Slice.Nil), ct);
 		}
@@ -170,8 +170,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		public static Task<FdbDirectorySubspace> TryOpenAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, FdbDirectoryPath path, Slice layer, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, layer), ct);
 		}
@@ -186,8 +186,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> MoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath oldPath, FdbDirectoryPath newPath, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.MoveAsync(tr, oldPath, newPath), ct);
 		}
@@ -197,8 +197,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> TryMoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath oldPath, FdbDirectoryPath newPath, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.TryMoveAsync(tr, oldPath, newPath), ct);
 		}
@@ -213,8 +213,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> MoveToAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, FdbDirectoryPath newPath, CancellationToken ct)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => subspace.MoveToAsync(tr, newPath), ct);
 		}
@@ -224,8 +224,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> TryMoveToAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, FdbDirectoryPath newPath, CancellationToken ct)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => subspace.TryMoveToAsync(tr, newPath), ct);
 		}
@@ -239,8 +239,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), ct);
 		}
@@ -250,8 +250,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task RemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr), ct);
 		}
@@ -261,8 +261,8 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, path), ct);
 		}
@@ -272,9 +272,9 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<bool> TryRemoveAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(name, nameof(name));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
+			Contract.NotNull(name);
 
 			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, new [] { name }), ct);
 		}
@@ -288,8 +288,8 @@ namespace FoundationDB.Layers.Directories
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		public static Task<bool> ExistsAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.ExistsAsync(tr, path), ct);
 		}
@@ -298,8 +298,8 @@ namespace FoundationDB.Layers.Directories
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		public static Task<bool> ExistsAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => subspace.ExistsAsync(tr), ct);
 		}
@@ -311,8 +311,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>.</summary>
 		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.ListAsync(tr, path), ct);
 		}
@@ -320,16 +320,16 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of subdirectories of the current directory.</summary>
 		public static Task<List<string>> ListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 			return db.ReadAsync((tr) => directory.ListAsync(tr), ct);
 		}
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>, if it exists</summary>
 		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, FdbDirectoryPath path, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => directory.TryListAsync(tr, path), ct);
 		}
@@ -337,8 +337,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
 		public static Task<List<string>> ListAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => subspace.ListAsync(tr), ct);
 		}
@@ -346,8 +346,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
 		public static Task<List<string>> TryListAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbReadOnlyRetryable db, CancellationToken ct)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace);
+			Contract.NotNull(db);
 
 			return db.ReadAsync((tr) => subspace.TryListAsync(tr), ct);
 		}
@@ -359,8 +359,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Change the layer id of the <paramref name="directory"/> at <paramref name="path"/></summary>
 		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectoryLayer directory, [NotNull] IFdbRetryable db, FdbDirectoryPath path, Slice newLayer, CancellationToken ct)
 		{
-			Contract.NotNull(directory, nameof(directory));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(directory);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => directory.ChangeLayerAsync(tr, path, newLayer), ct);
 		}
@@ -368,8 +368,8 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Change the layer id of this directory</summary>
 		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectorySubspace subspace, [NotNull] IFdbRetryable db, Slice newLayer, CancellationToken ct)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
-			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace);
+			Contract.NotNull(db);
 
 			return db.ReadWriteAsync((tr) => subspace.ChangeLayerAsync(tr, newLayer), ct);
 		}

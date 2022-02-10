@@ -38,6 +38,7 @@ namespace Doxense.Memory
 
 	/// <summary>Stream that wraps a Slice for reading</summary>
 	/// <remarks>This stream is optimized for blocking and async reads</remarks>
+	[Obsolete("Use MemoryStream or Slice.ToStream instead!")]
 	public sealed class SliceStream : Stream
 	{
 		private Slice m_slice;
@@ -100,7 +101,7 @@ namespace Doxense.Memory
 
 			m_position = (int)offset;
 
-			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 
 			return offset;
 
@@ -122,7 +123,7 @@ namespace Doxense.Memory
 		/// <summary>Reads from byte from the underyling slice and advances the position within the slice by one byte, or returns -1 if the end of the slice has been reached.</summary>
 		public override int ReadByte()
 		{
-			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 
 			if (m_position < m_slice.Count)
 			{
@@ -138,7 +139,7 @@ namespace Doxense.Memory
 
 			if (!m_slice.HasValue) StreamIsClosed();
 
-			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 
 			int remaining = Math.Min(m_slice.Count - m_position, count);
 			if (remaining <= 0) return 0;
@@ -160,7 +161,7 @@ namespace Doxense.Memory
 			}
 
 			m_position += remaining;
-			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 			return remaining;
 		}
 
@@ -191,9 +192,9 @@ namespace Doxense.Memory
 		/// <summary>Asynchronously reads the bytes from the underlying slice and writes them to another stream, using a specified buffer size and cancellation token.</summary>
 		public override Task CopyToAsync(Stream destination, int bufferSize, System.Threading.CancellationToken ct)
 		{
-			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
+			Contract.Debug.Ensures(m_position >= 0 && m_position <= m_slice.Count);
 
-			Contract.NotNull(destination, nameof(destination));
+			Contract.NotNull(destination);
 			if (!destination.CanWrite) throw new ArgumentException("The destination stream cannot be written to", nameof(destination));
 
 			int remaining = m_slice.Count - m_position;
@@ -247,7 +248,7 @@ namespace Doxense.Memory
 
 		private static void ValidateBuffer(byte[] buffer, int offset, int count)
 		{
-			Contract.NotNull(buffer, nameof(buffer));
+			Contract.NotNull(buffer);
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero.");
 			if ((uint) offset > buffer.Length - count) throw ThrowHelper.ArgumentException(nameof(offset), "Buffer is too small.");
 		}

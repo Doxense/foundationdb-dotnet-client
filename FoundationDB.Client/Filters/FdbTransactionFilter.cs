@@ -54,7 +54,7 @@ namespace FoundationDB.Filters
 		/// <param name="ownsTransaction">If true, the underlying transaction will also be disposed when this instance is disposed</param>
 		protected FdbTransactionFilter([NotNull] IFdbTransaction trans, bool forceReadOnly, bool ownsTransaction)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			m_transaction = trans;
 			m_readOnly = forceReadOnly || trans.IsReadOnly;
@@ -364,7 +364,7 @@ namespace FoundationDB.Filters
 
 		protected FdbReadOnlyTransactionFilter(IFdbReadOnlyTransaction transaction)
 		{
-			Contract.NotNull(transaction, nameof(transaction));
+			Contract.NotNull(transaction);
 			m_transaction = transaction;
 		}
 

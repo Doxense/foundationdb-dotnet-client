@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 
 			public ResultIterator([NotNull] FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform)
 			{
-				Contract.Requires(query != null && transform != null);
+				Contract.Debug.Requires(query != null && transform != null);
 
 				m_query = query;
 				m_transaction = transaction ?? query.Transaction;
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 
 			private async ValueTask<bool> ReadAnotherBatchAsync()
 			{
-				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
+				Contract.Debug.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				var iterator = m_chunkIterator;
 

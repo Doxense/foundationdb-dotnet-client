@@ -41,7 +41,7 @@ namespace FoundationDB.DependencyInjection
 		[NotNull]
 		public static IFdbDatabaseProviderBuilder AddFoundationDb([NotNull] this IServiceCollection services, int apiVersion)
 		{
-			Contract.NotNull(services, nameof(services));
+			Contract.NotNull(services);
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
 
 			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
@@ -52,9 +52,9 @@ namespace FoundationDB.DependencyInjection
 		[NotNull]
 		public static IServiceCollection AddFoundationDb([NotNull] this IServiceCollection services, int apiVersion, Action<FdbDatabaseProviderOptions> configure)
 		{
-			Contract.NotNull(services, nameof(services));
+			Contract.NotNull(services);
 			Contract.GreaterThan(apiVersion, 0, nameof(apiVersion));
-			Contract.NotNull(configure, nameof(configure));
+			Contract.NotNull(configure);
 
 			services.AddSingleton<IFdbDatabaseProvider, FdbDatabaseProvider>();
 			services.Configure<FdbDatabaseProviderOptions>(c =>

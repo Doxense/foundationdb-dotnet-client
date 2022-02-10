@@ -200,8 +200,8 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public static async Task<TValue> GetAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, Slice key, [NotNull] IValueEncoder<TValue> encoder)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(trans);
+			Contract.NotNull(encoder);
 
 			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false));
 		}
@@ -241,8 +241,8 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Encoder used to convert <paramref name="value"/> into a binary slice.</param>
 		public static void Set<TValue>([NotNull] this IFdbTransaction trans, Slice key, TValue value, [NotNull] IValueEncoder<TValue> encoder)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(encoder, nameof(encoder));
+			Contract.NotNull(trans);
+			Contract.NotNull(encoder);
 
 			trans.Set(key, encoder.EncodeValue(value));
 		}
@@ -254,8 +254,8 @@ namespace FoundationDB.Client
 		/// <remarks>This method works best with streams that do not block, like a <see cref="MemoryStream"/>. For streams that may block, consider using <see cref="SetAsync(IFdbTransaction, Slice, Stream)"/> instead.</remarks>
 		public static void Set([NotNull] this IFdbTransaction trans, Slice key, [NotNull] Stream data)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(data, nameof(data));
+			Contract.NotNull(trans);
+			Contract.NotNull(data);
 
 			trans.EnsureCanWrite();
 
@@ -271,8 +271,8 @@ namespace FoundationDB.Client
 		/// <remarks>If reading from the stream takes more than 5 seconds, the transaction will not be able to commit. For streams that are stored in memory, like a MemoryStream, consider using <see cref="Set(IFdbTransaction, Slice, Stream)"/> instead.</remarks>
 		public static async Task SetAsync([NotNull] this IFdbTransaction trans, Slice key, [NotNull] Stream data)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(data, nameof(data));
+			Contract.NotNull(trans);
+			Contract.NotNull(data);
 
 			trans.EnsureCanWrite();
 
@@ -296,8 +296,8 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
 		public static void SetValues([NotNull] this IFdbTransaction trans, KeyValuePair<Slice, Slice>[] keyValuePairs)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keyValuePairs, nameof(keyValuePairs));
+			Contract.NotNull(trans);
+			Contract.NotNull(keyValuePairs);
 
 			foreach (var kv in keyValuePairs)
 			{
@@ -318,9 +318,9 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
 		public static void SetValues([NotNull] this IFdbTransaction trans, [NotNull] Slice[] keys, [NotNull] Slice[] values)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
+			Contract.NotNull(values);
 			if (values.Length != keys.Length) throw new ArgumentException("Both key and value arrays must have the same size.", nameof(values));
 
 			for (int i = 0; i < keys.Length;i++)
@@ -340,8 +340,8 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
 		public static void SetValues([NotNull] this IFdbTransaction trans, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keyValuePairs, nameof(keyValuePairs));
+			Contract.NotNull(trans);
+			Contract.NotNull(keyValuePairs);
 
 			foreach (var kv in keyValuePairs)
 			{
@@ -362,9 +362,9 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
 		public static void SetValues([NotNull] this IFdbTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IEnumerable<Slice> values)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
-			Contract.NotNull(values, nameof(values));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
+			Contract.NotNull(values);
 
 			using(var keyIter = keys.GetEnumerator())
 			using(var valueIter = values.GetEnumerator())
@@ -388,7 +388,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value to add to existing value of key.</param>
 		public static void AtomicAdd([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
@@ -403,7 +403,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static void AtomicCompareAndClear([NotNull] this IFdbTransaction trans, Slice key, Slice comparand)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, comparand, FdbMutationType.CompareAndClear);
 		}
@@ -449,7 +449,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32([NotNull] this IFdbTransaction trans, Slice key)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, PlusOne32, FdbMutationType.Add);
 		}
@@ -459,7 +459,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
 		}
@@ -471,7 +471,7 @@ namespace FoundationDB.Client
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement32([NotNull] this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, MinusOne32, FdbMutationType.Add);
 			if (clearIfZero)
@@ -485,7 +485,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64([NotNull] this IFdbTransaction trans, Slice key)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, PlusOne64, FdbMutationType.Add);
 		}
@@ -495,7 +495,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
 		}
@@ -507,7 +507,7 @@ namespace FoundationDB.Client
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement64([NotNull] this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, MinusOne64, FdbMutationType.Add);
 			if (clearIfZero)
@@ -522,7 +522,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
 		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, int value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			var arg = value == 1 ? PlusOne32 : value == -1 ? MinusOne32 : Slice.FromFixed32(value);
 			trans.Atomic(key, arg, FdbMutationType.Add);
@@ -534,7 +534,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Integer add to existing value of key. It will encoded as 4 bytes in high-endian.</param>
 		public static void AtomicAdd32([NotNull] this IFdbTransaction trans, Slice key, uint value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			var arg = value == 1 ? PlusOne32 : value == uint.MaxValue ? MinusOne32 : Slice.FromFixedU32(value);
 			trans.Atomic(key, arg, FdbMutationType.Add);
@@ -546,7 +546,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
 		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, long value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			var arg = value == 1 ? PlusOne64 : value == -1 ? MinusOne64 : Slice.FromFixed64(value);
 			trans.Atomic(key, arg, FdbMutationType.Add);
@@ -558,7 +558,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Integer add to existing value of key. It will encoded as 8 bytes in high-endian.</param>
 		public static void AtomicAdd64([NotNull] this IFdbTransaction trans, Slice key, ulong value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			var arg = value == 1 ? PlusOne64 : value == ulong.MaxValue ? MinusOne64 : Slice.FromFixedU64(value);
 			trans.Atomic(key, arg, FdbMutationType.Add);
@@ -571,7 +571,7 @@ namespace FoundationDB.Client
 		public static void AtomicAnd([NotNull] this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			//TODO: rename this to AtomicBitAnd(...) ?
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, mask, FdbMutationType.BitAnd);
 		}
@@ -583,7 +583,7 @@ namespace FoundationDB.Client
 		public static void AtomicOr([NotNull] this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			//TODO: rename this to AtomicBitOr(...) ?
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, mask, FdbMutationType.BitOr);
 		}
@@ -595,7 +595,7 @@ namespace FoundationDB.Client
 		public static void AtomicXor([NotNull] this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			//TODO: rename this to AtomicBitXOr(...) ?
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, mask, FdbMutationType.BitXor);
 		}
@@ -606,7 +606,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value to append.</param>
 		public static void AtomicAppendIfFits([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, value, FdbMutationType.AppendIfFits);
 		}
@@ -617,7 +617,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Bit mask.</param>
 		public static void AtomicMax([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, value, FdbMutationType.Max);
 		}
@@ -628,7 +628,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Bit mask.</param>
 		public static void AtomicMin([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.Atomic(key, value, FdbMutationType.Min);
 		}
@@ -667,7 +667,7 @@ namespace FoundationDB.Client
 						throw new ArgumentException("The value should contain at least one VersionStamp.", argName);
 				}
 			}
-			Contract.Assert(p >= 0 && p + token.Count <= buffer.Count);
+			Contract.Debug.Assert(p >= 0 && p + token.Count <= buffer.Count);
 
 			return p;
 		}
@@ -684,7 +684,7 @@ namespace FoundationDB.Client
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			//TODO: PERF: optimize this to not have to allocate!
 			var token = trans.CreateVersionStamp().ToSlice();
@@ -722,8 +722,8 @@ namespace FoundationDB.Client
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey([NotNull] this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.Positive(stampOffset, nameof(stampOffset));
+			Contract.NotNull(trans);
+			Contract.Positive(stampOffset);
 			if (stampOffset > key.Count - 10) throw new ArgumentException("The VersionStamp overflows past the end of the key.", nameof(stampOffset));
 
 			int apiVer = Fdb.ApiVersion;
@@ -758,7 +758,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value whose first 10 bytes will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
 		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			if (value.Count < 10) throw new ArgumentException("The value must be at least 10 bytes long.", nameof(value));
 
 			int apiVer = Fdb.ApiVersion;
@@ -778,7 +778,7 @@ namespace FoundationDB.Client
 				//TODO: PERF: optimize this to not have to allocate!
 				var token = trans.CreateVersionStamp().ToSlice();
 				var offset = GetVersionStampOffset(value, token, nameof(value));
-				Contract.Requires(offset >=0 && offset <= value.Count - 10);
+				Contract.Debug.Requires(offset >=0 && offset <= value.Count - 10);
 
 				var writer = new SliceWriter(value.Count + 4);
 				writer.WriteBytes(value);
@@ -796,8 +796,8 @@ namespace FoundationDB.Client
 		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
 		public static void SetVersionStampedValue([NotNull] this IFdbTransaction trans, Slice key, Slice value, int stampOffset)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.Positive(stampOffset, nameof(stampOffset));
+			Contract.NotNull(trans);
+			Contract.Positive(stampOffset);
 			if (stampOffset > key.Count - 10) throw new ArgumentException("The VersionStamp overflows past the end of the value.", nameof(stampOffset));
 
 			int apiVer = Fdb.ApiVersion;
@@ -834,7 +834,7 @@ namespace FoundationDB.Client
 		[Obsolete("Use the overload that takes an FdbRangeOptions argument, or use LINQ to configure the query!")]
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse = false)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			return trans.GetRange(beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
@@ -855,7 +855,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			if (beginKeyInclusive.IsNullOrEmpty) beginKeyInclusive = FdbKey.MinValue;
 			if (endKeyExclusive.IsNullOrEmpty) endKeyExclusive = FdbKey.MaxValue;
@@ -877,7 +877,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			return trans.GetRange(range.Begin, range.End, options);
 		}
@@ -895,7 +895,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			if (beginKeyInclusive.IsNullOrEmpty) beginKeyInclusive = FdbKey.MinValue;
 			if (endKeyExclusive.IsNullOrEmpty) endKeyExclusive = FdbKey.MaxValue;
@@ -911,7 +911,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		public static FdbRangeQuery<TResult> GetRange<TResult>([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			return trans.GetRange(range.Begin, range.End, transform, options);
 		}
@@ -933,7 +933,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			return trans.GetRange(
 				beginInclusive,
 				endExclusive,
@@ -946,7 +946,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			var selectors = KeySelectorPair.Create(range);
 			return trans.GetRange(
 				selectors.Begin, 
@@ -960,7 +960,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			return trans.GetRange(
 				KeySelector.FirstGreaterOrEqual(beginKeyInclusive.IsNullOrEmpty ? FdbKey.MinValue : beginKeyInclusive),
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive.IsNullOrEmpty ? FdbKey.MaxValue : endKeyExclusive),
@@ -973,7 +973,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeKeys([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			return trans.GetRange(
 				range.Begin,
 				range.End,
@@ -999,7 +999,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			return trans.GetRange(
 				beginInclusive,
 				endExclusive,
@@ -1012,7 +1012,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			var selectors = KeySelectorPair.Create(range);
 			return trans.GetRange(
 				selectors.Begin,
@@ -1026,7 +1026,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			return trans.GetRange(
 				KeySelector.FirstGreaterOrEqual(beginKeyInclusive.IsNullOrEmpty ? FdbKey.MinValue : beginKeyInclusive),
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive.IsNullOrEmpty ? FdbKey.MaxValue : endKeyExclusive),
@@ -1039,7 +1039,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull, LinqTunnel]
 		public static FdbRangeQuery<Slice> GetRangeValues([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 			return trans.GetRange(
 				range.Begin,
 				range.End,
@@ -1064,7 +1064,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
 		}
@@ -1081,7 +1081,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null, int iteration = 0)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			var sp = KeySelectorPair.Create(range);
 			return trans.GetRangeAsync(sp.Begin, sp.End, options, iteration);
@@ -1100,7 +1100,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
@@ -1118,7 +1118,7 @@ namespace FoundationDB.Client
 		/// <param name="range">Pair of keys defining the range to clear.</param>
 		public static void ClearRange([NotNull] this IFdbTransaction trans, KeyRange range)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.ClearRange(range.Begin, range.End.HasValue ? range.End : FdbKey.MaxValue);
 		}
@@ -1135,7 +1135,7 @@ namespace FoundationDB.Client
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
 		public static void AddConflictRange([NotNull] this IFdbTransaction trans, KeyRange range, FdbConflictRangeType type)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.AddConflictRange(range.Begin, range.End.HasValue ? range.End : FdbKey.MaxValue, type);
 		}
@@ -1154,7 +1154,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public static void AddReadConflictRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Read);
 		}
@@ -1180,7 +1180,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			Contract.NotNull(trans, nameof(trans));
+			Contract.NotNull(trans);
 
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Write);
 		}
@@ -1206,8 +1206,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
 
 			var array = keys as Slice[] ?? keys.ToArray();
 
@@ -1224,8 +1224,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static async Task<TValue[]> GetValuesAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IValueEncoder<TValue> decoder)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(decoder, nameof(decoder));
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
 
 			return decoder.DecodeValues(await GetValuesAsync(trans, keys).ConfigureAwait(false));
 		}
@@ -1239,8 +1239,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelector> selectors)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(selectors, nameof(selectors));
+			Contract.NotNull(trans);
+			Contract.NotNull(selectors);
 
 			var array = selectors as KeySelector[] ?? selectors.ToArray();
 
@@ -1257,8 +1257,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
 
 			var array = keys as Slice[] ?? keys.ToArray();
 
@@ -1275,11 +1275,11 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static async Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] Slice[] keys)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
 
 			var results = await trans.GetValuesAsync(keys).ConfigureAwait(false);
-			Contract.Assert(results != null && results.Length == keys.Length);
+			Contract.Debug.Assert(results != null && results.Length == keys.Length);
 
 			var array = new KeyValuePair<Slice, Slice>[results.Length];
 			for (int i = 0; i < array.Length;i++)
@@ -1299,8 +1299,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<Slice> keys, [NotNull] IValueEncoder<TValue> decoder)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
 
 			var array = keys as Slice[] ?? keys.ToArray();
 
@@ -1317,12 +1317,12 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] Slice[] keys, [NotNull] IValueEncoder<TValue> decoder)
 		{
-			Contract.NotNull(trans, nameof(trans));
-			Contract.NotNull(keys, nameof(keys));
-			Contract.NotNull(decoder, nameof(decoder));
+			Contract.NotNull(trans);
+			Contract.NotNull(keys);
+			Contract.NotNull(decoder);
 
 			var results = await trans.GetValuesAsync(keys).ConfigureAwait(false);
-			Contract.Assert(results != null && results.Length == keys.Length);
+			Contract.Debug.Assert(results != null && results.Length == keys.Length);
 
 			var array = new KeyValuePair<Slice, TValue>[results.Length];
 			for (int i = 0; i < array.Length; i++)
@@ -1344,8 +1344,8 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		public static Task<List<T>> QueryAsync<T>([NotNull] this IFdbReadOnlyRetryable db, [NotNull, InstantHandle] Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler, CancellationToken ct)
 		{
-			Contract.NotNull(db, nameof(db));
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(db);
+			Contract.NotNull(handler);
 
 			return db.ReadAsync(
 				(tr) =>

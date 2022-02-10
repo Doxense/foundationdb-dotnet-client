@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		internal TypedKeySubspace(Slice prefix, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 			: base(prefix)
 		{
-			Contract.Requires(encoder != null);
+			Contract.Debug.Requires(encoder != null);
 			this.KeyEncoder = encoder;
 			this.Keys = new TypedKeys<T1, T2>(this, this.KeyEncoder);
 		}
@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 			[NotNull] TypedKeySubspace<T1, T2> parent,
 			[NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
-			Contract.Requires(parent != null && encoder != null);
+			Contract.Debug.Requires(parent != null && encoder != null);
 			this.Parent = parent;
 			this.Encoder = encoder;
 		}

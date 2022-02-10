@@ -34,11 +34,10 @@ namespace Doxense.Memory
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
 	/// <remarks>
-	/// This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the reference to the buffer will automatically reclaim all the slices that were stored with it.
+	/// This class is useful to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the reference to the buffer will automatically reclaim all the slices that were stored with it.
 	/// This class is not thread safe.
 	/// </remarks>
 	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Size={Size}, Allocated={Allocated}")]
@@ -50,13 +49,13 @@ namespace Doxense.Memory
 		/// <summary>Default initial size of pages (doubled every time until it reached the max page size)</summary>
 		private int m_pageSize;
 		/// <summary>Current buffer</summary>
-		private byte[] m_current;
+		private byte[]? m_current;
 		/// <summary>Position of the next free slot in the current buffer</summary>
 		private int m_pos;
 		/// <summary>Number of bytes remaining in the current buffer</summary>
 		private int m_remaining;
 		/// <summary>If non null, list of previously used buffers (excluding the current buffer)</summary>
-		private List<Slice> m_chunks;
+		private List<Slice>? m_chunks;
 		/// <summary>Running total of the length of of all previously used buffers, excluding the size of the current buffer</summary>
 		private int m_allocated;
 		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>
@@ -67,11 +66,11 @@ namespace Doxense.Memory
 			: this(0)
 		{ }
 
-		/// <summary>Ceate a new slice buffer with the specified page size</summary>
+		/// <summary>Create a new slice buffer with the specified page size</summary>
 		/// <param name="pageSize">Initial page size</param>
 		public SliceBuffer(int pageSize)
 		{
-			if (pageSize < 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size cannt be less than zero");
+			if (pageSize < 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size cannot be less than zero");
 			m_pageSize = pageSize == 0 ? DefaultPageSize : BitHelpers.AlignPowerOfTwo(pageSize, 16);
 		}
 
@@ -86,12 +85,11 @@ namespace Doxense.Memory
 
 		/// <summary>Return the list of all the pages used by this buffer</summary>
 		/// <returns>Array of pages used by the buffer</returns>
-		[NotNull]
 		public Slice[] GetPages()
 		{
 			var pages = new Slice[this.PageCount];
 			m_chunks?.CopyTo(pages);
-			pages[pages.Length - 1] = new Slice(m_current, 0, m_pos);
+			pages[pages.Length - 1] = m_current.AsSlice(0, m_pos);
 			return pages;
 		}
 
@@ -119,10 +117,10 @@ namespace Doxense.Memory
 				return AllocateFallback(count);
 			}
 
-			Contract.Assert(m_current != null && m_pos >= 0);
+			Contract.Debug.Assert(m_current != null && m_pos >= 0);
 			m_pos = p + (count + extra);
 			m_remaining = r - (count + extra);
-			Contract.Ensures(m_remaining >= 0);
+			Contract.Debug.Ensures(m_remaining >= 0);
 			//note: we rely on the fact that the buffer was pre-filled with zeroes
 			return new Slice(m_current, p + extra, count);
 		}
@@ -132,7 +130,7 @@ namespace Doxense.Memory
 			// keys that are too large are best kept in their own chunks
 			if (count > (m_pageSize >> 1))
 			{
-				var tmp = Slice.Create(count);
+				var tmp = Slice.Zero(count);
 				Keep(tmp);
 				return tmp;
 			}
@@ -156,7 +154,7 @@ namespace Doxense.Memory
 			return new Slice(buffer, 0, count);
 		}
 
-		/// <summary>Copy a slice into the buffer, with optional alignement, and return a new identical slice.</summary>
+		/// <summary>Copy a slice into the buffer, with optional alignment, and return a new identical slice.</summary>
 		/// <param name="data">Data to copy in the buffer</param>
 		/// <param name="aligned">If true, align the index of first byte of the slice with a multiple of 8 bytes</param>
 		/// <returns>Slice that is the equivalent of <paramref name="data"/>, backed by the buffer.</returns>
@@ -172,7 +170,7 @@ namespace Doxense.Memory
 
 			// allocate the slice
 			var slice = Allocate(data.Count, aligned);
-			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
+			data.CopyTo(slice);
 			return slice;
 		}
 
@@ -187,15 +185,16 @@ namespace Doxense.Memory
 			if (data.Count == 0)
 			{
 				// note: we don't memoize the suffix, because in most case, it comes from a constant, and it would be a waste to copy it other and other again...
-				return suffix.Count > 0 ? suffix : data.Array == null ? Slice.Nil : Slice.Empty;
+				return suffix.Count > 0 ? suffix : data.Array == null ? default : Slice.Empty;
 			}
 
 			data.EnsureSliceIsValid();
 			suffix.EnsureSliceIsValid();
 
 			var slice = Allocate(data.Count + suffix.Count, aligned);
-			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
-			UnsafeHelpers.CopyUnsafe(slice.Array, slice.Offset + data.Count, suffix.Array, suffix.Offset, suffix.Count);
+			var span = slice.DangerousGetSpan();
+			data.CopyTo(span);
+			suffix.CopyTo(span.Slice(data.Count));
 			return slice;
 		}
 
@@ -237,7 +236,7 @@ namespace Doxense.Memory
 		/// <remarks>Any data added to the buffer WHILE the buffer is pinned MAY NOT be pinned itself! For safety, caller should make sure to write everything to the buffer before pinning it</remarks>
 		public Slice.Pinned Pin()
 		{
-			return new Slice.Pinned(this, m_current, m_chunks);
+			return new Slice.Pinned(this, m_current!, m_chunks);
 		}
 
 	}

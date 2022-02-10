@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException(nameof(prefix));
-			Contract.NotNull(keys, nameof(keys));
+			Contract.NotNull(keys);
 
 			//REVIEW: merge this code with Slice.ConcatRange!
 
@@ -194,7 +194,7 @@ namespace FoundationDB.Client
 
 			public BatchIterator(int offset, int count, int workers, int batchSize)
 			{
-				Contract.Requires(offset >= 0 && count >= 0 && workers >= 0 && batchSize >= 0);
+				Contract.Debug.Requires(offset >= 0 && count >= 0 && workers >= 0 && batchSize >= 0);
 				m_cursor = offset;
 				m_remaining = count;
 				m_workers = workers;

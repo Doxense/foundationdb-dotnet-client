@@ -92,7 +92,7 @@ namespace FoundationDB.Client.Utils
 						{
 							if (token != Token.Literal) throw SyntaxError("Expected field name in map, but found {0}", token);
 							string key = (string)m_current;
-							Contract.Assert(key != null);
+							Contract.Debug.Assert(key != null);
 
 							if ((token = ReadToken()) != Token.Colon) throw SyntaxError("Expected ':' in map, but found {0}", token);
 
@@ -337,7 +337,7 @@ namespace FoundationDB.Client.Utils
 		[CanBeNull]
 		internal static Dictionary<string, object> ParseObject([NotNull] char[] chars, int offset, int count)
 		{
-			Contract.Requires(chars != null && offset >= 0 && count >= 0);
+			Contract.Debug.Requires(chars != null && offset >= 0 && count >= 0);
 
 			var parser = new TinyJsonParser(chars, offset, count);
 			var token = parser.ReadToken();

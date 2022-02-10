@@ -22,7 +22,7 @@ namespace FoundationDB.DependencyInjection
 
 		public FdbDatabaseSingletonProvider([NotNull] IFdbDatabase db, [CanBeNull] TState state, [NotNull] CancellationTokenSource lifetime)
 		{
-			Contract.Requires(db != null && lifetime != null);
+			Contract.Debug.Requires(db != null && lifetime != null);
 			this.Db = db;
 			this.State = state;
 			this.Lifetime = lifetime;

@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Doxense.Memory.Tests
 {
+
 	//README:IMPORTANT! This source file is expected to be stored as UTF-8! If the encoding is changed, some tests below may fail because they rely on specific code points!
 
 	using NUnit.Framework;
@@ -37,6 +38,7 @@ namespace Doxense.Memory.Tests
 	using System.IO;
 	using System.Linq;
 	using System.Text;
+	using System.Threading.Tasks;
 	using FoundationDB.Client.Tests;
 
 	[TestFixture]
@@ -114,10 +116,10 @@ namespace Doxense.Memory.Tests
 		[Test]
 		public void Test_Slice_Create_With_Capacity()
 		{
-			Assert.That(Slice.Create(0).GetBytes(), Is.EqualTo(new byte[0]));
-			Assert.That(Slice.Create(16).GetBytes(), Is.EqualTo(new byte[16]));
+			Assert.That(Slice.Zero(0).GetBytes(), Is.EqualTo(new byte[0]));
+			Assert.That(Slice.Zero(16).GetBytes(), Is.EqualTo(new byte[16]));
 
-			Assert.That(() => Slice.Create(-1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Zero(-1), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
@@ -217,8 +219,8 @@ namespace Doxense.Memory.Tests
 			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(Random), 16), Throws.ArgumentNullException);
-			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => Slice.Random(default(Random), 16), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
@@ -247,7 +249,7 @@ namespace Doxense.Memory.Tests
 
 			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.ArgumentNullException);
+			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.InstanceOf<ArgumentNullException>());
 			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
 		}
 
@@ -479,7 +481,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 127 }.AsSlice().ToInt24(), Is.EqualTo((1 << 23) - 1));
 			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToInt24(), Is.EqualTo((1 << 24) - 1));
 
-			Assert.That(() => Slice.Create(4).ToInt24(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(4).ToInt24(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -504,7 +506,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 127, 255, 255 }.AsSlice().ToInt24BE(), Is.EqualTo((1 << 23) - 1));
 			Assert.That(new byte[] { 255, 255, 255 }.AsSlice().ToInt24BE(), Is.EqualTo((1 << 24) - 1));
 
-			Assert.That(() => Slice.Create(4).ToInt24BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(4).ToInt24BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -591,7 +593,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 0, 0, 0, 1 }.AsSlice().ToInt32(), Is.EqualTo(1 << 24));
 			Assert.That(new byte[] { 255, 255, 255, 127 }.AsSlice().ToInt32(), Is.EqualTo(int.MaxValue));
 
-			Assert.That(() => Slice.Create(5).ToInt32(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(5).ToInt32(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -674,7 +676,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 1, 0, 0, 0 }.AsSlice().ToInt32BE(), Is.EqualTo(1 << 24));
 			Assert.That(new byte[] { 127, 255, 255, 255 }.AsSlice().ToInt32BE(), Is.EqualTo(int.MaxValue));
 
-			Assert.That(() => Slice.Create(5).ToInt32BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(5).ToInt32BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1016,7 +1018,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 255, 255, 255, 127 }.AsSlice().ToUInt32(), Is.EqualTo((uint)int.MaxValue));
 			Assert.That(new byte[] { 255, 255, 255, 255 }.AsSlice().ToUInt32(), Is.EqualTo(uint.MaxValue));
 
-			Assert.That(() => Slice.Create(5).ToUInt32(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(5).ToUInt32(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1098,7 +1100,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(new byte[] { 127, 255, 255, 255 }.AsSlice().ToUInt32BE(), Is.EqualTo((uint)int.MaxValue));
 			Assert.That(new byte[] { 255, 255, 255, 255 }.AsSlice().ToUInt32BE(), Is.EqualTo(uint.MaxValue));
 
-			Assert.That(() => Slice.Create(5).ToUInt32BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(5).ToUInt32BE(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1397,8 +1399,8 @@ namespace Doxense.Memory.Tests
 			Verify("0000807F", float.PositiveInfinity);
 			Verify("000080FF", float.NegativeInfinity);
 
-			Assert.That(() => Slice.Create(5).ToSingle(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => Slice.Create(3).ToSingle(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(5).ToSingle(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(3).ToSingle(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -1458,8 +1460,8 @@ namespace Doxense.Memory.Tests
 			Verify("000000000000F07F", double.PositiveInfinity);
 			Verify("000000000000F0FF", double.NegativeInfinity);
 
-			Assert.That(() => Slice.Create(9).ToDouble(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => Slice.Create(7).ToDouble(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(9).ToDouble(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(7).ToDouble(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -1509,8 +1511,8 @@ namespace Doxense.Memory.Tests
 			Verify("00000000FFFFFFFFFFFFFFFFFFFFFFFF", decimal.MaxValue);
 			Verify("00000080FFFFFFFFFFFFFFFFFFFFFFFF", decimal.MinValue);
 
-			Assert.That(() => Slice.Create(15).ToDecimal(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => Slice.Create(17).ToDecimal(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(15).ToDecimal(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.Zero(17).ToDecimal(), Throws.InstanceOf<FormatException>());
 		}
 
 		#endregion
@@ -1546,7 +1548,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(Slice.Empty.ToGuid(), Is.EqualTo(Guid.Empty));
 
 			// all zeroes should also return Guid.Empty
-			Slice slice = Slice.Create(16);
+			Slice slice = Slice.Zero(16);
 			Assert.That(slice.ToGuid(), Is.EqualTo(Guid.Empty));
 
 			// RFC 4122 encoded UUIDs should be properly reversed when converted to System.GUID
@@ -1601,7 +1603,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(uuid, Is.EqualTo(Uuid128.Empty));
 
 			// all zeroes should also return Uuid128.Empty
-			Slice slice = Slice.Create(16);
+			Slice slice = Slice.Zero(16);
 			Assert.That(slice.ToUuid128(), Is.EqualTo(Uuid128.Empty));
 
 			// RFC 4122 encoded UUIDs should not keep the byte ordering
@@ -1655,7 +1657,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
 
 			// all zeroes should also return Uuid64.Empty
-			uuid = Slice.Create(8).ToUuid64();
+			uuid = Slice.Zero(8).ToUuid64();
 			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
 
 			// hexadecimal text representation
@@ -2039,7 +2041,7 @@ namespace Doxense.Memory.Tests
 			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			Assert.That(() => Slice.FromStream(null), Throws.ArgumentNullException, "Should throw if null");
+			Assert.That(() => Slice.FromStream(null), Throws.InstanceOf<ArgumentNullException>(), "Should throw if null");
 			Assert.That(Slice.FromStream(Stream.Null), Is.EqualTo(Slice.Nil), "Stream.Null should return Slice.Nil");
 
 			using(var ms = new MemoryStream())
@@ -2047,6 +2049,40 @@ namespace Doxense.Memory.Tests
 				ms.Close();
 				Assert.That(() => Slice.FromStream(ms), Throws.InstanceOf<InvalidOperationException>(), "Reading from a disposed stream should throw");
 			}
+		}
+
+		[Test]
+		public async Task Test_Slice_FromStreamAsync()
+		{
+			Slice slice;
+
+			// Reading from a MemoryStream should use the non-async path
+			using (var ms = new MemoryStream(UNICODE_BYTES))
+			{
+				slice = await Slice.FromStreamAsync(ms, this.Cancellation);
+			}
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
+
+			// Reading from a FileStream should use the async path
+			var tmp = Path.GetTempFileName();
+			try
+			{
+				File.WriteAllBytes(tmp, UNICODE_BYTES);
+				using(var fs = File.OpenRead(tmp))
+				{
+					slice = await Slice.FromStreamAsync(fs, this.Cancellation);
+				}
+			}
+			finally
+			{
+				File.Delete(tmp);
+			}
+
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
 		}
 
 		[Test]
@@ -2266,8 +2302,8 @@ namespace Doxense.Memory.Tests
 			Assert.That(joined.Length, Is.EqualTo(0));
 
 			// ReSharper disable AssignNullToNotNullAttribute
-			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.ArgumentNullException);
-			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.ArgumentNullException);
+			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.InstanceOf<ArgumentNullException>());
 			// ReSharper restore AssignNullToNotNullAttribute
 
 			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, 4), Throws.InstanceOf<ArgumentOutOfRangeException>());
@@ -2304,6 +2340,42 @@ namespace Doxense.Memory.Tests
 			// multi-bytes separator with an offset
 			var sep = Value("!<@>!").Substring(1, 3);
 			Assert.That(Value("A<@>BB<@>CCC").Split(sep), Is.EqualTo(new[] { a, b, c }));
+		}
+
+		[Test]
+		public void Test_Slice_As_ReadOnlySpan()
+		{
+			var span = Slice.Nil.Span;
+			Assert.That(span.Length, Is.Zero, "Slice.Nil => empty span");
+
+			span = Slice.Empty.Span;
+			Assert.That(span.Length, Is.Zero, "Slice.Empty => empty span");
+
+			var buffer = Encoding.ASCII.GetBytes("$$$Hello, World!$$$$$");
+			var x = buffer.AsSlice(3, 13);
+			Assume.That(x.ToStringUtf8(), Is.EqualTo("Hello, World!"));
+			var bytes = x.GetBytesOrEmpty();
+
+			span = x.Span;
+			Assert.That(span.Length, Is.EqualTo(13));
+			Assert.That((char)span[0], Is.EqualTo('H'));
+			Assert.That(span.ToArray(), Is.EqualTo(bytes));
+
+			span = x.Substring(7).Span;
+			Assert.That(span.Length, Is.EqualTo(6));
+			Assert.That((char)span[0], Is.EqualTo('W'));
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("World!")));
+
+			span = x.Substring(7, 5).Span;
+			Assert.That(span.Length, Is.EqualTo(5));
+			Assert.That((char)span[0], Is.EqualTo('W'));
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("World")));
+
+			//note: mutating the slice behind our back should be visible via the span
+			span = x.Substring(0, 5).Span;
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("Hello")));
+			buffer[4] = (byte) '3';
+			Assert.That(span.ToArray(), Is.EqualTo(Encoding.ASCII.GetBytes("H3llo")));
 		}
 
 		#region Black Magic Incantations...

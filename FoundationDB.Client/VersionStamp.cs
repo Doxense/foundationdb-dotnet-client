@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2018, Doxense SAS
+/* Copyright (c) 2013-2021, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace System
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
 	using JetBrains.Annotations;
@@ -47,8 +48,7 @@ namespace System
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>
 	{
-		//REVIEW: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
-		// => Should we keep the uppercase 'S' or not ?
+		//note: they are called "Versionstamp" in the doc, but "VersionStamp" seems more .NETy (like 'TimeSpan').
 
 		private const ulong PLACEHOLDER_VERSION = ulong.MaxValue;
 		private const ushort PLACEHOLDER_ORDER = ushort.MaxValue;
@@ -92,9 +92,9 @@ namespace System
 		{
 			unsafe
 			{
-				byte* ptr = stackalloc byte[16]; // 10 required
-				value.WriteToUnsafe(ptr);
-				ReadUnsafe(ptr, 10, out var vs);
+				Span<byte> buf = stackalloc byte[Uuid80.SizeOf]; // 10 required
+				value.WriteToUnsafe(buf);
+				ReadUnsafe(buf, out var vs);
 				return vs;
 			}
 		}
@@ -104,9 +104,9 @@ namespace System
 		{
 			unsafe
 			{
-				byte* ptr = stackalloc byte[Uuid80.SizeOf];
-				value.WriteToUnsafe(ptr);
-				ReadUnsafe(ptr, 12, out var vs);
+				Span<byte> buf = stackalloc byte[Uuid96.SizeOf]; // 12 required
+				value.WriteToUnsafe(buf);
+				ReadUnsafe(buf, out var vs);
 				return vs;
 			}
 		}
@@ -156,8 +156,8 @@ namespace System
 		{
 			unsafe
 			{
-				byte* ptr = stackalloc byte[10];
-				uuid.WriteToUnsafe(ptr);
+				byte* ptr = stackalloc byte[Uuid80.SizeOf];
+				uuid.WriteToUnsafe(new Span<byte>(ptr, Uuid80.SizeOf));
 				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
 				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
 				return new VersionStamp(version, order, NO_USER_VERSION, incomplete ? FLAGS_IS_INCOMPLETE : FLAGS_NONE);
@@ -177,8 +177,8 @@ namespace System
 		{
 			unsafe
 			{
-				byte* ptr = stackalloc byte[10];
-				uuid.WriteToUnsafe(ptr);
+				byte* ptr = stackalloc byte[Uuid80.SizeOf];
+				uuid.WriteToUnsafe(new Span<byte>(ptr, Uuid80.SizeOf));
 				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
 				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
 				return new VersionStamp(version, order, userVersion, incomplete ? (ushort) (FLAGS_IS_INCOMPLETE | FLAGS_HAS_VERSION) : FLAGS_HAS_VERSION);
@@ -191,8 +191,8 @@ namespace System
 		{
 			unsafe
 			{
-				byte* ptr = stackalloc byte[12];
-				uuid.WriteToUnsafe(ptr);
+				byte* ptr = stackalloc byte[Uuid96.SizeOf];
+				uuid.WriteToUnsafe(new Span<byte>(ptr, Uuid96.SizeOf));
 				ulong version = UnsafeHelpers.LoadUInt64BE(ptr);
 				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
 				ushort userVersion = UnsafeHelpers.LoadUInt16BE(ptr + 10);
@@ -263,15 +263,9 @@ namespace System
 		public Slice ToSlice()
 		{
 			int len = GetLength(); // 10 or 12
-			var tmp = Slice.Create(len);
-			unsafe
-			{
-				fixed (byte* ptr = &tmp.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(ptr, len, in this);
-				}
-			}
-			return tmp;
+			var tmp = new byte[len];
+			WriteUnsafe(tmp.AsSpan(), in this);
+			return new Slice(tmp);
 		}
 
 		/// <summary>Convert this 80-bits VersionStamp into a 80-bits UUID</summary>
@@ -280,8 +274,8 @@ namespace System
 			if (this.HasUserVersion) throw new InvalidOperationException("Cannot convert 96-bit VersionStamp into a 80-bit UUID.");
 			unsafe
 			{
-				byte* ptr = stackalloc byte[Uuid80.SizeOf];
-				WriteUnsafe(ptr, 10, in this);
+				Span<byte> ptr = stackalloc byte[Uuid80.SizeOf];
+				WriteUnsafe(ptr, in this);
 				Uuid80.ReadUnsafe(ptr, out var res);
 				return res;
 			}
@@ -293,47 +287,51 @@ namespace System
 			if (!this.HasUserVersion) throw new InvalidOperationException("Cannot convert 80-bit VersionStamp into a 96-bit UUID.");
 			unsafe
 			{
-				byte* ptr = stackalloc byte[16]; // 12 required
-				WriteUnsafe(ptr, 12, in this);
+				Span<byte> ptr = stackalloc byte[Uuid96.SizeOf];
+				WriteUnsafe(ptr, in this);
 				Uuid96.ReadUnsafe(ptr, out var res);
 				return res;
 			}
 		}
 
-		public void WriteTo(in Slice buffer)
+		public void WriteTo(Span<byte> buffer)
 		{
 			int len = GetLength(); // 10 or 12
-			if (buffer.Count < len) throw new ArgumentException($"The target buffer must be at least {len} bytes long.");
-			unsafe
-			{
-				fixed (byte* ptr = &buffer.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(ptr, len, in this);
-				}
-			}
+			if (buffer.Length < len) throw new ArgumentException($"The target buffer must be at least {len} bytes long.");
+			WriteUnsafe(buffer.Slice(0, len), in this);
+		}
+
+		public bool TryWriteTo(Span<byte> buffer)
+		{
+			int len = GetLength(); // 10 or 12
+			if (buffer.Length < len) return false;
+			WriteUnsafe(buffer.Slice(0, len), in this);
+			return true;
 		}
 
 		public void WriteTo(ref SliceWriter writer)
 		{
-			var tmp = writer.Allocate(GetLength());
-			unsafe
-			{
-				fixed (byte* ptr = &tmp.DangerousGetPinnableReference())
-				{
-					WriteUnsafe(ptr, tmp.Count, in this);
-				}
-			}
+			WriteUnsafe(writer.AllocateSpan(GetLength()), in this);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe void WriteUnsafe(byte* ptr, int len, in VersionStamp vs)
+		internal void WriteToUnsafe(Span<byte> buffer)
 		{
-			Contract.Debug.Assert(len == 10 || len == 12);
-			UnsafeHelpers.StoreUInt64BE(ptr, vs.TransactionVersion);
-			UnsafeHelpers.StoreUInt16BE(ptr + 8, vs.TransactionOrder);
-			if (len == 12)
+			WriteUnsafe(buffer, in this);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static unsafe void WriteUnsafe(Span<byte> buffer, in VersionStamp vs)
+		{
+			Contract.Debug.Assert(buffer.Length == 10 || buffer.Length == 12, "Buffer length must be 10 or 12");
+			fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
 			{
-				UnsafeHelpers.StoreUInt16BE(ptr + 10, vs.UserVersion);
+				UnsafeHelpers.StoreUInt64BE(ptr, vs.TransactionVersion);
+				UnsafeHelpers.StoreUInt16BE(ptr + 8, vs.TransactionOrder);
+				if (buffer.Length >= 12)
+				{
+					UnsafeHelpers.StoreUInt16BE(ptr + 10, vs.UserVersion);
+				}
 			}
 		}
 
@@ -353,27 +351,44 @@ namespace System
 				vs = default;
 				return false;
 			}
-			unsafe
-			{
-				fixed (byte* ptr = &data.DangerousGetPinnableReference())
-				{
-					ReadUnsafe(ptr, data.Count, out vs);
-					return true;
-				}
-			}
+			ReadUnsafe(data.Span, out vs);
+			return true;
 		}
 
-		internal static unsafe void ReadUnsafe(byte* ptr, int len, out VersionStamp vs)
+		/// <summary>Parse a VersionStamp from a sequence of 10 bytes</summary>
+		/// <exception cref="FormatException">If the buffer length is not exactly 12 bytes</exception>
+		[Pure]
+		public static VersionStamp Parse(ReadOnlySpan<byte> data)
 		{
-			Contract.Debug.Assert(len == 10 || len == 12);
-			// reads a complete 12 bytes VersionStamp
-			ulong ver = UnsafeHelpers.LoadUInt64BE(ptr);
-			ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
-			ushort idx = len == 10 ? NO_USER_VERSION : UnsafeHelpers.LoadUInt16BE(ptr + 10);
-			ushort flags = FLAGS_NONE;
-			if (len == 12) flags |= FLAGS_HAS_VERSION;
-			if ((ver & HSB_VERSION) != 0) flags |= FLAGS_IS_INCOMPLETE;
-			vs = new VersionStamp(ver, order, idx, flags);
+			return TryParse(data, out var vs) ? vs : throw new FormatException("A VersionStamp is either 10 or 12 bytes.");
+		}
+
+		/// <summary>Try parsing a VersionStamp from a sequence of bytes</summary>
+		public static bool TryParse(ReadOnlySpan<byte> data, out VersionStamp vs)
+		{
+			if (data.Length != 10 && data.Length != 12)
+			{
+				vs = default;
+				return false;
+			}
+			ReadUnsafe(data, out vs);
+			return true;
+		}
+
+		public static unsafe void ReadUnsafe(ReadOnlySpan<byte> buf, out VersionStamp vs)
+		{
+			// reads a complete 10 or 12 bytes VersionStamp
+			Contract.Debug.Assert(buf.Length == 10 || buf.Length == 12);
+			fixed (byte* ptr = &MemoryMarshal.GetReference(buf))
+			{
+				ulong ver = UnsafeHelpers.LoadUInt64BE(ptr);
+				ushort order = UnsafeHelpers.LoadUInt16BE(ptr + 8);
+				ushort idx = buf.Length == 10 ? NO_USER_VERSION : UnsafeHelpers.LoadUInt16BE(ptr + 10);
+				ushort flags = FLAGS_NONE;
+				if (buf.Length == 12) flags |= FLAGS_HAS_VERSION;
+				if ((ver & HSB_VERSION) != 0) flags |= FLAGS_IS_INCOMPLETE;
+				vs = new VersionStamp(ver, order, idx, flags);
+			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -390,7 +405,7 @@ namespace System
 
 		#region Equality, Comparision, ...
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			return obj is VersionStamp vs && Equals(vs);
 		}

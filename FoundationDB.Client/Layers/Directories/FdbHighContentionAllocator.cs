@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="subspace"></param>
 		public FdbHighContentionAllocator(IDynamicKeySubspace subspace)
 		{
-			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(subspace);
 
 			this.Subspace = subspace;
 			this.Counters = subspace.Partition.ByKey(COUNTERS);

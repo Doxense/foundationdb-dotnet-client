@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		protected FdbDatabase(IFdbDatabaseHandler handler, IKeySubspace contentSubspace, IFdbDirectory directory, bool readOnly)
 		{
-			Contract.Requires(handler != null && contentSubspace != null);
+			Contract.Debug.Requires(handler != null && contentSubspace != null);
 
 			m_handler = handler;
 			m_readOnly = readOnly;
@@ -111,8 +111,8 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		public static FdbDatabase Create([NotNull] IFdbDatabaseHandler handler, [NotNull] IKeySubspace contentSubspace, [CanBeNull] IFdbDirectory directory, bool readOnly)
 		{
-			Contract.NotNull(handler, nameof(handler));
-			Contract.NotNull(contentSubspace, nameof(contentSubspace));
+			Contract.NotNull(handler);
+			Contract.NotNull(contentSubspace);
 
 			return new FdbDatabase(handler, contentSubspace, directory, readOnly);
 		}
@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 						if (m_directory == null)
 						{
 							m_directory = GetRootDirectory();
-							Contract.Assert(m_directory != null);
+							Contract.Debug.Assert(m_directory != null);
 						}
 					}
 				}
@@ -187,7 +187,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context in which the transaction will run</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
-			Contract.Requires(context?.Database != null);
+			Contract.Debug.Requires(context?.Database != null);
 			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only
@@ -221,7 +221,7 @@ namespace FoundationDB.Client
 
 		internal void EnsureTransactionIsValid(FdbTransaction transaction)
 		{
-			Contract.Requires(transaction != null);
+			Contract.Debug.Requires(transaction != null);
 			if (m_disposed) ThrowIfDisposed();
 			//TODO?
 		}
@@ -229,7 +229,7 @@ namespace FoundationDB.Client
 		/// <summary>Add a new transaction to the list of tracked transactions</summary>
 		internal void RegisterTransaction(FdbTransaction transaction)
 		{
-			Contract.Requires(transaction != null);
+			Contract.Debug.Requires(transaction != null);
 
 			if (!m_transactions.TryAdd(transaction.Id, transaction))
 			{
@@ -241,7 +241,7 @@ namespace FoundationDB.Client
 		/// <param name="transaction"></param>
 		internal void UnregisterTransaction(FdbTransaction transaction)
 		{
-			Contract.Requires(transaction != null);
+			Contract.Debug.Requires(transaction != null);
 
 			//do nothing is already disposed
 			if (m_disposed) return;
@@ -402,7 +402,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
 		public Task ReadWriteAsync<TState>(TState state, [InstantHandle] Func<IFdbTransaction, TState, Task> handler, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 			return FdbOperationContext.RunWriteAsync(this, (tr) => handler(tr, state), ct);
 		}
 
@@ -434,7 +434,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
 		public Task<TResult> ReadWriteAsync<TState, TResult>(TState state, [InstantHandle] Func<IFdbTransaction, TState, Task<TResult>> handler, CancellationToken ct)
 		{
-			Contract.NotNull(handler, nameof(handler));
+			Contract.NotNull(handler);
 			return FdbOperationContext.RunWriteWithResultAsync<TResult>(this, (tr) => handler(tr, state), ct);
 		}
 
@@ -774,7 +774,7 @@ namespace FoundationDB.Client
 
 		public IFdbDatabaseScopeProvider<TState> CreateScope<TState>(Func<IFdbDatabase, CancellationToken, Task<(IFdbDatabase Db, TState State)>> start, CancellationToken lifetime = default)
 		{
-			Contract.NotNull(start, nameof(start));
+			Contract.NotNull(start);
 			return new FdbDatabaseScopeProvider<TState>(this, start, lifetime);
 		}
 

@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 
 			public PagingIterator([NotNull] FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
 			{
-				Contract.Requires(query != null);
+				Contract.Debug.Requires(query != null);
 
 				this.Query = query;
 				this.Transaction = transaction ?? query.Transaction;
@@ -161,8 +161,8 @@ namespace FoundationDB.Client
 			/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
 			private Task<bool> FetchNextPageAsync()
 			{
-				Contract.Requires(!this.AtEnd);
-				Contract.Requires(this.Iteration >= 0);
+				Contract.Debug.Requires(!this.AtEnd);
+				Contract.Debug.Requires(this.Iteration >= 0);
 
 				m_ct.ThrowIfCancellationRequested();
 				this.Transaction.EnsureCanRead();
