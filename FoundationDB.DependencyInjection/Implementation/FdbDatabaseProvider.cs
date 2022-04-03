@@ -113,6 +113,10 @@ namespace FoundationDB.DependencyInjection
 
 		public void SetDatabase(IFdbDatabase? db, Exception? e)
 		{
+			if (this.Db != null && this.Db != db)
+			{ // Dispose the previous instance
+				this.Db?.Dispose();
+			}
 			this.Db = db;
 			this.Error = e;
 			var tcs = Volatile.Read(ref this.InitTask);
@@ -149,6 +153,7 @@ namespace FoundationDB.DependencyInjection
 		{
 			this.IsAvailable = false;
 			this.Db?.Dispose();
+			this.Db = null;
 			this.Error = new ObjectDisposedException("Database has been shut down.");
 			this.DbTask = Task.FromException<IFdbDatabase>(this.Error);
 			Interlocked.Exchange(ref this.InitTask, null)?.TrySetCanceled();
