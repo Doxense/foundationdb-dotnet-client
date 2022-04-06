@@ -1403,10 +1403,10 @@ namespace FoundationDB.Client
 				switch(state)
 				{
 					case STATE_CANCELED: return; // already the case !
+					case STATE_DISPOSED: return; // it's already dead !
 
 					case STATE_COMMITTED: throw new InvalidOperationException("Cannot cancel transaction that has already been committed");
 					case STATE_FAILED: throw new InvalidOperationException("Cannot cancel transaction because it is in a failed state");
-					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot cancel transaction because it already has been disposed");
 					default: throw new InvalidOperationException($"Cannot cancel transaction because it is in unknown state {state}");
 				}
 			}
