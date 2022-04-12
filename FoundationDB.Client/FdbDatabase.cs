@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 		private bool m_readOnly;
 
 		/// <summary>Global cancellation source that is cancelled when the current db instance gets disposed.</summary>
-		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
+		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
 		private volatile bool m_disposed;
@@ -87,6 +87,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new database instance</summary>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
+		/// <param name="directory">Directory Layer attached to this instance</param>
 		/// <param name="root">Root location of this database</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		protected FdbDatabase(IFdbDatabaseHandler handler, FdbDirectoryLayer directory, FdbDirectorySubspaceLocation root, bool readOnly)
@@ -97,6 +98,9 @@ namespace FoundationDB.Client
 			m_readOnly = readOnly;
 			m_root = root;
 			m_directory = directory;
+			var cts = new CancellationTokenSource();
+			m_cts = cts;
+			this.Cancellation = cts.Token;
 		}
 
 		/// <summary>Create a new Database instance from a database handler</summary>
@@ -124,7 +128,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		//REVIEW: rename this to 'Cancellation'? ('Token' is a keyword that may have different meaning in some apps)
-		public CancellationToken Cancellation => m_cts.Token;
+		public CancellationToken Cancellation { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		public bool IsReadOnly => m_readOnly;
@@ -242,13 +246,13 @@ namespace FoundationDB.Client
 			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
 		}
 
-		public void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default)
+		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
 		{
 			this.DefaultLogHandler = handler;
 			this.DefaultLogOptions = options;
 		}
 
-		private Action<FdbTransactionLog> DefaultLogHandler { get; set; }
+		private Action<FdbTransactionLog>? DefaultLogHandler { get; set; }
 
 		private FdbLoggingOptions DefaultLogOptions { get; set; }
 

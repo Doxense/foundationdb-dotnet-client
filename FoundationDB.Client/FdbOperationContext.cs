@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Threading.Tasks;
-	using FoundationDB.Filters.Logging;
+	using FoundationDB.Client.Core;
 	using JetBrains.Annotations;
 
 	/// <summary>
@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 		internal CancellationTokenSource? TokenSource { get; }
 
 		/// <summary>Transaction instance currently being used by this context</summary>
-		private IFdbTransaction? Transaction;
+		private FdbTransaction? Transaction;
 		//note: field accessed via interlocked operations!
 
 		/// <summary>Create a new retry loop operation context</summary>
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 			this.Cancellation = token;
 		}
 
-		#region Sucess Handlers...
+		#region Success Handlers...
 
 		/// <summary>List of one or more state change callback</summary>
 		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
@@ -1233,7 +1233,7 @@ namespace FoundationDB.Client
 						catch (Exception e)
 						{
 							context.PreviousError = FdbError.UnknownError;
-							if (context.Transaction.IsLogged()) context.Transaction.Annotate($"Handler failed with error: [{e.GetType().Name}] {e.Message}");
+							if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Handler failed with error: [{e.GetType().Name}] {e.Message}");
 
 							// execute any state callbacks, if there are any
 							if (context.StateCallbacks != null)
@@ -1302,7 +1302,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal void AttachTransaction(IFdbTransaction trans)
+		internal void AttachTransaction(FdbTransaction trans)
 		{
 			if (Interlocked.CompareExchange(ref this.Transaction, trans, null) != null)
 			{
@@ -1310,11 +1310,13 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal void ReleaseTransaction(IFdbTransaction trans)
+		internal void ReleaseTransaction(FdbTransaction trans)
 		{
 			// only if this is still the current one!
 			Interlocked.CompareExchange(ref this.Transaction, null, trans);
 		}
+
+		public IFdbTransactionHandler GetTransactionHandler() => this.Transaction?.Handler ?? throw new InvalidOperationException("Transaction has already been disposed");
 
 		public void Dispose()
 		{
