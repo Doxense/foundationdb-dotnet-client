@@ -46,6 +46,10 @@ namespace FoundationDB.Client.Core
 
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
+		int GetSelectedApiVersion();
+
+		int GetMaxApiVersion();
+
 	}
 
 }

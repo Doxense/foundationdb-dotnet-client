@@ -136,6 +136,9 @@ namespace FoundationDB.Client
 		/// <summary>Return the DirectoryLayer instance used by this database</summary>
 		public FdbDirectoryLayer DirectoryLayer => m_directory;
 
+		/// <summary>Internal handler</summary>
+		internal IFdbDatabaseHandler Handler => m_handler;
+
 		#endregion
 
 		#region Transaction Management...

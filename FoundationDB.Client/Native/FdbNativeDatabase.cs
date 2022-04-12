@@ -150,6 +150,10 @@ namespace FoundationDB.Client.Native
 
 		public bool IsClosed => m_handle.IsClosed;
 
+		public int GetSelectedApiVersion() => Fdb.ApiVersion;
+
+		public int GetMaxApiVersion() => FdbNative.GetMaxApiVersion();
+
 		public void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data)
 		{
 			Fdb.EnsureNotOnNetworkThread();

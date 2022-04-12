@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2020, Doxense SAS
+/* Copyright (c) 2013-2022, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -464,7 +464,7 @@ namespace FoundationDB.Client
 		internal void SetMetadataVersionKey(Slice key)
 		{
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
-			EnsureMutationTypeIsSupported(FdbMutationType.VersionStampedValue, Fdb.ApiVersion);
+			EnsureMutationTypeIsSupported(FdbMutationType.VersionStampedValue);
 
 			// note: we have to lock because there could be another thread calling GetMetadataVersionKey at the same time!
 			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent read from throwing error code 1036
@@ -868,14 +868,16 @@ namespace FoundationDB.Client
 
 		/// <summary>Checks that this type of mutation is supported by the currently selected API level</summary>
 		/// <param name="mutation">Mutation type</param>
-		/// <param name="selectedApiVersion">Select API level (200, 300, ...)</param>
 		/// <exception cref="FdbException">An error with code <see cref="FdbError.InvalidMutationType"/> if the type of mutation is not supported by this API level.</exception>
-		private static void EnsureMutationTypeIsSupported(FdbMutationType mutation, int selectedApiVersion)
+		private void EnsureMutationTypeIsSupported(FdbMutationType mutation)
 		{
+			var dbHandler = this.Database.Handler;
+			int selectedApiVersion = dbHandler.GetSelectedApiVersion();
+
 			if (selectedApiVersion < 200)
 			{ // mutations were not available at this time
 
-				if (Fdb.GetMaxApiVersion() >= 200)
+				if (this.Database.Handler.GetMaxApiVersion() >= 200)
 				{ // but the installed client could support it
 					throw new NotSupportedException("Atomic mutations are only supported starting from API level 200. You need to select API level 200 or more at the start of your process.");
 				}
@@ -992,7 +994,7 @@ namespace FoundationDB.Client
 			FdbKey.EnsureValueIsValid(param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
-			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
+			EnsureMutationTypeIsSupported(mutation);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", $"Atomic {mutation.ToString()} on '{FdbKey.Dump(key)}' = {Slice.Dump(param)}");
