@@ -30,6 +30,7 @@ namespace FoundationDB.DependencyInjection
 {
 	using System;
 	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
 
 	public sealed class FdbDatabaseProviderOptions
 	{
@@ -41,5 +42,14 @@ namespace FoundationDB.DependencyInjection
 		/// <summary>If true, the first attempt to get the database instance will start the connection, if it is not already connected.</summary>
 		/// <remarks>If false, the application must call <see cref="IFdbDatabaseProvider.Start"/> sometimes during startup</remarks>
 		public bool AutoStart { get; set; }
+
+		/// <summary>If not null, log handler that will be applied to all transactions</summary>
+		public Action<FdbTransactionLog>? DefaultLogHandler { get; set; }
+
+		/// <summary>Default logging options</summary>
+		/// <remarks>Only used if <see cref="DefaultLogHandler"/> is not <c>null</c></remarks>
+		public FdbLoggingOptions DefaultLogOptions { get; set; }
+
 	}
+
 }

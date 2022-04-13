@@ -283,10 +283,12 @@ namespace FoundationDB.Client
 
 		internal void SetLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options)
 		{
+			//note: it is safe not to take a lock here, because we are called before the instance is returned to the caller
 			if (m_log != null) throw new InvalidOperationException("There is already a log handler attached to this transaction.");
 			m_logHandler = handler;
-			m_log = new FdbTransactionLog(options);
-			m_log.Start(this);
+			var log = new FdbTransactionLog(options);
+			log.Start(this);
+			m_log = log;
 		}
 
 		#endregion
@@ -317,18 +319,14 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private Task<long> FetchReadVersionInternal()
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
+			return m_log == null ? m_handler.GetReadVersionAsync(m_cancellation) : ExecuteLogged(this);
+
+			static Task<long> ExecuteLogged(FdbTransaction self)
+				=> self.m_log!.ExecuteAsync(
+					self,
 					new FdbTransactionLog.GetReadVersionCommand(),
 					(tr, cmd) => tr.m_handler.GetReadVersionAsync(tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetReadVersionAsync(m_cancellation);
-			}
 		}
 
 		/// <inheritdoc />
@@ -579,18 +577,14 @@ namespace FoundationDB.Client
 
 		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
-					new FdbTransactionLog.GetCommand(m_log.Grab(key)) { Snapshot =  snapshot },
+			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot);
+
+			static Task<Slice> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetCommand(self.m_log.Grab(key)) { Snapshot =  snapshot },
 					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetAsync(key, snapshot: snapshot, m_cancellation);
-			}
 		}
 
 		/// <inheritdoc />
@@ -609,18 +603,14 @@ namespace FoundationDB.Client
 
 		private Task<(FdbValueCheckResult Result, Slice Actual)> PerformValueCheckOperation(ReadOnlySpan<byte> key, Slice expected, bool snapshot)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
-					new FdbTransactionLog.CheckValueCommand(m_log.Grab(key), m_log.Grab(expected)) { Snapshot =  snapshot },
+			return m_log == null ? m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, expected, snapshot);
+
+			static Task<(FdbValueCheckResult Result, Slice Actual)> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, Slice expected, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.CheckValueCommand(self.m_log.Grab(key), self.m_log.Grab(expected)) { Snapshot = snapshot },
 					(tr, cmd) => tr.m_handler.CheckValueAsync(cmd.Key.Span, cmd.Expected, cmd.Snapshot, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation);
-			}
 		}
 
 		#endregion
@@ -646,18 +636,14 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetValuesOperation(Slice[] keys, bool snapshot)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
-					new FdbTransactionLog.GetValuesCommand(m_log.Grab(keys)) { Snapshot =  snapshot },
+			return m_log == null ? m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, snapshot);
+
+			static Task<Slice[]> ExecuteLogged(FdbTransaction self, Slice[] keys, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetValuesCommand(self.m_log.Grab(keys)) { Snapshot =  snapshot },
 					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Snapshot, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation);
-			}
 		}
 
 		#endregion
@@ -699,26 +685,35 @@ namespace FoundationDB.Client
 			FdbReadMode read,
 			int iteration)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
+			return m_log == null
+				? m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot, m_cancellation)
+				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, limit, reverse, targetBytes, mode, read, iteration);
+
+			static Task<FdbRangeChunk> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, int limit, bool reverse, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration)
+				=> self.m_log!.ExecuteAsync(
+					self,
 					new FdbTransactionLog.GetRangeCommand(
-						m_log.Grab(beginInclusive),
-						m_log.Grab(endExclusive),
+						self.m_log.Grab(beginInclusive),
+						self.m_log.Grab(endExclusive),
 						new FdbRangeOptions(limit, reverse, targetBytes, mode, read),
 						iteration
 					)
 					{
 						Snapshot =  snapshot
 					},
-					(tr, cmd) => tr.m_handler.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options.Limit.Value, cmd.Options.Reverse.Value, cmd.Options.TargetBytes.Value, cmd.Options.Mode.Value, cmd.Options.Read.Value, cmd.Iteration, cmd.Snapshot, tr.m_cancellation)
+					(tr, cmd) => tr.m_handler.GetRangeAsync(
+						cmd.Begin,
+						cmd.End,
+						cmd.Options.Limit.GetValueOrDefault(),
+						cmd.Options.Reverse.GetValueOrDefault(),
+						cmd.Options.TargetBytes.GetValueOrDefault(),
+						cmd.Options.Mode.GetValueOrDefault(),
+						cmd.Options.Read.GetValueOrDefault(),
+						cmd.Iteration,
+						cmd.Snapshot,
+						tr.m_cancellation
+					)
 				);
-			}
-			else
-			{
-				return m_handler.GetRangeAsync(beginInclusive, endExclusive, limit, reverse, targetBytes, mode, read, iteration, snapshot, m_cancellation);
-			}
 		}
 
 		#endregion
@@ -776,18 +771,14 @@ namespace FoundationDB.Client
 
 		private Task<Slice> PerformGetKeyOperation(KeySelector selector, bool snapshot)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
-					new FdbTransactionLog.GetKeyCommand(m_log.Grab(selector)) { Snapshot =  snapshot },
+			return m_log == null ? m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selector, snapshot);
+
+			static Task<Slice> ExecuteLogged(FdbTransaction self, KeySelector selector, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetKeyCommand(self.m_log.Grab(selector)) { Snapshot =  snapshot },
 					(tr, cmd) => tr.m_handler.GetKeyAsync(cmd.Selector, cmd.Snapshot, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation);
-			}
 		}
 
 		#endregion
@@ -814,18 +805,14 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetKeysOperation(KeySelector[] selectors, bool snapshot)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
-					new FdbTransactionLog.GetKeysCommand(m_log.Grab(selectors)) { Snapshot =  snapshot },
+			return m_log == null ? m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selectors, snapshot);
+
+			static Task<Slice[]> ExecuteLogged(FdbTransaction self, KeySelector[] selectors, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetKeysCommand(self.m_log.Grab(selectors)) { Snapshot =  snapshot },
 					(tr, cmd) => tr.m_handler.GetKeysAsync(cmd.Selectors, cmd.Snapshot, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation);
-			}
 		}
 
 		#endregion
@@ -848,18 +835,21 @@ namespace FoundationDB.Client
 
 		private void PerformSetOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
-			if (m_log != null)
-			{
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.SetCommand(m_log.Grab(key), m_log.Grab(value)),
-					(tr, cmd) => tr.m_handler.Set(cmd.Key.Span, cmd.Value.Span)
-				);
-			}
-			else
+			if (m_log == null)
 			{
 				m_handler.Set(key, value);
 			}
+			else
+			{
+				ExecuteLogged(this, key, value);
+			}
+
+			static void ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
+				=> self.m_log!.Execute(
+					self,
+					new FdbTransactionLog.SetCommand(self.m_log.Grab(key), self.m_log.Grab(value)),
+					(tr, cmd) => tr.m_handler.Set(cmd.Key.Span, cmd.Value.Span)
+				);
 		}
 
 		#endregion
@@ -1005,19 +995,21 @@ namespace FoundationDB.Client
 
 		private void PerformAtomicOperation(ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
 		{
-			if (m_log != null)
+			if (m_log == null)
 			{
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.AtomicCommand(m_log.Grab(key), m_log.Grab(param), type),
-					(tr, cmd) => tr.m_handler.Atomic(cmd.Key.Span, cmd.Param.Span, cmd.Mutation)
-				);
+				m_handler.Atomic(key, param, type);
 			}
 			else
 			{
-				m_handler.Atomic(key, param, type);
-			
+				ExecuteLogged(this, key, param, type);
 			}
+
+			static void ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, ReadOnlySpan<byte> param, FdbMutationType type)
+				=> self.m_log!.Execute(
+					self,
+					new FdbTransactionLog.AtomicCommand(self.m_log.Grab(key), self.m_log.Grab(param), type),
+					(tr, cmd) => tr.m_handler.Atomic(cmd.Key.Span, cmd.Param.Span, cmd.Mutation)
+				);
 		}
 
 		#endregion
@@ -1040,18 +1032,21 @@ namespace FoundationDB.Client
 
 		private void PerformClearOperation(ReadOnlySpan<byte> key)
 		{
-			if (m_log != null)
-			{
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.ClearCommand(m_log.Grab(key)),
-					(tr, cmd) => tr.m_handler.Clear(cmd.Key.Span)
-				);
-			}
-			else
+			if (m_log == null)
 			{
 				m_handler.Clear(key);
 			}
+			else
+			{
+				ExecuteLogged(this, key);
+			}
+
+			static void ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key)
+				=> self.m_log!.Execute(
+					self,
+					new FdbTransactionLog.ClearCommand(self.m_log.Grab(key)),
+					(tr, cmd) => tr.m_handler.Clear(cmd.Key.Span)
+				);
 		}
 
 		#endregion
@@ -1075,18 +1070,21 @@ namespace FoundationDB.Client
 
 		private void PerformClearRangeOperation(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
-			if (m_log != null)
-			{
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.ClearRangeCommand(m_log.Grab(beginKeyInclusive), m_log.Grab(endKeyExclusive)),
-					(tr, cmd) => tr.m_handler.ClearRange(cmd.Begin.Span, cmd.End.Span)
-				);
-			}
-			else
+			if (m_log == null)
 			{
 				m_handler.ClearRange(beginKeyInclusive, endKeyExclusive);
 			}
+			else
+			{
+				ExecuteLogged(this, beginKeyInclusive, endKeyExclusive);
+			}
+
+			static void ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
+				=> self.m_log!.Execute(
+					self,
+					new FdbTransactionLog.ClearRangeCommand(self.m_log.Grab(beginKeyInclusive), self.m_log.Grab(endKeyExclusive)),
+					(tr, cmd) => tr.m_handler.ClearRange(cmd.Begin.Span, cmd.End.Span)
+				);
 		}
 
 		#endregion
@@ -1110,18 +1108,21 @@ namespace FoundationDB.Client
 
 		private void PerformAddConflictRangeOperation(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
-			if (m_log != null)
-			{
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.AddConflictRangeCommand(m_log.Grab(beginKeyInclusive), m_log.Grab(endKeyExclusive), type),
-					(tr, cmd) => tr.m_handler.AddConflictRange(cmd.Begin.Span, cmd.End.Span, cmd.Type)
-				);
-			}
-			else
+			if (m_log == null)
 			{
 				m_handler.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
 			}
+			else
+			{
+				ExecuteLogged(this, beginKeyInclusive, endKeyExclusive, type);
+			}
+
+			static void ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
+				=> self.m_log!.Execute(
+					self,
+					new FdbTransactionLog.AddConflictRangeCommand(self.m_log.Grab(beginKeyInclusive), self.m_log.Grab(endKeyExclusive), type),
+					(tr, cmd) => tr.m_handler.AddConflictRange(cmd.Begin.Span, cmd.End.Span, cmd.Type)
+				);
 		}
 
 		#endregion
@@ -1144,18 +1145,14 @@ namespace FoundationDB.Client
 
 		private Task<string[]> PerformGetAddressesForKeyOperation(ReadOnlySpan<byte> key)
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
-					new FdbTransactionLog.GetAddressesForKeyCommand(m_log.Grab(key)),
+			return m_log == null ? m_handler.GetAddressesForKeyAsync(key, m_cancellation) : ExecuteLogged(this, key);
+
+			static Task<string[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetAddressesForKeyCommand(self.m_log.Grab(key)),
 					(tr, cmd) => tr.m_handler.GetAddressesForKeyAsync(cmd.Key.Span, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetAddressesForKeyAsync(key, m_cancellation);
-			}
 		}
 
 		#endregion
@@ -1172,18 +1169,14 @@ namespace FoundationDB.Client
 
 		private Task<long> PerformGetApproximateSizeOperation()
 		{
-			if (m_log != null)
-			{
-				return m_log.ExecuteAsync(
-					this,
+			return m_log == null ? m_handler.GetApproximateSizeAsync(m_cancellation) : ExecuteLogged(this);
+
+			static Task<long> ExecuteLogged(FdbTransaction self)
+				=> self.m_log!.ExecuteAsync(
+					self,
 					new FdbTransactionLog.GetApproximateSizeCommand(),
 					(tr, cmd) => tr.m_handler.GetApproximateSizeAsync(tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.GetApproximateSizeAsync(m_cancellation);
-			}
 		}
 
 		#endregion
@@ -1219,17 +1212,20 @@ namespace FoundationDB.Client
 
 		private Task PerformCommitOperation()
 		{
-			if (m_log != null)
+			return m_log == null ? m_handler.CommitAsync(m_cancellation) : ExecuteLogged(this);
+
+			static Task ExecuteLogged(FdbTransaction self)
 			{
-				int size = this.Size;
-				m_log.CommitSize = size;
-				m_log.TotalCommitSize += size;
-				m_log.Attempts++;
+				int size = self.Size;
+				var log = self.m_log!;
+				log.CommitSize = size;
+				log.TotalCommitSize += size;
+				log.Attempts++;
 
-				Task<VersionStamp>? tvs = m_log.RequiresVersionStamp ? m_handler.GetVersionStampAsync(m_cancellation) : null;
+				var tvs = log.RequiresVersionStamp ? self.m_handler.GetVersionStampAsync(self.m_cancellation) : null;
 
-				return m_log.ExecuteAsync(
-					this,
+				return log.ExecuteAsync(
+					self,
 					new FdbTransactionLog.CommitCommand(),
 					(tr, cmd) => tr.m_handler.CommitAsync(tr.m_cancellation),
 					(tr, cmd, log) =>
@@ -1242,10 +1238,6 @@ namespace FoundationDB.Client
 					}
 				);
 
-			}
-			else
-			{
-				return m_handler.CommitAsync(m_cancellation);
 			}
 		}
 
@@ -1310,19 +1302,16 @@ namespace FoundationDB.Client
 
 		private Task PerformOnErrorOperation(FdbError code)
 		{
+			return m_log == null ? m_handler.OnErrorAsync(code, ct: m_cancellation) : ExecuteLogged(this, code);
 
-			if (m_log != null)
+			static Task ExecuteLogged(FdbTransaction self, FdbError code)
 			{
-				m_log.RequiresVersionStamp = false;
-				return m_log.ExecuteAsync(
-					this,
+				self.m_log!.RequiresVersionStamp = false;
+				return self.m_log.ExecuteAsync(
+					self,
 					new FdbTransactionLog.OnErrorCommand(code),
 					(tr, cmd) => tr.m_handler.OnErrorAsync(cmd.Code, tr.m_cancellation)
 				);
-			}
-			else
-			{
-				return m_handler.OnErrorAsync(code, ct: m_cancellation);
 			}
 		}
 
@@ -1381,18 +1370,23 @@ namespace FoundationDB.Client
 
 		private void PerformResetOperation()
 		{
-			if (m_log != null)
+			if (m_log == null)
 			{
-				m_log.RequiresVersionStamp = false;
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.ResetCommand(),
-					(tr, cmd) => tr.m_handler.Reset()
-				);
+				m_handler.Reset();
 			}
 			else
 			{
-				m_handler.Reset();
+				ExecuteLogged(this);
+			}
+
+			static void ExecuteLogged(FdbTransaction self)
+			{
+				self.m_log!.RequiresVersionStamp = false;
+				self.m_log.Execute(
+					self,
+					new FdbTransactionLog.ResetCommand(),
+					(tr, cmd) => tr.m_handler.Reset()
+				);
 			}
 		}
 
@@ -1422,18 +1416,21 @@ namespace FoundationDB.Client
 
 		private void PerformCancelOperation()
 		{
-			if (m_log != null)
-			{
-				m_log.Execute(
-					this,
-					new FdbTransactionLog.CancelCommand(),
-					(tr, cmd) => tr.m_handler.Cancel()
-				);
-			}
-			else
+			if (m_log == null)
 			{
 				m_handler.Cancel();
 			}
+			else
+			{
+				ExecuteLogged(this);
+			}
+
+			static void ExecuteLogged(FdbTransaction self)
+				=> self.m_log!.Execute(
+					self,
+					new FdbTransactionLog.CancelCommand(),
+					(tr, cmd) => tr.m_handler.Cancel()
+				);
 		}
 
 		#endregion

@@ -75,6 +75,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the default log handler for this database</summary>
 		/// <param name="handler">Default handler that is attached to any new transction, and will be invoked when they complete.</param>
+		/// <param name="options"></param>
 		/// <remarks>This handler may not be called if logging is disabled, if a transaction overrides its handler, or if it calls <see cref="IFdbReadOnlyTransaction.StopLogging"/></remarks>
 		void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default);
 

@@ -805,14 +805,14 @@ namespace FoundationDB.Filters.Logging
 			public KeySelector End { get; }
 
 			/// <summary>Options of the range read</summary>
-			public FdbRangeOptions? Options { get; }
+			public FdbRangeOptions Options { get; }
 
 			/// <summary>Iteration number</summary>
 			public int Iteration { get; }
 
 			public override Operation Op => Operation.GetRange;
 
-			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions? options, int iteration)
+			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;
@@ -842,13 +842,10 @@ namespace FoundationDB.Filters.Logging
 				//TODO: use resolver!
 				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
-				if (this.Options != null)
-				{
-					if ((this.Options.Limit ?? 0) > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
-					if (this.Options.Reverse == true) s += ", reverse";
-					if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode.Value.ToString();
-					if (this.Options.Read.HasValue) s += ", " + this.Options.Read.Value.ToString();
-				}
+				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
+				if (this.Options.Reverse == true) s += ", reverse";
+				if (this.Options.Mode.HasValue) s += ", " + this.Options.Mode.Value.ToString();
+				if (this.Options.Read.HasValue) s += ", " + this.Options.Read.Value.ToString();
 				return s;
 			}
 

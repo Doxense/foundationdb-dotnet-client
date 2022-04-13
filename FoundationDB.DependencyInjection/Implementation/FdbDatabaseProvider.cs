@@ -94,6 +94,12 @@ namespace FoundationDB.DependencyInjection
 				{
 					Fdb.Start(this.Options.ApiVersion);
 					var db = await Fdb.OpenAsync(this.Options.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
+
+					if (this.Options.DefaultLogHandler != null)
+					{ // enable transaction capture and logging!
+						db.SetDefaultLogHandler(this.Options.DefaultLogHandler, this.Options.DefaultLogOptions);
+					}
+
 					SetDatabase(db, null);
 				}
 				catch (Exception e)
