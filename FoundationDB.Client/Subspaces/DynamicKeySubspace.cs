@@ -484,7 +484,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Partition helper for a dynamic TypeSystem</summary>
-	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[DebuggerDisplay("{Subspace.ToString(),nq}")]
 	[PublicAPI]
 	public sealed class DynamicPartition
 	{
