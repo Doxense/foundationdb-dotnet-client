@@ -143,6 +143,9 @@ namespace FoundationDB.Client
 		/// <summary>Internal handler</summary>
 		internal IFdbDatabaseHandler Handler => m_handler;
 
+		/// <summary>Return the currently enforced API version for this database instance.</summary>
+		public int GetApiVersion() => m_handler.GetApiVersion();
+
 		#endregion
 
 		#region Transaction Management...

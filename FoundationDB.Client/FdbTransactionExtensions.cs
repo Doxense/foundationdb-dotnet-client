@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 		public static TTransaction WithReadAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
-			trans.SetOption(Fdb.ApiVersion >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
+			trans.SetOption(trans.Context.GetApiVersion() >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
 			//TODO: cache this into a local variable ?
 			return trans;
 		}
@@ -1030,9 +1030,9 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception FailVersionStampNotSupported()
+		private static Exception FailVersionStampNotSupported(int apiVersion)
 		{
-			return new NotSupportedException($"VersionStamps are not supported at API version {Fdb.ApiVersion}. You need to select at least API Version 400 or above.");
+			return new NotSupportedException($"VersionStamps are not supported at API version {apiVersion}. You need to select at least API Version 400 or above.");
 		}
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
@@ -1059,10 +1059,10 @@ namespace FoundationDB.Client
 			trans.CreateVersionStamp().WriteTo(token);
 			var offset = GetVersionStampOffset(key, token, nameof(key));
 
-			int apiVer = Fdb.ApiVersion;
+			int apiVer = trans.Context.Database.GetApiVersion();
 			if (apiVer < 400)
 			{ // introduced in 400
-				throw FailVersionStampNotSupported();
+				throw FailVersionStampNotSupported(apiVer);
 			}
 
 			if (apiVer < 520)
@@ -1108,10 +1108,10 @@ namespace FoundationDB.Client
 			Contract.Positive(stampOffset);
 			if (stampOffset > key.Length - 10) throw new ArgumentException("The VersionStamp overflows past the end of the key.", nameof(stampOffset));
 
-			int apiVer = Fdb.ApiVersion;
+			int apiVer = trans.Context.GetApiVersion();
 			if (apiVer < 400)
 			{ // introduced in 400
-				throw FailVersionStampNotSupported();
+				throw FailVersionStampNotSupported(apiVer);
 			}
 
 			if (apiVer < 520)
@@ -1154,10 +1154,10 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			if (value.Length < 10) throw new ArgumentException("The value must be at least 10 bytes long.", nameof(value));
 
-			int apiVer = Fdb.ApiVersion;
+			int apiVer = trans.Context.GetApiVersion();
 			if (apiVer < 400)
 			{ // introduced in 400
-				throw FailVersionStampNotSupported();
+				throw FailVersionStampNotSupported(apiVer);
 			}
 
 			if (apiVer < 520)
@@ -1207,10 +1207,10 @@ namespace FoundationDB.Client
 			Contract.Positive(stampOffset);
 			if (stampOffset > key.Length - 10) throw new ArgumentException("The VersionStamp overflows past the end of the value.", nameof(stampOffset));
 
-			int apiVer = Fdb.ApiVersion;
+			int apiVer = trans.Context.GetApiVersion();
 			if (apiVer < 400)
 			{ // introduced in 400
-				throw FailVersionStampNotSupported();
+				throw FailVersionStampNotSupported(apiVer);
 			}
 
 			if (apiVer < 520)

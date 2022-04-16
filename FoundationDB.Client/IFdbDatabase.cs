@@ -104,6 +104,9 @@ namespace FoundationDB.Client
 		/// }</example>
 		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
+		/// <summary>Return the currently enforced API version for this database instance.</summary>
+		int GetApiVersion();
+
 	}
 
 }

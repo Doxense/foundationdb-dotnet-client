@@ -150,7 +150,7 @@ namespace FoundationDB.Client.Native
 
 		public bool IsClosed => m_handle.IsClosed;
 
-		public int GetSelectedApiVersion() => Fdb.ApiVersion;
+		public int GetApiVersion() => Fdb.ApiVersion;
 
 		public int GetMaxApiVersion() => FdbNative.GetMaxApiVersion();
 

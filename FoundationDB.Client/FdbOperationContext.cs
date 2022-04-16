@@ -1316,7 +1316,12 @@ namespace FoundationDB.Client
 			Interlocked.CompareExchange(ref this.Transaction, null, trans);
 		}
 
+		/// <summary>Return the underlying native handler for this transaction</summary>
+		/// <remarks>This is only intended for testing or troubleshooting purpose!</remarks>
 		public IFdbTransactionHandler GetTransactionHandler() => this.Transaction?.Handler ?? throw new InvalidOperationException("Transaction has already been disposed");
+
+		/// <summary>Return the currently enforced API version for the database attached to this transaction.</summary>
+		public int GetApiVersion() => this.Database.GetApiVersion();
 
 		public void Dispose()
 		{

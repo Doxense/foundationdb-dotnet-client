@@ -861,9 +861,7 @@ namespace FoundationDB.Client
 		/// <exception cref="FdbException">An error with code <see cref="FdbError.InvalidMutationType"/> if the type of mutation is not supported by this API level.</exception>
 		private void EnsureMutationTypeIsSupported(FdbMutationType mutation)
 		{
-			var dbHandler = this.Database.Handler;
-			int selectedApiVersion = dbHandler.GetSelectedApiVersion();
-
+			int selectedApiVersion = this.Database.GetApiVersion();
 			if (selectedApiVersion < 200)
 			{ // mutations were not available at this time
 
