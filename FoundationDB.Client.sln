@@ -27,6 +27,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FdbShell", "FdbShell\FdbShe
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A7D90DEE-38B0-449C-93B5-32D7B845D990}"
 	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
 		LICENSE.md = LICENSE.md
 		README.md = README.md
 	EndProjectSection
@@ -55,8 +56,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundationDB.Linq.Providers
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentation", "{ECC50955-2906-46BE-BBEA-A3F132E8E38C}"
 	ProjectSection(SolutionItems) = preProject
-		Documentation\Tuples.md = Documentation\Tuples.md
 		Documentation\Transaction_Basics.md = Documentation\Transaction_Basics.md
+		Documentation\Tuples.md = Documentation\Tuples.md
 	EndProjectSection
 EndProject
 Global
