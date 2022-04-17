@@ -14,4 +14,4 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Build with dotnet
-      run: dotnet build --configuration Release
+      run: dotnet build --configuration Release -f net5.0
