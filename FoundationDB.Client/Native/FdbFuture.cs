@@ -41,7 +41,7 @@ namespace FoundationDB.Client.Native
 	using FoundationDB.Client.Utils;
 
 	/// <summary>Helper class to create FDBFutures</summary>
-	internal static class FdbFuture
+	public static class FdbFuture
 	{
 
 		public static class Flags
@@ -107,12 +107,17 @@ namespace FoundationDB.Client.Native
 			return new FdbFutureArray<T>(handles, continuation, ct).Task;
 		}
 
+		public static FdbFuture<T> Create<T>(CancellationToken ct)
+		{
+			return new FdbFutureTask<T>(ct);
+		}
+
 	}
 
 	/// <summary>Base class for all FDBFuture wrappers</summary>
 	/// <typeparam name="T">Type of the Task's result</typeparam>
 	[DebuggerDisplay("Flags={m_flags}, State={this.Task.Status}")]
-	internal abstract class FdbFuture<T> : TaskCompletionSource<T>, IDisposable
+	public abstract class FdbFuture<T> : TaskCompletionSource<T>, IDisposable
 	{
 
 		#region Private Members...
@@ -385,6 +390,34 @@ namespace FoundationDB.Client.Native
 					if (Volatile.Read(ref m_key) != IntPtr.Zero) UnregisterCallback(this);
 				}
 			}
+		}
+
+	}
+
+	public sealed class FdbFutureTask<T> : FdbFuture<T>
+	{
+
+		public FdbFutureTask(CancellationToken ct)
+		{
+			if (ct.CanBeCanceled)
+			{
+				RegisterForCancellation(ct);
+			}
+		}
+
+		protected override void CloseHandles()
+		{
+			// NOP
+		}
+
+		protected override void CancelHandles()
+		{
+			// NOP
+		}
+
+		protected override void ReleaseMemory()
+		{
+			// NOP
 		}
 
 	}

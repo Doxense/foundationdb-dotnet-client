@@ -36,12 +36,12 @@ namespace FoundationDB.Client.Native
 
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
-	internal sealed class FdbFutureSingle<T> : FdbFuture<T>
+	public sealed class FdbFutureSingle<T> : FdbFuture<T>
 	{
 		#region Private Members...
 
 		/// <summary>Value of the 'FDBFuture*'</summary>
-		private readonly FutureHandle m_handle;
+		private readonly FutureHandle? m_handle;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
 		private readonly Func<FutureHandle, T>? m_resultSelector;
