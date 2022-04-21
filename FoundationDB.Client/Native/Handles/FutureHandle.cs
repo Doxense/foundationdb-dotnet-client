@@ -33,7 +33,7 @@ namespace FoundationDB.Client.Native
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBFuture*</summary>
-	internal sealed class FutureHandle : FdbSafeHandle
+	public sealed class FutureHandle : FdbSafeHandle
 	{
 
 		public FutureHandle()

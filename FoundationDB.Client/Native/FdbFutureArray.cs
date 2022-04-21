@@ -36,7 +36,7 @@ namespace FoundationDB.Client.Native
 
 	/// <summary>FDBFuture[] wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
-	internal sealed class FdbFutureArray<T> : FdbFuture<T[]>
+	public sealed class FdbFutureArray<T> : FdbFuture<T[]>
 	{
 		// Wraps several FDBFuture* handles and return all the results at once
 
