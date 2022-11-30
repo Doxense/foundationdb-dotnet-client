@@ -316,6 +316,23 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Return the observed read version, if it was requested at some point</summary>
+		/// <param name="readVersion">If the methods returns <c>true</c>, receives the read version that a call to <see cref="GetReadVersionAsync"/> produced</param>
+		internal bool TryGetCachedReadVersion(out long readVersion)
+		{
+			lock (this)
+			{
+				if (this.CachedReadVersion?.Status == TaskStatus.RanToCompletion)
+				{
+					readVersion = this.CachedReadVersion.Result;
+					return true;
+				}
+
+				readVersion = 0;
+				return false;
+			}
+		}
+
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private Task<long> FetchReadVersionInternal()
 		{

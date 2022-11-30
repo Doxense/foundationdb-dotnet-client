@@ -26,6 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if NET6_0_OR_GREATER
+#define SUPPORTS_ACTIVITYSOURCES
+#else
+#undef SUPPORTS_ACTIVITYSOURCES
+#endif
+
 namespace FoundationDB.Client
 {
 	using System;
@@ -51,6 +57,10 @@ namespace FoundationDB.Client
 	public sealed class FdbOperationContext : IDisposable
 	{
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
+
+#if SUPPORTS_ACTIVITYSOURCES
+		private static readonly ActivitySource ActivitySource = new ActivitySource("FoundationDB.Client");
+#endif
 
 		/// <summary>The database used by the operation</summary>
 		public IFdbDatabase Database { get; }
@@ -97,6 +107,11 @@ namespace FoundationDB.Client
 		/// <summary>Transaction instance currently being used by this context</summary>
 		private FdbTransaction? Transaction;
 		//note: field accessed via interlocked operations!
+
+#if SUPPORTS_ACTIVITYSOURCES
+		/// <summary>Current <see cref="System.Diagnostics.Activity"/>, if tracing is enabled</summary>
+		public Activity? Activity { get; private set; }
+#endif
 
 		/// <summary>Create a new retry loop operation context</summary>
 		/// <param name="db">Database that will be used by the retry loop</param>
@@ -692,8 +707,14 @@ namespace FoundationDB.Client
 
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
+#if SUPPORTS_ACTIVITYSOURCES
+			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read Transaction" : "FDB Read/Write Transaction");
+			context.Activity = mainActivity;
+#endif
+
 			try
 			{
+
 				// make sure to reset everything (in case a context is reused multiple times)
 				context.Committed = false;
 				context.Retries = 0;
@@ -710,16 +731,39 @@ namespace FoundationDB.Client
 					//note: trans may be different from context.Transaction if it has been filtered!
 					Contract.Debug.Assert(context.Transaction != null);
 
+#if SUPPORTS_ACTIVITYSOURCES
+					if (mainActivity?.IsAllDataRequested == true)
+					{
+						mainActivity.SetTag("fdb.transaction.id", trans.Id);
+						if (trans.IsReadOnly) mainActivity.SetTag("fdb.transaction.readonly", true);
+						if (trans.IsSnapshot) mainActivity.SetTag("fdb.transaction.snapshot", true);
+					}
+#endif
+
 					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
 						bool hasResult = false;
 						bool hasRunValueChecks = false;
 						result = default!;
 
+#if SUPPORTS_ACTIVITYSOURCES
+						Activity? currentActivity = null;
+#endif
+
 						try
 						{
 							TIntermediate intermediate;
 
+#if SUPPORTS_ACTIVITYSOURCES
+							currentActivity = ActivitySource.StartActivity("FDB Handler");
+							if (currentActivity?.IsAllDataRequested == true)
+							{
+								context.Activity = currentActivity;
+								currentActivity.SetTag("fdb.transaction.id", trans.Id);
+								if (context.Retries > 0) currentActivity.SetTag("fdb.transaction.retry", context.Retries);
+								if (context.PreviousError != FdbError.Success) currentActivity.SetTag("fdb.error.previous", context.PreviousError);
+							}
+#endif
 							// call the user provided lambda
 							switch (handler)
 							{
@@ -904,7 +948,7 @@ namespace FoundationDB.Client
 									break;
 								}
 
-								#endregion
+#endregion
 
 								#region With state...
 
@@ -963,7 +1007,7 @@ namespace FoundationDB.Client
 									break;
 								}
 
-								#endregion
+#endregion
 
 								#endregion
 
@@ -972,6 +1016,15 @@ namespace FoundationDB.Client
 									throw new NotSupportedException($"Cannot execute handlers of type {handler.GetType().Name}");
 								}
 							}
+
+#if SUPPORTS_ACTIVITYSOURCES
+							if (currentActivity != null)
+							{
+								currentActivity.Dispose();
+								currentActivity = null;
+								context.Activity = mainActivity;
+							}
+#endif
 
 							if (context.Abort)
 							{
@@ -988,7 +1041,33 @@ namespace FoundationDB.Client
 
 							if (!trans.IsReadOnly)
 							{ // commit the transaction
+
+#if SUPPORTS_ACTIVITYSOURCES
+								currentActivity = FdbOperationContext.ActivitySource.StartActivity("FDB Commit");
+								if (currentActivity != null)
+								{
+									context.Activity = currentActivity;
+									currentActivity.SetTag("fdb.transaction.id", trans.Id);
+									currentActivity.SetTag("fdb.transaction.size", trans.Size); // estimated!
+									if (context.Retries > 0) currentActivity.SetTag("fdb.transaction.retry", context.Retries);
+									if (trans is FdbTransaction fdbTrans && fdbTrans.TryGetCachedReadVersion(out var rv))
+									{
+										currentActivity.SetTag("fdb.transaction.read_version", rv);
+									}
+								}
+#endif
+
 								await trans.CommitAsync().ConfigureAwait(false);
+
+#if SUPPORTS_ACTIVITYSOURCES
+								if (currentActivity != null)
+								{
+									currentActivity.SetTag("fdb.transaction.commit_version", trans.GetCommittedVersion());
+									currentActivity.Dispose();
+									currentActivity = null;
+									context.Activity = mainActivity;
+								}
+#endif
 							}
 
 							// we are done
@@ -1185,13 +1264,25 @@ namespace FoundationDB.Client
 								else
 								{
 									throw new ArgumentException($"Success handler is required to convert intermediate type {typeof(TIntermediate).Name} into result type {typeof(TResult).Name}.");
-								
+
 								}
 							}
 
 						}
 						catch (FdbException e)
 						{
+#if SUPPORTS_ACTIVITYSOURCES
+							if (currentActivity != null)
+							{
+								using (currentActivity)
+								{
+									currentActivity.SetStatus(ActivityStatusCode.Error, e.Message);
+									currentActivity.SetTag("fdb.error.code", e.Code);
+								}
+								context.Activity = mainActivity;
+							}
+#endif
+
 							context.PreviousError = e.Code;
 
 							// execute any state callbacks, if there are any
@@ -1232,6 +1323,18 @@ namespace FoundationDB.Client
 						}
 						catch (Exception e)
 						{
+#if SUPPORTS_ACTIVITYSOURCES
+							if (currentActivity != null)
+							{
+								using (currentActivity)
+								{
+									currentActivity.SetStatus(ActivityStatusCode.Error, e.Message);
+									currentActivity.SetTag("fdb.error.code", FdbError.UnknownError);
+								}
+								context.Activity = mainActivity;
+							}
+#endif
+
 							context.PreviousError = FdbError.UnknownError;
 							if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Handler failed with error: [{e.GetType().Name}] {e.Message}");
 
@@ -1261,6 +1364,7 @@ namespace FoundationDB.Client
 										if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate("Handler failure MAY be due to a failed value-check, but no more attempt is possible!");
 										if (e2.Code != FdbError.NotCommitted) throw;
 									}
+
 									shouldThrow = false;
 									// note: technically we are after the "OnError" so any new comment will be seen as part of the next attempt..
 									if (context.Transaction?.IsLogged() == true) context.Transaction.Annotate($"Previous attempt failed because of the following failed value-check(s): {string.Join(", ", context.FailedValueCheckTags.Where(x => x.Value.Result == FdbValueCheckResult.Failed).Select(x => x.Key))}");
@@ -1275,10 +1379,15 @@ namespace FoundationDB.Client
 						context.Retries++;
 					}
 				}
+
 				context.Cancellation.ThrowIfCancellationRequested();
 
 				if (context.Abort)
 				{
+#if SUPPORTS_ACTIVITYSOURCES
+					mainActivity?.SetStatus(ActivityStatusCode.Error, "Transaction was aborted");
+#endif
+
 					// execute any state callbacks, if there are any
 					if (context.StateCallbacks != null)
 					{
@@ -1291,6 +1400,14 @@ namespace FoundationDB.Client
 				return result!;
 
 			}
+#if SUPPORTS_ACTIVITYSOURCES
+			catch (Exception e)
+			{
+				//REVIEW: TODO: in order to call "RecordException(...)" we need a ref to package OpenTelemetry.API !
+				mainActivity?.SetStatus(ActivityStatusCode.Error, e.Message);
+				throw;
+			}
+#endif
 			finally
 			{
 				if (context.BaseDuration.TotalSeconds >= 10)
@@ -1329,7 +1446,7 @@ namespace FoundationDB.Client
 			this.TokenSource?.SafeCancelAndDispose();
 		}
 
-		#region Read-Only operations...
+#region Read-Only operations...
 
 		public static Task<TResult> RunReadAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbReadOnlyTransaction, TState, Task<TIntermediate>> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
@@ -1498,9 +1615,9 @@ namespace FoundationDB.Client
 
 #endif
 
-		#endregion
+#endregion
 
-		#region Read/Write operations...
+#region Read/Write operations...
 
 		public static Task<TResult> RunReadWriteAsync<TState, TIntermediate, TResult>(IFdbDatabase db, TState state, Func<IFdbTransaction, TState, TIntermediate> handler, Func<TIntermediate, Task<TResult>> success, CancellationToken ct)
 		{
@@ -1763,7 +1880,7 @@ namespace FoundationDB.Client
 
 #endif
 
-		#endregion
+#endregion
 
 	}
  
