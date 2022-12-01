@@ -645,16 +645,23 @@ namespace FoundationDB.Client
 			return pass;
 		}
 
-		private ValueTask<bool> ValidateValueChecks(bool ignoreFailedTasks)
+		private bool HasPendingValueChecks([MaybeNullWhen(false)] out List<(Slice, Slice, string, Task<(FdbValueCheckResult, Slice)>)> checks)
 		{
-			List<(Slice, Slice, string, Task<(FdbValueCheckResult, Slice)>)>? checks;
 			lock (this)
 			{
 				checks = this.ValueChecks;
 				this.ValueChecks = null;
+				return checks != null;
 			}
 
-			if (checks == null || checks.Count == 0) return new ValueTask<bool>(true);
+		}
+
+		private ValueTask<bool> ValidateValueChecks(bool ignoreFailedTasks)
+		{
+			if (!HasPendingValueChecks(out var checks))
+			{
+				return new ValueTask<bool>(true);
+			}
 			return ValidateValueChecksSlow(checks, ignoreFailedTasks);
 		}
 
@@ -708,7 +715,7 @@ namespace FoundationDB.Client
 			if (context.Abort) throw new InvalidOperationException("Operation context has already been aborted or disposed");
 
 #if SUPPORTS_ACTIVITYSOURCES
-			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read Transaction" : "FDB Read/Write Transaction");
+			using var mainActivity = ActivitySource.StartActivity(context.Mode == FdbTransactionMode.ReadOnly ? "FDB Read" : "FDB ReadWrite");
 			context.Activity = mainActivity;
 #endif
 
@@ -734,9 +741,13 @@ namespace FoundationDB.Client
 #if SUPPORTS_ACTIVITYSOURCES
 					if (mainActivity?.IsAllDataRequested == true)
 					{
-						mainActivity.SetTag("fdb.transaction.id", trans.Id);
-						if (trans.IsReadOnly) mainActivity.SetTag("fdb.transaction.readonly", true);
-						if (trans.IsSnapshot) mainActivity.SetTag("fdb.transaction.snapshot", true);
+						mainActivity.SetTag("db.system", "fdb");
+						//REVIEW: should we include the cluster file content for "db.connection_string"?
+						//note: we do not provide "db.user" because this does not exist in fdb
+
+						mainActivity.SetTag("db.fdb.trans.id", trans.Id);
+						if (trans.IsReadOnly) mainActivity.SetTag("db.fdb.trans.readonly", true);
+						if (trans.IsSnapshot) mainActivity.SetTag("db.fdb.trans.snapshot", true);
 					}
 #endif
 
@@ -756,12 +767,16 @@ namespace FoundationDB.Client
 
 #if SUPPORTS_ACTIVITYSOURCES
 							currentActivity = ActivitySource.StartActivity("FDB Handler");
-							if (currentActivity?.IsAllDataRequested == true)
+							if (currentActivity != null)
 							{
 								context.Activity = currentActivity;
-								currentActivity.SetTag("fdb.transaction.id", trans.Id);
-								if (context.Retries > 0) currentActivity.SetTag("fdb.transaction.retry", context.Retries);
-								if (context.PreviousError != FdbError.Success) currentActivity.SetTag("fdb.error.previous", context.PreviousError);
+								if (currentActivity.IsAllDataRequested)
+								{
+									currentActivity.SetTag("db.system", "fdb");
+									currentActivity.SetTag("db.fdb.trans.id", trans.Id);
+									if (context.Retries > 0) currentActivity.SetTag("db.fdb.error.retry_count", context.Retries);
+									if (context.PreviousError != FdbError.Success) currentActivity.SetTag("db.fdb.error.previous", context.PreviousError);
+								}
 							}
 #endif
 							// call the user provided lambda
@@ -1034,9 +1049,48 @@ namespace FoundationDB.Client
 							// make sure any pending value checks are completed and match the expected value!
 							context.FailedValueCheckTags?.Clear();
 							hasRunValueChecks = true;
-							if (!await context.ValidateValueChecks(ignoreFailedTasks: false))
+							if (context.HasPendingValueChecks(out var valueChecks))
 							{
-								throw FailValueCheck();
+#if SUPPORTS_ACTIVITYSOURCES
+								currentActivity = ActivitySource.StartActivity("FDB Value Checks");
+								if (currentActivity != null)
+								{
+									context.Activity = currentActivity;
+									if (currentActivity.IsAllDataRequested)
+									{
+										currentActivity.SetTag("db.system", "fdb");
+										currentActivity.SetTag("db.fdb.trans.id", trans.Id);
+										currentActivity.SetTag("db.fdb.checks.count", valueChecks.Count);
+										if (context.Retries > 0) currentActivity.SetTag("db.fdb.error.retry_count", context.Retries);
+										if (context.PreviousError != FdbError.Success) currentActivity.SetTag("db.fdb.error.previous", context.PreviousError);
+									}
+								}
+#endif
+
+								if (!await context.ValidateValueChecksSlow(valueChecks, ignoreFailedTasks: false))
+								{
+#if SUPPORTS_ACTIVITYSOURCES
+									if (currentActivity != null)
+									{
+										using (currentActivity)
+										{
+											currentActivity.SetStatus(ActivityStatusCode.Error, "Value checks failed");
+										}
+										currentActivity = null;
+										context.Activity = mainActivity;
+									}
+#endif
+									throw FailValueCheck();
+								}
+
+#if SUPPORTS_ACTIVITYSOURCES
+								if (currentActivity != null)
+								{
+									currentActivity.Dispose();
+									currentActivity = null;
+									context.Activity = mainActivity;
+								}
+#endif
 							}
 
 							if (!trans.IsReadOnly)
@@ -1047,12 +1101,16 @@ namespace FoundationDB.Client
 								if (currentActivity != null)
 								{
 									context.Activity = currentActivity;
-									currentActivity.SetTag("fdb.transaction.id", trans.Id);
-									currentActivity.SetTag("fdb.transaction.size", trans.Size); // estimated!
-									if (context.Retries > 0) currentActivity.SetTag("fdb.transaction.retry", context.Retries);
-									if (trans is FdbTransaction fdbTrans && fdbTrans.TryGetCachedReadVersion(out var rv))
+									if (currentActivity.IsAllDataRequested)
 									{
-										currentActivity.SetTag("fdb.transaction.read_version", rv);
+										currentActivity.SetTag("db.system", "fdb");
+										currentActivity.SetTag("db.fdb.trans.id", trans.Id);
+										currentActivity.SetTag("db.fdb.trans.size", trans.Size); // estimated!
+										if (context.Retries > 0) currentActivity.SetTag("db.fdb.error.retry_count", context.Retries);
+										if (trans is FdbTransaction fdbTrans && fdbTrans.TryGetCachedReadVersion(out var rv))
+										{
+											currentActivity.SetTag("db.fdb.trans.read_version", rv);
+										}
 									}
 								}
 #endif
@@ -1062,8 +1120,10 @@ namespace FoundationDB.Client
 #if SUPPORTS_ACTIVITYSOURCES
 								if (currentActivity != null)
 								{
-									currentActivity.SetTag("fdb.transaction.commit_version", trans.GetCommittedVersion());
-									currentActivity.Dispose();
+									using (currentActivity)
+									{
+										currentActivity.SetTag("db.fdb.trans.commit_version", trans.GetCommittedVersion());
+									}
 									currentActivity = null;
 									context.Activity = mainActivity;
 								}
@@ -1083,6 +1143,8 @@ namespace FoundationDB.Client
 							// execute any final logic, if there is any
 							if (success != null)
 							{
+								//TODO: instrument success handlers with ActivitySource?
+
 								// if TIntermediate == TResult, the order of delegate resolution may be unstable
 								// => we will copy the result in both fields!
 								if (hasResult && typeof(TIntermediate) == typeof(TResult))
@@ -1277,7 +1339,7 @@ namespace FoundationDB.Client
 								using (currentActivity)
 								{
 									currentActivity.SetStatus(ActivityStatusCode.Error, e.Message);
-									currentActivity.SetTag("fdb.error.code", e.Code);
+									currentActivity.SetTag("db.fdb.error.code", e.Code);
 								}
 								context.Activity = mainActivity;
 							}
@@ -1329,7 +1391,7 @@ namespace FoundationDB.Client
 								using (currentActivity)
 								{
 									currentActivity.SetStatus(ActivityStatusCode.Error, e.Message);
-									currentActivity.SetTag("fdb.error.code", FdbError.UnknownError);
+									currentActivity.SetTag("db.fdb.error.code", FdbError.UnknownError);
 								}
 								context.Activity = mainActivity;
 							}
