@@ -161,7 +161,7 @@ namespace FoundationDB.Client
 		public static TTransaction WithRetryLimit<TTransaction>(this TTransaction trans, int retries)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
-			Contract.GreaterOrEqual(retries, -1, nameof(retries));
+			Contract.GreaterOrEqual(retries, -1);
 			trans.RetryLimit = retries;
 			return trans;
 		}
