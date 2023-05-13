@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.CodeAnalysis;
@@ -592,6 +593,22 @@ namespace FoundationDB.Client
 			return PerformGetOperation(key, snapshot: false);
 		}
 
+		public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter)
+		{
+			Contract.NotNull(valueWriter);
+
+			EnsureCanRead();
+
+			FdbKey.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "TryGetAsync", $"Getting value for '{key.ToString()}'");
+#endif
+
+			return PerformGetOperation(key, valueWriter, snapshot: false);
+		}
+
+
 		private Task<Slice> PerformGetOperation(ReadOnlySpan<byte> key, bool snapshot)
 		{
 			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot);
@@ -601,6 +618,18 @@ namespace FoundationDB.Client
 					self,
 					new FdbTransactionLog.GetCommand(self.m_log.Grab(key)) { Snapshot =  snapshot },
 					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, tr.m_cancellation)
+				);
+		}
+
+		private Task<bool> PerformGetOperation(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter,  bool snapshot)
+		{
+			return m_log == null ? m_handler.TryGetAsync(key, valueWriter, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
+
+			static Task<bool> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter)
+				=> self.m_log!.ExecuteAsync<FdbTransactionLog.TryGetCommand, bool>(
+					self,
+					new FdbTransactionLog.TryGetCommand(self.m_log.Grab(key)) { Snapshot = snapshot },
+					(tr, cmd) => tr.m_handler.TryGetAsync(cmd.Key.Span, valueWriter, cmd.Snapshot,  tr.m_cancellation)
 				);
 		}
 

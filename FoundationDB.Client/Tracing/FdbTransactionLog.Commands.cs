@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters.Logging
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -668,6 +669,42 @@ namespace FoundationDB.Filters.Logging
 				return value.ToString("P");
 			}
 
+		}
+
+		public sealed class TryGetCommand : Command<bool>
+		{
+			/// <summary>Key read from the database</summary>
+			public Slice Key { get; }
+
+			public override Operation Op => Operation.Get;
+
+			public TryGetCommand(Slice key)
+			{
+				this.Key = key;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count;
+
+			public override int? ResultBytes => default;
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return resolver.Resolve(this.Key);
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.Result.HasValue)
+				{
+						return this.Result.Value.ToString();
+				}
+				return base.GetResult(resolver);
+			}
+
+			protected override string Dump(bool value)
+			{
+				return value.ToString();
+			}
 		}
 
 		public sealed class GetKeyCommand : Command<Slice>

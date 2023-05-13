@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Core
 {
 	using System;
+	using System.Buffers;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using JetBrains.Annotations;
@@ -75,6 +76,14 @@ namespace FoundationDB.Client.Core
 		/// <param name="ct"></param>
 		/// <returns></returns>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
+
+		/// <summary>Try read from database and write result to <paramref name="valueWriter"/></summary>
+		/// <param name="key">Key to read</param>
+		/// <param name="valueWriter">Buffer writter for which the value is written, if it exists</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="ct"></param>
+		/// <returns>Task with true if the key if it is found</returns>
+		Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>

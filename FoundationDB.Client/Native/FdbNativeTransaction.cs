@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Native
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
@@ -168,11 +169,39 @@ namespace FoundationDB.Client.Native
 			return present ? Slice.Copy(result) : Slice.Nil;
 		}
 
+		private static bool GetValueResultBytes(FutureHandle h, IBufferWriter<byte> writer)
+		{
+			Contract.Debug.Requires(h != null);
+			Contract.Debug.Requires(writer != null);
+
+			var err = FdbNative.FutureGetValue(h, out bool present, out ReadOnlySpan<byte> result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+#endif
+			Fdb.DieOnError(err);
+
+			if (present)
+			{
+				writer.Write(result);
+			}
+
+			return present;
+		}
+
 		public Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct)
 		{
 			return FdbFuture.CreateTaskFromHandle(
 				FdbNative.TransactionGet(m_handle, key, snapshot),
 				(h) => GetValueResultBytes(h),
+				ct
+			);
+		}
+
+		public Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter, bool snapshot, CancellationToken ct)
+		{
+			return FdbFuture.CreateTaskFromHandle(
+				FdbNative.TransactionGet(m_handle, key, snapshot),
+				(h) => GetValueResultBytes(h, valueWriter),
 				ct
 			);
 		}
