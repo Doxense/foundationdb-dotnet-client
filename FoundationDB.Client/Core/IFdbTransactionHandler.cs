@@ -77,7 +77,7 @@ namespace FoundationDB.Client.Core
 		/// <returns></returns>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
 
-		/// <summary>Try reas from database and write result to <paramref name="valueWriter"/></summary>
+		/// <summary>Try read from database and write result to <paramref name="valueWriter"/></summary>
 		/// <param name="key">Key to read</param>
 		/// <param name="valueWriter">Buffer writter for which the value is written, if it exists</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>

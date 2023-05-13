@@ -671,14 +671,14 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
-		public sealed class GetBoolCommand : Command<bool>
+		public sealed class TryGetCommand : Command<bool>
 		{
 			/// <summary>Key read from the database</summary>
 			public Slice Key { get; }
 
 			public override Operation Op => Operation.Get;
 
-			public GetBoolCommand(Slice key)
+			public TryGetCommand(Slice key)
 			{
 				this.Key = key;
 			}

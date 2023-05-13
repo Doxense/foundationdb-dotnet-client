@@ -602,7 +602,7 @@ namespace FoundationDB.Client
 			FdbKey.EnsureKeyIsValid(key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "TryGetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
 			return PerformGetOperation(key, valueWriter, snapshot: false);
@@ -626,9 +626,9 @@ namespace FoundationDB.Client
 			return m_log == null ? m_handler.TryGetAsync(key, valueWriter, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot, valueWriter);
 
 			static Task<bool> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, IBufferWriter<byte> valueWriter)
-				=> self.m_log!.ExecuteAsync<FdbTransactionLog.GetBoolCommand, bool>(
+				=> self.m_log!.ExecuteAsync<FdbTransactionLog.TryGetCommand, bool>(
 					self,
-					new FdbTransactionLog.GetBoolCommand(self.m_log.Grab(key)) { Snapshot = snapshot },
+					new FdbTransactionLog.TryGetCommand(self.m_log.Grab(key)) { Snapshot = snapshot },
 					(tr, cmd) => tr.m_handler.TryGetAsync(cmd.Key.Span, valueWriter, cmd.Snapshot,  tr.m_cancellation)
 				);
 		}

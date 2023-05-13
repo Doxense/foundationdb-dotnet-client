@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key);
 
-		/// <summary>Try reas from database snapshot represented by by the current transaction and write result to <paramref name="valueWriter"/>. </summary>
+		/// <summary>Try reads from database snapshot represented by by the current transaction and write result to <paramref name="valueWriter"/>. </summary>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="bufferWriter">Buffer writter for which the value is written, if it exists</param>
 		/// <returns>Task with true if the key if it is found</returns>
