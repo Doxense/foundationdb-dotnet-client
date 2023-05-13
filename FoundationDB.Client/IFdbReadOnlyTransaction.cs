@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Filters.Logging;
+	using System.Buffers;
 
 	/// <summary>Transaction that allows read operations</summary>
 	[PublicAPI]
@@ -71,6 +72,12 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key);
+
+		/// <summary>Try reas from database snapshot represented by by the current transaction and write result to <paramref name="valueWriter"/>. </summary>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="bufferWriter">Buffer writter for which the value is written, if it exists</param>
+		/// <returns>Task with true if the key if it is found</returns>
+		Task<bool> TryGetAsync(ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter);
 
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
