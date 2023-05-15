@@ -468,7 +468,7 @@ namespace FoundationDB.Client.Native
 			if (Fdb.ApiVersion < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You willl need to select API version 620 or greater.");
 			//TODO: for lesser version, maybe we could return our own estimation?
 
-			var future = FdbNative.TransactionGetReadVersion(m_handle);
+			var future = FdbNative.TransactionGetApproximateSize(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
