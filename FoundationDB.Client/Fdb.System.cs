@@ -163,7 +163,7 @@ namespace FoundationDB.Client
 			public static Task<Slice> GetConfigParameterAsync(IFdbDatabase db, string name, CancellationToken ct)
 			{
 				Contract.NotNull(db);
-				Contract.NotNullOrEmpty(name, nameof(name), "Configuration parameter name cannot be null or empty.");
+				Contract.NotNullOrEmpty(name, message: "Configuration parameter name cannot be null or empty.", paramName: nameof(name));
 
 				return db.ReadAsync<Slice>((tr) =>
 				{
