@@ -80,15 +80,39 @@ namespace FoundationDB.Client.Native
 
 			// Network
 
+			/// <summary>Called to set network options.</summary>
+			/// <remarks>
+			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter <paramref name="value"/> and the parameter value’s <paramref name="length"/>.
+			/// If the option is documented as taking an <c>Int</c> parameter, value must point to a signed 64-bit integer (little-endian), and <paramref name="length"/> must be <c>8</c>.
+			/// This memory only needs to be valid until <see cref="fdb_network_set_option"/> returns.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int valueLength);
+			public static extern FdbError fdb_network_set_option(FdbNetworkOption option, byte* value, int length);
 
+			/// <summary>Setup the network thread.</summary>
+			/// <remarks>
+			/// Must be called after <see cref="fdb_select_api_version_impl"/> (and zero or more calls to <see cref="fdb_network_set_option"/>) and before any other function in this API.
+			/// <see cref="fdb_setup_network"/> can only be called once.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_setup_network();
 
+			/// <summary>Run the network loop on the current thread</summary>
+			/// <remarks>
+			/// Must be called after <see cref="fdb_setup_network"/> before any asynchronous functions in this API can be expected to complete.
+			/// Unless your program is entirely event-driven based on results of asynchronous functions in this API and has no event loop of its own, you will want to invoke this function on an auxiliary thread (which it is your responsibility to create).
+			/// This function will not return until <see cref="fdb_stop_network"/> is called by you or a serious error occurs.
+			/// It is not possible to run more than one network thread, and the network thread cannot be restarted once it has been stopped.
+			/// This means that once <see cref="fdb_run_network"/> has been called, it is not legal to call it again for the lifetime of the running program.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_run_network();
 
+			/// <summary>Signals the event loop invoked by <see cref="fdb_run_network"/> to terminate.</summary>
+			/// <remarks>
+			/// You must call this function and wait for <see cref="fdb_run_network"/> to return before allowing your program to exit, or else the behavior is undefined.
+			/// This function may be called from any thread. Once the network is stopped it cannot be restarted during the lifetime of the running program.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_stop_network();
 
@@ -112,55 +136,135 @@ namespace FoundationDB.Client.Native
 
 			// Database
 
+			/// <summary>Creates a new database connected the specified cluster.</summary>
+			/// <remarks>
+			/// The caller assumes ownership of the FDBDatabase object and must destroy it with <see cref="fdb_database_destroy"/>.
+			/// A single client can use this function multiple times to connect to different clusters simultaneously, with each invocation requiring its own cluster file.
+			/// To connect to multiple clusters running at different, incompatible versions, the multi-version client API must be used.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath, out DatabaseHandle database);
 
+			/// <summary>Destroys an FDBDatabase object.</summary>
+			/// <remarks>
+			/// It must be called exactly once for each successful call to <see cref="fdb_create_database"/>.
+			/// This function only destroys a handle to the database – your database will be fine!
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_database_destroy(IntPtr database);
 
+			/// <summary>Called to set an option on an <see cref="DatabaseHandle">FDBDatabase</see>.</summary>
+			/// <remarks>
+			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter <paramref name="value"/> and the parameter value’s <paramref name="length"/>.
+			/// If the option is documented as taking an Int parameter, <paramref name="value"/> must point to a signed 64-bit integer (little-endian), and <paramref name="length"/> must be <c>8</c>.
+			/// This memory only needs to be valid until <see cref="fdb_database_set_option"/> returns.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_database_set_option(DatabaseHandle handle, FdbDatabaseOption option, byte* value, int valueLength);
+			public static extern FdbError fdb_database_set_option(DatabaseHandle handle, FdbDatabaseOption option, byte* value, int length);
 
+			/// <summary>Creates a new transaction on the given database without using a tenant, meaning that it will operate on the entire database key-space.</summary>
+			/// <remarks>The caller assumes ownership of the <see cref="TransactionHandle">FDBTransaction</see> object and must destroy it with <see cref="fdb_transaction_destroy"/>.</remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_create_transaction(DatabaseHandle database, out TransactionHandle transaction);
 
 			// Transaction
 
+			/// <summary>Destroys an <see cref="TransactionHandle">FDBTransaction</see> object.</summary>
+			/// <remarks>
+			/// It must be called exactly once for each successful call to <see cref="fdb_database_create_transaction"/>.
+			/// Destroying a transaction which has not had <see cref="fdb_transaction_commit"/> called implicitly “rolls back” the transaction (sets and clears do not take effect on the database).
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_destroy(IntPtr database);
 
+			/// <summary>Called to set an option on an FDBTransaction.</summary>
+			/// <remarks>
+			/// If the given option is documented as taking a parameter, you must also pass a pointer to the parameter value and the parameter value’s length.
+			/// If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8.
+			/// This memory only needs to be valid until fdb_transaction_set_option() returns.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_set_option(TransactionHandle handle, FdbTransactionOption option, byte* value, int valueLength);
 
+			/// <summary>Sets the snapshot read version used by a transaction.</summary>
+			/// <remarks>
+			/// This is not needed in simple cases.
+			/// If the given version is too old, subsequent reads will fail with error_code_transaction_too_old;
+			/// if it is too new, subsequent reads may be delayed indefinitely and/or fail with <see cref="FdbError"><c>error_code_future_version</c></see>.
+			/// If any of <c>fdb_transaction_get_*()</c> have been called on this transaction already, the result is undefined.</remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_set_read_version(TransactionHandle handle, long version);
 
+			/// <summary>Gets the read version of the <paramref name="transaction"/> snapshot</summary>
+			/// <returns>Returns an <see cref="FutureHandle"><c>FDBFuture</c></see> which will be set to the transaction snapshot read version.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <see cref="FutureHandle"><c>FDBFuture</c></see> to be ready, check for errors, call <see cref="fdb_future_get_int64"/> to extract the version into an <c>int64_t</c> that you provide, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// The transaction obtains a snapshot read version automatically at the time of the first call to <c>fdb_transaction_get_*()</c> (including this one) and (unless causal consistency has been deliberately compromised by transaction options) is guaranteed to represent all transactions which were reported committed before that call.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_read_version(TransactionHandle transaction);
 
+			/// <summary>Reads a value from the database snapshot represented by <paramref name="transaction"/></summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the value of <paramref name="keyName"/> in the database.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_value"/> to extract the value, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// <para>See <see cref="fdb_future_get_value"/> to see exactly how results are unpacked.</para>
+			/// <para>If <paramref name="keyName"/> is not present in the database, the result is not an error, but a zero for <c>present</c> returned from that function.</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
 
+			/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <see cref="keyName"/> and its associated value.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to an array of strings.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_string_array"/> to extract the string array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_addresses_for_key(TransactionHandle transaction, byte* keyName, int keyNameLength);
 
+			/// <summary>Resolves a key selector against the keys in the database snapshot represented by <paramref name="transaction"/>.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the key in the database matching the key selector.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_key"/> to extract the key, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_key(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
 
+			/// <summary>Reads all key-value pairs in the database snapshot represented by <paramref name="transaction"/> (potentially limited by <paramref name="limit"/>, <paramref name="targetBytes"/>, or <paramref name="mode"/>) which have a key lexicographically greater than or equal to the key resolved by the <c>begin</c> key selector and lexicographically less than the key resolved by the <c>end</c> key selector.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to an <c>FDBKeyValue</c> array.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_keyvalue_array"/> to extract the key-value array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_range(
 				TransactionHandle transaction,
-				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
-				byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
+				/* begin */ byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
+				/* end */ byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
 				int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse
 			);
 
+			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to change the given key to have the given value. If the given key was not previously present in the database it is inserted.</summary>
+			/// <remarks>
+			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_set(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
 
+			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to remove the given key from the database. If the key was not previously present in the database, there is no effect.</summary>
+			/// <remarks>
+			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_clear(TransactionHandle transaction, byte* keyName, int keyNameLength);
 
+			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.</summary>
+			/// <remarks>
+			/// The modification affects the actual database only if <paramref name="transaction"/> is later committed with <see cref="fdb_transaction_commit"/>.
+			/// Range clears are efficient with FoundationDB – clearing large amounts of data will be fast.
+			/// However, this will not immediately free up disk - data for the deleted range is cleaned up in the background.
+			/// For purposes of computing the transaction size, only the begin and end keys of a clear range are counted.
+			/// The size of the data stored in the range does not count against the transaction size limit.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_clear_range(
 				TransactionHandle transaction,
@@ -168,65 +272,198 @@ namespace FoundationDB.Client.Native
 				byte* endKeyName, int endKeyNameLength
 			);
 
+			/// <summary>Modify the database snapshot represented by <paramref name="transaction"/> to perform the operation indicated by operationType with operand param to the value stored by the given key.</summary>
+			/// <remarks>
+			/// An atomic operation is a single database command that carries out several logical steps: reading the value of a key, performing a transformation on that value, and writing the result.
+			/// Different atomic operations perform different transformations.
+			/// Like other database operations, an atomic operation is used within a transaction; however, its use within a transaction will not cause the transaction to conflict.
+			/// Atomic operations do not expose the current value of the key to the client but simply send the database the transformation to apply.
+			/// In regard to conflict checking, an atomic operation is equivalent to a write without a read. It can only cause other transactions performing reads of the key to conflict.
+			/// By combining these logical steps into a single, read-free operation, FoundationDB can guarantee that the transaction will not conflict due to the operation.
+			/// This makes atomic operations ideal for operating on keys that are frequently modified. A common example is the use of a key-value pair as a counter.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_atomic_op(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* param, int paramLength, FdbMutationType operationType);
 
+			/// <summary>Attempts to commit the sets and clears previously applied to the database snapshot represented by transaction to the actual database. The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// <para>It is not necessary to commit a read-only transaction – you can simply call <see cref="fdb_transaction_destroy"/>.</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_commit(TransactionHandle transaction);
 
+			/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
+			/// <remarks>
+			/// <see cref="fdb_transaction_commit"/> must have been called on <paramref name="transaction"/> and the resulting future must be ready and not an error before this function is called, or the behavior is undefined.
+			/// Read-only transactions do not modify the database when committed and will have a committed version of -1.
+			/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
+			/// Note that database versions are not necessarily unique to a given transaction and so cannot be used to determine in what order two transactions completed.
+			/// The only use for this function is to manually enforce causal consistency when calling <see cref="fdb_transaction_set_read_version"/> on another subsequent transaction.
+			/// Most applications will not call this function.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_get_committed_version(TransactionHandle transaction, out long version);
 
+			/// <summary>Retrieves the <see cref="VersionStamp"/> which was used by any versionstamp operation in this transaction.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the versionstamp which was used by any versionstamp operations in this transaction.</returns>
+			/// <remarks>
+			/// You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_key"/> to extract the key, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.
+			/// The future will be ready only after the successful completion of a call to <see cref="fdb_transaction_commit"/> on this Transaction. Read-only transactions do not modify the database when committed and will result in the future completing with an error. Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
+			/// Most applications will not call this function.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_versionstamp(TransactionHandle transaction);
 
+			/// <summary></summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value that will be set once the watch has detected a change to the value at the specified key.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// <para>
+			/// A watch’s behavior is relative to the transaction that created it.
+			/// A watch will report a change in relation to the key’s value as readable by that transaction.
+			/// The initial value used for comparison is either that of the transaction’s read version or the value as modified by the transaction itself prior to the creation of the watch.
+			/// If the value changes and then changes back to its initial value, the watch might not report the change.
+			/// </para>
+			/// <para>
+			/// Until the transaction that created it has been committed, a watch will not report changes made by other transactions.
+			/// In contrast, a watch will immediately report changes made by the transaction itself.
+			/// Watches cannot be created if the transaction has set the READ_YOUR_WRITES_DISABLE transaction option, and an attempt to do so will return an watches_disabled error.
+			/// </para>
+			/// <para>
+			/// If the transaction used to create a watch encounters an error during commit, then the watch will be set with that error.
+			/// A transaction whose commit result is unknown will set all of its watches with the commit_unknown_result error.
+			/// If an uncommitted transaction is reset or destroyed, then any watches it created will be set with the <see cref="FdbError"><c>transaction_cancelled</c></see> error.
+			/// </para>
+			/// <para>
+			/// By default, each database connection can have no more than <c>10,000</c> watches that have not yet reported a change.
+			/// When this number is exceeded, an attempt to create a watch will return a <see cref="FdbError"><c>too_many_watches</c></see> error.
+			/// This limit can be changed using the <c>MAX_WATCHES</c> database option.
+			/// Because a watch outlives the transaction that creates it, any watch that is no longer needed should be cancelled by calling <see cref="fdb_future_cancel"/> on its returned future.
+			/// </para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_watch(TransactionHandle transaction, byte* keyName, int keyNameLength);
 
+			/// <summary>Implements the recommended retry and backoff behavior for a transaction.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> representing an empty value.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// <para>
+			/// This function knows which of the error codes generated by other <c>fdb_transaction_*()</c> functions represent temporary error conditions and which represent application errors that should be handled by the application.
+			/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
+			/// </para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_on_error(TransactionHandle transaction, FdbError error);
 
+			/// <summary>Reset <paramref name="transaction"/> to its initial state.</summary>
+			/// <remarks>
+			/// This is similar to calling <see cref="fdb_transaction_destroy"/> followed by <see cref="fdb_database_create_transaction"/>.
+			/// It is not necessary to call <see cref="fdb_transaction_reset"/> when handling an error with <see cref="fdb_transaction_on_error"/> since the transaction has already been reset.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_reset(TransactionHandle transaction);
 
+			/// <summary>Cancels the transaction.</summary>
+			/// <remarks>
+			/// All pending or future uses of the transaction will return a <see cref="FdbError"><c>transaction_cancelled</c></see> error.
+			/// The transaction can be used again after it is reset.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_cancel(TransactionHandle transaction);
 
+			/// <summary>Adds a conflict range to a transaction without performing the associated read or write.</summary>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_add_conflict_range(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, FdbConflictRangeType type);
 
+			/// <summary>Returns the approximate transaction size so far.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the approximate transaction size so far in the returned future, which is the summation of the estimated size of mutations, read conflict ranges, and write conflict ranges.</returns>
+			/// <remarks>
+			/// You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_int64"/> to extract the size, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.
+			/// This can be called multiple times before the transaction is committed.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_approximate_size(TransactionHandle transaction);
 
 			// Future
 
+			/// <summary>Destroys an <see cref="FutureHandle">FDBFuture</see> object.</summary>
+			/// <remarks>
+			/// It must be called exactly once for each FDBFuture* returned by an API function.
+			/// It may be called before or after the future is ready.
+			/// It will also cancel the future (and its associated operation if the latter is still outstanding).
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_destroy(IntPtr future);
 
+			/// <summary>Cancels an <see cref="FutureHandle">FDBFuture</see> object and its associated asynchronous operation.</summary>
+			/// <remarks>
+			/// If called before the future is ready, attempts to access its value will return an operation_cancelled error.
+			/// Cancelling a future which is already ready has no effect.
+			/// Note that even if a future is not ready, its associated asynchronous operation may have succesfully completed and be unable to be cancelled.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_cancel(FutureHandle future);
 
+			/// <summary>Release memory associated to the given <see cref="FutureHandle">FDBFuture</see> object.</summary>
+			/// <remarks>
+			/// This function may only be called after a successful (zero return value) call to <see cref="fdb_future_get_key"/>, <see cref="fdb_future_get_value"/>, or <see cref="fdb_future_get_keyvalue_array"/>.
+			/// It indicates that the memory returned by the prior get call is no longer needed by the application.
+			/// After this function has been called the same number of times as fdb_future_get_*(), further calls to fdb_future_get_*() will return a future_released error.
+			/// It is still necessary to later destroy the future with fdb_future_destroy().
+			/// Calling this function is optional, since <see cref="fdb_future_destroy"/> will also release the memory returned by get functions.
+			/// However, <see cref="fdb_future_release_memory"/> leaves the future object itself intact and provides a specific error code which can be used for coordination by multiple threads racing to do something with the results of a specific future.
+			/// This has proven helpful in writing binding code.
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_release_memory(FutureHandle future);
 
+			/// <summary>Blocks the calling thread until the given <c>Future</c> is ready.</summary>
+			/// <remarks>
+			/// It will return success even if the <c>Future</c> is set to an error – you must call <see cref="fdb_future_get_error"/> to determine that.
+			/// <see cref="fdb_future_block_until_ready"/> will return an error only in exceptional conditions (e.g. deadlock detected, out of memory or other operating system resources).
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_block_until_ready(FutureHandle futureHandle);
+			public static extern FdbError fdb_future_block_until_ready(FutureHandle future);
 
+			/// <summary>Returns non-zero if the <paramref name="future"/> is ready.</summary>
+			/// <remarks>A <c>Future</c> is ready if it has been set to a value or an error.</remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern bool fdb_future_is_ready(FutureHandle futureHandle);
+			public static extern bool fdb_future_is_ready(FutureHandle future);
 
+			/// <summary>Returns zero if <paramref name="future"/> is ready and not in an error state, and a non-zero error code otherwise.</summary>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_error(FutureHandle futureHandle);
+			public static extern FdbError fdb_future_get_error(FutureHandle future);
 
+			/// <summary>Causes the FDBCallback function to be invoked as <c><paramref name="callback"/>(<paramref name="future"/>, <paramref name="parameter"/>)</c> when the given <paramref name="future"/> is ready.</summary>
+			/// <returns>
+			/// If the <c>Future</c> is already ready, the call may occur in the current thread before this function returns (but this behavior is not guaranteed).
+			/// Alternatively, the call may be delayed indefinitely and take place on the thread on which <see cref="fdb_run_network"/> was invoked,
+			/// and the callback is responsible for any necessary thread synchronization (and/or for posting work back to your application
+			/// event loop, thread pool, etc. if your application’s architecture calls for that).
+			/// </returns>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter);
+			public static extern FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr parameter);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_version(FutureHandle future, out long version);
 
+			/// <summary>Extracts a 64-bit integer from a pointer to <see cref="FutureHandle">FDBFuture</see> into a caller-provided variable of type int64_t.</summary>
+			/// <remarks>
+			/// <paramref name="future"/> must represent a result of the appropriate type (i.e. must have been returned by a function documented as returning this type), or the results are undefined.
+			/// Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_int64(FutureHandle future, out long version);
 
+			/// <summary>Extracts a key from an <see cref="FutureHandle">FDBFuture</see> into caller-provided variables of type <c>uint8_t*</c> (a pointer to the beginning of the key) and int (the length of the key). </summary>
+			/// <remarks>
+			/// <para>future must represent a result of the appropriate type (i.e. must have been returned by a function documented as returning this type), or the results are undefined.</para>
+			/// <para>Returns zero if future is ready and not in an error state, and a non-zero error code otherwise (in which case the value of any out parameter is undefined).</para>
+			/// <para>The memory referenced by the result is owned by the <c>FDBFuture</c> object and will be valid until either <see cref="fdb_future_destroy"/> or <see cref="fdb_future_release_memory"/> is called.</para>
+			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
 
@@ -722,7 +959,7 @@ namespace FoundationDB.Client.Native
 					limit, targetBytes, mode, iteration, snapshot, reverse);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-					Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: " + begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", end: " + end.PrettyPrint(FdbKey.PrettyPrintMode.End) + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+				Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: " + begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", end: " + end.PrettyPrint(FdbKey.PrettyPrintMode.End) + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
 #endif
 				return future;
 			}
@@ -820,7 +1057,7 @@ namespace FoundationDB.Client.Native
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
 					// in order to reduce allocations, we want to merge all keys and values
-					// into a single byte{] and return  list of Slice that will
+					// into a single byte[] and return a list of Slice that will
 					// link to the different chunks of this buffer.
 
 					// first pass to compute the total size needed
@@ -846,6 +1083,7 @@ namespace FoundationDB.Client.Native
 					//TODO: some keys/values will be small (32 bytes or less) while other will be big
 					//consider having to copy methods, optimized for each scenario ?
 
+					//TODO: PERF: find a way to use Memory Pooling for this?
 					var page = new byte[total];
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
@@ -889,7 +1127,7 @@ namespace FoundationDB.Client.Native
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
 					// in order to reduce allocations, we want to merge all keys and values
-					// into a single byte{] and return  list of Slice that will
+					// into a single byte[] and return a list of Slice that will
 					// link to the different chunks of this buffer.
 
 					// first pass to compute the total size needed
@@ -914,6 +1152,7 @@ namespace FoundationDB.Client.Native
 					//TODO: some keys/values will be small (32 bytes or less) while other will be big
 					//consider having to copy methods, optimized for each scenario ?
 
+					//TODO: PERF: find a way to use Memory Pooling for this?
 					var page = new byte[total];
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
@@ -956,7 +1195,7 @@ namespace FoundationDB.Client.Native
 					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
 
 					// in order to reduce allocations, we want to merge all keys and values
-					// into a single byte{] and return  list of Slice that will
+					// into a single byte[] and return a list of Slice that will
 					// link to the different chunks of this buffer.
 
 					int end = count - 1;
@@ -985,6 +1224,7 @@ namespace FoundationDB.Client.Native
 					//TODO: some keys/values will be small (32 bytes or less) while other will be big
 					//consider having to copy methods, optimized for each scenario ?
 
+					//TODO: PERF: find a way to use Memory Pooling for this?
 					var page = new byte[total];
 					int p = 0;
 					for (int i = 0; i < result.Length; i++)
@@ -1019,8 +1259,7 @@ namespace FoundationDB.Client.Native
 		{
 			result = null;
 
-			byte** strings;
-			var err = NativeMethods.fdb_future_get_string_array(future, out strings, out int count);
+			var err = NativeMethods.fdb_future_get_string_array(future, out byte** strings, out int count);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_string_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
 #endif
@@ -1029,12 +1268,13 @@ namespace FoundationDB.Client.Native
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
-				result = new string[count];
 
 				if (count > 0)
 				{ // convert the keyvalue result into an array
 
 					Contract.Debug.Assert(strings != null, "We have results but array pointer was null");
+
+					result = new string[count];
 
 					//TODO: if pointers are corrupted, or memory is garbled, we could very well walk around the heap, randomly copying a bunch of stuff (like passwords or jpegs of cats...)
 					// there is no real way to ensure that pointers are valid, except maybe having a maximum valid size for strings, and they should probably only contain legible text ?
@@ -1043,6 +1283,10 @@ namespace FoundationDB.Client.Native
 					{
 						result[i] = ToManagedString(strings[i]);
 					}
+				}
+				else
+				{
+					result = Array.Empty<string>();
 				}
 			}
 
