@@ -1,7 +1,7 @@
-FoundationDB.Net Client
+FoundationDB .NET Client
 =======================
 
-This code is licensed under the 3-clause BSD License.
+C#/.NET binding for the [FoundationDB](https://www.foundationdb.org/) client library.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
 [![Actions Status](https://github.com/doxense/foundationdb-dotnet-client/workflows/.NET%20Core/badge.svg)](https://github.com/doxense/foundationdb-dotnet-client/actions)
@@ -10,203 +10,277 @@ How to use
 ----------
 
 You will need to install two things:
-- a copy of the FoundationDB client library, available on https://www.foundationdb.org/download/
-- a reference to the `FoundationDB.Client` library.
+- A copy of the FoundationDB client library, available at https://github.com/apple/foundationdb/releases
+- A reference to the `FoundationDB.Client` package.
+- A reference to the `FoundationDB.DependencyInjection` package (optionnal)
 
-The `FoundationDB.Client` library is available on NuGet:
-- https://www.nuget.org/packages/FoundationDB.Client/
+#### Using Dependency Injection
 
-There is also a MyGet feed for nightly builds:
-- NuGet v3: https://www.myget.org/F/foundationdb-dotnet-client/api/v3/index.json
-- NuGet v2: https://www.myget.org/F/foundationdb-dotnet-client/api/v2
+In your Program.cs, you should register FoundationDB with the DI container:
 
 ```CSharp
 using FoundationDB.Client; // this is the main namespace of the library
 
-// note: most operations require a valid CancellationToken, which you need to obtain from the context (HTTP request, component lifetime, timeout, ...)
-CancellationToken cancel = ....;
+var builder = WebApplication.CreateBuilder(args);
 
-// Connect to the db "DB" using the default cluster file
-using (var db = await Fdb.OpenAsync())
+// ...
+
+// hook-up the various FoundationDB types and interfaces with the DI container
+// You MUST select the appropriate API level that matches the target cluster (here '710' requires at least v7.1)
+builder.Services.AddFoundationDb(710, options =>
 {
-    // we will use a "Test" directory to isolate our test data
-    var location = await db.Directory.CreateOrOpenAsync("Test", cancel);
-    // this location will remember the allocated prefix, and
-    // automatically add it as a prefix to all our keys
-    
-    // we need a transaction to be able to make changes to the db
-    // note: production code should use "db.WriteAsync(..., cancel)" instead
-    using (var trans = db.BeginTransaction(cancel))
-    {
-        // For our convenience, we will use the Tuple Encoding format for our keys,
-        // which is accessible via the "location.Keys" helper. We could have used
-        // any other encoding for the keys. Tuples are simple to use and have some
-        // interesting ordering properties that make it easy to work with.
-        // => All our keys will be encoded as the packed tuple ({Test}, "foo"),
-        //    making them very nice and compact. We could also use integers or GUIDs
-        //    for the keys themselves.
+	// auto-start the connection to the cluster on the first request
+	options.AutoStart = true; 
 
-        // Set "Hello" key to "World"
-        trans.Set(
-            location.Keys.Encode("Hello"),
-            Slice.FromString("World") // UTF-8 encoded string
-        );
+	//you can configure additional options here, like the path to the .cluster file, default timeouts, ...
+});
 
-        // Set "Count" key to 42
-        trans.Set(
-            location.Keys.Encode("Count"),
-            Slice.FromInt32(42) // 1 byte
-        );
-        
-        // Atomically add 123 to "Total"
-        trans.AtomicAdd(
-            location.Keys.Encode("Total"),
-            Slice.FromFixed32(123) // 4 bytes, Little Endian
-        );
+var app = builder.Build();
 
-        // Set bits 3, 9 and 30 in the bit map stored in the key "Bitmap"
-        trans.AtomicOr(
-            location.Keys.Encode("Bitmap"),
-            Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)) // 4 bytes, Little Endian
-        );
-        
-        // commit the changes to the db
-        await trans.CommitAsync();
-        // note: it is only after this completes, that the keys are actually
-        // sent to the database and durably stored.
-    }
-    
-    // we also need a transaction to read from the db
-    // note: production code should use "db.ReadAsync(..., cancel)" instead.
-    using (var trans = db.BeginReadOnlyTransaction(cancel))
-    {
-        // Read ({Test}, "Hello", ) as a string
-        Slice value = await trans.GetAsync(location.Keys.Encode("Hello"));
-        Console.WriteLine(value.ToUnicode()); // -> World
-    
-        // Read ({Test}, "Count", ) as an int
-        value = await trans.GetAsync(location.Keys.Encode("Count"));
-        Console.WriteLine(value.ToInt32()); // -> 42
+// ...
 
-        // Reading keys that do not exist will return 'Slice.Nil',
-		// which is the equivalent of "key not found". 
-        value = await trans.GetAsync(location.Keys.Encode("NotFound"));
-        Console.WriteLine(value.HasValue); // -> false
-        Console.WriteLine(value == Slice.Nil); // -> true
-        // note: there is also 'Slice.Empty' that is returned for existing keys,
-        // but with an empty value (frequently used by indexes)
-        
-        // this transaction doesn't write aynthing, which means that
-        // we don't have to commit.
-    }
+// note: you don't need to configure anything for this step
 
-    // Let's make something a little more useful, like a very simple
-    // array of values, indexed by integers (0, 1, 2, ...)
+app.Run();
 
-    // First we will create a subdirectory for our little array,
-    // just so that is does not interfere with other things in the cluster.
-    var list = await location.CreateOrOpenAsync(db, "List", cancel);
+```
 
-    // here we will use db.WriteAsync(...) that implements a retry loop.
-    // this helps protect you against intermitent failures by automatically
-    // retrying the lambda method you provided.
-    await db.WriteAsync((trans) =>
-    {
-        // add some data to the array with the format: (..., index) = value
-        trans.Set(list.Keys.Encode(0), Slice.FromStringUtf8("AAA"));
-        trans.Set(list.Keys.Encode(1), Slice.FromStringUtf8("BBB"));
-        trans.Set(list.Keys.Encode(2), Slice.FromStringUtf8("CCC"));
-        // The actual keys will be a concatenation of the prefix of {List},
-        // and a packed tuple containing the index. Since we are using the
-        // Directory Layer, this should still be fairly small (between 4
-        // and 5 bytes). The values are raw slices, which means that your
-        // application MUST KNOW that they are strings in order to decode
-        // them. If you wan't any tool to be able to find out the type of
-        // your values, you can also use TuPack.EncodeKey("AAA") to create
-        // the values, at the cost of 2 extra bytes per entry.
-        
-        // This is always a good idea to maintain a counter of keys in our array.
-        // The cheapest way to do that, is to reuse the subspace key itself, which
-        // is 'in' the subspace, but not 'inside':
-        trans.Set(list.Key, Slice.FromFixed32(3));
-        // We could use TuPack.EncodeKey<int>(3) here, but having a fixed size counter
-        // makes it easy to use AtomicAdd(...) to increment (or decrement) the value
-        // when adding (or removing) entries in the array.
-        
-        // Finally, here we would normally call CommitAsync() to durably persist the
-        // changes, but WriteAsync() will automatically call CommitAsync() for us and
-        // return once this is done. This means that you don't even need to mark this
-        // lambda as async, as long as you only call methods like Set(), Clear() or 
-        // any of the AtomicXXX().
+This will register an instance of the `IFdbDatabaseProvider` singleton, that you can then inject into your controllers, razor pages or any other services.
 
-        // If something goes wrong with the database, this lambda will be called again,
-        // until the problems goes away, or the retry loop decides that there is no point
-        // in retrying anymore, and the exception will be re-thrown.
+Let say, for example, that we have a `Books` Razor Page, that is reachable via the `/Books/{id}` route:
 
-    }, cancel); // don't forget the CancellationToken, which can stop the retry loop !
+- We first inject an instance of the IFdbDatabaseProvider via the constructor.
+- Inside the `OnGet(...)` action, we can call any of the `ReadAsync`, `ReadWriteAsync` or `WriteAsync` methods on this instance, to start a transaction retry-loop.
+- Inside the retry-loop, we get passed either an `IFdbReadOnlyTransaction` (read-only) or an `IFdbTransaction` (read-write).
+- We use this transaction to read the value of the `("Books", <id>)` key from the database.
+  - Please DO NOT mutable any global state from within the transaction handler! The handler could be called MULTIPLE TIMES if there are any conflicts or retryable errors!
+  - Try to perform any pre-processing or post-processing OUTSIDE of the retry-loop. Remember, the transaction instance is only valid for 5 seconds!
+- After the retry-loop, we can inspect the result:
+  - if the key does not exist, then `GetAsync(...)` will return `Slice.Nil`.
+  - if the key does exist, then `GetAsync(...)` returns a Slice containing the bytes of the value (which are expected to be a JSON encoded document)
+- We de-serialize the JSON document into a `Book` record, that we can then pass to the Razor Template to be rendered into an HTML page.
 
-    // We can read everything back in one shot, using an async "LINQ" query.
-    var results = await db.QueryAsync((trans) =>
-    {
-        // do a range query on the list subspace, which should return all the pairs
-        // in the subspace, one for each entry in the array.
-        // We exploit the fact that subspace.Tuples.ToRange() usually does not include
-        // the subspace prefix itself, because we don't want our counter to be returned
-        // with the query itself.
-        return trans
-            // ask for all keys that are _inside_ our subspace
-            .GetRange(list.Keys.ToRange())
-            // transform the each KeyValuePair<Slice, Slice> into something
-            // nicer to use, like a tuple (int Index, string Value)
-            .Select((kvp) => 
-            (
-                    // unpack the tuple and returns the last item as an int
-                    Index: list.Keys.DecodeLast<int>(kvp.Key),
-                    // convert the value from UTF-8 bytes to a string
-                    Value: kvp.Value.ToStringUtf8()
-            ))
-            // only get even values
-            // note: this executes on the client, so the query will still need to
-            // fetch ALL the values from the db!
-            .Where((kvp) => kvp.Index % 2 == 0);
+```CSharp
 
-        // note that QueryAsync() is a shortcut for calling ReadAsync(...) and then
-        // calling ToListAsync() on the async LINQ Query. If you want to call a
-        // different operator than ToListAsync(), just use ReadAsync()
-            
-    }, cancel);
+namespace MyWebApp.Pages
+{
 
-    // results.Count -> 2
-    // results[0] -> (Index: 0, Value: "AAA")
-    // results[1] -> (Index: 2, Value: "CCC")
-    //
-    // once you have the result, nothing stops you from using regular LINQ to finish
-    // off your query in memory, outside of the retry loop.
+	using FoundationDB.Client;
 
-    // now that our little sample program is done, we can dispose the database instance.
-    // in production, you should actually open the connection once in your startup code,
-    // and keep it in a place where the rest of your code can easily access it.
+	/// <summary>Represent a Book that will be stored (as JSON) into the database</summary>
+	public sealed record Book
+	{
+		public required string Id { get; init; }
+
+		public required string Title { get; init; }
+
+		public required string ISBN { get; init; }
+
+		public required string AuthorId { get; init; }
+
+		// ...
+
+	}
+
+	/// <summary>This page is used to display the details of a specific book</summary>
+	/// <remarks>Accessible via the route '/Books/{id}'</remarks>
+	public class BooksModel : PageModel
+	{
+
+		public BooksModel(IFdbDatabaseProvider db)
+		{
+			this.Db = db;
+		}
+
+		private IFdbDatabaseProvider Db { get; }
+
+		public Book Book { get; private set; }
+
+		public async Task OnGet(string id, CancellationToken ct)
+		{
+			// perform parameter validation, ACL checks, and any pre-processing here
+
+			// start a read-only retry-loop
+			Slice jsonBytes = await this.Db.ReadAsync((IFdbReadOnlyTransaction tr) =>
+			{
+				// Read the value of the ("Books", <ID>) key
+				Slice value = await tr.GetAsync(TuPack.Pack(("Books", id)));
+
+				// the transaction can be used to read additional keys and ranges,
+				// and has a lifetime of max. 5 secondes.
+
+				return value;
+			}, ct);
+
+			// here you can perform any post-processing of the result, outside of the retry-loop
+
+            // if the key does not exist in the database, GetAsync(...) will return Slice.Nil
+			if (jsonBytes.IsNull)
+			{
+                // This book does not exist, return a 404 page to the browser!
+				return NotFound();
+			}
+
+            // If the key exists, then GetAsync(...) will return its value as bytes, that can be deserialized
+			Book book = JsonSerializer.Deserialize<Book>(jsonBytes.Span);
+
+			// perform any checks and validation here, like converting the Model (from the database) into a ViewModel (for the razor template)
+
+			this.Book = book;
+		}
+	}
 }
 ```
 
-Please note that the above sample is ok for a simple HelloWorld.exe app, but for actual production you need to be careful of a few things:
+#### Using the Directory Layer
 
-- You should NOT open a new database connection (`Fdb.OpenAsync()`) everytime you need to read or write something. You should open a single database instance somewhere in your startup code, and use that instance everywhere. If you are using a Repository pattern, you can store the IFdbDatabase instance there. Another option is to use a Dependency Injection framework
+Please note that in real use case, it is highly encourage to use the Directory Layer to generate a prefix for the keys, instead of simply using the `("Books", ...)` prefix.
 
-- You should probably not create and transactions yourself (`db.CreateTransaction()`), and instead prefer using the standard retry loops implemented by `db.ReadAsync(...)`, `db.WriteAsync(...)` and `db.ReadWriteAsync(...)` which will handle all the gory details for you. They will ensure that your transactions are retried in case of conflicts or transient errors. See https://apple.github.io/foundationdb/developer-guide.html#conflict-ranges
+In your startup logic:
+```CSharp
 
-- Use the `Tuple Layer` to encode and decode your keys, if possible. This will give you a better experience overall, since all the logging filters and key formatters will try to decode tuples by default, and display `(42, "hello", true)` instead of the cryptic `<15>*<02>hello<00><15><01>`. For simple values like strings (ex: JSON text) or 32-bit/64-bit numbers, you can also use `Slice.FromString(...)`, or `Slice.FromInt32(...)`. For composite values, you can also use the Tuple encoding, if the elements types are simple (string, numbers, dates, ...). You can also use custom encoders via the `IKeyEncoder<T>` and `IValueEncoder<T>`, which you can get from the helper class `KeyValueEncoders`, or roll your own by implementing these interfaces.
+public sealed class BookOptions
+{
 
-- You should use the `Directory Layer` instead of manual partitions (`db.Partition(...)`). This will help you organize your data into a folder-like structure with nice and description names, while keeping the binary prefixes small. You can access the default DirectoryLayer of your database via the `db.Directory` property. Using partitions makes it easier to browse the content of your database using tools like `FdbShell`.
+    /// <summary>Path to the root directory subspace of the application where all data will be stored</summary>
+    public FdbPath Location { get; set; } // ex: "/Tenants/ACME/MyApp/v1"
 
-- You should __NEVER__, _ever_ block on Tasks by using `.Wait()` from non-async code. This will either dead-lock your application, or greatly degrade the performances. If you cannot do otherwise (ex: top-level call in a `void Main()` then at least wrap your code inside a `static async Task MainAsync(string[] args)` method, and do a `MainAsync(args).GetAwaiter().GetResult()`.
+}
 
-- Don't give in, and resist the temptation of passing `CancellationToken.None` everywhere! Try to obtain a valid `CancellationToken` from your execution context (HTTP host, Test Framework, Actor/MicroService host, ...). This will allow the environment to safely shutdown and abort all pending transactions, without any risks of data corruption. If you don't have any easy source (like in a unit test framework), then at least provide you own using a global `CancellationTokenSource` that you can `Cancel()` in your shutdown code path. From inside your transactional code, you can get back the token anytime via the `tr.Cancellation` property which will trigger if the transaction completes or is aborted.
+// ...
+
+builder.Services.Configure<BookOptions>(options =>
+{
+    // note: this would be read from your configuration!
+    options.Location = FdbPath.Relative("Tenants", "ACME", "MyApp", "v1");
+});
+
+```
+
+In your Razor Page:
+
+```CSharp
+public class BooksModel : PageModel
+{
+
+    public BooksModel(IOptions<BookOptions> options, IFdbDatabaseProvider db)
+    {
+        this.Options = options;
+        this.Db = db;
+    }
+
+    private IFdbDatabaseProvider Db { get; }
+
+    private IOptions<BookOptions> Options { get; }
+
+    public async Task OnGet(string id, CancellationToken ct)
+    {
+        Slice jsonBytes = await this.Db.ReadAsync((IFdbReadOnlyTransaction tr) =>
+        {
+            // get the location that corresponds to this path
+            var location = this.Db.Root[this.Options.Value.Location];
+
+            // "resolve" this location into a Directory Subspace that will add the matching prefix to our keys
+            var subspace = await location.Resolve(tr);
+
+            // use this subspace to generate our keys
+            Slice value = await tr.GetAsync(subspace.Encode("Books", id));
+
+            // ....
+
+        }
+
+        // ...
+
+    }
+
+}
+```
+
+#### Access the underlying `IFdbDatabase` singleton
+
+The `IFdbDatabaseProvider` also has a `GetDatabase(...)` method that can be used to obtain an instance of the `IFdbDatabase` singleton, that can then be used directly, or passed to any other Layer or library.
+
+```
+public class FooBarModel : PageModel
+{
+
+	public FooBarModel(IFdbDatabaseProvider db, IFooBarLayer layer)
+	{
+		this.Db = db;
+		this.Layer = layer;
+	}
+
+	private IFdbDatabaseProvider Db { get; }
+
+	private IFooBarLayer Layer { get; }
+
+	public List<Foo> Results { get; }
+
+	public async Task OnGet(...., CancellationToken ct)
+	{
+		// get an instance of the database singleton
+		var db = await this.Db.GetDatabase(ct);
+		// notes:
+		// - if AutoStart is false, this will throw an exception if the provider has not been started manually during starting.
+		// - if AutoStart is true, the very first call will automatically start the connection.
+		// - Once the connection has been established, calls to GetDatabase will return an already-completed task with a cached singleton (or exception).
+
+		// call some method on this layer, that will perform a query on the database and return a list of results
+		this.Results = await this.Layer.Query(db, ...., ct);
+	}
+
+}
+```
+
+Hosting
+-------
+
+#### Hosting on ASP.NET Core / Kestrel
+
+* The simplest solution is to use the `FoundationDB.DependencyInjection` package, and inject an instance of `IFdbDatabaseProvider` in all your controllers, pages and services.
+* The .NET Binding can be configured from your Startup or Program class, by reading configuration from your `appsettings.json` or by environment variable at runtime.
+* If you are publishing your web application as Docker images, you have to inject the `fdb_c.dll` or `libfdb_c.so` binary in your docket image.
+
+Here is an easy way to inject the client binary in a Dockerfile:
+
+```
+# Version of the FoundationDB Client Library
+ARG FDB_VERSION=7.1.21
+
+# We will need the official fdb docker image to obtain the client binaries
+FROM foundationdb/foundationdb:${FDB_VERSION} as fdb
+
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
+
+# copy the binary from the official fdb image into our target image.
+COPY --from=fdb /usr/lib/libfdb_c.so /usr/lib
+
+WORKDIR /App
+
+COPY . /App
+
+ENTRYPOINT ["dotnet", "MyWebApp.dll"]
+```
+
+#### Hosting on IIS
+
+
+* The .NET API is async-only, and should only be called inside async methods. You should NEVER write something like `tr.GetAsync(...).Wait()` or `tr.GetAsync(...).Result` because it will GREATLY degrade performances and prevent you from scaling up past a few concurrent requests.
+* The underlying client library will not run on a 32-bit Application Pool. You will need to move your web application to a 64-bit Application Pool.
+* If you are using IIS Express with an ASP.NET or ASP.NET MVC application from Visual Studio, you need to configure your IIS Express instance to run in 64-bit. With Visual Studio 2013, this can be done by checking Tools | Options | Projects and Solutions | Web Projects | Use the 64 bit version of IIS Express for web sites and projects
+* The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
+* If you don't use the host's CancellationToken for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
+
+#### Hosting on OWIN
+
+* There are no particular restrictions, apart from requiring a 64-bit OWIN host.
+* You should explicitly call Fdb.Stop() when your OWIN host process shuts down, in order to ensure that any pending transaction gets cancelled properly.
 
 How to build
 ------------
 
-### Visual Studio Solution
+#### Visual Studio Solution
 
 You will need Visual Studio 2017 version 15.5 or above to build the solution (C# 7.2 and .NET Standard 2.0 support is required).
 
@@ -218,7 +292,7 @@ You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb
 * Open the FoundationDb.Client.sln file in Visual Studio 2012.
 * Choose the Release or Debug configuration, and rebuild the solution.
 
-### From the Command Line
+#### From the Command Line
 
 You can also build, test and compile the NuGet packages from the command line, using FAKE.
 
@@ -236,26 +310,11 @@ If you get `System.UnauthorizedAccessException: Access to the path './build/outp
 How to test
 -----------
 
-The test project is using NUnit 3.10.
+The test project is using NUnit 3.x.
 
 If you are using a custom runner or VS plugin (like TestDriven.net), make sure that it has the correct nunit version, and that it is configured to run the test using 64-bit process. The code will NOT work on 32 bit.
 
 WARNING: All the tests should work under the ('T',) subspace, but any bug or mistake could end up wiping or corrupting the global keyspace and you may lose all your data. You can specify an alternative cluster file to use in `TestHelper.cs` file.
-
-Hosting on IIS
---------------
-
-* The .NET API is async-only, and should only be called inside async methods. You should NEVER write something like `tr.GetAsync(...).Wait()` or 'tr.GetAsync(...).Result' because it will GREATLY degrade performances and prevent you from scaling up past a few concurrent requests.
-* The underlying client library will not run on a 32-bit Application Pool. You will need to move your web application to a 64-bit Application Pool.
-* If you are using IIS Express with an ASP.NET or ASP.NET MVC application from Visual Studio, you need to configure your IIS Express instance to run in 64-bit. With Visual Studio 2013, this can be done by checking Tools | Options | Projects and Solutions | Web Projects | Use the 64 bit version of IIS Express for web sites and projects
-* The fdb_c.dll library can only be started once per process. This makes impractical to run an web application running inside a dedicated Application Domain alongside other application, on a shared host process. The only current workaround is to have a dedicated host process for this application, by making it run inside its own Application Pool.
-* If you don't use the host's CancellationToken for transactions and retry loops, deadlock can occur if the FoundationDB cluster is unavailable or under very heavy load. Please consider also using safe values for the DefaultTimeout and DefaultRetryLimit settings.
-
-Hosting on OWIN
----------------
-
-* There are no particular restrictions, apart from requiring a 64-bit OWIN host.
-* You should explicitly call Fdb.Stop() when your OWIN host process shuts down, in order to ensure that any pending transaction gets cancelled properly.
 
 Implementation Notes
 --------------------
@@ -290,9 +349,16 @@ Known Limitations
 * FoundationDB has a maximum allowed size of 10,000,000 bytes for writes per transactions (some of all key+values that are mutated). You need multiple transaction if you need to store more data. There is a Bulk API (`Fdb.Bulk.*`) to help for the most common cases (import, export, backup/restore, ...)
 * See https://apple.github.io/foundationdb/known-limitations.html for other known limitations of the FoundationDB database.
 
+License
+-------
+
+This code is licensed under the 3-clause BSD License.
+
 Contributing
 ------------
 
 * Yes, we use tabs! Get over it.
 * Style rules are encoded in `.editorconfig` which is supported by most IDEs (or via extensions).
 * You can visit the FoundationDB forums for generic questions (not .NET): https://forums.foundationdb.org/
+
+
