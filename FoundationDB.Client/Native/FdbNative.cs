@@ -95,15 +95,19 @@ namespace FoundationDB.Client.Native
 			// Cluster
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+			[Obsolete("Not supported any more")]
 			public static extern FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string? clusterFilePath);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			[Obsolete("Not supported any more")]
 			public static extern void fdb_cluster_destroy(IntPtr cluster);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			[Obsolete("Not supported any more")]
 			public static extern FdbError fdb_cluster_set_option(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+			[Obsolete("Not supported any more")]
 			public static extern FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
 
 			// Database
@@ -472,6 +476,7 @@ namespace FoundationDB.Client.Native
 
 		#region Clusters...
 
+		[Obsolete("Deprecated since API level 610")]
 		public static FutureHandle CreateCluster(string? path)
 		{
 			var future = NativeMethods.fdb_create_cluster(path);
@@ -483,6 +488,7 @@ namespace FoundationDB.Client.Native
 			return future;
 		}
 
+		[Obsolete("Deprecated since API level 610")]
 		public static void ClusterDestroy(IntPtr handle)
 		{
 			if (handle != IntPtr.Zero)
@@ -491,11 +497,13 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		[Obsolete("Deprecated since API level 610")]
 		public static FdbError ClusterSetOption(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength)
 		{
 			return NativeMethods.fdb_cluster_set_option(cluster, option, value, valueLength);
 		}
 
+		[Obsolete("Deprecated since API level 610")]
 		public static FdbError FutureGetCluster(FutureHandle future, out ClusterHandle cluster)
 		{
 			var err = NativeMethods.fdb_future_get_cluster(future, out cluster);

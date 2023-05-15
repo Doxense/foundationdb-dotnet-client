@@ -84,7 +84,9 @@ namespace FoundationDB.Client.Native
 		{
 			if (Fdb.GetMaxApiVersion() < 610)
 			{ // Older version used a different way to create a database handle
+#pragma warning disable CS0618
 				return CreateDatabaseLegacyAsync(clusterFile, ct);
+#pragma warning restore CS0618
 			}
 
 			// Starting from 6.1, creating a database handler can be done directly
@@ -97,6 +99,7 @@ namespace FoundationDB.Client.Native
 			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
 		}
 
+		[Obsolete("Deprecated since API level 610")]
 		private static async ValueTask<IFdbDatabaseHandler> CreateDatabaseLegacyAsync(string? clusterFile, CancellationToken ct)
 		{
 			// In legacy API versions, you first had to create "cluster" handle and then obtain a database handle that that cluster.

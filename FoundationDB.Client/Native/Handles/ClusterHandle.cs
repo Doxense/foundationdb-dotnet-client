@@ -33,6 +33,7 @@ namespace FoundationDB.Client.Native
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBCluster*</summary>
+	[Obsolete("Deprecated since API level 610")]
 	internal sealed class ClusterHandle : FdbSafeHandle
 	{
 
