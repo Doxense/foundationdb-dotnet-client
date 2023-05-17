@@ -1584,6 +1584,36 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region GetRangeSplitPointsAsync...
+
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		public static Task<Slice[]> GetRangeSplitPointsAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> beginKey, ReadOnlyMemory<byte> endKey, long chunkSize)
+		{
+			return trans.GetRangeSplitPointsAsync(beginKey.Span, endKey.Span, chunkSize);
+		}
+
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		public static Task<Slice[]> GetRangeSplitPointsAsync(this IFdbReadOnlyTransaction trans, Slice beginKey, Slice endKey, long chunkSize)
+		{
+			if (beginKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			if (endKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return trans.GetRangeSplitPointsAsync(beginKey.Span, endKey.Span, chunkSize);
+		}
+
+		#endregion
+
 		#region CheckValueAsync...
 
 		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>

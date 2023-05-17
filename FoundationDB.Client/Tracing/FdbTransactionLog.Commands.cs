@@ -1001,6 +1001,31 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
+		public sealed class GetRangeSplitPointsCommand : Command<Slice[]>
+		{
+			/// <summary>Begin key of the range</summary>
+			public Slice Begin { get; }
+
+			/// <summary>End key of the range</summary>
+			public Slice End { get; }
+
+			/// <summary>Size of the chunks</summary>
+			public long ChunkSize { get; }
+
+			public override Operation Op => Operation.GetRangeSplitPoints;
+
+			public GetRangeSplitPointsCommand(Slice beginKey, Slice endKey, long chunkSize)
+			{
+				this.Begin = beginKey;
+				this.End = endKey;
+				this.ChunkSize = chunkSize;
+			}
+
+			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
+
+			public override string GetArguments(KeyResolver resolver) => string.Format(CultureInfo.InvariantCulture, "({0}...{1}) / {2}", resolver.ResolveBegin(this.Begin), resolver.ResolveEnd(this.End), this.ChunkSize);
+		}
+
 		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand
 		{
 			public TouchMetadataVersionKeyCommand(Slice key)

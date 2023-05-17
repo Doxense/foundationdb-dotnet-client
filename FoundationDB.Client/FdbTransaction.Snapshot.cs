@@ -220,6 +220,12 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetAddressesForKeyOperation(key);
 			}
 
+			public Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+			{
+				EnsureCanRead();
+				return m_parent.PerformGetRangeSplitPointsOperation(beginKey, endKey, chunkSize);
+			}
+
 			/// <inheritdoc />
 			public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected)
 			{

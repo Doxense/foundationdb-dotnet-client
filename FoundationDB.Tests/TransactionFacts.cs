@@ -3436,6 +3436,79 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+
+		[Test]
+		public async Task Test_Can_Get_Range_Split_Points()
+		{
+			const int NUM_ITEMS = 50_000;
+			const int VALUE_SIZE = 50;
+			const int CHUNK_SIZE = (NUM_ITEMS * VALUE_SIZE) / 200; // we would like to split in ~100 chunks
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("range_split_points");
+				await CleanLocation(db, location);
+
+				// we will setup a list of 1K keys with randomized value size (that we keep track of)
+				var rnd = new Random(123456);
+				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
+
+				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes");
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+
+					// fill the db with keys from (0,) = XXX to (N-1,) = XXX
+					for (int i = 0; i < values.Length; i++)
+					{
+						tr.Set(subspace.Encode(i), values[i]);
+					}
+				}, this.Cancellation);
+
+				Log($"Get split points for chunks of {CHUNK_SIZE:N0} bytes...");
+				await db.ReadAsync(async (tr) =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+
+					var begin = subspace.Encode(0);
+					var end = subspace.Encode(values.Length);
+
+					var keys = await tr.GetRangeSplitPointsAsync(begin, end, CHUNK_SIZE);
+					Assert.That(keys, Is.Not.Null.Or.Empty);
+					Log($"Found {keys.Length} split points");
+
+					// looking at the implementation, it guarantess that the first and last "split points" will be the bounds of the range repeated (even if the keys do not exist)
+					Assert.That(keys, Has.Length.GreaterThan(2), "We expect at least 1 split point between the bounds of the range!");
+					Assert.That(keys[0], Is.EqualTo(begin), "First key should be the start of the range");
+					Assert.That(keys[keys.Length - 1], Is.EqualTo(end), "Last key should be the end of the range");
+
+					// all keys should be in ascending order
+					for (int i = 1; i < keys.Length; i++)
+					{
+						Assert.That(keys[i], Is.GreaterThan(keys[i - 1]), "Split points should be sorted");
+					}
+
+					// we will get all the keys in between and dump some statistics
+					var chunks = new List<KeyValuePair<Slice, Slice>[]>();
+					for(int i = 0; i < keys.Length - 1; i++)
+					{
+						var range = KeyRange.Create(keys[i], i + 1 < keys.Length ? keys[i + 1] : end);
+						var chunk = await tr.GetRange(range).ToArrayAsync();
+						Assert.That(chunk, Is.Not.Null.Or.Empty, "There should be at least one key in chunk {0}", range);
+						var actualChunkSize = chunk.Sum(kv => kv.Value.Count);
+						Log($"> {subspace.Unpack(range.Begin)} .. {subspace.Unpack(range.End)}:\t{chunk.Length,6:N0} results, size(values) = {actualChunkSize,7:N0} bytes, ratio = {(100.0 * actualChunkSize) / CHUNK_SIZE,6:N0}%");
+						chunks.Add(chunk);
+					}
+
+					Log($"Statistics: smallest = {chunks.Min(c => c.Sum(kv => kv.Value.Count)):N0} bytes, largest = {chunks.Max(c => c.Sum(kv => kv.Value.Count)):N0} bytes, average = {chunks.Average(c => c.Sum(kv => kv.Value.Count)):N0} bytes");
+
+					// we should have read all our keys!
+					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(NUM_ITEMS), "All keys should be accounted for");
+
+					return chunks;
+				}, this.Cancellation);
+			}
+		}
 	}
 
 }

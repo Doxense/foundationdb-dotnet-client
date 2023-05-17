@@ -158,6 +158,14 @@ namespace FoundationDB.Client
 		/// <remarks>Depending on the API level or whether database option <see cref="FdbTransactionOption.IncludePortInAddress"/> is set, the returned string may or may not include the port numbers</remarks>
 		Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key);
 
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize);
+
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync();
 

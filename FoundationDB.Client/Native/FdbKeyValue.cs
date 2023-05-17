@@ -41,4 +41,12 @@ namespace FoundationDB.Client.Native
 		public uint ValueLength;
 	}
 
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
+	internal struct FdbKey
+	{
+		public IntPtr Key;
+
+		public uint Length;
+	}
+
 }

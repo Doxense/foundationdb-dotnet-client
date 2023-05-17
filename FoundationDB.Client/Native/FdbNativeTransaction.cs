@@ -283,6 +283,20 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
+		/// <summary>Extract a list of keys from a completed Future</summary>
+		/// <param name="h">Handle to the completed Future</param>
+		private static Slice[] GetKeyArrayResult(FutureHandle h)
+		{
+			Contract.Debug.Requires(h != null);
+
+			var err = FdbNative.FutureGetKeyArray(h, out var result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].FutureGetKeyArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
+#endif
+			Fdb.DieOnError(err);
+			Contract.Debug.Ensures(result != null); // can only be null in case of an error
+			return result!;
+		}
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
 		public Task<FdbRangeChunk> GetRangeAsync(KeySelector begin, KeySelector end, int limit, bool reversed, int targetBytes, FdbStreamingMode mode, FdbReadMode read, int iteration, bool snapshot, CancellationToken ct)
@@ -457,6 +471,17 @@ namespace FoundationDB.Client.Native
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) => GetStringArrayResult(h),
+				ct
+			);
+		}
+
+		/// <inheritdoc />
+		public Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize, CancellationToken ct)
+		{
+			var future = FdbNative.TransactionGetRangeSplitPoints(m_handle, beginKey, endKey, chunkSize);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) => GetKeyArrayResult(h),
 				ct
 			);
 		}

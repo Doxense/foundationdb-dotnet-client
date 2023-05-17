@@ -1201,6 +1201,51 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region GetRangeSplitPoints...
+
+		/// <inheritdoc />
+		public Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+		{
+			EnsureCanRead();
+
+			// available since 7.0
+			if (this.Database.GetApiVersion() < 700)
+			{
+				if (this.Database.Handler.GetMaxApiVersion() >= 700)
+				{ // but the installed client could support it
+					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selectred API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
+				}
+				else
+				{ // not supported by the local client
+					throw new NotSupportedException("Getting range split points is only supported starting from client version 7.0. You need to update the version of the client, and select API level 700 or more at the start of your process.");
+				}
+			}
+
+			FdbKey.EnsureKeyIsValid(beginKey);
+			FdbKey.EnsureKeyIsValid(endKey);
+			Contract.Positive(chunkSize);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeSplitPointsAsync", $"Getting split points for range '{FdbKey.Dump(beginKey)}'..'{FdbKey.Dump(endKey)}'");
+#endif
+
+			return PerformGetRangeSplitPointsOperation(beginKey, endKey, chunkSize);
+		}
+
+		private Task<Slice[]> PerformGetRangeSplitPointsOperation(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+		{
+			return m_log == null ? m_handler.GetRangeSplitPointsAsync(beginKey, endKey, chunkSize, m_cancellation) : ExecuteLogged(this, beginKey, endKey, chunkSize);
+
+			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetRangeSplitPointsCommand(self.m_log.Grab(beginKey), self.m_log.Grab(endKey), chunkSize),
+					(tr, cmd) => tr.m_handler.GetRangeSplitPointsAsync(cmd.Begin.Span, cmd.End.Span, cmd.ChunkSize, tr.m_cancellation)
+				);
+		}
+
+		#endregion
+
 		#region GetApproximateSize...
 
 		/// <inheritdoc />

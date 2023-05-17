@@ -718,6 +718,7 @@ namespace FoundationDB.Filters.Logging
 			SetOption,
 			GetVersionStamp,
 			GetAddressesForKey,
+			GetRangeSplitPoints,
 			GetApproximateSize,
 
 			Log,

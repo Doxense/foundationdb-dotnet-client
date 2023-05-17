@@ -222,6 +222,14 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_addresses_for_key(TransactionHandle transaction, byte* keyName, int keyNameLength);
 
+			/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the list of split points.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_key_array"/> to extract the array, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// </remarks>
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_range_split_points(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, long chunkSize);
+
 			/// <summary>Resolves a key selector against the keys in the database snapshot represented by <paramref name="transaction"/>.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the key in the database matching the key selector.</returns>
 			/// <remarks>
@@ -482,6 +490,9 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_keyvalue_array(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
 
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_future_get_key_array(FutureHandle future, out FdbKey* keyArray, out int count);
+
 		}
 
 		static FdbNative()
@@ -707,6 +718,12 @@ namespace FoundationDB.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_stop_network();
+		}
+
+		public static FdbError AddNetworkThreadCompletionHook(FdbNetworkThreadCompletionCallback hook, IntPtr parameter)
+		{
+			EnsureLibraryIsLoaded();
+			return NativeMethods.fdb_add_network_thread_completion_hook(hook, parameter);
 		}
 
 		#endregion
@@ -995,6 +1012,20 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public static FutureHandle TransactionGetRangeSplitPoints(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+		{
+			fixed (byte* ptrBeginKey = beginKey)
+			fixed (byte* ptrEndKey = endKey)
+			{
+				var future = NativeMethods.fdb_transaction_get_range_split_points(transaction, ptrBeginKey, beginKey.Length, ptrEndKey, endKey.Length, chunkSize);
+				Contract.Debug.Assert(future != null);
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_transaction_get_range_split_points(0x" + transaction.Handle.ToString("x") + ", begin: '" + FdbKey.Dump(beginKey) + "', end: '" + FdbKey.Dump(endKey) + "') => 0x" + future.Handle.ToString("x"));
+#endif
+				return future;
+			}
+		}
+
 		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out ReadOnlySpan<byte> value)
 		{
 			Contract.Debug.Requires(future != null);
@@ -1254,6 +1285,64 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
+		public static FdbError FutureGetKeyArray(FutureHandle future, out Slice[]? result)
+		{
+			result = null;
+
+			var err = NativeMethods.fdb_future_get_key_array(future, out FdbKey* kvp, out int count);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_future_get_key_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
+#endif
+
+			if (Fdb.Success(err))
+			{
+				Contract.Debug.Assert(count >= 0, "Return count was negative");
+
+				if (count > 0)
+				{ // convert the FdbKeyValue result into an array of slices
+
+					Contract.Debug.Assert(kvp != null, "We have results but array pointer was null");
+
+					//TODO: PERF: find a way to use Memory Pooling for this?
+					result = new Slice[count];
+
+					// in order to reduce allocations, we want to merge all keys
+					// into a single byte[] and return a list of Slice that will
+					// link to the different chunks of this buffer.
+
+					// first pass to compute the total size needed
+					long total = 0;
+					for (int i = 0; i < count; i++)
+					{
+						uint kl = kvp[i].Length;
+						if (kl > int.MaxValue) throw new InvalidOperationException("A Key has a length that is larger than a signed 32-bit int!");
+						total += kl;
+					}
+					if (total > int.MaxValue) throw new NotSupportedException("Cannot read more than 2GB of key data in a single batch!");
+
+					//TODO: PERF: find a way to use Memory Pooling for this?
+					var page = new byte[total];
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
+					{
+						int kl = checked((int) kvp[i].Length);
+						new ReadOnlySpan<byte>(kvp[i].Key.ToPointer(), kl).CopyTo(page.AsSpan(p));
+						var key = page.AsSlice(p, kl);
+						p += kl;
+
+						result[i] = key;
+					}
+
+					Contract.Debug.Assert(p == total);
+				}
+				else
+				{
+					result = Array.Empty<Slice>();
+				}
+			}
+
+			return err;
+		}
 
 		public static FdbError FutureGetStringArray(FutureHandle future, out string?[]? result)
 		{
