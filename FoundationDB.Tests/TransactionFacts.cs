@@ -113,7 +113,7 @@ namespace FoundationDB.Client.Tests
 					await tr.GetAsync(subspace.Encode("Hello"));
 
 					// any attempt to recast into a writable transaction should fail!
-					var tr2 = (IFdbTransaction)tr;
+					var tr2 = (IFdbTransaction) tr;
 					Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
 					var location = subspace.Partition.ByKey("ReadOnly");
 					Assert.That(() => tr2.Set(location.Encode("Hello"), Slice.Empty), Throws.InvalidOperationException);
@@ -147,17 +147,17 @@ namespace FoundationDB.Client.Tests
 
 					Assert.That(tr1, Is.InstanceOf<FdbTransaction>());
 					Assert.That(tr2, Is.InstanceOf<FdbTransaction>());
-					Assert.That(((FdbTransaction)tr1).Handler, Is.Not.EqualTo(((FdbTransaction)tr2).Handler), "Should have different FDB_FUTURE* handles");
+					Assert.That(((FdbTransaction) tr1).Handler, Is.Not.EqualTo(((FdbTransaction) tr2).Handler), "Should have different FDB_FUTURE* handles");
 
 					// disposing the first should not impact the second
 
 					tr1.Dispose();
 
-					Assert.That(((FdbTransaction)tr1).StillAlive, Is.False, "First transaction should be dead");
-					Assert.That(((FdbTransaction)tr1).Handler.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
+					Assert.That(((FdbTransaction) tr1).StillAlive, Is.False, "First transaction should be dead");
+					Assert.That(((FdbTransaction) tr1).Handler.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
 
-					Assert.That(((FdbTransaction)tr2).StillAlive, Is.True, "Second transaction should still be alive");
-					Assert.That(((FdbTransaction)tr2).Handler.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
+					Assert.That(((FdbTransaction) tr2).StillAlive, Is.True, "Second transaction should still be alive");
+					Assert.That(((FdbTransaction) tr2).Handler.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
 				}
 				finally
 				{
@@ -183,8 +183,8 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 					// => should not fail!
 
-					Assert.That(((FdbTransaction)tr).StillAlive, Is.False);
-					Assert.That(((FdbTransaction)tr).State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
+					Assert.That(((FdbTransaction) tr).StillAlive, Is.False);
+					Assert.That(((FdbTransaction) tr).State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
 				}
 			}
 		}
@@ -225,8 +225,8 @@ namespace FoundationDB.Client.Tests
 					tr.Cancel();
 					// => should not fail!
 
-					Assert.That(((FdbTransaction)tr).StillAlive, Is.False);
-					Assert.That(((FdbTransaction)tr).State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
+					Assert.That(((FdbTransaction) tr).StillAlive, Is.False);
+					Assert.That(((FdbTransaction) tr).State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
 				}
 			}
 		}
@@ -316,7 +316,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random();
 
-				using(var cts = new CancellationTokenSource())
+				using (var cts = new CancellationTokenSource())
 				using (var tr = await db.BeginTransactionAsync(cts.Token))
 				{
 					var subspace = (await location.Resolve(tr))!;
@@ -429,6 +429,7 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				#region Insert a bunch of keys ...
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
@@ -442,9 +443,11 @@ namespace FoundationDB.Client.Tests
 					{
 						tr.Set(subspace[i], Value(i.ToString()));
 					}
+
 					tr.Set(subspace.Append(FdbKey.MaxValue), Value("max"));
 					await tr.CommitAsync();
 				}
+
 				#endregion
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -592,6 +595,7 @@ namespace FoundationDB.Client.Tests
 					{
 						tr.Set(subspace[i], Value("#" + i.ToString()));
 					}
+
 					await tr.CommitAsync();
 				}
 
@@ -608,7 +612,7 @@ namespace FoundationDB.Client.Tests
 
 					Log(string.Join(", ", results));
 
-					for (int i = 0; i < ids.Length;i++)
+					for (int i = 0; i < ids.Length; i++)
 					{
 						Assert.That(results[i].ToString(), Is.EqualTo("#" + ids[i].ToString()));
 					}
@@ -621,12 +625,13 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 20;
 
-			using(var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("keys").AsTyped<int>();
 				await CleanLocation(db, location);
 
 				#region Insert a bunch of keys ...
+
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = (await location.Resolve(tr))!;
@@ -640,9 +645,11 @@ namespace FoundationDB.Client.Tests
 					{
 						tr.Set(subspace[i], Value(i.ToString()));
 					}
+
 					tr.Set(subspace.Append(FdbKey.MaxValue), Value("max"));
 					await tr.CommitAsync();
 				}
+
 				#endregion
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -666,7 +673,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// GetKeysAsync(cast to enumerable)
-					var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>)selectors);
+					var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>) selectors);
 					Assert.That(results2, Is.EqualTo(results));
 
 					// GetKeysAsync(real enumerable)
@@ -1163,7 +1170,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Snapshot_Read()
 		{
-			using(var db = await OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("test").AsTyped<string>();
 				await CleanLocation(db, location);
@@ -2110,6 +2117,7 @@ namespace FoundationDB.Client.Tests
 				{
 					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
 				}
+
 				Assert.That(counter, Is.EqualTo(4), "1 first attempt + 3 retries = 4 executions");
 			}
 		}
@@ -2444,7 +2452,6 @@ namespace FoundationDB.Client.Tests
 
 				}
 			}
-
 		}
 
 		[Test]
@@ -2478,6 +2485,7 @@ namespace FoundationDB.Client.Tests
 						Log($"  > machine    = {machineId}");
 						Log($"  > datacenter = {dataCenterId}");
 					}
+
 					Log();
 
 					// dump keyServers
@@ -2501,23 +2509,26 @@ namespace FoundationDB.Client.Tests
 
 						int n = (key.Value.Count - 16) >> 4;
 						if (ids == null || ids.Length != n) ids = new string[n];
-						for(int i=0;i<n;i++)
+						for (int i = 0; i < n; i++)
 						{
 							ids[i] = key.Value.Substring(12 + i * 16, 16).ToHexaString();
 							distinctNodes.Add(ids[i]);
 						}
+
 						replicationFactor = Math.Max(replicationFactor, ids.Length);
 
 						// the node id seems to be at offset 12
 
 						//Log("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
+
 					Log();
 					Log($"Distinct nodes: {distinctNodes.Count}");
-					foreach(var machine in distinctNodes)
+					foreach (var machine in distinctNodes)
 					{
 						Log("- " + machine);
 					}
+
 					Log();
 					Log($"Cluster topology: {distinctNodes.Count} process(es) with {(replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString())} replication");
 				}
@@ -2952,6 +2963,7 @@ namespace FoundationDB.Client.Tests
 							{
 								sb.Append('!');
 							}
+
 							break;
 						}
 						case 7:
@@ -2971,6 +2983,7 @@ namespace FoundationDB.Client.Tests
 						}
 
 					}
+
 					if ((time++) % 80 == 0)
 					{
 						Log(sb.ToString());
@@ -2983,6 +2996,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 				}
+
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
