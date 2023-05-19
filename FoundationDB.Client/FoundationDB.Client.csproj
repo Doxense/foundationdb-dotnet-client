@@ -28,7 +28,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
-    <DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API</DefineConstants>
+    <DefineConstants>$(DefineConstants);USE_SPAN_API;USE_RANGE_API;USE_ANNOTATIONS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
