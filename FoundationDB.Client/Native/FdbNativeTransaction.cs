@@ -487,10 +487,29 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <inheritdoc />
+		public Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, CancellationToken ct)
+		{
+			var future = FdbNative.TransactionGetEstimatedRangeSizeBytes(m_handle, beginKey, endKey);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) =>
+				{
+					var err = FdbNative.FutureGetInt64(h, out long size);
+#if DEBUG_TRANSACTIONS
+					Debug.WriteLine("FdbTransaction[" + m_id + "].GetEstimatedRangeSizeBytesAsync() => err=" + err + ", size=" + size);
+#endif
+					FdbNative.DieOnError(err);
+					return size;
+				},
+				ct
+			);
+		}
+
+		/// <inheritdoc />
 		public Task<long> GetApproximateSizeAsync(CancellationToken ct)
 		{
 			// API was introduced in 6.2
-			if (Fdb.ApiVersion < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {Fdb.ApiVersion} which is too low. You willl need to select API version 620 or greater.");
+			if (this.Database.GetApiVersion() < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {this.Database.GetApiVersion()} which is too low. You willl need to select API version 620 or greater.");
 			//TODO: for lesser version, maybe we could return our own estimation?
 
 			var future = FdbNative.TransactionGetApproximateSize(m_handle);

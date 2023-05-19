@@ -3523,6 +3523,62 @@ namespace FoundationDB.Client.Tests
 				}, this.Cancellation);
 			}
 		}
+
+		[Test]
+		public async Task Test_Can_Get_Estimated_Range_Size_Bytes()
+		{
+			const int NUM_ITEMS = 50_000;
+			const int VALUE_SIZE = 32;
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Root.ByKey("range_size_bytes");
+				await CleanLocation(db, location);
+
+				// we will setup a list of N keys with randomized value size (that we keep track of)
+				var rnd = new Random(123456);
+				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
+
+				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes");
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = (await location.Resolve(tr))!;
+
+					// fill the db with keys from (0,) = XXX to (N-1,) = XXX
+					for (int i = 0; i < values.Length; i++)
+					{
+						tr.Set(subspace.Encode(i), values[i]);
+					}
+				}, this.Cancellation);
+
+				Log($"Get estimated ranges size...");
+				for (int i = 0; i < 25; i++)
+				{
+					await db.ReadAsync(async (tr) =>
+					{
+						var subspace = (await location.Resolve(tr))!;
+
+						int x = rnd.Next(NUM_ITEMS);
+						int y = rnd.Next(NUM_ITEMS);
+						if (x == y) y++;
+						if (x > y) { (x, y) = (y, x); }
+
+						var begin = subspace.Encode(x);
+						var end = subspace.Encode(y);
+
+						var estimatedSize = await tr.GetEstimatedRangeSizeBytesAsync(begin, end);
+
+						var exactSize = await tr.GetRange(begin, end).SumAsync(kv => kv.Value.Count + kv.Key.Count);
+
+						Log($"> ({x,6:N0} .. {y,6:N0}): estimated = {estimatedSize,9:N0} bytes, exact(key+value) = {exactSize,9:N0} bytes, ratio = {(100.0 * estimatedSize) / exactSize,6:N1}%");
+						Assert.That(estimatedSize, Is.GreaterThanOrEqualTo(0)); //note: it is _possible_ to have 0 for very small ranges :(
+
+						return estimatedSize;
+					}, this.Cancellation);
+				}
+			}
+		}
+
 	}
 
 }

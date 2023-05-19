@@ -236,6 +236,15 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FutureHandle fdb_transaction_get_range_split_points(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, long chunkSize);
 
+			/// <summary>Returns an estimated byte size of the key range.</summary>
+			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the estimated size of the key range given.</returns>
+			/// <remarks>
+			/// <para>You must first wait for the <c>FDBFuture</c> to be ready, check for errors, call <see cref="fdb_future_get_int64"/> to extract the size, and then destroy the <c>FDBFuture</c> with <see cref="fdb_future_destroy"/>.</para>
+			/// <para>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</para>
+			/// </remarks>
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FutureHandle fdb_transaction_get_estimated_range_size_bytes(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength);
+
 			/// <summary>Resolves a key selector against the keys in the database snapshot represented by <paramref name="transaction"/>.</summary>
 			/// <returns>Returns an <see cref="FutureHandle">FDBFuture</see> which will be set to the key in the database matching the key selector.</returns>
 			/// <remarks>
@@ -1067,6 +1076,20 @@ namespace FoundationDB.Client.Native
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get_range_split_points(0x" + transaction.Handle.ToString("x") + ", begin: '" + FdbKey.Dump(beginKey) + "', end: '" + FdbKey.Dump(endKey) + "') => 0x" + future.Handle.ToString("x"));
+#endif
+				return future;
+			}
+		}
+
+		public static FutureHandle TransactionGetEstimatedRangeSizeBytes(TransactionHandle transaction, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+		{
+			fixed (byte* ptrBeginKey = beginKey)
+			fixed (byte* ptrEndKey = endKey)
+			{
+				var future = NativeMethods.fdb_transaction_get_estimated_range_size_bytes(transaction, ptrBeginKey, beginKey.Length, ptrEndKey, endKey.Length);
+				Contract.Debug.Assert(future != null);
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_transaction_get_estimated_range_size_bytes(0x" + transaction.Handle.ToString("x") + ", begin: '" + FdbKey.Dump(beginKey) + "', end: '" + FdbKey.Dump(endKey) + "') => 0x" + future.Handle.ToString("x"));
 #endif
 				return future;
 			}

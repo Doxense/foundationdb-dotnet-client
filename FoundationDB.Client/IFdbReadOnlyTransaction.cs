@@ -166,6 +166,13 @@ namespace FoundationDB.Client
 		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
 		Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize);
 
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey);
+
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		Task<long> GetReadVersionAsync();
 

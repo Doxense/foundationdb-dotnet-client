@@ -1026,6 +1026,27 @@ namespace FoundationDB.Filters.Logging
 			public override string GetArguments(KeyResolver resolver) => string.Format(CultureInfo.InvariantCulture, "({0}...{1}) / {2}", resolver.ResolveBegin(this.Begin), resolver.ResolveEnd(this.End), this.ChunkSize);
 		}
 
+		public sealed class GetEstimatedRangeSizeBytesCommand : Command<long>
+		{
+			/// <summary>Begin key of the range</summary>
+			public Slice Begin { get; }
+
+			/// <summary>End key of the range</summary>
+			public Slice End { get; }
+
+			public override Operation Op => Operation.GetEstimatedRangeSizeBytes;
+
+			public GetEstimatedRangeSizeBytesCommand(Slice beginKey, Slice endKey)
+			{
+				this.Begin = beginKey;
+				this.End = endKey;
+			}
+
+			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
+
+			public override string GetArguments(KeyResolver resolver) => string.Format(CultureInfo.InvariantCulture, "{0}...{1}", resolver.ResolveBegin(this.Begin), resolver.ResolveEnd(this.End));
+		}
+
 		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand
 		{
 			public TouchMetadataVersionKeyCommand(Slice key)

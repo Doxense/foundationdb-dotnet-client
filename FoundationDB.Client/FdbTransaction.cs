@@ -1246,6 +1246,50 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region GetEstimatedRangeSizeBytes...
+
+		/// <inheritdoc />
+		public Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+		{
+			EnsureCanRead();
+
+			// available since 7.0
+			if (this.Database.GetApiVersion() < 700)
+			{
+				if (this.Database.Handler.GetMaxApiVersion() >= 700)
+				{ // but the installed client could support it
+					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selectred API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
+				}
+				else
+				{ // not supported by the local client
+					throw new NotSupportedException("Getting range split points is only supported starting from client version 7.0. You need to update the version of the client, and select API level 700 or more at the start of your process.");
+				}
+			}
+
+			FdbKey.EnsureKeyIsValid(beginKey);
+			FdbKey.EnsureKeyIsValid(endKey);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetEstimatedRangeSizeBytesAsync", $"Getting estimate size for range '{FdbKey.Dump(beginKey)}'..'{FdbKey.Dump(endKey)}'");
+#endif
+
+			return PerformGetEstimatedRangeSizeBytesOperation(beginKey, endKey);
+		}
+
+		private Task<long> PerformGetEstimatedRangeSizeBytesOperation(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+		{
+			return m_log == null ? m_handler.GetEstimatedRangeSizeBytesAsync(beginKey, endKey, m_cancellation) : ExecuteLogged(this, beginKey, endKey);
+
+			static Task<long> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetEstimatedRangeSizeBytesCommand(self.m_log.Grab(beginKey), self.m_log.Grab(endKey)),
+					(tr, cmd) => tr.m_handler.GetEstimatedRangeSizeBytesAsync(cmd.Begin.Span, cmd.End.Span, tr.m_cancellation)
+				);
+		}
+
+		#endregion
+
 		#region GetApproximateSize...
 
 		/// <inheritdoc />

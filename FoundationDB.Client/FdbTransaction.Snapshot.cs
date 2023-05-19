@@ -226,6 +226,12 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetRangeSplitPointsOperation(beginKey, endKey, chunkSize);
 			}
 
+			public Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+			{
+				EnsureCanRead();
+				return m_parent.GetEstimatedRangeSizeBytesAsync(beginKey, endKey);
+			}
+
 			/// <inheritdoc />
 			public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected)
 			{

@@ -1618,6 +1618,34 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region GetEstimatedRangeSizeBytesAsync...
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> beginKey, ReadOnlyMemory<byte> endKey)
+		{
+			return trans.GetEstimatedRangeSizeBytesAsync(beginKey.Span, endKey.Span);
+		}
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, Slice beginKey, Slice endKey)
+		{
+			if (beginKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			if (endKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return trans.GetEstimatedRangeSizeBytesAsync(beginKey.Span, endKey.Span);
+		}
+
+		#endregion
+
 		#region CheckValueAsync...
 
 		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
