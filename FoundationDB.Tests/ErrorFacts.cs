@@ -70,5 +70,30 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbNative.MapToException(FdbError.InvalidOption), Is.InstanceOf<ArgumentException>(), "InvalidOption");
 		}
 
+		[Test]
+		public void Test_Fdb_Error_Predicate()
+		{
+			// Retryable
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.Retryable, FdbError.NotCommitted), Is.True, "Retryable + NotCommited: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.Retryable, FdbError.FutureVersion), Is.True, "Retryable + FutureVersion: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.Retryable, FdbError.PastVersion), Is.True, "Retryable + PastVersion: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.Retryable, FdbError.ApiVersionInvalid), Is.False, "Retryable + ApiVersionInvalid: NO");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.Retryable, FdbError.CommitUnknownResult), Is.True, "Retryable + CommitUnknownResult: YES"); // may have committed => true (but check on retries!)
+
+			// MaybeCommitted
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.MaybeCommitted, FdbError.NotCommitted), Is.False, "MaybeCommitted + NotCommited: NO");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.MaybeCommitted, FdbError.FutureVersion), Is.False, "MaybeCommitted + FutureVersion: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.MaybeCommitted, FdbError.PastVersion), Is.False, "MaybeCommitted + PastVersion: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.MaybeCommitted, FdbError.ApiVersionInvalid), Is.False, "MaybeCommitted + ApiVersionInvalid: NO");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.MaybeCommitted, FdbError.CommitUnknownResult), Is.True, "MaybeCommitted + CommitUnknownResult: YES"); // may have committed => true
+
+			// RetryableNotCommited
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.RetryableNotCommited, FdbError.NotCommitted), Is.True, "RetryableNotCommited + NotCommited: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.RetryableNotCommited, FdbError.FutureVersion), Is.True, "RetryableNotCommited + FutureVersion: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.RetryableNotCommited, FdbError.PastVersion), Is.True, "RetryableNotCommited + PastVersion: YES");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.RetryableNotCommited, FdbError.ApiVersionInvalid), Is.False, "RetryableNotCommited + ApiVersionInvalid: NO");
+			Assert.That(FdbNative.TestErrorPredicate(FdbErrorPredicate.RetryableNotCommited, FdbError.CommitUnknownResult), Is.False, "RetryableNotCommited + CommitUnknownResult: YES"); // may have committed => false
+		}
+
 	}
 }

@@ -78,6 +78,12 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern IntPtr fdb_get_error(FdbError code);
 
+			/// <summary>Evaluates a predicate against an error code.</summary>
+			/// <returns>True if the code matches the specified <paramref name="predicateTest">predicate</paramref></returns>
+			/// <remarks>The predicate to run should be one of the codes listed by the <see cref="FdbErrorPredicate"/> enum. Sample predicates include <see cref="FdbErrorPredicate.Retryable"/>, which can be used to determine whether the error with the given code is a retryable error or not.</remarks>
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern bool fdb_error_predicate(FdbErrorPredicate predicateTest, FdbError code);
+
 			// Network
 
 			/// <summary>Called to set network options.</summary>
@@ -651,6 +657,12 @@ namespace FoundationDB.Client.Native
 				_ => new FdbException(code)
 			};
 		}
+
+		/// <summary>fdb_error_predicate</summary>
+		public static bool TestErrorPredicate(FdbErrorPredicate predicate, FdbError code)
+		{
+			EnsureLibraryIsLoaded();
+			return NativeMethods.fdb_error_predicate(predicate, code);
 		}
 
 		/// <summary>fdb_select_api_impl</summary>
