@@ -258,10 +258,41 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key)
+		{
+			return trans.GetAsync(key.Span);
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			return trans.GetAsync(key.Span);
+		}
+
+		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
+		/// <typeparam name="TValue">Type of the value.</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="encoder">Encoder used to decode the value of the key.</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, IValueEncoder<TValue> encoder)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(encoder);
+
+			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
@@ -295,6 +326,18 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region Set...
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set(this IFdbTransaction trans, ReadOnlyMemory<byte> key, ReadOnlyMemory<byte> value)
+		{
+			trans.Set(key.Span, value.Span);
+		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
@@ -352,6 +395,21 @@ namespace FoundationDB.Client
 			trans.Set(key.Span, encoder.EncodeValue(value).Span);
 		}
 
+		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to set</param>
+		/// <param name="value">Value of the key</param>
+		/// <param name="encoder">Encoder used to convert <paramref name="value"/> into a binary slice.</param>
+		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlyMemory<byte> key, TValue value, IValueEncoder<TValue> encoder)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(encoder);
+
+			//TODO: "EncodeValueToBuffer" in a pooled buffer?
+			trans.Set(key.Span, encoder.EncodeValue(value).Span);
+		}
+
 		/// <summary>Set the value of a key in the database, using the content of a Stream</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to set</param>
@@ -366,6 +424,23 @@ namespace FoundationDB.Client
 			trans.EnsureCanWrite();
 
 			var value = Slice.FromStream(data);
+
+			trans.Set(key.Span, value.Span);
+		}
+
+		/// <summary>Set the value of a key in the database, by reading the content of a Stream asynchronously</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to set</param>
+		/// <param name="data">Stream that holds the content of the key, whose length should not exceed the allowed maximum value size.</param>
+		/// <remarks>If reading from the stream takes more than 5 seconds, the transaction will not be able to commit. For streams that are stored in memory, like a MemoryStream, consider using <see cref="Set(IFdbTransaction, Slice, Stream)"/> instead.</remarks>
+		public static async Task SetAsync(this IFdbTransaction trans, ReadOnlyMemory<byte> key, Stream data)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(data);
+
+			trans.EnsureCanWrite();
+
+			var value = await Slice.FromStreamAsync(data, trans.Cancellation).ConfigureAwait(false);
 
 			trans.Set(key.Span, value.Span);
 		}
@@ -1575,6 +1650,15 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region GetAddressesForKeyAsync...
+
+		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose location is to be queried.</param>
+		/// <returns>Task that will return an array of strings, or an exception</returns>
+		public static Task<string[]> GetAddressesForKeyAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key)
+		{
+			return trans.GetAddressesForKeyAsync(key.Span);
+		}
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
