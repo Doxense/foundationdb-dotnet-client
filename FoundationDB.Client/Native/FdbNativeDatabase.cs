@@ -31,12 +31,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Core;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
@@ -91,10 +91,7 @@ namespace FoundationDB.Client.Native
 
 			// Starting from 6.1, creating a database handler can be done directly
 			var err = FdbNative.CreateDatabase(clusterFile, out var handle);
-			if (Fdb.Failed(err))
-			{
-				throw Fdb.MapToException(err)!;
-			}
+			FdbNative.DieOnError(err);
 
 			return new ValueTask<IFdbDatabaseHandler>(new FdbNativeDatabase(handle, clusterFile));
 		}
@@ -114,10 +111,7 @@ namespace FoundationDB.Client.Native
 					h =>
 					{
 						var err = FdbNative.FutureGetCluster(h, out var handle);
-						if (Fdb.Failed(err))
-						{
-							throw Fdb.MapToException(err)!;
-						}
+						FdbNative.DieOnError(err);
 
 						return handle;
 					},
@@ -128,10 +122,7 @@ namespace FoundationDB.Client.Native
 					h =>
 					{
 						var err = FdbNative.FutureGetDatabase(h, out var handle);
-						if (Fdb.Failed(err))
-						{
-							throw Fdb.MapToException(err)!;
-						}
+						FdbNative.DieOnError(err);
 
 						return handle;
 					}, 
@@ -165,7 +156,7 @@ namespace FoundationDB.Client.Native
 			{
 				fixed (byte* ptr = data)
 				{
-					Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr, data.Length));
+					FdbNative.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr, data.Length));
 				}
 			}
 		}
@@ -176,10 +167,8 @@ namespace FoundationDB.Client.Native
 			try
 			{
 				var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
-				if (Fdb.Failed(err))
-				{
-					throw Fdb.MapToException(err)!;
-				}
+				FdbNative.DieOnError(err);
+
 				return new FdbNativeTransaction(this, handle);
 			}
 			catch(Exception)

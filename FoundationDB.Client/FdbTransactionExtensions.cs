@@ -50,42 +50,43 @@ namespace FoundationDB.Client
 		#region Fluent Options...
 
 		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.ReadSystemKeys"/></remarks>
 		public static TTransaction WithReadAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(trans.Context.GetApiVersion() >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
-			//TODO: cache this into a local variable ?
 			return trans;
 		}
 
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.AccessSystemKeys"/></remarks>
 		public static TTransaction WithWriteAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbTransaction
 		{
 			trans.SetOption(FdbTransactionOption.AccessSystemKeys);
-			//TODO: cache this into a local variable ?
 			return trans;
 		}
 
 		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.PrioritySystemImmediate"/></remarks>
 		public static TTransaction WithPrioritySystemImmediate<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.PrioritySystemImmediate);
-			//TODO: cache this into a local variable ?
 			return trans;
 		}
 
 		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.PriorityBatch"/></remarks>
 		public static TTransaction WithPriorityBatch<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.PriorityBatch);
-			//TODO: cache this into a local variable ?
 			return trans;
 		}
 
 		/// <summary>Reads performed by a transaction will not see any prior mutations that occurred in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.ReadYourWritesDisable"/></remarks>
 		public static TTransaction WithReadYourWritesDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbTransaction
 		{
@@ -94,6 +95,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Snapshot reads performed by a transaction will see the results of writes done in the same transaction.</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.SnapshotReadYourWriteEnable"/></remarks>
 		public static TTransaction WithSnapshotReadYourWritesEnable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
@@ -102,6 +104,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads performed by a transaction will not see the results of writes done in the same transaction.</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.SnapshotReadYourWriteDisable"/></remarks>
 		public static TTransaction WithSnapshotReadYourWritesDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
@@ -110,7 +113,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).</summary>
-		[Obsolete("This option is obsolete, and may be removed in future versions.")]
+		[Obsolete("This option is obsolete, and may be removed in future versions.", error: true)]
 		public static TTransaction WithReadAheadDisable<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
@@ -119,6 +122,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
+		/// <remarks>See <see cref="FdbTransactionOption.NextWriteNoWriteConflictRange"/></remarks>
 		public static TTransaction WithNextWriteNoWriteConflictRange<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbTransaction
 		{

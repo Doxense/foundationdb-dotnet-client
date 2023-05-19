@@ -109,7 +109,7 @@ namespace FoundationDB.Client.Native
 			{
 				fixed (byte* ptr = data)
 				{
-					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr, data.Length));
+					FdbNative.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr, data.Length));
 				}
 			}
 		}
@@ -132,7 +132,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif
-					Fdb.DieOnError(err);
+					FdbNative.DieOnError(err);
 					return version;
 				},
 				ct
@@ -151,7 +151,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].TryPeekValueResultBytes() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 
 			return present;
 		}
@@ -164,7 +164,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 
 			return present ? Slice.Copy(result) : Slice.Nil;
 		}
@@ -178,7 +178,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 
 			if (present)
 			{
@@ -243,7 +243,7 @@ namespace FoundationDB.Client.Native
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
 			var err = FdbNative.FutureGetKeyValueArray(h, out var result, out more);
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
 			first = result.Length > 0 ? result[0].Key : default;
@@ -260,7 +260,7 @@ namespace FoundationDB.Client.Native
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultKeysOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
 			var err = FdbNative.FutureGetKeyValueArrayKeysOnly(h, out var result, out more);
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
 			first = result.Length > 0 ? result[0].Key : default;
@@ -277,7 +277,7 @@ namespace FoundationDB.Client.Native
 		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResultValuesOnly(FutureHandle h, out bool more, out Slice first, out Slice last)
 		{
 			var err = FdbNative.FutureGetKeyValueArrayValuesOnly(h, out var result, out more, out first, out last);
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			//note: result can only be null if an error occured!
 			Contract.Debug.Ensures(result != null);
 			return result;
@@ -293,7 +293,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].FutureGetKeyArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			Contract.Debug.Ensures(result != null); // can only be null in case of an error
 			return result!;
 		}
@@ -345,7 +345,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			return Slice.Copy(result);
 		}
 
@@ -448,7 +448,7 @@ namespace FoundationDB.Client.Native
 		public void AddConflictRange(ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive, FdbConflictRangeType type)
 		{
 			FdbError err = FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 		}
 
 		private static string[] GetStringArrayResult(FutureHandle h)
@@ -459,7 +459,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			Contract.Debug.Ensures(result != null); // can only be null in case of an error
 			return result!;
 		}
@@ -501,7 +501,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 					Debug.WriteLine("FdbTransaction[" + m_id + "].GetApproximateSize() => err=" + err + ", size=" + size);
 #endif
-					Fdb.DieOnError(err);
+					FdbNative.DieOnError(err);
 					return size;
 				},
 				ct
@@ -531,7 +531,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 			return version;
 		}
 
@@ -548,7 +548,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[" + m_id + "].FutureGetVersionStamp() => err=" + err + ", vs=" + stamp + ")");
 #endif
-			Fdb.DieOnError(err);
+			FdbNative.DieOnError(err);
 
 			return stamp;
 		}

@@ -613,10 +613,44 @@ namespace FoundationDB.Client.Native
 
 		#region Core..
 
-		/// <summary>fdb_get_error</summary>
-		public static string GetError(FdbError code)
+		/// <summary>Throws an exception if the code represents a failure.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void DieOnError(FdbError code)
 		{
-			return ToManagedString(NativeMethods.fdb_get_error(code))!;
+			if (code != FdbError.Success)
+			{
+				throw CreateExceptionFromError(code);
+			}
+		}
+
+		/// <summary>Returns a (somewhat) human-readable English message from an error code.</summary>
+		public static string? GetErrorMessage(FdbError code)
+		{
+			return ToManagedString(NativeMethods.fdb_get_error(code));
+		}
+
+		/// <summary>Maps an error code into an Exception (to be thrown)</summary>
+		/// <param name="code">Error code returned by a native fdb operation</param>
+		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Exception? MapToException(FdbError code)
+		{
+			return code == FdbError.Success ? null : CreateExceptionFromError(code);
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		internal static Exception CreateExceptionFromError(FdbError code)
+		{
+			return code switch
+			{
+				FdbError.TimedOut => new TimeoutException("Operation timed out"),
+				FdbError.LargeAllocFailed => new OutOfMemoryException("Large block allocation failed"),
+				FdbError.InvalidOption => new ArgumentException("Option not valid in this context"),
+				FdbError.ApiVersionUnset => new InvalidOperationException("Api version must be set"),
+				//TODO: add more custom mappings?
+				_ => new FdbException(code)
+			};
+		}
 		}
 
 		/// <summary>fdb_select_api_impl</summary>
@@ -1076,7 +1110,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 #endif
 
-			if (Fdb.Success(err))
+			if (err == FdbError.Success)
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
@@ -1146,7 +1180,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 #endif
 
-			if (Fdb.Success(err))
+			if (err == FdbError.Success)
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
@@ -1214,7 +1248,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 #endif
 
-			if (Fdb.Success(err))
+			if (err == FdbError.Success)
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
@@ -1294,7 +1328,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("fdb_future_get_key_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
 #endif
 
-			if (Fdb.Success(err))
+			if (err == FdbError.Success)
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
@@ -1353,7 +1387,7 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("fdb_future_get_string_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
 #endif
 
-			if (Fdb.Success(err))
+			if (err == FdbError.Success)
 			{
 				Contract.Debug.Assert(count >= 0, "Return count was negative");
 
