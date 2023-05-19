@@ -38,6 +38,7 @@ namespace FoundationDB.Client.Tests
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Linq;
 	using NUnit.Framework;
 
 	[TestFixture]
@@ -3450,6 +3451,182 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Approximate_Size()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				// GET(KEY)
+				Log("GET(KEY):");
+				await db.ReadWriteAsync(
+					async (tr) =>
+					{
+						// at the start, we expect a size of 0
+						var size = await tr.GetApproximateSizeAsync();
+						Log($"> Size at the start => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						// currently, the formula seems to be: GET(KEY, VALUE) => 25 + (2 * KEY.Length)
+
+						await tr.GetAsync(Slice.Empty);
+						var prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Key("A"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 'A' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Key("B"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 'B' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Key("AB"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 'AB' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						await tr.GetAsync(Key(new string('z', 1000)));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reading 1k*'z' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						// prevent the transaction from commiting !
+						tr.Reset();
+
+						// after the reset, we expect the size to be back at 0
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reset => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						return size;
+					},
+					this.Cancellation);
+
+				// SET(KEY, VALUE)
+				Log("SET(KEY, VALUE):");
+				await db.WriteAsync(
+					async (tr) =>
+					{
+						// at the start, we expect a size of 0
+						var size = await tr.GetApproximateSizeAsync();
+						Log($"> Size at the start => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						// we will NOT commit the transaction, so we can simply write "anywhere"
+
+						// currently, the formula seems to be: SET(KEY, VALUE) => 53 + (3 * KEY.Length) + VALUE.Length
+
+						tr.Set(Slice.Empty, Slice.Empty);
+						var prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing '' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						tr.Set(Key("A"), Slice.Empty);
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'A' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Key("B"), Slice.Empty);
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'B' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Key("AB"), Slice.Empty);
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'AB' = '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Key("C"), Value("A"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'C' = 'A' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Set(Key("D"), Value(new string('z', 1000)));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after writing 'D' = 1k * 'z' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						// prevent the transaction from commiting !
+						tr.Reset();
+
+						// after the reset, we expect the size to be back at 0
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reset => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+					},
+					this.Cancellation);
+
+				// SET(KEY, VALUE)
+				Log("CLEAR(KEY):");
+				await db.WriteAsync(
+					async (tr) =>
+					{
+						// at the start, we expect a size of 0
+						var size = await tr.GetApproximateSizeAsync();
+						Log($"> Size at the start => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+						// we will NOT commit the transaction, so we can simply write "anywhere"
+
+						// currently, the formula seems to be: CLEAR(KEY) => 50 + (4 * KEY.Length)
+
+						tr.Clear(Slice.Empty);
+						var prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearaing '' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(0));
+
+						tr.Clear(Key("A"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 'A' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Clear(Key("B"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 'B' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Clear(Key("AB"));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 'AB' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						tr.Clear(Key(new string('z', 1000)));
+						prev = size;
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after clearing 1k * 'z' => {size} (+{size - prev})");
+						Assert.That(size, Is.GreaterThan(prev));
+
+						// prevent the transaction from commiting !
+						tr.Reset();
+
+						// after the reset, we expect the size to be back at 0
+						size = await tr.GetApproximateSizeAsync();
+						Log($"> Size after reset => {size}");
+						Assert.That(size, Is.EqualTo(0));
+
+					},
+					this.Cancellation);
+			}
+		}
 
 		[Test]
 		public async Task Test_Can_Get_Range_Split_Points()
