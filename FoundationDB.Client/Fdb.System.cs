@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 				// we should not retry the read to the status key!
 				return db.ReadAsync(tr =>
 				{
-					tr.WithPrioritySystemImmediate();
+					tr.Options.WithPrioritySystemImmediate();
 					//note: in v3.x, the status key does not need the access to system key option.
 
 					//TODO: set a custom timeout?
@@ -143,8 +143,8 @@ namespace FoundationDB.Client
 
 				var coordinators = await db.ReadAsync((tr) =>
 				{
-					tr.WithReadAccessToSystemKeys();
-					tr.WithPrioritySystemImmediate();
+					tr.Options.WithReadAccessToSystemKeys();
+					tr.Options.WithPrioritySystemImmediate();
 					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.Coordinators);
@@ -167,8 +167,8 @@ namespace FoundationDB.Client
 
 				return db.ReadAsync<Slice>((tr) =>
 				{
-					tr.WithReadAccessToSystemKeys();
-					tr.WithPrioritySystemImmediate();
+					tr.Options.WithReadAccessToSystemKeys();
+					tr.Options.WithPrioritySystemImmediate();
 					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.ConfigKey(name));
@@ -329,7 +329,7 @@ namespace FoundationDB.Client
 				trans.Annotate("Get boundary keys in range {0}", KeyRange.Create(begin, end));
 #endif
 
-				trans.WithReadAccessToSystemKeys();
+				trans.Options.WithReadAccessToSystemKeys();
 
 				var results = new List<Slice>();
 				int iterations = 0;
@@ -371,7 +371,7 @@ namespace FoundationDB.Client
 							await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
 						}
 						iterations = 0;
-						trans.WithReadAccessToSystemKeys();
+						trans.Options.WithReadAccessToSystemKeys();
 					}
 				}
 
@@ -457,7 +457,7 @@ namespace FoundationDB.Client
 					tr.Annotate("Estimating number of keys in range {0}", KeyRange.Create(beginInclusive, endExclusive));
 #endif
 
-					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+					tr.Options.WithReadYourWritesDisable();
 
 					// start looking for the first key in the range
 					cursor = await tr.Snapshot.GetKeyAsync(KeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
@@ -506,7 +506,7 @@ namespace FoundationDB.Client
 								await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
 							}
 							// retry
-							tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+							tr.Options.WithReadYourWritesDisable();
 							continue;
 						}
 

@@ -190,7 +190,7 @@ namespace FoundationDB.Client.Tests
 				Slice actual;
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 					actual = await tr.GetAsync(Slice.FromByteString("\xFF/conf/storage_engine"));
 				}
 
@@ -292,7 +292,7 @@ namespace FoundationDB.Client.Tests
 				{
 					using(var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						tr.Timeout = 250; // ms
+						tr.Options.Timeout = 250; // ms
 						Log("check ...");
 						await tr.GetAsync(Slice.FromString("key_not_found"));
 						Log("Uhoh ...?");

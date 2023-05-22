@@ -74,7 +74,11 @@ namespace FoundationDB.Client
 
 			public bool IsSnapshot => true;
 
-			public IFdbReadOnlyTransaction Snapshot => this;
+			/// <inheritdoc />
+			IFdbReadOnlyTransaction IFdbReadOnlyTransaction.Snapshot => this;
+
+			/// <inheritdoc />
+			IFdbTransactionOptions IFdbReadOnlyTransaction.Options => m_parent.Options;
 
 			public void EnsureCanRead()
 			{
@@ -259,26 +263,6 @@ namespace FoundationDB.Client
 			Task IFdbReadOnlyTransaction.OnErrorAsync(FdbError code)
 			{
 				throw new NotSupportedException("You cannot retry on a Snapshot view of a transaction.");
-			}
-
-			public void SetOption(FdbTransactionOption option)
-			{
-				m_parent.SetOption(option);
-			}
-
-			public void SetOption(FdbTransactionOption option, string value)
-			{
-				m_parent.SetOption(option, value);
-			}
-
-			public void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
-			{
-				m_parent.SetOption(option, value);
-			}
-
-			public void SetOption(FdbTransactionOption option, long value)
-			{
-				m_parent.SetOption(option, value);
 			}
 
 			public int Timeout

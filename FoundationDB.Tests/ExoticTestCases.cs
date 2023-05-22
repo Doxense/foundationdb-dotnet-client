@@ -484,7 +484,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
-					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+					tr.Options.WithReadYourWritesDisable();
 					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("KGETKEY")));
 				}
 

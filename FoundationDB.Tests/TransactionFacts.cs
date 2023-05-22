@@ -556,7 +556,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(async () => await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 					Assert.That(async () => await tr.GetKeyAsync(KeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 
 					var firstSystemKey = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
@@ -1823,7 +1823,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = (await location.Resolve(tr))!;
 
-					tr.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
+					tr.Options.WithSnapshotReadYourWritesDisable();
 
 					// check initial state
 					Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("a"));
@@ -1905,7 +1905,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = (await location.Resolve(tr))!;
 
-					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+					tr.Options.WithReadYourWritesDisable();
 
 					var data = await tr.GetAsync(subspace.Encode("a"));
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
@@ -1999,7 +1999,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					// should succeed once system access has been requested
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 
 					var keys = await tr.GetRange(Slice.FromByteString("\xFF"), Slice.FromByteString("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
@@ -2014,17 +2014,17 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.EqualTo(15000), "Timeout (default)");
-					Assert.That(tr.RetryLimit, Is.Zero, "RetryLimit (default)");
-					Assert.That(tr.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(15000), "Timeout (default)");
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "RetryLimit (default)");
+					Assert.That(tr.Options.MaxRetryDelay, Is.Zero, "MaxRetryDelay (default)");
 
-					tr.Timeout = 1000; // 1 sec max
-					tr.RetryLimit = 5; // 5 retries max
-					tr.MaxRetryDelay = 500; // .5 sec max
+					tr.Options.Timeout = 1000; // 1 sec max
+					tr.Options.RetryLimit = 5; // 5 retries max
+					tr.Options.MaxRetryDelay = 500; // .5 sec max
 
-					Assert.That(tr.Timeout, Is.EqualTo(1000), "Timeout");
-					Assert.That(tr.RetryLimit, Is.EqualTo(5), "RetryLimit");
-					Assert.That(tr.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(1000), "Timeout");
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(5), "RetryLimit");
+					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
 				}
 			}
 		}
@@ -2050,9 +2050,9 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
-					Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
-					Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
-					Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
+					Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
+					Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
 
 					// changing the default on the db should only affect new transactions
 
@@ -2062,14 +2062,14 @@ namespace FoundationDB.Client.Tests
 
 					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
-						Assert.That(tr2.Timeout, Is.EqualTo(600), "tr2.Timeout");
-						Assert.That(tr2.RetryLimit, Is.EqualTo(4), "tr2.RetryLimit");
-						Assert.That(tr2.MaxRetryDelay, Is.EqualTo(700), "tr2.MaxRetryDelay");
+						Assert.That(tr2.Options.Timeout, Is.EqualTo(600), "tr2.Options.Timeout");
+						Assert.That(tr2.Options.RetryLimit, Is.EqualTo(4), "tr2.Options.RetryLimit");
+						Assert.That(tr2.Options.MaxRetryDelay, Is.EqualTo(700), "tr2.Options.MaxRetryDelay");
 
 						// original tr should not be affected
-						Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
-						Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
-						Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
+						Assert.That(tr.Options.Timeout, Is.EqualTo(500), "tr.Options.Timeout");
+						Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
+						Assert.That(tr.Options.MaxRetryDelay, Is.EqualTo(600), "tr.Options.MaxRetryDelay");
 					}
 				}
 			}
@@ -2102,7 +2102,7 @@ namespace FoundationDB.Client.Tests
 						Assert.Fail("The retry loop was called too many times!");
 					}
 
-					Assert.That(tr.RetryLimit, Is.EqualTo(3));
+					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
 
 					// simulate a retryable error condition
 					throw new FdbException(FdbError.PastVersion);
@@ -2133,24 +2133,24 @@ namespace FoundationDB.Client.Tests
 				using (var tr = await db.BeginTransactionAsync(this.Cancellation))
 				{
 					// simulate a first error
-					tr.RetryLimit = 10;
+					tr.Options.RetryLimit = 10;
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// simulate some more errors
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we still haven't failed 10 times..
-					tr.RetryLimit = 10;
+					tr.Options.RetryLimit = 10;
 					await tr.OnErrorAsync(FdbError.PastVersion);
-					Assert.That(tr.RetryLimit, Is.Zero, "Retry limit should be reset");
+					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we already have failed 6 times, so this one should abort
-					tr.RetryLimit = 2; // value is too low
+					tr.Options.RetryLimit = 2; // value is too low
 					Assert.That(async () => await tr.OnErrorAsync(FdbError.PastVersion), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
 				}
 			}
@@ -2466,7 +2466,7 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 					// dump nodes
 					Log("Server List:");
 					var servers = await tr.GetRange(Fdb.System.ServerList, Fdb.System.ServerList + Fdb.System.MaxValue)

@@ -1421,7 +1421,7 @@ namespace FoundationDB.Client
 				Func<IFdbReadOnlyTransaction, Task> reset = (tr) =>
 				{
 					// should export be lower priority? TODO: make if configurable!
-					tr.WithPriorityBatch();
+					tr.Options.WithPriorityBatch();
 					return Task.CompletedTask;
 				};
 
@@ -1555,7 +1555,7 @@ namespace FoundationDB.Client
 				Func<IFdbReadOnlyTransaction, Task> reset = async (tr) =>
 				{
 					// should export be lower priority? TODO: make if configurable!
-					tr.WithPriorityBatch();
+					tr.Options.WithPriorityBatch();
 
 					var folder = await path.Resolve(tr);
 					if (previous.IsNull)

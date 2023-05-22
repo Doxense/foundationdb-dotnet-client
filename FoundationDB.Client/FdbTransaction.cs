@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
-	public sealed partial class FdbTransaction : IFdbTransaction
+	public sealed partial class FdbTransaction : IFdbTransaction, IFdbTransactionOptions
 	{
 
 		#region Private Members...
@@ -199,8 +199,14 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option)
+		/// <inheritdoc/>
+		public IFdbTransactionOptions Options => this;
+
+		/// <inheritdoc/>
+		public int ApiVersion => this.Database.GetApiVersion();
+
+		/// <inheritdoc/>
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -208,34 +214,36 @@ namespace FoundationDB.Client
 
 			m_log?.Annotate($"SetOption({option})");
 			m_handler.SetOption(option, default);
+			return this;
 		}
 
-		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, string value)
+		/// <inheritdoc/>
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
-
-			m_log?.Annotate($"SetOption({option}, \"{value}\")");
-			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
-			m_handler.SetOption(option, data.Span);
-		}
-
-		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
-		{
-			EnsureNotFailedOrDisposed();
-
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString()}'");
 
 			m_log?.Annotate($"SetOption({option}, \"{value.ToString()}\")");
 			var data = FdbNative.ToNativeString(value, nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
+			return this;
+		}
+
+		/// <inheritdoc/>
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option, ReadOnlySpan<byte> value)
+		{
+			EnsureNotFailedOrDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{Slice.Dump(value)}'");
+
+			m_log?.Annotate($"SetOption({option}, '{Slice.Dump(value)}')");
+			m_handler.SetOption(option, value);
+			return this;
 		}
 
 		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, long value)
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option, long value)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -247,6 +255,7 @@ namespace FoundationDB.Client
 			Span<byte> tmp = stackalloc byte[8];
 			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
 			m_handler.SetOption(option, tmp);
+			return this;
 		}
 
 		#endregion
