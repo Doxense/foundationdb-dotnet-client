@@ -178,6 +178,11 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public double GetMainThreadBusyness()
+		{
+			return FdbNative.GetMainThreadBusyness(m_handle);
+		}
+
 		public void Dispose()
 		{
 			Dispose(true);

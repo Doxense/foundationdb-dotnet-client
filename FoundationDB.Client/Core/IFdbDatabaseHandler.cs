@@ -50,6 +50,9 @@ namespace FoundationDB.Client.Core
 
 		int GetMaxApiVersion();
 
+		/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
+		double GetMainThreadBusyness();
+
 	}
 
 }

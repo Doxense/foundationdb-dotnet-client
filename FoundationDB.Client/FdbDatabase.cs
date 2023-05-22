@@ -146,6 +146,11 @@ namespace FoundationDB.Client
 		/// <summary>Return the currently enforced API version for this database instance.</summary>
 		public int GetApiVersion() => m_handler.GetApiVersion();
 
+		/// <summary>Returns a value between 0 and 1 that reflect the saturation of the client main thread.</summary>
+		/// <returns>Value between 0 (no activity) and 1 (completly saturated)</returns>
+		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
+		public double GetMainThreadBusyness() => m_handler.GetMainThreadBusyness();
+
 		#endregion
 
 		#region Transaction Management...

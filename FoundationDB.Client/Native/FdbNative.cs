@@ -188,6 +188,11 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_database_create_transaction(DatabaseHandle database, out TransactionHandle transaction);
 
+			/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
+			/// <returns>By default, this value is updated every second.</returns>
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern double fdb_database_get_main_thread_busyness(DatabaseHandle database);
+
 			// Transaction
 
 			/// <summary>Destroys an <see cref="TransactionHandle">FDBTransaction</see> object.</summary>
@@ -875,6 +880,12 @@ namespace FoundationDB.Client.Native
 			{
 				NativeMethods.fdb_database_destroy(handle);
 			}
+		}
+
+		public static double GetMainThreadBusyness(DatabaseHandle handle)
+		{
+			EnsureLibraryIsLoaded();
+			return NativeMethods.fdb_database_get_main_thread_busyness(handle);
 		}
 
 		public static FutureHandle ClusterCreateDatabase(ClusterHandle cluster, string name)
