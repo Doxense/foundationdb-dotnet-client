@@ -35,6 +35,7 @@ namespace FoundationDB.Client.Native
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.IO;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Runtime.InteropServices;
 	using System.Text;
@@ -60,6 +61,9 @@ namespace FoundationDB.Client.Native
 		private static readonly ExceptionDispatchInfo? LibraryLoadError;
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		public delegate void FdbNetworkThreadCompletionCallback(IntPtr parameter);
+
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
 
 		/// <summary>Contain all the stubs to the methods exposed by the C API library</summary>
@@ -75,6 +79,8 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern int fdb_get_max_api_version();
 
+			/// <summary>Returns a (somewhat) human-readable English message from an error code.</summary>
+			/// <remarks>The return value is a statically allocated null-terminated string that must not be freed by the caller.</remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern IntPtr fdb_get_error(FdbError code);
 
@@ -102,6 +108,15 @@ namespace FoundationDB.Client.Native
 			/// </remarks>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_setup_network();
+
+			/// <summary>Register the given callback to run at the completion of the network thread</summary>
+			/// <remarks>
+			/// Must be called after <see cref="fdb_setup_network"/> and prior to <see cref="fdb_run_network"/> if called at all.
+			/// If there are multiple network threads running (which might occur if one is running multiple versions of the client, for example), then the callback is invoked once on each thread.
+			/// When the supplied function is called, the supplied <paramref name="parameter"/> is passed to it.
+			/// </remarks>
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_add_network_thread_completion_hook(FdbNetworkThreadCompletionCallback hook, IntPtr parameter);
 
 			/// <summary>Run the network loop on the current thread</summary>
 			/// <remarks>
