@@ -76,6 +76,8 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_select_api_version_impl(int runtimeVersion, int headerVersion);
 
+			/// <summary>Returns <c>FDB_API_VERSION</c>, the current version of the FoundationDB C API.</summary>
+			/// <returns>This is the maximum version that may be passed to <see cref="fdb_select_api_version_impl"/>.</returns>
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern int fdb_get_max_api_version();
 
@@ -888,6 +890,7 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_database_get_main_thread_busyness(handle);
 		}
 
+		[Obsolete("Deprecated since API level 610")]
 		public static FutureHandle ClusterCreateDatabase(ClusterHandle cluster, string name)
 		{
 			var future = NativeMethods.fdb_cluster_create_database(cluster, name, name == null ? 0 : name.Length);
