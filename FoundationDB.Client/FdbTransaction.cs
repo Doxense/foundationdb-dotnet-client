@@ -203,7 +203,7 @@ namespace FoundationDB.Client
 		public IFdbTransactionOptions Options => this;
 
 		/// <inheritdoc/>
-		public int ApiVersion => this.Database.GetApiVersion();
+		int IFdbTransactionOptions.ApiVersion => Database.GetApiVersion();
 
 		/// <inheritdoc/>
 		public IFdbTransactionOptions SetOption(FdbTransactionOption option)

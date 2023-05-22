@@ -72,6 +72,7 @@ namespace FoundationDB.Client
 
 			public CancellationToken Cancellation => m_parent.Cancellation;
 
+			/// <inheritdoc />
 			public bool IsSnapshot => true;
 
 			/// <inheritdoc />
@@ -80,16 +81,19 @@ namespace FoundationDB.Client
 			/// <inheritdoc />
 			IFdbTransactionOptions IFdbReadOnlyTransaction.Options => m_parent.Options;
 
+			/// <inheritdoc />
 			public void EnsureCanRead()
 			{
 				m_parent.EnsureCanRead();
 			}
 
+			/// <inheritdoc />
 			public Task<long> GetReadVersionAsync()
 			{
 				return m_parent.GetReadVersionAsync();
 			}
 
+			/// <inheritdoc />
 			public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
 			{
 				return m_parent.GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: true);
@@ -130,6 +134,7 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetOperation(key, valueWriter, snapshot: true);
 			}
 
+			/// <inheritdoc />
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
 				Contract.NotNull(keys);
@@ -145,6 +150,7 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetValuesOperation(keys, snapshot: true);
 			}
 
+			/// <inheritdoc />
 			public Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				EnsureCanRead();
@@ -158,6 +164,7 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetKeyOperation(selector, snapshot: true);
 			}
 
+			/// <inheritdoc />
 			public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
 				EnsureCanRead();
@@ -208,28 +215,33 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetRangeOperation(beginInclusive, endExclusive, snapshot: true, limit, reverse, targetBytes, mode, read, iteration);
 			}
 
+			/// <inheritdoc />
 			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null)
 			{
 				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, kv => kv);
 			}
 
+			/// <inheritdoc />
 			public FdbRangeQuery<TResult> GetRange<TResult>(KeySelector beginInclusive, KeySelector endExclusive, Func<KeyValuePair<Slice, Slice>, TResult> selector, FdbRangeOptions? options = null)
 			{
 				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true, selector);
 			}
 
+			/// <inheritdoc />
 			public Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key)
 			{
 				EnsureCanRead();
 				return m_parent.PerformGetAddressesForKeyOperation(key);
 			}
 
+			/// <inheritdoc />
 			public Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
 			{
 				EnsureCanRead();
 				return m_parent.PerformGetRangeSplitPointsOperation(beginKey, endKey, chunkSize);
 			}
 
+			/// <inheritdoc />
 			public Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 			{
 				EnsureCanRead();
