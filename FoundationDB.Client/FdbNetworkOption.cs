@@ -62,23 +62,46 @@ namespace FoundationDB.Client
 		/// <remarks>Parameter: (Int64) max size of a single trace output file</remarks>
 		TraceRollSize = 31,
 
-		/// <summary>Sets the maximum size of a all the trace output files put together.
-		/// This value should be in the range ``[0, long.MaxValue]``.
-		/// If the value is set to 0, there is no limit on the total size of the files.
-		/// The default is a maximum size of 104,857,600 bytes.
-		/// If the default roll size is used, this means that a maximum of 10 trace files will be written at a time.
-		/// </summary>
-		/// <remarks>Parameter: (Int64) max total size of trace files</remarks>
+		/// <summary>Sets the maximum size of a all the trace output files put together.</summary>
+		/// <remarks>
+		/// <para>Parameter: (Int64) max total size of trace files. This value should be in the range ``[0, long.MaxValue]``.</para>
+		/// <para>If the value is set to 0, there is no limit on the total size of the files.</para>
+		/// <para>The default is a maximum size of 104,857,600 bytes.</para>
+		/// <para>If the default roll size is used, this means that a maximum of 10 trace files will be written at a time.</para>
+		/// </remarks>
 		TraceMaxLogsSize = 32,
 
-		/// <summary>Sets the 'LogGroup' attribute with the specified value for all events in the trace output files.
-		/// The default log group is 'default'.</summary>
-		/// <remarks>Parameter: (String) value of the LogGroup attribute</remarks>
+		/// <summary>Sets the <c>LogGroup</c> attribute with the specified value for all events in the trace output files.</summary>
+		/// <remarks>Parameter: (String) value of the LogGroup attribute. The default log group is <c>default</c>.</remarks>
 		TraceLogGroup = 33,
 
-		/// <summary>Select the format of the log files. xml (the default) and json are supported.</summary>
-		/// <remarks>Parameter: (String) format of trace files</remarks>
+		/// <summary>Select the format of the log files.</summary>
+		/// <remarks>
+		/// <para>Parameter: (String) format of trace files: <c>xml</c> (the default) and <c>json</c> are supported.</para>
+		/// </remarks>
 		TraceFormat = 34,
+
+		/// <summary>Select clock source for trace files.</summary>
+		/// <remarks>Parameter: (String) Trace clock source: <c>now</c> (the default) or <c>realtime</c> are supported.</remarks>
+		TraceClockSource = 35,
+
+		/// <summary>Once provided, this string will be used to replace the port/PID in the log file names.</summary>
+		/// <remarks>
+		/// <para>Parameter: (String) The identifier that will be part of all trace file names</para>
+		/// </remarks>
+		TraceFileIdentifier = 36,
+
+		/// <summary>Use the same base trace file name for all client threads as it did before version 7.2. The current default behavior is to use distinct trace file names for client threads by including their version and thread index.</summary>
+		TraceShareAmongClientThreads = 37,
+
+		/// <summary>Initialize trace files on network setup, determine the local IP later. Otherwise tracing is initialized when opening the first database.</summary>
+		TraceInitializeOnSetup = 38,
+
+		/// <summary>Set file suffix for partially written log files.</summary>
+		/// <remarks>
+		/// <para>Parameter: (String) Append this suffix to partially written log files. When a log file is complete, it is renamed to remove the suffix. No separator is added between the file and the suffix. If you want to add a file extension, you should include the separator - e.g. '.tmp' instead of 'tmp' to add the 'tmp' extension.</para>
+		/// </remarks>
+		TracePartialFileSuffix = 39,
 
 		/// <summary>Set internal tuning or debugging knobs </summary>
 		/// <remarks>Parameter: (String) knob_name=knob_value</remarks>
@@ -134,6 +157,9 @@ namespace FoundationDB.Client
 		/// <remarks>Parameter: (String) key passphrase</remarks>
 		TlsPassword = 54,
 
+		/// <summary>Prevent client from connecting to a non-TLS endpoint by throwing network connection failed error.</summary>
+		TlsDisablePlaintextConnection = 55,
+
 		/// <summary>Disables the multi-version client API and instead uses the local client directly. Must be set before setting up the network.</summary>
 		DisableMultiVersionClientApi = 60,
 
@@ -153,12 +179,51 @@ namespace FoundationDB.Client
 		/// <summary>Prevents connections through the local client, allowing only connections through externally loaded client libraries. Intended primarily for testing.</summary>
 		DisableLocalClient = 64,
 
+		/// <summary>Spawns multiple worker threads for each version of the client that is loaded.</summary>
+		/// <remarks>
+		/// <para>Parameter: (Int64) Number of client threads to be spawned. Each cluster will be serviced by a single client thread.</para>
+		/// <para>Setting this to a number greater than one implies <see cref="DisableLocalClient"/>.</para>
+		/// </remarks>
+		ClientThreadsPerVersion = 65,
+
+		/// <summary>Adds an external client library to be used with a future version protocol.</summary>
+		/// <remarks>
+		/// <para>Parameter: (String) path to client library</para>
+		/// <para>This option can be used testing purposes only!</para>
+		/// </remarks>
+		FutureVersionClientLibrary = 66,
+
+		/// <summary>Retain temporary external client library copies that are created for enabling multi-threading.</summary>
+		RetainClientLibraryCopies = 67,
+
+		/// <summary>Ignore the failure to initialize some of the external clients</summary>
+		IgnoreExternalClientFailures = 68,
+
+		/// <summary>Fail with an error if there is no client matching the server version the client is connecting to.</summary>
+		FailIncompatibleClient = 69,
+
 		/// <summary>Disables logging of client statistics, such as sampled transaction activity.</summary>
 		DisableClientStatisticsLogging = 70,
 
-		/// <summary>Enables debugging feature to perform slow task profiling. Requires trace logging to be enabled. WARNING: this feature is not recommended for use in production.</summary>
+		/// <summary>Enables debugging feature to perform run loop profiling.</summary>
+		/// <remarks>
+		/// <para>Requires trace logging to be enabled.</para>
+		/// <para>WARNING: this feature is not recommended for use in production.</para>
+		/// </remarks>
+		EnableRunLoopProfiling = 71,
+
+		/// <summary>Enables debugging feature to perform slow task profiling.</summary>
+		/// <remarks>
+		/// <para>Requires trace logging to be enabled.</para>
+		/// <para>WARNING: this feature is not recommended for use in production.</para>
+		/// </remarks>
+		[Obsolete("This option has been renamed to EnableRunLoopProfiling")]
 		EnableSlowTaskProfiling = 71,
 
+		/// <summary>Prevents the multi-version client API from being disabled, even if no external clients are configured.</summary>
+		/// <remarks>This option is required to use GRV caching.</remarks>
+		DisableClientBypass = 72,
+		
 		/// <summary>Enable client buggify - will make requests randomly fail (intended for client testing)</summary>
 		ClientBuggifyEnable = 80,
 
@@ -171,14 +236,31 @@ namespace FoundationDB.Client
 		/// <summary>Set the probability of an active CLIENT_BUGGIFY section being fired. A section will only fire if it was activated</summary>
 		ClientBuggifySectionFiredProbability = 83,
 
+		/// <summary>Set a tracer to run on the client.</summary>
+		/// <remarks>
+		/// <para>Parameter: (String) Distributed tracer type. Choose from <c>none</c>, <c>log_file</c>, or <c>network_lossy</c></para>
+		/// <para>Should be set to the same value as the tracer set on the server.</para>
+		/// </remarks>
+		DistributedClientTracer = 90,
+
+		/// <summary>Sets the directory for storing temporary files created by FDB client, such as temporary copies of client libraries.</summary>
+		/// <remarks>
+		/// <para>Parameter: (String) Client directory for temporary files.</para>
+		/// <para>Defaults to <c>/tmp</c> (on Linux)</para>
+		/// </remarks>
+		ClientTmpDir = 91,
+
 		/// <summary>This option is set automatically to communicate the list of supported clients to the active client.</summary>
-		SupportedClientVersions = 1000,
+		SupportedClientVersions = 1000, // hidden
 
 		/// <summary>This option is set automatically on all clients loaded externally using the multi-version API.</summary>
-		ExternalClient = 1001,
+		ExternalClient = 1001, // hidden
 
 		/// <summary>This option tells a child on a multi-version client what transport ID to use.</summary>
-		ExternalClientTransportId = 1002,
+		/// <remarks>
+		/// <para>Parameter: (Int64) Transport ID for the child connection</para>
+		/// </remarks>
+		ExternalClientTransportId = 1002, // hidden
 
 	}
 
