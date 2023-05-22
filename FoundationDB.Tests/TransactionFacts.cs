@@ -3645,9 +3645,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Range_Split_Points()
 		{
-			const int NUM_ITEMS = 50_000;
+			const int NUM_ITEMS = 100_000;
 			const int VALUE_SIZE = 50;
-			const int CHUNK_SIZE = (NUM_ITEMS * VALUE_SIZE) / 200; // we would like to split in ~100 chunks
+			const int CHUNK_SIZE = (NUM_ITEMS * (VALUE_SIZE + 16)) / 100; // we would like to split in ~100 chunks
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
@@ -3658,20 +3658,26 @@ namespace FoundationDB.Client.Tests
 				var rnd = new Random(123456);
 				var values = Enumerable.Range(0, NUM_ITEMS).Select(i => Slice.Random(rnd, VALUE_SIZE)).ToArray();
 
-				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes");
-				await db.WriteAsync(async (tr) =>
+				const int BATCH_SIZE = 1_000_000 / VALUE_SIZE;
+				Log($"Creating {values.Length:N0} keys ({VALUE_SIZE:N0} bytes per key) with {NUM_ITEMS * VALUE_SIZE:N0} total bytes ({BATCH_SIZE:N0} per batch)");
+				for (int i = 0; i < values.Length; i += BATCH_SIZE)
 				{
-					var subspace = (await location.Resolve(tr))!;
-
-					// fill the db with keys from (0,) = XXX to (N-1,) = XXX
-					for (int i = 0; i < values.Length; i++)
+					await db.WriteAsync(async (tr) =>
 					{
-						tr.Set(subspace.Encode(i), values[i]);
-					}
-				}, this.Cancellation);
+						var subspace = (await location.Resolve(tr))!;
+
+						// fill the db with keys from (0,) = XXX to (N-1,) = XXX
+						for (int j = 0; j < BATCH_SIZE && i + j < values.Length; j++)
+						{
+							tr.Set(subspace.Encode(i + j), values[i + j]);
+						}
+					}, this.Cancellation);
+				}
+
+				//db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
 				Log($"Get split points for chunks of {CHUNK_SIZE:N0} bytes...");
-				await db.ReadAsync(async (tr) =>
+				var keys = await db.ReadAsync(async (tr) =>
 				{
 					var subspace = (await location.Resolve(tr))!;
 
@@ -3692,26 +3698,35 @@ namespace FoundationDB.Client.Tests
 					{
 						Assert.That(keys[i], Is.GreaterThan(keys[i - 1]), "Split points should be sorted");
 					}
-
-					// we will get all the keys in between and dump some statistics
-					var chunks = new List<KeyValuePair<Slice, Slice>[]>();
-					for(int i = 0; i < keys.Length - 1; i++)
-					{
-						var range = KeyRange.Create(keys[i], i + 1 < keys.Length ? keys[i + 1] : end);
-						var chunk = await tr.GetRange(range).ToArrayAsync();
-						Assert.That(chunk, Is.Not.Null.Or.Empty, "There should be at least one key in chunk {0}", range);
-						var actualChunkSize = chunk.Sum(kv => kv.Value.Count);
-						Log($"> {subspace.Unpack(range.Begin)} .. {subspace.Unpack(range.End)}:\t{chunk.Length,6:N0} results, size(values) = {actualChunkSize,7:N0} bytes, ratio = {(100.0 * actualChunkSize) / CHUNK_SIZE,6:N0}%");
-						chunks.Add(chunk);
-					}
-
-					Log($"Statistics: smallest = {chunks.Min(c => c.Sum(kv => kv.Value.Count)):N0} bytes, largest = {chunks.Max(c => c.Sum(kv => kv.Value.Count)):N0} bytes, average = {chunks.Average(c => c.Sum(kv => kv.Value.Count)):N0} bytes");
-
-					// we should have read all our keys!
-					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(NUM_ITEMS), "All keys should be accounted for");
-
-					return chunks;
+					return keys;
 				}, this.Cancellation);
+
+				var chunks = new List<KeyValuePair<Slice, Slice>[]>();
+
+				for(int i = 0; i < keys.Length - 1; i++)
+				{
+					var (chunk, begin, end) = await db.ReadAsync(async tr => 
+					{
+						var subspace = (await location.Resolve(tr))!;
+
+						// we will get all the keys in between and dump some statistics
+						var range = KeyRange.Create(keys[i], keys[i + 1]);
+						var chunk = await tr.GetRange(range).ToArrayAsync();
+
+						return (chunk, subspace.PrettyPrint(range.Begin), subspace.PrettyPrint(range.End));
+					}, this.Cancellation);
+
+					chunks.Add(chunk);
+					Assert.That(chunk, Is.Not.Null.Or.Empty, "There should be at least one key in chunk {0}..{1}", begin, end);
+					var actualChunkSize = chunk.Sum(kv => kv.Key.Count + kv.Value.Count);
+					Log($"> {begin} .. {end}:\t{chunk.Length,6:N0} results, size(k+v) = {actualChunkSize,7:N0} bytes, ratio = {(100.0 * actualChunkSize) / CHUNK_SIZE,6:N0}%");
+
+				}
+
+				Log($"Statistics: smallest = {chunks.Min(c => c.Sum(kv => kv.Value.Count)):N0} bytes, largest = {chunks.Max(c => c.Sum(kv => kv.Value.Count)):N0} bytes, average = {chunks.Average(c => c.Sum(kv => kv.Value.Count)):N0} bytes");
+
+				// we should have read all our keys!
+				Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(NUM_ITEMS), "All keys should be accounted for");
 			}
 		}
 
