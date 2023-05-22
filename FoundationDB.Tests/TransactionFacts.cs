@@ -2399,6 +2399,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Addresses_For_Key()
 		{
+			//note: starting from API level 630, options IncludePortInAddress is the default!
+
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.Root.ByKey("location_api");
@@ -2429,8 +2431,14 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < addresses.Length; i++)
 					{
-						Assert.That(System.Net.IPAddress.TryParse(addresses[i], out IPAddress address), Is.True, "Result address {0} does not seem to be a valid IP address", addresses[i]);
-						Log($"- {address}");
+						var addr = addresses[i];
+						Log($"- {addr}");
+						// we expect "IP:PORT"
+						Assert.That(addr, Is.Not.Null.Or.Empty);
+						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
+						int p = addr.IndexOf(':');
+						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out IPAddress address), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
+						Assert.That(int.TryParse(addr.Substring(p + 1), out var port), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
 					}
 				}
 
@@ -2447,8 +2455,14 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < addresses.Length; i++)
 					{
-						Assert.That(System.Net.IPAddress.TryParse(addresses[i], out IPAddress address), Is.True, "Result address {0} does not seem to be a valid IP address", addresses[i]);
-						Log($"- {address}");
+						var addr = addresses[i];
+						Log($"- {addr}");
+						// we expect "IP:PORT"
+						Assert.That(addr, Is.Not.Null.Or.Empty);
+						Assert.That(addr, Does.Contain(':'), "Result address '{0}' should contain a port number", addr);
+						int p = addr.IndexOf(':');
+						Assert.That(System.Net.IPAddress.TryParse(addr.Substring(0, p), out IPAddress address), Is.True, "Result address '{0}' does not seem to have a valid IP address '{1}'", addr, addr.Substring(0, p));
+						Assert.That(int.TryParse(addr.Substring(p + 1), out var port), Is.True, "Result address '{0}' does not seem to have a valid port number '{1}'", addr, addr.Substring(p + 1));
 					}
 
 				}
