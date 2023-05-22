@@ -240,12 +240,12 @@ namespace FoundationDB.Client.Tests
 
 				//TODO: how can we test that it is successful ?
 
-				db.SetLocationCacheSize(1000);
-				db.SetLocationCacheSize(0); // does this disable location cache ?
-				db.SetLocationCacheSize(9001);
+				db.Options.WithLocationCacheSize(1000);
+				db.Options.WithLocationCacheSize(0); // does this disable location cache ?
+				db.Options.WithLocationCacheSize(9001);
 
 				// should reject negative numbers
-				Assert.That(() => db.SetLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue).And.Property("Success").False);
+				Assert.That(() => db.Options.WithLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue).And.Property("Success").False);
 			}
 		}
 

@@ -86,52 +86,96 @@ namespace FoundationDB.Client
 
 		#region Options...
 
-		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="size">Max location cache entries</param>
-		public static void SetLocationCacheSize(this IFdbDatabase db, int size)
+		/// <summary>Set the default Timeout value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultTimeout(this IFdbDatabaseOptions options, TimeSpan timeout)
 		{
-			Contract.NotNull(db);
+			options.DefaultTimeout = timeout == TimeSpan.Zero ? 0 : checked((int) Math.Ceiling(timeout.TotalMilliseconds));
+			return options;
+		}
+
+		/// <summary>Set the default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultTimeout(this IFdbDatabaseOptions options, int timeout)
+		{
+			options.DefaultTimeout = timeout;
+			return options;
+		}
+
+		/// <summary>Set the default Retry Limit value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultRetryLimit(this IFdbDatabaseOptions options, int limit)
+		{
+			options.DefaultRetryLimit = limit;
+			return options;
+		}
+
+		/// <summary>Set the default maximum retry delay value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultMaxRetryDelay(this IFdbDatabaseOptions options, TimeSpan timeout)
+		{
+			options.DefaultMaxRetryDelay = timeout == TimeSpan.Zero ? 0 : checked((int) Math.Ceiling(timeout.TotalMilliseconds));
+			return options;
+		}
+
+		/// <summary>Set the default maximum retry delay value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public static IFdbDatabaseOptions WithDefaultMaxRetryDelay(this IFdbDatabaseOptions options, int timeout)
+		{
+			options.DefaultMaxRetryDelay = timeout;
+			return options;
+		}
+
+		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="size">Max location cache entries</param>
+		public static IFdbDatabaseOptions WithLocationCacheSize(this IFdbDatabaseOptions options, int size)
+		{
 			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
 
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.LocationCacheSize, size);
+			return options.SetOption(FdbDatabaseOption.LocationCacheSize, size);
 		}
 
 		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.</summary>
-		/// <param name="db">Database instance</param>
+		/// <param name="options">Database instance</param>
 		/// <param name="count">Max outstanding watches</param>
-		public static void SetMaxWatches(this IFdbDatabase db, int count)
+		public static IFdbDatabaseOptions WithMaxWatches(this IFdbDatabaseOptions options, int count)
 		{
-			Contract.NotNull(db);
 			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
 
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.MaxWatches, count);
+			return options.SetOption(FdbDatabaseOption.MaxWatches, count);
 		}
 
 		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
-		/// <param name="db">Database instance</param>
+		/// <param name="options">Database instance</param>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetMachineId(this IFdbDatabase db, string hexId)
+		public static IFdbDatabaseOptions WithMachineId(this IFdbDatabaseOptions options, string hexId)
 		{
-			Contract.NotNull(db);
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.MachineId, hexId);
+			return options.SetOption(FdbDatabaseOption.MachineId, hexId.AsSpan());
+		}
+
+		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="hexId">Hexadecimal ID</param>
+		public static IFdbDatabaseOptions WithMachineId(this IFdbDatabaseOptions options, ReadOnlySpan<char> hexId)
+		{
+			return options.SetOption(FdbDatabaseOption.MachineId, hexId);
 		}
 
 		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
-		/// <param name="db">Database instance</param>
+		/// <param name="options">Database instance</param>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetDataCenterId(this IFdbDatabase db, string hexId)
+		public static IFdbDatabaseOptions WithDataCenterId(this IFdbDatabaseOptions options, string hexId)
 		{
-			Contract.NotNull(db);
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			db.SetOption(FdbDatabaseOption.DataCenterId, hexId);
+			return options.SetOption(FdbDatabaseOption.DataCenterId, hexId.AsSpan());
+		}
+
+		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
+		/// <param name="options">Database instance</param>
+		/// <param name="hexId">Hexadecimal ID</param>
+		public static IFdbDatabaseOptions WithDataCenterId(this IFdbDatabaseOptions options, ReadOnlySpan<char> hexId)
+		{
+			return options.SetOption(FdbDatabaseOption.DataCenterId, hexId);
 		}
 
 		#endregion

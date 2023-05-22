@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
 	[DebuggerDisplay("Root={Root}")]
-	public class FdbDatabase : IFdbDatabase, IFdbDatabaseProvider
+	public class FdbDatabase : IFdbDatabase, IFdbDatabaseOptions, IFdbDatabaseProvider
 	{
 		#region Private Fields...
 
@@ -461,34 +461,50 @@ namespace FoundationDB.Client
 
 		#region Database Options...
 
-		/// <summary>Set a parameter-less option on this database</summary>
-		/// <param name="option">Option to set</param>
-		public void SetOption(FdbDatabaseOption option)
+		public IFdbDatabaseOptions Options => this;
+
+		/// <inheritdoc/>
+		int IFdbDatabaseOptions.ApiVersion => GetApiVersion();
+
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option)
 		{
 			ThrowIfDisposed();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option}");
 
 			m_handler.SetOption(option, default);
+
+			return this;
 		}
 
-		/// <summary>Set an option on this database that takes a string value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter (can be null)</param>
-		public void SetOption(FdbDatabaseOption option, string? value)
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option, ReadOnlySpan<char> value)
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value.ToString()}'");
 
-			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
+			var data = FdbNative.ToNativeString(value, nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
+
+			return this;
 		}
 
-		/// <summary>Set an option on this database that takes an integer value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
-		public void SetOption(FdbDatabaseOption option, long value)
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> value)
+		{
+			ThrowIfDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{Slice.Dump(value)}'");
+
+			m_handler.SetOption(option, value);
+
+			return this;
+		}
+
+		/// <inheritdoc />
+		public IFdbDatabaseOptions SetOption(FdbDatabaseOption option, long value)
 		{
 			ThrowIfDisposed();
 
@@ -498,6 +514,8 @@ namespace FoundationDB.Client
 			Span<byte> tmp = stackalloc byte[8];
 			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
 			m_handler.SetOption(option, tmp);
+
+			return this;
 		}
 
 		#endregion

@@ -263,8 +263,8 @@ namespace FdbShell
 					Root = partition
 				};
 				Db = await ChangeDatabase(cnxOptions, cancel);
-				Db.DefaultTimeout = Math.Max(0, timeout) * 1000;
-				Db.DefaultRetryLimit = Math.Max(0, maxRetries);
+				Db.Options.DefaultTimeout = Math.Max(0, timeout) * 1000;
+				Db.Options.DefaultRetryLimit = Math.Max(0, maxRetries);
 
 				StdOut("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")", ConsoleColor.Gray);
 				StdOut("Cluster file: " + (clusterFile ?? "<default>"), ConsoleColor.Gray);

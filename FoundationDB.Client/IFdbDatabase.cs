@@ -59,35 +59,14 @@ namespace FoundationDB.Client
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
 
-		/// <summary>Set a parameter-less option on this database</summary>
-		/// <param name="option">Option to set</param>
-		void SetOption(FdbDatabaseOption option);
-
-		/// <summary>Set an option on this database that takes a string value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter (can be null)</param>
-		void SetOption(FdbDatabaseOption option, string? value);
-
-		/// <summary>Set an option on this database that takes an integer value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
-		void SetOption(FdbDatabaseOption option, long value);
+		/// <summary>Helper that can set options for this database</summary>
+		IFdbDatabaseOptions Options { get; }
 
 		/// <summary>Sets the default log handler for this database</summary>
 		/// <param name="handler">Default handler that is attached to any new transction, and will be invoked when they complete.</param>
 		/// <param name="options"></param>
 		/// <remarks>This handler may not be called if logging is disabled, if a transaction overrides its handler, or if it calls <see cref="IFdbReadOnlyTransaction.StopLogging"/></remarks>
 		void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default);
-
-		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
-		int DefaultTimeout { get; set; }
-
-		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
-		int DefaultRetryLimit { get; set; }
-
-		int DefaultMaxRetryDelay { get; set; }
 
 		/// <summary>Start a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>

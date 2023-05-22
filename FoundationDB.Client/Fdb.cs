@@ -551,11 +551,11 @@ namespace FoundationDB.Client
 				db = await CreateDatabaseInternalAsync(clusterFile, directory, root, !hasPartition && readOnly, ct).ConfigureAwait(false);
 
 				// set the default options
-				if (options.DefaultTimeout != TimeSpan.Zero) db.DefaultTimeout = checked((int) Math.Ceiling(options.DefaultTimeout.TotalMilliseconds));
-				if (options.DefaultRetryLimit != 0) db.DefaultRetryLimit = options.DefaultRetryLimit;
-				if (options.DefaultMaxRetryDelay != 0) db.DefaultMaxRetryDelay = options.DefaultMaxRetryDelay;
-				if (options.DataCenterId != null) db.SetDataCenterId(options.DataCenterId);
-				if (options.MachineId != null) db.SetMachineId(options.MachineId);
+				if (options.DefaultTimeout != TimeSpan.Zero) db.Options.WithDefaultTimeout(options.DefaultTimeout);
+				if (options.DefaultRetryLimit != 0) db.Options.WithDefaultRetryLimit(options.DefaultRetryLimit);
+				if (options.DefaultMaxRetryDelay != 0) db.Options.WithDefaultMaxRetryDelay(options.DefaultMaxRetryDelay);
+				if (options.DataCenterId != null) db.Options.WithDataCenterId(options.DataCenterId);
+				if (options.MachineId != null) db.Options.WithMachineId(options.MachineId);
 
 				if (hasPartition)
 				{ // open the partition, and switch the root of the db

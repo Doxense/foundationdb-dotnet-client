@@ -2034,17 +2034,17 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
-				Assert.That(db.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
+				Assert.That(db.Options.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
+				Assert.That(db.Options.DefaultMaxRetryDelay, Is.Zero, "db.DefaultMaxRetryDelay (default)");
 
-				db.DefaultTimeout = 500;
-				db.DefaultRetryLimit = 3;
-				db.DefaultMaxRetryDelay = 600;
+				db.Options.DefaultTimeout = 500;
+				db.Options.DefaultRetryLimit = 3;
+				db.Options.DefaultMaxRetryDelay = 600;
 
-				Assert.That(db.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
-				Assert.That(db.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
-				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
+				Assert.That(db.Options.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
+				Assert.That(db.Options.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
 
 				// transaction should be already configured with the default options
 
@@ -2056,9 +2056,9 @@ namespace FoundationDB.Client.Tests
 
 					// changing the default on the db should only affect new transactions
 
-					db.DefaultTimeout = 600;
-					db.DefaultRetryLimit = 4;
-					db.DefaultMaxRetryDelay = 700;
+					db.Options.DefaultTimeout = 600;
+					db.Options.DefaultRetryLimit = 4;
+					db.Options.DefaultMaxRetryDelay = 700;
 
 					using (var tr2 = await db.BeginTransactionAsync(this.Cancellation))
 					{
@@ -2081,12 +2081,12 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
-				Assert.That(db.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
-				Assert.That(db.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
+				Assert.That(db.Options.DefaultTimeout, Is.EqualTo(15000), "db.DefaultTimeout (default)");
+				Assert.That(db.Options.DefaultRetryLimit, Is.Zero, "db.DefaultRetryLimit (default)");
 
 				// By default, a transaction that gets reset or retried, clears the RetryLimit and Timeout settings, which needs to be reset everytime.
 				// But if the DefaultRetryLimit and DefaultTimeout are set on the database instance, they should automatically be re-applied inside transaction loops!
-				db.DefaultRetryLimit = 3;
+				db.Options.DefaultRetryLimit = 3;
 
 				db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 

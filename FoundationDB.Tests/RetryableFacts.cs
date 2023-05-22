@@ -149,8 +149,8 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// this is a safety to ensure that you do not kill your server
-				db.DefaultTimeout = 0;
-				db.DefaultRetryLimit = 10;
+				db.Options.DefaultTimeout = 0;
+				db.Options.DefaultRetryLimit = 10;
 				// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
 
 				var location = db.Root["Retryable"];
