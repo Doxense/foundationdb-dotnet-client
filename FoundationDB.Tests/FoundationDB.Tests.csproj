@@ -4,7 +4,7 @@
     <TargetFrameworks>net6.0</TargetFrameworks>
     <RootNamespace>FoundationDB.Tests</RootNamespace>
     <AssemblyName>FoundationDB.Tests</AssemblyName>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>11.0</LangVersion>
     <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
