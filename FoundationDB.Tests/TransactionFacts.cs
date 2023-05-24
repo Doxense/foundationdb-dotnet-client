@@ -2105,7 +2105,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Options.RetryLimit, Is.EqualTo(3), "tr.Options.RetryLimit");
 
 					// simulate a retryable error condition
-					throw new FdbException(FdbError.PastVersion);
+					throw new FdbException(FdbError.TransactionTooOld);
 				}, go.Token);
 
 				try
@@ -2116,7 +2116,7 @@ namespace FoundationDB.Client.Tests
 				catch (AssertionException) { throw; }
 				catch (Exception e)
 				{
-					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
+					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.TransactionTooOld));
 				}
 
 				Assert.That(counter, Is.EqualTo(4), "1 first attempt + 3 retries = 4 executions");
@@ -2134,24 +2134,24 @@ namespace FoundationDB.Client.Tests
 				{
 					// simulate a first error
 					tr.Options.RetryLimit = 10;
-					await tr.OnErrorAsync(FdbError.PastVersion);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
 					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// simulate some more errors
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					await tr.OnErrorAsync(FdbError.PastVersion);
-					await tr.OnErrorAsync(FdbError.PastVersion);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
 					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we still haven't failed 10 times..
 					tr.Options.RetryLimit = 10;
-					await tr.OnErrorAsync(FdbError.PastVersion);
+					await tr.OnErrorAsync(FdbError.TransactionTooOld);
 					Assert.That(tr.Options.RetryLimit, Is.Zero, "Retry limit should be reset");
 
 					// we already have failed 6 times, so this one should abort
 					tr.Options.RetryLimit = 2; // value is too low
-					Assert.That(async () => await tr.OnErrorAsync(FdbError.PastVersion), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
+					Assert.That(async () => await tr.OnErrorAsync(FdbError.TransactionTooOld), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.TransactionTooOld));
 				}
 			}
 		}

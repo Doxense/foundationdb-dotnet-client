@@ -362,7 +362,7 @@ namespace FoundationDB.Client
 
 					if (error != null)
 					{
-						if (error.Code == FdbError.PastVersion && begin != lastBegin)
+						if (error.Code == FdbError.TransactionTooOld && begin != lastBegin)
 						{ // if we get a PastVersion and *something* has happened, then we are no longer transactional
 							trans.Reset();
 						}
@@ -497,7 +497,7 @@ namespace FoundationDB.Client
 						if (error != null)
 						{
 							// => from this point, the count returned will not be transactionally accurate
-							if (error.Code == FdbError.PastVersion)
+							if (error.Code == FdbError.TransactionTooOld)
 							{ // the transaction used up its time window
 								tr.Reset();
 							}

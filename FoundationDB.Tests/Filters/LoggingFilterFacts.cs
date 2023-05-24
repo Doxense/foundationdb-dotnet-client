@@ -164,7 +164,7 @@ namespace FoundationDB.Filters.Logging.Tests
 						if (tr.Context.Retries == 0)
 						{
 							// make it fail
-							//throw new FdbException(FdbError.PastVersion, "fake timeout");
+							//throw new FdbException(FdbError.TransactionTooOld, "fake timeout");
 						}
 
 					}, this.Cancellation);

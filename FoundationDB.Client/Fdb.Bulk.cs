@@ -1279,7 +1279,7 @@ namespace FoundationDB.Client
 
 									if (error != null)
 									{
-										if (error.Code == FdbError.PastVersion)
+										if (error.Code == FdbError.TransactionTooOld)
 										{ // this generation lasted too long, we need to start a new one and try again...
 											trans.Reset();
 											ctx.GenerationTimer.Restart();
@@ -1499,7 +1499,7 @@ namespace FoundationDB.Client
 					}
 					catch (FdbException e)
 					{
-						if (e.Code == FdbError.PastVersion)
+						if (e.Code == FdbError.TransactionTooOld)
 						{
 							tr.Reset();
 						}
