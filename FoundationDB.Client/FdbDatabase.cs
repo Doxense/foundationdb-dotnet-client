@@ -127,7 +127,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
-		//REVIEW: rename this to 'Cancellation'? ('Token' is a keyword that may have different meaning in some apps)
 		public CancellationToken Cancellation { get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
@@ -249,9 +248,12 @@ namespace FoundationDB.Client
 			if (m_disposed) return;
 
 			// Unregister the transaction. We do not care if it has already been done
-			FdbTransaction _;
+#if NETFRAMEWORK || NETSTANDARD
 			m_transactions.TryRemove(transaction.Id, out _);
 			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
+#else
+			m_transactions.TryRemove(KeyValuePair.Create(transaction.Id, transaction));
+#endif
 		}
 
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
@@ -596,9 +598,9 @@ namespace FoundationDB.Client
 				{
 					try
 					{
-						// mark this db has dead, but keep the handle alive until after all the callbacks have fired
+						// mark this db as dead, but keep the handle alive until after all the callbacks have fired
 
-						//TODO: kill all pending transactions on this db?
+						// cancel pending transactions (that don't have a tenant)
 						foreach (var trans in m_transactions.Values)
 						{
 							if (trans != null && trans.StillAlive)
