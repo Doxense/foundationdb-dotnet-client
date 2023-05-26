@@ -17,4 +17,4 @@ jobs:
           7.0.x
         global-json-file: global.json
     - name: Build with dotnet
-      run: dotnet build --configuration Release -f net7.0
+      run: dotnet build --configuration Release -f net6.0
