@@ -55,6 +55,9 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF\x00"</summary>
 			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
 
+			/// <summary>"\xFF\xFF"</summary>
+			public static readonly Slice SpecialKeyPrefix = Slice.FromByteString("\xFF\xFF");
+
 			/// <summary>"\xFF/metadataVersion"</summary>
 			public static readonly Slice MetadataVersionKey = Slice.FromByteString("\xff/metadataVersion");
 
@@ -155,6 +158,90 @@ namespace FoundationDB.Client
 				return FdbClusterFile.Parse(coordinators.ToStringAscii()!);
 			}
 
+			#region Special Keys...
+
+			/// <summary>Return the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the special key (ex: <c>`/management/tenant_mode`</c>)</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of <c>\xFF\xFF/management/tenant_mode</c></returns>
+			public static Task<Slice> GetSpecialKeyAsync(IFdbDatabase db, Slice name, CancellationToken ct)
+			{
+				Contract.NotNull(db);
+				if (name.IsNullOrEmpty) throw new ArgumentException("Special key name cannot be null or empty", nameof(name));
+
+				return db.ReadAsync<Slice>((tr) =>
+				{
+					tr.Options.WithPrioritySystemImmediate();
+					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+
+					return tr.GetAsync(SpecialKey(name));
+				}, ct);
+			}
+
+			/// <summary>Return the value of a special key (located under the <c>\xFF\xFF</c> prefix)</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the special key (ex: <c>"/management/tenant_mode"</c>)</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of <c>\xFF\xFF/management/tenant_mode</c></returns>
+			public static Task<Slice> GetSpecialKeyAsync(IFdbDatabase db, string name, CancellationToken ct)
+			{
+				Contract.NotNull(db);
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Special key name cannot be null or empty", nameof(name));
+
+				return db.ReadAsync<Slice>((tr) =>
+				{
+					tr.Options.WithPrioritySystemImmediate();
+					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+
+					return tr.GetAsync(SpecialKey(name));
+				}, ct);
+			}
+
+			/// <summary>Return the corresponding key for a special key attribute</summary>
+			/// <param name="name">Name of the special key, for example: <c>`/foo/bar`</c></param>
+			/// <returns>Name prefixed by <c>\xFF\xFF</c>, for example: <c>`\xFF\xFF/foo/bar`</c></returns>
+			/// <example><c>SpecialKey(Slice.FromString("/foo/bar"))</c> => <c>`\xFF\xFF/foo/bar`</c></example>
+			public static Slice SpecialKey(Slice name)
+			{
+				if (name.IsNullOrEmpty) throw new ArgumentException("Special key name cannot be null or empty", nameof(name));
+				return SpecialKeyPrefix + name;
+			}
+
+			/// <summary>Return the corresponding key for a special key attribute</summary>
+			/// <param name="name">Name of the special key, for example: <c>"/foo/bar"</c></param>
+			/// <returns>Name prefixed by <c>\xFF\xFF</c>, for example: <c>"\xFF\xFF/foo/bar"</c></returns>
+			/// <example><c>SpecialKey("/foo/bar")</c> => <c>`\xFF\xFF/foo/bar`</c></example>
+			public static Slice SpecialKey(string name)
+			{
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Special key name cannot be null or empty", nameof(name));
+				return SpecialKeyPrefix + Slice.FromByteString(name);
+			}
+
+			#endregion
+
+			#region Config Parameters...
+
+			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
+			public static Task<Slice> GetConfigParameterAsync(IFdbDatabase db, Slice name, CancellationToken ct)
+			{
+				Contract.NotNull(db);
+				if (name.IsNullOrEmpty) throw new ArgumentException("Config key name cannot be null or empty", nameof(name));
+
+				return db.ReadAsync<Slice>((tr) =>
+				{
+					tr.Options.WithReadAccessToSystemKeys();
+					tr.Options.WithPrioritySystemImmediate();
+					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+
+					return tr.GetAsync(Fdb.System.ConfigKey(name));
+				}, ct);
+			}
+
 			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
@@ -163,7 +250,7 @@ namespace FoundationDB.Client
 			public static Task<Slice> GetConfigParameterAsync(IFdbDatabase db, string name, CancellationToken ct)
 			{
 				Contract.NotNull(db);
-				Contract.NotNullOrEmpty(name, message: "Configuration parameter name cannot be null or empty.", paramName: nameof(name));
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Config key name cannot be null or empty", nameof(name));
 
 				return db.ReadAsync<Slice>((tr) =>
 				{
@@ -178,15 +265,26 @@ namespace FoundationDB.Client
 			/// <summary>Return the corresponding key for a config attribute</summary>
 			/// <param name="name">"foo"</param>
 			/// <returns>"\xFF/conf/foo"</returns>
+			public static Slice ConfigKey(Slice name)
+			{
+				if (name.IsNullOrEmpty) throw new ArgumentException("Config key name cannot be null or empty", nameof(name));
+				return ConfigPrefix + name;
+			}
+
+			/// <summary>Return the corresponding key for a config attribute</summary>
+			/// <param name="name">"foo"</param>
+			/// <returns>"\xFF/conf/foo"</returns>
 			public static Slice ConfigKey(string name)
 			{
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Config key name cannot be null or empty", nameof(name));
 				return ConfigPrefix + Slice.FromByteString(name);
 			}
 
+			#endregion
+
 			/// <summary>Return the corresponding key for a global attribute</summary>
-			/// <param name="name">"foo"</param>
-			/// <returns>"\xFF/globals/foo"</returns>
+			/// <param name="name"><c>"foo"</c></param>
+			/// <returns><c>"\xFF/globals/foo"</c></returns>
 			public static Slice GlobalsKey(string name)
 			{
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", nameof(name));
@@ -194,9 +292,9 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Return the corresponding key for a global attribute</summary>
-			/// <param name="id">"ABC123"</param>
-			/// <param name="name">"foo"</param>
-			/// <returns>"\xFF/workers/ABC123/foo"</returns>
+			/// <param name="id"><c>"ABC123"</c></param>
+			/// <param name="name"><c>"foo"</c></param>
+			/// <returns><c>"\xFF/workers/ABC123/foo"</c></returns>
 			public static Slice WorkersKey(string id, string name)
 			{
 				if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty", nameof(id));
@@ -219,9 +317,12 @@ namespace FoundationDB.Client
 
 				switch(value.ToUnicode())
 				{
-					case "0": return "ssd"; // "ssd-1"
+					case "0": return "ssd-1"; // was called "ssd" in earlier versions
 					case "1": return "memory";
 					case "2": return "ssd-2";
+					case "3": return "ssd-redwood-1-experimental";
+					case "4": return "memory-radixtree-beta";
+					case "5": return "ssd-rocksdb-v1";
 					default:
 					{
 						// welcome to the future!
