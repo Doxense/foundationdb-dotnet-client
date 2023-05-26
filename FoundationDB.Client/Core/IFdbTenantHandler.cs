@@ -28,34 +28,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Core
 {
-	using JetBrains.Annotations;
 	using System;
+	using JetBrains.Annotations;
 
-	/// <summary>Basic API for FoundationDB databases</summary>
+	/// <summary>Basic API for FoundationDB tenants</summary>
 	[PublicAPI]
-	public interface IFdbDatabaseHandler : IDisposable
+	public interface IFdbTenantHandler : IDisposable
 	{
 
-		string? ClusterFile { get; }
-
-		bool IsInvalid { get; }
+		IFdbDatabaseHandler Database { get; }
 
 		bool IsClosed { get; }
 
-		void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data);
-
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
-
-		IFdbTenantHandler OpenTenant(FdbTenantName name);
-
-		/// <summary>Returns the currently selected API version for this native handler.</summary>
-		int GetApiVersion();
-
-		/// <summary>Returns the maximum API version that is supported by this native handler.</summary>
-		int GetMaxApiVersion();
-
-		/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
-		double GetMainThreadBusyness();
 
 	}
 

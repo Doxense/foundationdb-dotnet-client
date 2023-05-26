@@ -46,9 +46,15 @@ namespace FoundationDB.Client.Native
 	[DebuggerDisplay("Handle={m_handle}, Size={m_payloadBytes}, Closed={m_handle.IsClosed}")]
 	internal class FdbNativeTransaction : IFdbTransactionHandler
 	{
+		/// <summary>FDB_DATABASE* handle</summary>
 		private readonly FdbNativeDatabase m_database;
+
+		/// <summary>FDB_TENANT* handle (optional)</summary>
+		private readonly FdbNativeTenant? m_tenant;
+
 		/// <summary>FDB_TRANSACTION* handle</summary>
 		private readonly TransactionHandle m_handle;
+
 		/// <summary>Estimated current size of the transaction</summary>
 		private int m_payloadBytes;
 		//TODO: this is redundant with GetApproximateSize which does the exact book-keeping (but is async!). Should we keep it? or get remove it?
@@ -57,12 +63,13 @@ namespace FoundationDB.Client.Native
 		private StackTrace m_stackTrace;
 #endif
 
-		public FdbNativeTransaction(FdbNativeDatabase db, TransactionHandle handle)
+		public FdbNativeTransaction(FdbNativeDatabase db, FdbNativeTenant? tenant, TransactionHandle? handle)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handle);
 
 			m_database = db;
+			m_tenant = tenant;
 			m_handle = handle;
 #if CAPTURE_STACKTRACES
 			m_stackTrace = new StackTrace();
@@ -91,6 +98,9 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Database handler that owns this transaction</summary>
 		public FdbNativeDatabase Database => m_database;
+
+		/// <summary>Tenant handler that owns this transaction (optional)</summary>
+		public FdbNativeTenant? Tenant => m_tenant;
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size => m_payloadBytes;
@@ -509,7 +519,7 @@ namespace FoundationDB.Client.Native
 		public Task<long> GetApproximateSizeAsync(CancellationToken ct)
 		{
 			// API was introduced in 6.2
-			if (this.Database.GetApiVersion() < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {this.Database.GetApiVersion()} which is too low. You willl need to select API version 620 or greater.");
+			if (this.Database.GetApiVersion() < 620) throw new NotSupportedException($"The GetApproximateSize method is only available for version 6.2 or greater. Your application has selected API version {this.Database.GetApiVersion()} which is too low. You will need to select API version 620 or greater.");
 			//TODO: for lesser version, maybe we could return our own estimation?
 
 			var future = FdbNative.TransactionGetApproximateSize(m_handle);

@@ -34,6 +34,7 @@ namespace FoundationDB.Client.Tests
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using JetBrains.Annotations;
 	using NUnit.Framework;
 
@@ -348,9 +349,34 @@ namespace FoundationDB.Client.Tests
 			return Slice.FromByteString(text);
 		}
 
+		protected static Slice Key<T1>(ValueTuple<T1> items)
+		{
+			return TuPack.Pack(items);
+		}
+
+		protected static Slice Key<T1, T2>(ValueTuple<T1, T2> items)
+		{
+			return TuPack.Pack(items);
+		}
+
+		protected static Slice Key<T1, T2, T3>(ValueTuple<T1, T2, T3> items)
+		{
+			return TuPack.Pack(items);
+		}
+
 		protected static Slice Value(string text)
 		{
 			return Slice.FromStringUtf8(text);
+		}
+
+		protected Task<Slice> ReadKey(IFdbDatabase db, Slice key)
+		{
+			return db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation);
+		}
+
+		protected Task<Slice> ReadKey(IFdbTenant tenant, Slice key)
+		{
+			return tenant.ReadAsync(tr => tr.GetAsync(key), this.Cancellation);
 		}
 
 	}

@@ -26,36 +26,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Core
+namespace FoundationDB.Client
 {
-	using JetBrains.Annotations;
 	using System;
+	using System.Threading;
+	using JetBrains.Annotations;
 
-	/// <summary>Basic API for FoundationDB databases</summary>
+	/// <summary>Database connection context.</summary>
 	[PublicAPI]
-	public interface IFdbDatabaseHandler : IDisposable
+	public interface IFdbTenant : IFdbRetryable
 	{
+		/// <summary>Name of the tenant</summary>
+		FdbTenantName Name { get; }
 
-		string? ClusterFile { get; }
+		IFdbDatabase Database { get; }
 
-		bool IsInvalid { get; }
-
-		bool IsClosed { get; }
-
-		void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data);
-
-		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
-
-		IFdbTenantHandler OpenTenant(FdbTenantName name);
-
-		/// <summary>Returns the currently selected API version for this native handler.</summary>
-		int GetApiVersion();
-
-		/// <summary>Returns the maximum API version that is supported by this native handler.</summary>
-		int GetMaxApiVersion();
-
-		/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
-		double GetMainThreadBusyness();
+		/// <summary>Start a new transaction on this tenant, with the specified mode</summary>
+		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
 	}
 

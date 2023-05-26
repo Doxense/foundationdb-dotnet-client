@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Concurrent;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -61,10 +62,14 @@ namespace FoundationDB.Client
 		private volatile bool m_disposed;
 
 		/// <summary>Global counters used to generate the transaction's local id (for debugging purpose)</summary>
-		private static int s_transactionCounter;
+		internal static int TransactionIdCounter;
 
 		/// <summary>List of all "pending" transactions created from this database instance (and that have not yet been disposed)</summary>
+		/// <remarks>Transactions created via a <see cref="FdbTenant">Tenant</see> are stored in this tenant, no here</remarks>
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
+
+		/// <summary>List of all opened tenants created from this database instance (and that have not yet been disposed)</summary>
+		private readonly ConcurrentDictionary<FdbTenantName, FdbTenant> m_tenants = new ConcurrentDictionary<FdbTenantName, FdbTenant>(FdbTenantName.Comparer.Default);
 
 		/// <summary>Directory instance corresponding to the root of this database</summary>
 		private FdbDirectoryLayer m_directory;
@@ -211,6 +216,17 @@ namespace FoundationDB.Client
 			}
 			return CreateNewTransaction(context);
 		}
+
+		internal void ConfigureTransactionDefaults(FdbTransaction trans)
+		{
+			// set default options..
+			if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
+			if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
+			if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
+			if (this.DefaultLogHandler != null)
+			{
+				trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
+			}
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
@@ -224,7 +240,7 @@ namespace FoundationDB.Client
 			var mode = context.Mode;
 			if (m_readOnly) mode |= FdbTransactionMode.ReadOnly;
 
-			int id = Interlocked.Increment(ref s_transactionCounter);
+			int id = Interlocked.Increment(ref FdbDatabase.TransactionIdCounter);
 
 			// ensure that if anything happens, either we return a valid Transaction, or we dispose it immediately
 			FdbTransaction? trans = null;
@@ -232,17 +248,10 @@ namespace FoundationDB.Client
 			{
 				var transactionHandler = m_handler.CreateTransaction(context);
 
-				trans = new FdbTransaction(this, context, id, transactionHandler, mode);
+				trans = new FdbTransaction(this, null, context, id, transactionHandler, mode);
 				RegisterTransaction(trans);
 				context.AttachTransaction(trans);
-				// set default options..
-				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
-				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
-				if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
-				if (this.DefaultLogHandler != null)
-				{
-					trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
-				}
+				ConfigureTransactionDefaults(trans);
 
 				// flag as ready
 				trans.State = FdbTransaction.STATE_READY;
@@ -286,6 +295,13 @@ namespace FoundationDB.Client
 			//do nothing is already disposed
 			if (m_disposed) return;
 
+			// if it belongs to a tenant, forward...
+			if (transaction.Tenant != null)
+			{
+				transaction.Tenant.UnregisterTransaction(transaction);
+				return;
+			}
+
 			// Unregister the transaction. We do not care if it has already been done
 #if NETFRAMEWORK || NETSTANDARD
 			m_transactions.TryRemove(transaction.Id, out _);
@@ -293,6 +309,78 @@ namespace FoundationDB.Client
 #else
 			m_transactions.TryRemove(KeyValuePair.Create(transaction.Id, transaction));
 #endif
+		}
+
+		/// <summary>Add a new transaction to the list of tracked transactions</summary>
+		internal void RegisterTenant(FdbTenant tenant)
+		{
+			Contract.Debug.Requires(tenant != null);
+
+			if (!m_tenants.TryAdd(tenant.Name, tenant))
+			{
+				throw Fdb.Errors.FailedToRegisterTenantOnDatabase(tenant, this);
+			}
+		}
+
+		/// <summary>Remove a transaction from the list of tracked transactions</summary>
+		/// <param name="tenant"></param>
+		internal void UnregisterTenant(FdbTenant tenant)
+		{
+			Contract.Debug.Requires(tenant != null);
+
+			//do nothing is already disposed
+			if (m_disposed) return;
+
+			// Unregister the transaction. We do not care if it has already been done
+#if NETFRAMEWORK || NETSTANDARD
+			m_tenants.TryRemove(tenant.Name, out _);
+			//TODO: compare removed value with the specified tenant to ensure it was the correct one?
+#else
+			m_tenants.TryRemove(KeyValuePair.Create(tenant.Name, tenant));
+#endif
+		}
+
+		public IFdbTenant GetTenant(FdbTenantName name)
+		{
+			ThrowIfDisposed();
+
+			return m_tenants.TryGetValue(name, out var tenant) ? tenant : OpenTenant(name);
+		}
+
+		internal FdbTenant OpenTenant(FdbTenantName name)
+		{
+			ThrowIfDisposed();
+
+			var nameCopy = name.Copy();
+
+			FdbTenant? tenant = null;
+			try
+			{
+				var handler = m_handler.OpenTenant(nameCopy);
+				tenant = new FdbTenant(this, handler, nameCopy);
+
+				var actual = m_tenants.GetOrAdd(nameCopy, tenant); //HACKHACK ! :(
+				if (!object.ReferenceEquals(actual, tenant))
+				{
+					tenant.Dispose();
+					tenant = null;
+				}
+
+				return actual;
+			}
+			catch (Exception)
+			{
+				if (tenant != null)
+				{
+#if NETFRAMEWORK || NETSTANDARD
+					m_tenants.TryRemove(nameCopy, out _);
+#else
+					m_tenants.TryRemove(new KeyValuePair<FdbTenantName, FdbTenant>(nameCopy, tenant)); //HACKHACK ! :(
+#endif
+					tenant.Dispose();
+				}
+				throw;
+			}
 		}
 
 		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
@@ -332,7 +420,7 @@ namespace FoundationDB.Client
 			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
 			ThrowIfDisposed();
 
-			var context = new FdbOperationContext(this, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
+			var context = new FdbOperationContext(this, null, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, ct);
 			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
 		}
 
@@ -395,7 +483,7 @@ namespace FoundationDB.Client
 			ThrowIfDisposed();
 			if (m_readOnly) throw new InvalidOperationException("Cannot mutate a read-only database.");
 
-			var context = new FdbOperationContext(this, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
+			var context = new FdbOperationContext(this, null, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, ct);
 			return FdbOperationContext.ExecuteInternal<TState, TIntermediate, TResult>(context, state, handler, success);
 		}
 
@@ -648,6 +736,16 @@ namespace FoundationDB.Client
 							}
 						}
 						m_transactions.Clear();
+
+						// dispose all tenants (and recursively their own transactions)
+						foreach (var tenant in m_tenants.Values)
+						{
+							if (tenant != null)
+							{
+								tenant.Dispose();
+							}
+						}
+						m_tenants.Clear();
 
 						//note: will block until all the registered callbacks have finished executing
 						m_cts.SafeCancelAndDispose();

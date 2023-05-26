@@ -99,6 +99,8 @@ namespace FoundationDB.Client
 		/// }</example>
 		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
 
+		IFdbTenant GetTenant(FdbTenantName name);
+
 		/// <summary>Return the currently enforced API version for this database instance.</summary>
 		int GetApiVersion();
 

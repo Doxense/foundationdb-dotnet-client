@@ -169,9 +169,27 @@ namespace FoundationDB.Client.Native
 				var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
 				FdbNative.DieOnError(err);
 
-				return new FdbNativeTransaction(this, handle);
+				return new FdbNativeTransaction(this, null, handle);
 			}
 			catch(Exception)
+			{
+				handle?.Dispose();
+				throw;
+			}
+		}
+
+		public IFdbTenantHandler OpenTenant(FdbTenantName name)
+		{
+			TenantHandle? handle = null;
+
+			try
+			{
+				var err = FdbNative.DatabaseOpenTenant(m_handle, name.Value.Span, out handle);
+				FdbNative.DieOnError(err);
+
+				return new FdbNativeTenant(this, handle);
+			}
+			catch (Exception)
 			{
 				handle?.Dispose();
 				throw;

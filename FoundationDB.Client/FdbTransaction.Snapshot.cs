@@ -66,10 +66,19 @@ namespace FoundationDB.Client
 				m_parent = parent;
 			}
 
+			/// <inheritdoc />
 			public int Id => m_parent.Id;
 
+			/// <inheritdoc />
 			public FdbOperationContext Context => m_parent.Context;
 
+			/// <inheritdoc />
+			public IFdbDatabase Database => m_parent.Database;
+
+			/// <inheritdoc />
+			public IFdbTenant? Tenant => m_parent.Tenant;
+
+			/// <inheritdoc />
 			public CancellationToken Cancellation => m_parent.Cancellation;
 
 			/// <inheritdoc />

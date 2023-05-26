@@ -65,13 +65,6 @@ namespace FoundationDB.Client
 		/// <summary>Current state of the transaction</summary>
 		private int m_state;
 
-		/// <summary>Owner database that created this instance</summary>
-		private readonly FdbDatabase m_database;
-		//REVIEW: this should be changed to "IFdbDatabase" if possible
-
-		/// <summary>Context of the transaction when running inside a retry loop, or other custom scenario</summary>
-		private readonly FdbOperationContext m_context;
-
 		/// <summary>Unique internal id for this transaction (for debugging purpose)</summary>
 		private readonly int m_id;
 
@@ -108,13 +101,14 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, IFdbTransactionHandler handler, FdbTransactionMode mode)
+		internal FdbTransaction(FdbDatabase db, FdbTenant? tenant, FdbOperationContext context, int id, IFdbTransactionHandler handler, FdbTransactionMode mode)
 		{
 			Contract.Debug.Requires(db != null && context != null && handler != null);
 			Contract.Debug.Requires(context.Database != null);
 
-			m_context = context;
-			m_database = db;
+			this.Context = context;
+			this.Database = db;
+			this.Tenant = tenant;
 			m_id = id;
 			//REVIEW: the operation context may already have created its own CTS, maybe we can merge them ?
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Cancellation);
@@ -135,10 +129,19 @@ namespace FoundationDB.Client
 		public bool IsSnapshot => false;
 
 		/// <inheritdoc />
-		public FdbOperationContext Context => m_context;
+		public FdbOperationContext Context { get; }
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database => m_database;
+		public FdbDatabase Database { get; }
+
+		/// <inheritdoc />
+		IFdbDatabase IFdbReadOnlyTransaction.Database => this.Database;
+
+		/// <summary>Tenant where this transaction will be executed</summary>
+		public FdbTenant? Tenant { get; }
+
+		/// <inheritdoc />
+		IFdbTenant IFdbReadOnlyTransaction.Tenant => this.Tenant;
 
 		/// <summary>Returns the handler for this transaction</summary>
 		internal IFdbTransactionHandler Handler => m_handler;
@@ -560,7 +563,7 @@ namespace FoundationDB.Client
 		{
 			var token = m_versionStampToken;
 			if (token == 0) token = GenerateNewVersionStampToken();
-			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), incomplete: true);
+			return VersionStamp.Custom(token, (ushort) (this.Context.Retries | 0xF000), incomplete: true);
 		}
 
 		/// <inheritdoc />
@@ -569,7 +572,7 @@ namespace FoundationDB.Client
 			var token = m_versionStampToken;
 			if (token == 0) token = GenerateNewVersionStampToken();
 
-			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), userVersion, incomplete: true);
+			return VersionStamp.Custom(token, (ushort) (this.Context.Retries | 0xF000), userVersion, incomplete: true);
 		}
 
 		/// <summary>Counter used to generated a unique unique versionstamps for this transaction.</summary>
@@ -1469,17 +1472,17 @@ namespace FoundationDB.Client
 			m_retryLimit = 0;
 			m_maxRetryDelay = 0;
 
-			if (m_database.DefaultRetryLimit > 0)
+			if (this.Database.DefaultRetryLimit > 0)
 			{
-				this.RetryLimit = m_database.DefaultRetryLimit;
+				this.RetryLimit = this.Database.DefaultRetryLimit;
 			}
-			if (m_database.DefaultMaxRetryDelay > 0)
+			if (this.Database.DefaultMaxRetryDelay > 0)
 			{
-				this.MaxRetryDelay = m_database.DefaultMaxRetryDelay;
+				this.MaxRetryDelay = this.Database.DefaultMaxRetryDelay;
 			}
-			if (m_database.DefaultTimeout > 0)
+			if (this.Database.DefaultTimeout > 0)
 			{
-				this.Timeout = m_database.DefaultTimeout;
+				this.Timeout = this.Database.DefaultTimeout;
 			}
 
 			// if we have used a random token for VersionStamps, we need to clear it (and generate a new one)
@@ -1491,7 +1494,7 @@ namespace FoundationDB.Client
 			// clear any cached local data!
 			this.CachedReadVersion = null;
 			this.MetadataVersionKeysCache = null;
-			m_context.ClearAllLocalData();
+			this.Context.ClearAllLocalData();
 		}
 
 		/// <inheritdoc />
@@ -1711,7 +1714,7 @@ namespace FoundationDB.Client
 						}
 					}
 
-					var context = m_context;
+					var context = this.Context;
 					context.ReleaseTransaction(this);
 					if (!context.Shared)
 					{

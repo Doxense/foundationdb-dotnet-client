@@ -1,4 +1,4 @@
-﻿#region BSD License
+#region BSD License
 /* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
@@ -26,36 +26,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Core
+namespace FoundationDB.Client.Native
 {
-	using JetBrains.Annotations;
 	using System;
+	using System.Threading;
+	using FoundationDB.Client.Utils;
 
-	/// <summary>Basic API for FoundationDB databases</summary>
-	[PublicAPI]
-	public interface IFdbDatabaseHandler : IDisposable
+	/// <summary>Wrapper on a FDBTenant*</summary>
+	internal sealed class TenantHandle : FdbSafeHandle
 	{
 
-		string? ClusterFile { get; }
+		public TenantHandle()
+		{
+			Interlocked.Increment(ref DebugCounters.TenantHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.TenantHandles);
+		}
 
-		bool IsInvalid { get; }
+		protected override void Destroy(IntPtr handle)
+		{
+			FdbNative.TenantDestroy(handle);
+			Interlocked.Decrement(ref DebugCounters.TenantHandles);
+		}
 
-		bool IsClosed { get; }
-
-		void SetOption(FdbDatabaseOption option, ReadOnlySpan<byte> data);
-
-		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
-
-		IFdbTenantHandler OpenTenant(FdbTenantName name);
-
-		/// <summary>Returns the currently selected API version for this native handler.</summary>
-		int GetApiVersion();
-
-		/// <summary>Returns the maximum API version that is supported by this native handler.</summary>
-		int GetMaxApiVersion();
-
-		/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
-		double GetMainThreadBusyness();
+		public override string ToString()
+		{
+			return "TenantHandle[0x" + this.Handle.ToString("x") + "]";
+		}
 
 	}
 

@@ -195,6 +195,17 @@ namespace FoundationDB.Client.Native
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern double fdb_database_get_main_thread_busyness(DatabaseHandle database);
 
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_database_open_tenant(DatabaseHandle database, byte* tenantName, int tenantNameLength, out TenantHandle handle);
+
+			// Tenant
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern void fdb_tenant_destroy(IntPtr tenant);
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern FdbError fdb_tenant_create_transaction(TenantHandle database, out TransactionHandle transaction);
+
 			// Transaction
 
 			/// <summary>Destroys an <see cref="TransactionHandle">FDBTransaction</see> object.</summary>
@@ -899,6 +910,40 @@ namespace FoundationDB.Client.Native
 			Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", name: '" + name + "') => 0x" + cluster.Handle.ToString("x"));
 #endif
 			return future;
+		}
+
+		public static FdbError DatabaseOpenTenant(DatabaseHandle database, ReadOnlySpan<byte> name, out TenantHandle tenant)
+		{
+			fixed (byte* ptr = name)
+			{
+				var err = NativeMethods.fdb_database_open_tenant(database, ptr, name.Length, out tenant);
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_database_open_tenant(0x" + database.Handle.ToString("x") + ", '" + name + "') => err=" + err + ", handle=0x" + tenant.Handle.ToString("x"));
+#endif
+				return err;
+			}
+		}
+
+
+		#endregion
+
+		#region Tenants...
+
+		public static void TenantDestroy(IntPtr handle)
+		{
+			if (handle != IntPtr.Zero)
+			{
+				NativeMethods.fdb_tenant_destroy(handle);
+			}
+		}
+
+		public static FdbError TenantCreateTransaction(TenantHandle tenant, out TransactionHandle transaction)
+		{
+			var err = NativeMethods.fdb_tenant_create_transaction(tenant, out transaction);
+#if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_tenant_create_transaction(0x" + tenant.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + transaction.Handle.ToString("x"));
+#endif
+			return err;
 		}
 
 		#endregion

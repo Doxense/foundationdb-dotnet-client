@@ -3785,6 +3785,103 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Tenant_Instance()
+		{
+			//note: this test only works if the cluster supports Tenants ("tenant_mode" cannot be disabled)
+
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+
+				var mode = await db.ReadAsync(tr => Fdb.Tenants.GetTenantMode(tr), this.Cancellation);
+				Log("Tenant Mode: " + mode);
+				Assume.That(mode, Is.Not.EqualTo(FdbTenantMode.Disabled), "This test requires that the cluster is configure with 'tenant_mode' = optional !");
+
+				// create tenants
+				Log("Creating tenants");
+				await db.WriteAsync(tr => Fdb.Tenants.CreateTenant(tr, FdbTenantName.Create("acme")), this.Cancellation);
+				await db.WriteAsync(tr => Fdb.Tenants.CreateTenant(tr, FdbTenantName.Create(("contoso", 123))), this.Cancellation);
+
+				// read existing tenants
+				Log("Listing existing tenants...");
+				var tenants = await db.ReadAsync(tr => Fdb.Tenants.ListTenants(tr), this.Cancellation);
+				foreach (var (name, metadata) in tenants)
+				{
+					Log($"- `{name:P}`: {metadata:V}");
+				}
+
+				Log("Opening tenant 'acme' ...");
+				var tenantAcme = db.GetTenant("acme", "Label for ACME");
+				Assert.That(tenantAcme, Is.Not.Null);
+				Assert.That(tenantAcme.Name.Value, Is.EqualTo(Key("acme")));
+				Assert.That(tenantAcme.Name.Label, Is.EqualTo("Label for ACME"));
+
+				// getting the same tenant should return the same cached instance
+				Log("Checking the the tenant instance is cached...");
+				var tenantAcme2 = db.GetTenant("acme", "something else");
+				Assert.That(tenantAcme2, Is.SameAs(tenantAcme));
+				Assert.That(tenantAcme2.Name.Label, Is.EqualTo("Label for ACME"), "Should keep the original label");
+
+				Log("Opening tenant 'contoso' ...");
+				var tenantContoso = db.GetTenant(("contoso", 123), "Contoso 123");
+				Assert.That(tenantContoso, Is.Not.Null.And.Not.SameAs(tenantAcme));
+				Assert.That(tenantContoso.Name.Value, Is.EqualTo(Key(("contoso", 123))));
+				Assert.That(tenantContoso.Name.Label, Is.EqualTo("Contoso 123"));
+
+				await db.WriteAsync(tr => tr.Set(Key(("tests", "hello")), Slice.FromString("global")), this.Cancellation);
+
+				Log("Start a transaction with tenant 'acme'");
+				var random = await tenantAcme.ReadWriteAsync(async tr =>
+				{
+					Assert.That(tr, Is.Not.Null);
+					Assert.That(tr.Tenant, Is.Not.Null.And.SameAs(tenantAcme), "tr.Tenant should be the same as was use to start the transaction");
+					Assert.That(tr.Database, Is.Not.Null.And.SameAs(db), "tr.Database should be the same db objet that was used to create the tenant");
+					Assert.That(tr.Context.Mode.HasFlag(FdbTransactionMode.UseTenant), Is.True, "tr.Mode flag UseTenant should be set, but was {0}", tr.Context.Mode);
+
+					Log("Read a key from this transaction...");
+					var value = await tr.GetAsync(Key(("tests", "hello")));
+					Log($"> {value:V}");
+
+					tr.Set(Key(("tests", "hello")), Slice.FromString("inside tenant acme"));
+
+					var token = Slice.FromGuid(Guid.NewGuid());
+
+					Log($"Write a random token '{token}' to tenant {tr.Tenant?.Name}");
+					tr.Set(Key(("tests", "random")), token);
+
+					return token;
+				}, this.Cancellation);
+
+				Log("Read token from global database...");
+
+
+				var res = await db.QueryAsync(tr => tr.GetRange(KeyRange.StartsWith(Slice.FromFixed64BE(0))), this.Cancellation);
+				foreach (var kv in res)
+				{
+					Log($"{kv.Key} = {kv.Value}");
+				}
+
+				//NOTE: may not work with option tenant_mode = required | required_experimental !
+				Log("Read from global database should not see the changes...");
+				Assert.That(await ReadKey(db, Key(("tests", "hello"))), Is.EqualTo(Slice.FromString("global")));
+				Assert.That(await ReadKey(db, Key(("tests", "random"))), Is.EqualTo(Slice.Nil));
+
+				// we should be able to read back the token with the same tenant
+				Log($"Read from tenant {tenantAcme.Name} should see the changes...");
+				var readback = await ReadKey(tenantAcme, Key(("tests", "random")));
+				Log("> " + readback);
+				Assert.That(readback, Is.EqualTo(random));
+
+				Log($"Read from different tenant {tenantContoso.Name} should not see anything at all");
+				readback = await ReadKey(tenantContoso, Key(("tests", "random")));
+				Log("> " + readback);
+				Assert.That(readback, Is.Not.EqualTo(random), "Should not be able to read the key from a different tenant!");
+
+				//TODO: if we know the tenant prefix, we can read from the global db !
+			}
+		}
+
 	}
 
 }

@@ -45,6 +45,10 @@ namespace FoundationDB.Client
 		/// <remarks>This id is only guaranteed unique inside the current AppDomain or process and is reset on every restart. It should only be used for diagnostics and/or logging.</remarks>
 		int Id { get; }
 
+		IFdbDatabase Database { get; }
+
+		IFdbTenant? Tenant { get; }
+
 		/// <summary>Context of this transaction.</summary>
 		FdbOperationContext Context { get; }
 

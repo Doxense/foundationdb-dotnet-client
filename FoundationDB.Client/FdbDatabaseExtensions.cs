@@ -30,8 +30,10 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
 
@@ -90,6 +92,53 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(db);
 			return db.BeginTransaction(FdbTransactionMode.Default, ct);
+		}
+
+		#endregion
+
+		#region Tenants...
+
+		public static IFdbTenant GetTenant(this IFdbDatabase db, string name, string? label = null)
+		{
+			Contract.NotNull(db);
+			Contract.NotNull(name);
+			return db.GetTenant(FdbTenantName.Create(name, label));
+		}
+
+		public static IFdbTenant GetTenant<TTuple>(this IFdbDatabase db, TTuple name, string? label = null)
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.Create(name, label));
+		}
+
+		public static IFdbTenant GetTenant<T1>(this IFdbDatabase db, ValueTuple<T1> name, string? label = null)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+		}
+
+		public static IFdbTenant GetTenant<T1, T2>(this IFdbDatabase db, ValueTuple<T1, T2> name, string? label = null)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+		}
+
+		public static IFdbTenant GetTenant<T1, T2, T3>(this IFdbDatabase db, ValueTuple<T1, T2, T3> name, string? label = null)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+		}
+
+		public static IFdbTenant GetTenant<T1, T2, T3, T4>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4> name, string? label = null)
+		{
+			Contract.NotNull(db);
+			Contract.NotNullAllowStructs(name);
+			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
 		}
 
 		#endregion
