@@ -12,6 +12,9 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v3
       with:
+        dotnet-version: | 
+          6.0.x
+          7.0.x
         global-json-file: global.json
     - name: Build with dotnet
       run: dotnet build --configuration Release -f net7.0
