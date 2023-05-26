@@ -8,13 +8,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: | 
-          6.0.x
-          7.0.x
-        global-json-file: global.json
+        dotnet-version: 7.0.x
     - name: Build with dotnet
       run: dotnet build --configuration Release -f net6.0
