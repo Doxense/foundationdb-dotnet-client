@@ -15,3 +15,14 @@ jobs:
         dotnet-version: 7.0.x
     - name: Build with dotnet
       run: dotnet build --configuration Release -f net6.0
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: .NET 6.0 Binaries
+        path: |
+          FoundationDB.Client/bin/Release/net6.0/FoundationDB.Client.*
+          FoundationDB.DependencyInjection/bin/Release/net6.0/FoundationDB.DependencyInjection.*
+          FoundationDB.Layers.Common/bin/Release/net6.0/FoundationDB.Layers.Common.*
+          FoundationDB.Layers.Experimental/bin/Release/net6.0/FoundationDB.Layers.Experimental.*
+          FoundationDB.Linq.Providers/bin/Release/net6.0/FoundationDB.Linq.Providers.*
+        if-no-files-found: error
