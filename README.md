@@ -246,7 +246,7 @@ Here is an easy way to inject the client binary in a Dockerfile:
 
 ```
 # Version of the FoundationDB Client Library
-ARG FDB_VERSION=7.1.21
+ARG FDB_VERSION=7.2.9
 
 # We will need the official fdb docker image to obtain the client binaries
 FROM foundationdb/foundationdb:${FDB_VERSION} as fdb
@@ -282,14 +282,14 @@ How to build
 
 #### Visual Studio Solution
 
-You will need Visual Studio 2017 version 15.5 or above to build the solution (C# 7.2 and .NET Standard 2.0 support is required).
+You will need Visual Studio 2022 version 17.5 or above to build the solution (C# 11 and .NET 6.0 support is required).
 
-You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.org wesite, by installing the client SDK:
+You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.org website, by installing the client SDK:
 
-* Go to https://www.foundationdb.org/download/ and download the Windows x64 MSI. You can use the free Community edition that gives you unlimited server processes for development and testing.
+* Go to https://github.com/apple/foundationdb/releases and download the Windows x64 MSI for the corresponding version.
 * Install the MSI, selecting the default options.
 * Go to `C:\Program Files\foundationdb\bin\` and make sure that `fdb_c.dll` is there.
-* Open the FoundationDb.Client.sln file in Visual Studio 2012.
+* Open the FoundationDb.Client.sln file in Visual Studio 2022.
 * Choose the Release or Debug configuration, and rebuild the solution.
 
 #### From the Command Line
