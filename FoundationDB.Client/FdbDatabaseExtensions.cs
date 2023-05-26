@@ -47,20 +47,24 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <returns>New transaction instance that can read from the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
-		/// <code>
-		/// using(var tr = db.BeginReadOnlyTransaction(CancellationToken.None))
-		/// {
-		///		var result = await tr.Get(Slice.FromString("Hello"));
-		///		var items = await tr.GetRange(KeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
-		/// }
-		/// </code>
-		/// </example>
 		[Pure]
+		[Obsolete("Use BeginReadOnlyTransaction() instead")]
 		public static async ValueTask<IFdbReadOnlyTransaction> BeginReadOnlyTransactionAsync(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);
-			return await db.BeginTransactionAsync(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
+		}
+
+		/// <summary>Start a new read-only transaction on this database</summary>
+		/// <param name="db">Database instance</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		[Pure]
+		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, ct, default(FdbOperationContext));
 		}
 
 		/// <summary>Start a new transaction on this database</summary>
@@ -68,18 +72,24 @@ namespace FoundationDB.Client
 		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
-		/// using(var tr = db.BeginTransaction(CancellationToken.None))
-		/// {
-		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
-		///		tr.Clear(Slice.FromString("OldValue"));
-		///		await tr.CommitAsync();
-		/// }</example>
 		[Pure]
+		[Obsolete("Use BeginTransaction() instead")]
 		public static ValueTask<IFdbTransaction> BeginTransactionAsync(this IFdbDatabase db, CancellationToken ct)
 		{
 			Contract.NotNull(db);
-			return db.BeginTransactionAsync(FdbTransactionMode.Default, ct, default(FdbOperationContext));
+			return db.BeginTransactionAsync(FdbTransactionMode.Default, ct);
+		}
+
+		/// <summary>Start a new transaction on this database</summary>
+		/// <param name="db">Database instance</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		[Pure]
+		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken ct)
+		{
+			Contract.NotNull(db);
+			return db.BeginTransaction(FdbTransactionMode.Default, ct);
 		}
 
 		#endregion

@@ -2924,7 +2924,7 @@ namespace FoundationDB.Client.Tests
 						case 0:
 						{ // start a new transaction
 							sb.Append('T');
-							var tr = await db.BeginTransactionAsync(FdbTransactionMode.Default, this.Cancellation);
+							var tr = db.BeginTransaction(FdbTransactionMode.Default, this.Cancellation);
 							alive.Add(tr);
 
 							break;
@@ -2953,7 +2953,7 @@ namespace FoundationDB.Client.Tests
 						case 3:
 						{ // GC!
 							sb.Append('C');
-							var tr = await db.BeginTransactionAsync(FdbTransactionMode.ReadOnly, this.Cancellation);
+							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
 							alive.Add(tr);
 							_ = await tr.GetReadVersionAsync();
 							break;

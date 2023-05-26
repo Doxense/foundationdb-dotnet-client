@@ -169,9 +169,48 @@ namespace FoundationDB.Client
 		/// }</example>
 		public ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
 		{
+			if (ct.IsCancellationRequested)
+			{
+#if NETFRAMEWORK || NETSTANDARD
+				return new ValueTask<IFdbTransaction>(Task.FromCanceled<IFdbTransaction>(ct));
+#else
+				return ValueTask.FromCanceled<IFdbTransaction>(ct);
+#endif
+			}
+
+			try
+			{
+				return new ValueTask<IFdbTransaction>(BeginTransaction(mode, ct, context));
+			}
+			catch (Exception e)
+			{
+#if NETFRAMEWORK || NETSTANDARD
+				return new ValueTask<IFdbTransaction>(Task.FromException<IFdbTransaction>(e));
+#else
+				return ValueTask.FromException<IFdbTransaction>(e);
+#endif
+			}
+		}
+
+		/// <summary>Start a new transaction on this database</summary>
+		/// <param name="mode">Mode of the new transaction (read-only, read-write, ...)</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="context">If not null, attach the new transaction to an existing context.</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null)
+		{
 			ct.ThrowIfCancellationRequested();
-			if (context == null) context = new FdbOperationContext(this, mode, ct);
-			return new ValueTask<IFdbTransaction>(CreateNewTransaction(context));
+			if (context == null)
+			{
+				context = new FdbOperationContext(this, null, mode, ct);
+			}
+			else
+			{
+				if (context.Database != this) throw new ArgumentException("This operation context was created for a different database instance", nameof(context));
+			}
+			return CreateNewTransaction(context);
+		}
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
