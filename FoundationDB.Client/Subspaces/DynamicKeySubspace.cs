@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 			var key = ExtractKey(packedKey, boundCheck: true);
 			if (this.KeyEncoder.TryUnpackKey(key, out var tuple))
 			{
-				return tuple.ToString();
+				return tuple.ToString() ?? string.Empty;
 			}
 			return key.PrettyPrint();
 		}
