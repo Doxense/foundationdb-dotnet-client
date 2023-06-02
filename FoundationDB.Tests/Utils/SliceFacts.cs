@@ -2180,10 +2180,10 @@ namespace Doxense.Memory.Tests
 			Assert.That(a + bc, Is.EqualTo(Value("abc")));
 
 			// Slice + byte
-			Assert.That(a + 0, Is.EqualTo(Key("a\x00")));
-			Assert.That(a + 1, Is.EqualTo(Key("a\x01")));
-			Assert.That(b + (byte)'A', Is.EqualTo(Key("bA")));
-			Assert.That(abc + 255, Is.EqualTo(Key("abc\xff")));
+			Assert.That(a + 0, Is.EqualTo(Literal("a\x00")));
+			Assert.That(a + 1, Is.EqualTo(Literal("a\x01")));
+			Assert.That(b + (byte)'A', Is.EqualTo(Literal("bA")));
+			Assert.That(abc + 255, Is.EqualTo(Literal("abc\xff")));
 		}
 
 		[Test]

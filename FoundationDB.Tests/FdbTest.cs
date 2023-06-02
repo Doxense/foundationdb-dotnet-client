@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Reflection;
@@ -45,6 +46,7 @@ namespace FoundationDB.Client.Tests
 		private CancellationTokenSource m_cts;
 		private CancellationToken m_ct;
 		private Stopwatch m_timer;
+		private string m_currentTestName;
 
 		protected int OverrideApiVersion = 0;
 
@@ -68,7 +70,12 @@ namespace FoundationDB.Client.Tests
 				//note: cannot change API version on the fly! :(
 				Assume.That(Fdb.ApiVersion, Is.EqualTo(OverrideApiVersion), "The API version selected is not what this test is expecting!");
 			}
+
+			// call the hook if defined on the derived test class
+			OnBeforeAllTests().GetAwaiter().GetResult();
 		}
+
+		protected virtual Task OnBeforeAllTests() => Task.CompletedTask;
 
 		[SetUp]
 		protected void BeforeEachTest()
@@ -89,10 +96,17 @@ namespace FoundationDB.Client.Tests
 			{
 				fullName = this.GetType().Name + ".???";
 			}
+
+			m_currentTestName = fullName;
 			Trace.WriteLine("=== " + fullName + "() === " + DateTime.Now.TimeOfDay);
+
+			// call the hook if defined on the derived test class
+			OnBeforeEachTest().GetAwaiter().GetResult();
 
 			m_timer = Stopwatch.StartNew();
 		}
+
+		protected virtual Task OnBeforeEachTest() => Task.CompletedTask;
 
 		[TearDown]
 		protected void AfterEachTest()
@@ -103,7 +117,23 @@ namespace FoundationDB.Client.Tests
 				try { m_cts.Cancel(); } catch { }
 				m_cts.Dispose();
 			}
+
+			// call the hook if defined on the derived test class
+			OnAfterEachTest().GetAwaiter().GetResult();
+
+			m_currentTestName = null;
 		}
+
+		protected virtual Task OnAfterEachTest() => Task.CompletedTask;
+
+		[OneTimeTearDown]
+		private void AfterAllTests()
+		{
+			// call the hook if defined on the derived test class
+			OnAfterAllTests().GetAwaiter().GetResult();
+		}
+
+		protected virtual Task OnAfterAllTests() => Task.CompletedTask;
 
 		/// <summary>Time elapsed since the start of the current test</summary>
 		protected TimeSpan TestElapsed
@@ -344,39 +374,76 @@ namespace FoundationDB.Client.Tests
 
 		#endregion
 
-		protected static Slice Key(string text)
+		/// <summary>Converts a string into an utf-8 encoded key</summary>
+		protected static Slice Literal(string text) => Slice.FromByteString(text);
+
+		/// <summary>Converts a 1-tuple into a binary key</summary>
+		protected static Slice Key<T1>(T1 item1) => TuPack.EncodeKey(item1);
+
+		/// <summary>Converts a 2-tuple into a binary key</summary>
+		protected static Slice Key<T1, T2>(T1 item1, T2 item2) => TuPack.EncodeKey(item1, item2);
+
+		/// <summary>Converts a 3-tuple into a binary key</summary>
+		protected static Slice Key<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => TuPack.EncodeKey(item1, item2, item3);
+
+		/// <summary>Converts a 4-tuple into a binary key</summary>
+		protected static Slice Key<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => TuPack.EncodeKey(item1, item2, item3, item4);
+
+		/// <summary>Converts a 5-tuple into a binary key</summary>
+		protected static Slice Key<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => TuPack.EncodeKey(item1, item2, item3, item4, item5);
+
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack(IVarTuple items) => TuPack.Pack(items);
+
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1>(STuple<T1> items) => TuPack.Pack(items);
+
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2>(STuple<T1, T2> items) => TuPack.Pack(items);
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2>(ValueTuple<T1, T2> items) => TuPack.Pack(items);
+
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2, T3>(STuple<T1, T2, T3> items) => TuPack.Pack(items);
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2, T3>(ValueTuple<T1, T2, T3> items) => TuPack.Pack(items);
+
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> items) => TuPack.Pack(items);
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> items) => TuPack.Pack(items);
+
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> items) => TuPack.Pack(items);
+		/// <summary>Pack a tuple into a binary key</summary>
+		protected static Slice Pack<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> items) => TuPack.Pack(items);
+
+		/// <summary>Converts a string into an utf-8 encoded value</summary>
+		protected static Slice Value(string text) => Slice.FromStringUtf8(text);
+
+		protected Task<T> DbRead<T>(IFdbRetryable db, Func<IFdbReadOnlyTransaction, Task<T>> handler)
 		{
-			return Slice.FromByteString(text);
+			return db.ReadAsync(handler, this.Cancellation);
 		}
 
-		protected static Slice Key<T1>(ValueTuple<T1> items)
+		protected Task<List<T>> DbQuery<T>(IFdbRetryable db, Func<IFdbReadOnlyTransaction, IAsyncEnumerable<T>> handler)
 		{
-			return TuPack.Pack(items);
+			return db.QueryAsync(handler, this.Cancellation);
 		}
 
-		protected static Slice Key<T1, T2>(ValueTuple<T1, T2> items)
+		protected Task DbWrite(IFdbRetryable db, Action<IFdbTransaction> handler)
 		{
-			return TuPack.Pack(items);
+			return db.WriteAsync(handler, this.Cancellation);
 		}
 
-		protected static Slice Key<T1, T2, T3>(ValueTuple<T1, T2, T3> items)
+		protected Task DbWrite(IFdbRetryable db, Func<IFdbTransaction, Task> handler)
 		{
-			return TuPack.Pack(items);
+			return db.WriteAsync(handler, this.Cancellation);
 		}
 
-		protected static Slice Value(string text)
+		protected Task DbVerify(IFdbRetryable db, Func<IFdbReadOnlyTransaction, Task> handler)
 		{
-			return Slice.FromStringUtf8(text);
-		}
-
-		protected Task<Slice> ReadKey(IFdbDatabase db, Slice key)
-		{
-			return db.ReadAsync(tr => tr.GetAsync(key), this.Cancellation);
-		}
-
-		protected Task<Slice> ReadKey(IFdbTenant tenant, Slice key)
-		{
-			return tenant.ReadAsync(tr => tr.GetAsync(key), this.Cancellation);
+			return db.ReadAsync(async (tr) => { await handler(tr); return true; }, this.Cancellation);
 		}
 
 	}
