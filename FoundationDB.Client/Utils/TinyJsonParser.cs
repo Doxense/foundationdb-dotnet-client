@@ -11,7 +11,7 @@ namespace FoundationDB.Client.Utils
 	using JetBrains.Annotations;
 
 	/// <summary>Tiny JSON parser</summary>
-	internal sealed class TinyJsonParser
+	internal ref struct TinyJsonParser
 	{
 
 		// This is a quick&dirty JSON parser whose only goal in life is to parse the result of the "\xff\xff/status/json" data returned by the cluster, without having to take a dependency on a JSON library.
@@ -20,13 +20,13 @@ namespace FoundationDB.Client.Utils
 
 		//TODO: use the next JSON parser in .NET Core !
 
-		private readonly ReadOnlyMemory<char> m_buffer;
+		private readonly ReadOnlySpan<char> m_buffer;
 		private int m_cursor;
 
 		private object? m_current;
 		private readonly StringBuilder m_scratch = new StringBuilder();
 
-		internal TinyJsonParser(ReadOnlyMemory<char> buffer)
+		internal TinyJsonParser(ReadOnlySpan<char> buffer)
 		{
 			//TODO: rewrite this to directly parse utf-8 bytes!
 			m_buffer = buffer;
@@ -73,7 +73,7 @@ namespace FoundationDB.Client.Utils
 
 		private Token ReadToken()
 		{
-			var buffer = m_buffer.Span;
+			var buffer = m_buffer;
 
 			int c = ReadNextChar(buffer);
 			while (IsWhiteSpace(c)) { c = ReadNextChar(buffer); }
@@ -209,7 +209,7 @@ namespace FoundationDB.Client.Utils
 
 		private string ReadStringLiteral()
 		{
-			var buffer = m_buffer.Span;
+			var buffer = m_buffer;
 			int cursor = m_cursor;
 			int end = m_buffer.Length;
 
@@ -276,9 +276,9 @@ namespace FoundationDB.Client.Utils
 			throw SyntaxError("Truncated literal");
 		}
 
-		private double ReadNumberLiteral()
+		private object ReadNumberLiteral()
 		{
-			var buffer = m_buffer.Span;
+			var buffer = m_buffer;
 			int cursor = m_cursor - 1; // roll back the char that has already been read
 			int end = buffer.Length;
 
@@ -296,21 +296,43 @@ namespace FoundationDB.Client.Utils
 			}
 
 			var val = buffer.Slice(start, cursor - start);
+
 #if USE_SPAN_API
-			if (!double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double x))
+			// if this is an integer we prefer to return it as a long, in order to avoir precision loss for high values due to casting into a double
+			if (long.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out long l))
 			{
-				throw SyntaxError("Malformed number literal '{0}'", val.ToString());
+				m_cursor = cursor;
+				return l;
 			}
+
+			// if not, try with a double
+			if (double.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out double x))
+			{
+				m_cursor = cursor;
+				return x;
+			}
+
+			throw SyntaxError("Malformed number literal '{0}'", val.ToString());
 #else
 			// we have to allocate! :(
 			string s = val.ToString();
-			if (!double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double x))
+
+			// if this is an integer we prefer to return it as a long, in order to avoir precision loss for high values due to casting into a double
+			if (long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out long l))
 			{
-				throw SyntaxError("Malformed number literal '{0}'", s);
+				m_cursor = cursor;
+				return l;
 			}
+
+			// if not, try with a double
+			if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double x))
+			{
+				m_cursor = cursor;
+				return x;
+			}
+
+			throw SyntaxError("Malformed number literal '{0}'", s);
 #endif
-			m_cursor = cursor;
-			return x;
 		}
 
 		private FormatException SyntaxError(string msg)
@@ -324,41 +346,67 @@ namespace FoundationDB.Client.Utils
 			return new FormatException(string.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", string.Format(CultureInfo.InvariantCulture, msg, arg0), m_cursor));
 		}
 
-		public static Dictionary<string, object?>? ParseObject(Slice data)
+		public static Dictionary<string, object?>? ParseObject(Slice bytes)
 		{
-			if (data.Count == 0) return null;
+			return ParseObject(bytes.Span);
+		}
+
+		public static Dictionary<string, object?>? ParseObject(ReadOnlySpan<byte> bytes)
+		{
+			if (bytes.Length == 0) return null;
+
+			// we have to convert from utf-8 bytes into text first, so estimate the required buffer size
+#if USE_SPAN_API
+			int size = Encoding.UTF8.GetCharCount(bytes);
+#else
+			int size;
+			unsafe
+			{
+				fixed (byte* ptr = bytes)
+				{
+					size = Encoding.UTF8.GetCharCount(ptr, bytes.Length);
+				}
+			}
+#endif
+			if (size <= 0) return null;
 
 			// The typical 'status json' payload is too large to be allocated on the stack,
 			// so we will use a pooled char[] buffer
+			char[]? tmp = null;
+			try
+			{
+				tmp = ArrayPool<char>.Shared.Rent(size);
 #if USE_SPAN_API
-			int charCount = Encoding.UTF8.GetCharCount(data.Span);
+				int decoded = Encoding.UTF8.GetChars(bytes, tmp);
 #else
-			int charCount = Encoding.UTF8.GetCharCount(data.Array, data.Offset, data.Count);
+				int decoded;
+				unsafe
+				{
+					fixed (byte* pSrc = bytes)
+					fixed (char* pDst = tmp)
+					{
+						decoded = Encoding.UTF8.GetChars(pSrc, bytes.Length, pDst, tmp.Length);
+					}
+				}
 #endif
-			var chars = ArrayPool<char>.Shared.Rent(charCount);
-#if USE_SPAN_API
-			int n = Encoding.UTF8.GetChars(data.Span, chars.AsSpan());
-#else
-			int n = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count, chars, 0);
-#endif
-			if (n != charCount) throw new InvalidOperationException();
+				if (decoded != size) throw new InvalidOperationException();
 
-			var obj = ParseObject(chars.AsMemory(0, charCount));
-
-			// we are done with the buffer
-			ArrayPool<char>.Shared.Return(chars);
-
-			return obj;
+				return ParseObject(tmp.AsSpan(0, decoded));
+			}
+			finally
+			{
+				if (tmp != null) ArrayPool<char>.Shared.Return(tmp);
+			}
 		}
 
 		[ContractAnnotation("null => null")]
 		public static Dictionary<string, object?>? ParseObject(string? jsonText)
 		{
 			if (string.IsNullOrEmpty(jsonText)) return null;
-			return ParseObject(jsonText.AsMemory());
+			return ParseObject(jsonText.AsSpan());
 		}
 
-		public static Dictionary<string, object?>? ParseObject(ReadOnlyMemory<char> chars)
+		public static Dictionary<string, object?>? ParseObject(ReadOnlySpan<char> chars)
 		{
 			if (chars.Length == 0) return null;
 
@@ -376,21 +424,64 @@ namespace FoundationDB.Client.Utils
 			return map;
 		}
 
-		public static List<object?>? ParseArray(Slice data)
+		public static List<object?>? ParseArray(Slice bytes)
 		{
-			if (data.Count == 0) return null;
-			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
-			return ParseArray(chars);
+			return ParseArray(bytes.Span);
 		}
+
+		public static List<object?>? ParseArray(ReadOnlySpan<byte> bytes)
+		{
+			// we have to convert from utf-8 bytes into text first, so estimate the required buffer size
+#if USE_SPAN_API
+			int size = Encoding.UTF8.GetCharCount(bytes);
+#else
+			int size;
+			unsafe
+			{
+				fixed (byte* ptr = bytes)
+				{
+					size = Encoding.UTF8.GetCharCount(ptr, bytes.Length);
+				}
+			}
+#endif
+			if (size <= 0) return null;
+
+			// The typical 'status json' payload is too large to be allocated on the stack,
+			// so we will use a pooled char[] buffer
+			char[]? tmp = null;
+			try
+			{
+				tmp = ArrayPool<char>.Shared.Rent(size);
+#if USE_SPAN_API
+				int decoded = Encoding.UTF8.GetChars(bytes, tmp);
+#else
+				int decoded;
+				unsafe
+				{
+					fixed (byte* pSrc = bytes)
+					fixed (char* pDst = tmp)
+					{
+						decoded = Encoding.UTF8.GetChars(pSrc, bytes.Length, pDst, tmp.Length);
+					}
+				}
+#endif
+				if (decoded != size) throw new InvalidOperationException();
+
+				return ParseArray(tmp.AsSpan(0, decoded));
+			}
+			finally
+			{
+				if (tmp != null) ArrayPool<char>.Shared.Return(tmp);
+			}		}
 
 		[ContractAnnotation("null => null")]
 		public static List<object?>? ParseArray(string? jsonText)
 		{
 			if (string.IsNullOrEmpty(jsonText)) return null;
-			return ParseArray(jsonText.AsMemory());
+			return ParseArray(jsonText.AsSpan());
 		}
 
-		public static List<object?>? ParseArray(ReadOnlyMemory<char> chars)
+		public static List<object?>? ParseArray(ReadOnlySpan<char> chars)
 		{
 			if (chars.Length == 0) return null;
 
@@ -405,7 +496,7 @@ namespace FoundationDB.Client.Utils
 			return array;
 		}
 
-		internal static Dictionary<string, object?> GetMapField(Dictionary<string,object?>? map, string field)
+		internal static Dictionary<string, object?> GetMapField(Dictionary<string, object?>? map, string field)
 		{
 			var result = map != null && map.TryGetValue(field, out object? item) ? (Dictionary<string, object?>?) item : null;
 			return result ?? s_missingMap;
@@ -422,9 +513,14 @@ namespace FoundationDB.Client.Utils
 			return map != null && map.TryGetValue(field, out object? item) ? (string?) item : null;
 		}
 
-		internal static double? GetNumberField(Dictionary<string, object?>? map, string field)
+		internal static long? GetIntegerField(Dictionary<string, object?>? map, string field)
 		{
-			return map != null && map.TryGetValue(field, out object? item) ? (double?) item : default;
+			return map != null && map.TryGetValue(field, out object? item) ? (item is long l ? l : item is double d ? (long) d : null) : default;
+		}
+
+		internal static double? GetDecimalField(Dictionary<string, object?>? map, string field)
+		{
+			return map != null && map.TryGetValue(field, out object? item) ? (item is double d ? d : item is long l ? (double) l : null) : default;
 		}
 
 		internal static bool? GetBooleanField(Dictionary<string, object?>? map, string field)
@@ -434,12 +530,12 @@ namespace FoundationDB.Client.Utils
 
 		internal static (string? Key, string? Value) GetStringPair(Dictionary<string, object?>? map, string key, string value)
 		{
-			object? item;
 			return (
-				map != null && map.TryGetValue(key, out item) ? (string?) item : null,
-				map != null && map.TryGetValue(value, out item) ? (string?) item : null
+				map != null && map.TryGetValue(key, out var k) ? (string?) k : null,
+				map != null && map.TryGetValue(value, out var v) ? (string?) v : null
 			);
 		}
+
 	}
 
 }
