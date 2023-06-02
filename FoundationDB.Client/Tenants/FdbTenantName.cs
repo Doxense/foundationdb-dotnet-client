@@ -31,52 +31,195 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using Doxense.Collections.Tuples;
 
+	/// <summary>Represents the name of a <see cref="IFdbTenant">Tenant</see> in the database</summary>
+	/// <remarks>A tenant is represented by a binary name, that is mapped into a common key prefix by the database cluster</remarks>
+	/// <example><code>
+	/// var name1 = FdbTenantName.Create(Slice.FromStringUtf8("HelloWorld"));
+	/// var name2 = FdbTenantName.FromParts("AnotherApp", "Contoso", 456));
+	/// var name3 = FdbTenantName.FromTuple(("MyAwesomeApp", "ACME", 123));
+	/// </code></example>
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTenantName : IEquatable<FdbTenantName>, IComparable<FdbTenantName>
 	{
 
+		public static readonly FdbTenantName None = default;
+
+		/// <summary>Packed binary representation of the name</summary>
 		internal readonly Slice Value;
 
-		public readonly string? Label;
+		/// <summary>If the name was produced from a tuple, copy of this tuple</summary>
+		/// <remarks>Used to produce a human-readable ToString() and helps during debugging</remarks>
+		private readonly IVarTuple? Tuple;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTenantName(Slice value, string? label = null)
+		private FdbTenantName(Slice value, IVarTuple? tuple)
 		{
 			this.Value = value;
-			this.Label = label;
+			this.Tuple = tuple;
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create(Slice name, string? label = null) => new(name, label);
+		/// <summary>Test if this name is a valid tenant name</summary>
+		/// <returns><c>true</c> if the name is not empty and does not start with <c>\xFF</c></returns>
+		public bool IsValid => IsValidName(this.Value.Span);
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create(ReadOnlySpan<byte> name, string? label = null) => new(Slice.Copy(name), label);
+		public static Slice EnsureIsValidName(ReadOnlySpan<byte> name, string? paramName = null)
+		{
+			if (!IsValidName(name))
+			{
+				if (name.Length == 0) throw new ArgumentException("Tenant name cannot be empty.", paramName ?? nameof(name));
+				if (name[0] == 0xFF) throw new ArgumentException("Tenant name cannot start with byte literal 0xFF.", paramName ?? nameof(name));
+				throw new ArgumentException("Tenant nant is invalid", paramName ?? nameof(name));
+			}
+			return Slice.Copy(name);
+		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create(string name, string? label = null) => new(Slice.FromStringUtf8(name), label ?? name);
+		public static Slice EnsureIsValidName(Slice name, string? paramName = null)
+		{
+			if (!IsValidName(name.Span))
+			{
+				if (name.Count == 0) throw new ArgumentException("Tenant name cannot be empty.", paramName ?? nameof(name));
+				if (name[0] == 0xFF) throw new ArgumentException("Tenant name cannot start with byte literal 0xFF.", paramName ?? nameof(name));
+				throw new ArgumentException("Tenant nant is invalid", paramName ?? nameof(name));
+			}
+			return name.Memoize();
+		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create<TTuple>(TTuple items, string? label = null) where TTuple : IVarTuple => new(TuPack.Pack<TTuple>(items), label ?? items.ToString());
+		/// <summary>Test if a tenant name is valid</summary>
+		/// <returns><c>true</c> if the name is not empty and does not start with <c>\xFF</c></returns>
+		public static bool IsValidName(ReadOnlySpan<byte> name)
+		{
+			// cannot be empty
+			if (name.Length == 0) return false;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create<T1>(ValueTuple<T1> items, string? label = null) => new(TuPack.Pack<T1>(items), label ?? items.ToString());
+			// cannot start with \xFF
+			if (name[0] == 0xFF) return false;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create<T1, T2>(ValueTuple<T1, T2> items, string? label = null) => new(TuPack.Pack<T1, T2>(items), label ?? items.ToString());
+			return true;
+		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create<T1, T2, T3>(ValueTuple<T1, T2, T3> items, string? label = null) => new(TuPack.Pack<T1, T2, T3>(items), label ?? items.ToString());
+		/// <summary>Try decoding the name as a Tuple</summary>
+		/// <param name="tuple">Receives the decoded tuple, if the method returns <c>true</c></param>
+		/// <returns>Returns <c>true</c> if the name is a valid tuple encoding; otherwise, <c>false</c></returns>
+		public bool TryGetTuple([MaybeNullWhen(false)] out IVarTuple tuple)
+		{
+			// if we already know the tuple, return it as-is
+			if (this.Tuple != null)
+			{
+				tuple = this.Tuple;
+				return true;
+			}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTenantName Create<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> items, string? label = null) => new(TuPack.Pack<T1, T2, T3, T4>(items), label ?? items.ToString());
+			// maybe the slice is a valid tuple?
+			return TuPack.TryUnpack(this.Value, out tuple);
+		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbTenantName Copy() => new(this.Value.Memoize(), this.Label);
+		#region Factory methods...
 
-		public override string ToString() => this.Label ?? this.Value.PrettyPrint();
+		/// <summary>Create a tenant name from an opaque sequence of bytes</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName Create(Slice name)
+		{
+			var copy = EnsureIsValidName(name, nameof(name));
+			return new FdbTenantName(copy, TuPack.TryUnpack(copy, out var tuple) ? tuple : null);
+		}
+
+		/// <summary>Create a tenant name from an opaque sequence of bytes</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName Create(ReadOnlyMemory<byte> name) => MemoryMarshal.TryGetArray(name, out var seg) ? Create(seg.AsSlice()) : Create(name.Span);
+
+		/// <summary>Create a tenant name from an opaque sequence of bytes</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName Create(ReadOnlySpan<byte> name)
+		{
+			var copy = EnsureIsValidName(name, nameof(name));
+			return new FdbTenantName(copy, TuPack.TryUnpack(copy, out var tuple) ? tuple : null);
+		}
+
+		/// <summary>Create a tenant name from an N-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromTuple<TTuple>(TTuple items) where TTuple : IVarTuple
+		{
+			return items?.Count > 0
+				? new(TuPack.Pack<TTuple>(items), items)
+				: throw new ArgumentException("Tenant name cannot be empty", nameof(items));
+		}
+
+		/// <summary>Create a tenant name from an N-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromTuple<T1>(ValueTuple<T1> items)=> FromTuple((STuple<T1>) items);
+
+		/// <summary>Create a tenant name from an N-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromTuple<T1, T2>(ValueTuple<T1, T2> items)=> FromTuple((STuple<T1, T2>) items);
+
+		/// <summary>Create a tenant name from an N-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromTuple<T1, T2, T3>(ValueTuple<T1, T2, T3> items)=> FromTuple((STuple<T1, T2, T3>) items);
+
+		/// <summary>Create a tenant name from an N-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromTuple<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> items)=> FromTuple((STuple<T1, T2, T3, T4>) items);
+
+		/// <summary>Create a tenant name from an N-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromTuple<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> items)=> FromTuple((STuple<T1, T2, T3, T4, T5>) items);
+
+		/// <summary>Create a tenant name from a 1-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromParts<T1>(T1 item1) => FromTuple(STuple.Create(item1));
+
+		/// <summary>Create a tenant name from a 2-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromParts<T1, T2>(T1 item1, T2 item2) => FromTuple(STuple.Create(item1, item2));
+
+		/// <summary>Create a tenant name from a 3-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromParts<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => FromTuple(STuple.Create(item1, item2, item3));
+
+		/// <summary>Create a tenant name from a 4-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromParts<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => FromTuple(STuple.Create(item1, item2, item3, item4));
+
+		/// <summary>Create a tenant name from a 5-tuple</summary>
+		/// <remarks>The tuple is <see cref="TuPack">packed</see> to generate the actual name</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName FromParts<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => FromTuple(STuple.Create(item1, item2, item3, item4, item5));
+
+		/// <summary>Create a copy of this name</summary>
+		/// <returns>Name that contains the same bytes as the original</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal FdbTenantName Copy() => new(this.Value.Memoize(), this.Tuple);
+
+		/// <summary>Create a copy of a tenant name</summary>
+		/// <returns>Name that contains the same bytes as the original</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTenantName Copy(FdbTenantName name) => new (name.Value.Memoize(), name.Tuple);
+
+		#endregion
+
+		/// <summary>Return a copy of the binary representation of the name</summary>
+		public Slice ToSlice() => this.Value.Memoize();
+
+		/// <summary>Return a hyman-readable name for this tenant name</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => this.Tuple?.ToString() ?? (this.Value.HasValue ? this.Value.PrettyPrint() : "global");
+
+		#region Equality / Comparison ...
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(FdbTenantName other) => this.Value.Equals(other.Value);
@@ -106,6 +249,8 @@ namespace FoundationDB.Client
 			public int Compare(FdbTenantName x, FdbTenantName y) => x.Value.CompareTo(y.Value);
 
 		}
+
+		#endregion
 
 	}
 

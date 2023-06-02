@@ -98,47 +98,62 @@ namespace FoundationDB.Client
 
 		#region Tenants...
 
-		public static IFdbTenant GetTenant(this IFdbDatabase db, string name, string? label = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant(this IFdbDatabase db, Slice name)
 		{
 			Contract.NotNull(db);
-			Contract.NotNull(name);
-			return db.GetTenant(FdbTenantName.Create(name, label));
+			if (name.IsNullOrEmpty) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
+			return db.GetTenant(FdbTenantName.Create(name));
 		}
 
-		public static IFdbTenant GetTenant<TTuple>(this IFdbDatabase db, TTuple name, string? label = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant(this IFdbDatabase db, ReadOnlySpan<byte> name)
+		{
+			Contract.NotNull(db);
+			if (name.Length == 0) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
+			return db.GetTenant(FdbTenantName.Create(name));
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<TTuple>(this IFdbDatabase db, TTuple name)
 			where TTuple : IVarTuple
 		{
 			Contract.NotNull(db);
 			Contract.NotNullAllowStructs(name);
-			return db.GetTenant(FdbTenantName.Create(name, label));
+			if (name.Count == 0) throw new ArgumentException("Tenant name cannot be empty", nameof(name));
+			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
-		public static IFdbTenant GetTenant<T1>(this IFdbDatabase db, ValueTuple<T1> name, string? label = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1>(this IFdbDatabase db, ValueTuple<T1> name)
 		{
 			Contract.NotNull(db);
 			Contract.NotNullAllowStructs(name);
-			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
-		public static IFdbTenant GetTenant<T1, T2>(this IFdbDatabase db, ValueTuple<T1, T2> name, string? label = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2>(this IFdbDatabase db, ValueTuple<T1, T2> name)
 		{
 			Contract.NotNull(db);
 			Contract.NotNullAllowStructs(name);
-			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
-		public static IFdbTenant GetTenant<T1, T2, T3>(this IFdbDatabase db, ValueTuple<T1, T2, T3> name, string? label = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2, T3>(this IFdbDatabase db, ValueTuple<T1, T2, T3> name)
 		{
 			Contract.NotNull(db);
 			Contract.NotNullAllowStructs(name);
-			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
-		public static IFdbTenant GetTenant<T1, T2, T3, T4>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4> name, string? label = null)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbTenant GetTenant<T1, T2, T3, T4>(this IFdbDatabase db, ValueTuple<T1, T2, T3, T4> name)
 		{
 			Contract.NotNull(db);
 			Contract.NotNullAllowStructs(name);
-			return db.GetTenant(FdbTenantName.Create(STuple.Create(name), label ?? name.ToString()));
+			return db.GetTenant(FdbTenantName.FromTuple(name));
 		}
 
 		#endregion
