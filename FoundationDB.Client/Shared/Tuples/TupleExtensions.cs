@@ -93,8 +93,7 @@ namespace Doxense.Collections.Tuples
 #if USE_RANGE_API
 
 		[Pure]
-		[return:MaybeNull]
-		public static T Get<T>(this IVarTuple tuple, Index index)
+		public static T? Get<T>(this IVarTuple tuple, Index index)
 		{
 			return tuple.Get<T>(index.GetOffset(tuple.Count));
 		}
@@ -105,8 +104,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="T">Expected type of the first item</typeparam>
 		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
 		[Pure]
-		[return:MaybeNull]
-		public static T First<T>(this IVarTuple tuple)
+		public static T? First<T>(this IVarTuple tuple)
 		{
 			return tuple.Get<T>(0);
 		}
@@ -116,8 +114,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
 		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
 		[Pure]
-		[return:MaybeNull]
-		public static T Last<T>(this IVarTuple tuple)
+		public static T? Last<T>(this IVarTuple tuple)
 		{
 #if USE_RANGE_API
 			return tuple.Get<T>(^1);
@@ -253,7 +250,7 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller or larger than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TTuple OfSize<TTuple>(this TTuple tuple, int size) where TTuple : IVarTuple
+		public static TTuple OfSize<TTuple>(this TTuple? tuple, int size) where TTuple : IVarTuple
 		{
 			return tuple != null && tuple.Count == size ? tuple : ThrowInvalidTupleSize(tuple, size, 0);
 		}
@@ -266,7 +263,7 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is smaller than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TTuple OfSizeAtLeast<TTuple>(this TTuple tuple, int size) where TTuple : IVarTuple
+		public static TTuple OfSizeAtLeast<TTuple>(this TTuple? tuple, int size) where TTuple : IVarTuple
 		{
 			return tuple != null && tuple.Count >= size ? tuple : ThrowInvalidTupleSize(tuple, size, -1);
 		}
@@ -279,13 +276,13 @@ namespace Doxense.Collections.Tuples
 		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> is larger than <paramref name="size"/></exception>
 		[ContractAnnotation("halt <= tuple:null")]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TTuple OfSizeAtMost<TTuple>(this TTuple tuple, int size) where TTuple : IVarTuple
+		public static TTuple OfSizeAtMost<TTuple>(this TTuple? tuple, int size) where TTuple : IVarTuple
 		{
 			return tuple != null && tuple.Count <= size ? tuple : ThrowInvalidTupleSize(tuple, size, 1);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, ContractAnnotation("=> halt")]
-		internal static TTuple ThrowInvalidTupleSize<TTuple>(TTuple tuple, int expected, int test) where TTuple : IVarTuple
+		internal static TTuple ThrowInvalidTupleSize<TTuple>(TTuple? tuple, int expected, int test) where TTuple : IVarTuple
 		{
 			Contract.NotNullAllowStructs(tuple);
 			switch(test)
@@ -568,13 +565,13 @@ namespace Doxense.Collections.Tuples
 		#region Deconstruction
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1>(this IVarTuple value, [MaybeNull] out T1 item1)
+		public static void Deconstruct<T1>(this IVarTuple value, out T1? item1)
 		{
 			item1 = value.OfSize(1).Get<T1>(0)!;
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2)
+		public static void Deconstruct<T1, T2>(this IVarTuple value, out T1? item1, out T2? item2)
 		{
 			value.OfSize(2);
 			item1 = value.Get<T1>(0)!;
@@ -582,7 +579,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3)
+		public static void Deconstruct<T1, T2, T3>(this IVarTuple value, out T1? item1, out T2? item2, out T3? item3)
 		{
 			value.OfSize(3);
 			item1 = value.Get<T1>(0)!;
@@ -591,7 +588,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4)
+		public static void Deconstruct<T1, T2, T3, T4>(this IVarTuple value, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
 			value.OfSize(4);
 			item1 = value.Get<T1>(0)!;
@@ -601,7 +598,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5)
+		public static void Deconstruct<T1, T2, T3, T4, T5>(this IVarTuple value, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
 		{
 			value.OfSize(5);
 			item1 = value.Get<T1>(0)!;
@@ -612,7 +609,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6>(this IVarTuple value, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
 		{
 			value.OfSize(6);
 			item1 = value.Get<T1>(0)!;
@@ -624,7 +621,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6, [MaybeNull] out T7 item7)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7>(this IVarTuple value, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7)
 		{
 			value.OfSize(7);
 			item1 = value.Get<T1>(0)!;
@@ -637,7 +634,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7, T8>(this IVarTuple value, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6, [MaybeNull] out T7 item7, [MaybeNull] out T8 item8)
+		public static void Deconstruct<T1, T2, T3, T4, T5, T6, T7, T8>(this IVarTuple value, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8)
 		{
 			value.OfSize(8);
 			item1 = value.Get<T1>(0)!;

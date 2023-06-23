@@ -40,6 +40,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
+	using Doxense.Serialization;
 	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
@@ -48,7 +49,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		#region Serializers...
 
-		public delegate void Encoder<in T>(ref TupleWriter writer, T value);
+		public delegate void Encoder<in T>(ref TupleWriter writer, T? value);
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
@@ -188,7 +189,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static void SerializeTo<T>(ref TupleWriter writer, T value)
+		internal static void SerializeTo<T>(ref TupleWriter writer, T? value)
 		{
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
@@ -208,6 +209,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(double)) { TupleParser.WriteDouble(ref writer, (double) (object) value); return; }
 			if (typeof(T) == typeof(decimal)) { TupleParser.WriteDecimal(ref writer, (decimal) (object) value); return; }
 			if (typeof(T) == typeof(char)) { TupleParser.WriteChar(ref writer, (char) (object) value); return; }
+			if (typeof(T) == typeof(TimeSpan)) { TupleParser.WriteTimeSpan(ref writer, (TimeSpan) (object) value); return; }
+			if (typeof(T) == typeof(DateTime)) { TupleParser.WriteDateTime(ref writer, (DateTime) (object) value); return; }
+			if (typeof(T) == typeof(DateTimeOffset)) { TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset) (object) value); return; }
 			if (typeof(T) == typeof(Guid)) { TupleParser.WriteGuid(ref writer, (Guid) (object) value); return; }
 			if (typeof(T) == typeof(Uuid128)) { TupleParser.WriteUuid128(ref writer, (Uuid128) (object) value); return; }
 			if (typeof(T) == typeof(Uuid96)) { TupleParser.WriteUuid96(ref writer, (Uuid96) (object) value); return; }
@@ -215,6 +219,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(Uuid64)) { TupleParser.WriteUuid64(ref writer, (Uuid64) (object) value); return; }
 			if (typeof(T) == typeof(VersionStamp)) { TupleParser.WriteVersionStamp(ref writer, (VersionStamp) (object) value); return; }
 			if (typeof(T) == typeof(Slice)) { TupleParser.WriteBytes(ref writer, (Slice) (object) value); return; }
+			if (typeof(T) == typeof(MutableSlice)) { TupleParser.WriteBytes(ref writer, (MutableSlice) (object) value); return; }
+			if (typeof(T) == typeof(ArraySegment<byte>)) { TupleParser.WriteBytes(ref writer, (ArraySegment<byte>) (object) value); return; }
 
 			if (typeof(T) == typeof(bool?)) { TupleParser.WriteBool(ref writer, (bool?) (object) value); return; }
 			if (typeof(T) == typeof(int?)) { TupleParser.WriteInt32(ref writer, (int?) (object) value); return; }
@@ -229,6 +235,9 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (typeof(T) == typeof(double?)) { TupleParser.WriteDouble(ref writer, (double?) (object) value); return; }
 			if (typeof(T) == typeof(decimal?)) { TupleParser.WriteDecimal(ref writer, (decimal?) (object) value); return; }
 			if (typeof(T) == typeof(char?)) { TupleParser.WriteChar(ref writer, (char?) (object) value); return; }
+			if (typeof(T) == typeof(TimeSpan?)) { TupleParser.WriteTimeSpan(ref writer, (TimeSpan?) (object) value); return; }
+			if (typeof(T) == typeof(DateTime?)) { TupleParser.WriteDateTime(ref writer, (DateTime?) (object) value); return; }
+			if (typeof(T) == typeof(DateTimeOffset?)) { TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset?) (object) value); return; }
 			if (typeof(T) == typeof(Guid?)) { TupleParser.WriteGuid(ref writer, (Guid?) (object) value); return; }
 			if (typeof(T) == typeof(Uuid128?)) { TupleParser.WriteUuid128(ref writer, (Uuid128?) (object) value); return; }
 			if (typeof(T) == typeof(Uuid96?)) { TupleParser.WriteUuid96(ref writer, (Uuid96?) (object) value); return; }
@@ -252,9 +261,13 @@ namespace Doxense.Collections.Tuples.Encoding
 			where T : struct
 		{
 			if (value == null)
+			{
 				TupleParser.WriteNil(ref writer);
+			}
 			else
+			{
 				SerializeTo(ref writer, value.Value);
+			}
 		}
 
 		/// <summary>Serialize an untyped object, by checking its type at runtime [VERY SLOW]</summary>
@@ -291,32 +304,54 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			var encoders = new ConcurrentDictionary<Type, Encoder<object>>
 			{
-				[typeof(bool)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (bool) value),
-				[typeof(char)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (char) value),
-				[typeof(string)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (string) value),
-				[typeof(sbyte)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (sbyte) value),
-				[typeof(short)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (short) value),
-				[typeof(int)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (int) value),
-				[typeof(long)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (long) value),
-				[typeof(byte)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (byte) value),
-				[typeof(ushort)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (ushort) value),
-				[typeof(uint)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (uint) value),
-				[typeof(ulong)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (ulong) value),
-				[typeof(float)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (float) value),
-				[typeof(double)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (double) value),
-				[typeof(decimal)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (decimal) value),
-				[typeof(Slice)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Slice) value),
-				[typeof(MutableSlice)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (MutableSlice) value),
-				[typeof(byte[])] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (byte[]) value),
-				[typeof(Guid)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Guid) value),
-				[typeof(Uuid128)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid128) value),
-				[typeof(Uuid96)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid96) value),
-				[typeof(Uuid80)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid80) value),
-				[typeof(Uuid64)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (Uuid64) value),
-				[typeof(VersionStamp)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (VersionStamp) value),
-				[typeof(TimeSpan)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (TimeSpan) value),
-				[typeof(DateTime)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTime) value),
-				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => SerializeTo(ref writer, (DateTimeOffset) value),
+				[typeof(bool)] = (ref TupleWriter writer, object value) => TupleParser.WriteBool(ref writer, (bool) value),
+				[typeof(bool?)] = (ref TupleWriter writer, object value) => TupleParser.WriteBool(ref writer, (bool?) value),
+				[typeof(char)] = (ref TupleWriter writer, object value) => TupleParser.WriteChar(ref writer, (char) value),
+				[typeof(char?)] = (ref TupleWriter writer, object value) => TupleParser.WriteChar(ref writer, (char?) value),
+				[typeof(string)] = (ref TupleWriter writer, object value) => TupleParser.WriteString(ref writer, (string) value),
+				[typeof(sbyte)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (sbyte) value),
+				[typeof(sbyte?)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (sbyte?) value),
+				[typeof(short)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (short) value),
+				[typeof(short?)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (short?) value),
+				[typeof(int)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (int) value),
+				[typeof(int?)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt32(ref writer, (int?) value),
+				[typeof(long)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt64(ref writer, (long) value),
+				[typeof(long?)] = (ref TupleWriter writer, object value) => TupleParser.WriteInt64(ref writer, (long?) value),
+				[typeof(byte)] = (ref TupleWriter writer, object value) => TupleParser.WriteByte(ref writer, (byte) value),
+				[typeof(byte?)] = (ref TupleWriter writer, object value) => TupleParser.WriteByte(ref writer, (byte?) value),
+				[typeof(ushort)] = (ref TupleWriter writer, object value) => TupleParser.WriteUInt32(ref writer, (ushort) value),
+				[typeof(ushort?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUInt32(ref writer, (ushort?) value),
+				[typeof(uint)] = (ref TupleWriter writer, object value) => TupleParser.WriteUInt32(ref writer, (uint) value),
+				[typeof(uint?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUInt32(ref writer, (uint?) value),
+				[typeof(ulong)] = (ref TupleWriter writer, object value) => TupleParser.WriteUInt64(ref writer, (ulong) value),
+				[typeof(ulong?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUInt64(ref writer, (ulong?) value),
+				[typeof(float)] = (ref TupleWriter writer, object value) => TupleParser.WriteSingle(ref writer, (float) value),
+				[typeof(float?)] = (ref TupleWriter writer, object value) => TupleParser.WriteSingle(ref writer, (float?) value),
+				[typeof(double)] = (ref TupleWriter writer, object value) => TupleParser.WriteDouble(ref writer, (double) value),
+				[typeof(double?)] = (ref TupleWriter writer, object value) => TupleParser.WriteDouble(ref writer, (double?) value),
+				[typeof(decimal)] = (ref TupleWriter writer, object value) => TupleParser.WriteDecimal(ref writer, (decimal) value),
+				[typeof(decimal?)] = (ref TupleWriter writer, object value) => TupleParser.WriteDecimal(ref writer, (decimal?) value),
+				[typeof(Slice)] = (ref TupleWriter writer, object value) => TupleParser.WriteBytes(ref writer, (Slice) value),
+				[typeof(MutableSlice)] = (ref TupleWriter writer, object value) => TupleParser.WriteBytes(ref writer, (MutableSlice) value),
+				[typeof(byte[])] = (ref TupleWriter writer, object value) => TupleParser.WriteBytes(ref writer, (byte[]) value),
+				[typeof(Guid)] = (ref TupleWriter writer, object value) => TupleParser.WriteGuid(ref writer, (Guid) value),
+				[typeof(Guid?)] = (ref TupleWriter writer, object value) => TupleParser.WriteGuid(ref writer, (Guid?) value),
+				[typeof(Uuid128)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid128(ref writer, (Uuid128) value),
+				[typeof(Uuid128?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid128(ref writer, (Uuid128?) value),
+				[typeof(Uuid96)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid96(ref writer, (Uuid96) value),
+				[typeof(Uuid96?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid96(ref writer, (Uuid96?) value),
+				[typeof(Uuid80)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid80(ref writer, (Uuid80) value),
+				[typeof(Uuid80?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid80(ref writer, (Uuid80?) value),
+				[typeof(Uuid64)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid64(ref writer, (Uuid64) value),
+				[typeof(Uuid64?)] = (ref TupleWriter writer, object value) => TupleParser.WriteUuid64(ref writer, (Uuid64?) value),
+				[typeof(VersionStamp)] = (ref TupleWriter writer, object value) => TupleParser.WriteVersionStamp(ref writer, (VersionStamp) value),
+				[typeof(VersionStamp?)] = (ref TupleWriter writer, object value) => TupleParser.WriteVersionStamp(ref writer, (VersionStamp?) value),
+				[typeof(TimeSpan)] = (ref TupleWriter writer, object value) => TupleParser.WriteTimeSpan(ref writer, (TimeSpan) value),
+				[typeof(TimeSpan?)] = (ref TupleWriter writer, object value) => TupleParser.WriteTimeSpan(ref writer, (TimeSpan?) value),
+				[typeof(DateTime)] = (ref TupleWriter writer, object value) => TupleParser.WriteDateTime(ref writer, (DateTime) value),
+				[typeof(DateTime?)] = (ref TupleWriter writer, object value) => TupleParser.WriteDateTime(ref writer, (DateTime?) value),
+				[typeof(DateTimeOffset)] = (ref TupleWriter writer, object value) => TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset) value),
+				[typeof(DateTimeOffset?)] = (ref TupleWriter writer, object value) => TupleParser.WriteDateTimeOffset(ref writer, (DateTimeOffset?) value),
 				[typeof(IVarTuple)] = (ref TupleWriter writer, object value) => SerializeTupleTo(ref writer, (IVarTuple) value),
 				//TODO: add System.Runtime.CompilerServices.ITuple for net471+
 				[typeof(DBNull)] = (ref TupleWriter writer, object value) => TupleParser.WriteNil(ref writer)
@@ -339,313 +374,186 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Writes a slice as a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Slice value)
-		{
-			TupleParser.WriteBytes(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Slice value) => TupleParser.WriteBytes(ref writer, value);
 
 		/// <summary>Writes a slice as a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, MutableSlice value)
-		{
-			TupleParser.WriteBytes(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, MutableSlice value) => TupleParser.WriteBytes(ref writer, value);
 
 		/// <summary>Writes a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, byte[] value)
-		{
-			TupleParser.WriteBytes(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, byte[] value) => TupleParser.WriteBytes(ref writer, value);
 
 		/// <summary>Writes an array segment as a byte[] array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, ArraySegment<byte> value)
-		{
-			TupleParser.WriteBytes(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, ArraySegment<byte> value) => TupleParser.WriteBytes(ref writer, value);
 
 		/// <summary>Writes a char as Unicode string</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, char value)
-		{
-			TupleParser.WriteChar(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, char value) => TupleParser.WriteChar(ref writer, value);
 
 		/// <summary>Writes a boolean as an integer</summary>
 		/// <remarks>Uses 0 for false, and -1 for true</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, bool value)
-		{
-			TupleParser.WriteBool(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, bool value) => TupleParser.WriteBool(ref writer, value);
 
 		/// <summary>Writes a boolean as an integer or null</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, bool? value)
-		{
-			//REVIEW: only method for a nullable type? add others? or remove this one?
-			TupleParser.WriteBool(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, bool? value) => TupleParser.WriteBool(ref writer, value);
+		//REVIEW: only method for a nullable type? add others? or remove this one?
 
 		/// <summary>Writes a signed byte as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, sbyte value)
-		{
-			TupleParser.WriteInt32(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, sbyte value) => TupleParser.WriteInt32(ref writer, value);
 
 		/// <summary>Writes an unsigned byte as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, byte value)
-		{
-			TupleParser.WriteByte(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, byte value) => TupleParser.WriteByte(ref writer, value);
 
 		/// <summary>Writes a signed word as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, short value)
-		{
-			TupleParser.WriteInt32(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, short value) => TupleParser.WriteInt32(ref writer, value);
 
 		/// <summary>Writes an unsigned word as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, ushort value)
-		{
-			TupleParser.WriteUInt32(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, ushort value) => TupleParser.WriteUInt32(ref writer, value);
 
 		/// <summary>Writes a signed int as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, int value)
-		{
-			TupleParser.WriteInt32(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, int value) => TupleParser.WriteInt32(ref writer, value);
 
 		/// <summary>Writes a signed int as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, int? value)
-		{
-			TupleParser.WriteInt32(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, int? value) => TupleParser.WriteInt32(ref writer, value);
 
 		/// <summary>Writes an unsigned int as an integer</summary>
-		public static void SerializeTo(ref TupleWriter writer, uint value)
-		{
-			TupleParser.WriteUInt32(ref writer, value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, uint value) => TupleParser.WriteUInt32(ref writer, value);
 
 		/// <summary>Writes an unsigned int as an integer</summary>
-		public static void SerializeTo(ref TupleWriter writer, uint? value)
-		{
-			TupleParser.WriteUInt32(ref writer, value);
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, uint? value) => TupleParser.WriteUInt32(ref writer, value);
 
 		/// <summary>Writes a signed long as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, long value)
-		{
-			TupleParser.WriteInt64(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, long value) => TupleParser.WriteInt64(ref writer, value);
 
 		/// <summary>Writes a signed long as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, long? value)
-		{
-			TupleParser.WriteInt64(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, long? value) => TupleParser.WriteInt64(ref writer, value);
 
 		/// <summary>Writes an unsigned long as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, ulong value)
-		{
-			TupleParser.WriteUInt64(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, ulong value) => TupleParser.WriteUInt64(ref writer, value);
 
 		/// <summary>Writes an unsigned long as an integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, ulong? value)
-		{
-			TupleParser.WriteUInt64(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, ulong? value) => TupleParser.WriteUInt64(ref writer, value);
 
 		/// <summary>Writes a 32-bit IEEE floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, float value)
-		{
-			TupleParser.WriteSingle(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, float value) => TupleParser.WriteSingle(ref writer, value);
 
 		/// <summary>Writes a 32-bit IEEE floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, float? value)
-		{
-			TupleParser.WriteSingle(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, float? value) => TupleParser.WriteSingle(ref writer, value);
 
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, double value)
-		{
-			TupleParser.WriteDouble(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, double value) => TupleParser.WriteDouble(ref writer, value);
 
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, double? value)
-		{
-			TupleParser.WriteDouble(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, double? value) => TupleParser.WriteDouble(ref writer, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, decimal value)
-		{
-			TupleParser.WriteDecimal(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, decimal value) => TupleParser.WriteDecimal(ref writer, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, decimal? value)
-		{
-			TupleParser.WriteDecimal(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, decimal? value) => TupleParser.WriteDecimal(ref writer, value);
 
 		/// <summary>Writes a string as an Unicode string</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, string value)
-		{
-			TupleParser.WriteString(ref writer, value);
-		}
-
-		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, DateTime value)
-		{
-			// The problem of serializing DateTime: TimeZone? Precision?
-			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
-			// - DateTime in .NET uses Ticks which produce numbers too large to fit in the 56 bits available in JavaScript
-			// - Most other *nix uses the number of milliseconds since 1970-Jan-01 UTC, but if we store as an integer we will lose some precision (rounded to nearest millisecond)
-			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
-			// - Other database engines store dates as a number of DAYS since Epoch, using a floating point number. This allows for quickly extracting the date by truncating the value, and the time by using the decimal part
-
-			// Right now, we will store the date as the number of DAYS since Epoch, using a 64-bit float.
-			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
-			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
-
-			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
-			TupleParser.WriteDouble(ref writer, (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double)TimeSpan.TicksPerDay);
-		}
+		public static void SerializeTo(ref TupleWriter writer, string value) => TupleParser.WriteString(ref writer, value);
 
 		/// <summary>Writes a TimeSpan converted to to a number seconds encoded as a 64-bit decimal</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, TimeSpan value)
-		{
-			// We have the same precision problem with storing DateTimes:
-			// - Storing the number of ticks keeps the exact value, but is Windows-centric
-			// - Storing the number of milliseconds as an integer will round the precision to 1 millisecond, which is not acceptable
-			// - We could store the the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
-			// - It is frequent for JSON APIs and other database engines to represent durations as a number of SECONDS, using a floating point number.
+		public static void SerializeTo(ref TupleWriter writer, TimeSpan value) => TupleParser.WriteTimeSpan(ref writer, value);
 
-			// Right now, we will store the duration as the number of seconds, using a 64-bit float
+		/// <summary>Writes a TimeSpan converted to to a number seconds encoded as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, TimeSpan? value) => TupleParser.WriteTimeSpan(ref writer, value);
 
-			TupleParser.WriteDouble(ref writer, value.TotalSeconds);
-		}
+		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, DateTime value) => TupleParser.WriteDateTime(ref writer, value);
+
+		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, DateTime? value) => TupleParser.WriteDateTime(ref writer, value);
+
+		/// <summary>Writes a DateTimeOffset converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, DateTimeOffset value) => TupleParser.WriteDateTimeOffset(ref writer, value);
+
+		/// <summary>Writes a DateTimeOffset converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, DateTimeOffset? value) => TupleParser.WriteDateTimeOffset(ref writer, value);
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Guid value)
-		{
-			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty byte string) ?
-			// => could spare 17 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
-			TupleParser.WriteGuid(ref writer, in value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Guid value) => TupleParser.WriteGuid(ref writer, value);
+		//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty byte string) ?
+		// => could spare 17 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Guid? value)
-		{
-			TupleParser.WriteGuid(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Guid? value) => TupleParser.WriteGuid(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid128 value)
-		{
-			TupleParser.WriteUuid128(ref writer, in value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid128 value) => TupleParser.WriteUuid128(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid128? value)
-		{
-			TupleParser.WriteUuid128(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid128? value) => TupleParser.WriteUuid128(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 96-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid96 value)
-		{
-			TupleParser.WriteUuid96(ref writer, in value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid96 value) => TupleParser.WriteUuid96(ref writer,  value);
 
 		/// <summary>Writes a Uuid as a 96-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid96? value)
-		{
-			TupleParser.WriteUuid96(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid96? value) => TupleParser.WriteUuid96(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 80-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid80 value)
-		{
-			TupleParser.WriteUuid80(ref writer, in value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid80 value) => TupleParser.WriteUuid80(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 80-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid80? value)
-		{
-			TupleParser.WriteUuid80(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid80? value) => TupleParser.WriteUuid80(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid64 value)
-		{
-			TupleParser.WriteUuid64(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid64 value) => TupleParser.WriteUuid64(ref writer, value);
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, Uuid64? value)
-		{
-			TupleParser.WriteUuid64(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, Uuid64? value) => TupleParser.WriteUuid64(ref writer, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, VersionStamp value)
-		{
-			TupleParser.WriteVersionStamp(ref writer, in value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, VersionStamp value) => TupleParser.WriteVersionStamp(ref writer, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, VersionStamp? value)
-		{
-			TupleParser.WriteVersionStamp(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, VersionStamp? value) => TupleParser.WriteVersionStamp(ref writer, value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, TuPackUserType value)
-		{
-			TupleParser.WriteUserType(ref writer, value);
-		}
+		public static void SerializeTo(ref TupleWriter writer, TuPackUserType value) => TupleParser.WriteUserType(ref writer, value);
 
 		/// <summary>Writes an IP Address as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
-		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value)
-		{
-			TupleParser.WriteBytes(ref writer, value?.GetAddressBytes());
-		}
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value) => TupleParser.WriteBytes(ref writer, value?.GetAddressBytes());
 
 		/// <summary>Serialize an embedded tuples</summary>
 		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
@@ -805,6 +713,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				[typeof(Uuid64)] = new Func<Slice, Uuid64>(TuplePackers.DeserializeUuid64),
 				[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(TuplePackers.DeserializeTimeSpan),
 				[typeof(DateTime)] = new Func<Slice, DateTime>(TuplePackers.DeserializeDateTime),
+				[typeof(DateTimeOffset)] = new Func<Slice, DateTimeOffset>(TuplePackers.DeserializeDateTimeOffset),
 				[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress?>(TuplePackers.DeserializeIpAddress),
 				[typeof(VersionStamp)] = new Func<Slice, VersionStamp>(TuplePackers.DeserializeVersionStamp),
 				[typeof(IVarTuple)] = new Func<Slice, IVarTuple?>(TuplePackers.DeserializeTuple),
@@ -1601,6 +1510,55 @@ namespace Doxense.Collections.Tuples.Encoding
 			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a DateTime");
 		}
 
+		/// <summary>Deserialize a tuple segment into a DateTimeOffset</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <returns>DateTime in UTC</returns>
+		/// <remarks>The returned DateTimeOffset will be in UTC if converted value did not specify any offset.</remarks>
+		public static DateTimeOffset DeserializeDateTimeOffset(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return DateTime.MinValue; //TODO: fail ?
+
+			byte type = slice[0];
+
+			switch(type)
+			{
+				case TupleTypes.Nil:
+				{
+					return DateTimeOffset.MinValue;
+				}
+
+				case TupleTypes.Utf8:
+				{ // we only support ISO 8601 dates. For ex: YYYY-MM-DDTHH:MM:SS.fffff+xxxx"
+					string str = TupleParser.ParseUnicode(slice);
+					return DateTimeOffset.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+				}
+
+				case TupleTypes.Double:
+				{ // Number of days since Epoch
+					const long UNIX_EPOCH_TICKS = 621355968000000000L;
+					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
+					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
+				}
+
+				case TupleTypes.Decimal:
+				{
+					const long UNIX_EPOCH_TICKS = 621355968000000000L;
+					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
+					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
+				}
+			}
+
+			// If we have an integer, we consider it to be a number of Ticks (Windows Only)
+			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
+			{
+				return new DateTimeOffset(new DateTime(DeserializeInt64(slice), DateTimeKind.Utc));
+			}
+
+			throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into a DateTimeOffset");
+		}
+
 		/// <summary>Deserialize a tuple segment into a TimeSpan</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static TimeSpan DeserializeTimeSpan(Slice slice)
@@ -2101,7 +2059,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			while (true)
 			{
-				(var current, var error) = TupleParser.ParseNext(ref slicer);
+				var (current, error) = TupleParser.ParseNext(ref slicer);
 				if (error != null)
 				{
 					token = default;

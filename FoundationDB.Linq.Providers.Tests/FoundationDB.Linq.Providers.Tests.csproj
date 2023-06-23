@@ -4,7 +4,7 @@
     <TargetFrameworks>net6.0;net472</TargetFrameworks>
     <RootNamespace>FoundationDB.Tests</RootNamespace>
     <AssemblyName>FoundationDB.Linq.Providers.Tests</AssemblyName>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>11.0</LangVersion>
     <ProjectGuid>{C8546E7D-9E83-480D-9299-A0AF670FF369}</ProjectGuid>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
@@ -35,7 +35,7 @@
     <ProjectReference Include="..\FoundationDB.Tests\FoundationDB.Tests.csproj" />
     <PackageReference Include="MathNet.Numerics.Signed" Version="5.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.2">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net472" Version="1.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

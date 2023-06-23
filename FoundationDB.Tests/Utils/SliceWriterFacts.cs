@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Memory.Tests
 {
 	using System;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Text;
 	using Doxense.Memory;
 	using FoundationDB.Client.Tests;
@@ -50,12 +51,19 @@ namespace Doxense.Memory.Tests
 
 		private delegate void TestHandler<in T>(ref SliceWriter writer, T value);
 
-		private static void PerformWriterTest<T>(TestHandler<T> action, T value, string expectedResult, string message = null)
+		private static void PerformWriterTest<T>(TestHandler<T> action, [AllowNull] T value, string expectedResult, string? message = null)
 		{
 			var writer = default(SliceWriter);
 			action(ref writer, value);
 
-			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed. {2}", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
+			Assert.That(
+				writer.ToSlice().ToHexaString(' '),
+				Is.EqualTo(expectedResult),
+				"Value {0} ({1}) was not properly packed. {2}",
+				value == null ? "<null>" : value is string s ? Clean(s) : value.ToString(),
+				value == null ? "null" : value.GetType().Name,
+				message
+			);
 		}
 
 		[Test]

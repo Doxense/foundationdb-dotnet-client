@@ -54,19 +54,16 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the triplet</summary>
-		[AllowNull]
-		public readonly T1 Item1;
+		public readonly T1? Item1;
 
 		/// <summary>Second element of the triplet</summary>
-		[AllowNull]
-		public readonly T2 Item2;
+		public readonly T2? Item2;
 
 		/// <summary>Third and last element of the triplet</summary>
-		[AllowNull]
-		public readonly T3 Item3;
+		public readonly T3? Item3;
 
-		[DebuggerStepThrough]
-		public STuple([AllowNull]T1 item1, [AllowNull]T2 item2, [AllowNull]T3 item3)
+		[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple(T1? item1, T2? item2, T3? item3)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -77,19 +74,16 @@ namespace Doxense.Collections.Tuples
 
 		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
 
-		object? IVarTuple.this[int index]
+		object? IVarTuple.this[int index] => index switch
 		{
-			get
-			{
-				switch (index)
-				{
-					case 0: case -3: return this.Item1;
-					case 1: case -2: return this.Item2;
-					case 2: case -1: return this.Item3;
-					default: return TupleHelpers.FailIndexOutOfRange<object>(index, 3);
-				}
-			}
-		}
+			0  => this.Item1,
+			1  => this.Item2,
+			2  => this.Item3,
+			-1 => this.Item3,
+			-2 => this.Item2,
+			-3 => this.Item1,
+			_  => TupleHelpers.FailIndexOutOfRange<object>(index, 3)
+		};
 
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
@@ -137,17 +131,16 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		[return: MaybeNull]
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index) => index switch
 		{
-			switch(index)
-			{
-					case 0: case -3: return TypeConverters.Convert<T1, TItem>(this.Item1);
-					case 1: case -2: return TypeConverters.Convert<T2, TItem>(this.Item2);
-					case 2: case -1: return TypeConverters.Convert<T3, TItem>(this.Item3);
-					default: return TupleHelpers.FailIndexOutOfRange<TItem>(index, 3);
-			}
-		}
+			0  => TypeConverters.Convert<T1, TItem>(this.Item1),
+			1  => TypeConverters.Convert<T2, TItem>(this.Item2),
+			2  => TypeConverters.Convert<T3, TItem>(this.Item3),
+			-2 => TypeConverters.Convert<T2, TItem>(this.Item2),
+			-1 => TypeConverters.Convert<T3, TItem>(this.Item3),
+			-3 => TypeConverters.Convert<T1, TItem>(this.Item1),
+			_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 3)
+		};
 
 		/// <summary>Return the value of the last item in the tuple</summary>
 		public T3 Last
@@ -164,7 +157,7 @@ namespace Doxense.Collections.Tuples
 			get => new STuple<T2, T3>(this.Item2, this.Item3);
 		}
 
-		IVarTuple IVarTuple.Append<T4>(T4 value)
+		IVarTuple IVarTuple.Append<T4>(T4? value) where T4 : default
 		{
 			// here, the caller doesn't care about the exact tuple type, so we simply return a boxed List Tuple.
 			return new LinkedTuple<T4>(this, value);
@@ -176,7 +169,7 @@ namespace Doxense.Collections.Tuples
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3, T4> Append<T4>(T4 value)
+		public STuple<T1, T2, T3, T4> Append<T4>(T4? value)
 		{
 			// Here, the caller was explicitly using the STuple<T1, T2, T3> struct so probably care about memory footprint, so we keep returning a struct
 			return new STuple<T1, T2, T3, T4>(this.Item1, this.Item2, this.Item3, value);
@@ -211,9 +204,8 @@ namespace Doxense.Collections.Tuples
 			array[offset + 2] = this.Item3;
 		}
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct([MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3)
+		public void Deconstruct(out T1? item1, out T2? item2, out T3? item3)
 		{
 			item1 = this.Item1;
 			item2 = this.Item2;
@@ -223,7 +215,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void With(Action<T1, T2, T3> lambda)
+		public void With(Action<T1?, T2?, T3?> lambda)
 		{
 			lambda(this.Item1, this.Item2, this.Item3);
 		}
@@ -232,7 +224,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TItem With<TItem>(Func<T1, T2, T3, TItem> lambda)
+		public TItem With<TItem>(Func<T1?, T2?, T3?, TItem> lambda)
 		{
 			return lambda(this.Item1, this.Item2, this.Item3);
 		}
