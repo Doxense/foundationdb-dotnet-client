@@ -1597,7 +1597,13 @@ namespace FoundationDB.Client
 				try
 				{
 					this.Database.UnregisterTransaction(this);
-					m_cts.SafeCancelAndDispose();
+					using (m_cts)
+					{
+						if (!m_cts.IsCancellationRequested)
+						{
+							try { m_cts.Cancel(); } catch(ObjectDisposedException) { }
+						}
+					}
 
 					if (Logging.On) Logging.Verbose(this, "Dispose", $"Transaction #{m_id} has been disposed");
 				}

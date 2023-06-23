@@ -170,7 +170,17 @@ namespace Doxense.Linq.Async.Iterators
 
 		public override ValueTask DisposeAsync()
 		{
-			m_cts.SafeCancelAndDispose();
+			var cts = m_cts;
+			if (cts != null)
+			{
+				using (cts)
+				{
+					if (!cts.IsCancellationRequested)
+					{
+						try { cts.Cancel(); }catch (ObjectDisposedException) { }
+					}
+				}
+			}
 			//TODO: cancel the pump and queue ?
 			//TODO: wait for m_pumpTask to complete ??
 			return base.DisposeAsync();

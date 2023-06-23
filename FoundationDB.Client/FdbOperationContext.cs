@@ -1505,7 +1505,17 @@ namespace FoundationDB.Client
 		public void Dispose()
 		{
 			this.Abort = true;
-			this.TokenSource?.SafeCancelAndDispose();
+			var cts = this.TokenSource;
+			if (cts != null)
+			{
+				using(cts)
+				{
+					if (!cts.IsCancellationRequested)
+					{
+						try { cts.Cancel(); } catch(ObjectDisposedException) { }
+					}
+				}
+			}
 		}
 
 #region Read-Only operations...
