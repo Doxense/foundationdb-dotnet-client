@@ -57,32 +57,26 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First element of the tuple</summary>
-		[AllowNull]
-		public readonly T1 Item1;
+		public readonly T1? Item1;
 
 		/// <summary>Second element of the tuple</summary>
-		[AllowNull]
-		public readonly T2 Item2;
+		public readonly T2? Item2;
 
 		/// <summary>Third element of the tuple</summary>
-		[AllowNull]
-		public readonly T3 Item3;
+		public readonly T3? Item3;
 
 		/// <summary>Fourth element of the tuple</summary>
-		[AllowNull]
-		public readonly T4 Item4;
+		public readonly T4? Item4;
 
-		/// <summary>Fifth of the tuple</summary>
-		[AllowNull]
-		public readonly T5 Item5;
+		/// <summary>Fifth element of the tuple</summary>
+		public readonly T5? Item5;
 
 		/// <summary>Sixth and last element of the tuple</summary>
-		[AllowNull]
-		public readonly T6 Item6;
+		public readonly T6? Item6;
 
 		/// <summary>Create a tuple containing for items</summary>
 		[DebuggerStepThrough]
-		public STuple([AllowNull]T1 item1, [AllowNull]T2 item2, [AllowNull]T3 item3, [AllowNull]T4 item4, [AllowNull]T5 item5, [AllowNull]T6 item6)
+		public STuple(T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
@@ -143,7 +137,7 @@ namespace Doxense.Collections.Tuples
 					0 => STuple.Empty,
 					1 => (offset switch
 					{
-						0 => (IVarTuple) STuple.Create(this.Item1),
+						0 => STuple.Create(this.Item1),
 						1 => STuple.Create(this.Item2),
 						2 => STuple.Create(this.Item3),
 						3 => STuple.Create(this.Item4),
@@ -152,7 +146,7 @@ namespace Doxense.Collections.Tuples
 					}),
 					2 => (offset switch
 					{
-						0 => (IVarTuple) STuple.Create(this.Item1, this.Item2),
+						0 => STuple.Create(this.Item1, this.Item2),
 						1 => STuple.Create(this.Item2, this.Item3),
 						2 => STuple.Create(this.Item3, this.Item4),
 						3 => STuple.Create(this.Item4, this.Item5),
@@ -160,20 +154,20 @@ namespace Doxense.Collections.Tuples
 					}),
 					3 => (offset switch
 					{
-						0 => (IVarTuple) STuple.Create(this.Item1, this.Item2, this.Item3),
+						0 => STuple.Create(this.Item1, this.Item2, this.Item3),
 						1 => STuple.Create(this.Item2, this.Item3, this.Item4),
 						2 => STuple.Create(this.Item3, this.Item4, this.Item5),
 						_ => STuple.Create(this.Item4, this.Item5, this.Item6)
 					}),
 					4 => (offset switch
 					{
-						0 => (IVarTuple) STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4),
+						0 => STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4),
 						1 => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5),
 						_ => STuple.Create(this.Item3, this.Item4, this.Item5, this.Item6)
 					}),
 					5 => (offset switch
 					{
-						0 => (IVarTuple) STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5),
+						0 => STuple.Create(this.Item1, this.Item2, this.Item3, this.Item4, this.Item5),
 						_ => STuple.Create(this.Item2, this.Item3, this.Item4, this.Item5, this.Item6)
 					}),
 					_ => this
@@ -187,8 +181,7 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		[return: MaybeNull]
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			switch(index)
 			{
@@ -222,7 +215,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T7>(T7 value)
+		public IVarTuple Append<T7>(T7? value)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will loose type information.
 			// but, by returning a LinkedTuple<T6>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
@@ -251,7 +244,7 @@ namespace Doxense.Collections.Tuples
 
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct([MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3, [MaybeNull] out T4 item4, [MaybeNull] out T5 item5, [MaybeNull] out T6 item6)
+		public void Deconstruct(out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
 		{
 			item1 = this.Item1;
 			item2 = this.Item2;
@@ -305,8 +298,7 @@ namespace Doxense.Collections.Tuples
 
 		public override string ToString()
 		{
-			return string.Join("", new[]
-			{
+			return string.Concat(
 				"(",
 				STuple.Formatter.Stringify(this.Item1), ", ",
 				STuple.Formatter.Stringify(this.Item2), ", ",
@@ -315,7 +307,7 @@ namespace Doxense.Collections.Tuples
 				STuple.Formatter.Stringify(this.Item5), ", ",
 				STuple.Formatter.Stringify(this.Item6),
 				")"
-			});
+			);
 		}
 
 		public override bool Equals(object? obj)

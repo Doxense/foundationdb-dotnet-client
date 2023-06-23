@@ -108,7 +108,7 @@ namespace Doxense.Memory
 		public SliceWriter(byte[] buffer, int index)
 		{
 			Contract.NotNull(buffer);
-			Contract.Between(index, 0, buffer.Length, nameof(index));
+			Contract.Between(index, 0, buffer.Length);
 
 			this.Buffer = buffer;
 			this.Position = index;
@@ -440,37 +440,35 @@ namespace Doxense.Memory
 		}
 
 		/// <summary>Empties the current buffer after a successful write</summary>
-		/// <param name="zeroes">If true, fill the existing buffer with zeroes, if it is reused, to ensure that no previous data can leak.</param>
+		/// <param name="shrink">If <c>true</c>, release the buffer if it was large and mostly unused. If <c>false</c>, keep the same buffer independent of its current size</param>
+		/// <param name="zeroes">If <c>true</c>, fill the existing buffer with zeroes, if it is reused, to ensure that no previous data can leak.</param>
 		/// <remarks>If the current buffer is large enough, and less than 1/8th was used, then it will be discarded and a new smaller one will be allocated as needed</remarks>
-		public void Reset(bool zeroes = false)
+		public void Reset(bool shrink = false, bool zeroes = false)
 		{
-			if (this.Position != 0)
-			{
-				var buffer = this.Buffer;
-				Contract.Debug.Assert(buffer != null && buffer.Length >= this.Position);
-				// reduce size ?
-				// If the buffer exceeds 64K and we used less than 1/8 of it the last time, we will "shrink" the buffer
-				if (buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
-				{ // kill the buffer
-					this.Pool?.Return(buffer, zeroes);
-					this.Buffer = null;
-				}
-				else if (zeroes)
-				{ // Clear it
-					buffer.AsSpan(0, this.Position).Clear();
-				}
-				this.Position = 0;
+			var buffer = this.Buffer;
+			Contract.Debug.Requires(buffer != null && buffer.Length >= this.Position);
+			// reduce size ?
+			// If the buffer exceeds 64K and we used less than 1/8 of it the last time, we will "shrink" the buffer
+			if (shrink && buffer.Length > 65536 && this.Position <= (buffer.Length >> 3))
+			{ // kill the buffer
+				this.Pool?.Return(buffer, zeroes);
+				this.Buffer = Array.Empty<byte>();
 			}
+			else if (zeroes)
+			{ // Clear it
+				buffer.AsSpan(0, this.Position).Clear();
+			}
+			this.Position = 0;
 		}
 
 		/// <summary>Retourne le buffer actuel dans le pool utilisé par ce writer</summary>
 		/// <remarks>ATTENTION: l'appelant ne doit PLUS accéder (en read ou write) au buffer exposé par ce writer avant l'appel à cette méthode!</remarks>
-		public void Release()
+		public void Release(bool clear = false)
 		{
 			var buffer = this.Buffer;
-			if (buffer != null) this.Pool?.Return(buffer);
 			this.Buffer = Array.Empty<byte>();
 			this.Position = 0;
+			if (buffer != null) this.Pool?.Return(buffer, clear);
 		}
 
 		/// <summary>Advance the cursor of the buffer without writing anything, and return the previous position</summary>

@@ -142,19 +142,18 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
-		[return: MaybeNull]
-		public T Get<T>(int index)
+		public T? Get<T>(int index)
 		{
 			index = TupleHelpers.MapIndex(index, m_count);
 			return index < m_split ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - m_split);
 		}
 
-		IVarTuple IVarTuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>(T? value) where T : default
 		{
 			return new LinkedTuple<T>(this, value);
 		}
 
-		public LinkedTuple<T> Append<T>(T value)
+		public LinkedTuple<T> Append<T>(T? value)
 		{
 			return new LinkedTuple<T>(this, value);
 		}
@@ -217,10 +216,9 @@ namespace Doxense.Collections.Tuples
 		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
-			if (other == null) return false;
+			if (other is null) return false;
 
-			var tuple = other as IVarTuple;
-			if (!object.ReferenceEquals(tuple, null))
+			if (other is IVarTuple tuple)
 			{
 				if (tuple.Count != m_count) return false;
 
@@ -251,6 +249,7 @@ namespace Doxense.Collections.Tuples
 			}
 			return h;
 		}
+
 	}
 
 }

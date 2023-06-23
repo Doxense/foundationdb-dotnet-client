@@ -33,7 +33,6 @@ namespace Doxense.Collections.Tuples
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Linq;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Runtime.Converters;
@@ -154,21 +153,18 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
-		[return: MaybeNull]
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			return TypeConverters.ConvertBoxed<TItem>(this[index]);
 		}
 
-		[return: MaybeNull]
-		public TItem First<TItem>()
+		public TItem? First<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
 			return TypeConverters.ConvertBoxed<TItem>(m_items.Span[0]);
 		}
 
-		[return: MaybeNull]
-		public TItem Last<TItem>()
+		public TItem? Last<TItem>()
 		{
 			if (m_items.Length == 0) throw new InvalidOperationException("Tuple is empty.");
 #if USE_RANGE_API
@@ -179,7 +175,7 @@ namespace Doxense.Collections.Tuples
 			return TypeConverters.ConvertBoxed<TItem>(value);
 		}
 
-		public IVarTuple Append<TItem>(TItem value)
+		public IVarTuple Append<TItem>(TItem? value)
 		{
 			return new LinkedTuple<TItem>(this, value);
 		}

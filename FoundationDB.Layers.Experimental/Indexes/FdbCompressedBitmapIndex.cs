@@ -81,7 +81,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			{
 				var key = this.Subspace[value];
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
-				var builder = data.HasValue ? new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data)) : CompressedBitmapBuilder.Empty;
+				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 
 				//TODO: wasteful to crate a builder to only set on bit ?
 				builder.Set((int)id); //BUGBUG: id should be 64-bit!
@@ -113,8 +113,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
-						var builder = new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data));
-						builder.Clear((int)id); //BUGBUG: 64 bit id!
+						var builder = new CompressedBitmapBuilder(data);
+						builder.Clear((int) id); //BUGBUG: 64 bit id!
 						trans.Set(key, builder.ToSlice());
 					}
 				}
@@ -124,8 +124,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				{
 					var key = this.Subspace[newValue];
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
-					var builder = data.HasValue ? new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data)) : CompressedBitmapBuilder.Empty;
-					builder.Set((int)id); //BUGBUG: 64 bit id!
+					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
+					builder.Set((int) id); //BUGBUG: 64 bit id!
 					trans.Set(key, builder.ToSlice());
 				}
 
@@ -147,8 +147,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
-				var builder = new CompressedBitmapBuilder(MutableSlice.AsUnsafeMutableSlice(data));
-				builder.Clear((int)id); //BUGBUG: 64 bit id!
+				var builder = new CompressedBitmapBuilder(data);
+				builder.Clear((int) id); //BUGBUG: 64 bit id!
 				trans.Set(key, builder.ToSlice());
 				return true;
 			}
@@ -166,7 +166,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.IsNull) return null;
 			if (data.IsEmpty) return Enumerable.Empty<long>();
-			var bitmap = new CompressedBitmap(MutableSlice.AsUnsafeMutableSlice(data));
+			var bitmap = new CompressedBitmap(data);
 			if (reverse) throw new NotImplementedException(); //TODO: GetView(reverse:true) !
 			return bitmap.GetView().Select(x => (long)x /*BUGBUG 64 bits*/);
 		}

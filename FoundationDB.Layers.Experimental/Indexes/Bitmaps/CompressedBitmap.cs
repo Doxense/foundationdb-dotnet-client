@@ -41,10 +41,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Returns a new instance of an empty bitmap</summary>
 		public static readonly CompressedBitmap Empty = new CompressedBitmap(MutableSlice.Empty, BitRange.Empty);
 
-		private readonly MutableSlice m_data;
+		private readonly Slice m_data;
 		private readonly BitRange m_bounds;
 
-		public CompressedBitmap(MutableSlice data)
+		public CompressedBitmap(Slice data)
 		{
 			if (data.IsNull) throw new ArgumentNullException(nameof(data));
 			if (data.Count > 0 && data.Count < 8) throw new ArgumentException("A compressed bitmap must either be empty, or at least 8 bytes long", nameof(data));
@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			if (data.Count == 0)
 			{
-				m_data = MutableSlice.Empty;
+				m_data = Slice.Empty;
 				m_bounds = BitRange.Empty;
 			}
 			else
@@ -80,8 +80,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
-		/// <summary>Gets a copy of the compressed bitmap's data</summary>
-		public MutableSlice ToSlice() { return m_data.Memoize(); }
+		/// <summary>Gets the compressed bitmap's data</summary>
+		public Slice ToSlice() { return m_data; }
 
 		public CompressedBitmapBuilder ToBuilder()
 		{
@@ -90,13 +90,16 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Gets the underlying buffer of the compressed bitmap</summary>
 		/// <remarks>The content of the buffer MUST NOT be modified directly</remarks>
-		internal MutableSlice Data => m_data;
+		internal Slice Data => m_data;
 
 		/// <summary>Gets the bounds of the compressed bitmap</summary>
 		public BitRange Bounds => m_bounds;
 
 		/// <summary>Number of Data Words in the compressed bitmap</summary>
 		public int Count => m_data.IsNullOrEmpty ? 0 : (m_data.Count >> 2) - 1;
+
+		/// <summary>Number of bytes in the compressed bitmap</summary>
+		public int ByteCount => m_data.Count;
 
 		/// <summary>Test if the specified bit is set</summary>
 		/// <param name="bitOffset">Offset of the bit to test</param>
@@ -140,7 +143,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Returns the bounds of the uncompressed bitmap index</summary>
-		internal static BitRange ComputeBounds(MutableSlice data, int words = -1)
+		internal static BitRange ComputeBounds(Slice data, int words = -1)
 		{
 			int count = data.Count;
 			if (count > 0 && count < 8) throw new ArgumentException("Bitmap buffer size is too small", nameof(data));
@@ -153,7 +156,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			int highest;
 			if (words < 0)
 			{ // the bitmap is complete so we can read the header
-				highest = (int)data.ReadUInt32(0, 4);
+				highest = (int) data.ReadUInt32(0, 4);
 				if (highest < 0 && highest != -1) throw new InvalidOperationException("Corrupted bitmap buffer (highest bit underflow)" + highest);
 			}
 			else

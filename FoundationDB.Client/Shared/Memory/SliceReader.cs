@@ -31,8 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Memory
 {
 	using System;
+	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 	using JetBrains.Annotations;
@@ -94,6 +96,7 @@ namespace Doxense.Memory
 		public Slice Tail => this.Buffer.Substring(this.Position);
 
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
+		/// <exception cref="FormatException">If there's not enough bytes remaining in the buffer</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[DebuggerNonUserCode]
 		public void EnsureBytes(int count)
@@ -163,6 +166,76 @@ namespace Doxense.Memory
 			return b;
 		}
 
+		/// <summary>Read the next 2 bytes from the buffer</summary>
+		private ReadOnlySpan<byte> ReadTwoBytesSpan()
+		{
+			int p = this.Position;
+			if ((uint) (p + 2) > (uint) this.Buffer.Count) throw NotEnoughBytes(2);
+			this.Position = p + 2;
+#if NETSTANDARD || NETFRAMEWORK
+			return this.Buffer.Span.Slice(p, 2);
+#else
+			// this way will not re-validate the arguments a second time
+			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 2);
+#endif
+		}
+
+		/// <summary>Read the next 3 bytes from the buffer</summary>
+		private ReadOnlySpan<byte> ReadThreeBytesSpan()
+		{
+			int p = this.Position;
+			if ((uint) (p + 3) > (uint) this.Buffer.Count) throw NotEnoughBytes(3);
+			this.Position = p + 3;
+#if NETSTANDARD || NETFRAMEWORK
+			return this.Buffer.Span.Slice(p, 3);
+#else
+			// this way will not re-validate the arguments a second time
+			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 3);
+#endif
+		}
+
+		/// <summary>Read the next 4 bytes from the buffer</summary>
+		private ReadOnlySpan<byte> ReadFourBytesSpan()
+		{
+			int p = this.Position;
+			if ((uint) (p + 4) > (uint) this.Buffer.Count) throw NotEnoughBytes(4);
+			this.Position = p + 4;
+#if NETSTANDARD || NETFRAMEWORK
+			return this.Buffer.Span.Slice(p, 4);
+#else
+			// this way will not re-validate the arguments a second time
+			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 4);
+#endif
+		}
+
+		/// <summary>Read the next 8 bytes from the buffer</summary>
+		private ReadOnlySpan<byte> ReadEightBytesSpan()
+		{
+			int p = this.Position;
+			if ((uint) (p + 8) > (uint) this.Buffer.Count) throw NotEnoughBytes(8);
+			this.Position = p + 8;
+#if NETSTANDARD || NETFRAMEWORK
+			return this.Buffer.Span.Slice(p, 8);
+#else
+			// this way will not re-validate the arguments a second time
+			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 8);
+#endif
+		}
+
+		/// <summary>Read the next 16 bytes from the buffer</summary>
+		private ReadOnlySpan<byte> ReadSixteenBytesSpan()
+		{
+			int p = this.Position;
+			if (checked(p + 16) > this.Buffer.Count) throw NotEnoughBytes(16);
+			this.Position = p + 16;
+#if NETSTANDARD || NETFRAMEWORK
+			return this.Buffer.Span.Slice(p, 16);
+#else
+			// this way will not re-validate the arguments a second time
+			return MemoryMarshal.CreateReadOnlySpan(ref this.Buffer.Array[this.Buffer.Offset + p], 16);
+#endif
+		}
+
 		/// <summary>Read the next <paramref name="count"/> bytes from the buffer</summary>
 		public Slice ReadBytes(int count)
 		{
@@ -216,8 +289,8 @@ namespace Doxense.Memory
 				int count = 0;
 				fixed (byte* bytes = &this.Buffer.DangerousGetPinnableReference())
 				{
-					byte* ptr = bytes;
-					byte* end = bytes + this.Remaining;
+					byte* ptr = bytes + start;
+					byte* end = ptr + this.Remaining;
 					while (ptr < end)
 					{
 						if (!handler(*ptr, count))
@@ -243,7 +316,7 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ushort ReadFixed16()
 		{
-			return ReadBytes(2).ToUInt16();
+			return BinaryPrimitives.ReadUInt16LittleEndian(ReadTwoBytesSpan());
 		}
 
 		/// <summary>Read the next 3 bytes as an unsigned 24-bit integer, encoded in little-endian</summary>
@@ -251,7 +324,13 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public uint ReadFixed24()
 		{
-			return ReadBytes(3).ToUInt24();
+			unsafe
+			{
+				fixed (byte* ptr = ReadThreeBytesSpan())
+				{
+					return UnsafeHelpers.LoadUInt24LE(ptr);
+				}
+			}
 		}
 
 
@@ -259,56 +338,62 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public uint ReadFixed32()
 		{
-			return ReadBytes(4).ToUInt32();
+			return BinaryPrimitives.ReadUInt32LittleEndian(ReadFourBytesSpan());
 		}
 
 		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ulong ReadFixed64()
 		{
-			return ReadBytes(8).ToUInt64();
+			return BinaryPrimitives.ReadUInt64LittleEndian(ReadEightBytesSpan());
 		}
 
 		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ushort ReadFixed16BE()
 		{
-			return ReadBytes(2).ToUInt16BE();
+			return BinaryPrimitives.ReadUInt16BigEndian(ReadTwoBytesSpan());
 		}
 
 		/// <summary>Read the next 3 bytes as an unsigned 24-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public uint ReadFixed24BE()
 		{
-			return ReadBytes(3).ToUInt24BE();
+			unsafe
+			{
+				fixed (byte* ptr = ReadThreeBytesSpan())
+				{
+					return UnsafeHelpers.LoadUInt24BE(ptr);
+				}
+			}
 		}
 
 		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public uint ReadFixed32BE()
 		{
-			return ReadBytes(4).ToUInt32BE();
+			return BinaryPrimitives.ReadUInt32BigEndian(ReadFourBytesSpan());
 		}
 
 		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ulong ReadFixed64BE()
 		{
-			return ReadBytes(8).ToUInt64BE();
+			return BinaryPrimitives.ReadUInt64BigEndian(ReadEightBytesSpan());
 		}
 
 		/// <summary>Read the next 4 bytes as an IEEE 32-bit floating point number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public float ReadSingle()
 		{
-			return ReadBytes(4).ToSingle();
+			return ReadFourBytesSpan().ToSingle();
 		}
 
 		/// <summary>Read the next 8 bytes as an IEEE 64-bit floating point number</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public double ReadDouble()
 		{
-			return ReadBytes(8).ToDouble();
+			return ReadEightBytesSpan().ToDouble();
 		}
 
 		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
@@ -463,14 +548,14 @@ namespace Doxense.Memory
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid128 ReadUuid128()
 		{
-			return ReadBytes(16).ToUuid128();
+			return ReadSixteenBytesSpan().ToUuid128();
 		}
 
 		/// <summary>Reads a 64-bit UUID</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Uuid64 ReadUuid64()
 		{
-			return ReadBytes(8).ToUuid64();
+			return ReadEightBytesSpan().ToUuid64();
 		}
 	}
 

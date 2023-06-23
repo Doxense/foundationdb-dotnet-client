@@ -1273,7 +1273,7 @@ namespace System
 		public string PrettyPrint()
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
-			return PrettyPrint(this.Array, this.Offset, this.Count, 1024); //REVIEW: constant for max size!
+			return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: false, lower: false); //REVIEW: constant for max size!
 		}
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
@@ -1283,48 +1283,68 @@ namespace System
 		public string PrettyPrint(int maxLen)
 		{
 			if (this.Count == 0) return this.Array != null ? "''" : string.Empty;
-			return PrettyPrint(this.Array, this.Offset, this.Count, maxLen);
+			return PrettyPrint(this.Array, this.Offset, this.Count, maxLen, biasKey: false, lower: false);
 		}
 
+		internal const int DefaultPrettyPrintSize = 1024;
+
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		[Pure]
-		internal static string PrettyPrint(byte[] buffer, int offset, int count, int maxLen)
+		internal static string PrettyPrint(byte[] buffer, int offset, int count, int maxLen, bool? biasKey, bool lower)
 		{
+			// this method tries to guess what the hxll is in the slice in order to render an intelligible text (to logs, for the debugger, ...)
+			// We can have any of the following (all with the same size)
+			// - Text: should be rendered inside quotes ('...')
+			//   - regular ASCII text "Hello World"
+			//   - regular UTF-8 encoded text "Héllo Wôrld!"
+			//   - text with control codes like \r, \n, \t or '\' that must be escaped nicely(ex: '\n' => "\\n")
+			//   - text in simple binary encodings with some prefix/suffix (ex: "<02>Hello World!<00>" for tuples)
+			// - Binary: any fixed or viariable size integer, GUID, Date, ...
+			//   - for small 32/64 bits values, it would be nice to also see the converted decimal value
+			//   - keys will probably be high-endian (ordered)
+			//   - values will prorbably be little-endian (unordered)
+			//   - compressed or random values that have absolutely no discernable features
+			// - Any mixture of the two (ex: a GUID followed by an utf-8 string
+
 			if (count == 0) return "''";
 
-			// look for UTF-8 BOM
-			if (count >= 3 && buffer[offset] == 0xEF && buffer[offset + 1] == 0xBB && buffer[offset + 2] == 0xBF)
-			{ // this is supposed to be an UTF-8 string
-				return EscapeString(new StringBuilder(count).Append('\''), buffer, offset + 3, Math.Min(count - 3, maxLen), Slice.Utf8NoBomEncoding).Append('\'').ToString();
-			}
-
-			if (count >= 2)
+			if (biasKey != true)
 			{
-				// look for JSON objets or arrays
-				if ((buffer[offset] == '{' && buffer[offset + count - 1] == '}') || (buffer[offset] == '[' && buffer[offset + count - 1] == ']'))
+				// look for UTF-8 BOM
+				if (count >= 3 && buffer[offset] == 0xEF && buffer[offset + 1] == 0xBB && buffer[offset + 2] == 0xBF)
+				{ // this is supposed to be an UTF-8 string
+					return EscapeString(new StringBuilder(count).Append('\''), buffer, offset + 3, Math.Min(count - 3, maxLen), Slice.Utf8NoBomEncoding).Append('\'').ToString();
+				}
+
+				if (count >= 2)
 				{
-					try
+					// look for JSON objets or arrays
+					if ((buffer[offset] == '{' && buffer[offset + count - 1] == '}') || (buffer[offset] == '[' && buffer[offset + count - 1] == ']'))
 					{
-						if (count <= maxLen)
+						try
 						{
-							return EscapeString(new StringBuilder(count + 16), buffer, offset, count, Slice.Utf8NoBomEncoding).ToString();
+							if (count <= maxLen)
+							{
+								return EscapeString(new StringBuilder(count + 16), buffer, offset, count, Slice.Utf8NoBomEncoding).ToString();
+							}
+							else
+							{
+								return
+									EscapeString(new StringBuilder(count + 16), buffer, offset, maxLen, Slice.Utf8NoBomEncoding)
+										.Append("[\u2026]")
+										.Append(buffer[offset + count - 1])
+										.ToString();
+							}
 						}
-						else
+						catch (System.Text.DecoderFallbackException)
 						{
-							return
-								EscapeString(new StringBuilder(count + 16), buffer, offset, maxLen, Slice.Utf8NoBomEncoding)
-									.Append("[\u2026]")
-									.Append(buffer[offset + count - 1])
-									.ToString();
+							// sometimes, binary data "looks" like valid JSON but is not, so we just ignore it (even if we may have done a bunch of work for nothing)
 						}
-					}
-					catch (System.Text.DecoderFallbackException)
-					{
-						// sometimes, binary data "looks" like valid JSON but is not, so we just ignore it (even if we may have done a bunch of work for nothing)
 					}
 				}
 			}
 
-			// do a first path on the slice to look for binary of possible text
+			// do a first pass on the slice to look for binary of possible text
 			bool mustEscape = false;
 			int n = count;
 			int p = offset;
@@ -1334,17 +1354,17 @@ namespace System
 				if (b >= 32 && b < 127) continue;
 
 				// we accept via escaping the following special chars: CR, LF, TAB
-				if (b == 0 || b == 10 || b == 13 || b == 9)
+				if (b == 0 || b == 10 || b == 13 || b == 9 || b == 127)
 				{
 					mustEscape = true;
 					continue;
 				}
 
-				//TODO: are there any chars above 128 that could be accepted ?
-
 				// this looks like binary
-				//return "<" + FormatHexaString(buffer, offset, count, ' ', false) + ">";
-				return Slice.Dump(new Slice(buffer, offset, count), maxLen);
+				//TODO: if biasKey == false && count == 2|4|8, maybe try decode as an integer?
+				return lower
+					? Slice.DumpLower(buffer.AsSpan(offset, count), maxLen)
+					: Slice.Dump(buffer.AsSpan(offset, count), maxLen);
 			}
 
 			if (!mustEscape)

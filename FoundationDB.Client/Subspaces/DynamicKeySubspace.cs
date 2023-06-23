@@ -347,7 +347,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of a single element</summary>
 		[Pure]
-		public static Slice Encode<T1>(this IDynamicKeySubspace self, [AllowNull] T1 item1)
+		public static Slice Encode<T1>(this IDynamicKeySubspace self, T1? item1)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1);
@@ -380,7 +380,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of a two elements</summary>
 		[Pure]
-		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, [AllowNull] T1 item1, [AllowNull] T2 item2)
+		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, T1? item1, T2? item2)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2);
@@ -389,7 +389,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of three elements</summary>
 		[Pure]
-		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3);
@@ -398,7 +398,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of four elements</summary>
 		[Pure]
-		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4)
+		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4);
@@ -407,7 +407,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of five elements</summary>
 		[Pure]
-		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5)
+		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5);
@@ -416,7 +416,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of six elements</summary>
 		[Pure]
-		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3, [AllowNull] T4 item4, [AllowNull] T5 item5, [AllowNull] T6 item6)
+		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6);
@@ -428,8 +428,7 @@ namespace FoundationDB.Client
 		#region Decode...
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
-		[return: MaybeNull]
-		public static T1 Decode<T1>(this IDynamicKeySubspace self, Slice packedKey)
+		public static T1? Decode<T1>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
 		}
@@ -465,16 +464,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
-		[return: MaybeNull]
-		public static TFirst DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
+		public static TFirst? DecodeFirst<TFirst>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyFirst<TFirst>(self.ExtractKey(packedKey));
 		}
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
-		[return: MaybeNull]
-		public static TLast DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
+		public static TLast? DecodeLast<TLast>(this IDynamicKeySubspace self, Slice packedKey)
 		{
 			return self.KeyEncoder.DecodeKeyLast<TLast>(self.ExtractKey(packedKey));
 		}
@@ -518,7 +515,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<T>([AllowNull] T value)
+		public IDynamicKeySubspace ByKey<T>(T? value)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T>(value), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
@@ -534,7 +531,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<T1, T2>([AllowNull] T1 value1, [AllowNull] T2 value2)
+		public IDynamicKeySubspace ByKey<T1, T2>(T1? value1, T2? value2)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2>(value1, value2), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
@@ -551,7 +548,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<T1, T2, T3>([AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3)
+		public IDynamicKeySubspace ByKey<T1, T2, T3>(T1? value1, T2? value2, T3? value3)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
@@ -570,7 +567,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>([AllowNull] T1 value1, [AllowNull] T2 value2, [AllowNull] T3 value3, [AllowNull] T4 value4)
+		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>(T1? value1, T2? value2, T3? value3, T4? value4)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}

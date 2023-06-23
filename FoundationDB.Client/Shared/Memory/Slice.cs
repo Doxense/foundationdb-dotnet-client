@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace System
 {
 	using System;
+	using System.Buffers;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
@@ -53,7 +54,7 @@ namespace System
 	/// It is considered "read-only", in a sense that <i>consumers</i> of this type should SHOULD NOT attempt to modify the content of the slice. Though, it is <b>NOT</b> guaranteed the content of a slice will not change, if the backing array is mutated directly.
 	/// This type as several advantages over <see cref="ReadOnlyMemory{T}"/> or <see cref="Span{T}"/> when working with legacy APIs that don't support spans directly, and can also be stored one the heap.
 	/// </remarks>
-	[PublicAPI, ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
+	[PublicAPI, ImmutableObject(true), DebuggerDisplay("{PrettyPrint(),nq}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
 	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IEquatable<MutableSlice>, IComparable<Slice>, IFormattable, ISliceSerializable
 	{
@@ -82,7 +83,6 @@ namespace System
 		// => Should it be Array/Offset/Count (current), or Count/Offset/Array ?
 
 		/// <summary>Pointer to the buffer (or null for <see cref="Nil"/>)</summary>
-		[System.Diagnostics.CodeAnalysis.DisallowNull]
 		public readonly byte[] Array;
 
 		/// <summary>Offset of the first byte of the slice in the parent buffer</summary>
@@ -155,7 +155,7 @@ namespace System
 		public static Slice CreateUnsafe(byte[] buffer, uint offset, uint count)
 		{
 			Contract.Debug.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
-			return new Slice(buffer, (int) offset, (int) count);
+			return new Slice(buffer, checked((int) offset), checked((int) count));
 		}
 
 		/// <summary>Creates a new slice with a copy of the array</summary>
@@ -313,7 +313,7 @@ namespace System
 		public bool HasValue
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Array != null ? true : false;
+			get => this.Array != null;
 		}
 
 		/// <summary>Returns true if the slice is null</summary>
@@ -321,7 +321,7 @@ namespace System
 		public bool IsNull
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Array == null ? true : false;
+			get => this.Array == null;
 		}
 
 		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
@@ -329,21 +329,21 @@ namespace System
 		public bool IsEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Count == 0 && this.Array != null ? true : false;
+			get => this.Count == 0 && this.Array != null;
 		}
 
 		/// <summary>Returns true if the slice is null or empty, or false if it contains at least one byte</summary>
 		public bool IsNullOrEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Count == 0 ? true : false;
+			get => this.Count == 0;
 		}
 
 		/// <summary>Returns true if the slice contains at least one byte, or false if it is null or empty</summary>
 		public bool IsPresent
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Count != 0 ? true : false;
+			get => this.Count != 0;
 		}
 
 		/// <summary>Replace <see cref="Nil"/> with <see cref="Empty"/></summary>
@@ -357,14 +357,14 @@ namespace System
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of the slice, or null</returns>
 		[Pure]
-		public byte[]? GetBytes()
+		public byte[]? GetBytes() //REVIEW: should be called ToArray(), like Span<byte>.ToArray() ?
 		{
 			return this.Count != 0 ? this.Span.ToArray() : this.Array != null ? System.Array.Empty<byte>() : null;
 		}
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or and empty array if the slice is null or empty</summary>
 		/// <returns>Byte array with a copy of the slice</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] GetBytesOrEmpty()
 		{
 			//note: this is a convenience method for code where dealing with null is a pain, or where it has already checked IsNull
@@ -373,11 +373,38 @@ namespace System
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public byte[] GetBytes(int offset, int count)
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
 			return this.Span.Slice(offset, count).ToArray();
+		}
+
+		/// <summary>Expose the internal buffer, if it is perfectly covered by the slice</summary>
+		/// <param name="bytes">Receives the internal buffer</param>
+		/// <returns>True if the buffer is complete and is exposed in <paramref name="bytes"/>. False if the slice only cover a part of the buffer.</returns>
+		/// <remarks>
+		/// Used to optimize the case when the caller needs to send the slice as a non-chunkable <c>byte[]</c> to a legacy API, without copying.
+		/// The pattern should be: <c>if (slice.TryGetBytesUnsafe(out var bytes)) { /* use bytes as readonly! */ } else { /* must copy the slice somehow, or use a memory pool! */ }</c>
+		/// </remarks>
+		[ContractAnnotation("=> true, bytes: notnull; => false, bytes: null")]
+		public bool TryGetBytesUnsafe([MaybeNullWhen(false)] out byte[] bytes)
+		{
+			var arr = this.Array;
+			if (arr == null)
+			{
+				bytes = null;
+				return true;
+			}
+
+			if (this.Offset != 0 || this.Count != arr.Length)
+			{
+				bytes = null;
+				return false;
+			}
+
+			bytes = arr;
+			return true;
 		}
 
 		/// <summary>Return a SliceReader that can decode this slice into smaller fields</summary>
@@ -385,19 +412,6 @@ namespace System
 		public SliceReader ToSliceReader()
 		{
 			return new SliceReader(this);
-		}
-
-		/// <summary>Return a stream that wraps this slice</summary>
-		/// <returns>Stream that will read the slice from the start.</returns>
-		/// <remarks>
-		/// You can use this method to convert text into specific encodings, load bitmaps (JPEG, PNG, ...), or any serialization format that requires a Stream or TextReader instance.
-		/// Disposing this stream will have no effect on the slice.
-		/// </remarks>
-		[Pure]
-		public SliceStream ToSliceStream()
-		{
-			EnsureSliceIsValid();
-			return new SliceStream(this);
 		}
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
@@ -554,12 +568,14 @@ namespace System
 			return this.Span.TryCopyTo(destination.Span);
 		}
 
+		/// <summary>Copy this slice into another buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void CopyTo(Span<byte> destination)
 		{
 			this.Span.CopyTo(destination);
 		}
 
+		/// <summary>Copy this slice into another buffer, if it is large enough.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryCopyTo(Span<byte> destination)
 		{
@@ -846,6 +862,7 @@ namespace System
 		/// <param name="value">The span to compare.</param>
 		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>
 		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool StartsWith(ReadOnlySpan<byte> value)
 		{
 			return value.Length == 0 || this.Span.StartsWith(value);
@@ -866,6 +883,7 @@ namespace System
 		/// <param name="value">The span to compare.</param>
 		/// <returns><b>true</b> if <paramref name="value"/> matches the end of this slice; otherwise, <b>false</b></returns>
 		[Pure]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool EndsWith(ReadOnlySpan<byte> value)
 		{
 			return value.Length == 0 || this.Span.EndsWith(value);
@@ -904,6 +922,44 @@ namespace System
 
 			// must start with the same bytes
 			return this.Span.EndsWith(parent.Span);
+		}
+
+		/// <summary>Determines whether the slice is equal to the specified ASCII keyword</summary>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intendeed</param>
+		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, represents the same bytes as this slice; otherwise, <b>false</b></returns>
+		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
+		public bool Equals(ReadOnlySpan<char> asciiString)
+		{
+			var span = this.Span;
+			if (span.Length < asciiString.Length) return false;
+			for (int i = 0; i < asciiString.Length; i++)
+			{
+				Contract.Debug.Assert(asciiString[i] < 128);
+				if (span[i] != asciiString[i]) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Determines whether the beginning of this slice instance matches a specified ASCII keyword</summary>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intendeed</param>
+		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, matches the beginning of this slice; otherwise, <b>false</b></returns>
+		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
+		public bool StartsWith(ReadOnlySpan<char> asciiString)
+		{
+			if (asciiString.Length == 0) return true;
+			if (this.Count < asciiString.Length) return false;
+			return Substring(0, asciiString.Length).Equals(asciiString);
+		}
+
+		/// <summary>Determines whether the end of this slice instance matches a specified ASCII keyword</summary>
+		/// <param name="asciiString">String of ASCII chars. Any character with a code pointer greater or equal to 128 will not work as intendeed</param>
+		/// <returns><b>true</b> if <see cref="asciiString"/>, when interpreted as bytes, matches the end of this slice; otherwise, <b>false</b></returns>
+		/// <remarks>This method is only intended to test the presence of specific keywords or header signatures when parsing protocols, NOT for matching natural text!</remarks>
+		public bool EndsWith(ReadOnlySpan<char> asciiString)
+		{
+			if (asciiString.Length == 0) return true;
+			if (this.Count < asciiString.Length) return false;
+			return Substring(this.Count - asciiString.Length).Equals(asciiString);
 		}
 
 		/// <summary>Append/Merge a slice at the end of the current slice</summary>
@@ -948,6 +1004,7 @@ namespace System
 			tail.CopyTo(tmp.AsSpan(count));
 			return new Slice(tmp);
 		}
+
 		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -1051,6 +1108,7 @@ namespace System
 		}
 
 		/// <summary>Concatenate two slices together</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Concat(Slice a, Slice b)
 		{
 			return a.Concat(b);
@@ -1255,9 +1313,12 @@ namespace System
 			Contract.NotNull(values);
 
 			int count = values.Length;
-			if (count == 0) return Empty;
-			if (count == 1) return values[0];
-			return Join(separator, values, 0, count);
+			return count switch
+			{
+				0 => Empty,
+				1 => values[0],
+				_ => Join(separator, values, 0, count)
+			};
 		}
 
 		/// <summary>Concatenates all the elements of a slice array, using the specified separator between each element.</summary>
@@ -1288,7 +1349,7 @@ namespace System
 				if (i > 0) buf = separator.WriteTo(buf);
 				buf = values[i].WriteTo(buf);
 			}
-			Contract.Debug.Assert(buf.Length == 0);
+			Contract.Debug.Ensures(buf.Length == 0);
 			return new Slice(tmp);
 		}
 
@@ -1329,7 +1390,7 @@ namespace System
 				if (i > 0) writer.WriteBytes(separator);
 				writer.WriteBytes(values[i]);
 			}
-			Contract.Debug.Assert(writer.Buffer?.Length == size);
+			Contract.Debug.Ensures(writer.Buffer?.Length == size);
 			return writer.ToSlice();
 		}
 
@@ -1382,7 +1443,7 @@ namespace System
 				if (i > 0) buf = separator.WriteTo(buf);
 				buf = values[startIndex + i].WriteTo(buf);
 			}
-			Contract.Debug.Assert(buf.Length == 0);
+			Contract.Debug.Ensures(buf.Length == 0);
 			return tmp;
 		}
 
@@ -1464,7 +1525,7 @@ namespace System
 		/// <remarks>To reduce memory usage, the sub-slices returned in the array will all share the same underlying buffer of the input slice.</remarks>
 		public static Slice[] Split(Slice input, int stride)
 		{
-			Contract.GreaterOrEqual(stride, 1, nameof (stride));
+			Contract.GreaterOrEqual(stride, 1);
 
 			if (input.IsNull) return System.Array.Empty<Slice>();
 
@@ -1625,7 +1686,7 @@ namespace System
 		/// <returns>New slice that contains <paramref name="count"/> times the byte <paramref name="value"/>.</returns>
 		public static Slice Repeat(byte value, int count)
 		{
-			Contract.Positive(count, nameof(count), "count");
+			Contract.Positive(count);
 			if (count == 0) return Empty;
 
 			var res = new byte[count];
@@ -1639,7 +1700,7 @@ namespace System
 		/// <returns>New slice that contains <paramref name="count"/> times the byte <paramref name="value"/>.</returns>
 		public static Slice Repeat(char value, int count)
 		{
-			Contract.Positive(count, nameof(count), "count");
+			Contract.Positive(count);
 			if (count == 0) return Empty;
 
 			var res = new byte[count];
@@ -1690,6 +1751,7 @@ namespace System
 		/// <param name="b">Second key</param>
 		/// <returns>The key that is BEFORE the other, using lexicographical order</returns>
 		/// <remarks>If both keys are equal, then <paramref name="a"/> is returned</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Min(Slice a, Slice b)
 		{
 			return a.CompareTo(b) <= 0 ? a : b;
@@ -1752,6 +1814,7 @@ namespace System
 		/// <param name="b">Second key</param>
 		/// <returns>The key that is AFTER the other, using lexicographical order</returns>
 		/// <remarks>If both keys are equal, then <paramref name="a"/> is returned</remarks>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Max(Slice a, Slice b)
 		{
 			return a.CompareTo(b) >= 0 ? a : b;
@@ -1813,6 +1876,7 @@ namespace System
 
 		/// <summary>Compare two slices for equality</summary>
 		/// <returns>True if the slices contains the same bytes</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(Slice a, Slice b)
 		{
 			return a.Equals(b);
@@ -1820,6 +1884,7 @@ namespace System
 
 		/// <summary>Compare two slices for inequality</summary>
 		/// <returns>True if the slices do not contain the same bytes</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(Slice a, Slice b)
 		{
 			return !a.Equals(b);
@@ -1827,6 +1892,7 @@ namespace System
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically less than <paramref name="a"/>; otherwise, false.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator <(Slice a, Slice b)
 		{
 			return a.CompareTo(b) < 0;
@@ -1834,6 +1900,7 @@ namespace System
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically less than or equal to <paramref name="a"/>; otherwise, false.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator <=(Slice a, Slice b)
 		{
 			return a.CompareTo(b) <= 0;
@@ -1841,6 +1908,7 @@ namespace System
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically greater than <paramref name="a"/>; otherwise, false.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator >(Slice a, Slice b)
 		{
 			return a.CompareTo(b) > 0;
@@ -1848,6 +1916,7 @@ namespace System
 
 		/// <summary>Compare two slices</summary>
 		/// <returns>True if <paramref name="a"/> is lexicographically greater than or equal to <paramref name="a"/>; otherwise, false.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator >=(Slice a, Slice b)
 		{
 			return a.CompareTo(b) >= 0;
@@ -1857,6 +1926,7 @@ namespace System
 		/// <param name="a">First slice</param>
 		/// <param name="b">Second slice</param>
 		/// <returns>Merged slices if both slices are contiguous, or a new slice containing the content of the first slice, followed by the second</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice operator +(Slice a, Slice b)
 		{
 			return a.Concat(b);
@@ -1892,42 +1962,49 @@ namespace System
 		// For structs that have "==" / "!=" operators, the compiler will think that when you write "slice == null", you really mean "(Slice?)slice == default(Slice?)", and that would ALWAYS false if you don't have specialized overloads to intercept.
 
 		/// <summary>Determines whether two specified instances of <see cref="Slice"/> are equal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator ==(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 		}
 
 		/// <summary>Determines whether two specified instances of <see cref="Slice"/> are not equal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator !=(Slice? a, Slice? b)
 		{
 			return !a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 		}
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is less than another specified <see cref="Slice"/>.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator <(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() < b.GetValueOrDefault();
 		}
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is less than or equal to another specified <see cref="Slice"/>.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator <=(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() <= b.GetValueOrDefault();
 		}
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is greater than another specified <see cref="Slice"/>.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator >(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() > b.GetValueOrDefault();
 		}
 
 		/// <summary>Determines whether one specified <see cref="Slice"/> is greater than or equal to another specified <see cref="Slice"/>.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool operator >=(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() >= b.GetValueOrDefault();
 		}
 
 		/// <summary>Concatenates two <see cref="Slice"/> together.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice operator +(Slice? a, Slice? b)
 		{
 			// note: makes "slice + null" work!
@@ -1946,7 +2023,7 @@ namespace System
 		#endregion
 
 		/// <summary>Returns a printable representation of the key</summary>
-		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="Slice.Unescape"/>(string) and get back the original slice.</remarks>
+		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="Unescape(string?)"/>(string) and get back the original slice.</remarks>
 		public override string ToString()
 		{
 			return Dump(this);
@@ -1986,16 +2063,19 @@ namespace System
 					return ToHexaString(' ', lower: true);
 
 				case "P":
+					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: null, lower: false);
 				case "p":
-					return PrettyPrint();
+					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: null, lower: true);
 
 				case "K":
+					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: true, lower: false);
 				case "k":
-					return this.IsNull ? "<null>" : PrettyPrint(); //TODO: Key ! (cf USlice)
+					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: true, lower: true);
 
 				case "V":
+					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: false, lower: false);
 				case "v":
-					return this.IsNull ? "<null>" : PrettyPrint(); //TODO: Value ! (cf USlice)
+					return PrettyPrint(this.Array, this.Offset, this.Count, DefaultPrettyPrintSize, biasKey: false, lower: true);
 
 				default:
 					throw new FormatException("Format is invalid or not supported");
@@ -2004,7 +2084,7 @@ namespace System
 
 		/// <summary>Returns a printable representation of a key</summary>
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
-		public static string Dump(Slice value, int maxSize = 1024) //REVIEW: rename this to Encode(..) or Escape(..)
+		public static string Dump(Slice value, int maxSize = DefaultPrettyPrintSize) //REVIEW: rename this to Encode(..) or Escape(..)
 		{
 			if (value.Count == 0) return value.HasValue ? "<empty>" : "<null>";
 
@@ -2038,16 +2118,19 @@ namespace System
 
 		/// <summary>Returns a printable representation of a key</summary>
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
-		public static string Dump(ReadOnlySpan<byte> value, int maxSize = 1024) //REVIEW: rename this to Encode(..) or Escape(..)
+		public static string Dump(ReadOnlySpan<byte> value, int maxSize = DefaultPrettyPrintSize) //REVIEW: rename this to Encode(..) or Escape(..)
 		{
 			if (value.Length == 0) return "<empty>";
 
-			int count = Math.Min(value.Length, maxSize);
-
-			var sb = new StringBuilder(count + 16);
-			for(int pos = 0; pos < count; pos++)
+			bool truncated = value.Length > maxSize;
+			if (truncated)
 			{
-				int c = value[pos];
+				value = value.Slice(0, maxSize);
+			}
+
+			var sb = new StringBuilder(value.Length + 16);
+			foreach(var c in value)
+			{
 				if (c < 32 || c >= 127 || c == 60)
 				{
 					sb.Append('<');
@@ -2062,7 +2145,41 @@ namespace System
 					sb.Append((char) c);
 				}
 			}
-			if (value.Length > maxSize) sb.Append("[\u2026]"); // Unicode for '...'
+			if (truncated) sb.Append("[\u2026]"); // Unicode for '...'
+			return sb.ToString();
+		}
+
+		/// <summary>Returns a printable representation of a key</summary>
+		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
+		private static string DumpLower(ReadOnlySpan<byte> value, int maxSize = DefaultPrettyPrintSize)
+		{
+			//note: same as Dump() but with lowercase hexadecimal!
+			if (value.Length == 0) return "<empty>";
+
+			bool truncated = value.Length > maxSize;
+			if (truncated)
+			{
+				value = value.Slice(0, maxSize);
+			}
+
+			var sb = new StringBuilder(value.Length + 16);
+			foreach(var c in value)
+			{
+				if (c < 32 || c >= 127 || c == 60)
+				{
+					sb.Append('<');
+					int x = c >> 4;
+					sb.Append((char) (x + (x < 10 ? 48 : 67)));
+					x = c & 0xF;
+					sb.Append((char) (x + (x < 10 ? 48 : 67)));
+					sb.Append('>');
+				}
+				else
+				{
+					sb.Append((char) c);
+				}
+			}
+			if (truncated) sb.Append("[\u2026]"); // Unicode for '...'
 			return sb.ToString();
 		}
 
@@ -2120,7 +2237,7 @@ namespace System
 			int length;
 			checked { length = (int)data.Length; }
 
-			if (data is MemoryStream || data is UnmanagedMemoryStream) // other types of already completed streams ?
+			if (data is MemoryStream or UnmanagedMemoryStream) // other types of already completed streams ?
 			{ // read synchronously
 				return Task.FromResult(LoadFromNonBlockingStream(data, length));
 			}
@@ -2158,7 +2275,7 @@ namespace System
 				p += n;
 				r -= n;
 			}
-			Contract.Debug.Assert(r == 0 && p == length);
+			Contract.Debug.Ensures(r == 0 && p == length);
 
 			return new Slice(buffer);
 		}
@@ -2181,13 +2298,13 @@ namespace System
 			int r = length;
 			while (r > 0)
 			{
-				int c = Math.Max(r, chunkSize);
+				int c = Math.Min(r, chunkSize);
 				int n = source.Read(buffer, p, c);
 				if (n <= 0) throw ThrowHelper.InvalidOperationException($"Unexpected end of stream at {p:N0} / {length:N0} bytes");
 				p += n;
 				r -= n;
 			}
-			Contract.Debug.Assert(r == 0 && p == length);
+			Contract.Debug.Ensures(r == 0 && p == length);
 
 			return new Slice(buffer);
 		}
@@ -2229,7 +2346,7 @@ namespace System
 		/// <summary>Checks if an object is equal to the current slice</summary>
 		/// <param name="obj">Object that can be either another slice, a byte array, or a byte array segment.</param>
 		/// <returns>true if the object represents a sequence of bytes that has the same size and same content as the current slice.</returns>
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			switch (obj)
 			{
@@ -2509,14 +2626,14 @@ namespace System
 		{
 
 			/// <summary>GC Handle on the main buffer</summary>
-			internal GCHandle Handle;
+			public GCHandle Handle;
 
 			/// <summary>Additional GC Handles (optional)</summary>
 			internal readonly GCHandle[]? Handles;
 
 			internal object? Owner;
 
-			internal Pinned(object owner, byte[] buffer, List<Slice>? extra)
+			public Pinned(object owner, byte[] buffer, List<Slice>? extra)
 			{
 				Contract.Debug.Requires(owner != null && buffer != null);
 
@@ -2575,7 +2692,7 @@ namespace System
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null ? null : System.Array.Empty<byte>();
+					if (m_slice.Count == 0) return m_slice.Array == null! ? null : System.Array.Empty<byte>();
 					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array.Length) return m_slice.Array;
 					var tmp = new byte[m_slice.Count];
 					System.Array.Copy(m_slice.Array, m_slice.Offset, tmp, 0, m_slice.Count);
@@ -2583,7 +2700,7 @@ namespace System
 				}
 			}
 
-			public string Content => Slice.Dump(m_slice, maxSize: 1024);
+			public string Content => Slice.Dump(m_slice, maxSize: DefaultPrettyPrintSize);
 
 			/// <summary>Encoding using only for display purpose: we don't want to throw in the 'Text' property if the input is not text!</summary>
 			private static readonly UTF8Encoding Utf8NoBomEncodingNoThrow = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
@@ -2592,7 +2709,7 @@ namespace System
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null ? null : string.Empty;
+					if (m_slice.Count == 0) return m_slice.Array == null! ? null : string.Empty;
 					return EscapeString(new StringBuilder(m_slice.Count + 16), m_slice.Array, m_slice.Offset, m_slice.Count, Utf8NoBomEncodingNoThrow).ToString();
 				}
 			}
@@ -2601,10 +2718,10 @@ namespace System
 			{
 				get
 				{
-					if (m_slice.Count == 0) return m_slice.Array == null ? null : string.Empty;
-					return m_slice.Count <= 1024
+					if (m_slice.Count == 0) return m_slice.Array == null! ? null : string.Empty;
+					return m_slice.Count <= DefaultPrettyPrintSize
 						? m_slice.ToHexaString(' ')
-						: m_slice.Substring(0, 1024).ToHexaString(' ') + "[\u2026]";
+						: m_slice.Substring(0, DefaultPrettyPrintSize).ToHexaString(' ') + "[\u2026]";
 				}
 			}
 
@@ -2615,7 +2732,8 @@ namespace System
 	/// <summary>Helper methods for Slice</summary>
 	public static class SliceExtensions
 	{
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
+
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Slice EmptyOrNil(byte[]? array)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
@@ -2623,7 +2741,7 @@ namespace System
 		}
 
 		/// <summary>Handle the Nil/Empty memoization</summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Slice EmptyOrNil(byte[]? array, int count)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
@@ -2632,8 +2750,8 @@ namespace System
 		}
 
 		/// <summary>Return a slice that wraps the whole array</summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice([AllowNull] this byte[] bytes)
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this byte[]? bytes)
 		{
 			return bytes != null && bytes.Length > 0 ? new Slice(bytes, 0, bytes.Length) : EmptyOrNil(bytes);
 		}
@@ -2642,8 +2760,8 @@ namespace System
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first byte of the slice</param>
 		/// <returns></returns>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice([AllowNull] this byte[] bytes, [Positive] int offset)
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset)
 		{
 			//note: this method is DANGEROUS! Caller may thing that it is passing a count instead of an offset.
 			if (bytes == null) return offset == 0 ? Slice.Nil : throw UnsafeHelpers.Errors.BufferArrayNotNull();
@@ -2659,8 +2777,8 @@ namespace System
 		/// Slice that maps the corresponding sub-section of the array.
 		/// If <paramref name="count"/> is 0 then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice([AllowNull] this byte[] bytes, [Positive] int offset, [Positive] int count)
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
 			if (bytes == null || count == 0) return EmptyOrNil(bytes, count);
@@ -2680,8 +2798,8 @@ namespace System
 		/// Slice that maps the corresponding sub-section of the array.
 		/// If <paramref name="count"/> is 0, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice AsSlice([AllowNull] this byte[] bytes, uint offset, uint count)
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice AsSlice(this byte[]? bytes, uint offset, uint count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
 			if (bytes == null || count == 0) return EmptyOrNil(bytes, (int) count);
@@ -2701,7 +2819,8 @@ namespace System
 		/// Slice that maps the corresponding sub-section of the array.
 		/// If <paramref name="range"/> is empty, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		public static Slice AsSlice([AllowNull] this byte[] bytes, Range range)
+		[DebuggerNonUserCode]
+		public static Slice AsSlice(this byte[]? bytes, Range range)
 		{
 			if (bytes == null)
 			{
@@ -2722,18 +2841,18 @@ namespace System
 
 #endif
 
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self)
 		{
 			// We trust the ArraySegment<byte> ctor to validate the arguments before hand.
 			// If somehow the arguments were corrupted (intentionally or not), then the same problem could have happened with the slice anyway!
 
 			// ReSharper disable once AssignNullToNotNullAttribute
-			return self.Count != 0 ? new Slice(self.Array, self.Offset, self.Count) : EmptyOrNil(self.Array, self.Count);
+			return self.Count != 0 ? new Slice(self.Array!, self.Offset, self.Count) : EmptyOrNil(self.Array, self.Count);
 		}
 
 		/// <summary>Return a slice from the sub-section of an array segment</summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self, int offset, int count)
 		{
 			return AsSlice(self).Substring(offset, count);
@@ -2742,7 +2861,7 @@ namespace System
 #if USE_RANGE_API
 
 		/// <summary>Return a slice from the sub-section of an array segment</summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self, Range range)
 		{
 			return AsSlice(self).Substring(range);
@@ -2750,19 +2869,19 @@ namespace System
 
 #endif
 
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self)
 		{
 			return new SliceReader(self);
 		}
 
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int count)
 		{
 			return new SliceReader(self, 0, count);
 		}
 
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int offset, int count)
 		{
 			return new SliceReader(self, offset, count);
@@ -2770,7 +2889,7 @@ namespace System
 
 #if USE_RANGE_API
 
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, Range range)
 		{
 			return AsSlice(self, range).ToSliceReader();
@@ -2778,12 +2897,139 @@ namespace System
 
 #endif
 
-		[Pure, DebuggerNonUserCode]
-		public static SliceStream AsStream(this Slice slice) //REVIEW: => ToStream() ?
+		/// <summary>Return a stream that can read from the current slice.</summary>
+		[DebuggerNonUserCode]
+		public static MemoryStream ToStream(this Slice slice)
 		{
 			if (slice.IsNull) throw ThrowHelper.InvalidOperationException("Slice cannot be null");
-			//TODO: have a singleton for the empty slice ?
-			return new SliceStream(slice);
+			return new MemoryStream(slice.Array, slice.Offset, slice.Count, writable: false, publiclyVisible: true);
+		}
+
+
+		/// <summary>Buffer the entire content of a <see cref="Stream"/> into a slice in memory.</summary>
+		[DebuggerNonUserCode]
+		public static Slice ReadAllSlice(this Stream input)
+		{
+			Contract.NotNull(input);
+
+			if (input is MemoryStream ms)
+			{
+				ms.ToArray().AsSlice();
+			}
+
+			var capacity = input.CanSeek ? input.Length : 0;
+			using (var output = new MemoryStream(capacity >= 0 && capacity < int.MaxValue ? (int) capacity : 0))
+			{
+				input.CopyTo(output);
+				return output.GetBuffer().AsSlice(0, checked((int) output.Length));
+			}
+		}
+
+		/// <summary>Buffer the entire content of a <see cref="Stream"/> into a slice in memory.</summary>
+		[DebuggerNonUserCode]
+		public static async Task<Slice> ReadAllSliceAsync(this Stream input, CancellationToken ct)
+		{
+			Contract.NotNull(input);
+			ct.ThrowIfCancellationRequested();
+
+			if (input is MemoryStream ms)
+			{
+				ms.ToArray().AsSlice();
+			}
+
+			var capacity = input.CanSeek ? input.Length : 0;
+			using (var output = new MemoryStream(capacity >= 0 && capacity < int.MaxValue ? (int) capacity : 0))
+			{
+#if NETFRAMEWORK || NETSTANDARD
+				await input.CopyToAsync(output, 81920, ct).ConfigureAwait(false);
+#else
+				await input.CopyToAsync(output, ct).ConfigureAwait(false);
+#endif
+				return output.GetBuffer().AsSlice(0, checked((int) output.Length));
+			}
+		}
+
+		/// <summary>Read exacly <paramref name="count"/> bytes from the specified stream.</summary>
+		/// <param name="input">Input stream</param>
+		/// <param name="count">Number of bytes to read from the current position in the <paramref name="input">stream</paramref></param>
+		/// <returns>Slice that contains exaclty <paramref name="count"/> bytes.</returns>
+		/// <remarks>This method implements the classical read loop, to handle for situations where a read for N bytes from the stream returns less than requested (ex: sockets, pipes, ...)</remarks>
+		public static Slice ReadSliceExactly(this Stream input, int count)
+		{
+			Contract.NotNull(input);
+			Contract.Positive(count);
+
+			if (!input.CanRead) throw new InvalidOperationException("The specified stream does not support read operations.");
+
+			//NOTE: reading 0 bytes from a stream is not exactly well defined, because returning 0 means "end of file"!
+			// => some stream use this as a way to await for new data ("WaitForNextByte") while other stream do not support this.
+			//REVIEW: should we return empty? or should we throw? for now we simply defer to the underlying stream implementation
+			if (count == 0) return Slice.Empty;
+
+			// if we can get the stream's buffer, AND we know it is not writeable, then we can safely expose the underlying buffer
+			if (input is MemoryStream ms && !ms.CanWrite && ms.TryGetBuffer(out var buffer))
+			{ // we can simply grab the data from the buffer
+
+				// check if there's enough data in the stream
+				int position = checked((int) ms.Position);
+				long expected = checked(position + count);
+				if (expected > ms.Length)
+				{ // stream is too small!
+					ms.Seek(0, SeekOrigin.End);
+					goto stream_too_small;
+				}
+
+				// advance the cursor
+				ms.Seek(count, SeekOrigin.Current);
+
+				// return the request chunk of the underlying buffer
+				return new Slice(buffer.Array!, buffer.Offset + position, count);
+			}
+
+			byte[] tmp = new byte[count];
+			int p = 0;
+			while (p < count)
+			{
+				int n = input.Read(tmp, p, count - p);
+				if (n <= 0) goto stream_too_small;
+				p += n;
+			}
+			return new Slice(tmp);
+
+		stream_too_small:
+			throw new IOException("The stream does not contain enough data to satisfy the read operation exactly.");
+		}
+
+		/// <summary>Read exacly <paramref name="count"/> bytes from the specified stream.</summary>
+		/// <param name="input">Input stream</param>
+		/// <param name="count">Number of bytes to read from the current position in the <paramref name="input">stream</paramref></param>
+		/// <param name="ct">Token used to cancel the read operation</param>
+		/// <returns>Slice that contains exaclty <paramref name="count"/> bytes.</returns>
+		/// <remarks>This method implements the classical read loop, to handle for situations where a read for N bytes from the stream returns less than requested (ex: sockets, pipes, ...)</remarks>
+		public static async Task<Slice> ReadSliceExactlyAsync(this Stream input, int count, CancellationToken ct)
+		{
+			Contract.NotNull(input);
+			Contract.Positive(count);
+			ct.ThrowIfCancellationRequested();
+
+			if (input is MemoryStream ms)
+			{ // fast path for memory streams!
+				return ReadSliceExactly(ms, count);
+			}
+
+			if (!input.CanRead) throw new InvalidOperationException("The specified stream does not support read operations.");
+
+			if (count == 0) return Slice.Empty;
+
+			byte[] tmp = new byte[count];
+			int p = 0;
+			while (p < count)
+			{
+				int n = await input.ReadAsync(tmp, p, count - p, ct).ConfigureAwait(false);
+				if (n <= 0) throw new IOException("The file does not contain enough data to satisfy the read operation exactly.");
+				p += n;
+			}
+			return new Slice(tmp);
 		}
 
 	}

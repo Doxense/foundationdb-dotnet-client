@@ -92,19 +92,17 @@ namespace Doxense.Collections.Tuples.Encoding
 
 #endif
 
-		[return: MaybeNull]
-		public T Get<T>(int index)
+		public T? Get<T>(int index)
 		{
 			return m_items.Get<T>(index);
 		}
 
-		[return: MaybeNull]
-		public T Last<T>()
+		public T? Last<T>()
 		{
 			return m_items.Last<T>();
 		}
 
-		IVarTuple IVarTuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>([AllowNull] T value)
 		{
 			return Append<T>(value);
 		}
@@ -114,7 +112,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return Concat(tuple);
 		}
 
-		public PrefixedTuple Append<T>([AllowNull] T value)
+		public PrefixedTuple Append<T>(T? value)
 		{
 			return new PrefixedTuple(m_prefix, m_items.Append<T>(value));
 		}

@@ -108,8 +108,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 
-		[return: MaybeNull]
-		public T Last<T>()
+		public T? Last<T>()
 		{
 			int count = m_slices.Length;
 			if (count == 0) throw new InvalidOperationException("Tuple is empty");
@@ -134,7 +133,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 #endif
 
-		IVarTuple IVarTuple.Append<T>(T value)
+		IVarTuple IVarTuple.Append<T>([AllowNull] T value)
 		{
 			throw new NotSupportedException();
 		}

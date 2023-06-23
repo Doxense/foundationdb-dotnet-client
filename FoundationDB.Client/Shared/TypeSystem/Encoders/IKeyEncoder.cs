@@ -31,7 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Doxense.Serialization.Encoders
 {
 	using System;
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Memory;
 
 	/// <summary>Base interface for all key encoders</summary>
@@ -44,12 +43,12 @@ namespace Doxense.Serialization.Encoders
 	public interface IKeyEncoder<T1> : IKeyEncoder
 	{
 		/// <summary>Encode a single value</summary>
-		void WriteKeyTo(ref SliceWriter writer, [AllowNull] T1 value);
+		void WriteKeyTo(ref SliceWriter writer, T1? value);
 
 		/// <summary>Decode a single value</summary>
-		void ReadKeyFrom(ref SliceReader reader, [MaybeNull] out T1 value);
+		void ReadKeyFrom(ref SliceReader reader, out T1? value);
 
-		bool TryReadKeyFrom(ref SliceReader reader, [MaybeNull] out T1 value);
+		bool TryReadKeyFrom(ref SliceReader reader, out T1? value);
 	}
 
 	public class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
@@ -69,7 +68,7 @@ namespace Doxense.Serialization.Encoders
 		IKeyEncoder<T> IKeyEncoding.GetKeyEncoder<T>()
 		{
 			if (typeof(T) != typeof(TKey)) throw new NotSupportedException($"This custom encoding can only process keys of type {typeof(TKey).Name}.");
-			return (IKeyEncoder<T>) (object) this;
+			return (IKeyEncoder<T>) this;
 		}
 
 		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
