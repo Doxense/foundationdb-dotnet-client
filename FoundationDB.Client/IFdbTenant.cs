@@ -26,27 +26,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
-
-namespace FoundationDB.Client.Native
+namespace FoundationDB.Client
 {
+	using System;
+	using System.Threading;
+	using JetBrains.Annotations;
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeyValue
+	/// <summary>Database connection context.</summary>
+	[PublicAPI]
+	public interface IFdbTenant : IFdbRetryable
 	{
-		public IntPtr Key;
-		public uint KeyLength;
-		public IntPtr Value;
-		public uint ValueLength;
-	}
+		/// <summary>Name of the tenant</summary>
+		FdbTenantName Name { get; }
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKey
-	{
-		public IntPtr Key;
+		IFdbDatabase Database { get; }
 
-		public uint Length;
+		/// <summary>Start a new transaction on this tenant, with the specified mode</summary>
+		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
+
 	}
 
 }

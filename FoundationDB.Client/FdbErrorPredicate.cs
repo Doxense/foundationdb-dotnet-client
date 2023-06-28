@@ -26,27 +26,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
-
-namespace FoundationDB.Client.Native
+namespace FoundationDB.Client
 {
+	using System;
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeyValue
+	public enum FdbErrorPredicate
 	{
-		public IntPtr Key;
-		public uint KeyLength;
-		public IntPtr Value;
-		public uint ValueLength;
-	}
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKey
-	{
-		public IntPtr Key;
+		None = 0,
 
-		public uint Length;
+		/// <summary>Returns <c>true</c> if the error indicates the operations in the transactions should be retried because of transient error.</summary>
+		Retryable = 50000,
+
+		/// <summary>Returns <c>true</c> if the error indicates the transaction may have succeeded, though not in a way the system can verify.</summary>
+		MaybeCommitted = 50001,
+
+		/// <summary>Returns <c>true</c> if the error indicates the transaction has not committed, though in a way that can be retried.</summary>
+		RetryableNotCommited = 50002,
+
 	}
 
 }

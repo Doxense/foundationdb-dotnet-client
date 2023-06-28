@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Runtime.Serialization;
 	using System.Security;
+	using FoundationDB.Client.Native;
 
 	/// <summary>FoundationDB API Error Code</summary>
 	[Serializable]
@@ -38,7 +39,7 @@ namespace FoundationDB.Client
 	{
 
 		public FdbException(FdbError errorCode)
-			: this(errorCode, Fdb.GetErrorMessage(errorCode), null)
+			: this(errorCode, FdbNative.GetErrorMessage(errorCode) ?? $"Unexpected error code {(int) errorCode}", null)
 		{
 		}
 

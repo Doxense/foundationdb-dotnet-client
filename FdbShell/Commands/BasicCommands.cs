@@ -860,7 +860,7 @@ namespace FdbShell
 			log.WriteLine($"[Cluster] {coords.Id}");
 
 			var servers = await db.QueryAsync(tr => tr
-				.WithReadAccessToSystemKeys()
+				.WithOptions(options => options.WithReadAccessToSystemKeys())
 				.GetRange(KeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{

@@ -49,196 +49,12 @@ namespace FoundationDB.Client
 
 		#region Fluent Options...
 
-		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)</summary>
-		public static TTransaction WithReadAccessToSystemKeys<TTransaction>(this TTransaction trans)
+		/// <summary>Configure the options of this transaction.</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static TTransaction WithOptions<TTransaction>(this TTransaction trans, Action<IFdbTransactionOptions> configure)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
-			trans.SetOption(trans.Context.GetApiVersion() >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
-			//TODO: cache this into a local variable ?
-			return trans;
-		}
-
-		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
-		public static TTransaction WithWriteAccessToSystemKeys<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbTransaction
-		{
-			trans.SetOption(FdbTransactionOption.AccessSystemKeys);
-			//TODO: cache this into a local variable ?
-			return trans;
-		}
-
-		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
-		public static TTransaction WithPrioritySystemImmediate<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.PrioritySystemImmediate);
-			//TODO: cache this into a local variable ?
-			return trans;
-		}
-
-		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
-		public static TTransaction WithPriorityBatch<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.PriorityBatch);
-			//TODO: cache this into a local variable ?
-			return trans;
-		}
-
-		/// <summary>Reads performed by a transaction will not see any prior mutations that occurred in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).</summary>
-		public static TTransaction WithReadYourWritesDisable<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbTransaction
-		{
-			trans.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-			return trans;
-		}
-
-		/// <summary>Snapshot reads performed by a transaction will see the results of writes done in the same transaction.</summary>
-		public static TTransaction WithSnapshotReadYourWritesEnable<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.SnapshotReadYourWriteEnable);
-			return trans;
-		}
-
-		/// <summary>Reads performed by a transaction will not see the results of writes done in the same transaction.</summary>
-		public static TTransaction WithSnapshotReadYourWritesDisable<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
-			return trans;
-		}
-
-		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).</summary>
-		[Obsolete("This option is obsolete, and may be removed in future versions.")]
-		public static TTransaction WithReadAheadDisable<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.ReadAheadDisable);
-			return trans;
-		}
-
-		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
-		public static TTransaction WithNextWriteNoWriteConflictRange<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbTransaction
-		{
-			trans.SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
-			return trans;
-		}
-
-		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
-		/// Valid parameter values are [TimeSpan.Zero, TimeSpan.MaxValue].
-		/// If set to 0, will disable all timeouts.
-		/// All pending and any future uses of the transaction will throw an exception.
-		/// The transaction can be used again after it is reset.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="timeout">Timeout (rounded up to milliseconds), or TimeSpan.Zero for infinite timeout</param>
-		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, TimeSpan timeout)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			return WithTimeout(trans, timeout == TimeSpan.Zero ? 0 : (int) Math.Ceiling(timeout.TotalMilliseconds));
-		}
-
-		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
-		/// Valid parameter values are [0, int.MaxValue].
-		/// If set to 0, will disable all timeouts.
-		/// All pending and any future uses of the transaction will throw an exception.
-		/// The transaction can be used again after it is reset.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="milliseconds">Timeout in millisecond, or 0 for infinite timeout</param>
-		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, int milliseconds)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.Timeout = milliseconds;
-			return trans;
-		}
-
-		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code.</summary>
-		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
-		/// <param name="retries">Number of times to retry. If set to -1, will disable the retry limit.</param>
-		public static TTransaction WithRetryLimit<TTransaction>(this TTransaction trans, int retries)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			Contract.GreaterOrEqual(retries, -1);
-			trans.RetryLimit = retries;
-			return trans;
-		}
-
-		/// <summary>Set the maximum amount of backoff delay incurred in the call to onError if the error is retryable.
-		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
-		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
-		/// </summary>
-		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
-		/// <param name="milliseconds">Maximum retry delay (in milliseconds)</param>
-		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, int milliseconds)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			Contract.Positive(milliseconds);
-			trans.MaxRetryDelay = milliseconds;
-			return trans;
-		}
-
-		/// <summary>Set the maximum amount of backoff delay incurred in the call to onError if the error is retryable.
-		/// Defaults to 1000 ms. Valid parameter values are [TimeSpan.Zero, TimeSpan.MaxValue].
-		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
-		/// </summary>
-		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
-		/// <param name="delay">Maximum retry delay (rounded up to milliseconds)</param>
-		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, TimeSpan delay)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			return WithMaxRetryDelay(trans, delay == TimeSpan.Zero ? 0 : (int) Math.Ceiling(delay.TotalMilliseconds));
-		}
-
-		/// <summary>Set the transaction size limit in bytes.</summary>
-		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
-		/// <param name="limit">Value in bytes. This value must be at least 32 and cannot be set to higher than 10,000,000, the default transaction size limit.</param>
-		/// <remarks>The size is calculated by combining the sizes of all keys and values written or mutated, all key ranges cleared, and all read and write conflict ranges. (In other words, it includes the total size of all data included in the request to the cluster to commit the transaction.)
-		/// Large transactions can cause performance problems on FoundationDB clusters, so setting this limit to a smaller value than the default can help prevent the client from accidentally degrading the cluster's performance.</remarks>
-		public static TTransaction WithSizeLimit<TTransaction>(this TTransaction trans, int limit)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.SizeLimit, limit);
-			return trans;
-		}
-
-		/// <summary>Enables tracing for this transaction and logs results to the client trace logs.</summary>
-		/// <param name="trans">Transaction that will be configured for the current attempt.</param>
-		/// <param name="id">String identifier to be used when tracing or profiling this transaction. The identifier must not exceed 100 characters.</param>
-		/// <param name="maxFieldLength">If non-null, sets the maximum escaped length of key and value fields to be logged to the trace file via the LOG_TRANSACTION option, after which the field will be truncated. A negative value disables truncation.</param>
-		/// <remarks>Client trace logging must be enabled via <see cref="Fdb.Options.TracePath"/> before the network thread is started, in order to get log output.</remarks>
-		public static TTransaction WithTransactionLog<TTransaction>(this TTransaction trans, string id, int? maxFieldLength = null)
-			where TTransaction: IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.DebugTransactionIdentifier, id);
-			if (maxFieldLength != null) trans.SetOption(FdbTransactionOption.TransactionLoggingMaxFieldLength, maxFieldLength.Value);
-			trans.SetOption(FdbTransactionOption.LogTransaction);
-			return trans;
-		}
-
-		/// <summary>No other transactions will be applied before this transaction within the same commit version.</summary>
-		public static TTransaction WithFirstInBatch<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.FirstInBatch);
-			return trans;
-		}
-
-		/// <summary>The transaction can read and write to locked databases, and is responsible for checking that it took the lock.</summary>
-		public static TTransaction WithLockAware<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.LockAware);
-			return trans;
-		}
-
-		/// <summary>The transaction can read from locked databases.</summary>
-		public static TTransaction WithReadLockAware<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
-		{
-			trans.SetOption(FdbTransactionOption.ReadLockAware);
+			configure(trans.Options);
 			return trans;
 		}
 
@@ -254,10 +70,41 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key)
+		{
+			return trans.GetAsync(key.Span);
+		}
+
+		/// <summary>Reads a value from the database snapshot represented by by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			return trans.GetAsync(key.Span);
+		}
+
+		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
+		/// <typeparam name="TValue">Type of the value.</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="encoder">Encoder used to decode the value of the key.</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key, IValueEncoder<TValue> encoder)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(encoder);
+
+			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false))!;
 		}
 
 		/// <summary>Read and decode a value from the database snapshot represented by the current transaction.</summary>
@@ -291,6 +138,18 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region Set...
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set(this IFdbTransaction trans, ReadOnlyMemory<byte> key, ReadOnlyMemory<byte> value)
+		{
+			trans.Set(key.Span, value.Span);
+		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
@@ -348,6 +207,21 @@ namespace FoundationDB.Client
 			trans.Set(key.Span, encoder.EncodeValue(value).Span);
 		}
 
+		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to set</param>
+		/// <param name="value">Value of the key</param>
+		/// <param name="encoder">Encoder used to convert <paramref name="value"/> into a binary slice.</param>
+		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlyMemory<byte> key, TValue value, IValueEncoder<TValue> encoder)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(encoder);
+
+			//TODO: "EncodeValueToBuffer" in a pooled buffer?
+			trans.Set(key.Span, encoder.EncodeValue(value).Span);
+		}
+
 		/// <summary>Set the value of a key in the database, using the content of a Stream</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to set</param>
@@ -362,6 +236,23 @@ namespace FoundationDB.Client
 			trans.EnsureCanWrite();
 
 			var value = Slice.FromStream(data);
+
+			trans.Set(key.Span, value.Span);
+		}
+
+		/// <summary>Set the value of a key in the database, by reading the content of a Stream asynchronously</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to set</param>
+		/// <param name="data">Stream that holds the content of the key, whose length should not exceed the allowed maximum value size.</param>
+		/// <remarks>If reading from the stream takes more than 5 seconds, the transaction will not be able to commit. For streams that are stored in memory, like a MemoryStream, consider using <see cref="Set(IFdbTransaction, Slice, Stream)"/> instead.</remarks>
+		public static async Task SetAsync(this IFdbTransaction trans, ReadOnlyMemory<byte> key, Stream data)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(data);
+
+			trans.EnsureCanWrite();
+
+			var value = await Slice.FromStreamAsync(data, trans.Cancellation).ConfigureAwait(false);
 
 			trans.Set(key.Span, value.Span);
 		}
@@ -1576,10 +1467,78 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
+		public static Task<string[]> GetAddressesForKeyAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> key)
+		{
+			return trans.GetAddressesForKeyAsync(key.Span);
+		}
+
+		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose location is to be queried.</param>
+		/// <returns>Task that will return an array of strings, or an exception</returns>
+		/// <remarks><para>Starting from API level 630, the addresses include the port ("IP:PORT") by default. Below 630 it does not include the port, unless option <see cref="FdbTransactionOption.IncludePortInAddress"/> is set.</para></remarks>
 		public static Task<string[]> GetAddressesForKeyAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 			return trans.GetAddressesForKeyAsync(key.Span);
+		}
+
+		#endregion
+
+		#region GetRangeSplitPointsAsync...
+
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		public static Task<Slice[]> GetRangeSplitPointsAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> beginKey, ReadOnlyMemory<byte> endKey, long chunkSize)
+		{
+			return trans.GetRangeSplitPointsAsync(beginKey.Span, endKey.Span, chunkSize);
+		}
+
+		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
+		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
+		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		public static Task<Slice[]> GetRangeSplitPointsAsync(this IFdbReadOnlyTransaction trans, Slice beginKey, Slice endKey, long chunkSize)
+		{
+			if (beginKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			if (endKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return trans.GetRangeSplitPointsAsync(beginKey.Span, endKey.Span, chunkSize);
+		}
+
+		#endregion
+
+		#region GetEstimatedRangeSizeBytesAsync...
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, ReadOnlyMemory<byte> beginKey, ReadOnlyMemory<byte> endKey)
+		{
+			return trans.GetEstimatedRangeSizeBytesAsync(beginKey.Span, endKey.Span);
+		}
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, Slice beginKey, Slice endKey)
+		{
+			if (beginKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			if (endKey.IsNull) throw Fdb.Errors.KeyCannotBeNull();
+			return trans.GetEstimatedRangeSizeBytesAsync(beginKey.Span, endKey.Span);
 		}
 
 		#endregion

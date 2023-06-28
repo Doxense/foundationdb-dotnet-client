@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
-	public sealed partial class FdbTransaction : IFdbTransaction
+	public sealed partial class FdbTransaction : IFdbTransaction, IFdbTransactionOptions
 	{
 
 		#region Private Members...
@@ -64,13 +64,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Current state of the transaction</summary>
 		private int m_state;
-
-		/// <summary>Owner database that created this instance</summary>
-		private readonly FdbDatabase m_database;
-		//REVIEW: this should be changed to "IFdbDatabase" if possible
-
-		/// <summary>Context of the transaction when running inside a retry loop, or other custom scenario</summary>
-		private readonly FdbOperationContext m_context;
 
 		/// <summary>Unique internal id for this transaction (for debugging purpose)</summary>
 		private readonly int m_id;
@@ -108,13 +101,14 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, IFdbTransactionHandler handler, FdbTransactionMode mode)
+		internal FdbTransaction(FdbDatabase db, FdbTenant? tenant, FdbOperationContext context, int id, IFdbTransactionHandler handler, FdbTransactionMode mode)
 		{
 			Contract.Debug.Requires(db != null && context != null && handler != null);
 			Contract.Debug.Requires(context.Database != null);
 
-			m_context = context;
-			m_database = db;
+			this.Context = context;
+			this.Database = db;
+			this.Tenant = tenant;
 			m_id = id;
 			//REVIEW: the operation context may already have created its own CTS, maybe we can merge them ?
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Cancellation);
@@ -135,10 +129,19 @@ namespace FoundationDB.Client
 		public bool IsSnapshot => false;
 
 		/// <inheritdoc />
-		public FdbOperationContext Context => m_context;
+		public FdbOperationContext Context { get; }
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database => m_database;
+		public FdbDatabase Database { get; }
+
+		/// <inheritdoc />
+		IFdbDatabase IFdbReadOnlyTransaction.Database => this.Database;
+
+		/// <summary>Tenant where this transaction will be executed</summary>
+		public FdbTenant? Tenant { get; }
+
+		/// <inheritdoc />
+		IFdbTenant IFdbReadOnlyTransaction.Tenant => this.Tenant;
 
 		/// <summary>Returns the handler for this transaction</summary>
 		internal IFdbTransactionHandler Handler => m_handler;
@@ -199,8 +202,14 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option)
+		/// <inheritdoc/>
+		public IFdbTransactionOptions Options => this;
+
+		/// <inheritdoc/>
+		int IFdbTransactionOptions.ApiVersion => Database.GetApiVersion();
+
+		/// <inheritdoc/>
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -208,34 +217,36 @@ namespace FoundationDB.Client
 
 			m_log?.Annotate($"SetOption({option})");
 			m_handler.SetOption(option, default);
+			return this;
 		}
 
-		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, string value)
+		/// <inheritdoc/>
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
 		{
 			EnsureNotFailedOrDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value ?? "<null>"}'");
-
-			m_log?.Annotate($"SetOption({option}, \"{value}\")");
-			var data = FdbNative.ToNativeString(value.AsSpan(), nullTerminated: false);
-			m_handler.SetOption(option, data.Span);
-		}
-
-		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, ReadOnlySpan<char> value)
-		{
-			EnsureNotFailedOrDisposed();
-
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString() ?? "<null>"}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{value.ToString()}'");
 
 			m_log?.Annotate($"SetOption({option}, \"{value.ToString()}\")");
 			var data = FdbNative.ToNativeString(value, nullTerminated: false);
 			m_handler.SetOption(option, data.Span);
+			return this;
+		}
+
+		/// <inheritdoc/>
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option, ReadOnlySpan<byte> value)
+		{
+			EnsureNotFailedOrDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting transaction option {option.ToString()} to '{Slice.Dump(value)}'");
+
+			m_log?.Annotate($"SetOption({option}, '{Slice.Dump(value)}')");
+			m_handler.SetOption(option, value);
+			return this;
 		}
 
 		/// <inheritdoc />
-		public void SetOption(FdbTransactionOption option, long value)
+		public IFdbTransactionOptions SetOption(FdbTransactionOption option, long value)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -247,6 +258,7 @@ namespace FoundationDB.Client
 			Span<byte> tmp = stackalloc byte[8];
 			UnsafeHelpers.WriteFixed64(tmp, (ulong) value);
 			m_handler.SetOption(option, tmp);
+			return this;
 		}
 
 		#endregion
@@ -551,7 +563,7 @@ namespace FoundationDB.Client
 		{
 			var token = m_versionStampToken;
 			if (token == 0) token = GenerateNewVersionStampToken();
-			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), incomplete: true);
+			return VersionStamp.Custom(token, (ushort) (this.Context.Retries | 0xF000), incomplete: true);
 		}
 
 		/// <inheritdoc />
@@ -560,7 +572,7 @@ namespace FoundationDB.Client
 			var token = m_versionStampToken;
 			if (token == 0) token = GenerateNewVersionStampToken();
 
-			return VersionStamp.Custom(token, (ushort) (m_context.Retries | 0xF000), userVersion, incomplete: true);
+			return VersionStamp.Custom(token, (ushort) (this.Context.Retries | 0xF000), userVersion, incomplete: true);
 		}
 
 		/// <summary>Counter used to generated a unique unique versionstamps for this transaction.</summary>
@@ -1201,6 +1213,95 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region GetRangeSplitPoints...
+
+		/// <inheritdoc />
+		public Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+		{
+			EnsureCanRead();
+
+			// available since 7.0
+			if (this.Database.GetApiVersion() < 700)
+			{
+				if (this.Database.Handler.GetMaxApiVersion() >= 700)
+				{ // but the installed client could support it
+					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selectred API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
+				}
+				else
+				{ // not supported by the local client
+					throw new NotSupportedException("Getting range split points is only supported starting from client version 7.0. You need to update the version of the client, and select API level 700 or more at the start of your process.");
+				}
+			}
+
+			FdbKey.EnsureKeyIsValid(beginKey);
+			FdbKey.EnsureKeyIsValid(endKey);
+			Contract.Positive(chunkSize);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeSplitPointsAsync", $"Getting split points for range '{FdbKey.Dump(beginKey)}'..'{FdbKey.Dump(endKey)}'");
+#endif
+
+			return PerformGetRangeSplitPointsOperation(beginKey, endKey, chunkSize);
+		}
+
+		private Task<Slice[]> PerformGetRangeSplitPointsOperation(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+		{
+			return m_log == null ? m_handler.GetRangeSplitPointsAsync(beginKey, endKey, chunkSize, m_cancellation) : ExecuteLogged(this, beginKey, endKey, chunkSize);
+
+			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetRangeSplitPointsCommand(self.m_log.Grab(beginKey), self.m_log.Grab(endKey), chunkSize),
+					(tr, cmd) => tr.m_handler.GetRangeSplitPointsAsync(cmd.Begin.Span, cmd.End.Span, cmd.ChunkSize, tr.m_cancellation)
+				);
+		}
+
+		#endregion
+
+		#region GetEstimatedRangeSizeBytes...
+
+		/// <inheritdoc />
+		public Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+		{
+			EnsureCanRead();
+
+			// available since 7.0
+			if (this.Database.GetApiVersion() < 700)
+			{
+				if (this.Database.Handler.GetMaxApiVersion() >= 700)
+				{ // but the installed client could support it
+					throw new NotSupportedException($"Getting range split points in only supported starting from API level 700 but you have selectred API level {this.Database.GetApiVersion()}. You need to select API level 700 or more at the start of your process.");
+				}
+				else
+				{ // not supported by the local client
+					throw new NotSupportedException("Getting range split points is only supported starting from client version 7.0. You need to update the version of the client, and select API level 700 or more at the start of your process.");
+				}
+			}
+
+			FdbKey.EnsureKeyIsValid(beginKey);
+			FdbKey.EnsureKeyIsValid(endKey);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetEstimatedRangeSizeBytesAsync", $"Getting estimate size for range '{FdbKey.Dump(beginKey)}'..'{FdbKey.Dump(endKey)}'");
+#endif
+
+			return PerformGetEstimatedRangeSizeBytesOperation(beginKey, endKey);
+		}
+
+		private Task<long> PerformGetEstimatedRangeSizeBytesOperation(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+		{
+			return m_log == null ? m_handler.GetEstimatedRangeSizeBytesAsync(beginKey, endKey, m_cancellation) : ExecuteLogged(this, beginKey, endKey);
+
+			static Task<long> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetEstimatedRangeSizeBytesCommand(self.m_log.Grab(beginKey), self.m_log.Grab(endKey)),
+					(tr, cmd) => tr.m_handler.GetEstimatedRangeSizeBytesAsync(cmd.Begin.Span, cmd.End.Span, tr.m_cancellation)
+				);
+		}
+
+		#endregion
+
 		#region GetApproximateSize...
 
 		/// <inheritdoc />
@@ -1371,17 +1472,17 @@ namespace FoundationDB.Client
 			m_retryLimit = 0;
 			m_maxRetryDelay = 0;
 
-			if (m_database.DefaultRetryLimit > 0)
+			if (this.Database.DefaultRetryLimit > 0)
 			{
-				this.RetryLimit = m_database.DefaultRetryLimit;
+				this.RetryLimit = this.Database.DefaultRetryLimit;
 			}
-			if (m_database.DefaultMaxRetryDelay > 0)
+			if (this.Database.DefaultMaxRetryDelay > 0)
 			{
-				this.MaxRetryDelay = m_database.DefaultMaxRetryDelay;
+				this.MaxRetryDelay = this.Database.DefaultMaxRetryDelay;
 			}
-			if (m_database.DefaultTimeout > 0)
+			if (this.Database.DefaultTimeout > 0)
 			{
-				this.Timeout = m_database.DefaultTimeout;
+				this.Timeout = this.Database.DefaultTimeout;
 			}
 
 			// if we have used a random token for VersionStamps, we need to clear it (and generate a new one)
@@ -1393,7 +1494,7 @@ namespace FoundationDB.Client
 			// clear any cached local data!
 			this.CachedReadVersion = null;
 			this.MetadataVersionKeysCache = null;
-			m_context.ClearAllLocalData();
+			this.Context.ClearAllLocalData();
 		}
 
 		/// <inheritdoc />
@@ -1619,7 +1720,7 @@ namespace FoundationDB.Client
 						}
 					}
 
-					var context = m_context;
+					var context = this.Context;
 					context.ReleaseTransaction(this);
 					if (!context.Shared)
 					{

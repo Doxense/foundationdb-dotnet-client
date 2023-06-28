@@ -46,9 +46,16 @@ namespace FoundationDB.Client.Core
 
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
+		IFdbTenantHandler OpenTenant(FdbTenantName name);
+
+		/// <summary>Returns the currently selected API version for this native handler.</summary>
 		int GetApiVersion();
 
+		/// <summary>Returns the maximum API version that is supported by this native handler.</summary>
 		int GetMaxApiVersion();
+
+		/// <summary>Returns a value where 0 indicates that the client is idle and 1 (or larger) indicates that the client is saturated.</summary>
+		double GetMainThreadBusyness();
 
 	}
 

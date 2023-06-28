@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
-		public DynamicKeySubspaceLocation Content { get; }
+		public IDynamicKeySubspaceLocation Content { get; }
 
 		/// <summary>Random generator used by the internal allocators</summary>
 		internal Random AllocatorRng { get; }
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Creates a new instance that will manages directories in FoundationDB.</summary>
 		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Usually empty for the root partition of the database.</param>
-		internal FdbDirectoryLayer(DynamicKeySubspaceLocation location)
+		internal FdbDirectoryLayer(IDynamicKeySubspaceLocation location)
 		{
 			Contract.Debug.Requires(location != null);
 

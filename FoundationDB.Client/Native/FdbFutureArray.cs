@@ -26,11 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+//#define DEBUG_FUTURES
+
 namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Threading;
 	using Doxense.Diagnostics.Contracts;
 
@@ -43,7 +44,7 @@ namespace FoundationDB.Client.Native
 		#region Private Members...
 
 		/// <summary>Value of the 'FDBFuture*'</summary>
-		private readonly FutureHandle[] m_handles;
+		private readonly FutureHandle?[]? m_handles;
 
 		/// <summary>Counter of callbacks that still need to fire.</summary>
 		private int m_pending;
@@ -55,7 +56,7 @@ namespace FoundationDB.Client.Native
 
 		#region Constructors...
 
-		internal FdbFutureArray(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
+		internal FdbFutureArray(FutureHandle?[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
 			Contract.Debug.Requires(handles != null && selector != null);
 
@@ -72,7 +73,7 @@ namespace FoundationDB.Client.Native
 					SetFlag(FdbFuture.Flags.COMPLETED);
 					abortAllHandles = true;
 					m_resultSelector = null;
-					this.TrySetCanceled();
+					TrySetCanceled();
 					return;
 				}
 
@@ -81,8 +82,7 @@ namespace FoundationDB.Client.Native
 
 				foreach (var handle in handles)
 				{
-
-					if (FdbNative.FutureIsReady(handle))
+					if (handle is null || FdbNative.FutureIsReady(handle))
 					{ // this handle is already done
 						continue;
 					}
@@ -91,10 +91,12 @@ namespace FoundationDB.Client.Native
 
 					// register the callback handler
 					var err = FdbNative.FutureSetCallback(handle, CallbackHandler, prm);
-					if (Fdb.Failed(err))
+					if (err != FdbError.Success)
 					{ // uhoh
-						Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
-						throw Fdb.MapToException(err)!;
+#if DEBUG_FUTURES
+						System.Diagnostics.Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
+#endif
+						throw FdbNative.CreateExceptionFromError(err);
 					}
 				}
 
@@ -126,7 +128,7 @@ namespace FoundationDB.Client.Native
 				abortAllHandles = true;
 
 				// this is technically not needed, but just to be safe...
-				this.TrySetCanceled();
+				TrySetCanceled();
 
 				throw;
 			}
@@ -168,22 +170,19 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		private static void CloseHandles(FutureHandle[] handles)
+		private static void CloseHandles(FutureHandle?[]? handles)
 		{
 			if (handles != null)
 			{
 				foreach (var handle in handles)
 				{
-					if (handle != null)
-					{
-						//note: Dispose() will be a no-op if already called
-						handle.Dispose();
-					}
+					//note: Dispose() will be a no-op if already called
+					handle?.Dispose();
 				}
 			}
 		}
 
-		private static void CancelHandles(FutureHandle[] handles)
+		private static void CancelHandles(FutureHandle?[]? handles)
 		{
 			if (handles != null)
 			{
@@ -207,7 +206,7 @@ namespace FoundationDB.Client.Native
 		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
-			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			System.Diagnostics.Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
 			var future = (FdbFutureArray<T>?) GetFutureFromCallbackParameter(parameter);
@@ -241,7 +240,7 @@ namespace FoundationDB.Client.Native
 			}
 
 #if DEBUG_FUTURES
-			Debug.WriteLine("FutureArray<" + typeof(T).Name + ">.Callback(...) handling completion on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			System.Diagnostics.Debug.WriteLine("FutureArray<" + typeof(T).Name + ">.Callback(...) handling completion on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
 			try
@@ -251,21 +250,23 @@ namespace FoundationDB.Client.Native
 				List<Exception>? errors = null;
 				bool cancellation = false;
 				var selector = m_resultSelector;
+				var handles = m_handles;
+				Contract.Debug.Assert(handles != null);
 
-				var results = selector != null ? new T[m_handles.Length] : null;
+				var results = selector != null ? new T[handles.Length] : null;
 
-				for (int i = 0; i < m_handles.Length; i++)
+				for (int i = 0; i < handles.Length; i++)
 				{
-					var handle = m_handles[i];
+					var handle = handles[i];
 
 					if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 					{
 						FdbError err = FdbNative.FutureGetError(handle);
-						if (Fdb.Failed(err))
+						if (err != FdbError.Success)
 						{ // it failed...
 							if (err != FdbError.OperationCancelled)
 							{ // get the exception from the error code
-								var ex = Fdb.MapToException(err)!;
+								var ex = FdbNative.CreateExceptionFromError(err);
 								(errors ??= new List<Exception>()).Add(ex);
 							}
 							else
@@ -296,7 +297,7 @@ namespace FoundationDB.Client.Native
 				}
 				else
 				{ // success
-					TrySetResult(results);
+					TrySetResult(results!);
 				}
 
 			}

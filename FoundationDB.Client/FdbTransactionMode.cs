@@ -38,6 +38,9 @@ namespace FoundationDB.Client
 		/// <summary>The transaction will only allow read operations</summary>
 		ReadOnly = 1,
 	
+		/// <summary>The transaction is running inside the context of a <see cref="IFdbTenant">Tenant</see></summary>
+		UseTenant = 2,
+
 		/// <summary>If set, the transaction is running within the context of a retry loop</summary>
 		InsideRetryLoop = 0x80,
 	}

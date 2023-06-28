@@ -114,7 +114,7 @@ namespace FoundationDB.Client
 			return "[" + this.Path.ToString() + "]+" + this.Prefix.ToString();
 		}
 
-		protected bool IsTopLevel => this.Path.Count == 0;
+		public bool IsTopLevel => this.Path.Count == 0;
 
 		async ValueTask<IKeySubspace?> ISubspaceLocation.Resolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory)
 		{
@@ -173,9 +173,14 @@ namespace FoundationDB.Client
 
 	}
 
+	public interface IDynamicKeySubspaceLocation : ISubspaceLocation<IDynamicKeySubspace>
+	{
+		IDynamicKeyEncoder Encoder { get; }
+	}
+
 	/// <summary>Path to a subspace that can represent dynamic keys of any size and type</summary>
 	/// <remarks>Instance of this type can be <see cref="ISubspaceLocation{TSubspace}.Resolve">resolved</see> into an actual <see cref="IDynamicKeySubspace"/> valid for a specific transaction</remarks>
-	public sealed class DynamicKeySubspaceLocation : SubspaceLocation<IDynamicKeySubspace>
+	public sealed class DynamicKeySubspaceLocation : SubspaceLocation<IDynamicKeySubspace>, IDynamicKeySubspaceLocation
 	{
 
 		public IDynamicKeyEncoder Encoder { get; }
@@ -200,13 +205,13 @@ namespace FoundationDB.Client
 
 		public static DynamicKeySubspaceLocation Create(Slice prefix) => new DynamicKeySubspaceLocation(prefix, TuPack.Encoding.GetDynamicKeyEncoder());
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoder encoder) => new DynamicKeySubspaceLocation(prefix, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
+		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoder? encoder) => new DynamicKeySubspaceLocation(prefix, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding encoding) => new DynamicKeySubspaceLocation(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding? encoding) => new DynamicKeySubspaceLocation(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 
 		public override int GetHashCode() => HashCodes.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12344321);
 
-		public override bool Equals(ISubspaceLocation other) =>
+		public override bool Equals(ISubspaceLocation? other) =>
 			object.ReferenceEquals(other, this)
 			|| (other is DynamicKeySubspaceLocation dyn && dyn.Encoding == this.Encoding && dyn.Path == this.Path && dyn.Prefix == other.Prefix);
 

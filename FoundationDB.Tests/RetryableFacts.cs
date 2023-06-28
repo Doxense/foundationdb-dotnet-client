@@ -119,7 +119,7 @@ namespace FoundationDB.Client.Tests
 
 							if (called < 3)
 							{ // fool the retry loop into thinking that a retryable error occurred
-								throw new FdbException(FdbError.PastVersion, "Fake error");
+								throw new FdbException(FdbError.TransactionTooOld, "Fake error");
 							}
 							Assert.That(called, Is.GreaterThanOrEqualTo(3), "The handler should not be called again if it completed previously");
 							return Task.FromResult(123);
@@ -149,8 +149,8 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 				// this is a safety to ensure that you do not kill your server
-				db.DefaultTimeout = 0;
-				db.DefaultRetryLimit = 10;
+				db.Options.DefaultTimeout = 0;
+				db.Options.DefaultRetryLimit = 10;
 				// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
 
 				var location = db.Root["Retryable"];
@@ -191,7 +191,7 @@ namespace FoundationDB.Client.Tests
 					catch (FdbException e)
 					{
 						// max retry limit should throw a past_version
-						if (e.Code != FdbError.PastVersion)
+						if (e.Code != FdbError.TransactionTooOld)
 						{ // unexpected
 							throw;
 						}

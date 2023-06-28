@@ -131,6 +131,7 @@ namespace Doxense.Diagnostics.Contracts
 
 namespace System.Runtime.CompilerServices
 {
+	using System.ComponentModel;
 
 	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = false)]
 	internal sealed class CallerArgumentExpressionAttribute : Attribute
@@ -142,6 +143,14 @@ namespace System.Runtime.CompilerServices
 
 		public string ParameterName { get; }
 	}
+
+	/// <summary>
+	/// Reserved to be used by the compiler for tracking metadata.
+	/// This class should not be used by developers in source code.
+	/// This dummy class is required to compile records when targeting .NET Standard
+	/// </summary>
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public static class IsExternalInit { }
 
 }
 

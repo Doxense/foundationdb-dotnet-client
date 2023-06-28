@@ -96,6 +96,33 @@ namespace FoundationDB.Client
 		/// <summary>Addresses returned by <see cref="IFdbReadOnlyTransaction.GetAddressesForKeyAsync"/> include the port when enabled.
 		/// This will be enabled by default in api version 700, and this option will be deprecated.</summary>
 		TransactionIncludePortInAddress = 505,
+
+		/// <summary>Set a random idempotency id for all transactions. See the transaction option description for more information.</summary>
+		/// <remarks>This feature is in development and not ready for general use.</remarks>
+		TransactionAutomaticIdempotency = 506,
+
+		TransactionBypassUnreadable = 700,
+
+		/// <summary>Disable the protection that abort any pending operation on a transaction when at least one of them fails</summary>
+		/// <remarks>
+		/// By default, operations that are performed on a transaction while it is being committed will not only fail themselves, but they will attempt to fail other in-flight operations (such as the commit) as well.
+		/// This behavior is intended to help developers discover situations where operations could be unintentionally executed after the transaction has been reset.
+		/// Setting this option removes that protection, causing only the offending operation to fail.
+		/// </remarks>
+		TransactionUsedDuringCommitProtectionDisable = 701,
+
+		/// <summary>Enables conflicting key reporting on all transactions, allowing them to retrieve the keys that are conflicting with other transactions.</summary>
+		TransactionReportConflictingKeys = 702,
+
+		/// <summary>Use configuration database.</summary>
+		UseConfigDatabase = 800,
+
+		/// <summary>Enables verification of causal read risky by checking whether clients are able to read stale data when they detect a recovery, and logging an error if so.</summary>
+		/// <remarks>
+		/// <para>Parameter: (Int) integer between 0 and 100 expressing the probability a client will verify it can't read stale data</para>
+		/// </remarks>
+		TestCausalReadRisky = 900,
+
 	}
 
 }

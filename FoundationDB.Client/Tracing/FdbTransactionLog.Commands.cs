@@ -29,12 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters.Logging
 {
 	using System;
-	using System.Buffers;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
-	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense;
 	using Doxense.Diagnostics.Contracts;
@@ -239,12 +237,12 @@ namespace FoundationDB.Filters.Logging
 				if (!this.Result.HasValue) return "<n/a>";
 				if (this.Result.Value == null) return "<null>";
 
-				string res = Dump(this.Result.Value);
+				string res = Dump(this.Result.Value, resolver);
 				if (res.Length > MAX_LENGTH) res = res.Substring(0, MAX_LENGTH / 2) + "..." + res.Substring(res.Length - (MAX_LENGTH / 2), MAX_LENGTH / 2);
 				return res;
 			}
 
-			protected virtual string Dump(TResult value)
+			protected virtual string Dump(TResult value, KeyResolver resolver)
 			{
 				return value?.ToString() ?? "<default>";
 			}
@@ -664,7 +662,7 @@ namespace FoundationDB.Filters.Logging
 				return base.GetResult(resolver);
 			}
 
-			protected override string Dump(Slice value)
+			protected override string Dump(Slice value, KeyResolver resolver)
 			{
 				return value.ToString("P");
 			}
@@ -701,7 +699,7 @@ namespace FoundationDB.Filters.Logging
 				return base.GetResult(resolver);
 			}
 
-			protected override string Dump(bool value)
+			protected override string Dump(bool value, KeyResolver resolver)
 			{
 				return value.ToString();
 			}
@@ -774,15 +772,15 @@ namespace FoundationDB.Filters.Logging
 				return s + " }";
 			}
 
-			public override string GetResult(KeyResolver resolver)
+			protected override string Dump(Slice[] res, KeyResolver resolver)
 			{
-				if (!this.Result.HasValue) return base.GetResult(resolver);
-				var res = this.Result.Value;
-				string s = string.Concat("[", res.Length.ToString(), "] {");
-				if (res.Length > 0) s += res[0].ToString("P");
-				if (res.Length > 1) s += " ... " + res[res.Length - 1].ToString("P");
-				return s + " }";
-
+				return res.Length switch
+				{
+					0 => "<empty>",
+					1 => $"[1] {{ {res[0]:P} }}",
+					2 => $"[2] {{ {res[0]:P}, {res[1]:P} }}",
+					_ => $"[{res.Length:N0}] {{ {res[0]:P}, ..., {res[res.Length - 1]:P} }}"
+				};
 			}
 
 		}
@@ -829,6 +827,17 @@ namespace FoundationDB.Filters.Logging
 				if (this.Selectors.Length > 0) s += this.Selectors[0].ToString();
 				if (this.Selectors.Length > 1) s += " ... " + this.Selectors[this.Selectors.Length - 1].ToString();
 				return s + " }";
+			}
+
+			protected override string Dump(Slice[] res, KeyResolver resolver)
+			{
+				return res.Length switch
+				{
+					0 => "<empty>",
+					1 => $"[1] {{ {resolver.Resolve(res[0])} }}",
+					2 => $"[2] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])} }}",
+					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[res.Length - 1])} }}"
+				};
 			}
 
 		}
@@ -924,7 +933,7 @@ namespace FoundationDB.Filters.Logging
 				return resolver.Resolve(this.Key) + " =?= " + (this.Expected.IsNull ? "<missing>" : this.Expected.ToString("V"));
 			}
 
-			protected override string Dump((FdbValueCheckResult Result, Slice Actual) value)
+			protected override string Dump((FdbValueCheckResult Result, Slice Actual) value, KeyResolver resolver)
 			{
 				return value.Actual.IsNull ? $"<missing> [{value.Result}]" : $"{value.Actual:V} [{value.Result}]";
 			}
@@ -972,7 +981,7 @@ namespace FoundationDB.Filters.Logging
 				return base.GetResult(resolver);
 			}
 
-			protected override string Dump(VersionStamp? value)
+			protected override string Dump(VersionStamp? value, KeyResolver resolver)
 			{
 				return value?.ToString() ?? "<null>";
 			}
@@ -999,6 +1008,75 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments(KeyResolver resolver) => resolver.Resolve(this.Key);
 
+			protected override string Dump(string[] value, KeyResolver resolver)
+			{
+				switch (value.Length)
+				{
+					case 0: return "<empty>";
+					case 1: return $"[1] {{ {value[0]} }}";
+					case 2: return $"[2] {{ {value[0]}, {value[1]} }}";
+					default: return $"[{value.Length}] {{ {value[0]}, ..., {value[value.Length - 1]} }}";
+				}
+			}
+
+		}
+
+		public sealed class GetRangeSplitPointsCommand : Command<Slice[]>
+		{
+			/// <summary>Begin key of the range</summary>
+			public Slice Begin { get; }
+
+			/// <summary>End key of the range</summary>
+			public Slice End { get; }
+
+			/// <summary>Size of the chunks</summary>
+			public long ChunkSize { get; }
+
+			public override Operation Op => Operation.GetRangeSplitPoints;
+
+			public GetRangeSplitPointsCommand(Slice beginKey, Slice endKey, long chunkSize)
+			{
+				this.Begin = beginKey;
+				this.End = endKey;
+				this.ChunkSize = chunkSize;
+			}
+
+			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
+
+			public override string GetArguments(KeyResolver resolver) => string.Format(CultureInfo.InvariantCulture, "({0}...{1}) / {2}", resolver.ResolveBegin(this.Begin), resolver.ResolveEnd(this.End), this.ChunkSize);
+
+			protected override string Dump(Slice[] res, KeyResolver resolver)
+			{
+				return res.Length switch
+				{
+					0 => "[0] { }",
+					1 => $"[1] {{ {resolver.Resolve(res[0])} }}",
+					2 => $"[2] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])} }}",
+					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[res.Length - 1])} }}"
+				};
+			}
+
+		}
+
+		public sealed class GetEstimatedRangeSizeBytesCommand : Command<long>
+		{
+			/// <summary>Begin key of the range</summary>
+			public Slice Begin { get; }
+
+			/// <summary>End key of the range</summary>
+			public Slice End { get; }
+
+			public override Operation Op => Operation.GetEstimatedRangeSizeBytes;
+
+			public GetEstimatedRangeSizeBytesCommand(Slice beginKey, Slice endKey)
+			{
+				this.Begin = beginKey;
+				this.End = endKey;
+			}
+
+			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
+
+			public override string GetArguments(KeyResolver resolver) => string.Format(CultureInfo.InvariantCulture, "{0}...{1}", resolver.ResolveBegin(this.Begin), resolver.ResolveEnd(this.End));
 		}
 
 		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand

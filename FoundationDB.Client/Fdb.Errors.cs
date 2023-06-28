@@ -108,6 +108,18 @@ namespace FoundationDB.Client
 				return new InvalidOperationException($"Failed to register transaction #{transaction.Id}");
 			}
 
+			internal static Exception FailedToRegisterTenantOnDatabase(IFdbTenant tenant, FdbDatabase db)
+			{
+				Contract.Debug.Requires(tenant!= null && db != null);
+				return new InvalidOperationException($"Failed to register tenant @{tenant.Name}");
+			}
+
+			internal static Exception FailedToRegisterTransactionOnTenant(IFdbTransaction transaction, FdbTenant tenant)
+			{
+				Contract.Debug.Requires(transaction != null && tenant != null);
+				return new InvalidOperationException($"Failed to register transaction #{transaction.Id} on tenant @{tenant.Name}");
+			}
+
 			internal static Exception CannotIncrementKey()
 			{
 				return new ArgumentException("Key must contain at least one byte not equal to 0xFF");

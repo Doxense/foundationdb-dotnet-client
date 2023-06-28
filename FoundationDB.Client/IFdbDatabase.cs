@@ -59,35 +59,14 @@ namespace FoundationDB.Client
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
 
-		/// <summary>Set a parameter-less option on this database</summary>
-		/// <param name="option">Option to set</param>
-		void SetOption(FdbDatabaseOption option);
-
-		/// <summary>Set an option on this database that takes a string value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter (can be null)</param>
-		void SetOption(FdbDatabaseOption option, string? value);
-
-		/// <summary>Set an option on this database that takes an integer value</summary>
-		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
-		void SetOption(FdbDatabaseOption option, long value);
+		/// <summary>Helper that can set options for this database</summary>
+		IFdbDatabaseOptions Options { get; }
 
 		/// <summary>Sets the default log handler for this database</summary>
 		/// <param name="handler">Default handler that is attached to any new transction, and will be invoked when they complete.</param>
 		/// <param name="options"></param>
 		/// <remarks>This handler may not be called if logging is disabled, if a transaction overrides its handler, or if it calls <see cref="IFdbReadOnlyTransaction.StopLogging"/></remarks>
 		void SetDefaultLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options = default);
-
-		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
-		int DefaultTimeout { get; set; }
-
-		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
-		/// <remarks>Only effective for future transactions</remarks>
-		int DefaultRetryLimit { get; set; }
-
-		int DefaultMaxRetryDelay { get; set; }
 
 		/// <summary>Start a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
@@ -102,10 +81,33 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
+		[Obsolete("Use BeginTransaction() instead")]
 		ValueTask<IFdbTransaction> BeginTransactionAsync(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
+
+		/// <summary>Start a new transaction on this database, with the specified mode</summary>
+		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="context">Existing parent context, if the transaction needs to be linked with a retry loop, or a parent transaction. If null, will create a new standalone context valid only for this transaction</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		/// <example>
+		/// using(var tr = db.BeginTransaction(CancellationToken.None))
+		/// {
+		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
+		///		tr.Clear(Slice.FromString("OldValue"));
+		///		await tr.CommitAsync();
+		/// }</example>
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken ct, FdbOperationContext? context = null);
+
+		IFdbTenant GetTenant(FdbTenantName name);
 
 		/// <summary>Return the currently enforced API version for this database instance.</summary>
 		int GetApiVersion();
+
+		/// <summary>Returns a value between 0 and 1 that reflect the saturation of the client main thread.</summary>
+		/// <returns>Value between 0 (no activity) and 1 (completly saturated)</returns>
+		/// <remarks>The value is updated in the background at regular interval (by default every second).</remarks>
+		double GetMainThreadBusyness();
 
 	}
 

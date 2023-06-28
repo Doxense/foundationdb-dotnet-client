@@ -40,6 +40,9 @@ namespace FoundationDB.Client.Utils
 		public static long DatabaseHandlesTotal = 0;
 		public static long DatabaseHandles = 0;
 
+		public static long TenantHandlesTotal = 0;
+		public static long TenantHandles = 0;
+
 		public static long TransactionHandlesTotal = 0;
 		public static long TransactionHandles = 0;
 

@@ -26,27 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
-
-namespace FoundationDB.Client.Native
+namespace FoundationDB.Client.Core
 {
+	using System;
+	using JetBrains.Annotations;
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeyValue
+	/// <summary>Basic API for FoundationDB tenants</summary>
+	[PublicAPI]
+	public interface IFdbTenantHandler : IDisposable
 	{
-		public IntPtr Key;
-		public uint KeyLength;
-		public IntPtr Value;
-		public uint ValueLength;
-	}
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKey
-	{
-		public IntPtr Key;
+		IFdbDatabaseHandler Database { get; }
 
-		public uint Length;
+		bool IsClosed { get; }
+
+		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
+
 	}
 
 }

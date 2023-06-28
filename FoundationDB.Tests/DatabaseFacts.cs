@@ -31,8 +31,10 @@ namespace FoundationDB.Client.Tests
 {
 	using System;
 	using System.IO;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Collections.Tuples;
 	using FoundationDB.Client;
 	using NUnit.Framework;
 
@@ -190,7 +192,7 @@ namespace FoundationDB.Client.Tests
 				Slice actual;
 				using (var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 				{
-					tr.WithReadAccessToSystemKeys();
+					tr.Options.WithReadAccessToSystemKeys();
 					actual = await tr.GetAsync(Slice.FromByteString("\xFF/conf/storage_engine"));
 				}
 
@@ -240,12 +242,12 @@ namespace FoundationDB.Client.Tests
 
 				//TODO: how can we test that it is successful ?
 
-				db.SetLocationCacheSize(1000);
-				db.SetLocationCacheSize(0); // does this disable location cache ?
-				db.SetLocationCacheSize(9001);
+				db.Options.WithLocationCacheSize(1000);
+				db.Options.WithLocationCacheSize(0); // does this disable location cache ?
+				db.Options.WithLocationCacheSize(9001);
 
 				// should reject negative numbers
-				Assert.That(() => db.SetLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue).And.Property("Success").False);
+				Assert.That(() => db.Options.WithLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue).And.Property("Success").False);
 			}
 		}
 
@@ -292,7 +294,7 @@ namespace FoundationDB.Client.Tests
 				{
 					using(var tr = await db.BeginReadOnlyTransactionAsync(this.Cancellation))
 					{
-						tr.Timeout = 250; // ms
+						tr.Options.Timeout = 250; // ms
 						Log("check ...");
 						await tr.GetAsync(Slice.FromString("key_not_found"));
 						Log("Uhoh ...?");
@@ -341,6 +343,49 @@ namespace FoundationDB.Client.Tests
 				DefaultTimeout = TimeSpan.FromTicks((long) (Math.PI * TimeSpan.TicksPerSecond)),
 			};
 			Assert.That(options.ToString(), Is.EqualTo(@"cluster_file=/etc/foundationdb/fdb.cluster; timeout=3.1415926; machine_id=""James \""The Machine\"" Wade"""));
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Main_Thread_Busyness()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var value = db.GetMainThreadBusyness();
+				Log($"Current busyness: {value:N4} ({value * 100:N2}%)");
+				Assert.That(value, Is.GreaterThanOrEqualTo(0).And.LessThan(1), "Value must be [0, 1]");
+
+				var start = DateTime.Now;
+
+				// we will call this multiple times, when idle
+				Log("Querying busyness...");
+				for (int i = 0; i < 20; i++)
+				{
+					await Task.Delay(100, this.Cancellation);
+					value = db.GetMainThreadBusyness();
+					Assert.That(value, Is.GreaterThanOrEqualTo(0).And.LessThanOrEqualTo(1), "Value must be [0, 1]");
+					Log($"> T+{(DateTime.Now - start).TotalSeconds:N2}s: {value:N4} ({value * 100:N2}%)");
+				}
+
+				// read a bunch of keys to generate _some_ activity
+				Log("Generating some load in the background...");
+				var t = Task.WhenAll(Enumerable.Range(0, 100).Select(i => db.ReadAsync(async tr =>
+				{
+					await tr.GetValuesAsync(Enumerable.Range(0, 100).Select(x => TuPack.EncodeKey("Hello", i, x)));
+				}, this.Cancellation)).ToArray());
+
+				Log("Querying busyness again...");
+				// we will call this multiple times, when idle
+				for (int i = 0; i < 30; i++)
+				{
+					await Task.Delay(100, this.Cancellation);
+					value = db.GetMainThreadBusyness();
+					Assert.That(value, Is.GreaterThanOrEqualTo(0).And.LessThanOrEqualTo(1), "Value must be [0, 1]");
+					Log($"> T+{(DateTime.Now - start).TotalSeconds:N2}s: {value:N4} ({value * 100:N2}%)");
+				}
+
+				await t;
+			}
+
 		}
 
 	}

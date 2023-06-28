@@ -1,4 +1,4 @@
-﻿#region BSD License
+#region BSD License
 /* Copyright (c) 2013-2020, Doxense SAS
 All rights reserved.
 
@@ -26,27 +26,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
-
 namespace FoundationDB.Client.Native
 {
+	using System;
+	using System.Threading;
+	using FoundationDB.Client.Utils;
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeyValue
+	/// <summary>Wrapper on a FDBTenant*</summary>
+	internal sealed class TenantHandle : FdbSafeHandle
 	{
-		public IntPtr Key;
-		public uint KeyLength;
-		public IntPtr Value;
-		public uint ValueLength;
-	}
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKey
-	{
-		public IntPtr Key;
+		public TenantHandle()
+		{
+			Interlocked.Increment(ref DebugCounters.TenantHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.TenantHandles);
+		}
 
-		public uint Length;
+		protected override void Destroy(IntPtr handle)
+		{
+			FdbNative.TenantDestroy(handle);
+			Interlocked.Decrement(ref DebugCounters.TenantHandles);
+		}
+
+		public override string ToString()
+		{
+			return "TenantHandle[0x" + this.Handle.ToString("x") + "]";
+		}
+
 	}
 
 }

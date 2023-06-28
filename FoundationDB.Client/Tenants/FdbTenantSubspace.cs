@@ -26,27 +26,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Runtime.InteropServices;
-
-namespace FoundationDB.Client.Native
+namespace FoundationDB.Client
 {
+	using System;
+	using System.Diagnostics;
+	using Doxense.Serialization.Encoders;
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKeyValue
+	[DebuggerDisplay("Tenant={Metadata.Name}, Prefix={Metadata.Prefix}")]
+	public sealed class FdbTenantSubspace : DynamicKeySubspace
 	{
-		public IntPtr Key;
-		public uint KeyLength;
-		public IntPtr Value;
-		public uint ValueLength;
-	}
 
-	[StructLayout(LayoutKind.Sequential, Pack = 4)]
-	internal struct FdbKey
-	{
-		public IntPtr Key;
+		internal FdbTenantSubspace(FdbTenantMetadata metadata, IDynamicKeyEncoder encoder, ISubspaceContext context)
+			: base(metadata.Prefix, encoder, context)
+		{
+			this.Metadata = metadata;
+			this.NamePrefix = "{" + metadata.Name.ToString() + "}:";
+		}
 
-		public uint Length;
+		public FdbTenantName Name => this.Metadata.Name;
+
+		public FdbTenantMetadata Metadata { get; }
+
+		private string NamePrefix { get; }
+
+		public override string PrettyPrint(Slice packedKey)
+		{
+			if (packedKey.IsNull) return "<null>";
+			return this.NamePrefix + base.PrettyPrint(packedKey);
+		}
+
 	}
 
 }
