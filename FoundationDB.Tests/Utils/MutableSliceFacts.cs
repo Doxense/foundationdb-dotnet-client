@@ -59,10 +59,10 @@ namespace Doxense.Memory.Tests
 			Assert.That(MutableSlice.Nil.GetBytes(), Is.Null);
 			Assert.That(MutableSlice.Nil.GetBytesOrEmpty(), Has.Length.Zero);
 
-			Assert.That(MutableSlice.Empty.Slice.Array, Is.Null);
-			Assert.That(MutableSlice.Empty.Slice.Offset, Is.Zero);
-			Assert.That(MutableSlice.Empty.Slice.Count, Is.Zero);
-			Assert.That(MutableSlice.Empty.Slice, Is.EqualTo(Slice.Nil));
+			Assert.That(MutableSlice.Nil.Slice.Array, Is.Null);
+			Assert.That(MutableSlice.Nil.Slice.Offset, Is.Zero);
+			Assert.That(MutableSlice.Nil.Slice.Count, Is.Zero);
+			Assert.That(MutableSlice.Nil.Slice, Is.EqualTo(Slice.Nil));
 		}
 
 		[Test]
@@ -517,7 +517,6 @@ namespace Doxense.Memory.Tests
 
 		private static MutableSlice Literal(ReadOnlySpan<char> literal) => Encoding.UTF8.GetBytes(literal.ToArray()).AsMutableSlice();
 
-		private static MutableSlice Literal(string text) => Encoding.UTF8.GetBytes(text).AsMutableSlice();
 	}
 
 }

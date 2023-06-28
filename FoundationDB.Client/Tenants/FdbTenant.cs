@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Threading.Tasks;
 	using FoundationDB.Client.Core;
 
 	[DebuggerDisplay("Name={Name}")]
@@ -54,7 +53,7 @@ namespace FoundationDB.Client
 		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>List of all "pending" transactions created from this tenant instance (and that have not yet been disposed)</summary>
-		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
+		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new();
 
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
 		private volatile bool m_disposed;
@@ -218,7 +217,7 @@ namespace FoundationDB.Client
 						// mark this tenant as dead, but keep the handle alive until after all the callbacks have fired
 						foreach (var trans in m_transactions.Values)
 						{
-							if (trans != null && trans.StillAlive)
+							if (trans is { StillAlive: true })
 							{
 								trans.Cancel();
 							}
@@ -226,18 +225,19 @@ namespace FoundationDB.Client
 						m_transactions.Clear();
 
 						//note: will block until all the registered callbacks have finished executing
-						m_cts.SafeCancelAndDispose();
+						using (m_cts)
+						{
+							try { m_cts.Cancel(); }
+							catch(ObjectDisposedException) { }
+						}
 					}
 					finally
 					{
-						if (m_handler != null)
+						if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", "Disposing tenant handler");
+						try { m_handler.Dispose(); }
+						catch (Exception e)
 						{
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", "Disposing tenant handler");
-							try { m_handler.Dispose(); }
-							catch (Exception e)
-							{
-								if (Logging.On) Logging.Exception(this, "Dispose", e);
-							}
+							if (Logging.On) Logging.Exception(this, "Dispose", e);
 						}
 					}
 				}

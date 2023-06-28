@@ -1526,7 +1526,6 @@ namespace FoundationDB.Client
 				}
 			}
 		}
-		#endregion
 
 	}
  
