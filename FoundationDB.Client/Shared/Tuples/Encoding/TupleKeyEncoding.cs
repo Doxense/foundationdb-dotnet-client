@@ -83,7 +83,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		IValueEncoder<TValue, TStorage> IValueEncoding.GetValueEncoder<TValue, TStorage>()
 		{
 			if (typeof(TStorage) != typeof(Slice)) throw new NotSupportedException($"Tuple Encoding does not support {typeof(TStorage).Name} as a storage type.");
-			return (IValueEncoder<TValue, TStorage>) (object) GetValueEncoder<TValue>();
+			return (IValueEncoder<TValue, TStorage>) GetValueEncoder<TValue>();
 		}
 
 		public IValueEncoder<TValue> GetValueEncoder<TValue>()

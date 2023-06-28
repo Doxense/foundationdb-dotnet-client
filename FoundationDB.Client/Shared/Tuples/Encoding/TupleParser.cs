@@ -93,6 +93,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteByte(ref TupleWriter writer, byte? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteByte(ref writer, value.Value);
+		}
+
 		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
@@ -387,8 +393,82 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteDecimal(ref writer, value.Value);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteTimeSpan(ref TupleWriter writer, TimeSpan value)
+		{
+			// We have the same precision problem with storing DateTimes:
+			// - Storing the number of ticks keeps the exact value, but is Windows-centric
+			// - Storing the number of milliseconds as an integer will round the precision to 1 millisecond, which is not acceptable
+			// - We could store the the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - It is frequent for JSON APIs and other database engines to represent durations as a number of SECONDS, using a floating point number.
+
+			// Right now, we will store the duration as the number of seconds, using a 64-bit float
+
+			WriteDouble(ref writer, value.TotalSeconds);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteTimeSpan(ref TupleWriter writer, TimeSpan? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteTimeSpan(ref writer, value.Value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteDateTime(ref TupleWriter writer, DateTime value)
+		{
+			// The problem of serializing DateTime: TimeZone? Precision?
+			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
+			// - DateTime in .NET uses Ticks which produce numbers too large to fit in the 56 bits available in JavaScript
+			// - Most other *nix uses the number of milliseconds since 1970-Jan-01 UTC, but if we store as an integer we will lose some precision (rounded to nearest millisecond)
+			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - Other database engines store dates as a number of DAYS since Epoch, using a floating point number. This allows for quickly extracting the date by truncating the value, and the time by using the decimal part
+
+			// Right now, we will store the date as the number of DAYS since Epoch, using a 64-bit float.
+			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
+			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
+
+			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
+			WriteDouble(ref writer, (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double) TimeSpan.TicksPerDay);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteDateTime(ref TupleWriter writer, DateTime? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteDateTime(ref writer, value.Value);
+		}
+
+		/// <summary>Writes a DateTimeOffset converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteDateTimeOffset(ref TupleWriter writer, DateTimeOffset value)
+		{
+			// The problem of serializing DateTimeOffset: TimeZone? Precision?
+			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
+			// - DateTimeOffset in .NET uses Ticks which produce numbers too large to fit in the 56 bits available in JavaScript
+			// - Most other *nix uses the number of milliseconds since 1970-Jan-01 UTC, but if we store as an integer we will lose some precision (rounded to nearest millisecond)
+			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - Other database engines store dates as a number of DAYS since Epoch, using a floating point number. This allows for quickly extracting the date by truncating the value, and the time by using the decimal part
+
+			// Right now, we will store the date as the number of DAYS since Epoch, using a 64-bit float.
+			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
+			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
+
+			//REVIEW: why not use an embedded tupple: (ElapsedDays, TimeZoneOffset) ?
+			// - pros: keeps the timezone offset
+			// - cons: would not be compatible with DateTime
+
+			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
+			WriteDouble(ref writer, (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double) TimeSpan.TicksPerDay);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteDateTimeOffset(ref TupleWriter writer, DateTimeOffset? value)
+		{
+			if (!value.HasValue) WriteNil(ref writer); else WriteDateTimeOffset(ref writer, value.Value);
+		}
+
+
 		/// <summary>Writes a string encoded in UTF-8</summary>
-		public static unsafe void WriteString(ref TupleWriter writer, string value)
+		public static unsafe void WriteString(ref TupleWriter writer, string? value)
 		{
 			if (value == null)
 			{ // "00"
@@ -411,7 +491,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a char array encoded in UTF-8</summary>
-		internal static unsafe void WriteChars(ref TupleWriter writer, char[] value, int offset, int count)
+		internal static unsafe void WriteChars(ref TupleWriter writer, char[]? value, int offset, int count)
 		{
 			Contract.Debug.Requires(offset >= 0 && count >= 0);
 
@@ -678,7 +758,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
-		public static void WriteGuid(ref TupleWriter writer, in Guid value)
+		public static void WriteGuid(ref TupleWriter writer, Guid value)
 		{
 			var span = writer.Output.AllocateSpan(17);
 			span[0] = TupleTypes.Uuid128;
@@ -693,7 +773,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
-		public static void WriteUuid128(ref TupleWriter writer, in Uuid128 value)
+		public static void WriteUuid128(ref TupleWriter writer, Uuid128 value)
 		{
 			var span = writer.Output.AllocateSpan(17);
 			span[0] = TupleTypes.Uuid128;
@@ -707,7 +787,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a 96-bit UUID</summary>
-		public static void WriteUuid96(ref TupleWriter writer, in Uuid96 value)
+		public static void WriteUuid96(ref TupleWriter writer, Uuid96 value)
 		{
 			var span = writer.Output.AllocateSpan(13);
 			span[0] = TupleTypes.VersionStamp96;
@@ -721,7 +801,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Writes a 80-bit UUID</summary>
-		public static void WriteUuid80(ref TupleWriter writer, in Uuid80 value)
+		public static void WriteUuid80(ref TupleWriter writer, Uuid80 value)
 		{
 			var span = writer.Output.AllocateSpan(11);
 			span[0] = TupleTypes.VersionStamp80;
@@ -748,7 +828,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteUuid64(ref writer, value.Value);
 		}
 
-		public static void WriteVersionStamp(ref TupleWriter writer, in VersionStamp value)
+		public static void WriteVersionStamp(ref TupleWriter writer, VersionStamp value)
 		{
 			if (value.HasUserVersion)
 			{ // 96-bits VersionStamp
@@ -770,7 +850,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (!value.HasValue) WriteNil(ref writer); else WriteVersionStamp(ref writer, value.Value);
 		}
 
-		public static void WriteUserType(ref TupleWriter writer, TuPackUserType value)
+		public static void WriteUserType(ref TupleWriter writer, TuPackUserType? value)
 		{
 			if (value == null)
 			{
@@ -840,13 +920,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		{
 			// check for nulls
 
-			for(int i = 0; i < buffer.Length; i++)
+			foreach (var b in buffer)
 			{
-				if (buffer[i] == 0)
+				if (b == 0)
 				{ // found a 0, switch to slow path
 					return true;
 				}
 			}
+
 			// buffer is clean, we can return it as-is
 			return true;
 		}
@@ -1255,7 +1336,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			while(reader.Input.HasMore)
 			{
-				(var token, var error) = ParseNext(ref reader);
+				var (token, error) = ParseNext(ref reader);
 				if (error != null) return (default, error);
 
 				// the token will be Nil for either the end of the stream, or the end of the tuple
@@ -1283,7 +1364,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			while (count-- > 0)
 			{
 				if (!reader.Input.HasMore) return false;
-				(var token, var error) = ParseNext(ref reader);
+				var (token, error) = ParseNext(ref reader);
 				if (error != null || token.IsNull) return false;
 			}
 			return true;
@@ -1296,7 +1377,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, TupleSegmentType, T> visitor)
 		{
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
-			(var token, var error) = ParseNext(ref reader);
+			var (token, error) = ParseNext(ref reader);
 			if (error != null) throw error;
 			return visitor(token, TupleTypes.DecodeSegmentType(token));
 		}

@@ -35,7 +35,6 @@ namespace Doxense.Collections.Tuples
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.CompilerServices;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
@@ -52,11 +51,10 @@ namespace Doxense.Collections.Tuples
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
 
 		/// <summary>First and only item in the tuple</summary>
-		[AllowNull] 
-		public readonly T1 Item1;
+		public readonly T1? Item1;
 
 		[DebuggerStepThrough]
-		public STuple([AllowNull] T1 item1)
+		public STuple(T1? item1)
 		{
 			this.Item1 = item1;
 		}
@@ -67,6 +65,7 @@ namespace Doxense.Collections.Tuples
 
 		object? IVarTuple.this[int index]
 		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get
 			{
 				if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<object>(index, 1);
@@ -99,14 +98,13 @@ namespace Doxense.Collections.Tuples
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
-		[return:MaybeNull]
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
 			return TypeConverters.Convert<T1, TItem>(this.Item1);
 		}
 
-		IVarTuple IVarTuple.Append<T2>(T2 value)
+		IVarTuple IVarTuple.Append<T2>(T2? value) where T2 : default
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -116,7 +114,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2> Append<T2>(T2 value)
+		public STuple<T1, T2> Append<T2>(T2? value)
 		{
 			return new STuple<T1, T2>(this.Item1, value);
 		}
@@ -127,7 +125,7 @@ namespace Doxense.Collections.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items* of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public STuple<T1, T2, T3> Append<T2, T3>(T2 value1, T3 value2)
+		public STuple<T1, T2, T3> Append<T2, T3>(T2? value1, T3? value2)
 		{
 			return new STuple<T1, T2, T3>(this.Item1, value1, value2);
 		}
@@ -165,9 +163,8 @@ namespace Doxense.Collections.Tuples
 			array[offset] = this.Item1;
 		}
 
-		[EditorBrowsable(EditorBrowsableState.Never)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Deconstruct([MaybeNull] out T1 item1)
+		public void Deconstruct(out T1? item1)
 		{
 			item1 = this.Item1;
 		}
@@ -175,7 +172,7 @@ namespace Doxense.Collections.Tuples
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void With(Action<T1> lambda)
+		public void With(Action<T1?> lambda)
 		{
 			lambda(this.Item1);
 		}
@@ -184,7 +181,7 @@ namespace Doxense.Collections.Tuples
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public TItem With<TItem>(Func<T1, TItem> lambda)
+		public TItem With<TItem>(Func<T1?, TItem> lambda)
 		{
 			return lambda(this.Item1);
 		}

@@ -87,7 +87,7 @@ namespace FoundationDB.Types.Json
 			if (encoded.IsNullOrEmpty) return default(TDocument);
 
 			// note: the StreamReader should remove the UTF8 BOM for us
-			using (var sr = new StreamReader(new SliceStream(encoded), Encoding.UTF8))
+			using (var sr = new StreamReader(encoded.ToStream(), Encoding.UTF8))
 			{
 				using (var reader = new JsonTextReader(sr))
 				{

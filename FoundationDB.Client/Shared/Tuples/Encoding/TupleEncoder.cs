@@ -30,7 +30,6 @@ namespace Doxense.Collections.Tuples.Encoding
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics.CodeAnalysis;
 	using Doxense.Collections.Tuples;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
@@ -46,7 +45,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <remarks>Warning: This method will call into <see cref="ITupleSerializable.PackTo"/> if <paramref name="tuple"/> implements <see cref="ITupleSerializable"/></remarks>
 
 		internal static void WriteTo<TTuple>(ref TupleWriter writer, TTuple tuple)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			// ReSharper disable once SuspiciousTypeConversion.Global
 			if (tuple is ITupleSerializable ts)
@@ -81,8 +80,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure]
-		public static Slice Pack<TTuple>([AllowNull] TTuple tuple)
-			where TTuple : IVarTuple
+		public static Slice Pack<TTuple>(TTuple? tuple)
+			where TTuple : IVarTuple?
 		{
 			if (tuple == null) return Slice.Nil;
 			var writer = new TupleWriter();
@@ -95,14 +94,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		public static Slice[] Pack<TTuple>(params TTuple[] tuples) //REVIEW: change name to PackRange or PackBatch?
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			var empty = default(Slice);
 			return Pack(empty, tuples);
 		}
 
-		public static void PackTo<TTuple>(ref SliceWriter writer, [AllowNull] TTuple tuple)
-			where TTuple : IVarTuple
+		public static void PackTo<TTuple>(ref SliceWriter writer, TTuple? tuple)
+			where TTuple : IVarTuple?
 		{
 			if (tuple != null)
 			{
@@ -112,8 +111,8 @@ namespace Doxense.Collections.Tuples.Encoding
 			}
 		}
 
-		public static void Pack<TTuple>(ref TupleWriter writer, [AllowNull] TTuple tuple)
-			where TTuple : IVarTuple
+		public static void Pack<TTuple>(ref TupleWriter writer, TTuple? tuple)
+			where TTuple : IVarTuple?
 		{
 			if (tuple != null)
 			{
@@ -124,8 +123,8 @@ namespace Doxense.Collections.Tuples.Encoding
 		// With prefix
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a tuple</summary>
-		public static Slice Pack<TTuple>(Slice prefix, [AllowNull] TTuple tuple)
-			where TTuple : IVarTuple
+		public static Slice Pack<TTuple>(Slice prefix, TTuple? tuple)
+			where TTuple : IVarTuple?
 		{
 			if (tuple == null || tuple.Count == 0) return prefix;
 
@@ -141,7 +140,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		public static Slice[] Pack<TTuple>(Slice prefix, params TTuple[] tuples)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			Contract.NotNull(tuples);
 
@@ -167,7 +166,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		public static Slice[] Pack<TTuple>(Slice prefix, IEnumerable<TTuple> tuples)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			Contract.NotNull(tuples);
 
@@ -190,7 +189,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, TElement[] elements, Func<TElement, TTuple> transform)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			Contract.NotNull(elements);
 			Contract.NotNull(transform);
@@ -219,7 +218,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(Slice prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			Contract.NotNull(elements);
 			Contract.NotNull(transform);
@@ -254,7 +253,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		[Pure]
-		public static Slice EncodeKey<T1>(Slice prefix, T1 value)
+		public static Slice EncodeKey<T1>(Slice prefix, T1? value)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -264,7 +263,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		[Pure]
-		public static Slice Pack<T1>(Slice prefix, ref ValueTuple<T1> items)
+		public static Slice Pack<T1>(Slice prefix, in ValueTuple<T1> items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -274,7 +273,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
-		public static Slice EncodeKey<T1, T2>(Slice prefix, T1 value1, T2 value2)
+		public static Slice EncodeKey<T1, T2>(Slice prefix, T1? value1, T2? value2)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -285,7 +284,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
-		public static Slice Pack<T1, T2>(Slice prefix, ref (T1, T2) items)
+		public static Slice Pack<T1, T2>(Slice prefix, in (T1, T2) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -295,7 +294,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
-		public static Slice EncodeKey<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
+		public static Slice EncodeKey<T1, T2, T3>(Slice prefix, T1? value1, T2? value2, T3? value3)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -306,7 +305,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
-		public static Slice Pack<T1, T2, T3>(Slice prefix, ref (T1, T2, T3) items)
+		public static Slice Pack<T1, T2, T3>(Slice prefix, in (T1, T2, T3) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -317,7 +316,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
+		public static Slice EncodeKey<T1, T2, T3, T4>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -329,7 +328,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, ref (T1, T2, T3, T4) items)
+		public static Slice Pack<T1, T2, T3, T4>(Slice prefix, in (T1, T2, T3, T4) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -341,7 +340,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 5-tuple</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4, T5>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -354,7 +353,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 5-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, ref (T1, T2, T3, T4, T5) items)
+		public static Slice Pack<T1, T2, T3, T4, T5>(Slice prefix, in (T1, T2, T3, T4, T5) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -367,7 +366,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -381,7 +380,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, ref (T1, T2, T3, T4, T5, T6) items)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>(Slice prefix, in (T1, T2, T3, T4, T5, T6) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -395,7 +394,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 7-tuple</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -410,7 +409,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 7-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, ref (T1, T2, T3, T4, T5, T6, T7) items)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, in (T1, T2, T3, T4, T5, T6, T7) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -425,7 +424,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7, T8 value8)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7, T8? value8)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -441,7 +440,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, ref (T1, T2, T3, T4, T5, T6, T7, T8) items)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, in (T1, T2, T3, T4, T5, T6, T7, T8) items)
 		{
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
@@ -719,7 +718,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, IEnumerable<T1> keys)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			Contract.NotNullAllowStructs(prefix);
 			var head = Pack(prefix);
@@ -733,7 +732,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] EncodeKeys<TTuple, T1>(TTuple prefix, params T1[] keys)
-			where TTuple : IVarTuple
+			where TTuple : IVarTuple?
 		{
 			Contract.NotNullAllowStructs(prefix);
 
@@ -800,14 +799,14 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <param name="tuple">Receives the decoded tuple</param>
 		/// <remarks>Throws an exception if the tuple is empty or has more than one element.</remarks>
-		public static void DecodeKey<T1>(Slice packedKey, out ValueTuple<T1> tuple)
+		public static void DecodeKey<T1>(Slice packedKey, out ValueTuple<T1?> tuple)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack a single value out of an empty tuple");
 
 			var slice = TuplePackers.UnpackSingle(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
-			tuple = new ValueTuple<T1>(TuplePacker<T1>.Deserialize(slice));
+			tuple = new ValueTuple<T1?>(TuplePacker<T1>.Deserialize(slice));
 		}
 
 		/// <summary>Unpack the value of a singleton tuple</summary>
@@ -853,7 +852,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		}
 
 
-		public static void DecodeKey<T1, T2>(ref TupleReader reader, out T1 item1, out T2 item2)
+		public static void DecodeKey<T1, T2>(ref TupleReader reader, out T1? item1, out T2? item2)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -880,7 +879,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than three items");
 		}
 
-		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3)
+		public static void DecodeKey<T1, T2, T3>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -909,7 +908,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3, out T4 item4)
+		public static void DecodeKey<T1, T2, T3, T4>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -940,7 +939,7 @@ namespace Doxense.Collections.Tuples.Encoding
 			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
 		}
 
-		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out T1 item1, out T2 item2, out T3 item3, out T4 item4, out T5 item5)
+		public static void DecodeKey<T1, T2, T3, T4, T5>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
 		{
 			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
 			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
@@ -978,7 +977,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="input">Reader positioned at the start of the next item to read</param>
 		/// <param name="value">If decoding succeeded, receives the decoded value.</param>
 		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
-		public static bool DecodeNext<T>(ref TupleReader input, [MaybeNull] out T value)
+		public static bool DecodeNext<T>(ref TupleReader input, out T? value)
 		{
 			if (!input.Input.HasMore)
 			{
@@ -986,7 +985,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				return false;
 			}
 
-			(var slice, var error) = TupleParser.ParseNext(ref input);
+			var (slice, error) = TupleParser.ParseNext(ref input);
 			if (error != null)
 			{
 				value = default!;
@@ -1014,14 +1013,14 @@ namespace Doxense.Collections.Tuples.Encoding
 				TupleEncoder.WriteKeysTo(ref writer, key);
 			}
 
-			public void ReadKeyFrom(ref SliceReader reader, [MaybeNull] out T key)
+			public void ReadKeyFrom(ref SliceReader reader, out T? key)
 			{
 				key = !reader.HasMore
 					? default! //BUGBUG
 					: TuPack.DecodeKey<T>(reader.ReadToEnd())!;
 			}
 
-			public bool TryReadKeyFrom(ref SliceReader reader, [MaybeNull] out T key)
+			public bool TryReadKeyFrom(ref SliceReader reader, out T? key)
 			{
 				return TuPack.TryDecodeKey<T>(reader.ReadToEnd(), out key);
 			}
@@ -1031,8 +1030,7 @@ namespace Doxense.Collections.Tuples.Encoding
 				return TupleEncoder.EncodeKey(default(Slice), key);
 			}
 
-			[return:MaybeNull]
-			public T DecodeValue(Slice encoded)
+			public T? DecodeValue(Slice encoded)
 			{
 				if (encoded.IsNullOrEmpty) return default!; //BUGBUG
 				return TuPack.DecodeKey<T>(encoded);
@@ -1049,7 +1047,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			public override IKeyEncoding Encoding => TuPack.Encoding;
 
-			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2) key)
+			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2) key)
 			{
 				switch (count)
 				{
@@ -1099,7 +1097,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			public override IKeyEncoding Encoding => TuPack.Encoding;
 
-			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3) key)
+			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3) key)
 			{
 				switch (count)
 				{
@@ -1152,7 +1150,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			public override IKeyEncoding Encoding => TuPack.Encoding;
 
-			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4) key)
+			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4) key)
 			{
 				switch (count)
 				{
@@ -1208,7 +1206,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			public override IKeyEncoding Encoding => TuPack.Encoding;
 
-			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5) key)
+			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4, T5) key)
 			{
 				switch (count)
 				{
@@ -1267,7 +1265,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 			public override IKeyEncoding Encoding => TuPack.Encoding;
 
-			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, ref (T1, T2, T3, T4, T5, T6) key)
+			public override void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4, T5, T6) key)
 			{
 				switch (count)
 				{

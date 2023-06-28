@@ -115,7 +115,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var buf = MutableSlice.Repeat(0xAA, 18);
 				VersionStamp.Incomplete(123).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.ToHexaString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
+				Assert.That(buf.Slice.ToHexaString(' '), Is.EqualTo("AA AA AA FF FF FF FF FF FF FF FF FF FF 00 7B AA AA AA"));
 			}
 		}
 
@@ -193,7 +193,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var buf = MutableSlice.Repeat(0xAA, 18);
 				VersionStamp.Complete(0x0123456789ABCDEFUL, 123, 456).WriteTo(buf.Substring(3, 12));
-				Assert.That(buf.ToHexaString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
+				Assert.That(buf.Slice.ToHexaString(' '), Is.EqualTo("AA AA AA 01 23 45 67 89 AB CD EF 00 7B 01 C8 AA AA AA"));
 			}
 		}
 

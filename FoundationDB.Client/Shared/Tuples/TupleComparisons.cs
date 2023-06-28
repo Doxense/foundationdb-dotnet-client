@@ -42,10 +42,10 @@ namespace Doxense.Collections.Tuples
 	public static class TupleComparisons
 	{
 		/// <summary>Tuple comparer that treats similar values as equal ("123" = 123 = 123L = 123.0d)</summary>
-		public static readonly EqualityComparer Default = new EqualityComparer(SimilarValueComparer.Default);
+		public static readonly EqualityComparer Default = new (SimilarValueComparer.Default);
 
 		/// <summary>Tuple comparer that uses the default BCL object comparison ("123" != 123 != 123L != 123.0d)</summary>
-		public static readonly EqualityComparer Bcl = new EqualityComparer(EqualityComparer<object>.Default);
+		public static readonly EqualityComparer Bcl = new (EqualityComparer<object>.Default);
 
 		public sealed class EqualityComparer : IEqualityComparer<IVarTuple>, IEqualityComparer
 		{
@@ -80,7 +80,7 @@ namespace Doxense.Collections.Tuples
 				return false;
 			}
 
-			public int GetHashCode(object obj)
+			public int GetHashCode(object? obj)
 			{
 				if (obj == null) return 0;
 
@@ -244,7 +244,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(IVarTuple x, IVarTuple y)
+			public int Compare(IVarTuple? x, IVarTuple? y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;
@@ -340,7 +340,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="x">First tuple</param>
 			/// <param name="y">Second tuple</param>
 			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
-			public int Compare(IVarTuple x, IVarTuple y)
+			public int Compare(IVarTuple? x, IVarTuple? y)
 			{
 				if (y == null) return x == null ? 0 : +1;
 				if (x == null) return -1;

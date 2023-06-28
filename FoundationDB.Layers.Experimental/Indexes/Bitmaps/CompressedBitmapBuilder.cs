@@ -76,8 +76,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
-		public CompressedBitmapBuilder(MutableSlice data)
-			: this(new CompressedBitmap(data))
+		public CompressedBitmapBuilder(Slice data)
+			: this(new CompressedBitmap(MutableSlice.Copy(data)))
 		{ }
 
 		internal CompressedBitmapBuilder(CompressedWord[] words, int size, BitRange range)

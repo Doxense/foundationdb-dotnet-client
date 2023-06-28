@@ -51,8 +51,7 @@ namespace Doxense.Collections.Tuples
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
 		/// <summary>Value of the last element of the tuple</summary>
-		[MaybeNull]
-		public readonly T Tail;
+		public readonly T? Tail;
 
 		/// <summary>Link to the parent tuple that contains the head.</summary>
 		public readonly IVarTuple Head;
@@ -61,7 +60,7 @@ namespace Doxense.Collections.Tuples
 		public readonly int Depth;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
-		public LinkedTuple(IVarTuple head, T tail)
+		public LinkedTuple(IVarTuple head, T? tail)
 		{
 			Contract.NotNull(head);
 
@@ -116,8 +115,7 @@ namespace Doxense.Collections.Tuples
 
 #endif
 
-		[return: MaybeNull]
-		public TItem Get<TItem>(int index)
+		public TItem? Get<TItem>(int index)
 		{
 			if (index == this.Depth || index == -1) return TypeConverters.Convert<T, TItem>(this.Tail);
 			if (index < -1) index++;
@@ -131,7 +129,7 @@ namespace Doxense.Collections.Tuples
 			get => this.Tail!;
 		}
 
-		public IVarTuple Append<TItem>(TItem value)
+		public IVarTuple Append<TItem>(TItem? value)
 		{
 			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail!, value));
 		}

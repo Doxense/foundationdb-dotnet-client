@@ -748,7 +748,13 @@ namespace FoundationDB.Client
 						m_tenants.Clear();
 
 						//note: will block until all the registered callbacks have finished executing
-						m_cts.SafeCancelAndDispose();
+						using (m_cts)
+						{
+							if (!m_cts.IsCancellationRequested)
+							{
+								try { m_cts.Cancel(); } catch(ObjectDisposedException) { }
+							}
+						}
 					}
 					finally
 					{

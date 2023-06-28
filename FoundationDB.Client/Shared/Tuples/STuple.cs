@@ -33,11 +33,9 @@ namespace Doxense.Collections.Tuples
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Collections.Tuples.Encoding;
 	using Doxense.Diagnostics.Contracts;
@@ -58,16 +56,16 @@ namespace Doxense.Collections.Tuples
 
 		public int Count => 0;
 
-		object? IReadOnlyList<object?>.this[int index] => throw new InvalidOperationException("Tuple is empty");
+		object IReadOnlyList<object?>.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
-		object? IVarTuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
+		object IVarTuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 		IVarTuple IVarTuple.this[int? from, int? to] => this;
 
 #if USE_RANGE_API
 
-		object? IVarTuple.this[Index index] => TupleHelpers.FailIndexOutOfRange<object>(index, 0);
+		object IVarTuple.this[Index index] => TupleHelpers.FailIndexOutOfRange<object>(index, 0);
 
 		IVarTuple IVarTuple.this[Range range]
 		{
@@ -86,7 +84,7 @@ namespace Doxense.Collections.Tuples
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T1>(T1 value) => new STuple<T1>(value);
+		public IVarTuple Append<T1>(T1? value) => new STuple<T1>(value);
 
 		public IVarTuple Concat(IVarTuple tuple)
 		{
@@ -540,7 +538,7 @@ namespace Doxense.Collections.Tuples
 			/// Stringify&lt;Slice&gt;((...) => hexa decimal string ("01 23 45 67 89 AB CD EF")
 			/// </example>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify<T>([AllowNull] T item)
+			public static string Stringify<T>(T? item)
 			{
 				if (default(T) == null)
 				{
@@ -591,7 +589,7 @@ namespace Doxense.Collections.Tuples
 					case ulong ul:     return Stringify(ul);
 					case bool b:       return Stringify(b);
 					case char c:       return Stringify(c);
-					case Slice sl: return Stringify(sl);
+					case Slice sl:     return Stringify(sl);
 					case MutableSlice sl: return Stringify(sl);
 					case double d:     return Stringify(d);
 					case float f:      return Stringify(f);
@@ -601,7 +599,7 @@ namespace Doxense.Collections.Tuples
 				}
 
 				// some other type
-				return StringifyInternal(item!);
+				return StringifyInternal(item);
 			}
 
 			[MethodImpl(MethodImplOptions.NoInlining)]
@@ -742,7 +740,7 @@ namespace Doxense.Collections.Tuples
 			/// <param name="items">Sequence of items to stringify</param>
 			/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
 			/// <example>ToString(STuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
-			public static string ToString(IEnumerable<object?> items)
+			public static string ToString(IEnumerable<object?>? items)
 			{
 				if (items == null) return string.Empty;
 
@@ -1187,7 +1185,7 @@ namespace Doxense.Collections.Tuples
 							{
 								ut = TuPackUserType.Directory;
 							}
-							else if (lit.StartsWith("User-"))
+							else if (lit.StartsWith("User-", StringComparison.Ordinal))
 							{
 								throw new NotImplementedException("Implementation parsing of custom user types in Tuple expressions");
 							}

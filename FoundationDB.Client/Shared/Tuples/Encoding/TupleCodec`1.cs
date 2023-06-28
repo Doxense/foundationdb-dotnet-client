@@ -38,7 +38,7 @@ namespace Doxense.Collections.Tuples.Encoding
 	public sealed class TupleCodec<T> : TypeCodec<T>, IValueEncoder<T>
 	{
 
-		private static volatile TupleCodec<T>? s_defaultSerializer;
+		private static TupleCodec<T>? s_defaultSerializer;
 
 		public static TupleCodec<T> Default => s_defaultSerializer ??= new TupleCodec<T>(default!);
 
@@ -49,12 +49,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			m_missingValue = missingValue;
 		}
 
-		public override Slice EncodeOrdered(T value)
+		public override Slice EncodeOrdered(T? value)
 		{
-			return TupleEncoder.EncodeKey(default(Slice), value);
+			return TupleEncoder.EncodeKey(default, value);
 		}
 
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
+		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T? value)
 		{
 			//HACKHACK: we lose the current depth!
 			var writer = new TupleWriter(output);
@@ -62,14 +62,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			output = writer.Output;
 		}
 
-		[return: MaybeNull]
-		public override T DecodeOrdered(Slice input)
+		public override T? DecodeOrdered(Slice input)
 		{
 			return TuPack.DecodeKey<T>(input);
 		}
 
-		[return: MaybeNull]
-		public override T DecodeOrderedSelfTerm(ref SliceReader input)
+		public override T? DecodeOrderedSelfTerm(ref SliceReader input)
 		{
 			//HACKHACK: we lose the current depth!
 			var reader = new TupleReader(input);
@@ -78,13 +76,12 @@ namespace Doxense.Collections.Tuples.Encoding
 			return res ? value : m_missingValue;
 		}
 
-		public Slice EncodeValue(T value)
+		public Slice EncodeValue(T? value)
 		{
 			return EncodeUnordered(value);
 		}
 
-		[return: MaybeNull]
-		public T DecodeValue(Slice encoded)
+		public T? DecodeValue(Slice encoded)
 		{
 			return DecodeUnordered(encoded);
 		}

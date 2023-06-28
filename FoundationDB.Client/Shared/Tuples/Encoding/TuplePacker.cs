@@ -39,7 +39,7 @@ namespace Doxense.Collections.Tuples.Encoding
 
 		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true)!;
 
-		internal static readonly Func<Slice, T> Decoder = TuplePackers.GetDeserializer<T>(required: true);
+		internal static readonly Func<Slice, T?> Decoder = TuplePackers.GetDeserializer<T>(required: true);
 
 		/// <summary>Serialize a <typeparamref name="T"/> using a Tuple Writer</summary>
 		/// <param name="writer">Target buffer</param>
@@ -49,12 +49,12 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// This method supports embedded tuples.
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, T value)
+		public static void SerializeTo(ref TupleWriter writer, T? value)
 		{
 			Encoder(ref writer, value);
 		}
 
-		public static void SerializeBoxedTo(ref TupleWriter writer, object value)
+		public static void SerializeBoxedTo(ref TupleWriter writer, object? value)
 		{
 			Encoder(ref writer, (T) value);
 		}
@@ -67,7 +67,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// This method DOES NOT support embedded tuples, and assumes that we are serializing a top-level Tuple!
 		/// If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!
 		/// </remarks>
-		public static void SerializeTo(ref SliceWriter writer, T value)
+		public static void SerializeTo(ref SliceWriter writer, T? value)
 		{
 			var tw = new TupleWriter(writer);
 			Encoder(ref tw, value);
@@ -78,7 +78,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <summary>Serialize a value of type <typeparamref name="T"/> into a tuple segment</summary>
 		/// <param name="value">Value that will be serialized</param>
 		/// <returns>Slice that contains the binary representation of <paramref name="value"/></returns>
-		public static Slice Serialize(T value)
+		public static Slice Serialize(T? value)
 		{
 			var writer = new TupleWriter();
 			Encoder(ref writer, value);
@@ -89,7 +89,7 @@ namespace Doxense.Collections.Tuples.Encoding
 		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
 		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T Deserialize(Slice slice)
+		public static T? Deserialize(Slice slice)
 		{
 			return Decoder(slice);
 		}

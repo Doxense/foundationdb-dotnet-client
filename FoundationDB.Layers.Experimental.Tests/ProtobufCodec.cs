@@ -71,7 +71,7 @@ namespace FoundationDB.Types.ProtocolBuffers
 		{
 			if (encoded.IsNullOrEmpty) return default(TDocument);
 
-			using (var sr = new SliceStream(encoded))
+			using (var sr = encoded.ToStream())
 			{
 				return ProtoBuf.Serializer.Deserialize<TDocument>(sr);
 			}

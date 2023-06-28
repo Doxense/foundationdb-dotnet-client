@@ -48,23 +48,23 @@ namespace FoundationDB.Client
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
 		ICompositeKeyEncoder<T1, T2, T3> KeyEncoder { get; }
 
-		Slice this[[AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3] { [Pure]  get; }
+		Slice this[T1? item1, T2? item2, T3? item3] { [Pure]  get; }
 
 		Slice this[in (T1, T2, T3) items] { [Pure]  get; }
 
 		[Pure]
-		Slice Encode([AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3);
+		Slice Encode(T1? item1, T2? item2, T3? item3);
 
 		/// <summary>Encode only the first part of pair into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <returns>Partial key that can be used to create custom <see cref="KeyRange">key ranges</see></returns>
-		Slice EncodePartial([AllowNull] T1 item1);
+		Slice EncodePartial(T1? item1);
 
 		/// <summary>Encode only the first and second part of pair into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		/// <returns>Partial key that can be used to create custom <see cref="KeyRange">key ranges</see></returns>
-		Slice EncodePartial([AllowNull] T1 item1, [AllowNull] T2 item2);
+		Slice EncodePartial(T1? item1, T2? item2);
 
 		(T1, T2, T3) Decode(Slice packedKey);
 
@@ -117,7 +117,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.OpenWriter(2 * 16);
 			var tuple = (item1, item2, default(T3));
-			this.KeyEncoder.WriteKeyPartsTo(ref sw, 2, ref tuple);
+			this.KeyEncoder.WriteKeyPartsTo(ref sw, 2, in tuple);
 			return sw.ToSlice();
 		}
 
@@ -126,7 +126,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.OpenWriter(16);
 			var tuple = (item1, default(T2), default(T3));
-			this.KeyEncoder.WriteKeyPartsTo(ref sw, 1, ref tuple);
+			this.KeyEncoder.WriteKeyPartsTo(ref sw, 1, in tuple);
 			return sw.ToSlice();
 		}
 
@@ -186,7 +186,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public static KeyRange EncodeRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, [AllowNull] T1 item1, [AllowNull] T2 item2, [AllowNull] T3 item3)
+		public static KeyRange EncodeRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, T1? item1, T2? item2, T3? item3)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(item1, item2, item3));
@@ -210,7 +210,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public static KeyRange EncodePartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, [AllowNull] T1 item1, [AllowNull] T2 item2)
+		public static KeyRange EncodePartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, T1? item1, T2? item2)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1, item2));
@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public static KeyRange EncodePartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, [AllowNull] T1 item1)
+		public static KeyRange EncodePartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, T1? item1)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1));
@@ -260,12 +260,12 @@ namespace FoundationDB.Client
 
 		#region Decode()
 
-		public static void Decode<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2, [MaybeNull] out T3 item3)
+		public static void Decode<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
 		{
 			(item1, item2, item3) = self.Decode(packedKey);
 		}
 
-		public static void DecodePartial<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, [MaybeNull] out T1 item1, [MaybeNull] out T2 item2)
+		public static void DecodePartial<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T1? item1, out T2? item2)
 		{
 			(item1, item2, _) = self.DecodePartial(packedKey, 2);
 		}
@@ -279,7 +279,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
-		public static void DecodeFirst<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, [MaybeNull] out T1 first)
+		public static void DecodeFirst<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T1? first)
 		{
 			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
 			// => for now, we have to decode the whole tuple, and throw all items except the last one!
@@ -295,7 +295,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
-		public static void DecodeLast<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, [MaybeNull] out T3 last)
+		public static void DecodeLast<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T3? last)
 		{
 			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
 			// => for now, we have to decode the whole tuple, and throw all items except the last one!

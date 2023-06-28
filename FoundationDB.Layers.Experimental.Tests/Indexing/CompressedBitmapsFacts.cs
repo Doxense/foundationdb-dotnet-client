@@ -481,7 +481,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				"> {0:N0} distinct value(s), {1:N0} document(s), {2:N0} bitmap bytes, {3:N0} legacy bytes",
 				index.Values.Count,
 				total,
-				index.Values.Values.Sum(x => x.ToSlice().Count),
+				index.Values.Values.Sum(x => x.ByteCount),
 				totalLegacy
 			));
 		}
@@ -913,7 +913,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				var bmp = builder.ToBitmap();
 				bmp.GetStatistics(out int bits, out int words, out int a, out int b, out _);
 				Assert.That(bits, Is.EqualTo(kv.Count), "{0} has invalid count", kv.Value);
-				int sz = bmp.ToSlice().Count;
+				int sz = bmp.ByteCount;
 				log.WriteLine("{0,8} : {1,5} bits, {2} words ({3} lit. / {4} fil.), {5:N0} bytes, {6:N3} bytes/doc, {7:N2}% compression", kv.Value, bits, words, a, b, sz, 1.0 * sz / bits, 100.0 * (4 + 17 + sz) / (17 + (4 + 17) * bits));
 				totalBitmapSize += sz;
 				//if (j % 500 == 0) Log((100.0 * b / words));
