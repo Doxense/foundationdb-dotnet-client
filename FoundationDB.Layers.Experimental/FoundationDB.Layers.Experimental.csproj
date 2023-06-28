@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net6.0;net472</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <RootNamespace>FoundationDB.Layers</RootNamespace>
     <AssemblyName>FoundationDB.Layers.Experimental</AssemblyName>
     <LangVersion>11.0</LangVersion>

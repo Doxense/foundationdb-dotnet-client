@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2023 Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,12 +62,11 @@ namespace FoundationDB.DependencyInjection
 
 		private readonly Lazy<Task> DbTask;
 
-		private readonly ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
+		private readonly ReaderWriterLockSlim Lock = new();
 
 		private IFdbDatabase? Db { get; set; }
 
-		[AllowNull]
-		private TState State { get; set; }
+		private TState? State { get; set; }
 
 		private Exception? Error { get; set; }
 
@@ -80,7 +79,7 @@ namespace FoundationDB.DependencyInjection
 		public FdbDirectorySubspaceLocation Root => this.Parent.Root;
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private void UpdateInternalState(IFdbDatabase? db, [AllowNull] TState state, Exception? error)
+		private void UpdateInternalState(IFdbDatabase? db, TState? state, Exception? error)
 		{
 			this.Lock.EnterWriteLock();
 			try

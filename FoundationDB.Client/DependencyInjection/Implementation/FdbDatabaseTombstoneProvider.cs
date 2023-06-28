@@ -1,5 +1,5 @@
 ﻿#region BSD License
-/* Copyright (c) 2013-2023 Doxense SAS
+/* Copyright (c) 2005-2023 Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,8 +50,7 @@ namespace FoundationDB.DependencyInjection
 
 		public Exception Error { get; private set; }
 
-		[return:MaybeNull]
-		public TState GetState() => default!;
+		public TState? GetState() => default!;
 
 		private CancellationTokenSource Lifetime { get; }
 
