@@ -525,15 +525,6 @@ namespace Doxense.Core.Tests
 			original.WriteTo(scratch.Span.Slice(4, 8));
 			Assert.That(scratch.ToString("X"), Is.EqualTo("AA AA AA AA 01 23 45 67 89 AB CD EF AA AA AA AA"));
 
-			unsafe
-			{
-				Span<byte> buf = stackalloc byte[16];
-				buf.Fill(0xAA);
-
-				original.WriteToUnsafe(buf.Slice(2));
-				Assert.That(buf.ToArray().AsSlice().ToString("X"), Is.EqualTo("AA AA 01 23 45 67 89 AB CD EF AA AA AA AA AA AA"));
-			}
-
 			// errors
 
 			Assert.That(() => original.WriteTo(Span<byte>.Empty), Throws.InstanceOf<ArgumentException>(), "Target buffer is empty");

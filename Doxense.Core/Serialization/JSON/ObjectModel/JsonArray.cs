@@ -304,43 +304,6 @@ namespace Doxense.Serialization.Json
 			return new JsonArray(tmp, size1 + size2 + size3);
 		}
 
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type n'est PAS connu initialement</summary>
-		/// <param name="source">Séquence des éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
-		/// <remarks>Si le type des éléments est connu, utilisez plutôt <see cref="JsonArrayExtensions.ToJsonArray{T}(IEnumerable{T})"/></remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromBoxed(IEnumerable<object?> source)
-		{
-			Contract.NotNull(source);
-			//note: AddRange<T> optimise en fonction de la source (array, list, collection, ...)
-			return new JsonArray().AddRangeBoxed(source, settings: null, resolver: null);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type n'est PAS connu initialement</summary>
-		/// <param name="source">Séquence des éléments à convertir</param>
-		/// <param name="settings">Settings de conversion</param>
-		/// <param name="resolver"></param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
-		/// <remarks>Si le type des éléments est connu, utilisez plutôt <see cref="JsonArrayExtensions.ToJsonArray{T}(IEnumerable{T})"/></remarks>
-		[Pure]
-		[return: MaybeNull, NotNullIfNotNull("items")]
-		public static JsonArray FromBoxed(IEnumerable<object?> source, CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
-		{
-			Contract.NotNull(source);
-			//note: AddRange<T> optimise en fonction de la source (array, list, collection, ...)
-			return new JsonArray().AddRangeBoxed(source, settings, resolver);
-		}
-
-		/// <summary>Crée une nouvelle JsonArray à partir d'un tableau d'éléments dont le type n'est PAS connu initialement</summary>
-		/// <param name="items">Tableau des éléments à convertir</param>
-		/// <returns>JsonArray contenant tous les éléments de la séquence, convertis en JsonValue</returns>
-		/// <remarks>Si le type des éléments est connu, utilisez plutôt <see cref="JsonArrayExtensions.ToJsonArray{T}(T[])"/></remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static JsonArray FromBoxed(params object?[] items)
-		{
-			return new JsonArray().AddRangeBoxed(items, settings: null, resolver: null);
-		}
-
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
 		/// <typeparam name="T">Type de base des éléments de la séquence</typeparam>
 		/// <param name="values">Séquences d'éléments à convertir</param>
@@ -351,7 +314,6 @@ namespace Doxense.Serialization.Json
 			return new JsonArray().AddRange<T>(values);
 		}
 
-		
 		/// <summary>Crée une nouvelle JsonArray à partir d'une séquence d'éléments dont le type est connu.</summary>
 		/// <typeparam name="TCollection">Type de base de la séquence</typeparam>
 		/// <typeparam name="TElement">Type de base des éléments de la séquence</typeparam>

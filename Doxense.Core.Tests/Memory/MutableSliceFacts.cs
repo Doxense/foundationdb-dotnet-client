@@ -93,7 +93,7 @@ namespace Doxense.Slices.Tests //IMPORTANT: don't rename or else we loose all pe
 		[Test]
 		public void Test_MutableSlice_With_Content()
 		{
-			var slice = new MutableSlice("ABC"u8.ToArray());
+			var slice = MutableSlice.Create("ABC"u8.ToArray());
 
 			Assert.That(slice.Count, Is.EqualTo(3));
 			Assert.That(slice.Offset, Is.EqualTo(0));

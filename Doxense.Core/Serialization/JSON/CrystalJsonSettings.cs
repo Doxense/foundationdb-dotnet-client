@@ -80,7 +80,7 @@ namespace Doxense.Serialization.Json
 
 		// ReSharper disable InconsistentNaming
 		[Flags]
-		internal enum OptionFlags
+		public enum OptionFlags
 		{
 			None = 0,
 
@@ -170,7 +170,7 @@ namespace Doxense.Serialization.Json
 		#region Public Properties...
 
 		/// <summary>Flags correspondants au paramétrage</summary>
-		internal OptionFlags Flags
+		public OptionFlags Flags
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get { return m_flags; } }

@@ -3715,36 +3715,6 @@ namespace Doxense.Serialization.Json.Tests
 		}
 
 		[Test]
-		public void Test_JsonArray_CreateRange()
-		{
-			var args = new object[] {1, true, ""};
-
-			// object[]
-			var array = JsonArray.FromBoxed(args);
-			Assert.That(array, Is.Not.Null);
-			Assert.That(array.Count, Is.EqualTo(3));
-			Assert.That(array[0], Is.EqualTo(JsonNumber.One));
-			Assert.That(array[1], Is.EqualTo(JsonBoolean.True));
-			Assert.That(array[2], Is.EqualTo(JsonString.Empty));
-
-			// ICollection<object>
-			array = JsonArray.FromBoxed(args.ToList());
-			Assert.That(array, Is.Not.Null);
-			Assert.That(array.Count, Is.EqualTo(3));
-			Assert.That(array[0], Is.EqualTo(JsonNumber.One));
-			Assert.That(array[1], Is.EqualTo(JsonBoolean.True));
-			Assert.That(array[2], Is.EqualTo(JsonString.Empty));
-
-			// IEnumerable<object>
-			array = JsonArray.FromBoxed(args.Select(x => x));
-			Assert.That(array, Is.Not.Null);
-			Assert.That(array.Count, Is.EqualTo(3));
-			Assert.That(array[0], Is.EqualTo(JsonNumber.One));
-			Assert.That(array[1], Is.EqualTo(JsonBoolean.True));
-			Assert.That(array[2], Is.EqualTo(JsonString.Empty));
-		}
-
-		[Test]
 		public void Test_JsonArray_AddRange_Of_JsonValues()
 		{
 			var array = new JsonArray();
@@ -3838,43 +3808,6 @@ namespace Doxense.Serialization.Json.Tests
 
 			// errors
 			Assert.That(() => array.AddRange<int>(default(IEnumerable<int>)), Throws.InstanceOf<ArgumentNullException>());
-		}
-
-		[Test]
-		public void Test_JsonArray_AddRange_Of_Objects()
-		{
-			var array = new JsonArray();
-
-			// add elements
-			array.AddRangeBoxed(new object[] { "A", 2 });
-			Assert.That(array.Count, Is.EqualTo(2));
-			Assert.That(array.As<object[]>(), Is.EqualTo(new object[] { "A", 2 }));
-
-			// add singleton
-			array.AddRangeBoxed(new object[] { true });
-			Assert.That(array.Count, Is.EqualTo(3));
-			Assert.That(array.As<object[]>(), Is.EqualTo(new object[] { "A", 2, true }));
-
-			// add empty
-			array.AddRangeBoxed(new object[0]);
-			Assert.That(array.Count, Is.EqualTo(3));
-			Assert.That(array.As<object[]>(), Is.EqualTo(new object[] { "A", 2, true }));
-
-			// array inception!
-			array.AddRangeBoxed(array.As<object[]>());
-			Assert.That(array.Count, Is.EqualTo(6));
-			Assert.That(array.As<object[]>(), Is.EqualTo(new object[] { "A", 2, true, "A", 2, true }));
-
-			array = new JsonArray();
-			array.AddRangeBoxed(new object[] { new { Foo = 123, Bar = true }, new { Narf = "Zort" } });
-			Assert.That(array.Count, Is.EqualTo(2));
-			Assert.That(array[0], Is.InstanceOf<JsonObject>());
-			Assert.That(((JsonObject)array[0]).ToJson(), Is.EqualTo(@"{ ""Foo"": 123, ""Bar"": true }"));
-			Assert.That(array[1], Is.InstanceOf<JsonObject>());
-			Assert.That(((JsonObject)array[1]).ToJson(), Is.EqualTo(@"{ ""Narf"": ""Zort"" }"));
-
-			// errors
-			Assert.That(() => default(IEnumerable<object>).ToJsonArray(), Throws.InstanceOf<ArgumentNullException>());
 		}
 
 		[Test]
@@ -7254,7 +7187,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
 			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
 			// TODO: comment gérer les settings ?
-			writer.WriteLiteral("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
+			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(m_secret) + " }");
 		}
 
 		void IJsonSerializable.JsonDeserialize(JsonObject value, Type declaredType, ICrystalJsonTypeResolver resolver)
@@ -7321,7 +7254,7 @@ namespace Doxense.Serialization.Json.Tests
 			Assert.That(writer.Buffer, Is.Not.Null, "writer.Buffer");
 			Assert.That(writer.Settings, Is.Not.Null, "writer.Settings");
 			// TODO: comment gérer les settings ?
-			writer.WriteLiteral("{ \"custom\":" + JsonEncoding.Encode(instance.m_secret) + " }");
+			writer.WriteRaw("{ \"custom\":" + JsonEncoding.Encode(instance.m_secret) + " }");
 		}
 
 		/// <summary>Méthode statique utilisée pour désérialiser un objet</summary>

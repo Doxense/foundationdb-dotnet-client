@@ -33,89 +33,89 @@ namespace Doxense.Collections.Tuples.Encoding
 	/// <summary>
 	/// Constants for the various tuple value types
 	/// </summary>
-	internal static class TupleTypes
+	public static class TupleTypes
 	{
 		/// <summary>Null/Empty/Void</summary>
-		internal const byte Nil = 0;
+		public const byte Nil = 0;
 
 		/// <summary>ASCII String</summary>
-		internal const byte Bytes = 0x1;
+		public const byte Bytes = 0x1;
 
 		/// <summary>UTF-8 String</summary>
-		internal const byte Utf8 = 0x2;
+		public const byte Utf8 = 0x2;
 
 		/// <summary>Nested tuple start [OBSOLETE]</summary>
 		/// <remarks>Deprecated and should not be used anymore</remarks>
-		internal const byte LegacyTupleStart = 0x3;
+		public const byte LegacyTupleStart = 0x3;
 
 		/// <summary>Nested tuple end [OBSOLETE]</summary>
 		/// <remarks>Deprecated and should not be used anymore</remarks>
-		internal const byte LegacyTupleEnd = 0x4;
+		public const byte LegacyTupleEnd = 0x4;
 
 		/// <summary>Nested tuple</summary>
-		internal const byte EmbeddedTuple = 0x5;
+		public const byte EmbeddedTuple = 0x5;
 
 		/// <summary>Negative arbitrary-precision integer</summary>
-		internal const byte NegativeBigInteger = 0x0B;
+		public const byte NegativeBigInteger = 0x0B;
 
-		internal const byte IntNeg8 = 0x0C;
-		internal const byte IntNeg7 = 0x0D;
-		internal const byte IntNeg6 = 0x0E;
-		internal const byte IntNeg5 = 0x0F;
-		internal const byte IntNeg4 = 0x10;
-		internal const byte IntNeg3 = 0x11;
-		internal const byte IntNeg2 = 0x12;
-		internal const byte IntNeg1 = 0x13;
+		public const byte IntNeg8 = 0x0C;
+		public const byte IntNeg7 = 0x0D;
+		public const byte IntNeg6 = 0x0E;
+		public const byte IntNeg5 = 0x0F;
+		public const byte IntNeg4 = 0x10;
+		public const byte IntNeg3 = 0x11;
+		public const byte IntNeg2 = 0x12;
+		public const byte IntNeg1 = 0x13;
 		/// <summary>Integer 0</summary>
-		internal const byte IntZero = 0x14;
-		internal const byte IntPos1 = 0x15;
-		internal const byte IntPos2 = 0x16;
-		internal const byte IntPos3 = 0x17;
-		internal const byte IntPos4 = 0x18;
-		internal const byte IntPos5 = 0x19;
-		internal const byte IntPos6 = 0x1A;
-		internal const byte IntPos7 = 0x1B;
-		internal const byte IntPos8 = 0x1C;
+		public const byte IntZero = 0x14;
+		public const byte IntPos1 = 0x15;
+		public const byte IntPos2 = 0x16;
+		public const byte IntPos3 = 0x17;
+		public const byte IntPos4 = 0x18;
+		public const byte IntPos5 = 0x19;
+		public const byte IntPos6 = 0x1A;
+		public const byte IntPos7 = 0x1B;
+		public const byte IntPos8 = 0x1C;
 
 		/// <summary>Positive arbitrary-precision integer</summary>
-		internal const byte PositiveBigInteger = 0x1D;
+		public const byte PositiveBigInteger = 0x1D;
 
 		/// <summary>Single precision decimals (32-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Single = 0x20;
+		public const byte Single = 0x20;
 		/// <summary>Double precision decimals (64-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Double = 0x21;
+		public const byte Double = 0x21;
 		/// <summary>Triple precision decimals (80-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Triple = 0x22; //note: javascript numbers
+		public const byte Triple = 0x22; //note: javascript numbers
 		/// <summary>Quadruple precision decimals (128-bit, Big-Endian) [DRAFT]</summary>
-		internal const byte Decimal = 0x23;
+		public const byte Decimal = 0x23;
 
 		/// <summary>True Value [OBSOLETE]</summary>
 		/// <remarks>Deprecated and should not be used anymore</remarks>
-		internal const byte LegacyTrue = 0x25;
+		public const byte LegacyTrue = 0x25;
 
 		/// <summary>False Value</summary>
-		internal const byte False = 0x26;
+		public const byte False = 0x26;
 
 		/// <summary>True Value</summary>
-		internal const byte True = 0x27;
+		public const byte True = 0x27;
 
 		/// <summary>RFC4122 UUID (128 bits)</summary>
-		internal const byte Uuid128 = 0x30;
+		public const byte Uuid128 = 0x30;
 		/// <summary>UUID (64 bits)</summary>
-		internal const byte Uuid64 = 0x31; //TODO: this is not official yet! may change!
+		public const byte Uuid64 = 0x31; //TODO: this is not official yet! may change!
 
 		/// <summary>80-bit VersionStamp</summary>
-		internal const byte VersionStamp80 = 0x32;
+		public const byte VersionStamp80 = 0x32;
 
 		/// <summary>96-bit VersionStamp</summary>
-		internal const byte VersionStamp96 = 0x33;
+		public const byte VersionStamp96 = 0x33;
 
 		/// <summary>Standard prefix of the Directory Layer</summary>
 		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print tuples that would otherwise be unparsable.</remarks>
-		internal const byte Directory = 254;
+		public const byte Directory = 254;
 
 		/// <summary>Standard prefix of the System keys, or frequent suffix with key ranges</summary>
-		internal const byte Escape = 255;
+		public const byte Escape = 255;
 
 		/// <summary>Return the type of a tuple segment, from its header</summary>
 		public static TupleSegmentType DecodeSegmentType(Slice segment)

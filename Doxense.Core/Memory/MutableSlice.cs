@@ -47,7 +47,7 @@ namespace System
 	/// </remarks>
 	[/*PublicAPI,*/ ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(MutableSlice.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public readonly partial struct MutableSlice : IEquatable<MutableSlice>, IEquatable<Slice>, IEquatable<byte[]>, IComparable<MutableSlice>, IFormattable
+	public readonly struct MutableSlice : IEquatable<MutableSlice>, IEquatable<Slice>, IEquatable<byte[]>, IComparable<MutableSlice>, IFormattable
 	{
 		#region Static Members...
 
@@ -88,31 +88,34 @@ namespace System
 			this.Count = array.Length;
 		}
 
-		/// <summary>Creates a slice mapping a section of a buffer, without any sanity checks or buffer optimization</summary>
+		/// <summary>Creates a slice mapping a section of a buffer</summary>
 		/// <param name="buffer">Original buffer</param>
 		/// <param name="offset">Offset into buffer</param>
 		/// <param name="count">Number of bytes</param>
 		/// <returns>Slice that maps this segment of buffer.</returns>
-		/// <example>
-		/// Slice.CreateUnsafe(buffer, 1, 5) => Slice { Array = buffer, Offset = 1, Count = 5 }
-		/// </example>
-		/// <remarks>
-		/// Use this method ONLY if you are 100% sure that the slice will be valid. Failure to do so may introduce memory corruption!
-		/// Also, please note that this method will NOT optimize the case where count == 0, and will keep a reference to the original buffer!
-		/// The caller is responsible for handle that scenario if it is important!
-		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static MutableSlice CreateUnsafe(byte[] buffer, uint offset, uint count)
+		public static MutableSlice Create(byte[] buffer, int offset, int count)
 		{
-			Contract.Debug.Requires(buffer != null && offset <= (uint) buffer.Length && count <= ((uint) buffer.Length - offset));
-			return new MutableSlice(buffer, (int) offset, (int) count);
+			Contract.DoesNotOverflow(buffer, offset, count);
+			return new MutableSlice(buffer, offset, count);
+		}
+
+		/// <summary>Creates a slice mapping a section of a buffer</summary>
+		/// <param name="buffer">Original buffer</param>
+		/// <returns>Slice that maps this segment of buffer.</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static MutableSlice Create(byte[]? buffer)
+		{
+			if (buffer == null) return MutableSlice.Nil;
+			if (buffer.Length == 0) return MutableSlice.Empty;
+			return new MutableSlice(buffer, 0, buffer.Length);
 		}
 
 		/// <summary>Creates a new empty slice of a specified size containing all zeroes</summary>
 		public static MutableSlice Zero(int size)
 		{
 			Contract.Positive(size);
-			return size != 0 ? new MutableSlice(new byte[size]) : MutableSlice.Empty;
+			return size != 0 ? new MutableSlice(new byte[size], 0, size) : MutableSlice.Empty;
 		}
 
 		/// <summary>Creates a new empty slice of a specified size containing all zeroes</summary>
@@ -120,7 +123,7 @@ namespace System
 		public static MutableSlice Zero(uint size)
 		{
 			Contract.LessOrEqual(size, int.MaxValue);
-			return size != 0 ? new MutableSlice(new byte[size]) : MutableSlice.Empty;
+			return size != 0 ? new MutableSlice(new byte[size], 0, (int) size) : MutableSlice.Empty;
 		}
 
 		/// <summary>Creates a new slice with a copy of the array</summary>
@@ -474,7 +477,7 @@ namespace System
 
 			var res = new byte[count];
 			res.AsSpan().Fill(value);
-			return new MutableSlice(res);
+			return new MutableSlice(res, 0, res.Length);
 		}
 
 		/// <summary>Creates a new slice that contains the same byte repeated</summary>
@@ -488,7 +491,7 @@ namespace System
 
 			var res = new byte[count];
 			res.AsSpan().Fill((byte) value);
-			return new MutableSlice(res);
+			return new MutableSlice(res, 0, res.Length);
 		}
 
 		/// <summary>Create a new slice filled with random bytes taken from a random number generator</summary>

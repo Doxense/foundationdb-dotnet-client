@@ -1327,7 +1327,7 @@ namespace Doxense.Serialization.Json
 		{
 			if (m_literal != null)
 			{
-				writer.WriteLiteral(m_literal);
+				writer.WriteRaw(m_literal);
 			}
 			else
 			{

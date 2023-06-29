@@ -303,11 +303,11 @@ namespace Doxense.Serialization.Json
 
 			if (type.IsInstanceOf<IConvertible>())
 			{ // le type sait se convertir tout seul !
-				return (v, t, r, writer) => writer.WriteLiteral(((IConvertible) v!).ToString(CultureInfo.InvariantCulture));
+				return (v, t, r, writer) => writer.WriteRaw(((IConvertible) v!).ToString(CultureInfo.InvariantCulture));
 			}
 
 			// ramasse miette pour les sbyte, uint64 et autres ...
-			return (v, t, r, writer) => writer.WriteLiteral(v!.ToString()!);
+			return (v, t, r, writer) => writer.WriteRaw(v!.ToString()!);
 		}
 
 		/// <summary>Génère le convertisseur pour un Nullable&lt;T&gt; (int?, bool?, TimeSpan?, Enum?, ...)</summary>

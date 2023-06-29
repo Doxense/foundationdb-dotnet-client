@@ -148,12 +148,12 @@ namespace Doxense.Mathematics
 		public const int PhysicalSignificandSize = 52; // Excludes the hidden bit.
 		public const int SignificandSize = 53;
 
-		internal const int ExponentOffset = 0x3FF; // = 1023
-		internal const int ExponentBias = ExponentOffset + PhysicalSignificandSize; // = 1075
-		internal const int DenormalExponent = -ExponentBias + 1; // = -1074
-		internal const int MaxExponent = 0x7FF - ExponentBias; // = 972
-		internal const ulong Infinity = 0x7FF0000000000000ul;
-		internal const ulong NaN = 0x7FF8000000000000ul;
+		public const int ExponentOffset = 0x3FF; // = 1023
+		public const int ExponentBias = ExponentOffset + PhysicalSignificandSize; // = 1075
+		public const int DenormalExponent = -ExponentBias + 1; // = -1074
+		public const int MaxExponent = 0x7FF - ExponentBias; // = 972
+		public const ulong Infinity = 0x7FF0000000000000ul;
+		public const ulong NaN = 0x7FF8000000000000ul;
 
 		//note: this only works on LE hosts!
 
@@ -464,12 +464,12 @@ namespace Doxense.Mathematics
 		public const int PhysicalSignificandSize = 23; // Excludes the hidden bit.
 		public const int SignificandSize = 24;
 
-		internal const int ExponentOffset = 0x7F;
-		internal const int ExponentBias = ExponentOffset + PhysicalSignificandSize;
-		internal const int DenormalExponent = -ExponentBias + 1;
-		internal const int MaxExponent = 0xFF - ExponentBias;
-		internal const uint Infinity = 0x7F800000u;
-		internal const uint NaN = 0x7FC00000u;
+		public const int ExponentOffset = 0x7F;
+		public const int ExponentBias = ExponentOffset + PhysicalSignificandSize;
+		public const int DenormalExponent = -ExponentBias + 1;
+		public const int MaxExponent = 0xFF - ExponentBias;
+		public const uint Infinity = 0x7F800000u;
+		public const uint NaN = 0x7FC00000u;
 
 		//note: this only works on LE hosts!
 

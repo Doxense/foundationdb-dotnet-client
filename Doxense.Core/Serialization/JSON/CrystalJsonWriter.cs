@@ -735,11 +735,6 @@ namespace Doxense.Serialization.Json
 
 		#region Basic Type Serializers...
 
-		internal void WriteLiteral(string literal)
-		{
-			m_buffer.Write(literal);
-		}
-
 		/// <summary>[DANGEROUS] Ecrit un bloc de JSON brut dans le buffer de sortie</summary>
 		/// <param name="rawJson">Snippet de JSON brut à écrire tel quel (sans encodage)</param>
 		/// <remarks>"Danger, Will Robinson !!!"
@@ -1230,11 +1225,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == DateTime.MinValue)
 			{ // MinValue est sérialisée comme une chaine vide
-				WriteLiteral(JsonTokens.EmptyString);
+				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else if (date == DateTime.MaxValue)
 			{ // MaxValue ne doit pas mentioner la TZ
-				WriteLiteral(JsonTokens.Iso8601DateTimeMaxValue);
+				m_buffer.Write(JsonTokens.Iso8601DateTimeMaxValue);
 			}
 			else
 			{
@@ -1249,11 +1244,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == DateTimeOffset.MinValue)
 			{ // MinValue est sérialisée comme une chaine vide
-				WriteLiteral(JsonTokens.EmptyString);
+				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else if (date == DateTimeOffset.MaxValue)
 			{ // MaxValue ne doit pas mentioner la TZ
-				WriteLiteral(JsonTokens.Iso8601DateTimeMaxValue);
+				m_buffer.Write(JsonTokens.Iso8601DateTimeMaxValue);
 			}
 			else
 			{
@@ -1487,11 +1482,11 @@ namespace Doxense.Serialization.Json
 		{
 			if (date == NodaTime.Instant.MinValue)
 			{ // MinValue est sérialisée comme une chaine vide
-				WriteLiteral(JsonTokens.EmptyString);
+				m_buffer.Write(JsonTokens.EmptyString);
 			}
 			else if (date == NodaTime.Instant.MaxValue)
 			{ // MaxValue ne doit pas mentioner la TZ
-				WriteLiteral(JsonTokens.Iso8601DateTimeMaxValue);
+				m_buffer.Write(JsonTokens.Iso8601DateTimeMaxValue);
 			}
 			else
 			{ // "2013-07-26T16:45:20.1234567Z"
