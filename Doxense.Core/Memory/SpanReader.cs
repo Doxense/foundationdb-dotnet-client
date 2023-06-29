@@ -1,4 +1,4 @@
-﻿#region Copyright Doxense 2005-2019
+﻿#region Copyright (c) 2005-2023 Doxense SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -12,7 +12,6 @@ namespace Doxense.Memory
 	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using System.Text;
 	using Doxense.Diagnostics.Contracts;
 

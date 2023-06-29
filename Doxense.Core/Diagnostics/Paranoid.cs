@@ -1,4 +1,4 @@
-﻿#region Copyright Doxense 2012-2018
+﻿#region Copyright (c) 2005-2023 Doxense SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -8,12 +8,10 @@
 
 namespace Doxense.Diagnostics.Contracts
 {
-	using Doxense.IO;
-	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using JetBrains.Annotations;
 
 	/// <summary>Classe helper présente uniquement en mode Paranoid, pour la vérification de pré-requis, invariants, assertions, ...</summary>
 	/// <remarks>Les méthodes de cette classes ne sont compilées que si le flag PARANOID_ANDROID est défini</remarks>

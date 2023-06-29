@@ -1,4 +1,4 @@
-﻿#region Copyright Doxense SAS 2013-2019
+﻿#region Copyright (c) 2005-2023 Doxense SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -15,7 +15,6 @@ namespace Doxense.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Diagnostics.Contracts;
-	using JetBrains.Annotations;
 
 	/// <summary>Implements an async queue that asynchronously transform items, outputting them in arrival order, while throttling the producer</summary>
 	/// <typeparam name="TInput">Type of the input elements (from the inner async iterator)</typeparam>

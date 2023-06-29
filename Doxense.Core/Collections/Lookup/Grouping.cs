@@ -1,4 +1,4 @@
-#region Copyright Doxense 2012-2019
+#region Copyright (c) 2005-2023 Doxense SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -16,7 +16,6 @@ namespace Doxense.Collections.Lookup
 	using System.Runtime.CompilerServices;
 	using Doxense.Diagnostics.Contracts;
 	using Doxense.Memory;
-	using Doxense.Tools;
 	using JetBrains.Annotations;
 
 	/// <summary>Implémentation d'un grouping de plusieurs éléments sous une même clé</summary>

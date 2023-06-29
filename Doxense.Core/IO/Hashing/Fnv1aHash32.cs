@@ -1,4 +1,4 @@
-#region Copyright Doxense 2005-2018
+#region Copyright (c) 2005-2023 Doxense SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -13,7 +13,6 @@ namespace Doxense.IO.Hashing
 	using System.Text;
 	using System.Runtime.InteropServices;
 	using Doxense.Diagnostics.Contracts;
-	using Doxense.Memory;
 	using JetBrains.Annotations;
 
 	/// <summary>Calcul de hash FNV-1a sur 32 bits (Fowler–Noll–Vo "Alternatif")</summary>

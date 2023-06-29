@@ -1,4 +1,4 @@
-#region Copyright Doxense 2008-2022
+#region Copyright (c) 2005-2023 Doxense SAS
 //
 // All rights are reserved. Reproduction or transmission in whole or in part, in
 // any form or by any means, electronic, mechanical or otherwise, is prohibited
@@ -11,21 +11,18 @@ namespace Doxense.Networking
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Diagnostics.CodeAnalysis;
 	using System.Globalization;
 	using System.Net;
+	using System.Net.NetworkInformation;
 	using System.Net.Sockets;
 	using System.Runtime.CompilerServices;
-	using Doxense.Diagnostics.Contracts;
-	using Doxense.Serialization;
-	using Doxense.Memory;
-	using Doxense.Text;
-	using Doxense.Tools;
-	using System.Diagnostics.CodeAnalysis;
-	using System.Linq;
-	using System.Net.NetworkInformation;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using Doxense.Serialization;
+	using Doxense.Memory;
 
 	/// <summary>Helpers permettant de travailler sur des adresses IP (ou MAC address)</summary>
 	public static class IPAddressHelpers
